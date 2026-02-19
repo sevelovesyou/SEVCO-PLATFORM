@@ -1,4 +1,4 @@
-# SEVE Wiki - Encyclopedic Platform
+# SEVCO Wiki - Encyclopedic Platform
 
 ## Overview
 An encyclopedic wiki platform for sevelovesyou.com (SEVE / SEVCO Records). Features structured infoboxes, citation validation, auto-generated semantic crosslinks, and a version review workflow with flagged revisions and approvals.

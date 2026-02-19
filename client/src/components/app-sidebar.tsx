@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 import type { Category, Article } from "@shared/schema";
 
+import logoImg from "@assets/SEVCO_App_Icon_-_SEVCO_App_Icon_2_(1)_1771523059981.png";
+
 const categoryIcons: Record<string, typeof Music> = {
   artist: User,
   music: Music,
@@ -66,11 +68,11 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <Link href="/">
           <div className="flex items-center gap-2 cursor-pointer" data-testid="link-home-logo">
-            <div className="h-8 w-8 bg-primary rounded-md flex items-center justify-center">
-              <BookOpen className="h-4 w-4 text-primary-foreground" />
+            <div className="h-8 w-8 flex items-center justify-center overflow-hidden rounded-md">
+              <img src={logoImg} alt="SEVCO Logo" className="h-full w-full object-cover" />
             </div>
             <div>
-              <h1 className="text-sm font-bold leading-tight">SEVE Wiki</h1>
+              <h1 className="text-sm font-bold leading-tight">SEVCO Wiki</h1>
               <p className="text-[10px] text-muted-foreground leading-tight">sevelovesyou.com</p>
             </div>
           </div>

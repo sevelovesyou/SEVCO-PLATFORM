@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, jsonb, boolean, real } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -9,10 +10,138 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
 });
 
+export const categories = pgTable("categories", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull().unique(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  icon: text("icon"),
+});
+
+export const articles = pgTable("articles", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  content: text("content").notNull().default(""),
+  summary: text("summary"),
+  categoryId: integer("category_id"),
+  status: text("status").notNull().default("draft"),
+  infoboxType: text("infobox_type"),
+  infoboxData: jsonb("infobox_data"),
+  tags: text("tags").array(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const revisions = pgTable("revisions", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  articleId: integer("article_id").notNull(),
+  content: text("content").notNull(),
+  infoboxData: jsonb("infobox_data"),
+  summary: text("summary"),
+  editSummary: text("edit_summary"),
+  status: text("status").notNull().default("pending"),
+  reviewNote: text("review_note"),
+  authorName: text("author_name").notNull().default("Anonymous"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const citations = pgTable("citations", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  articleId: integer("article_id").notNull(),
+  url: text("url"),
+  title: text("title").notNull(),
+  format: text("format").notNull().default("APA"),
+  text: text("text").notNull(),
+  isValid: boolean("is_valid").default(true),
+  errorMessage: text("error_message"),
+  lastChecked: timestamp("last_checked").defaultNow(),
+});
+
+export const crosslinks = pgTable("crosslinks", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  sourceArticleId: integer("source_article_id").notNull(),
+  targetArticleId: integer("target_article_id").notNull(),
+  relevanceScore: real("relevance_score").notNull().default(0),
+  sharedKeywords: text("shared_keywords").array(),
+});
+
+export const categoriesRelations = relations(categories, ({ many }) => ({
+  articles: many(articles),
+}));
+
+export const articlesRelations = relations(articles, ({ one, many }) => ({
+  category: one(categories, {
+    fields: [articles.categoryId],
+    references: [categories.id],
+  }),
+  revisions: many(revisions),
+  citations: many(citations),
+  outgoingLinks: many(crosslinks, { relationName: "sourceLinks" }),
+  incomingLinks: many(crosslinks, { relationName: "targetLinks" }),
+}));
+
+export const revisionsRelations = relations(revisions, ({ one }) => ({
+  article: one(articles, {
+    fields: [revisions.articleId],
+    references: [articles.id],
+  }),
+}));
+
+export const citationsRelations = relations(citations, ({ one }) => ({
+  article: one(articles, {
+    fields: [citations.articleId],
+    references: [articles.id],
+  }),
+}));
+
+export const crosslinksRelations = relations(crosslinks, ({ one }) => ({
+  sourceArticle: one(articles, {
+    fields: [crosslinks.sourceArticleId],
+    references: [articles.id],
+    relationName: "sourceLinks",
+  }),
+  targetArticle: one(articles, {
+    fields: [crosslinks.targetArticleId],
+    references: [articles.id],
+    relationName: "targetLinks",
+  }),
+}));
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
 });
 
+export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
+
+export const insertArticleSchema = createInsertSchema(articles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRevisionSchema = createInsertSchema(revisions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCitationSchema = createInsertSchema(citations).omit({
+  id: true,
+  lastChecked: true,
+});
+
+export const insertCrosslinkSchema = createInsertSchema(crosslinks).omit({ id: true });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type Category = typeof categories.$inferSelect;
+export type InsertCategory = z.infer<typeof insertCategorySchema>;
+export type Article = typeof articles.$inferSelect;
+export type InsertArticle = z.infer<typeof insertArticleSchema>;
+export type Revision = typeof revisions.$inferSelect;
+export type InsertRevision = z.infer<typeof insertRevisionSchema>;
+export type Citation = typeof citations.$inferSelect;
+export type InsertCitation = z.infer<typeof insertCitationSchema>;
+export type Crosslink = typeof crosslinks.$inferSelect;
+export type InsertCrosslink = z.infer<typeof insertCrosslinkSchema>;

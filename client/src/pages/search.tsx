@@ -98,7 +98,7 @@ export default function SearchPage() {
         {filtered ? `${filtered.length} article${filtered.length !== 1 ? "s" : ""} found` : "Loading..."}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-4">
         {isLoading
           ? Array.from({ length: 5 }).map((_, i) => (
               <Card key={i} className="p-4 overflow-visible">

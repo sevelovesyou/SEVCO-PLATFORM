@@ -168,7 +168,7 @@ export default function ReviewQueue() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pending" className="mt-4 space-y-2">
+        <TabsContent value="pending" className="mt-4 space-y-4">
           {pendingLoading
             ? Array.from({ length: 3 }).map((_, i) => (
                 <Card key={i} className="p-4 overflow-visible">
@@ -192,7 +192,7 @@ export default function ReviewQueue() {
               )}
         </TabsContent>
 
-        <TabsContent value="all" className="mt-4 space-y-2">
+        <TabsContent value="all" className="mt-4 space-y-4">
           {allLoading
             ? Array.from({ length: 3 }).map((_, i) => (
                 <Card key={i} className="p-4 overflow-visible">

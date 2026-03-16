@@ -27,7 +27,7 @@ export default function CategoryView() {
       <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
         <Skeleton className="h-8 w-1/3" />
         <Skeleton className="h-4 w-2/3" />
-        <div className="space-y-2">
+        <div className="flex flex-col gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i} className="p-4 overflow-visible">
               <Skeleton className="h-5 w-3/4 mb-2" />
@@ -79,7 +79,7 @@ export default function CategoryView() {
         {publishedArticles.length} article{publishedArticles.length !== 1 ? "s" : ""} in this category
       </div>
 
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         {publishedArticles.map((article) => (
           <Link key={article.id} href={`/wiki/${article.slug}`}>
             <Card

@@ -25,6 +25,7 @@ export interface IStorage {
   searchArticles(query: string): Promise<Article[]>;
   createArticle(article: InsertArticle): Promise<Article>;
   updateArticle(id: number, data: Partial<InsertArticle>): Promise<Article>;
+  deleteArticle(id: number): Promise<void>;
 
   getRevisions(articleId: number): Promise<Revision[]>;
   getPendingRevisions(): Promise<(Revision & { article: Article })[]>;
@@ -111,6 +112,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(articles.id, id))
       .returning();
     return updated;
+  }
+
+  async deleteArticle(id: number): Promise<void> {
+    await db.delete(revisions).where(eq(revisions.articleId, id));
+    await db.delete(citations).where(eq(citations.articleId, id));
+    await db.delete(crosslinks).where(eq(crosslinks.sourceArticleId, id));
+    await db.delete(crosslinks).where(eq(crosslinks.targetArticleId, id));
+    await db.delete(articles).where(eq(articles.id, id));
   }
 
   async getRevisions(articleId: number): Promise<Revision[]> {

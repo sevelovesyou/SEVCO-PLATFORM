@@ -1,11 +1,21 @@
-import { useRoute, Link } from "wouter";
+import { useState } from "react";
+import { useRoute, Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { WikiInfobox } from "@/components/wiki-infobox";
 import { CitationList } from "@/components/citation-badge";
 import { CrosslinkPanel } from "@/components/crosslink-panel";
@@ -21,8 +31,11 @@ import {
   ArrowLeft,
   CheckCircle,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
 import type { Article, Citation, Revision } from "@shared/schema";
+
+const STAFF_PASSCODE = "4434";
 
 interface ArticleDetail extends Article {
   citations: Citation[];
@@ -39,6 +52,11 @@ export default function ArticleView() {
   const [, params] = useRoute("/wiki/:slug");
   const slug = params?.slug;
   const { toast } = useToast();
+  const [, navigate] = useLocation();
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletePasscode, setDeletePasscode] = useState("");
+  const [deletePasscodeError, setDeletePasscodeError] = useState(false);
 
   const { data: article, isLoading } = useQuery<ArticleDetail>({
     queryKey: ["/api/articles", slug],
@@ -64,6 +82,33 @@ export default function ArticleView() {
       toast({ title: "Revision rejected" });
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (articleId: number) =>
+      apiRequest("DELETE", `/api/articles/${articleId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({ title: "Article deleted" });
+      navigate("/");
+    },
+    onError: () => {
+      toast({ title: "Failed to delete article", variant: "destructive" });
+    },
+  });
+
+  function handleDeleteConfirm() {
+    if (deletePasscode !== STAFF_PASSCODE) {
+      setDeletePasscodeError(true);
+      setDeletePasscode("");
+      return;
+    }
+    if (article) {
+      deleteMutation.mutate(article.id);
+      setDeleteDialogOpen(false);
+      setDeletePasscode("");
+    }
+  }
 
   if (isLoading) {
     return (
@@ -173,12 +218,23 @@ export default function ArticleView() {
             </span>
           </div>
         </div>
-        <Link href={`/edit/${article.slug}`}>
-          <Button size="sm" data-testid="button-edit-article">
-            <Edit className="h-3 w-3 mr-1" />
-            Edit
+        <div className="flex items-center gap-2">
+          <Link href={`/edit/${article.slug}`}>
+            <Button size="sm" data-testid="button-edit-article">
+              <Edit className="h-3 w-3 mr-1" />
+              Edit
+            </Button>
+          </Link>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => { setDeleteDialogOpen(true); setDeletePasscode(""); setDeletePasscodeError(false); }}
+            data-testid="button-delete-article"
+          >
+            <Trash2 className="h-3 w-3 mr-1" />
+            Delete
           </Button>
-        </Link>
+        </div>
       </div>
 
       <Separator className="mb-6" />
@@ -240,7 +296,7 @@ export default function ArticleView() {
           </Tabs>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {article.infoboxType && article.infoboxData && (
             <WikiInfobox
               type={article.infoboxType}
@@ -250,6 +306,45 @@ export default function ArticleView() {
           )}
         </div>
       </div>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) { setDeletePasscode(""); setDeletePasscodeError(false); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Article</DialogTitle>
+            <DialogDescription>
+              This will permanently delete <strong>{article.title}</strong> and all its revisions, citations, and crosslinks. Enter the staff passcode to confirm.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Input
+              type="password"
+              placeholder="Enter staff passcode"
+              value={deletePasscode}
+              onChange={(e) => { setDeletePasscode(e.target.value); setDeletePasscodeError(false); }}
+              className={deletePasscodeError ? "border-destructive" : ""}
+              data-testid="input-delete-passcode"
+              onKeyDown={(e) => { if (e.key === "Enter") handleDeleteConfirm(); }}
+            />
+            {deletePasscodeError && (
+              <p className="text-xs text-destructive">Incorrect passcode. Please try again.</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} data-testid="button-cancel-delete">
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={deleteMutation.isPending || !deletePasscode}
+              data-testid="button-confirm-delete"
+            >
+              <Trash2 className="h-3 w-3 mr-1" />
+              Delete Article
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

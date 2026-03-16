@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -14,10 +16,12 @@ import {
   XCircle,
   AlertTriangle,
   FileText,
-  ArrowRight,
   Eye,
+  Lock,
 } from "lucide-react";
 import type { Revision, Article } from "@shared/schema";
+
+const STAFF_PASSCODE = "4434";
 
 interface RevisionWithArticle extends Revision {
   article: Article;
@@ -25,13 +29,18 @@ interface RevisionWithArticle extends Revision {
 
 export default function ReviewQueue() {
   const { toast } = useToast();
+  const [authenticated, setAuthenticated] = useState(false);
+  const [passcodeInput, setPasscodeInput] = useState("");
+  const [passcodeError, setPasscodeError] = useState(false);
 
   const { data: pendingRevisions, isLoading: pendingLoading } = useQuery<RevisionWithArticle[]>({
     queryKey: ["/api/revisions", "pending"],
+    enabled: authenticated,
   });
 
   const { data: allRevisions, isLoading: allLoading } = useQuery<RevisionWithArticle[]>({
     queryKey: ["/api/revisions"],
+    enabled: authenticated,
   });
 
   const approveMutation = useMutation({
@@ -56,6 +65,49 @@ export default function ReviewQueue() {
       toast({ title: "Revision rejected" });
     },
   });
+
+  function handlePasscodeSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (passcodeInput === STAFF_PASSCODE) {
+      setAuthenticated(true);
+      setPasscodeError(false);
+    } else {
+      setPasscodeError(true);
+      setPasscodeInput("");
+    }
+  }
+
+  if (!authenticated) {
+    return (
+      <div className="max-w-sm mx-auto p-4 md:p-6 mt-16">
+        <div className="text-center mb-6">
+          <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+            <Lock className="h-6 w-6 text-primary" />
+          </div>
+          <h1 className="text-xl font-bold mb-1">Staff Access Required</h1>
+          <p className="text-sm text-muted-foreground">Enter your staff passcode to access the review queue.</p>
+        </div>
+        <form onSubmit={handlePasscodeSubmit} className="space-y-3">
+          <Input
+            type="password"
+            placeholder="Enter passcode"
+            value={passcodeInput}
+            onChange={(e) => { setPasscodeInput(e.target.value); setPasscodeError(false); }}
+            className={passcodeError ? "border-destructive" : ""}
+            data-testid="input-passcode"
+            autoFocus
+          />
+          {passcodeError && (
+            <p className="text-xs text-destructive">Incorrect passcode. Please try again.</p>
+          )}
+          <Button type="submit" className="w-full" data-testid="button-passcode-submit">
+            <Shield className="h-4 w-4 mr-2" />
+            Access Review Queue
+          </Button>
+        </form>
+      </div>
+    );
+  }
 
   function RevisionCard({ revision }: { revision: RevisionWithArticle }) {
     const statusConfig: Record<string, { icon: typeof Clock; color: string; label: string }> = {
@@ -148,9 +200,20 @@ export default function ReviewQueue() {
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
-      <div className="flex items-center gap-2">
-        <Shield className="h-5 w-5 text-primary" />
-        <h1 className="text-xl font-bold">Review Queue</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Shield className="h-5 w-5 text-primary" />
+          <h1 className="text-xl font-bold">Review Queue</h1>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setAuthenticated(false)}
+          data-testid="button-lock-queue"
+        >
+          <Lock className="h-3 w-3 mr-1" />
+          Lock
+        </Button>
       </div>
       <p className="text-sm text-muted-foreground">
         Review and approve article revisions before they are published.
@@ -168,7 +231,7 @@ export default function ReviewQueue() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pending" className="mt-4 space-y-4">
+        <TabsContent value="pending" className="mt-4 space-y-3">
           {pendingLoading
             ? Array.from({ length: 3 }).map((_, i) => (
                 <Card key={i} className="p-4 overflow-visible">
@@ -192,7 +255,7 @@ export default function ReviewQueue() {
               )}
         </TabsContent>
 
-        <TabsContent value="all" className="mt-4 space-y-4">
+        <TabsContent value="all" className="mt-4 space-y-3">
           {allLoading
             ? Array.from({ length: 3 }).map((_, i) => (
                 <Card key={i} className="p-4 overflow-visible">

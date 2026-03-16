@@ -107,7 +107,7 @@ export default function Home() {
               </Button>
             </Link>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {artLoading
               ? Array.from({ length: 4 }).map((_, i) => (
                   <Card key={i} className="p-3 overflow-visible">
@@ -143,7 +143,7 @@ export default function Home() {
             <FolderOpen className="h-4 w-4 text-muted-foreground" />
             Categories
           </h2>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {catLoading
               ? Array.from({ length: 4 }).map((_, i) => (
                   <Card key={i} className="p-3 overflow-visible">

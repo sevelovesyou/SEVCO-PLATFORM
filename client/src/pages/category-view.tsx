@@ -79,7 +79,7 @@ export default function CategoryView() {
         {publishedArticles.length} article{publishedArticles.length !== 1 ? "s" : ""} in this category
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {publishedArticles.map((article) => (
           <Link key={article.id} href={`/wiki/${article.slug}`}>
             <Card

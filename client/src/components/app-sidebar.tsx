@@ -21,24 +21,24 @@ import {
   Shield,
   Search,
   FolderOpen,
-  Music,
-  User,
-  Disc3,
-  ShoppingBag,
-  Calendar,
   Globe,
+  Settings,
+  Code2,
+  Palette,
+  TrendingUp,
+  LifeBuoy,
 } from "lucide-react";
 import type { Category, Article } from "@shared/schema";
 
 import logoImg from "@assets/SEVCO_App_Icon_-_SEVCO_App_Icon_2_(1)_1771523059981.png";
 
-const categoryIcons: Record<string, typeof Music> = {
-  artist: User,
-  music: Music,
-  albums: Disc3,
-  merchandise: ShoppingBag,
-  events: Calendar,
-  general: Globe,
+const categoryIcons: Record<string, typeof Globe> = {
+  general:     Globe,
+  operations:  Settings,
+  engineering: Code2,
+  design:      Palette,
+  sales:       TrendingUp,
+  support:     LifeBuoy,
 };
 
 export function AppSidebar() {

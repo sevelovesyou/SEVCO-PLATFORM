@@ -1,271 +1,197 @@
 import { storage } from "./storage";
 import { db } from "./db";
-import { articles } from "@shared/schema";
-import { sql } from "drizzle-orm";
+import { articles, categories, revisions, citations, crosslinks } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 export async function seedDatabase() {
-  const [existing] = await db.select({ count: sql<number>`count(*)::int` }).from(articles);
-  if (existing.count > 0) return;
+  // Check whether the new categories are already present
+  const [engCat] = await db.select().from(categories).where(eq(categories.slug, "engineering"));
+  if (engCat) return; // already on new schema — nothing to do
 
-  console.log("Seeding database with SEVE wiki content...");
+  // Clear out any old data before inserting the new structure
+  console.log("Migrating database to new category structure...");
+  await db.delete(crosslinks);
+  await db.delete(citations);
+  await db.delete(revisions);
+  await db.delete(articles);
+  await db.delete(categories);
 
-  const catArtist = await storage.createCategory({ name: "Artists", slug: "artist", description: "Profiles of artists and collaborators", icon: "user" });
-  const catMusic = await storage.createCategory({ name: "Music", slug: "music", description: "Songs, singles, and musical releases", icon: "music" });
-  const catAlbums = await storage.createCategory({ name: "Albums", slug: "albums", description: "Album releases and collections", icon: "disc" });
-  const catMerch = await storage.createCategory({ name: "Merchandise", slug: "merchandise", description: "Official SEVCO merchandise and apparel", icon: "shopping-bag" });
-  const catGeneral = await storage.createCategory({ name: "General", slug: "general", description: "General information about SEVCO Records", icon: "globe" });
+  console.log("Seeding database with wiki content...");
 
-  const artSeve = await storage.createArticle({
-    title: "SEVE",
-    slug: "seve",
-    content: `## Overview
+  const catGeneral     = await storage.createCategory({ name: "General",     slug: "general",     description: "Company-wide information, policies, and announcements", icon: "globe" });
+  const catOperations  = await storage.createCategory({ name: "Operations",  slug: "operations",  description: "Processes, workflows, and operational guidelines",         icon: "settings" });
+  const catEngineering = await storage.createCategory({ name: "Engineering", slug: "engineering", description: "Technical documentation, architecture, and standards",      icon: "code" });
+  const catDesign      = await storage.createCategory({ name: "Design",      slug: "design",      description: "Design systems, brand guidelines, and UX patterns",        icon: "palette" });
+  const catSales       = await storage.createCategory({ name: "Sales",       slug: "sales",       description: "Sales processes, playbooks, and customer resources",       icon: "trending-up" });
+  const catSupport     = await storage.createCategory({ name: "Support",     slug: "support",     description: "Customer support procedures, FAQs, and escalation paths",  icon: "life-buoy" });
 
-SEVE is an independent recording artist and the creative force behind SEVCO Records. Known for a distinctive blend of alternative R&B, electronic, and experimental sounds, SEVE has built a dedicated following through authentic artistry and a strong digital presence at sevelovesyou.com.
-
-## Musical Style
-
-SEVE's music is characterized by atmospheric production, emotive vocals, and introspective lyricism. Drawing from genres including R&B, electronic, lo-fi, and alternative pop, the sound creates an immersive sonic experience that has been described as both intimate and expansive.
-
-## Career
-
-SEVE has released multiple singles across major streaming platforms including Spotify, Apple Music, and SoundCloud. Notable releases include "Hanna Montana," "Son of a Gun," "The Crown," "Swoon," and "Selfless." Each release showcases artistic growth and sonic experimentation.
-
-## SEVCO Records
-
-SEVCO Records is the independent label founded by SEVE, operating as both a creative vehicle and brand. The label handles music distribution, merchandise production, and brand partnerships. SEVCO has expanded beyond music into fashion with a range of apparel and accessories.
-
-## Online Presence
-
-SEVE maintains an active presence across streaming platforms and social media. The official website sevelovesyou.com serves as the central hub for music, merchandise, and fan engagement.`,
-    summary: "SEVE is an independent recording artist and founder of SEVCO Records, known for atmospheric R&B and electronic music.",
-    categoryId: catArtist.id,
-    status: "published",
-    infoboxType: "artist",
-    infoboxData: {
-      "Real Name": "SEVE",
-      "Also Known As": "sevelovesyou",
-      "Genre": "Alternative R&B, Electronic, Lo-fi",
-      "Label": "SEVCO Records",
-      "Website": "https://sevelovesyou.com",
-      "Spotify": "https://open.spotify.com/artist/seve",
-      "Active Since": "2020",
-    },
-    tags: ["seve", "artist", "sevco", "rnb", "electronic", "independent"],
+  // ── General ─────────────────────────────────────────────────────────────────
+  const artCompanyOverview = await storage.createArticle({
+    title: "Company Overview", slug: "company-overview",
+    content: `## About Us\n\nThis article provides a high-level overview of the company — our mission, vision, and core values.\n\n## Mission\n\nPlaceholder mission statement. Replace with your actual mission.\n\n## Vision\n\nPlaceholder vision statement. Replace with your actual vision.\n\n## Core Values\n\n- Integrity\n- Innovation\n- Collaboration\n- Customer Focus`,
+    summary: "High-level overview of the company, its mission, vision, and core values.",
+    categoryId: catGeneral.id, status: "published", infoboxType: "general",
+    infoboxData: { "Founded": "TBD", "Industry": "TBD", "Headquarters": "TBD" },
+    tags: ["company", "overview", "mission", "values"],
+  });
+  const artOnboarding = await storage.createArticle({
+    title: "Onboarding Guide", slug: "onboarding-guide",
+    content: `## Welcome\n\nThis guide helps new team members get up and running quickly.\n\n## Week 1 Checklist\n\n- Set up accounts and access\n- Meet your team\n- Review key documentation\n\n## Key Contacts\n\nPlaceholder — add key contacts here.\n\n## Tools & Systems\n\nPlaceholder — list the tools your team uses.`,
+    summary: "Step-by-step onboarding guide for new team members.",
+    categoryId: catGeneral.id, status: "published", infoboxType: "general",
+    infoboxData: { "Audience": "New Hires", "Last Updated": "TBD" },
+    tags: ["onboarding", "new-hire", "guide"],
+  });
+  const artPolicies = await storage.createArticle({
+    title: "Company Policies", slug: "company-policies",
+    content: `## Overview\n\nThis page links to and summarizes the key company policies all staff are expected to follow.\n\n## Code of Conduct\n\nPlaceholder — add your code of conduct here.\n\n## Remote Work Policy\n\nPlaceholder — describe your remote work expectations.\n\n## PTO & Leave\n\nPlaceholder — describe your PTO and leave policies.`,
+    summary: "Summary of key company policies including code of conduct, remote work, and leave.",
+    categoryId: catGeneral.id, status: "published", infoboxType: "general",
+    infoboxData: { "Applies To": "All Staff", "Last Reviewed": "TBD" },
+    tags: ["policy", "hr", "conduct", "pto"],
   });
 
-  const artHannaMontana = await storage.createArticle({
-    title: "Hanna Montana (Song)",
-    slug: "hanna-montana",
-    content: `## Overview
-
-"Hanna Montana" is a single by SEVE, released through SEVCO Records. The track represents one of SEVE's most prominent releases, showcasing the artist's signature blend of melodic hooks and atmospheric production.
-
-## Production
-
-The song features layered synths, crisp percussion, and SEVE's distinctive vocal delivery. The production draws from contemporary R&B and electronic influences while maintaining an intimate, personal quality.
-
-## Release
-
-"Hanna Montana" is available on all major streaming platforms including Spotify, Apple Music, and SoundCloud. The track has been well-received by listeners and has contributed to building SEVE's growing fanbase.
-
-## Reception
-
-The song has garnered positive attention for its catchy melodies and polished production quality. It exemplifies the artistic direction of SEVCO Records and SEVE's commitment to creating memorable, emotionally resonant music.`,
-    summary: "\"Hanna Montana\" is a single by SEVE featuring atmospheric R&B production and melodic vocals.",
-    categoryId: catMusic.id,
-    status: "published",
-    infoboxType: "song",
-    infoboxData: {
-      "Artist": "SEVE",
-      "Label": "SEVCO Records",
-      "Genre": "Alternative R&B",
-      "Format": "Digital Single",
-      "Spotify": "https://open.spotify.com/track/68YiCcW3bfw7B2IySNxKwi",
-      "Apple Music": "https://music.apple.com/us/album/hanna-montana/1857303286",
-    },
-    tags: ["hanna-montana", "single", "seve", "rnb", "sevco-records"],
+  // ── Operations ───────────────────────────────────────────────────────────────
+  const artProjectMgmt = await storage.createArticle({
+    title: "Project Management Process", slug: "project-management-process",
+    content: `## Overview\n\nThis article outlines how we manage projects from kickoff to delivery.\n\n## Phases\n\n### Discovery\nGather requirements and define scope.\n\n### Planning\nCreate milestones, assign owners, and set deadlines.\n\n### Execution\nDeliver work in sprints or phases.\n\n### Review\nConduct retrospectives and document learnings.`,
+    summary: "Standard process for managing projects from kickoff through delivery.",
+    categoryId: catOperations.id, status: "published", infoboxType: "general",
+    infoboxData: { "Tool": "TBD", "Owner": "Operations Team" },
+    tags: ["project-management", "process", "workflow"],
+  });
+  const artVendor = await storage.createArticle({
+    title: "Vendor Management", slug: "vendor-management",
+    content: `## Overview\n\nGuidelines for selecting, onboarding, and managing third-party vendors.\n\n## Vendor Selection Criteria\n\n- Cost\n- Reliability\n- Support quality\n- Integration capabilities\n\n## Onboarding a Vendor\n\nPlaceholder — describe your vendor onboarding steps.\n\n## Renewals & Reviews\n\nPlaceholder — describe your vendor review cadence.`,
+    summary: "Guidelines for selecting, onboarding, and managing third-party vendors.",
+    categoryId: catOperations.id, status: "published", infoboxType: "general",
+    infoboxData: { "Owner": "Operations", "Review Cycle": "Annual" },
+    tags: ["vendors", "operations", "procurement"],
+  });
+  const artMeetingNorms = await storage.createArticle({
+    title: "Meeting & Communication Norms", slug: "meeting-norms",
+    content: `## Overview\n\nHow we run effective meetings and communicate as a team.\n\n## Meeting Best Practices\n\n- Always have a written agenda\n- Start and end on time\n- Assign action items with owners and due dates\n\n## Async Communication\n\nPlaceholder — describe your async communication tools and expectations.\n\n## Escalation Path\n\nPlaceholder — describe how issues are escalated.`,
+    summary: "Norms and best practices for meetings and team communication.",
+    categoryId: catOperations.id, status: "published", infoboxType: "general",
+    infoboxData: { "Owner": "Operations", "Primary Tool": "TBD" },
+    tags: ["meetings", "communication", "norms"],
   });
 
-  const artSonOfAGun = await storage.createArticle({
-    title: "Son of a Gun",
-    slug: "son-of-a-gun",
-    content: `## Overview
-
-"Son of a Gun" is a single by SEVE, released as part of the SEVCO Records catalog. The track showcases a more aggressive and energetic side of SEVE's artistry.
-
-## Musical Style
-
-The song incorporates harder-hitting beats with SEVE's characteristic vocal style. It blends elements of hip-hop production with electronic textures, creating a dynamic listening experience.
-
-## Streaming
-
-Available on Spotify, Apple Music, and SoundCloud, "Son of a Gun" is part of SEVE's expanding discography of singles that explore different sonic territories.`,
-    summary: "\"Son of a Gun\" is an energetic single by SEVE blending hip-hop and electronic production.",
-    categoryId: catMusic.id,
-    status: "published",
-    infoboxType: "song",
-    infoboxData: {
-      "Artist": "SEVE",
-      "Label": "SEVCO Records",
-      "Genre": "Alternative Hip-Hop / Electronic",
-      "Format": "Digital Single",
-      "Spotify": "https://open.spotify.com/track/2ptXqtMqUexqYM619OIuj6",
-      "Apple Music": "https://music.apple.com/us/album/son-of-a-gun/1646800349",
-    },
-    tags: ["son-of-a-gun", "single", "seve", "hip-hop", "electronic"],
+  // ── Engineering ──────────────────────────────────────────────────────────────
+  const artTechStack = await storage.createArticle({
+    title: "Tech Stack Overview", slug: "tech-stack-overview",
+    content: `## Overview\n\nA summary of the technologies and frameworks used across our products.\n\n## Frontend\n\nPlaceholder — list your frontend technologies.\n\n## Backend\n\nPlaceholder — list your backend technologies.\n\n## Infrastructure\n\nPlaceholder — describe your hosting and infrastructure setup.\n\n## Databases\n\nPlaceholder — list your databases and storage solutions.`,
+    summary: "Overview of the technologies, frameworks, and infrastructure used across products.",
+    categoryId: catEngineering.id, status: "published", infoboxType: "general",
+    infoboxData: { "Owner": "Engineering", "Last Updated": "TBD" },
+    tags: ["tech-stack", "engineering", "architecture"],
+  });
+  const artCodeReview = await storage.createArticle({
+    title: "Code Review Guidelines", slug: "code-review-guidelines",
+    content: `## Purpose\n\nCode reviews help maintain quality, share knowledge, and catch bugs early.\n\n## Reviewer Responsibilities\n\n- Review within 1 business day\n- Provide constructive, specific feedback\n- Approve only when confident in correctness\n\n## Author Responsibilities\n\n- Keep PRs small and focused\n- Write a clear description\n- Respond to all comments\n\n## Merge Criteria\n\nPlaceholder — define your merge requirements (approvals, CI checks, etc.).`,
+    summary: "Guidelines for conducting and receiving code reviews across the engineering team.",
+    categoryId: catEngineering.id, status: "published", infoboxType: "general",
+    infoboxData: { "Owner": "Engineering Lead", "Applies To": "All Engineers" },
+    tags: ["code-review", "engineering", "quality"],
+  });
+  const artDeployment = await storage.createArticle({
+    title: "Deployment Process", slug: "deployment-process",
+    content: `## Overview\n\nHow code gets from a developer's machine to production.\n\n## Environments\n\n- **Development** — local or dev server\n- **Staging** — pre-production testing\n- **Production** — live environment\n\n## Deployment Steps\n\n1. Merge approved PR to main\n2. CI/CD pipeline runs tests\n3. Auto-deploy to staging\n4. Manual promotion to production\n\n## Rollback Procedure\n\nPlaceholder — describe your rollback steps.`,
+    summary: "Step-by-step guide for deploying code from development through to production.",
+    categoryId: catEngineering.id, status: "published", infoboxType: "general",
+    infoboxData: { "Owner": "Engineering", "CI/CD Tool": "TBD" },
+    tags: ["deployment", "ci-cd", "engineering", "release"],
   });
 
-  const artTheCrown = await storage.createArticle({
-    title: "The Crown",
-    slug: "the-crown",
-    content: `## Overview
-
-"The Crown" is a single by SEVE that represents a bold artistic statement. The track carries themes of ambition, perseverance, and self-belief.
-
-## Production
-
-Featuring polished production with layered instrumentation, "The Crown" balances vulnerability with confidence. The sonic landscape combines smooth R&B elements with modern electronic production.
-
-## Significance
-
-"The Crown" stands as one of SEVE's most thematically ambitious releases, exploring ideas of legacy and artistic purpose within the independent music landscape.`,
-    summary: "\"The Crown\" is a thematically ambitious single by SEVE exploring ambition and artistic legacy.",
-    categoryId: catMusic.id,
-    status: "published",
-    infoboxType: "song",
-    infoboxData: {
-      "Artist": "SEVE",
-      "Label": "SEVCO Records",
-      "Genre": "R&B / Electronic",
-      "Format": "Digital Single",
-      "Spotify": "https://open.spotify.com/track/6JWnFf44K70A38z8yMUGQK",
-      "Apple Music": "https://music.apple.com/us/album/the-crown/1701345448",
-    },
-    tags: ["the-crown", "single", "seve", "rnb", "sevco-records"],
+  // ── Design ───────────────────────────────────────────────────────────────────
+  const artDesignSystem = await storage.createArticle({
+    title: "Design System", slug: "design-system",
+    content: `## Overview\n\nOur design system provides the foundations for building consistent, accessible user interfaces.\n\n## Typography\n\nPlaceholder — describe your type scale and font choices.\n\n## Color Palette\n\nPlaceholder — list your primary, secondary, and neutral colors.\n\n## Spacing & Grid\n\nPlaceholder — describe your spacing scale and grid system.\n\n## Components\n\nPlaceholder — link to or describe your component library.`,
+    summary: "Foundations of the design system including typography, colors, spacing, and components.",
+    categoryId: catDesign.id, status: "published", infoboxType: "general",
+    infoboxData: { "Tool": "TBD", "Owner": "Design Team" },
+    tags: ["design-system", "ui", "components", "brand"],
+  });
+  const artBrandGuidelines = await storage.createArticle({
+    title: "Brand Guidelines", slug: "brand-guidelines",
+    content: `## Overview\n\nThis document defines how the brand should be presented across all touchpoints.\n\n## Logo Usage\n\nPlaceholder — describe logo usage rules, minimum sizes, and clear space.\n\n## Voice & Tone\n\nPlaceholder — describe the brand's voice and tone.\n\n## Do's and Don'ts\n\nPlaceholder — list key brand do's and don'ts.`,
+    summary: "Official brand guidelines covering logo usage, voice, tone, and visual standards.",
+    categoryId: catDesign.id, status: "published", infoboxType: "general",
+    infoboxData: { "Owner": "Brand / Design", "Last Updated": "TBD" },
+    tags: ["brand", "guidelines", "logo", "voice"],
+  });
+  const artUxResearch = await storage.createArticle({
+    title: "UX Research Process", slug: "ux-research-process",
+    content: `## Overview\n\nHow the design team conducts user research to inform product decisions.\n\n## Research Methods\n\n- User interviews\n- Usability testing\n- Surveys\n- Analytics review\n\n## Research Repository\n\nPlaceholder — describe where research findings are stored.\n\n## How to Request Research\n\nPlaceholder — describe how other teams can request UX research support.`,
+    summary: "Overview of the UX research process, methods, and how to request research support.",
+    categoryId: catDesign.id, status: "published", infoboxType: "general",
+    infoboxData: { "Owner": "UX Team", "Methods": "Interviews, Usability, Surveys" },
+    tags: ["ux", "research", "design", "user-testing"],
   });
 
-  const artVault = await storage.createArticle({
-    title: "Vault (Album)",
-    slug: "vault-album",
-    content: `## Overview
-
-"Vault" is a collection by SEVE released through SEVCO Records. The project compiles tracks that showcase the breadth and depth of SEVE's musical vision. A vinyl edition was also produced, making it one of SEVE's most significant physical releases.
-
-## Track Listing
-
-The Vault project encompasses a curated selection of SEVE's work, presented as a cohesive listening experience. The collection spans multiple sonic palettes while maintaining the signature SEVCO aesthetic.
-
-## Physical Release
-
-A vinyl edition of Vault was produced and made available through the official website, representing SEVE's commitment to quality and tangible music experiences. The vinyl release was handled through Elastic Stage.
-
-## Legacy
-
-The Vault project serves as both an archival effort and a statement of artistic intent, showing the range and evolution of SEVE's craft from early recordings through present day.`,
-    summary: "\"Vault\" is a curated collection by SEVE available on vinyl and digital, showcasing the artist's full range.",
-    categoryId: catAlbums.id,
-    status: "published",
-    infoboxType: "album",
-    infoboxData: {
-      "Artist": "SEVE",
-      "Label": "SEVCO Records",
-      "Format": "Vinyl / Digital",
-      "Type": "Collection",
-      "Vinyl": "https://elasticstage.com/soundcloud/releases/seve-vault-album",
-      "SoundCloud": "https://soundcloud.com/sevelovesu/sets/vault",
-    },
-    tags: ["vault", "album", "collection", "vinyl", "seve", "sevco-records"],
+  // ── Sales ────────────────────────────────────────────────────────────────────
+  const artSalesPlaybook = await storage.createArticle({
+    title: "Sales Playbook", slug: "sales-playbook",
+    content: `## Overview\n\nThe sales playbook is the definitive guide to how we sell — from prospecting to close.\n\n## Ideal Customer Profile\n\nPlaceholder — describe your ICP.\n\n## Sales Stages\n\n1. Prospecting\n2. Discovery\n3. Demo\n4. Proposal\n5. Negotiation\n6. Close\n\n## Objection Handling\n\nPlaceholder — list common objections and responses.`,
+    summary: "The definitive guide to our sales process, from prospecting to close.",
+    categoryId: catSales.id, status: "published", infoboxType: "general",
+    infoboxData: { "Owner": "Sales Leadership", "Audience": "Sales Team" },
+    tags: ["sales", "playbook", "process", "revenue"],
+  });
+  const artPricing = await storage.createArticle({
+    title: "Pricing & Packaging", slug: "pricing-and-packaging",
+    content: `## Overview\n\nThis page documents our current pricing structure and packaging tiers.\n\n## Tiers\n\n- **Starter** — Placeholder pricing and features\n- **Growth** — Placeholder pricing and features\n- **Enterprise** — Custom pricing\n\n## Discounting Policy\n\nPlaceholder — describe discount authority levels.\n\n## Contract Terms\n\nPlaceholder — describe standard contract lengths and terms.`,
+    summary: "Current pricing tiers, packaging options, and discounting policy.",
+    categoryId: catSales.id, status: "published", infoboxType: "general",
+    infoboxData: { "Owner": "Sales / Finance", "Review Cycle": "Quarterly" },
+    tags: ["pricing", "packaging", "sales", "tiers"],
+  });
+  const artCrm = await storage.createArticle({
+    title: "CRM & Pipeline Management", slug: "crm-pipeline-management",
+    content: `## Overview\n\nHow the sales team manages the CRM and keeps pipeline data accurate.\n\n## CRM Tool\n\nPlaceholder — specify your CRM (e.g. HubSpot, Salesforce).\n\n## Pipeline Hygiene Rules\n\n- Update deal stages within 24 hours of any activity\n- Log all calls and emails\n- Keep close dates realistic\n\n## Reporting Cadence\n\nPlaceholder — describe how pipeline is reviewed in team meetings.`,
+    summary: "Guidelines for managing the CRM, pipeline hygiene, and sales reporting.",
+    categoryId: catSales.id, status: "published", infoboxType: "general",
+    infoboxData: { "CRM": "TBD", "Owner": "Sales Ops" },
+    tags: ["crm", "pipeline", "sales-ops", "reporting"],
   });
 
-  const artSevcoRecords = await storage.createArticle({
-    title: "SEVCO Records",
-    slug: "sevco-records",
-    content: `## Overview
-
-SEVCO Records is an independent record label and creative brand founded by SEVE. The label operates as the primary vehicle for SEVE's musical releases and brand extensions, including merchandise and fashion.
-
-## Mission
-
-SEVCO Records is built on the principle of artistic independence and creative freedom. The label handles all aspects of music production, distribution, and brand management without major label involvement.
-
-## Merchandise
-
-SEVCO has expanded into fashion and merchandise, offering a range of products including hoodies, t-shirts, sweatshirts, snapback caps, and sweatpants. The merchandise line features bold branding and is available through the official sevelovesyou.com storefront.
-
-## Products
-
-Notable merchandise items include:
-- SEVCO Planet Mock-Neck Sweatshirt ($43)
-- SEVCO Records Basic Hoodie ($27)
-- SEVCO Records Promo Shirts in Red and Blue ($11 each)
-- SEVCO Planet Snapback ($28)
-- SEVCO Planet Surf Cap ($25)
-- SEVCO Planet Fade Sweats ($44)
-- SEVCO Basic Long Sleeve (various prices)
-
-## Distribution
-
-Music is distributed across all major streaming platforms including Spotify, Apple Music, and SoundCloud. Physical releases like the Vault vinyl are handled through partners like Elastic Stage.`,
-    summary: "SEVCO Records is the independent label and creative brand behind SEVE's music, merchandise, and artistic vision.",
-    categoryId: catGeneral.id,
-    status: "published",
-    infoboxType: "general",
-    infoboxData: {
-      "Founded By": "SEVE",
-      "Type": "Independent Record Label",
-      "Website": "https://sevelovesyou.com",
-      "Products": "Music, Merchandise, Fashion",
-      "Distribution": "Spotify, Apple Music, SoundCloud",
-    },
-    tags: ["sevco", "record-label", "independent", "merchandise", "fashion"],
+  // ── Support ──────────────────────────────────────────────────────────────────
+  const artSupportTiers = await storage.createArticle({
+    title: "Support Tiers & SLAs", slug: "support-tiers-slas",
+    content: `## Overview\n\nDefines the support tiers available to customers and the associated service level agreements.\n\n## Tiers\n\n- **Standard** — Email support, response within 2 business days\n- **Priority** — Email + chat, response within 4 hours\n- **Enterprise** — Dedicated support, response within 1 hour\n\n## Escalation Policy\n\nPlaceholder — describe your escalation process.\n\n## SLA Breach Process\n\nPlaceholder — what happens when an SLA is breached.`,
+    summary: "Overview of customer support tiers, response SLAs, and escalation policies.",
+    categoryId: catSupport.id, status: "published", infoboxType: "general",
+    infoboxData: { "Owner": "Support Lead", "Last Reviewed": "TBD" },
+    tags: ["support", "sla", "tiers", "escalation"],
+  });
+  const artCommonIssues = await storage.createArticle({
+    title: "Common Issues & Resolutions", slug: "common-issues-resolutions",
+    content: `## Overview\n\nA reference guide for the most frequently encountered customer issues and their resolutions.\n\n## Login & Access Issues\n\nPlaceholder — describe common login issues and fixes.\n\n## Billing Questions\n\nPlaceholder — describe how to handle common billing inquiries.\n\n## Feature Questions\n\nPlaceholder — link to feature documentation or describe common how-to answers.`,
+    summary: "Reference guide for frequently encountered customer issues and their standard resolutions.",
+    categoryId: catSupport.id, status: "published", infoboxType: "general",
+    infoboxData: { "Last Updated": "TBD", "Maintained By": "Support Team" },
+    tags: ["support", "faq", "troubleshooting", "issues"],
+  });
+  const artTickets = await storage.createArticle({
+    title: "Ticket Handling Process", slug: "ticket-handling-process",
+    content: `## Overview\n\nHow support tickets are created, triaged, assigned, and resolved.\n\n## Ticket Lifecycle\n\n1. Customer submits ticket\n2. Auto-acknowledgement sent\n3. Agent triages and assigns priority\n4. Resolution delivered\n5. Ticket closed and customer surveyed\n\n## Priority Levels\n\n- **P1 Critical** — Service down, immediate response\n- **P2 High** — Major feature broken\n- **P3 Medium** — Minor issue with workaround\n- **P4 Low** — General question or feedback\n\n## Ticket Tools\n\nPlaceholder — specify your support ticketing tool.`,
+    summary: "Step-by-step process for triaging, assigning, and resolving customer support tickets.",
+    categoryId: catSupport.id, status: "published", infoboxType: "general",
+    infoboxData: { "Tool": "TBD", "Owner": "Support Ops" },
+    tags: ["tickets", "support", "triage", "process"],
   });
 
-  const artMerch = await storage.createArticle({
-    title: "SEVCO Merchandise",
-    slug: "sevco-merchandise",
-    content: `## Overview
+  // ── Initial revisions ────────────────────────────────────────────────────────
+  const allArts = [
+    artCompanyOverview, artOnboarding, artPolicies,
+    artProjectMgmt, artVendor, artMeetingNorms,
+    artTechStack, artCodeReview, artDeployment,
+    artDesignSystem, artBrandGuidelines, artUxResearch,
+    artSalesPlaybook, artPricing, artCrm,
+    artSupportTiers, artCommonIssues, artTickets,
+  ];
 
-SEVCO Records offers an extensive line of merchandise and apparel through the official sevelovesyou.com online store. The merchandise features the SEVCO and SEVCO Planet branding across a variety of clothing items and accessories.
-
-## Product Lines
-
-### Outerwear
-- SEVCO Planet Mock-Neck Sweatshirt - A premium mock-neck design priced at $43
-- SEVCO Records Basic Hoodie - Available in multiple colors at $27
-- SEVCO Basic Long Sleeve - Extended sleeve options at various price points
-
-### T-Shirts
-- SEVCO Records Promo Shirt (Red) - Classic promotional design at $11
-- SEVCO Records Promo Shirt (Blue) - Blue colorway variant at $11
-
-### Bottoms
-- SEVCO Planet Fade Sweats - Gradient fade design at $44
-
-### Accessories
-- SEVCO Planet Snapback - Structured snapback cap at $28
-- SEVCO Planet Surf Cap - Relaxed fit surf-style cap at $25
-
-## Branding
-
-The merchandise line features the distinctive SEVCO and SEVCO Planet logos. The "Planet" sub-brand focuses on streetwear-inspired designs with bold graphic elements.
-
-## Availability
-
-All merchandise is available exclusively through the official website at sevelovesyou.com, with shipping available to various locations.`,
-    summary: "Official SEVCO merchandise line including hoodies, shirts, hats, and sweats available at sevelovesyou.com.",
-    categoryId: catMerch.id,
-    status: "published",
-    infoboxType: "merchandise",
-    infoboxData: {
-      "Brand": "SEVCO Records / SEVCO Planet",
-      "Shop": "https://sevelovesyou.com",
-      "Categories": "Outerwear, T-Shirts, Bottoms, Accessories",
-      "Price Range": "$11 - $44",
-    },
-    tags: ["merchandise", "fashion", "streetwear", "sevco-planet", "apparel"],
-  });
-
-  for (const art of [artSeve, artHannaMontana, artSonOfAGun, artTheCrown, artVault, artSevcoRecords, artMerch]) {
+  for (const art of allArts) {
     await storage.createRevision({
       articleId: art.id,
       content: art.content,
@@ -277,118 +203,5 @@ All merchandise is available exclusively through the official website at sevelov
     });
   }
 
-  await storage.createCitation({
-    articleId: artSeve.id,
-    url: "https://sevelovesyou.com",
-    title: "Official SEVE Website",
-    format: "APA",
-    text: "SEVE. (2024). Official Website. sevelovesyou.com. Retrieved from https://sevelovesyou.com",
-    isValid: true,
-  });
-
-  await storage.createCitation({
-    articleId: artSeve.id,
-    url: "https://open.spotify.com/artist/seve",
-    title: "SEVE on Spotify",
-    format: "APA",
-    text: "SEVE. (2024). Artist Profile. Spotify. Retrieved from https://open.spotify.com/artist/seve",
-    isValid: true,
-  });
-
-  await storage.createCitation({
-    articleId: artHannaMontana.id,
-    url: "https://open.spotify.com/track/68YiCcW3bfw7B2IySNxKwi",
-    title: "Hanna Montana on Spotify",
-    format: "APA",
-    text: "SEVE. (2024). Hanna Montana [Song]. SEVCO Records. Spotify.",
-    isValid: true,
-  });
-
-  await storage.createCitation({
-    articleId: artVault.id,
-    url: "https://elasticstage.com/soundcloud/releases/seve-vault-album",
-    title: "Vault Vinyl Release",
-    format: "APA",
-    text: "SEVE. (2024). Vault [Vinyl]. SEVCO Records. Elastic Stage.",
-    isValid: true,
-  });
-
-  await storage.createCitation({
-    articleId: artSevcoRecords.id,
-    url: "https://sevelovesyou.com",
-    title: "SEVCO Records Official",
-    format: "APA",
-    text: "SEVCO Records. (2024). Official Brand Page. sevelovesyou.com.",
-    isValid: true,
-  });
-
-  await storage.createRevision({
-    articleId: artSeve.id,
-    content: artSeve.content + "\n\n## Upcoming Projects\n\nSEVE has hinted at new material in development.",
-    infoboxData: artSeve.infoboxData,
-    summary: artSeve.summary,
-    editSummary: "Added section about upcoming projects",
-    status: "pending",
-    authorName: "Contributor",
-  });
-
-  await storage.createRevision({
-    articleId: artSevcoRecords.id,
-    content: artSevcoRecords.content + "\n\n## Partnerships\n\nSEVCO Records has explored collaborations with independent distributors.",
-    infoboxData: artSevcoRecords.infoboxData,
-    summary: artSevcoRecords.summary,
-    editSummary: "Added information about label partnerships",
-    status: "pending",
-    authorName: "MusicFan42",
-  });
-
-  for (const art of [artSeve, artHannaMontana, artSonOfAGun, artTheCrown, artVault, artSevcoRecords, artMerch]) {
-    try {
-      await generateCrosslinksForSeed(art.id);
-    } catch (e) {
-      console.log(`Crosslink generation skipped for ${art.title}`);
-    }
-  }
-
-  console.log("Database seeded successfully with 7 articles, citations, and crosslinks.");
-}
-
-async function generateCrosslinksForSeed(articleId: number) {
-  const allArticles = await storage.getArticles();
-  const sourceArticle = allArticles.find((a) => a.id === articleId);
-  if (!sourceArticle) return;
-
-  const stopWords = new Set([
-    "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
-    "of", "with", "by", "from", "is", "was", "are", "were", "be", "been",
-    "have", "has", "had", "do", "does", "did", "will", "would", "it", "its",
-    "this", "that", "these", "those", "he", "she", "they", "we", "not", "as",
-  ]);
-
-  function getKeywords(text: string): string[] {
-    const words = text.toLowerCase().replace(/[^\w\s]/g, "").split(/\s+/)
-      .filter((w) => w.length > 2 && !stopWords.has(w));
-    const freq: Record<string, number> = {};
-    words.forEach((w) => { freq[w] = (freq[w] || 0) + 1; });
-    return Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 20).map(([word]) => word);
-  }
-
-  const sourceText = `${sourceArticle.title} ${sourceArticle.content} ${sourceArticle.summary || ""} ${(sourceArticle.tags || []).join(" ")}`;
-  const sourceKeywords = getKeywords(sourceText);
-
-  for (const target of allArticles) {
-    if (target.id === articleId) continue;
-    const targetText = `${target.title} ${target.content} ${target.summary || ""} ${(target.tags || []).join(" ")}`;
-    const targetKeywords = getKeywords(targetText);
-    const shared = sourceKeywords.filter((k) => targetKeywords.includes(k));
-    if (shared.length >= 2) {
-      const score = Math.min(shared.length / 10, 1);
-      await storage.createCrosslink({
-        sourceArticleId: articleId,
-        targetArticleId: target.id,
-        relevanceScore: score,
-        sharedKeywords: shared.slice(0, 6),
-      });
-    }
-  }
+  console.log("Database seeded successfully with 18 articles across 6 categories.");
 }

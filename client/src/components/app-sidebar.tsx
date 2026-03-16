@@ -41,6 +41,8 @@ const categoryIcons: Record<string, typeof Globe> = {
   support:     LifeBuoy,
 };
 
+const CATEGORY_ORDER = ["general", "operations", "engineering", "design", "sales", "support"];
+
 export function AppSidebar() {
   const [location] = useLocation();
 
@@ -119,7 +121,11 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 ))
               ) : (
-                categories?.map((cat) => {
+                [...(categories ?? [])].sort((a, b) => {
+                  const ai = CATEGORY_ORDER.indexOf(a.slug);
+                  const bi = CATEGORY_ORDER.indexOf(b.slug);
+                  return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+                }).map((cat) => {
                   const CatIcon = categoryIcons[cat.slug] || FolderOpen;
                   return (
                     <SidebarMenuItem key={cat.id}>

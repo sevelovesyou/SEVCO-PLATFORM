@@ -2,16 +2,12 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
-  ShoppingBag, Plus, Package, ChevronDown, ArrowUpDown, SlidersHorizontal,
+  ShoppingBag, Plus, Package, ArrowUpDown, SlidersHorizontal,
+  AlertCircle, Eye, ShoppingCart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePermission } from "@/hooks/use-permission";
 import type { Product } from "@shared/schema";
 
@@ -26,33 +22,37 @@ const SORT_LABELS: Record<SortKey, string> = {
   "name-desc":  "Name: Z–A",
 };
 
-const CATEGORY_PALETTES: Record<string, { bg: string; text: string; border: string }> = {
-  apparel:      { bg: "bg-indigo-500/10",  text: "text-indigo-700 dark:text-indigo-300",  border: "border-indigo-500/20" },
-  music:        { bg: "bg-violet-500/10",  text: "text-violet-700 dark:text-violet-300",  border: "border-violet-500/20" },
-  accessories:  { bg: "bg-rose-500/10",    text: "text-rose-700 dark:text-rose-300",      border: "border-rose-500/20" },
-  vinyl:        { bg: "bg-amber-500/10",   text: "text-amber-700 dark:text-amber-400",    border: "border-amber-500/20" },
-  electronics:  { bg: "bg-blue-500/10",    text: "text-blue-700 dark:text-blue-300",      border: "border-blue-500/20" },
-  posters:      { bg: "bg-pink-500/10",    text: "text-pink-700 dark:text-pink-300",      border: "border-pink-500/20" },
-  collectibles: { bg: "bg-teal-500/10",    text: "text-teal-700 dark:text-teal-300",      border: "border-teal-500/20" },
+const CATEGORY_PALETTES: Record<string, { bg: string; text: string; border: string; gradient: string }> = {
+  apparel:      { bg: "bg-indigo-500/10",  text: "text-indigo-700 dark:text-indigo-300",  border: "border-indigo-500/20",  gradient: "from-indigo-400 to-indigo-600" },
+  music:        { bg: "bg-violet-500/10",  text: "text-violet-700 dark:text-violet-300",  border: "border-violet-500/20",  gradient: "from-violet-400 to-violet-600" },
+  accessories:  { bg: "bg-rose-500/10",    text: "text-rose-700 dark:text-rose-300",      border: "border-rose-500/20",    gradient: "from-rose-400 to-rose-600" },
+  vinyl:        { bg: "bg-amber-500/10",   text: "text-amber-700 dark:text-amber-400",    border: "border-amber-500/20",   gradient: "from-amber-400 to-amber-600" },
+  electronics:  { bg: "bg-blue-500/10",    text: "text-blue-700 dark:text-blue-300",      border: "border-blue-500/20",    gradient: "from-blue-400 to-blue-600" },
+  posters:      { bg: "bg-pink-500/10",    text: "text-pink-700 dark:text-pink-300",      border: "border-pink-500/20",    gradient: "from-pink-400 to-pink-600" },
+  collectibles: { bg: "bg-teal-500/10",    text: "text-teal-700 dark:text-teal-300",      border: "border-teal-500/20",    gradient: "from-teal-400 to-teal-600" },
+  art:          { bg: "bg-fuchsia-500/10", text: "text-fuchsia-700 dark:text-fuchsia-300",border: "border-fuchsia-500/20", gradient: "from-fuchsia-400 to-fuchsia-600" },
+  digital:      { bg: "bg-sky-500/10",     text: "text-sky-700 dark:text-sky-300",        border: "border-sky-500/20",     gradient: "from-sky-400 to-sky-600" },
 };
-const DEFAULT_PALETTE = { bg: "bg-orange-500/10", text: "text-orange-700 dark:text-orange-300", border: "border-orange-500/20" };
+const DEFAULT_PALETTE = { bg: "bg-orange-500/10", text: "text-orange-700 dark:text-orange-300", border: "border-orange-500/20", gradient: "from-orange-400 to-amber-500" };
 
 function getCategoryPalette(cat: string) {
   return CATEGORY_PALETTES[cat.toLowerCase()] ?? DEFAULT_PALETTE;
 }
 
 function ProductImageArea({ product }: { product: Product }) {
-  const inStock = product.stockStatus === "available";
+  const [imgError, setImgError] = useState(false);
+  const soldOut = product.stockStatus === "sold_out";
   const palette = getCategoryPalette(product.categoryName);
   const initial = product.name.charAt(0).toUpperCase();
 
   return (
     <div className="relative aspect-square overflow-hidden bg-muted/40 rounded-t-xl">
-      {product.imageUrl ? (
+      {product.imageUrl && !imgError ? (
         <img
           src={product.imageUrl}
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          onError={() => setImgError(true)}
         />
       ) : (
         <div className={`w-full h-full flex flex-col items-center justify-center gap-2 ${palette.bg}`}>
@@ -61,47 +61,79 @@ function ProductImageArea({ product }: { product: Product }) {
         </div>
       )}
 
-      {!inStock && (
+      {soldOut && (
         <div className="absolute top-3 left-3">
-          <span className="bg-black/80 text-white text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-sm">
+          <span
+            data-testid={`badge-sold-out-${product.id}`}
+            className="bg-black/80 text-white text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-sm"
+          >
             Sold Out
           </span>
         </div>
       )}
 
-      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-        <span className="bg-white text-black text-xs font-semibold px-4 py-2 rounded-full shadow-lg translate-y-1 group-hover:translate-y-0 transition-transform duration-200">
-          View
-        </span>
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100">
+        <div className="flex gap-2 translate-y-2 group-hover:translate-y-0 transition-transform duration-200">
+          <Link href={`/store/products/${product.slug}`}>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="bg-white text-black hover:bg-white/90 shadow-md text-xs font-semibold px-3"
+              data-testid={`button-view-${product.id}`}
+            >
+              <Eye className="h-3 w-3 mr-1" />
+              View
+            </Button>
+          </Link>
+          {!soldOut && (
+            <Button
+              size="sm"
+              className="bg-orange-500 hover:bg-orange-600 text-white shadow-md text-xs font-semibold px-3"
+              data-testid={`button-add-to-cart-${product.id}`}
+            >
+              <ShoppingCart className="h-3 w-3 mr-1" />
+              Add to Cart
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
 function ProductCard({ product }: { product: Product }) {
+  const soldOut = product.stockStatus === "sold_out";
   return (
-    <Link href={`/store/products/${product.slug}`}>
-      <div
-        data-testid={`card-product-${product.id}`}
-        className="group cursor-pointer flex flex-col"
-      >
-        <ProductImageArea product={product} />
-        <div className="pt-3 pb-1 px-0.5 flex flex-col gap-0.5">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium truncate">
-            {product.categoryName}
-          </p>
-          <h3 className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
-            {product.name}
-          </h3>
-          <p
-            className="text-sm font-bold mt-0.5"
-            data-testid={`text-price-${product.id}`}
-          >
-            ${product.price.toFixed(2)}
-          </p>
-        </div>
+    <div
+      data-testid={`card-product-${product.id}`}
+      className="group cursor-pointer flex flex-col"
+    >
+      <ProductImageArea product={product} />
+      <div className="pt-3 pb-1 px-0.5 flex flex-col gap-0.5">
+        <p
+          className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium truncate"
+          data-testid={`text-category-${product.id}`}
+        >
+          {product.categoryName}
+        </p>
+        <h3
+          className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors"
+          data-testid={`text-name-${product.id}`}
+        >
+          {product.name}
+        </h3>
+        <p
+          className="text-sm font-bold mt-0.5"
+          data-testid={`text-price-${product.id}`}
+        >
+          {soldOut ? (
+            <span className="text-muted-foreground line-through">${product.price.toFixed(2)}</span>
+          ) : (
+            <span className="text-orange-600 dark:text-orange-400">${product.price.toFixed(2)}</span>
+          )}
+        </p>
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -263,38 +295,56 @@ export default function StorePage() {
         )}
 
         <div className="flex items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
-            {isLoading ? (
-              <Skeleton className="h-4 w-24 inline-block" />
-            ) : (
-              <>{filtered.length} {filtered.length === 1 ? "product" : "products"}{activeCategory !== "all" ? ` in ${activeCategory}` : ""}</>
-            )}
-          </p>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2 h-8 text-xs" data-testid="button-sort">
-                <ArrowUpDown className="h-3 w-3" />
-                {SORT_LABELS[sort]}
-                <ChevronDown className="h-3 w-3 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
-                <DropdownMenuItem
-                  key={key}
-                  onClick={() => setSort(key)}
-                  className={`text-xs cursor-pointer ${sort === key ? "font-semibold" : ""}`}
-                  data-testid={`sort-option-${key}`}
-                >
-                  {SORT_LABELS[key]}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex flex-wrap gap-2" data-testid="filter-pills">
+            <button
+              data-testid="pill-category-all"
+              onClick={() => setActiveCategory("all")}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide border transition-colors duration-150 ${
+                activeCategory === "all"
+                  ? "bg-orange-500 text-white border-orange-500"
+                  : "border-border text-muted-foreground hover:border-orange-400 hover:text-orange-500"
+              }`}
+            >
+              All
+            </button>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                data-testid={`pill-category-${cat}`}
+                onClick={() => setActiveCategory(cat === activeCategory ? "all" : cat)}
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide border transition-colors duration-150 ${
+                  activeCategory === cat
+                    ? "bg-orange-500 text-white border-orange-500"
+                    : "border-border text-muted-foreground hover:border-orange-400 hover:text-orange-500"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+            <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
+              <SelectTrigger
+                className="w-[170px] h-8 text-xs border-border/60"
+                data-testid="select-sort"
+              >
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
+                  <SelectItem key={key} value={key} data-testid={`sort-option-${key}`}>
+                    {SORT_LABELS[key]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8">
             {Array.from({ length: 8 }).map((_, i) => (
               <ProductCardSkeleton key={i} />
             ))}
@@ -302,7 +352,7 @@ export default function StorePage() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
             <div className="h-14 w-14 rounded-2xl bg-orange-500/10 flex items-center justify-center">
-              <Package className="h-7 w-7 text-orange-500 opacity-60" />
+              <AlertCircle className="h-7 w-7 text-orange-500" />
             </div>
             <div>
               <p className="font-semibold text-base">No products found</p>
@@ -322,7 +372,7 @@ export default function StorePage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8">
             {filtered.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

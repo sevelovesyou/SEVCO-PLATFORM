@@ -90,7 +90,7 @@ export default function ArticleView() {
       queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({ title: "Article deleted" });
-      navigate("/");
+      navigate("/wiki");
     },
     onError: () => {
       toast({ title: "Failed to delete article", variant: "destructive" });
@@ -131,10 +131,10 @@ export default function ArticleView() {
         <p className="text-sm text-muted-foreground mb-4">
           The article you're looking for doesn't exist or has been removed.
         </p>
-        <Link href="/">
+        <Link href="/wiki">
           <Button variant="outline" data-testid="button-go-home">
             <ArrowLeft className="h-4 w-4 mr-1" />
-            Back to Home
+            Back to Wiki
           </Button>
         </Link>
       </div>
@@ -178,10 +178,10 @@ export default function ArticleView() {
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6">
       <div className="flex items-center gap-2 mb-4">
-        <Link href="/">
+        <Link href="/wiki">
           <Button variant="ghost" size="sm" data-testid="button-back">
             <ArrowLeft className="h-3 w-3 mr-1" />
-            Home
+            Wiki
           </Button>
         </Link>
         {article.category && (

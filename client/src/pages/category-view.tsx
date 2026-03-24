@@ -44,10 +44,10 @@ export default function CategoryView() {
       <div className="max-w-4xl mx-auto p-4 md:p-6 text-center py-12">
         <FolderOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
         <h2 className="text-lg font-semibold mb-1">Category not found</h2>
-        <Link href="/">
+        <Link href="/wiki">
           <Button variant="outline" data-testid="button-go-home">
             <ArrowLeft className="h-4 w-4 mr-1" />
-            Back to Home
+            Back to Wiki
           </Button>
         </Link>
       </div>
@@ -59,10 +59,10 @@ export default function CategoryView() {
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
       <div className="flex items-center gap-2 mb-2">
-        <Link href="/">
+        <Link href="/wiki">
           <Button variant="ghost" size="sm" data-testid="button-back">
             <ArrowLeft className="h-3 w-3 mr-1" />
-            Home
+            Wiki
           </Button>
         </Link>
       </div>

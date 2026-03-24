@@ -422,6 +422,9 @@ export async function registerRoutes(
   app.post("/api/music/albums", requireAuth, requireRole(...CAN_MANAGE_MUSIC), async (req, res) => {
     try {
       const data = insertAlbumSchema.parse(req.body);
+      const allArtists = await storage.getArtists();
+      const artistExists = allArtists.some((a) => a.id === data.artistId);
+      if (!artistExists) return res.status(400).json({ message: "Artist not found" });
       const album = await storage.createAlbum(data);
       res.json(album);
     } catch (err: any) {

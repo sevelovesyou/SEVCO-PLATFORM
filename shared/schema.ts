@@ -147,8 +147,20 @@ export const albumsRelations = relations(albums, ({ one }) => ({
   }),
 }));
 
+export const products = pgTable("products", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  price: real("price").notNull(),
+  categoryName: text("category_name").notNull(),
+  stockStatus: text("stock_status").notNull().default("available"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertArtistSchema = createInsertSchema(artists).omit({ id: true, createdAt: true });
 export const insertAlbumSchema = createInsertSchema(albums).omit({ id: true, createdAt: true });
+export const insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true });
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -203,3 +215,5 @@ export type Artist = typeof artists.$inferSelect;
 export type InsertArtist = z.infer<typeof insertArtistSchema>;
 export type Album = typeof albums.$inferSelect;
 export type InsertAlbum = z.infer<typeof insertAlbumSchema>;
+export type Product = typeof products.$inferSelect;
+export type InsertProduct = z.infer<typeof insertProductSchema>;

@@ -7,8 +7,9 @@ import {
   type Crosslink, type InsertCrosslink,
   type Artist, type InsertArtist,
   type Album, type InsertAlbum,
+  type Product, type InsertProduct,
   users, categories, articles, revisions, citations, crosslinks,
-  artists, albums,
+  artists, albums, products,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or } from "drizzle-orm";
@@ -61,6 +62,11 @@ export interface IStorage {
   getAlbumsByArtist(artistId: number): Promise<Album[]>;
   getAlbumBySlug(slug: string): Promise<(Album & { artist: Artist }) | undefined>;
   createAlbum(album: InsertAlbum): Promise<Album>;
+
+  getProducts(): Promise<Product[]>;
+  getProductBySlug(slug: string): Promise<Product | undefined>;
+  getProductsByCategory(categoryName: string): Promise<Product[]>;
+  createProduct(product: InsertProduct): Promise<Product>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -326,6 +332,24 @@ export class DatabaseStorage implements IStorage {
 
   async createAlbum(album: InsertAlbum): Promise<Album> {
     const [created] = await db.insert(albums).values(album).returning();
+    return created;
+  }
+
+  async getProducts(): Promise<Product[]> {
+    return db.select().from(products).orderBy(products.categoryName, products.name);
+  }
+
+  async getProductBySlug(slug: string): Promise<Product | undefined> {
+    const [product] = await db.select().from(products).where(eq(products.slug, slug));
+    return product || undefined;
+  }
+
+  async getProductsByCategory(categoryName: string): Promise<Product[]> {
+    return db.select().from(products).where(eq(products.categoryName, categoryName)).orderBy(products.name);
+  }
+
+  async createProduct(product: InsertProduct): Promise<Product> {
+    const [created] = await db.insert(products).values(product).returning();
     return created;
   }
 }

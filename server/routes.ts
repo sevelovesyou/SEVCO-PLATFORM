@@ -10,9 +10,10 @@ import {
   CAN_DELETE_ARTICLE,
 } from "./middleware/permissions";
 import type { Role } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema } from "@shared/schema";
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive", "staff"];
+const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
 
 function extractKeywords(text: string): string[] {
   const stopWords = new Set([
@@ -427,6 +428,39 @@ export async function registerRoutes(
       if (!artistExists) return res.status(400).json({ message: "Artist not found" });
       const album = await storage.createAlbum(data);
       res.json(album);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/store/products", async (_req, res) => {
+    try {
+      const all = await storage.getProducts();
+      res.json(all);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/store/products/new", (_req, res) => {
+    res.status(400).json({ message: "Use POST to create a product" });
+  });
+
+  app.get("/api/store/products/:slug", async (req, res) => {
+    try {
+      const product = await storage.getProductBySlug(req.params.slug);
+      if (!product) return res.status(404).json({ message: "Product not found" });
+      res.json(product);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/store/products", requireAuth, requireRole(...CAN_MANAGE_STORE), async (req, res) => {
+    try {
+      const data = insertProductSchema.parse(req.body);
+      const product = await storage.createProduct(data);
+      res.json(product);
     } catch (err: any) {
       res.status(400).json({ message: err.message });
     }

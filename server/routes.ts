@@ -11,6 +11,7 @@ import {
 } from "./middleware/permissions";
 import type { Role } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema } from "@shared/schema";
+import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
@@ -573,7 +574,33 @@ export async function registerRoutes(
     try {
       const data = insertProductSchema.parse(req.body);
       const product = await storage.createProduct(data);
-      res.json(product);
+
+      try {
+        const stripe = await getUncachableStripeClient();
+        const stripeProduct = await stripe.products.create({
+          name: product.name,
+          description: product.description || undefined,
+          images: product.imageUrl ? [product.imageUrl] : undefined,
+          metadata: {
+            internalId: String(product.id),
+            category: product.categoryName,
+            slug: product.slug,
+          },
+        });
+        const stripePrice = await stripe.prices.create({
+          product: stripeProduct.id,
+          unit_amount: Math.round(product.price * 100),
+          currency: 'usd',
+        });
+        const updated = await storage.updateProduct(product.id, {
+          stripeProductId: stripeProduct.id,
+          stripePriceId: stripePrice.id,
+        });
+        res.json(updated);
+      } catch (stripeErr: any) {
+        console.error('Stripe sync error for product:', stripeErr.message);
+        res.json(product);
+      }
     } catch (err: any) {
       res.status(400).json({ message: err.message });
     }
@@ -587,6 +614,15 @@ export async function registerRoutes(
       if (!stockStatus || typeof stockStatus !== "string") return res.status(400).json({ message: "stockStatus required" });
       const product = await storage.updateProductStockStatus(id, stockStatus);
       res.json(product);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/stripe/publishable-key", async (_req, res) => {
+    try {
+      const key = await getStripePublishableKey();
+      res.json({ publishableKey: key });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -607,6 +643,103 @@ export async function registerRoutes(
     try {
       const stats = await storage.getStoreStats();
       res.json(stats);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/checkout", requireAuth, async (req, res) => {
+    try {
+      const { items } = req.body as {
+        items: Array<{ productId: number; name: string; price: number; quantity: number; stripePriceId: string | null }>;
+      };
+
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ message: "Cart is empty" });
+      }
+
+      const lineItems: any[] = [];
+      for (const item of items) {
+        if (item.stripePriceId) {
+          lineItems.push({ price: item.stripePriceId, quantity: item.quantity });
+        } else {
+          lineItems.push({
+            price_data: {
+              currency: 'usd',
+              product_data: { name: item.name },
+              unit_amount: Math.round(item.price * 100),
+            },
+            quantity: item.quantity,
+          });
+        }
+      }
+
+      const host = req.get('host');
+      const proto = req.headers['x-forwarded-proto'] || req.protocol;
+      const baseUrl = `${proto}://${host}`;
+
+      const stripe = await getUncachableStripeClient();
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: lineItems,
+        mode: 'payment',
+        success_url: `${baseUrl}/store/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/store/cancel`,
+        metadata: {
+          userId: (req.user as any)?.id || '',
+        },
+      });
+
+      res.json({ url: session.url });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/checkout/session/:sessionId", requireAuth, async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const stripe = await getUncachableStripeClient();
+      const session = await stripe.checkout.sessions.retrieve(sessionId, {
+        expand: ['line_items'],
+      });
+
+      if (session.payment_status !== 'paid') {
+        return res.json({ paid: false, session });
+      }
+
+      const existing = await storage.getOrderBySessionId(sessionId);
+      if (existing) {
+        return res.json({ paid: true, order: existing });
+      }
+
+      const order = await storage.createOrder({
+        userId: (req.user as any)?.id || null,
+        stripeSessionId: sessionId,
+        stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
+        total: session.amount_total || 0,
+        status: 'paid',
+        items: (session.line_items?.data || []).map((li: any) => ({
+          description: li.description,
+          quantity: li.quantity,
+          amount_total: li.amount_total,
+        })),
+      });
+
+      res.json({ paid: true, order });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/orders", requireAuth, requireRole("admin", "executive"), async (_req, res) => {
+    try {
+      const allOrders = await storage.getOrders();
+      res.json(allOrders);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

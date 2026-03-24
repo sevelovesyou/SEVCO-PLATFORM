@@ -78,9 +78,25 @@ admin > executive > staff > partner > client > user
 - CAN_DELETE_ARTICLE: admin, executive
 - CAN_MANAGE_ROLES: admin only
 
+## Stripe / E-Commerce
+- Stripe connected via Replit integration (stripe-replit-sync for webhook sync)
+- `server/stripeClient.ts` — fetches Stripe credentials from Replit connector API
+- `server/webhookHandlers.ts` — minimal webhook handler (delegates to StripeSync)
+- Webhook route `/api/stripe/webhook` registered BEFORE `express.json()` in `server/index.ts`
+- Products table has `stripe_product_id` and `stripe_price_id` columns
+- Creating a product (admin/staff) automatically creates a matching Stripe product + price
+- Cart context: `client/src/hooks/use-cart.tsx` (React state, no persistence)
+- Cart drawer: `client/src/components/cart-drawer.tsx`
+- `POST /api/checkout` — creates Stripe Checkout session, returns redirect URL
+- `GET /api/checkout/session/:sessionId` — confirms payment, creates order record
+- Orders table tracks completed purchases (userId, sessionId, paymentIntentId, total, status, items)
+- `/store/success` and `/store/cancel` — post-checkout pages
+- Orders visible to admin/executive in Dashboard
+
 ## Recent Changes
 - 2026-02-19: Initial MVP with full wiki functionality, seed data, and review workflow
 - 2026-03-24: Added authenticated user login with passport.js, bcrypt, and pg-stored sessions
 - 2026-03-24: RBAC system: role pgEnum, requireAuth/requireRole middleware, usePermission hook
 - 2026-03-24: Platform shell: PlatformHeader global nav, routing restructure (/wiki hub, platform sections), stub pages
 - 2026-03-24: Command Center: renamed Dashboard→Command (CMD in nav, Command in footer). /dashboard redirects to /command. Added persistent CommandSidebar with Overview/Store/Users/Changelog sections. Split into role-gated sub-pages. Added Store Management page with stock toggle + delete. Added PATCH/DELETE endpoints for products.
+- 2026-03-24: Stripe Checkout & Cart — full e-commerce with cart drawer, Stripe Checkout, order tracking, admin order view

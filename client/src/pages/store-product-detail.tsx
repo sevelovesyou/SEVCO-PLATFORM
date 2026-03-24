@@ -1,13 +1,16 @@
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Package, Tag, ShoppingBag, CircleCheck, CircleX } from "lucide-react";
+import { ArrowLeft, Package, Tag, ShoppingBag, CircleCheck, CircleX, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCart } from "@/hooks/use-cart";
+import { CartDrawer } from "@/components/cart-drawer";
 import type { Product } from "@shared/schema";
 
 export default function StoreProductDetail() {
   const { slug } = useParams<{ slug: string }>();
+  const { addItem } = useCart();
 
   const { data: product, isLoading, isError } = useQuery<Product>({
     queryKey: ["/api/store/products", slug],
@@ -153,9 +156,10 @@ export default function StoreProductDetail() {
               <Button
                 className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
                 disabled={!inStock}
+                onClick={() => product && addItem(product)}
                 data-testid="button-add-to-cart"
               >
-                <ShoppingBag className="h-4 w-4 mr-2" />
+                <ShoppingCart className="h-4 w-4 mr-2" />
                 {inStock ? "Add to Cart" : "Unavailable"}
               </Button>
             </div>
@@ -167,6 +171,7 @@ export default function StoreProductDetail() {
           </div>
         </div>
       </div>
+      <CartDrawer />
     </div>
   );
 }

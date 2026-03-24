@@ -53,7 +53,7 @@ import {
   Plus,
   BarChart2,
 } from "lucide-react";
-import type { Role, Changelog, ChangelogCategory } from "@shared/schema";
+import type { Role, Changelog, ChangelogCategory, Order } from "@shared/schema";
 import { insertChangelogSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -734,6 +734,78 @@ function ClientView({ user }: { user: { username: string; displayName?: string |
   );
 }
 
+function OrdersSection() {
+  const { data: orders, isLoading } = useQuery<Order[]>({
+    queryKey: ["/api/orders"],
+  });
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Store Orders
+        </h2>
+      </div>
+
+      {isLoading ? (
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="p-3 overflow-visible">
+              <Skeleton className="h-4 w-3/4 mb-1" />
+              <Skeleton className="h-3 w-1/2" />
+            </Card>
+          ))}
+        </div>
+      ) : !orders || orders.length === 0 ? (
+        <Card className="p-4 overflow-visible">
+          <p className="text-sm text-muted-foreground text-center py-2" data-testid="text-no-orders">No orders yet.</p>
+        </Card>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {orders.map((order) => (
+            <Card
+              key={order.id}
+              className="p-3 overflow-visible"
+              data-testid={`card-order-${order.id}`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium" data-testid={`text-order-id-${order.id}`}>
+                    Order #{order.id}
+                  </p>
+                  <p className="text-xs text-muted-foreground" data-testid={`text-order-date-${order.id}`}>
+                    {new Date(order.createdAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span
+                    className={`text-xs font-semibold px-2 py-0.5 rounded-full border capitalize ${
+                      order.status === "paid"
+                        ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20"
+                        : "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20"
+                    }`}
+                    data-testid={`text-order-status-${order.id}`}
+                  >
+                    {order.status}
+                  </span>
+                  <span className="text-sm font-bold" data-testid={`text-order-total-${order.id}`}>
+                    ${((order.total ?? 0) / 100).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const { role } = usePermission();
@@ -789,6 +861,9 @@ export default function DashboardPage() {
           {role === "executive" && <ExecutiveView data={data} />}
           {(role === "staff" || role === "partner") && <StaffView data={data} />}
           {isClientOrUser && <ClientView user={{ username: user?.username ?? "", displayName: user?.displayName }} />}
+          {(role === "admin" || role === "executive") && (
+            <OrdersSection />
+          )}
           {(role === "admin" || role === "executive" || role === "staff") && (
             <ChangelogSection />
           )}

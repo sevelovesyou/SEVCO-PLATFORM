@@ -11,6 +11,7 @@ import { PlatformHeader } from "@/components/platform-header";
 import { PlatformFooter } from "@/components/platform-footer";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/protected-route";
+import { CartProvider } from "@/hooks/use-cart";
 
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
@@ -31,6 +32,8 @@ import StorePage from "@/pages/store-page";
 import StoreProductDetail from "@/pages/store-product-detail";
 import StoreProductForm from "@/pages/store-product-form";
 import StoreStatsPage from "@/pages/store-stats-page";
+import StoreSuccessPage from "@/pages/store-success-page";
+import StoreCancelPage from "@/pages/store-cancel-page";
 import ProjectsPage from "@/pages/projects-page";
 import ProjectDetail from "@/pages/project-detail";
 import { ProjectCreatePage, ProjectEditPage } from "@/pages/project-form";
@@ -78,6 +81,8 @@ function Router() {
       <Route path="/music/albums/:slug" component={() => <ProtectedRoute><MusicAlbumDetail /></ProtectedRoute>} />
       <Route path="/store" component={() => <ProtectedRoute><StorePage /></ProtectedRoute>} />
       <Route path="/store/stats" component={() => <ProtectedRoute><StoreStatsPage /></ProtectedRoute>} />
+      <Route path="/store/success" component={() => <ProtectedRoute><StoreSuccessPage /></ProtectedRoute>} />
+      <Route path="/store/cancel" component={() => <ProtectedRoute><StoreCancelPage /></ProtectedRoute>} />
       <Route path="/store/products/new" component={() => <ProtectedRoute><StoreProductForm /></ProtectedRoute>} />
       <Route path="/store/products/:slug" component={() => <ProtectedRoute><StoreProductDetail /></ProtectedRoute>} />
       <Route path="/projects" component={() => <ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
@@ -161,10 +166,12 @@ function App() {
     <ThemeProvider defaultTheme="light">
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <TooltipProvider>
-            <AppShell />
-            <Toaster />
-          </TooltipProvider>
+          <CartProvider>
+            <TooltipProvider>
+              <AppShell />
+              <Toaster />
+            </TooltipProvider>
+          </CartProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>

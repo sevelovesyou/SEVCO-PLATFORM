@@ -4,6 +4,9 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { seedDatabase, promoteFounderToAdmin } from "./seed";
 import { setupAuth } from "./auth";
+import { WebhookHandlers } from "./webhookHandlers";
+import { runMigrations } from "stripe-replit-sync";
+import { getStripeSync } from "./stripeClient";
 
 const app = express();
 app.set('trust proxy', 1);
@@ -14,6 +17,23 @@ declare module "http" {
     rawBody: unknown;
   }
 }
+
+app.post(
+  '/api/stripe/webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    const signature = req.headers['stripe-signature'];
+    if (!signature) return res.status(400).json({ error: 'Missing stripe-signature' });
+    const sig = Array.isArray(signature) ? signature[0] : signature;
+    try {
+      await WebhookHandlers.processWebhook(req.body as Buffer, sig);
+      res.status(200).json({ received: true });
+    } catch (error: any) {
+      console.error('Webhook error:', error.message);
+      res.status(400).json({ error: 'Webhook processing error' });
+    }
+  }
+);
 
 app.use(
   express.json({
@@ -62,7 +82,36 @@ app.use((req, res, next) => {
   next();
 });
 
+async function initStripe() {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    console.warn('DATABASE_URL not set — skipping Stripe initialization');
+    return;
+  }
+
+  try {
+    log('Initializing Stripe schema...', 'stripe');
+    await runMigrations({ databaseUrl, schema: 'stripe' });
+    log('Stripe schema ready', 'stripe');
+
+    const stripeSync = await getStripeSync();
+
+    const webhookBaseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+    if (webhookBaseUrl && webhookBaseUrl !== 'https://undefined') {
+      await stripeSync.findOrCreateManagedWebhook(`${webhookBaseUrl}/api/stripe/webhook`);
+      log('Stripe webhook configured', 'stripe');
+    }
+
+    stripeSync.syncBackfill()
+      .then(() => log('Stripe data synced', 'stripe'))
+      .catch((err: any) => console.error('Stripe sync error:', err));
+  } catch (error) {
+    console.error('Failed to initialize Stripe:', error);
+  }
+}
+
 (async () => {
+  await initStripe().catch((err) => console.error("Stripe init error:", err));
   await seedDatabase().catch((err) => console.error("Seed error:", err));
   await promoteFounderToAdmin().catch((err) => console.error("Promotion error:", err));
   setupAuth(app);
@@ -81,9 +130,6 @@ app.use((req, res, next) => {
     return res.status(status).json({ message });
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
@@ -91,10 +137,6 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(
     {

@@ -10,8 +10,9 @@ import {
   type Product, type InsertProduct,
   type Project, type InsertProject,
   type Changelog, type InsertChangelog,
+  type Order, type InsertOrder,
   users, categories, articles, revisions, citations, crosslinks,
-  artists, albums, products, projects, changelog,
+  artists, albums, products, projects, changelog, orders,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or } from "drizzle-orm";
@@ -67,10 +68,17 @@ export interface IStorage {
 
   getProducts(): Promise<Product[]>;
   getProductBySlug(slug: string): Promise<Product | undefined>;
+  getProductById(id: number): Promise<Product | undefined>;
   getProductsByCategory(categoryName: string): Promise<Product[]>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProductStockStatus(id: number, stockStatus: string): Promise<Product>;
   deleteProduct(id: number): Promise<void>;
+  updateProduct(id: number, data: Partial<InsertProduct & { stripeProductId: string; stripePriceId: string }>): Promise<Product>;
+
+  getOrders(): Promise<Order[]>;
+  getOrderBySessionId(sessionId: string): Promise<Order | undefined>;
+  createOrder(order: InsertOrder): Promise<Order>;
+  updateOrderStatus(id: number, status: string, paymentIntentId?: string): Promise<Order>;
 
   getProjects(): Promise<Project[]>;
   getProjectBySlug(slug: string): Promise<Project | undefined>;
@@ -367,6 +375,11 @@ export class DatabaseStorage implements IStorage {
     return product || undefined;
   }
 
+  async getProductById(id: number): Promise<Product | undefined> {
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    return product || undefined;
+  }
+
   async getProductsByCategory(categoryName: string): Promise<Product[]> {
     return db.select().from(products).where(eq(products.categoryName, categoryName)).orderBy(products.name);
   }
@@ -383,6 +396,32 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProduct(id: number): Promise<void> {
     await db.delete(products).where(eq(products.id, id));
+  }
+
+  async updateProduct(id: number, data: Partial<any>): Promise<Product> {
+    const [updated] = await db.update(products).set(data).where(eq(products.id, id)).returning();
+    return updated;
+  }
+
+  async getOrders(): Promise<Order[]> {
+    return db.select().from(orders).orderBy(desc(orders.createdAt));
+  }
+
+  async getOrderBySessionId(sessionId: string): Promise<Order | undefined> {
+    const [order] = await db.select().from(orders).where(eq(orders.stripeSessionId, sessionId));
+    return order || undefined;
+  }
+
+  async createOrder(order: InsertOrder): Promise<Order> {
+    const [created] = await db.insert(orders).values(order).returning();
+    return created;
+  }
+
+  async updateOrderStatus(id: number, status: string, paymentIntentId?: string): Promise<Order> {
+    const updateData: any = { status };
+    if (paymentIntentId) updateData.stripePaymentIntentId = paymentIntentId;
+    const [updated] = await db.update(orders).set(updateData).where(eq(orders.id, id)).returning();
+    return updated;
   }
 
   async getProjects(): Promise<Project[]> {

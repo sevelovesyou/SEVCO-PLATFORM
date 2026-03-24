@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePermission } from "@/hooks/use-permission";
+import { useCart } from "@/hooks/use-cart";
+import { CartDrawer } from "@/components/cart-drawer";
 import type { Product } from "@shared/schema";
 
 const CAN_MANAGE_STORE = ["admin", "executive", "staff"];
@@ -39,7 +41,7 @@ function getCategoryPalette(cat: string) {
   return CATEGORY_PALETTES[cat.toLowerCase()] ?? DEFAULT_PALETTE;
 }
 
-function ProductImageArea({ product }: { product: Product }) {
+function ProductImageArea({ product, onAddToCart }: { product: Product; onAddToCart: () => void }) {
   const [imgError, setImgError] = useState(false);
   const soldOut = product.stockStatus === "sold_out";
   const palette = getCategoryPalette(product.categoryName);
@@ -89,6 +91,7 @@ function ProductImageArea({ product }: { product: Product }) {
             <Button
               size="sm"
               className="bg-orange-500 hover:bg-orange-600 text-white shadow-md text-xs font-semibold px-3"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(); }}
               data-testid={`button-add-to-cart-${product.id}`}
             >
               <ShoppingCart className="h-3 w-3 mr-1" />
@@ -101,14 +104,14 @@ function ProductImageArea({ product }: { product: Product }) {
   );
 }
 
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart: () => void }) {
   const soldOut = product.stockStatus === "sold_out";
   return (
     <div
       data-testid={`card-product-${product.id}`}
       className="group cursor-pointer flex flex-col"
     >
-      <ProductImageArea product={product} />
+      <ProductImageArea product={product} onAddToCart={onAddToCart} />
       <div className="pt-3 pb-1 px-0.5 flex flex-col gap-0.5">
         <p
           className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium truncate"
@@ -211,6 +214,7 @@ export default function StorePage() {
   const canManage = role && CAN_MANAGE_STORE.includes(role);
   const [activeCategory, setActiveCategory] = useState("all");
   const [sort, setSort] = useState<SortKey>("featured");
+  const { addItem, itemCount, openCart } = useCart();
 
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["/api/store/products"],
@@ -246,17 +250,33 @@ export default function StorePage() {
               Merchandise, exclusive drops, and products from the SEVCO universe.
             </p>
           </div>
-          {canManage && (
-            <Link href="/store/products/new">
-              <Button
-                data-testid="button-add-product"
-                className="bg-white text-orange-600 hover:bg-white/90 font-semibold shadow-md"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Product
-              </Button>
-            </Link>
-          )}
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={openCart}
+              variant="secondary"
+              className="relative bg-white/20 hover:bg-white/30 text-white border-white/30 font-semibold"
+              data-testid="button-open-cart"
+            >
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              Cart
+              {itemCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-white text-orange-600 text-[10px] font-black rounded-full h-5 w-5 flex items-center justify-center" data-testid="cart-badge-count">
+                  {itemCount}
+                </span>
+              )}
+            </Button>
+            {canManage && (
+              <Link href="/store/products/new">
+                <Button
+                  data-testid="button-add-product"
+                  className="bg-white text-orange-600 hover:bg-white/90 font-semibold shadow-md"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Product
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
@@ -374,11 +394,13 @@ export default function StorePage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8">
             {filtered.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} onAddToCart={() => addItem(product)} />
             ))}
           </div>
         )}
       </div>
+
+      <CartDrawer />
     </div>
   );
 }

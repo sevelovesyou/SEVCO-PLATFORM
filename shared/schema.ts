@@ -156,6 +156,19 @@ export const products = pgTable("products", {
   categoryName: text("category_name").notNull(),
   stockStatus: text("stock_status").notNull().default("available"),
   imageUrl: text("image_url"),
+  stripeProductId: text("stripe_product_id"),
+  stripePriceId: text("stripe_price_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const orders = pgTable("orders", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: varchar("user_id"),
+  stripeSessionId: text("stripe_session_id").notNull().unique(),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  total: integer("total").notNull(),
+  status: text("status").notNull().default("pending"),
+  items: jsonb("items").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -191,6 +204,7 @@ export const insertArtistSchema = createInsertSchema(artists).omit({ id: true, c
 export const insertAlbumSchema = createInsertSchema(albums).omit({ id: true, createdAt: true });
 export const insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true });
 export const insertProjectSchema = createInsertSchema(projects).omit({ id: true, createdAt: true });
+export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, createdAt: true });
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -249,3 +263,5 @@ export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
+export type Order = typeof orders.$inferSelect;
+export type InsertOrder = z.infer<typeof insertOrderSchema>;

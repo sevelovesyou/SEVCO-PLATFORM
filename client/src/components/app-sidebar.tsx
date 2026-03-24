@@ -63,7 +63,7 @@ export function AppSidebar() {
   });
 
   const navItems = [
-    { title: "Home", url: "/", icon: BookOpen, show: true },
+    { title: "Home", url: "/wiki", icon: BookOpen, show: true },
     { title: "Search", url: "/search", icon: Search, show: true },
     { title: "New Article", url: "/new", icon: Plus, show: canCreateArticle },
     { title: "Review Queue", url: "/review", icon: Shield, show: canAccessReviewQueue },
@@ -73,7 +73,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <Link href="/">
+        <Link href="/wiki">
           <div className="flex items-center gap-2 cursor-pointer" data-testid="link-home-logo">
             <div className="h-8 w-8 flex items-center justify-center overflow-hidden rounded-md">
               <img src={logoImg} alt="SEVCO Logo" className="h-full w-full object-cover" />

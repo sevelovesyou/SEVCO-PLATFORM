@@ -1,7 +1,7 @@
-# SEVCO Wiki - Encyclopedic Platform
+# SEVCO Platform
 
 ## Overview
-An encyclopedic wiki platform for sevelovesyou.com (SEVE / SEVCO Records). Features structured infoboxes, citation validation, auto-generated semantic crosslinks, and a version review workflow with flagged revisions and approvals.
+A multi-app platform for sevelovesyou.com (SEVE / SEVCO Records). Built as a platform shell wrapping multiple apps: Wiki (encyclopedic knowledge base), Music (SEVCO RECORDS), Store, Projects (SEVCO Ventures), and a role-based Dashboard. The platform features a persistent global header/nav, and each app can have its own sidebar or layout.
 
 ## Architecture
 - **Frontend**: React + Vite + TailwindCSS + Shadcn UI + Wouter routing + TanStack Query
@@ -25,22 +25,50 @@ An encyclopedic wiki platform for sevelovesyou.com (SEVE / SEVCO Records). Featu
 - Protected routes redirect unauthenticated users to /auth
 - API routes: POST /api/register, POST /api/login, POST /api/logout, GET /api/user
 
+## Platform Routes
+| Route | Page | Sidebar |
+|-------|------|---------|
+| `/` | Landing (platform hub) | None |
+| `/wiki` | Wiki Hub | Wiki sidebar |
+| `/wiki/:slug` | Article View | Wiki sidebar |
+| `/edit/:slug`, `/new` | Article Editor | Wiki sidebar |
+| `/search`, `/review` | Wiki tools | Wiki sidebar |
+| `/category/:slug` | Category View | Wiki sidebar |
+| `/account` | Account Settings | Wiki sidebar |
+| `/music` | SEVCO RECORDS | None |
+| `/store` | Store | None |
+| `/projects` | SEVCO Ventures | None |
+| `/dashboard` | Dashboard | None |
+| `/auth` | Login/Register | None |
+
 ## Project Structure
 ```
 shared/schema.ts              - Drizzle schema (users, articles, revisions, citations, crosslinks, categories)
 server/db.ts                  - Database connection (exports pool and db)
 server/auth.ts                - Passport setup, session config, auth routes
+server/middleware/permissions.ts  - requireAuth, requireRole middleware + RBAC constants
 server/storage.ts             - DatabaseStorage implementing IStorage interface
 server/routes.ts              - REST API routes + crosslink generation + citation validation
-server/seed.ts                - Seed data with real SEVE content
-client/src/App.tsx            - Main app with auth-aware shell and sidebar layout
-client/src/hooks/use-auth.tsx - Auth context provider and useAuth hook
-client/src/pages/auth-page.tsx         - Login/register page
-client/src/components/protected-route.tsx - Route guard component
-client/src/pages/             - Home, ArticleView, ArticleEditor, Search, ReviewQueue, CategoryView
-client/src/components/        - WikiInfobox, CitationBadge, CrosslinkPanel, RevisionTimeline, AppSidebar
+client/src/App.tsx            - Platform shell with PlatformHeader, conditional wiki sidebar, routing
+client/src/components/platform-header.tsx - Global header: logo, app-switcher, user badge/role, sign-out
+client/src/components/app-sidebar.tsx - Wiki-specific sidebar (nav, categories, recent articles)
+client/src/hooks/use-auth.tsx - Auth context provider and useAuth hook (AuthUser includes Role)
+client/src/hooks/use-permission.ts - usePermission hook with typed capability flags
+client/src/pages/landing.tsx  - Platform landing page (/)
+client/src/pages/home.tsx     - Wiki hub (/wiki)
+client/src/pages/music-page.tsx, store-page.tsx, projects-page.tsx, dashboard-page.tsx - Section stubs
+client/src/pages/            - ArticleView, ArticleEditor, Search, ReviewQueue, CategoryView, Account, Auth
 ```
+
+## RBAC Roles (Hierarchy)
+admin > executive > staff > partner > client > user
+- CAN_CREATE_ARTICLE: admin, executive, staff, partner
+- CAN_PUBLISH_ARTICLES / CAN_ACCESS_REVIEW_QUEUE: admin, executive
+- CAN_DELETE_ARTICLE: admin, executive
+- CAN_MANAGE_ROLES: admin only
 
 ## Recent Changes
 - 2026-02-19: Initial MVP with full wiki functionality, seed data, and review workflow
 - 2026-03-24: Added authenticated user login with passport.js, bcrypt, and pg-stored sessions
+- 2026-03-24: RBAC system: role pgEnum, requireAuth/requireRole middleware, usePermission hook
+- 2026-03-24: Platform shell: PlatformHeader global nav, routing restructure (/wiki hub, platform sections), stub pages

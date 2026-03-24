@@ -9,8 +9,9 @@ import {
   type Album, type InsertAlbum,
   type Product, type InsertProduct,
   type Project, type InsertProject,
+  type Changelog, type InsertChangelog,
   users, categories, articles, revisions, citations, crosslinks,
-  artists, albums, products, projects,
+  artists, albums, products, projects, changelog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or } from "drizzle-orm";
@@ -73,6 +74,10 @@ export interface IStorage {
   getProjectBySlug(slug: string): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: number, data: Partial<InsertProject>): Promise<Project>;
+
+  getChangelog(): Promise<Changelog[]>;
+  createChangelogEntry(entry: InsertChangelog): Promise<Changelog>;
+  getLatestArticleUpdatedAt(): Promise<Date | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -380,6 +385,22 @@ export class DatabaseStorage implements IStorage {
       .where(eq(projects.id, id))
       .returning();
     return updated;
+  }
+
+  async getChangelog(): Promise<Changelog[]> {
+    return db.select().from(changelog).orderBy(desc(changelog.createdAt));
+  }
+
+  async createChangelogEntry(entry: InsertChangelog): Promise<Changelog> {
+    const [created] = await db.insert(changelog).values(entry).returning();
+    return created;
+  }
+
+  async getLatestArticleUpdatedAt(): Promise<Date | null> {
+    const [result] = await db
+      .select({ maxUpdatedAt: sql<string>`MAX(updated_at)` })
+      .from(articles);
+    return result?.maxUpdatedAt ? new Date(result.maxUpdatedAt) : null;
   }
 }
 

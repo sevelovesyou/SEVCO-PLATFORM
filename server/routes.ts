@@ -10,11 +10,12 @@ import {
   CAN_DELETE_ARTICLE,
 } from "./middleware/permissions";
 import type { Role } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema } from "@shared/schema";
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_PROJECTS: Role[] = ["admin", "executive", "staff"];
+const CAN_MANAGE_CHANGELOG: Role[] = ["admin", "executive", "staff"];
 
 function extractKeywords(text: string): string[] {
   const stopWords = new Set([
@@ -131,10 +132,111 @@ function validateCitationFormat(text: string, format: string): { isValid: boolea
   }
 }
 
+async function seedPolicyArticles() {
+  const POLICY_ARTICLES = [
+    {
+      slug: "privacy-policy",
+      title: "Privacy Policy",
+      content: `# Privacy Policy\n\nLast updated: March 2026\n\n## Introduction\n\nSEVCO ("we", "us", or "our") is committed to protecting your personal information. This Privacy Policy explains how we collect, use, and safeguard your data when you use the SEVCO Platform.\n\n## Information We Collect\n\nWe may collect information you provide directly, such as account registration details, and information generated automatically through your use of the platform.\n\n## How We Use Your Information\n\nWe use collected information to provide and improve our services, communicate with you, and ensure platform security.\n\n## Contact\n\nIf you have questions about this policy, please visit our [Contact](/wiki/contact) page.`,
+      summary: "SEVCO Platform Privacy Policy — how we collect and use your data.",
+    },
+    {
+      slug: "terms-of-service",
+      title: "Terms of Service",
+      content: `# Terms of Service\n\nLast updated: March 2026\n\n## Acceptance\n\nBy accessing the SEVCO Platform, you agree to these Terms of Service. If you do not agree, please do not use our platform.\n\n## Use of the Platform\n\nYou agree to use the SEVCO Platform only for lawful purposes and in compliance with all applicable laws and regulations.\n\n## Intellectual Property\n\nAll content on the SEVCO Platform, including text, graphics, logos, and images, is the property of SEVCO and protected by applicable intellectual property laws.\n\n## Limitation of Liability\n\nSEVCO shall not be liable for any indirect, incidental, or consequential damages arising from your use of the platform.\n\n## Changes to Terms\n\nWe reserve the right to modify these terms at any time. Continued use of the platform constitutes acceptance of updated terms.`,
+      summary: "SEVCO Platform Terms of Service — the rules governing your use of the platform.",
+    },
+    {
+      slug: "contact",
+      title: "Contact",
+      content: `# Contact SEVCO\n\n## Get in Touch\n\nWe'd love to hear from you. Whether you have a question, feedback, or a business inquiry, reach out through one of the channels below.\n\n## Social Media\n\nThe fastest way to reach us is through our social channels:\n\n- **Instagram**: [@sevelovesyou](https://instagram.com/sevelovesyou)\n- **X / Twitter**: [@sevelovesu](https://x.com/sevelovesu)\n- **TikTok**: [@sevelovesu](https://www.tiktok.com/@sevelovesu)\n\n## Business Inquiries\n\nFor partnerships, press, and business inquiries, please reach out via our official social channels or through your designated SEVCO contact if you are an existing partner or client.\n\n## Platform Support\n\nFor issues related to your SEVCO Platform account, please use the account settings page or reach out via social media.`,
+      summary: "How to get in touch with SEVCO.",
+    },
+    {
+      slug: "refund-policy",
+      title: "Refund Policy",
+      content: `# Refund Policy\n\nLast updated: March 2026\n\n## Overview\n\nSEVCO is committed to your satisfaction. This Refund Policy outlines the conditions under which refunds are available for purchases made through the SEVCO Platform.\n\n## Physical Products\n\nPhysical merchandise purchased through the SEVCO Store may be returned within 30 days of receipt if the item is unused, in its original packaging, and in the same condition you received it.\n\n## Digital Products\n\nDue to the nature of digital goods, all sales of digital products and downloads are final and non-refundable unless the product is defective or not as described.\n\n## How to Request a Refund\n\nTo initiate a refund, please contact us through our [Contact](/wiki/contact) page with your order details.\n\n## Processing Time\n\nApproved refunds are processed within 5–10 business days and returned to your original payment method.`,
+      summary: "SEVCO Store Refund Policy — returns, exchanges, and refund eligibility.",
+    },
+  ];
+
+  const generalCategory = await storage.getCategoryBySlug("general");
+  if (!generalCategory) return;
+
+  for (const article of POLICY_ARTICLES) {
+    const existing = await storage.getArticleBySlug(article.slug);
+    if (!existing) {
+      await storage.createArticle({
+        title: article.title,
+        slug: article.slug,
+        content: article.content,
+        summary: article.summary,
+        categoryId: generalCategory.id,
+        status: "published",
+      });
+    }
+  }
+}
+
+async function seedChangelog() {
+  const existing = await storage.getChangelog();
+  if (existing.length > 0) return;
+
+  const INITIAL_ENTRIES = [
+    {
+      title: "Role-Based Access Control (RBAC)",
+      description: "Implemented a full RBAC system with six roles: Admin, Executive, Staff, Partner, Client, and User. Each role has tailored permissions across the platform.",
+      category: "feature" as const,
+    },
+    {
+      title: "Platform Shell & Navigation",
+      description: "Built the global platform shell including the persistent header with app switcher, wiki sidebar, and platform footer with social links and site map.",
+      category: "feature" as const,
+    },
+    {
+      title: "Landing Page & Dashboard",
+      description: "Launched the landing page with platform overview and role-adaptive dashboard showing stats, contributions, user management, and quick access links.",
+      category: "feature" as const,
+    },
+    {
+      title: "SEVCO Music (SEVCO RECORDS)",
+      description: "Added the Music section featuring artist profiles, album listings with track lists, and management tools for staff and above.",
+      category: "feature" as const,
+    },
+    {
+      title: "SEVCO Store",
+      description: "Launched the Store section with product catalog, category filtering, stock status display, and admin product management.",
+      category: "feature" as const,
+    },
+    {
+      title: "SEVCO Projects (Ventures)",
+      description: "Introduced the Projects section showcasing SEVCO Ventures with status tracking, team leads, website links, and wiki cross-references.",
+      category: "feature" as const,
+    },
+    {
+      title: "Logo & Favicon Polish",
+      description: "Updated the platform to use the official SEVCO wordmark and planet icon across the header, footer, wiki sidebar, and browser tab favicon.",
+      category: "improvement" as const,
+    },
+    {
+      title: "Platform Polish & Dashboard Changelog",
+      description: "Fixed content clipping across store and project cards. Added wiki sidebar last-updated date, relocated sidebar toggle, updated footer to use wordmark, linked policy pages to internal wiki articles, and introduced this changelog feed.",
+      category: "improvement" as const,
+    },
+  ];
+
+  for (const entry of INITIAL_ENTRIES) {
+    await storage.createChangelogEntry(entry);
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  seedPolicyArticles().catch(console.error);
+  seedChangelog().catch(console.error);
 
   app.get("/api/categories", async (_req, res) => {
     const cats = await storage.getCategories();
@@ -151,6 +253,15 @@ export async function registerRoutes(
   app.get("/api/articles/recent", async (_req, res) => {
     const arts = await storage.getArticles();
     res.json(arts);
+  });
+
+  app.get("/api/articles/latest-update", async (_req, res) => {
+    try {
+      const date = await storage.getLatestArticleUpdatedAt();
+      res.json({ updatedAt: date });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
   });
 
   app.get("/api/articles/search", async (req, res) => {
@@ -507,6 +618,25 @@ export async function registerRoutes(
       const data = insertProjectSchema.partial().parse(req.body);
       const project = await storage.updateProject(id, data);
       res.json(project);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/changelog", requireAuth, requireRole(...CAN_MANAGE_CHANGELOG), async (_req, res) => {
+    try {
+      const entries = await storage.getChangelog();
+      res.json(entries);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/changelog", requireAuth, requireRole(...CAN_MANAGE_CHANGELOG), async (req, res) => {
+    try {
+      const data = insertChangelogSchema.parse(req.body);
+      const entry = await storage.createChangelogEntry(data);
+      res.json(entry);
     } catch (err: any) {
       res.status(400).json({ message: err.message });
     }

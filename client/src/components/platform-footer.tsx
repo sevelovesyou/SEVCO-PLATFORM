@@ -14,6 +14,7 @@ import {
   SiGithub,
 } from "react-icons/si";
 import planetIcon from "@assets/SEVCO_planet_icon_black_1774331331137.png";
+import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 
 const SITEMAP = [
   { label: "Home",      path: "/" },
@@ -40,10 +41,10 @@ const SOCIALS = [
 ];
 
 const POLICY_LINKS = [
-  { label: "Privacy Policy",   href: "https://www.sevelovesyou.com/policies/privacy-policy" },
-  { label: "Terms of Service", href: "https://www.sevelovesyou.com/policies/terms-of-service" },
-  { label: "Contact",          href: "https://www.sevelovesyou.com/policies/contact-information" },
-  { label: "Refund Policy",    href: "https://www.sevelovesyou.com/policies/refund-policy" },
+  { label: "Privacy Policy",   path: "/wiki/privacy-policy" },
+  { label: "Terms of Service", path: "/wiki/terms-of-service" },
+  { label: "Contact",          path: "/wiki/contact" },
+  { label: "Refund Policy",    path: "/wiki/refund-policy" },
 ];
 
 export function PlatformFooter() {
@@ -57,11 +58,16 @@ export function PlatformFooter() {
           <div className="flex items-center gap-2">
             <img
               src={planetIcon}
-              alt="SEVCO"
+              alt="SEVCO Planet"
               className="h-8 w-8 object-contain dark:invert"
+              data-testid="img-footer-planet"
+            />
+            <img
+              src={wordmarkBlack}
+              alt="SEVCO"
+              className="h-5 w-auto object-contain dark:invert"
               data-testid="img-footer-logo"
             />
-            <span className="font-bold text-lg tracking-tight">SEVCO</span>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
             The creative platform for the SEVCO universe.
@@ -115,17 +121,15 @@ export function PlatformFooter() {
             &copy; 2026 SEVCO. All rights reserved.
           </p>
           <div className="flex flex-wrap items-center gap-4">
-            {POLICY_LINKS.map(({ label, href }) => (
-              <a
+            {POLICY_LINKS.map(({ label, path }) => (
+              <Link
                 key={label}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={path}
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 data-testid={`link-policy-${label.toLowerCase().replace(/\s+/g, "-")}`}
               >
                 {label}
-              </a>
+              </Link>
             ))}
           </div>
         </div>

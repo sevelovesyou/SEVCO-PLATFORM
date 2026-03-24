@@ -171,6 +171,21 @@ export const projects = pgTable("projects", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const changelogCategoryEnum = pgEnum("changelog_category", ["feature", "fix", "improvement", "other"]);
+export type ChangelogCategory = typeof changelogCategoryEnum.enumValues[number];
+
+export const changelog = pgTable("changelog", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: changelogCategoryEnum("category").notNull().default("improvement"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertChangelogSchema = createInsertSchema(changelog).omit({ id: true, createdAt: true });
+export type InsertChangelog = z.infer<typeof insertChangelogSchema>;
+export type Changelog = typeof changelog.$inferSelect;
+
 export const insertArtistSchema = createInsertSchema(artists).omit({ id: true, createdAt: true });
 export const insertAlbumSchema = createInsertSchema(albums).omit({ id: true, createdAt: true });
 export const insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true });

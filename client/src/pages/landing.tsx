@@ -208,9 +208,6 @@ export default function Landing() {
         </div>
       </div>
 
-      <div className="text-center text-xs text-muted-foreground pb-2">
-        sevelovesyou.com · SEVCO Platform
-      </div>
     </div>
   );
 }

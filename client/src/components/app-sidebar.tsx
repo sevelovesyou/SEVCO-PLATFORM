@@ -11,6 +11,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -62,6 +63,16 @@ export function AppSidebar() {
     enabled: canAccessReviewQueue,
   });
 
+  const { data: latestUpdate } = useQuery<{ updatedAt: string | null }>({
+    queryKey: ["/api/articles/latest-update"],
+  });
+
+  const lastUpdatedLabel = (() => {
+    if (!latestUpdate?.updatedAt) return null;
+    const d = new Date(latestUpdate.updatedAt);
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  })();
+
   const navItems = [
     { title: "Home", url: "/wiki", icon: BookOpen, show: true },
     { title: "Search", url: "/search", icon: Search, show: true },
@@ -72,18 +83,22 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="p-4">
-        <Link href="/wiki">
-          <div className="flex items-center gap-2 cursor-pointer" data-testid="link-home-logo">
-            <div className="h-8 w-8 flex items-center justify-center shrink-0">
-              <img src={planetBlack} alt="SEVCO Planet" className="h-full w-full object-contain dark:invert" />
+      <SidebarHeader className="p-3">
+        <div className="flex items-center gap-2">
+          <SidebarTrigger data-testid="button-sidebar-toggle" className="-ml-0.5 shrink-0" />
+          <Link href="/wiki" className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 cursor-pointer" data-testid="link-home-logo">
+              <div className="h-7 w-7 flex items-center justify-center shrink-0">
+                <img src={planetBlack} alt="SEVCO Planet" className="h-full w-full object-contain dark:invert" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-sm font-bold leading-tight truncate">
+                  SEVCO WIKI{lastUpdatedLabel ? ` — Updated ${lastUpdatedLabel}` : ""}
+                </h1>
+              </div>
             </div>
-            <div>
-              <h1 className="text-sm font-bold leading-tight">SEVCO Wiki</h1>
-              <p className="text-[10px] text-muted-foreground leading-tight">sevelovesyou.com</p>
-            </div>
-          </div>
-        </Link>
+          </Link>
+        </div>
       </SidebarHeader>
 
       <SidebarContent>

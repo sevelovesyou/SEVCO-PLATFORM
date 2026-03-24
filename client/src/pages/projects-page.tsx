@@ -62,12 +62,12 @@ function ProjectCard({ project }: { project: Project }) {
           </div>
           <StatusBadge status={project.status} />
         </div>
-        <div>
-          <h3 className="font-semibold text-base group-hover:text-primary transition-colors">
+        <div className="min-w-0">
+          <h3 className="font-semibold text-base group-hover:text-primary transition-colors truncate">
             {project.name}
           </h3>
           {project.description && (
-            <p className="text-muted-foreground text-sm mt-1 line-clamp-2">
+            <p className="text-muted-foreground text-sm mt-1 line-clamp-3">
               {project.description}
             </p>
           )}

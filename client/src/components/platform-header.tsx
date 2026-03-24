@@ -3,7 +3,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePermission } from "@/hooks/use-permission";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,11 +55,7 @@ function getActiveApp(location: string): string {
   return "";
 }
 
-interface PlatformHeaderProps {
-  showSidebarTrigger?: boolean;
-}
-
-export function PlatformHeader({ showSidebarTrigger }: PlatformHeaderProps) {
+export function PlatformHeader() {
   const { user, logout } = useAuth();
   const { role } = usePermission();
   const [location] = useLocation();
@@ -73,10 +68,6 @@ export function PlatformHeader({ showSidebarTrigger }: PlatformHeaderProps) {
       data-testid="platform-header"
     >
       <div className="flex h-12 items-center gap-2 px-3">
-        {showSidebarTrigger && (
-          <SidebarTrigger data-testid="button-sidebar-toggle" className="-ml-1" />
-        )}
-
         <Link href="/" className="shrink-0">
           <div
             className="flex items-center gap-2 cursor-pointer"

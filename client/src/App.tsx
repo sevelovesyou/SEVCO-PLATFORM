@@ -98,7 +98,7 @@ function AppShell() {
       style={{ "--sidebar-width": "16rem", "--sidebar-width-icon": "3rem" } as React.CSSProperties}
     >
       <div className="flex flex-col h-screen w-full">
-        <PlatformHeader showSidebarTrigger={showSidebar} />
+        <PlatformHeader />
         <div className="flex flex-1 min-h-0">
           {showSidebar && <AppSidebar />}
           <main className="flex-1 overflow-auto flex flex-col">

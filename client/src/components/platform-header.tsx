@@ -77,15 +77,15 @@ export function PlatformHeader({ showSidebarTrigger }: PlatformHeaderProps) {
           <SidebarTrigger data-testid="button-sidebar-toggle" className="-ml-1" />
         )}
 
-        <Link href="/">
+        <Link href="/" className="shrink-0">
           <div
-            className="flex items-center gap-2 shrink-0 cursor-pointer"
+            className="flex items-center gap-2 cursor-pointer"
             data-testid="link-platform-home"
           >
             <img
               src={wordmarkBlack}
               alt="SEVCO"
-              className="h-6 w-auto dark:invert"
+              className="h-6 w-auto object-contain dark:invert"
             />
           </div>
         </Link>

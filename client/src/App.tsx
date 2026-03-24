@@ -29,6 +29,8 @@ import StorePage from "@/pages/store-page";
 import StoreProductDetail from "@/pages/store-product-detail";
 import StoreProductForm from "@/pages/store-product-form";
 import ProjectsPage from "@/pages/projects-page";
+import ProjectDetail from "@/pages/project-detail";
+import { ProjectCreatePage, ProjectEditPage } from "@/pages/project-form";
 import DashboardPage from "@/pages/dashboard-page";
 import NotFound from "@/pages/not-found";
 
@@ -63,6 +65,9 @@ function Router() {
       <Route path="/store/products/new" component={() => <ProtectedRoute><StoreProductForm /></ProtectedRoute>} />
       <Route path="/store/products/:slug" component={() => <ProtectedRoute><StoreProductDetail /></ProtectedRoute>} />
       <Route path="/projects" component={() => <ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
+      <Route path="/projects/new" component={() => <ProtectedRoute><ProjectCreatePage /></ProtectedRoute>} />
+      <Route path="/projects/:slug/edit" component={() => <ProtectedRoute><ProjectEditPage /></ProtectedRoute>} />
+      <Route path="/projects/:slug" component={() => <ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
       <Route path="/dashboard" component={() => <ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route component={NotFound} />
     </Switch>

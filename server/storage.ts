@@ -8,8 +8,9 @@ import {
   type Artist, type InsertArtist,
   type Album, type InsertAlbum,
   type Product, type InsertProduct,
+  type Project, type InsertProject,
   users, categories, articles, revisions, citations, crosslinks,
-  artists, albums, products,
+  artists, albums, products, projects,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or } from "drizzle-orm";
@@ -67,6 +68,11 @@ export interface IStorage {
   getProductBySlug(slug: string): Promise<Product | undefined>;
   getProductsByCategory(categoryName: string): Promise<Product[]>;
   createProduct(product: InsertProduct): Promise<Product>;
+
+  getProjects(): Promise<Project[]>;
+  getProjectBySlug(slug: string): Promise<Project | undefined>;
+  createProject(project: InsertProject): Promise<Project>;
+  updateProject(id: number, data: Partial<InsertProject>): Promise<Project>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -351,6 +357,29 @@ export class DatabaseStorage implements IStorage {
   async createProduct(product: InsertProduct): Promise<Product> {
     const [created] = await db.insert(products).values(product).returning();
     return created;
+  }
+
+  async getProjects(): Promise<Project[]> {
+    return db.select().from(projects).orderBy(projects.name);
+  }
+
+  async getProjectBySlug(slug: string): Promise<Project | undefined> {
+    const [project] = await db.select().from(projects).where(eq(projects.slug, slug));
+    return project || undefined;
+  }
+
+  async createProject(project: InsertProject): Promise<Project> {
+    const [created] = await db.insert(projects).values(project).returning();
+    return created;
+  }
+
+  async updateProject(id: number, data: Partial<InsertProject>): Promise<Project> {
+    const [updated] = await db
+      .update(projects)
+      .set(data)
+      .where(eq(projects.id, id))
+      .returning();
+    return updated;
   }
 }
 

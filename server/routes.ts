@@ -10,10 +10,11 @@ import {
   CAN_DELETE_ARTICLE,
 } from "./middleware/permissions";
 import type { Role } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema } from "@shared/schema";
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
+const CAN_MANAGE_PROJECTS: Role[] = ["admin", "executive", "staff"];
 
 function extractKeywords(text: string): string[] {
   const stopWords = new Set([
@@ -461,6 +462,51 @@ export async function registerRoutes(
       const data = insertProductSchema.parse(req.body);
       const product = await storage.createProduct(data);
       res.json(product);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/projects", async (_req, res) => {
+    try {
+      const all = await storage.getProjects();
+      res.json(all);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/projects/new", (_req, res) => {
+    res.status(400).json({ message: "Use POST to create a project" });
+  });
+
+  app.get("/api/projects/:slug", async (req, res) => {
+    try {
+      const project = await storage.getProjectBySlug(req.params.slug);
+      if (!project) return res.status(404).json({ message: "Project not found" });
+      res.json(project);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/projects", requireAuth, requireRole(...CAN_MANAGE_PROJECTS), async (req, res) => {
+    try {
+      const data = insertProjectSchema.parse(req.body);
+      const project = await storage.createProject(data);
+      res.json(project);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/projects/:id", requireAuth, requireRole(...CAN_MANAGE_PROJECTS), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid project id" });
+      const data = insertProjectSchema.partial().parse(req.body);
+      const project = await storage.updateProject(id, data);
+      res.json(project);
     } catch (err: any) {
       res.status(400).json({ message: err.message });
     }

@@ -37,7 +37,7 @@ const APP_NAV = [
   { label: "Music",     path: "/music",      icon: Music },
   { label: "Store",     path: "/store",      icon: ShoppingBag },
   { label: "Projects",  path: "/projects",   icon: Folder },
-  { label: "Dashboard", path: "/dashboard",  icon: LayoutDashboard },
+  { label: "CMD", path: "/command",  icon: LayoutDashboard },
 ];
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/", "/account"];

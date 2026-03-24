@@ -22,7 +22,7 @@ const SITEMAP = [
   { label: "Music",     path: "/music" },
   { label: "Store",     path: "/store" },
   { label: "Projects",  path: "/projects" },
-  { label: "Dashboard", path: "/dashboard" },
+  { label: "Command", path: "/command" },
 ];
 
 const SOCIALS = [

@@ -38,7 +38,11 @@ A multi-app platform for sevelovesyou.com (SEVE / SEVCO Records). Built as a pla
 | `/music` | SEVCO RECORDS | None |
 | `/store` | Store | None |
 | `/projects` | SEVCO Ventures | None |
-| `/dashboard` | Dashboard | None |
+| `/dashboard` | Redirects to /command | None |
+| `/command` | Command — Overview | Command sidebar |
+| `/command/store` | Command — Store Management (admin/exec) | Command sidebar |
+| `/command/users` | Command — User Management (admin) | Command sidebar |
+| `/command/changelog` | Command — Changelog (admin/exec/staff) | Command sidebar |
 | `/auth` | Login/Register | None |
 
 ## Project Structure
@@ -56,7 +60,14 @@ client/src/hooks/use-auth.tsx - Auth context provider and useAuth hook (AuthUser
 client/src/hooks/use-permission.ts - usePermission hook with typed capability flags
 client/src/pages/landing.tsx  - Platform landing page (/)
 client/src/pages/home.tsx     - Wiki hub (/wiki)
-client/src/pages/music-page.tsx, store-page.tsx, projects-page.tsx, dashboard-page.tsx - Section stubs
+client/src/pages/music-page.tsx, store-page.tsx, projects-page.tsx - Section pages
+client/src/pages/dashboard-page.tsx - Legacy (still exists, but route is /command now)
+client/src/pages/command-page.tsx   - CommandPageLayout wrapper component
+client/src/pages/command-overview.tsx - /command — role-based stats
+client/src/pages/command-users.tsx    - /command/users — user role management (admin)
+client/src/pages/command-changelog.tsx - /command/changelog — changelog feed (admin/exec/staff)
+client/src/pages/command-store.tsx    - /command/store — product management table (admin/exec)
+client/src/components/command-sidebar.tsx - Command sidebar (Overview, Store, Users, Changelog)
 client/src/pages/            - ArticleView, ArticleEditor, Search, ReviewQueue, CategoryView, Account, Auth
 ```
 
@@ -72,3 +83,4 @@ admin > executive > staff > partner > client > user
 - 2026-03-24: Added authenticated user login with passport.js, bcrypt, and pg-stored sessions
 - 2026-03-24: RBAC system: role pgEnum, requireAuth/requireRole middleware, usePermission hook
 - 2026-03-24: Platform shell: PlatformHeader global nav, routing restructure (/wiki hub, platform sections), stub pages
+- 2026-03-24: Command Center: renamed Dashboard→Command (CMD in nav, Command in footer). /dashboard redirects to /command. Added persistent CommandSidebar with Overview/Store/Users/Changelog sections. Split into role-gated sub-pages. Added Store Management page with stock toggle + delete. Added PATCH/DELETE endpoints for products.

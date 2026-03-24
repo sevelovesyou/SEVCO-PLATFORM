@@ -14,6 +14,7 @@ import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProje
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
+const CAN_MANAGE_STORE_PRODUCTS: Role[] = ["admin", "executive"];
 const CAN_MANAGE_PROJECTS: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_CHANGELOG: Role[] = ["admin", "executive", "staff"];
 
@@ -575,6 +576,30 @@ export async function registerRoutes(
       res.json(product);
     } catch (err: any) {
       res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/store/products/:id", requireAuth, requireRole(...CAN_MANAGE_STORE_PRODUCTS), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid product id" });
+      const { stockStatus } = req.body;
+      if (!stockStatus || typeof stockStatus !== "string") return res.status(400).json({ message: "stockStatus required" });
+      const product = await storage.updateProductStockStatus(id, stockStatus);
+      res.json(product);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/store/products/:id", requireAuth, requireRole(...CAN_MANAGE_STORE_PRODUCTS), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid product id" });
+      await storage.deleteProduct(id);
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
     }
   });
 

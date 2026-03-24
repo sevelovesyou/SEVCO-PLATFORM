@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { CommandSidebar } from "@/components/command-sidebar";
 import { PlatformHeader } from "@/components/platform-header";
 import { PlatformFooter } from "@/components/platform-footer";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
@@ -32,14 +33,26 @@ import StoreProductForm from "@/pages/store-product-form";
 import ProjectsPage from "@/pages/projects-page";
 import ProjectDetail from "@/pages/project-detail";
 import { ProjectCreatePage, ProjectEditPage } from "@/pages/project-form";
-import DashboardPage from "@/pages/dashboard-page";
 import NotFound from "@/pages/not-found";
 
+import { CommandPageLayout } from "@/pages/command-page";
+import CommandOverview from "@/pages/command-overview";
+import CommandUsers from "@/pages/command-users";
+import CommandChangelog from "@/pages/command-changelog";
+import CommandStore from "@/pages/command-store";
+
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/", "/account"];
+const COMMAND_PREFIXES = ["/command"];
 
 function isWikiRoute(location: string): boolean {
   return WIKI_PREFIXES.some(
     (prefix) => location === prefix || location.startsWith(prefix)
+  );
+}
+
+function isCommandRoute(location: string): boolean {
+  return COMMAND_PREFIXES.some(
+    (prefix) => location === prefix || location.startsWith(prefix + "/")
   );
 }
 
@@ -69,7 +82,35 @@ function Router() {
       <Route path="/projects/new" component={() => <ProtectedRoute><ProjectCreatePage /></ProtectedRoute>} />
       <Route path="/projects/:slug/edit" component={() => <ProtectedRoute><ProjectEditPage /></ProtectedRoute>} />
       <Route path="/projects/:slug" component={() => <ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
-      <Route path="/dashboard" component={() => <ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+      <Route path="/dashboard" component={() => <Redirect to="/command" />} />
+      <Route path="/command" component={() => (
+        <ProtectedRoute>
+          <CommandPageLayout>
+            <CommandOverview />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/store" component={() => (
+        <ProtectedRoute>
+          <CommandPageLayout title="Store Management" subtitle="Manage your product catalog">
+            <CommandStore />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/users" component={() => (
+        <ProtectedRoute>
+          <CommandPageLayout title="User Management" subtitle="Manage user roles and access">
+            <CommandUsers />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/changelog" component={() => (
+        <ProtectedRoute>
+          <CommandPageLayout title="Changelog" subtitle="Platform update history">
+            <CommandChangelog />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -91,7 +132,8 @@ function AppShell() {
     return <Router />;
   }
 
-  const showSidebar = isWikiRoute(location);
+  const showWikiSidebar = isWikiRoute(location);
+  const showCommandSidebar = isCommandRoute(location);
 
   return (
     <SidebarProvider
@@ -100,7 +142,8 @@ function AppShell() {
       <div className="flex flex-col h-screen w-full">
         <PlatformHeader />
         <div className="flex flex-1 min-h-0">
-          {showSidebar && <AppSidebar />}
+          {showWikiSidebar && <AppSidebar />}
+          {showCommandSidebar && <CommandSidebar />}
           <main className="flex-1 overflow-auto flex flex-col">
             <Router />
             {location !== "/auth" && <PlatformFooter />}

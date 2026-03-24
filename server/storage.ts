@@ -69,6 +69,8 @@ export interface IStorage {
   getProductBySlug(slug: string): Promise<Product | undefined>;
   getProductsByCategory(categoryName: string): Promise<Product[]>;
   createProduct(product: InsertProduct): Promise<Product>;
+  updateProductStockStatus(id: number, stockStatus: string): Promise<Product>;
+  deleteProduct(id: number): Promise<void>;
 
   getProjects(): Promise<Project[]>;
   getProjectBySlug(slug: string): Promise<Project | undefined>;
@@ -362,6 +364,15 @@ export class DatabaseStorage implements IStorage {
   async createProduct(product: InsertProduct): Promise<Product> {
     const [created] = await db.insert(products).values(product).returning();
     return created;
+  }
+
+  async updateProductStockStatus(id: number, stockStatus: string): Promise<Product> {
+    const [updated] = await db.update(products).set({ stockStatus }).where(eq(products.id, id)).returning();
+    return updated;
+  }
+
+  async deleteProduct(id: number): Promise<void> {
+    await db.delete(products).where(eq(products.id, id));
   }
 
   async getProjects(): Promise<Project[]> {

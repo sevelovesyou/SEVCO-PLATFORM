@@ -21,7 +21,8 @@ import {
   User,
   Menu,
 } from "lucide-react";
-import logoImg from "@assets/SEVCO_App_Icon_-_SEVCO_App_Icon_2_(1)_1771523059981.png";
+import wordmarkBlack from "@assets/sevco-wordmark-black.png";
+import wordmarkWhite from "@assets/sevco-wordmark-white.png";
 
 const ROLE_BADGE_VARIANTS: Record<string, string> = {
   admin:     "bg-primary text-primary-foreground",
@@ -82,10 +83,16 @@ export function PlatformHeader({ showSidebarTrigger }: PlatformHeaderProps) {
             className="flex items-center gap-2 shrink-0 cursor-pointer"
             data-testid="link-platform-home"
           >
-            <div className="h-7 w-7 overflow-hidden rounded-md shrink-0">
-              <img src={logoImg} alt="SEVCO" className="h-full w-full object-cover" />
-            </div>
-            <span className="text-sm font-bold tracking-tight hidden sm:block">SEVCO</span>
+            <img
+              src={wordmarkWhite}
+              alt="SEVCO"
+              className="h-6 w-auto hidden dark:block"
+            />
+            <img
+              src={wordmarkBlack}
+              alt="SEVCO"
+              className="h-6 w-auto block dark:hidden"
+            />
           </div>
         </Link>
 

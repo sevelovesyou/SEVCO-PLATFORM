@@ -18,6 +18,7 @@ import SearchPage from "@/pages/search";
 import ReviewQueue from "@/pages/review-queue";
 import CategoryView from "@/pages/category-view";
 import AuthPage from "@/pages/auth-page";
+import AccountPage from "@/pages/account-page";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/new" component={() => <ProtectedRoute><ArticleEditor /></ProtectedRoute>} />
       <Route path="/search" component={() => <ProtectedRoute><SearchPage /></ProtectedRoute>} />
       <Route path="/review" component={() => <ProtectedRoute><ReviewQueue /></ProtectedRoute>} />
+      <Route path="/account" component={() => <ProtectedRoute><AccountPage /></ProtectedRoute>} />
       <Route path="/category/:slug" component={({ params }) => <ProtectedRoute><CategoryView /></ProtectedRoute>} />
       <Route component={NotFound} />
     </Switch>

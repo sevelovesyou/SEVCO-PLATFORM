@@ -8,6 +8,9 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  displayName: text("display_name"),
+  bio: text("bio"),
+  email: text("email"),
 });
 
 export const categories = pgTable("categories", {
@@ -113,6 +116,12 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
+export const updateUserSchema = z.object({
+  displayName: z.string().max(80).optional(),
+  bio: z.string().max(500).optional(),
+  email: z.string().email().optional().or(z.literal("")),
+});
+
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
 
 export const insertArticleSchema = createInsertSchema(articles).omit({
@@ -134,6 +143,7 @@ export const insertCitationSchema = createInsertSchema(citations).omit({
 export const insertCrosslinkSchema = createInsertSchema(crosslinks).omit({ id: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;

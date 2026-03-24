@@ -263,7 +263,14 @@ export default function ArticleView() {
               )}
 
               <div className="wiki-content" data-testid="text-article-content">
-                {renderContent(article.content)}
+                {article.content.trimStart().startsWith("<") ? (
+                  <div
+                    className="prose prose-sm dark:prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: article.content }}
+                  />
+                ) : (
+                  renderContent(article.content)
+                )}
               </div>
 
               {article.tags && article.tags.length > 0 && (

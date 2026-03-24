@@ -27,6 +27,7 @@ import {
   Palette,
   TrendingUp,
   LifeBuoy,
+  User,
 } from "lucide-react";
 import type { Category, Article } from "@shared/schema";
 
@@ -63,6 +64,7 @@ export function AppSidebar() {
     { title: "Search", url: "/search", icon: Search },
     { title: "New Article", url: "/new", icon: Plus },
     { title: "Review Queue", url: "/review", icon: Shield },
+    { title: "Account", url: "/account", icon: User },
   ];
 
   return (

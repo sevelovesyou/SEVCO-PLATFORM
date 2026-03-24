@@ -5,7 +5,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
-import { insertUserSchema } from "@shared/schema";
+import { insertUserSchema, updateUserSchema } from "@shared/schema";
 import { pool } from "./db";
 
 const PgSession = connectPgSimple(session);
@@ -114,5 +114,26 @@ export function setupAuth(app: Express) {
     }
     const { password: _, ...safeUser } = req.user as any;
     res.json(safeUser);
+  });
+
+  app.patch("/api/user", async (req, res, next) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    try {
+      const parsed = updateUserSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
+      }
+      const userId = (req.user as any).id;
+      const updated = await storage.updateUser(userId, parsed.data);
+      req.login(updated, (err) => {
+        if (err) return next(err);
+        const { password: _, ...safeUser } = updated;
+        return res.json(safeUser);
+      });
+    } catch (err) {
+      next(err);
+    }
   });
 }

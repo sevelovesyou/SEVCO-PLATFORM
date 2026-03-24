@@ -7,8 +7,8 @@ import { z } from "zod";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { RichTextEditor } from "@/components/rich-text-editor";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -354,11 +354,10 @@ export default function ArticleEditor() {
               <FormItem>
                 <FormLabel>Content</FormLabel>
                 <FormControl>
-                  <Textarea
-                    placeholder="Write your article content here. Use ## for headings, > for quotes, - for lists, [[slug]] for wiki links."
-                    className="min-h-[300px] font-mono text-sm"
-                    {...field}
-                    data-testid="input-content"
+                  <RichTextEditor
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Start writing your article content..."
                   />
                 </FormControl>
                 <FormMessage />

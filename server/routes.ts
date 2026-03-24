@@ -5,9 +5,11 @@ import {
   requireAuth,
   requireRole,
   CAN_CREATE_ARTICLE,
+  CAN_PUBLISH_ARTICLES,
   CAN_ACCESS_REVIEW_QUEUE,
   CAN_DELETE_ARTICLE,
 } from "./middleware/permissions";
+import type { Role } from "@shared/schema";
 
 function extractKeywords(text: string): string[] {
   const stopWords = new Set([
@@ -201,9 +203,14 @@ export async function registerRoutes(
     try {
       const { citations: citationsData, editSummary, ...articleData } = req.body;
 
+      const userRole = req.user?.role as Role | undefined;
+      const canPublish = !!userRole && (CAN_PUBLISH_ARTICLES as string[]).includes(userRole);
+      const articleStatus = canPublish ? "published" : "draft";
+      const revisionStatus = canPublish ? "approved" : "pending";
+
       const article = await storage.createArticle({
         ...articleData,
-        status: "published",
+        status: articleStatus,
       });
 
       await storage.createRevision({
@@ -212,8 +219,8 @@ export async function registerRoutes(
         infoboxData: article.infoboxData,
         summary: article.summary,
         editSummary: editSummary || "Initial article creation",
-        status: "approved",
-        authorName: "Editor",
+        status: revisionStatus,
+        authorName: req.user?.username ?? "Editor",
       });
 
       if (citationsData && Array.isArray(citationsData)) {
@@ -261,7 +268,7 @@ export async function registerRoutes(
         summary: updateData.summary || article.summary,
         editSummary: editSummary || "Article updated",
         status: "pending",
-        authorName: "Editor",
+        authorName: req.user?.username ?? "Editor",
       });
 
       if (citationsData && Array.isArray(citationsData)) {

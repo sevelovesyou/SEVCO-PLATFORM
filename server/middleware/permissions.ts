@@ -22,6 +22,7 @@ export function requireRole(...roles: Role[]) {
 }
 
 export const CAN_CREATE_ARTICLE: Role[] = ["admin", "executive", "staff", "partner"];
+export const CAN_PUBLISH_ARTICLES: Role[] = ["admin", "executive"];
 export const CAN_ACCESS_REVIEW_QUEUE: Role[] = ["admin", "executive"];
 export const CAN_DELETE_ARTICLE: Role[] = ["admin", "executive"];
 export const CAN_MANAGE_ROLES: Role[] = ["admin"];

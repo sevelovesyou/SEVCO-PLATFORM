@@ -16,6 +16,7 @@ import {
   BookOpen,
   Music,
   ShoppingBag,
+  Briefcase,
   Folder,
   LayoutDashboard,
   LogOut,
@@ -51,7 +52,8 @@ const APP_NAV = [
   { label: "Wiki",      path: "/wiki",       icon: BookOpen },
   { label: "Music",     path: "/music",      icon: Music },
   { label: "Store",     path: "/store",      icon: ShoppingBag },
-  { label: "CMD", path: "/command",  icon: LayoutDashboard },
+  { label: "Services",  path: "/services",   icon: Briefcase },
+  { label: "CMD",       path: "/command",    icon: LayoutDashboard },
 ];
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/", "/account"];

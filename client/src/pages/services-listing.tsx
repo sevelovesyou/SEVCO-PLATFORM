@@ -1,0 +1,167 @@
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
+import {
+  ArrowRight,
+  Code2, Plug, Lightbulb, Palette, MousePointer2, Sparkles,
+  FileText, Share2, TrendingUp, ClipboardList, Settings2,
+  Handshake, Target, BookOpen, HeadphonesIcon,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Service } from "@shared/schema";
+
+const ICON_MAP: Record<string, React.ElementType> = {
+  Code2, Plug, Lightbulb, Palette, MousePointer2, Sparkles,
+  FileText, Share2, TrendingUp, ClipboardList, Settings2,
+  Handshake, Target, BookOpen, HeadphonesIcon,
+};
+
+const CATEGORY_STYLES: Record<string, { accent: string; badge: string }> = {
+  Engineering: { accent: "text-blue-600 dark:text-blue-400",    badge: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20" },
+  Design:      { accent: "text-purple-600 dark:text-purple-400", badge: "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20" },
+  Marketing:   { accent: "text-orange-600 dark:text-orange-400", badge: "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20" },
+  Operations:  { accent: "text-green-600 dark:text-green-400",   badge: "bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/20" },
+  Sales:       { accent: "text-yellow-600 dark:text-yellow-500", badge: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 border-yellow-500/20" },
+  Support:     { accent: "text-pink-600 dark:text-pink-400",     badge: "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/20" },
+};
+
+const CATEGORY_ORDER = ["Engineering", "Design", "Marketing", "Operations", "Sales", "Support"];
+
+export default function ServicesListingPage() {
+  const { data: services, isLoading } = useQuery<Service[]>({
+    queryKey: ["/api/services"],
+  });
+
+  const grouped = CATEGORY_ORDER.reduce<Record<string, Service[]>>((acc, cat) => {
+    const items = (services ?? []).filter((s) => s.category === cat);
+    if (items.length > 0) acc[cat] = items;
+    return acc;
+  }, {});
+
+  const featured = (services ?? []).filter((s) => s.featured);
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="max-w-5xl mx-auto px-4 md:px-8 py-12 md:py-16">
+        <div className="mb-12">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+            SEVCO Services
+          </p>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+            What we do
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-2xl">
+            From engineering and design to marketing and operations — the SEVCO team brings expertise across every discipline.
+          </p>
+        </div>
+
+        {isLoading && (
+          <div className="grid md:grid-cols-3 gap-4">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <div key={i} className="border rounded-xl p-5 space-y-3">
+                <Skeleton className="h-8 w-8 rounded-lg" />
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-4/5" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!isLoading && featured.length > 0 && (
+          <div className="mb-12">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Featured</p>
+            <div className="grid md:grid-cols-2 gap-4">
+              {featured.map((service) => {
+                const Icon = (service.iconName && ICON_MAP[service.iconName]) ? ICON_MAP[service.iconName] : Sparkles;
+                const styles = CATEGORY_STYLES[service.category] ?? CATEGORY_STYLES.Engineering;
+                return (
+                  <Link href={`/services/${service.slug}`} key={service.id}>
+                    <div
+                      data-testid={`card-service-featured-${service.id}`}
+                      className="group border rounded-xl p-6 hover:border-foreground/20 hover:shadow-sm transition-all cursor-pointer bg-background"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className={`p-2.5 rounded-lg bg-muted ${styles.accent}`}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-base">{service.name}</h3>
+                            <Badge variant="outline" className={`text-xs ${styles.badge}`}>
+                              {service.category}
+                            </Badge>
+                          </div>
+                          {service.tagline && (
+                            <p className="text-sm text-muted-foreground line-clamp-2">{service.tagline}</p>
+                          )}
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {!isLoading && Object.entries(grouped).map(([category, items]) => {
+          const styles = CATEGORY_STYLES[category] ?? CATEGORY_STYLES.Engineering;
+          return (
+            <div key={category} className="mb-10">
+              <div className="flex items-center gap-3 mb-4">
+                <h2 className={`text-sm font-semibold uppercase tracking-wider ${styles.accent}`}>{category}</h2>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+              <div className="grid md:grid-cols-3 gap-3">
+                {items.map((service) => {
+                  const Icon = (service.iconName && ICON_MAP[service.iconName]) ? ICON_MAP[service.iconName] : Sparkles;
+                  return (
+                    <Link href={`/services/${service.slug}`} key={service.id}>
+                      <div
+                        data-testid={`card-service-${service.id}`}
+                        className="group border rounded-xl p-4 hover:border-foreground/20 hover:shadow-sm transition-all cursor-pointer bg-background h-full"
+                      >
+                        <div className={`mb-3 ${styles.accent}`}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <h3 className="font-semibold text-sm mb-1 group-hover:text-foreground transition-colors">
+                          {service.name}
+                        </h3>
+                        {service.tagline && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">{service.tagline}</p>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+
+        {!isLoading && (services ?? []).length === 0 && (
+          <div className="text-center py-20 text-muted-foreground">
+            <p className="text-lg font-medium mb-2">No services yet</p>
+            <p className="text-sm">Check back soon.</p>
+          </div>
+        )}
+
+        <div className="mt-16 border rounded-2xl p-8 md:p-10 bg-muted/30 text-center">
+          <h2 className="text-2xl font-bold mb-3">Ready to work together?</h2>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            Reach out and let's talk about what SEVCO can build for you.
+          </p>
+          <Link href="/contact">
+            <Button size="lg" data-testid="button-contact-cta">
+              Get in touch
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

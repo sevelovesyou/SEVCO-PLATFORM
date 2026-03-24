@@ -1,77 +1,75 @@
+import { Link, useLocation } from "wouter";
+import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
-import { ShoppingBag, ArrowLeft, Lock } from "lucide-react";
+import { z } from "zod";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { usePermission } from "@/hooks/use-permission";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { usePermission } from "@/hooks/use-permission";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { insertProductSchema } from "@shared/schema";
-import type { InsertProduct } from "@shared/schema";
-import { Link } from "wouter";
-import { z } from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChevronLeft, ShoppingBag, ShieldOff } from "lucide-react";
 
-const CAN_MANAGE_STORE = ["admin", "executive", "staff"];
-
-const productFormSchema = insertProductSchema.extend({
-  name: z.string().min(1, "Name is required"),
-  slug: z.string().min(1, "Slug is required").regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers, and hyphens only"),
+const formSchema = z.object({
+  name: z.string().min(1, "Name is required").max(200),
+  slug: z.string()
+    .min(1, "Slug is required")
+    .max(200)
+    .regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers, and hyphens only"),
+  description: z.string().max(2000).optional(),
   price: z.coerce.number().positive("Price must be greater than 0"),
-  categoryName: z.string().min(1, "Category is required"),
+  categoryName: z.string().min(1, "Category is required").max(100),
   stockStatus: z.enum(["available", "sold_out"]),
 });
 
-type ProductFormValues = z.infer<typeof productFormSchema>;
+type FormValues = z.infer<typeof formSchema>;
+
+const CAN_MANAGE_STORE = ["admin", "executive", "staff"];
 
 function AccessDenied() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 p-8 text-center">
-      <div className="h-14 w-14 rounded-2xl bg-destructive/10 flex items-center justify-center">
-        <Lock className="h-7 w-7 text-destructive" />
-      </div>
-      <div className="space-y-1">
-        <h2 className="text-xl font-bold">Access Denied</h2>
-        <p className="text-muted-foreground text-sm max-w-sm">
-          You don't have permission to add products to the store.
+    <div className="max-w-xl mx-auto p-4 md:p-6 flex flex-col items-center justify-center min-h-[40vh] gap-4 text-center">
+      <ShieldOff className="h-12 w-12 text-muted-foreground opacity-30" />
+      <div>
+        <h2 className="text-lg font-semibold mb-1">Access Restricted</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Only Admin, Executive, and Staff can add products to the store.
         </p>
+        <Link href="/store">
+          <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-back-to-store">
+            <ChevronLeft className="h-4 w-4" />
+            Back to Store
+          </Button>
+        </Link>
       </div>
-      <Link href="/store">
-        <Button variant="outline" size="sm" data-testid="button-back-to-store">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Store
-        </Button>
-      </Link>
     </div>
   );
 }
 
+function toSlug(str: string): string {
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .trim();
+}
+
 export default function StoreProductForm() {
-  const { role } = usePermission();
-  const [, navigate] = useLocation();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { role } = usePermission();
 
-  const canManage = role && CAN_MANAGE_STORE.includes(role);
+  if (!CAN_MANAGE_STORE.includes(role ?? "")) {
+    return <AccessDenied />;
+  }
 
-  const form = useForm<ProductFormValues>({
-    resolver: zodResolver(productFormSchema),
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
       slug: "",
@@ -83,81 +81,71 @@ export default function StoreProductForm() {
   });
 
   const mutation = useMutation({
-    mutationFn: (data: InsertProduct) =>
-      apiRequest("POST", "/api/store/products", data),
+    mutationFn: (values: FormValues) => {
+      return apiRequest("POST", "/api/store/products", {
+        name: values.name,
+        slug: values.slug,
+        description: values.description || null,
+        price: values.price,
+        categoryName: values.categoryName,
+        stockStatus: values.stockStatus,
+      });
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["/api/store/products"] });
-      toast({ title: "Product created", description: "The product has been added to the store." });
-      navigate("/store");
+      toast({ title: "Product added to the store" });
+      setLocation("/store");
     },
     onError: (err: any) => {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to create product.",
-        variant: "destructive",
-      });
+      toast({ title: "Failed to create product", description: err.message, variant: "destructive" });
     },
   });
 
-  if (!canManage) return <AccessDenied />;
-
-  function onSubmit(values: ProductFormValues) {
-    mutation.mutate(values as InsertProduct);
-  }
-
-  function handleNameChange(name: string) {
-    const slug = name
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .trim()
-      .replace(/\s+/g, "-");
-    form.setValue("slug", slug, { shouldValidate: true });
+  function handleNameBlur(e: React.FocusEvent<HTMLInputElement>) {
+    if (!form.getValues("slug")) {
+      form.setValue("slug", toSlug(e.target.value), { shouldValidate: true });
+    }
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-xl mx-auto px-6 py-10">
-        <div className="mb-8">
-          <Link href="/store">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground -ml-2"
-              data-testid="button-back-to-store"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back to Store
-            </Button>
-          </Link>
-        </div>
+    <div className="max-w-xl mx-auto p-4 md:p-6 flex flex-col gap-6">
+      <div className="flex items-center gap-2">
+        <Link href="/store">
+          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" data-testid="button-back-to-store">
+            <ChevronLeft className="h-4 w-4" />
+            Store
+          </Button>
+        </Link>
+      </div>
 
-        <div className="flex items-center gap-3 mb-8">
-          <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
-            <ShoppingBag className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">Add Product</h1>
-            <p className="text-muted-foreground text-sm">Create a new store listing</p>
-          </div>
+      <div className="flex items-center gap-2">
+        <div className="h-8 w-8 rounded-full bg-orange-500/10 flex items-center justify-center">
+          <ShoppingBag className="h-4 w-4 text-orange-600 dark:text-orange-400" />
         </div>
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">Add Product</h1>
+          <p className="text-sm text-muted-foreground">Create a new listing in the SEVCO Store.</p>
+        </div>
+      </div>
 
+      <Card className="p-5 overflow-visible">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form
+            onSubmit={form.handleSubmit((v) => mutation.mutate(v))}
+            className="flex flex-col gap-4"
+          >
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Product Name</FormLabel>
+                  <FormLabel>Product Name *</FormLabel>
                   <FormControl>
                     <Input
-                      {...field}
-                      data-testid="input-product-name"
                       placeholder="e.g. SEVCO Hoodie"
-                      onChange={(e) => {
-                        field.onChange(e);
-                        handleNameChange(e.target.value);
-                      }}
+                      data-testid="input-product-name"
+                      {...field}
+                      onBlur={(e) => { field.onBlur(); handleNameBlur(e); }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -170,12 +158,12 @@ export default function StoreProductForm() {
               name="slug"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Slug</FormLabel>
+                  <FormLabel>Slug *</FormLabel>
                   <FormControl>
                     <Input
-                      {...field}
-                      data-testid="input-product-slug"
                       placeholder="e.g. sevco-hoodie"
+                      data-testid="input-product-slug"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -191,11 +179,10 @@ export default function StoreProductForm() {
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea
-                      {...field}
-                      value={field.value ?? ""}
-                      data-testid="input-product-description"
-                      placeholder="Describe the product..."
+                      placeholder="Describe the product…"
                       rows={4}
+                      data-testid="input-product-description"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -209,15 +196,15 @@ export default function StoreProductForm() {
                 name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price ($)</FormLabel>
+                    <FormLabel>Price ($) *</FormLabel>
                     <FormControl>
                       <Input
-                        {...field}
-                        data-testid="input-product-price"
                         type="number"
                         min="0"
                         step="0.01"
                         placeholder="0.00"
+                        data-testid="input-product-price"
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -230,7 +217,7 @@ export default function StoreProductForm() {
                 name="stockStatus"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Stock Status</FormLabel>
+                    <FormLabel>Stock Status *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger data-testid="select-stock-status">
@@ -253,12 +240,12 @@ export default function StoreProductForm() {
               name="categoryName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
+                  <FormLabel>Category *</FormLabel>
                   <FormControl>
                     <Input
-                      {...field}
-                      data-testid="input-product-category"
                       placeholder="e.g. Apparel, Music, Accessories"
+                      data-testid="input-product-category"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -266,17 +253,21 @@ export default function StoreProductForm() {
               )}
             />
 
-            <Button
-              type="submit"
-              disabled={mutation.isPending}
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white"
-              data-testid="button-submit-product"
-            >
-              {mutation.isPending ? "Creating..." : "Create Product"}
-            </Button>
+            <div className="flex justify-end gap-2 pt-2">
+              <Link href="/store">
+                <Button type="button" variant="outline">Cancel</Button>
+              </Link>
+              <Button
+                type="submit"
+                disabled={mutation.isPending}
+                data-testid="button-submit-product"
+              >
+                {mutation.isPending ? "Adding…" : "Add Product"}
+              </Button>
+            </div>
           </form>
         </Form>
-      </div>
+      </Card>
     </div>
   );
 }

@@ -5,12 +5,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { usePermission } from "@/hooks/use-permission";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { ChevronLeft, Users } from "lucide-react";
+import { ChevronLeft, Users, ShieldOff } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
@@ -25,6 +26,28 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+const CAN_MANAGE_MUSIC = ["admin", "executive", "staff"];
+
+function AccessDenied() {
+  return (
+    <div className="max-w-xl mx-auto p-4 md:p-6 flex flex-col items-center justify-center min-h-[40vh] gap-4 text-center">
+      <ShieldOff className="h-12 w-12 text-muted-foreground opacity-30" />
+      <div>
+        <h2 className="text-lg font-semibold mb-1">Access Restricted</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Only Admin, Executive, and Staff can add artists to the catalog.
+        </p>
+        <Link href="/music/artists">
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <ChevronLeft className="h-4 w-4" />
+            Back to Artists
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 function toSlug(str: string): string {
   return str
     .toLowerCase()
@@ -37,6 +60,11 @@ function toSlug(str: string): string {
 export default function MusicArtistForm() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { role } = usePermission();
+
+  if (!CAN_MANAGE_MUSIC.includes(role ?? "")) {
+    return <AccessDenied />;
+  }
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),

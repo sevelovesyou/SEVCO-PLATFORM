@@ -17,10 +17,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronLeft, Disc } from "lucide-react";
+import { ChevronLeft, Disc, ShieldOff } from "lucide-react";
 import type { Artist } from "@shared/schema";
+import { usePermission } from "@/hooks/use-permission";
 
 const currentYear = new Date().getFullYear();
+const CAN_MANAGE_MUSIC = ["admin", "executive", "staff"];
+
+function AccessDenied() {
+  return (
+    <div className="max-w-xl mx-auto p-4 md:p-6 flex flex-col items-center justify-center min-h-[40vh] gap-4 text-center">
+      <ShieldOff className="h-12 w-12 text-muted-foreground opacity-30" />
+      <div>
+        <h2 className="text-lg font-semibold mb-1">Access Restricted</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Only Admin, Executive, and Staff can add albums to the catalog.
+        </p>
+        <Link href="/music">
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <ChevronLeft className="h-4 w-4" />
+            Back to Records
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 const formSchema = z.object({
   artistId: z.string().min(1, "Artist is required"),
@@ -47,6 +69,11 @@ function toSlug(str: string): string {
 export default function MusicAlbumForm() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { role } = usePermission();
+
+  if (!CAN_MANAGE_MUSIC.includes(role ?? "")) {
+    return <AccessDenied />;
+  }
 
   const { data: artistsList } = useQuery<Artist[]>({
     queryKey: ["/api/music/artists"],

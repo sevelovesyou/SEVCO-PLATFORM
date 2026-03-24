@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, Folder, ShieldOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import type { Project } from "@shared/schema";
 
 const formSchema = z.object({
@@ -22,11 +23,18 @@ const formSchema = z.object({
     .max(200)
     .regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers, and hyphens only"),
   description: z.string().max(2000).optional(),
+  longDescription: z.string().max(10000).optional(),
   status: z.enum(["active", "in-development", "archived"]),
   type: z.enum(["Company", "Record Label", "Brand", "Initiative", "Other"]),
+  category: z.string().max(100).optional(),
+  featured: z.boolean().default(false),
   websiteUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   teamLead: z.string().max(200).optional(),
   relatedWikiSlugs: z.string().optional(),
+  tags: z.string().optional(),
+  launchDate: z.string().max(100).optional(),
+  heroImageUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  logoUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -77,11 +85,18 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
       name: project?.name ?? "",
       slug: project?.slug ?? "",
       description: project?.description ?? "",
+      longDescription: project?.longDescription ?? "",
       status: (project?.status as FormValues["status"]) ?? "active",
       type: (project?.type as FormValues["type"]) ?? "Company",
+      category: project?.category ?? "",
+      featured: project?.featured ?? false,
       websiteUrl: project?.websiteUrl ?? "",
       teamLead: project?.teamLead ?? "",
       relatedWikiSlugs: project?.relatedWikiSlugs?.join(", ") ?? "",
+      tags: project?.tags?.join(", ") ?? "",
+      launchDate: project?.launchDate ?? "",
+      heroImageUrl: project?.heroImageUrl ?? "",
+      logoUrl: project?.logoUrl ?? "",
     },
   });
 
@@ -90,15 +105,25 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
       const wikiSlugs = values.relatedWikiSlugs
         ? values.relatedWikiSlugs.split(",").map((s) => s.trim()).filter(Boolean)
         : [];
+      const tagList = values.tags
+        ? values.tags.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
       return apiRequest("POST", "/api/projects", {
         name: values.name,
         slug: values.slug,
         description: values.description || null,
+        longDescription: values.longDescription || null,
         status: values.status,
         type: values.type,
+        category: values.category || null,
+        featured: values.featured,
         websiteUrl: values.websiteUrl || null,
         teamLead: values.teamLead || null,
         relatedWikiSlugs: wikiSlugs.length > 0 ? wikiSlugs : null,
+        tags: tagList.length > 0 ? tagList : null,
+        launchDate: values.launchDate || null,
+        heroImageUrl: values.heroImageUrl || null,
+        logoUrl: values.logoUrl || null,
       });
     },
     onSuccess: async (res) => {
@@ -117,15 +142,25 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
       const wikiSlugs = values.relatedWikiSlugs
         ? values.relatedWikiSlugs.split(",").map((s) => s.trim()).filter(Boolean)
         : [];
+      const tagList = values.tags
+        ? values.tags.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
       return apiRequest("PATCH", `/api/projects/${project!.id}`, {
         name: values.name,
         slug: values.slug,
         description: values.description || null,
+        longDescription: values.longDescription || null,
         status: values.status,
         type: values.type,
+        category: values.category || null,
+        featured: values.featured,
         websiteUrl: values.websiteUrl || null,
         teamLead: values.teamLead || null,
         relatedWikiSlugs: wikiSlugs.length > 0 ? wikiSlugs : null,
+        tags: tagList.length > 0 ? tagList : null,
+        launchDate: values.launchDate || null,
+        heroImageUrl: values.heroImageUrl || null,
+        logoUrl: values.logoUrl || null,
       });
     },
     onSuccess: async (res) => {
@@ -343,6 +378,118 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
                 </FormItem>
               )}
             />
+
+            <div className="border-t border-border pt-4 mt-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Marketing Page</p>
+
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. Platform, Game, Label" data-testid="input-project-category" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="launchDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Launch Date</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. 2024 or Coming Soon" data-testid="input-project-launch" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="featured"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-3 space-y-0">
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-project-featured" />
+                      </FormControl>
+                      <div>
+                        <FormLabel className="cursor-pointer">Featured in nav dropdown</FormLabel>
+                        <FormDescription className="text-xs">Show in the Projects mega-menu</FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="tags"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tags</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Platform, Web, React (comma-separated)" data-testid="input-project-tags" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="longDescription"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Long Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Detailed description shown on the project marketing page…"
+                          rows={5}
+                          data-testid="textarea-project-long-description"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="heroImageUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Hero Image URL</FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://... (full-width banner image)" data-testid="input-project-hero" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="logoUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Logo URL</FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://... (project logo or icon)" data-testid="input-project-logo" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <Link href="/projects">

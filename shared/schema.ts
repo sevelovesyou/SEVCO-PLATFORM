@@ -182,9 +182,30 @@ export const projects = pgTable("projects", {
   description: text("description"),
   status: text("status").notNull().default("active"),
   type: text("type").notNull().default("Company"),
+  category: text("category"),
   websiteUrl: text("website_url"),
   teamLead: text("team_lead"),
   relatedWikiSlugs: text("related_wiki_slugs").array(),
+  featured: boolean("featured").default(false),
+  heroImageUrl: text("hero_image_url"),
+  logoUrl: text("logo_url"),
+  longDescription: text("long_description"),
+  tags: text("tags").array(),
+  launchDate: text("launch_date"),
+  galleryUrls: text("gallery_urls").array(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const services = pgTable("services", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  category: text("category").notNull(),
+  tagline: text("tagline"),
+  description: text("description"),
+  iconName: text("icon_name"),
+  status: text("status").notNull().default("active"),
+  featured: boolean("featured").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -208,6 +229,7 @@ export const insertAlbumSchema = createInsertSchema(albums).omit({ id: true, cre
 export const insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true });
 export const insertProjectSchema = createInsertSchema(projects).omit({ id: true, createdAt: true });
 export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, createdAt: true });
+export const insertServiceSchema = createInsertSchema(services).omit({ id: true, createdAt: true });
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -270,3 +292,5 @@ export type Project = typeof projects.$inferSelect;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export type Service = typeof services.$inferSelect;
+export type InsertService = z.infer<typeof insertServiceSchema>;

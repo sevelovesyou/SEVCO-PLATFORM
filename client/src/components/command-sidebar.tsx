@@ -17,6 +17,7 @@ import {
   ShoppingBag,
   Users,
   ScrollText,
+  Briefcase,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -54,6 +55,12 @@ export function CommandSidebar() {
       url: "/command/changelog",
       icon: ScrollText,
       show: isAdmin || isExec || isStaff,
+    },
+    {
+      title: "Services",
+      url: "/command/services",
+      icon: Briefcase,
+      show: isAdmin || isExec,
     },
   ].filter((item) => item.show);
 

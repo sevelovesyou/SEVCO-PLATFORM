@@ -1,6 +1,6 @@
 import { storage } from "./storage";
 import { db } from "./db";
-import { articles, categories, revisions, citations, crosslinks, users } from "@shared/schema";
+import { articles, categories, revisions, citations, crosslinks, users, projects, services } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 export async function promoteFounderToAdmin() {
@@ -226,4 +226,143 @@ export async function seedDatabase() {
   }
 
   console.log("Database seeded successfully with 18 articles across 6 categories.");
+}
+
+export async function seedProjects() {
+  const [sphereExists] = await db.select().from(projects).where(eq(projects.slug, "sphere"));
+  if (sphereExists) return;
+
+  console.log("Seeding placeholder projects...");
+
+  await storage.createProject({
+    name: "SPHERE",
+    slug: "sphere",
+    description: "The central platform powering the SEVCO ecosystem — connecting all apps, communities, and creators in one place.",
+    longDescription: `SPHERE is the backbone of everything SEVCO builds. It's the unified platform layer that connects our apps, communities, music, store, and creator tools under a single identity and auth system.\n\nBuilt on modern web technologies, SPHERE is designed to scale with the community and power the next generation of SEVCO products.`,
+    status: "active",
+    type: "Platform",
+    category: "Platform",
+    featured: true,
+    tags: ["Platform", "Web", "Community", "React", "Node.js"],
+    launchDate: "2024",
+  });
+
+  await storage.createProject({
+    name: "SEVClaw",
+    slug: "sevclaw",
+    description: "A suite of creative tools designed for the SEVCO community — from content creation to collaboration.",
+    longDescription: `SEVClaw is SEVCO's creative toolkit. Designed with creators in mind, it brings together content creation, collaboration, and publishing tools in one cohesive experience.\n\nCurrently in active development, SEVClaw will integrate directly with SPHERE and SEVCO Records to give every creator on the platform powerful, easy-to-use tools.`,
+    status: "in-development",
+    type: "App",
+    category: "App",
+    featured: true,
+    tags: ["App", "Creative", "Tools", "Collaboration"],
+    launchDate: "Coming Soon",
+  });
+
+  await storage.createProject({
+    name: "Minecraft",
+    slug: "minecraft",
+    description: "The official SEVCO Minecraft community — custom servers, events, and builds for the community.",
+    longDescription: `The SEVCO Minecraft community is one of our most active projects. With custom-built servers, regular events, and a dedicated community of builders and players, SEVCO Minecraft brings the creative spirit of the platform into the game.\n\nFrom survival to creative to mini-games, there's always something happening in the SEVCO server network.`,
+    status: "active",
+    type: "Company",
+    category: "Game",
+    featured: true,
+    tags: ["Game", "Community", "Minecraft", "Multiplayer"],
+    launchDate: "2023",
+  });
+
+  await storage.createProject({
+    name: "SEVCO Records",
+    slug: "sevco-records",
+    description: "An independent music label and A&R operation dedicated to discovering and developing emerging artists.",
+    longDescription: `SEVCO Records is our independent music label — built for artists, run by people who care about music. We work with emerging talent across genres, providing distribution, promotion, and creative support.\n\nFrom submission to release, SEVCO Records handles every step of the artist journey with transparency and respect for the creative process.`,
+    status: "active",
+    type: "Record Label",
+    category: "Label",
+    featured: true,
+    tags: ["Music", "Label", "A&R", "Independent"],
+    websiteUrl: "",
+    launchDate: "2023",
+  });
+
+  await storage.createProject({
+    name: "SEV Store",
+    slug: "sev-store",
+    description: "The official SEVCO merchandise and digital goods store — apparel, collectibles, and exclusive drops.",
+    longDescription: `The SEV Store is where the SEVCO community shows up. From limited-edition apparel to digital collectibles, the store is a direct line between SEVCO and the people who support it.\n\nEvery purchase directly supports the platform and the creators within the SEVCO ecosystem.`,
+    status: "active",
+    type: "Brand",
+    category: "Platform",
+    featured: false,
+    tags: ["Store", "E-commerce", "Merch", "Apparel"],
+    launchDate: "2024",
+  });
+
+  await storage.createProject({
+    name: "SEVCO Ventures",
+    slug: "sevco-ventures",
+    description: "The investment and incubation arm of SEVCO — backing bold ideas from within the community.",
+    longDescription: `SEVCO Ventures is where ideas become companies. As the investment and incubation arm of SEVCO, we back community members with bold ideas and the drive to make them real.\n\nFrom early-stage funding to mentorship and network access, SEVCO Ventures is committed to turning community talent into lasting ventures.`,
+    status: "in-development",
+    type: "Initiative",
+    category: "Other",
+    featured: false,
+    tags: ["Ventures", "Investment", "Incubation", "Community"],
+    launchDate: "Coming Soon",
+  });
+
+  console.log("Seeded 6 placeholder projects.");
+}
+
+export async function seedServices() {
+  const existing = await db.select().from(services);
+  if (existing.length > 0) return;
+
+  console.log("Seeding placeholder services...");
+
+  const serviceData = [
+    // Engineering
+    { name: "Platform Development", slug: "platform-development", category: "Engineering", tagline: "Full-stack web and mobile platform engineering", iconName: "Code2", featured: true, description: `We design, build, and scale digital platforms from the ground up. Whether you're launching a new product or modernizing an existing system, our engineering team delivers robust, maintainable solutions built on modern web technologies.\n\n**What's included:**\n- Architecture design and technical planning\n- Full-stack development (React, Node.js, PostgreSQL)\n- API design and integration\n- Performance optimization and scalability planning\n- Code reviews and engineering standards` },
+    { name: "API Integration", slug: "api-integration", category: "Engineering", tagline: "Seamless connections between your tools and platforms", iconName: "Plug", featured: false, description: `Connect your business systems, third-party tools, and platforms with clean, reliable API integrations. We handle everything from authentication to data transformation to error handling.\n\n**What's included:**\n- Third-party API research and evaluation\n- OAuth and authentication setup\n- Webhook configuration and event handling\n- Data mapping and transformation\n- Monitoring and alerting` },
+    { name: "Technical Consulting", slug: "technical-consulting", category: "Engineering", tagline: "Expert guidance on architecture, tooling, and strategy", iconName: "Lightbulb", featured: false, description: `Get an outside perspective on your technical decisions. Our consultants bring experience across a wide range of tech stacks and business contexts to help you make better choices faster.\n\n**What's included:**\n- Technology stack review\n- Architecture assessment\n- Build vs. buy analysis\n- Technical roadmap development\n- Team and process evaluation` },
+
+    // Design
+    { name: "Brand Identity", slug: "brand-identity", category: "Design", tagline: "Logos, visual systems, and brand guidelines", iconName: "Palette", featured: true, description: `Build a brand that people remember. We create visual identities from scratch — from naming and logo design to full brand systems and usage guidelines.\n\n**What's included:**\n- Logo design (primary, secondary, icon variants)\n- Color palette and typography system\n- Brand guidelines document\n- Social media kit\n- Asset delivery in all formats` },
+    { name: "UI/UX Design", slug: "ui-ux-design", category: "Design", tagline: "User-centered interfaces and experience design", iconName: "MousePointer2", featured: true, description: `Great software starts with great design. We create interfaces that are intuitive, accessible, and visually polished — from early wireframes to final handoff.\n\n**What's included:**\n- User research and journey mapping\n- Wireframing and prototyping\n- High-fidelity UI design\n- Responsive and accessible design\n- Developer handoff documentation` },
+    { name: "Creative Direction", slug: "creative-direction", category: "Design", tagline: "Strategic creative leadership for campaigns and products", iconName: "Sparkles", featured: false, description: `When you need someone to own the creative vision, our creative directors step in. We lead the aesthetic and narrative direction across campaigns, products, and brand expressions.\n\n**What's included:**\n- Creative brief development\n- Art direction and visual storytelling\n- Campaign concept development\n- Vendor and talent direction\n- Ongoing creative oversight` },
+
+    // Marketing
+    { name: "Content Strategy", slug: "content-strategy", category: "Marketing", tagline: "Content planning, creation, and distribution strategy", iconName: "FileText", featured: true, description: `Content is how your audience finds and trusts you. We build content strategies that align with your business goals and actually get executed.\n\n**What's included:**\n- Content audit and gap analysis\n- Editorial calendar development\n- SEO content planning\n- Blog, video, and social content production\n- Performance tracking and reporting` },
+    { name: "Social Media", slug: "social-media", category: "Marketing", tagline: "Community management and social growth strategy", iconName: "Share2", featured: false, description: `Show up consistently and authentically on social. We manage and grow your social presence across platforms with content that resonates with your audience.\n\n**What's included:**\n- Platform strategy and setup\n- Content creation and scheduling\n- Community management\n- Influencer outreach\n- Monthly analytics reporting` },
+    { name: "Growth Consulting", slug: "growth-consulting", category: "Marketing", tagline: "Data-driven growth strategy and acquisition optimization", iconName: "TrendingUp", featured: false, description: `Sustainable growth requires more than running ads. We build growth systems — from acquisition to retention — using data, experimentation, and clear frameworks.\n\n**What's included:**\n- Growth audit and opportunity mapping\n- Funnel analysis and optimization\n- Paid and organic channel strategy\n- A/B testing framework\n- Growth metrics dashboard` },
+
+    // Operations
+    { name: "Project Management", slug: "project-management", category: "Operations", tagline: "End-to-end project coordination and delivery", iconName: "ClipboardList", featured: false, description: `Keep complex projects on track with dedicated project management support. We bring structure, communication, and accountability to everything we touch.\n\n**What's included:**\n- Project scoping and planning\n- Milestone tracking and reporting\n- Stakeholder communication\n- Risk management\n- Retrospectives and process improvement` },
+    { name: "Process Optimization", slug: "process-optimization", category: "Operations", tagline: "Streamlining workflows for efficiency and scale", iconName: "Settings2", featured: false, description: `Inefficient processes cost time and money. We map, analyze, and redesign your workflows to eliminate bottlenecks and enable your team to focus on what matters.\n\n**What's included:**\n- Current state process mapping\n- Bottleneck identification\n- Tool and automation recommendations\n- Implementation support\n- Team training and documentation` },
+
+    // Sales
+    { name: "Partnership Development", slug: "partnership-development", category: "Sales", tagline: "Strategic partnership sourcing and deal structuring", iconName: "Handshake", featured: true, description: `The right partnerships can accelerate everything. We identify, pursue, and structure strategic partnerships that create real value for your business.\n\n**What's included:**\n- Partner landscape mapping\n- Outreach and relationship development\n- Partnership proposal and pitch support\n- Deal structure and term negotiation\n- Ongoing partnership management` },
+    { name: "Sales Strategy", slug: "sales-strategy", category: "Sales", tagline: "Sales process design, playbooks, and team enablement", iconName: "Target", featured: false, description: `Build a sales function that scales. We design the processes, playbooks, and enablement tools your team needs to close more deals, faster.\n\n**What's included:**\n- ICP and market segmentation\n- Sales process design\n- Playbook development\n- CRM setup and configuration\n- Sales team coaching` },
+
+    // Support
+    { name: "Dedicated Support", slug: "dedicated-support", category: "Support", tagline: "Ongoing technical and product support for your team", iconName: "HeadphonesIcon", featured: false, description: `Get reliable, responsive support from a team that knows your product. Our dedicated support service provides ongoing technical assistance and issue resolution.\n\n**What's included:**\n- Dedicated support channel\n- SLA-backed response times\n- Bug triage and resolution\n- Documentation maintenance\n- Monthly support reports` },
+    { name: "Onboarding", slug: "onboarding", category: "Support", tagline: "Structured onboarding programs for new clients and teams", iconName: "BookOpen", featured: false, description: `Start every relationship the right way. We design and run onboarding programs that get new clients and team members up to speed quickly and confidently.\n\n**What's included:**\n- Onboarding flow design\n- Welcome materials and documentation\n- Training sessions (live and recorded)\n- Check-in schedule and milestones\n- Handoff to steady state` },
+  ];
+
+  for (const s of serviceData) {
+    await storage.createService({
+      name: s.name,
+      slug: s.slug,
+      category: s.category,
+      tagline: s.tagline,
+      iconName: s.iconName,
+      featured: s.featured,
+      description: s.description,
+      status: "active",
+    });
+  }
+
+  console.log(`Seeded ${serviceData.length} services.`);
 }

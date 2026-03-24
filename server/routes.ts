@@ -11,7 +11,7 @@ import {
   CAN_DELETE_ARTICLE,
 } from "./middleware/permissions";
 import type { Role } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import bcrypt from "bcryptjs";
 
@@ -852,6 +852,60 @@ export async function registerRoutes(
       }
 
       res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  const CAN_MANAGE_SERVICES: Role[] = ["admin", "executive"];
+
+  app.get("/api/services", async (_req, res) => {
+    try {
+      const all = await storage.getServices();
+      res.json(all);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/services/:slug", async (req, res) => {
+    try {
+      const service = await storage.getServiceBySlug(req.params.slug);
+      if (!service) return res.status(404).json({ message: "Service not found" });
+      res.json(service);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/services", requireAuth, requireRole(...CAN_MANAGE_SERVICES), async (req, res) => {
+    try {
+      const data = insertServiceSchema.parse(req.body);
+      const service = await storage.createService(data);
+      res.json(service);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/services/:id", requireAuth, requireRole(...CAN_MANAGE_SERVICES), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid service id" });
+      const data = insertServiceSchema.partial().parse(req.body);
+      const service = await storage.updateService(id, data);
+      res.json(service);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/services/:id", requireAuth, requireRole(...CAN_MANAGE_SERVICES), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid service id" });
+      await storage.deleteService(id);
+      res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

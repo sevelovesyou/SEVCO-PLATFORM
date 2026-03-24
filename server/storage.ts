@@ -11,8 +11,9 @@ import {
   type Project, type InsertProject,
   type Changelog, type InsertChangelog,
   type Order, type InsertOrder,
+  type Service, type InsertService,
   users, categories, articles, revisions, citations, crosslinks,
-  artists, albums, products, projects, changelog, orders,
+  artists, albums, products, projects, changelog, orders, services,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or } from "drizzle-orm";
@@ -91,6 +92,13 @@ export interface IStorage {
   getChangelog(): Promise<Changelog[]>;
   createChangelogEntry(entry: InsertChangelog): Promise<Changelog>;
   getLatestArticleUpdatedAt(): Promise<Date | null>;
+
+  getServices(): Promise<Service[]>;
+  getServiceBySlug(slug: string): Promise<Service | undefined>;
+  getServicesByCategory(category: string): Promise<Service[]>;
+  createService(service: InsertService): Promise<Service>;
+  updateService(id: number, data: Partial<InsertService>): Promise<Service>;
+  deleteService(id: number): Promise<void>;
   getStoreStats(): Promise<{
     totalProducts: number;
     inStock: number;
@@ -483,6 +491,33 @@ export class DatabaseStorage implements IStorage {
       .select({ maxUpdatedAt: sql<string>`MAX(updated_at)` })
       .from(articles);
     return result?.maxUpdatedAt ? new Date(result.maxUpdatedAt) : null;
+  }
+
+  async getServices(): Promise<Service[]> {
+    return db.select().from(services).orderBy(services.category, services.name);
+  }
+
+  async getServiceBySlug(slug: string): Promise<Service | undefined> {
+    const [service] = await db.select().from(services).where(eq(services.slug, slug));
+    return service || undefined;
+  }
+
+  async getServicesByCategory(category: string): Promise<Service[]> {
+    return db.select().from(services).where(eq(services.category, category)).orderBy(services.name);
+  }
+
+  async createService(service: InsertService): Promise<Service> {
+    const [created] = await db.insert(services).values(service).returning();
+    return created;
+  }
+
+  async updateService(id: number, data: Partial<InsertService>): Promise<Service> {
+    const [updated] = await db.update(services).set(data).where(eq(services.id, id)).returning();
+    return updated;
+  }
+
+  async deleteService(id: number): Promise<void> {
+    await db.delete(services).where(eq(services.id, id));
   }
 
   async getStoreStats(): Promise<{

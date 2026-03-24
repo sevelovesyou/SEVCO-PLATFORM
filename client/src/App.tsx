@@ -45,6 +45,8 @@ import CommandOverview from "@/pages/command-overview";
 import CommandUsers from "@/pages/command-users";
 import CommandChangelog from "@/pages/command-changelog";
 import CommandStore from "@/pages/command-store";
+import CommandServices from "@/pages/command-services";
+import ServiceDetailPage from "@/pages/service-detail-page";
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/", "/account"];
 const COMMAND_PREFIXES = ["/command"];
@@ -87,10 +89,11 @@ function Router() {
       <Route path="/store/cancel" component={() => <ProtectedRoute><StoreCancelPage /></ProtectedRoute>} />
       <Route path="/store/products/new" component={() => <ProtectedRoute><StoreProductForm /></ProtectedRoute>} />
       <Route path="/store/products/:slug" component={() => <ProtectedRoute><StoreProductDetail /></ProtectedRoute>} />
+      <Route path="/services/:slug" component={ServiceDetailPage} />
       <Route path="/projects" component={() => <ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
       <Route path="/projects/new" component={() => <ProtectedRoute><ProjectCreatePage /></ProtectedRoute>} />
       <Route path="/projects/:slug/edit" component={() => <ProtectedRoute><ProjectEditPage /></ProtectedRoute>} />
-      <Route path="/projects/:slug" component={() => <ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
+      <Route path="/projects/:slug" component={ProjectDetail} />
       <Route path="/dashboard" component={() => <Redirect to="/command" />} />
       <Route path="/command" component={() => (
         <ProtectedRoute>
@@ -117,6 +120,13 @@ function Router() {
         <ProtectedRoute>
           <CommandPageLayout title="Changelog" subtitle="Platform update history">
             <CommandChangelog />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/services" component={() => (
+        <ProtectedRoute>
+          <CommandPageLayout title="Services" subtitle="Manage SEVCO service offerings">
+            <CommandServices />
           </CommandPageLayout>
         </ProtectedRoute>
       )} />

@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { usePermission } from "@/hooks/use-permission";
 import {
   SiFacebook,
   SiInstagram,
@@ -48,6 +49,10 @@ const POLICY_LINKS = [
 ];
 
 export function PlatformFooter() {
+  const { role } = usePermission();
+  const canSeeCommand = role === "admin" || role === "executive" || role === "staff";
+  const visibleSitemap = SITEMAP.filter((item) => item.path !== "/command" || canSeeCommand);
+
   return (
     <footer
       className="border-t bg-background text-foreground mt-auto"
@@ -79,7 +84,7 @@ export function PlatformFooter() {
             Platform
           </h3>
           <ul className="flex flex-col gap-1.5">
-            {SITEMAP.map((item) => (
+            {visibleSitemap.map((item) => (
               <li key={item.path}>
                 <Link
                   href={item.path}

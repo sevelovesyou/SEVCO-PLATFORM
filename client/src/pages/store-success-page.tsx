@@ -3,10 +3,12 @@ import { Link } from "wouter";
 import { CheckCircle, ShoppingBag, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
+import { useCart } from "@/hooks/use-cart";
 
 export default function StoreSuccessPage() {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [orderId, setOrderId] = useState<number | null>(null);
+  const { clearCart } = useCart();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -23,6 +25,7 @@ export default function StoreSuccessPage() {
         if (data.paid) {
           setOrderId(data.order?.id ?? null);
           setStatus("success");
+          clearCart();
         } else {
           setStatus("error");
         }

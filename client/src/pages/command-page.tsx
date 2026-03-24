@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useLocation } from "wouter";
 import { usePermission } from "@/hooks/use-permission";
 import { useAuth } from "@/hooks/use-auth";
 import { LayoutDashboard } from "lucide-react";
@@ -19,12 +21,19 @@ interface CommandPageProps {
 
 export function CommandPageLayout({ children, title, subtitle }: CommandPageProps) {
   const { role } = usePermission();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (role === "partner" || role === "client" || role === "user") {
+      setLocation("/");
+    }
+  }, [role, setLocation]);
 
   const defaultTitle = title ?? "Command";
   const defaultSubtitle = subtitle ?? (() => {
     if (role === "admin") return "Platform-wide management and analytics";
     if (role === "executive") return "Business overview and key metrics";
-    if (role === "staff" || role === "partner") return "Your activity and wiki overview";
+    if (role === "staff") return "Your activity and wiki overview";
     return "Platform overview and quick access";
   })();
 

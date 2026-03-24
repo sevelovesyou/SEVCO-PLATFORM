@@ -13,7 +13,7 @@ import { useCart } from "@/hooks/use-cart";
 import { CartDrawer } from "@/components/cart-drawer";
 import type { Product } from "@shared/schema";
 
-const CAN_MANAGE_STORE = ["admin", "executive", "staff"];
+const CAN_MANAGE_STORE_PRODUCTS = ["admin", "executive"];
 
 type SortKey = "featured" | "price-asc" | "price-desc" | "name-asc" | "name-desc";
 const SORT_LABELS: Record<SortKey, string> = {
@@ -211,7 +211,7 @@ function sortProducts(products: Product[], sort: SortKey): Product[] {
 
 export default function StorePage() {
   const { role } = usePermission();
-  const canManage = role && CAN_MANAGE_STORE.includes(role);
+  const canManage = role && CAN_MANAGE_STORE_PRODUCTS.includes(role);
   const [activeCategory, setActiveCategory] = useState("all");
   const [sort, setSort] = useState<SortKey>("featured");
   const { addItem, itemCount, openCart } = useCart();

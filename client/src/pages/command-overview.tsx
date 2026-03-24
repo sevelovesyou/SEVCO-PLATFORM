@@ -7,6 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip as RechartsTooltip,
+} from "recharts";
+import {
   FileText,
   Clock,
   Shield,
@@ -21,6 +27,7 @@ import {
   ArrowRight,
   LayoutDashboard,
   Link as LinkIcon,
+  BarChart2,
 } from "lucide-react";
 import type { Role } from "@shared/schema";
 
@@ -65,6 +72,115 @@ interface DashboardData {
 }
 
 const ROLES: Role[] = ["admin", "executive", "staff", "partner", "client", "user"];
+
+interface StoreStats {
+  totalProducts: number;
+  inStock: number;
+  outOfStock: number;
+  catalogValue: number;
+  avgPrice: number;
+  byStockStatus: Array<{ status: string; count: number }>;
+}
+
+const STOCK_COLORS: Record<string, string> = {
+  available: "hsl(var(--chart-2))",
+  sold_out: "hsl(var(--destructive))",
+};
+
+function StoreStatsPreview() {
+  const { data: stats, isLoading } = useQuery<StoreStats>({
+    queryKey: ["/api/store/stats"],
+  });
+
+  const donutData = stats?.byStockStatus.map((s) => ({
+    name: s.status === "available" ? "In Stock" : "Sold Out",
+    value: s.count,
+    originalStatus: s.status,
+  })) ?? [];
+
+  return (
+    <Link href="/store/stats">
+      <Card
+        className="p-4 hover-elevate active-elevate-2 cursor-pointer overflow-visible group"
+        data-testid="card-store-stats-preview"
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-md bg-orange-500/10 flex items-center justify-center shrink-0">
+              <BarChart2 className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
+            </div>
+            <span className="text-sm font-semibold">Store Analytics</span>
+          </div>
+          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:translate-x-0.5 transition-transform shrink-0" />
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-2">
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i}>
+                  <Skeleton className="h-3 w-16 mb-1" />
+                  <Skeleton className="h-5 w-10" />
+                </div>
+              ))
+            ) : (
+              <>
+                <div data-testid="preview-total-products">
+                  <p className="text-xs text-muted-foreground">Total Products</p>
+                  <p className="text-lg font-bold">{stats?.totalProducts ?? 0}</p>
+                </div>
+                <div data-testid="preview-in-stock">
+                  <p className="text-xs text-muted-foreground">In Stock</p>
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">{stats?.inStock ?? 0}</p>
+                </div>
+                <div data-testid="preview-out-of-stock">
+                  <p className="text-xs text-muted-foreground">Sold Out</p>
+                  <p className="text-lg font-bold text-red-600 dark:text-red-400">{stats?.outOfStock ?? 0}</p>
+                </div>
+                <div data-testid="preview-catalog-value">
+                  <p className="text-xs text-muted-foreground">Catalog Value</p>
+                  <p className="text-lg font-bold text-violet-600 dark:text-violet-400">
+                    ${(stats?.catalogValue ?? 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+          {!isLoading && donutData.length > 0 && (
+            <div className="shrink-0">
+              <PieChart width={80} height={80}>
+                <Pie
+                  data={donutData}
+                  cx={35}
+                  cy={35}
+                  innerRadius={22}
+                  outerRadius={36}
+                  paddingAngle={2}
+                  dataKey="value"
+                >
+                  {donutData.map((entry) => (
+                    <Cell
+                      key={entry.originalStatus}
+                      fill={STOCK_COLORS[entry.originalStatus] ?? "hsl(var(--chart-1))"}
+                    />
+                  ))}
+                </Pie>
+                <RechartsTooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "6px",
+                    fontSize: "11px",
+                    color: "hsl(var(--foreground))",
+                  }}
+                />
+              </PieChart>
+            </div>
+          )}
+        </div>
+      </Card>
+    </Link>
+  );
+}
 
 function StatCard({
   label,
@@ -185,6 +301,10 @@ function AdminOverview({ data, userId }: { data: DashboardData; userId: string }
       )}
 
       <div>
+        <StoreStatsPreview />
+      </div>
+
+      <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
           My Recent Contributions
         </h2>
@@ -209,6 +329,10 @@ function ExecutiveOverview({ data }: { data: DashboardData }) {
         </div>
       </div>
       <div>
+        <StoreStatsPreview />
+      </div>
+
+      <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
           My Recent Contributions
         </h2>
@@ -230,6 +354,9 @@ function StaffOverview({ data }: { data: DashboardData }) {
           <StatCard label="Pending Reviews" value={data.stats.pendingReviews} icon={Shield} testId="stat-pending" color="text-yellow-600 dark:text-yellow-400" />
           <StatCard label="Total Revisions" value={data.stats.totalRevisions} icon={Clock} testId="stat-revisions" />
         </div>
+      </div>
+      <div>
+        <StoreStatsPreview />
       </div>
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
@@ -319,7 +446,7 @@ export default function CommandOverview() {
     <>
       {role === "admin" && <AdminOverview data={data} userId={user?.id ?? ""} />}
       {role === "executive" && <ExecutiveOverview data={data} />}
-      {(role === "staff" || role === "partner") && <StaffOverview data={data} />}
+      {role === "staff" && <StaffOverview data={data} />}
       {isClientOrUser && <ClientOverview user={{ username: user?.username ?? "", displayName: user?.displayName }} />}
     </>
   );

@@ -29,7 +29,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-const CAN_MANAGE_STORE = ["admin", "executive", "staff"];
+const CAN_MANAGE_STORE_PRODUCTS = ["admin", "executive"];
 
 function AccessDenied() {
   return (
@@ -38,7 +38,7 @@ function AccessDenied() {
       <div>
         <h2 className="text-lg font-semibold mb-1">Access Restricted</h2>
         <p className="text-sm text-muted-foreground mb-4">
-          Only Admin, Executive, and Staff can add products to the store.
+          Only Admin and Executive can add products to the store.
         </p>
         <Link href="/store">
           <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-back-to-store">
@@ -65,7 +65,7 @@ export default function StoreProductForm() {
   const { toast } = useToast();
   const { role } = usePermission();
 
-  if (!CAN_MANAGE_STORE.includes(role ?? "")) {
+  if (!CAN_MANAGE_STORE_PRODUCTS.includes(role ?? "")) {
     return <AccessDenied />;
   }
 

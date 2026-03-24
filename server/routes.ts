@@ -572,7 +572,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/store/products", requireAuth, requireRole(...CAN_MANAGE_STORE), async (req, res) => {
+  app.post("/api/store/products", requireAuth, requireRole(...CAN_MANAGE_STORE_PRODUCTS), async (req, res) => {
     try {
       const data = insertProductSchema.parse(req.body);
       const product = await storage.createProduct(data);
@@ -738,10 +738,6 @@ export async function registerRoutes(
     try {
       const allOrders = await storage.getOrders();
       res.json(allOrders);
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

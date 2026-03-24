@@ -84,7 +84,12 @@ export function PlatformHeader() {
         <div className="w-px h-5 bg-border mx-1 hidden md:block" />
 
         <nav className="hidden md:flex items-center gap-0.5 flex-1" data-testid="nav-app-switcher">
-          {APP_NAV.map((item) => {
+          {APP_NAV.filter((item) => {
+            if (item.path === "/command") {
+              return role === "admin" || role === "executive" || role === "staff";
+            }
+            return true;
+          }).map((item) => {
             const isActive = activeApp === item.path;
             return (
               <Link href={item.path} key={item.path}>
@@ -117,7 +122,12 @@ export function PlatformHeader() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
-                {APP_NAV.map((item) => {
+                {APP_NAV.filter((item) => {
+                  if (item.path === "/command") {
+                    return role === "admin" || role === "executive" || role === "staff";
+                  }
+                  return true;
+                }).map((item) => {
                   const isActive = activeApp === item.path;
                   return (
                     <Link href={item.path} key={item.path}>

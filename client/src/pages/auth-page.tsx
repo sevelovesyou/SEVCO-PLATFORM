@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
@@ -66,13 +66,8 @@ export default function AuthPage() {
             <div className="flex justify-center mb-2">
               <img src={wordmarkBlack} alt="SEVCO" className="h-6 w-auto object-contain dark:invert" />
             </div>
-            <CardTitle className="text-2xl">
-              {mode === "login" ? "Welcome back" : "Create an account"}
-            </CardTitle>
             <CardDescription>
-              {mode === "login"
-                ? "Sign in to access the SEVCO Wiki"
-                : "Register to start contributing to the wiki"}
+              Sign in or register for access
             </CardDescription>
           </CardHeader>
           <CardContent>

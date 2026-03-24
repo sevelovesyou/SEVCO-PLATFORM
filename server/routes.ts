@@ -10,6 +10,9 @@ import {
   CAN_DELETE_ARTICLE,
 } from "./middleware/permissions";
 import type { Role } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema } from "@shared/schema";
+
+const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive", "staff"];
 
 function extractKeywords(text: string): string[] {
   const stopWords = new Set([
@@ -365,6 +368,65 @@ export async function registerRoutes(
   app.get("/api/stats", async (_req, res) => {
     const stats = await storage.getStats();
     res.json(stats);
+  });
+
+  app.get("/api/music/artists", async (_req, res) => {
+    try {
+      const all = await storage.getArtists();
+      res.json(all);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/music/artists/:slug", async (req, res) => {
+    try {
+      const artist = await storage.getArtistBySlug(req.params.slug);
+      if (!artist) return res.status(404).json({ message: "Artist not found" });
+      const artistAlbums = await storage.getAlbumsByArtist(artist.id);
+      res.json({ ...artist, albums: artistAlbums });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/music/artists", requireAuth, requireRole(...CAN_MANAGE_MUSIC), async (req, res) => {
+    try {
+      const data = insertArtistSchema.parse(req.body);
+      const artist = await storage.createArtist(data);
+      res.json(artist);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/music/albums", async (_req, res) => {
+    try {
+      const all = await storage.getAlbums();
+      res.json(all);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/music/albums/:slug", async (req, res) => {
+    try {
+      const album = await storage.getAlbumBySlug(req.params.slug);
+      if (!album) return res.status(404).json({ message: "Album not found" });
+      res.json(album);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/music/albums", requireAuth, requireRole(...CAN_MANAGE_MUSIC), async (req, res) => {
+    try {
+      const data = insertAlbumSchema.parse(req.body);
+      const album = await storage.createAlbum(data);
+      res.json(album);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
   });
 
   app.get("/api/users", requireAuth, requireRole("admin"), async (_req, res) => {

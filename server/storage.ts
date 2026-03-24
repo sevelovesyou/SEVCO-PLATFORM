@@ -5,7 +5,10 @@ import {
   type Revision, type InsertRevision,
   type Citation, type InsertCitation,
   type Crosslink, type InsertCrosslink,
+  type Artist, type InsertArtist,
+  type Album, type InsertAlbum,
   users, categories, articles, revisions, citations, crosslinks,
+  artists, albums,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or } from "drizzle-orm";
@@ -49,6 +52,15 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   getUserCount(): Promise<number>;
   getRevisionsByAuthor(authorName: string): Promise<(Revision & { article: Article })[]>;
+
+  getArtists(): Promise<Artist[]>;
+  getArtistBySlug(slug: string): Promise<Artist | undefined>;
+  createArtist(artist: InsertArtist): Promise<Artist>;
+
+  getAlbums(): Promise<(Album & { artist: Artist })[]>;
+  getAlbumsByArtist(artistId: number): Promise<Album[]>;
+  getAlbumBySlug(slug: string): Promise<(Album & { artist: Artist }) | undefined>;
+  createAlbum(album: InsertAlbum): Promise<Album>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -269,6 +281,52 @@ export class DatabaseStorage implements IStorage {
       pendingReviews: pendCount?.count || 0,
       totalCitations: citCount?.count || 0,
     };
+  }
+
+  async getArtists(): Promise<Artist[]> {
+    return db.select().from(artists).orderBy(artists.name);
+  }
+
+  async getArtistBySlug(slug: string): Promise<Artist | undefined> {
+    const [artist] = await db.select().from(artists).where(eq(artists.slug, slug));
+    return artist || undefined;
+  }
+
+  async createArtist(artist: InsertArtist): Promise<Artist> {
+    const [created] = await db.insert(artists).values(artist).returning();
+    return created;
+  }
+
+  async getAlbums(): Promise<(Album & { artist: Artist })[]> {
+    const rows = await db
+      .select()
+      .from(albums)
+      .innerJoin(artists, eq(albums.artistId, artists.id))
+      .orderBy(desc(albums.releaseYear), albums.title);
+    return rows.map((r) => ({ ...r.albums, artist: r.artists }));
+  }
+
+  async getAlbumsByArtist(artistId: number): Promise<Album[]> {
+    return db
+      .select()
+      .from(albums)
+      .where(eq(albums.artistId, artistId))
+      .orderBy(desc(albums.releaseYear));
+  }
+
+  async getAlbumBySlug(slug: string): Promise<(Album & { artist: Artist }) | undefined> {
+    const rows = await db
+      .select()
+      .from(albums)
+      .innerJoin(artists, eq(albums.artistId, artists.id))
+      .where(eq(albums.slug, slug));
+    if (!rows[0]) return undefined;
+    return { ...rows[0].albums, artist: rows[0].artists };
+  }
+
+  async createAlbum(album: InsertAlbum): Promise<Album> {
+    const [created] = await db.insert(albums).values(album).returning();
+    return created;
   }
 }
 

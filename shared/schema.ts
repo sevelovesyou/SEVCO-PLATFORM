@@ -116,6 +116,40 @@ export const crosslinksRelations = relations(crosslinks, ({ one }) => ({
   }),
 }));
 
+export const artists = pgTable("artists", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  bio: text("bio"),
+  genres: text("genres").array(),
+  wikiArticleSlug: text("wiki_article_slug"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const albums = pgTable("albums", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  artistId: integer("artist_id").notNull(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  releaseYear: integer("release_year"),
+  trackList: jsonb("track_list"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const artistsRelations = relations(artists, ({ many }) => ({
+  albums: many(albums),
+}));
+
+export const albumsRelations = relations(albums, ({ one }) => ({
+  artist: one(artists, {
+    fields: [albums.artistId],
+    references: [artists.id],
+  }),
+}));
+
+export const insertArtistSchema = createInsertSchema(artists).omit({ id: true, createdAt: true });
+export const insertAlbumSchema = createInsertSchema(albums).omit({ id: true, createdAt: true });
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -165,3 +199,7 @@ export type Citation = typeof citations.$inferSelect;
 export type InsertCitation = z.infer<typeof insertCitationSchema>;
 export type Crosslink = typeof crosslinks.$inferSelect;
 export type InsertCrosslink = z.infer<typeof insertCrosslinkSchema>;
+export type Artist = typeof artists.$inferSelect;
+export type InsertArtist = z.infer<typeof insertArtistSchema>;
+export type Album = typeof albums.$inferSelect;
+export type InsertAlbum = z.infer<typeof insertAlbumSchema>;

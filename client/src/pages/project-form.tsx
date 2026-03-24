@@ -25,7 +25,7 @@ const formSchema = z.object({
   description: z.string().max(2000).optional(),
   longDescription: z.string().max(10000).optional(),
   status: z.enum(["active", "in-development", "archived"]),
-  type: z.enum(["Company", "Record Label", "Brand", "Initiative", "Other"]),
+  type: z.enum(["Company", "Record Label", "Brand", "Initiative", "Platform", "App", "Other"]),
   category: z.string().max(100).optional(),
   featured: z.boolean().default(false),
   websiteUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
@@ -323,6 +323,8 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
                         <SelectItem value="Record Label">Record Label</SelectItem>
                         <SelectItem value="Brand">Brand</SelectItem>
                         <SelectItem value="Initiative">Initiative</SelectItem>
+                        <SelectItem value="Platform">Platform</SelectItem>
+                        <SelectItem value="App">App</SelectItem>
                         <SelectItem value="Other">Other</SelectItem>
                       </SelectContent>
                     </Select>

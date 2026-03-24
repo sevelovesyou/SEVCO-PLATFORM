@@ -61,7 +61,7 @@ const PLATFORM_SECTIONS = [
     icon: LayoutDashboard,
     color: "text-sky-600 dark:text-sky-400",
     bg: "bg-sky-500/10",
-    restrictedTo: ["admin", "executive", "staff", "partner"] as string[],
+    restrictedTo: null,
   },
   {
     label: "Account",

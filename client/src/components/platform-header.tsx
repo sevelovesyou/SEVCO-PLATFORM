@@ -41,7 +41,7 @@ const APP_NAV = [
   { label: "Dashboard", path: "/dashboard",  icon: LayoutDashboard },
 ];
 
-const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
+const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/", "/account"];
 
 function getActiveApp(location: string): string {
   if (location === "/") return "/";

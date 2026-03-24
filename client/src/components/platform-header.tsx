@@ -136,18 +136,18 @@ export function PlatformHeader() {
           </div>
 
           {user && (
-            <>
+            <Link href="/account" className="hidden sm:flex items-center gap-1.5 cursor-pointer" data-testid="link-account">
               <span
-                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded capitalize hidden sm:block ${roleBadgeClass}`}
+                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded capitalize ${roleBadgeClass}`}
                 data-testid="badge-role"
               >
                 {role}
               </span>
-              <span className="text-xs text-muted-foreground hidden sm:flex items-center gap-1">
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <User className="h-3 w-3" />
                 <span data-testid="text-username">{user.displayName || user.username}</span>
               </span>
-            </>
+            </Link>
           )}
 
           <ThemeToggle />

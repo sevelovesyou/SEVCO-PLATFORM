@@ -44,3 +44,8 @@ integrations = ["javascript_database:1.0.0", "stripe:1.0.0"]
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
+
+[userenv]
+
+[userenv.shared]
+WIKI_AUTO_ARTICLE_SECRET = "533e908746b548ded350951fde0e9f23f40bda4bef329a80eb357cdc4d45210f"

@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { readFileSync } from "fs";
 import { storage } from "./storage";
 import {
   requireAuth,
@@ -12,6 +13,7 @@ import {
 import type { Role } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
+import bcrypt from "bcryptjs";
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
@@ -854,6 +856,82 @@ export async function registerRoutes(
       }
 
       res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/internal/wiki-article", async (req, res) => {
+    try {
+      const secret = process.env.WIKI_AUTO_ARTICLE_SECRET;
+      if (!secret) {
+        return res.status(503).json({ message: "Internal endpoint not configured" });
+      }
+      const provided = req.headers["x-internal-secret"];
+      if (provided !== secret) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { title, slug, summary, content, tags } = req.body;
+      if (!title || !slug || !content) {
+        return res.status(400).json({ message: "title, slug, and content are required" });
+      }
+
+      const engineeringCat = await storage.getCategoryBySlug("engineering");
+      if (!engineeringCat) {
+        return res.status(500).json({ message: "Engineering category not found" });
+      }
+
+      let peter = await storage.getUserByUsername("Peter");
+      if (!peter) {
+        const hashed = await bcrypt.hash(Math.random().toString(36), 10);
+        peter = await storage.createUser({ username: "Peter", password: hashed });
+        await storage.updateUserRole(peter.id, "admin");
+      }
+
+      const existing = await storage.getArticleBySlug(slug);
+      if (existing) {
+        const updated = await storage.updateArticle(existing.id, {
+          title,
+          summary: summary || existing.summary,
+          content,
+          tags: tags || existing.tags,
+          status: "published",
+        });
+        await storage.createRevision({
+          articleId: updated.id,
+          content: updated.content,
+          summary: updated.summary,
+          editSummary: "Auto-updated by wiki article generator on merge",
+          status: "approved",
+          authorName: "Peter",
+        });
+        await generateCrosslinks(updated.id);
+        return res.json({ action: "updated", article: updated });
+      }
+
+      const article = await storage.createArticle({
+        title,
+        slug,
+        content,
+        summary: summary || null,
+        categoryId: engineeringCat.id,
+        status: "published",
+        tags: tags || [],
+      });
+
+      await storage.createRevision({
+        articleId: article.id,
+        content: article.content,
+        summary: article.summary,
+        editSummary: "Auto-created by wiki article generator on merge",
+        status: "approved",
+        authorName: "Peter",
+      });
+
+      await generateCrosslinks(article.id);
+
+      res.json({ action: "created", article });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

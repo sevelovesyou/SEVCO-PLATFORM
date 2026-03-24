@@ -32,8 +32,7 @@ import {
 import type { Category, Article } from "@shared/schema";
 import { usePermission } from "@/hooks/use-permission";
 
-import planetBlack from "@assets/sevco-planet-black.png";
-import planetWhite from "@assets/sevco-planet-white.png";
+import planetBlack from "@assets/SEVCO_planet_icon_black_1774331331137.png";
 
 const categoryIcons: Record<string, typeof Globe> = {
   general:     Globe,
@@ -77,8 +76,7 @@ export function AppSidebar() {
         <Link href="/wiki">
           <div className="flex items-center gap-2 cursor-pointer" data-testid="link-home-logo">
             <div className="h-8 w-8 flex items-center justify-center shrink-0">
-              <img src={planetWhite} alt="SEVCO Planet" className="h-full w-full object-contain hidden dark:block" />
-              <img src={planetBlack} alt="SEVCO Planet" className="h-full w-full object-contain block dark:hidden" />
+              <img src={planetBlack} alt="SEVCO Planet" className="h-full w-full object-contain dark:invert" />
             </div>
             <div>
               <h1 className="text-sm font-bold leading-tight">SEVCO Wiki</h1>

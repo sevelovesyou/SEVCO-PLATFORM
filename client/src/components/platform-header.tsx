@@ -21,8 +21,7 @@ import {
   User,
   Menu,
 } from "lucide-react";
-import wordmarkBlack from "@assets/sevco-wordmark-black.png";
-import wordmarkWhite from "@assets/sevco-wordmark-white.png";
+import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 
 const ROLE_BADGE_VARIANTS: Record<string, string> = {
   admin:     "bg-primary text-primary-foreground",
@@ -84,14 +83,9 @@ export function PlatformHeader({ showSidebarTrigger }: PlatformHeaderProps) {
             data-testid="link-platform-home"
           >
             <img
-              src={wordmarkWhite}
-              alt="SEVCO"
-              className="h-6 w-auto hidden dark:block"
-            />
-            <img
               src={wordmarkBlack}
               alt="SEVCO"
-              className="h-6 w-auto block dark:hidden"
+              className="h-6 w-auto dark:invert"
             />
           </div>
         </Link>

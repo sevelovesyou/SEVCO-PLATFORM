@@ -10,10 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import planetBlack from "@assets/sevco-planet-black.png";
-import planetWhite from "@assets/sevco-planet-white.png";
-import wordmarkBlack from "@assets/sevco-wordmark-black.png";
-import wordmarkWhite from "@assets/sevco-wordmark-white.png";
+import planetBlack from "@assets/SEVCO_planet_icon_black_1774331331137.png";
+import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 
 const authSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -63,12 +61,10 @@ export default function AuthPage() {
         <Card className="w-full max-w-sm">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-3">
-              <img src={planetBlack} alt="SEVCO" className="h-12 w-12 object-contain block dark:hidden" />
-              <img src={planetWhite} alt="SEVCO" className="h-12 w-12 object-contain hidden dark:block" />
+              <img src={planetBlack} alt="SEVCO" className="h-12 w-12 object-contain dark:invert" />
             </div>
             <div className="flex justify-center mb-2">
-              <img src={wordmarkBlack} alt="SEVCO" className="h-6 w-auto object-contain block dark:hidden" />
-              <img src={wordmarkWhite} alt="SEVCO" className="h-6 w-auto object-contain hidden dark:block" />
+              <img src={wordmarkBlack} alt="SEVCO" className="h-6 w-auto object-contain dark:invert" />
             </div>
             <CardTitle className="text-2xl">
               {mode === "login" ? "Welcome back" : "Create an account"}
@@ -168,10 +164,8 @@ export default function AuthPage() {
       </div>
       <div className="hidden lg:flex flex-1 items-center justify-center bg-muted p-8">
         <div className="max-w-md text-center space-y-6">
-          <img src={planetBlack} alt="SEVCO" className="h-24 w-24 object-contain mx-auto block dark:hidden" />
-          <img src={planetWhite} alt="SEVCO" className="h-24 w-24 object-contain mx-auto hidden dark:block" />
-          <img src={wordmarkBlack} alt="SEVCO" className="h-10 w-auto object-contain mx-auto block dark:hidden" />
-          <img src={wordmarkWhite} alt="SEVCO" className="h-10 w-auto object-contain mx-auto hidden dark:block" />
+          <img src={planetBlack} alt="SEVCO" className="h-24 w-24 object-contain mx-auto dark:invert" />
+          <img src={wordmarkBlack} alt="SEVCO" className="h-10 w-auto object-contain mx-auto dark:invert" />
           <p className="text-muted-foreground text-lg">
             A collaborative knowledge base for your organization. Create, edit, and review articles
             with your team.

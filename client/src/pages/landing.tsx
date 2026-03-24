@@ -16,8 +16,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import type { Article } from "@shared/schema";
-import wordmarkBlack from "@assets/sevco-wordmark-black.png";
-import wordmarkWhite from "@assets/sevco-wordmark-white.png";
+import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 
 const PLATFORM_SECTIONS = [
   {
@@ -99,8 +98,7 @@ export default function Landing() {
     <div className="max-w-4xl mx-auto p-4 md:p-8 flex flex-col gap-8">
       <div className="pt-2">
         <div className="mb-3">
-          <img src={wordmarkBlack} alt="SEVCO" className="h-8 w-auto object-contain block dark:hidden" />
-          <img src={wordmarkWhite} alt="SEVCO" className="h-8 w-auto object-contain hidden dark:block" />
+          <img src={wordmarkBlack} alt="SEVCO" className="h-8 w-auto object-contain dark:invert" />
         </div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
           {greeting}, <span className="text-primary">{displayName}</span>

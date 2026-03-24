@@ -78,8 +78,16 @@ export default function StoreProductDetail() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
-          <div className="bg-muted/40 border border-border rounded-2xl flex items-center justify-center h-72 md:h-80">
-            <Package className="h-24 w-24 text-muted-foreground/25" />
+          <div className="bg-muted/40 border border-border rounded-2xl overflow-hidden flex items-center justify-center h-72 md:h-80">
+            {product.imageUrl ? (
+              <img
+                src={product.imageUrl}
+                alt={product.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <Package className="h-24 w-24 text-muted-foreground/25" />
+            )}
           </div>
 
           <div className="flex flex-col gap-5">

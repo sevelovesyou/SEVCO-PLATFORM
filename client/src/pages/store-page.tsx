@@ -1,55 +1,104 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { ShoppingBag, Plus, Package, Tag, AlertCircle } from "lucide-react";
+import {
+  ShoppingBag, Plus, Package, ChevronDown, ArrowUpDown, SlidersHorizontal,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { usePermission } from "@/hooks/use-permission";
 import type { Product } from "@shared/schema";
 
 const CAN_MANAGE_STORE = ["admin", "executive", "staff"];
 
-function ProductCard({ product }: { product: Product }) {
+type SortKey = "featured" | "price-asc" | "price-desc" | "name-asc" | "name-desc";
+const SORT_LABELS: Record<SortKey, string> = {
+  "featured":   "Featured",
+  "price-asc":  "Price: Low to High",
+  "price-desc": "Price: High to Low",
+  "name-asc":   "Name: A–Z",
+  "name-desc":  "Name: Z–A",
+};
+
+const CATEGORY_PALETTES: Record<string, { bg: string; text: string; border: string }> = {
+  apparel:      { bg: "bg-indigo-500/10",  text: "text-indigo-700 dark:text-indigo-300",  border: "border-indigo-500/20" },
+  music:        { bg: "bg-violet-500/10",  text: "text-violet-700 dark:text-violet-300",  border: "border-violet-500/20" },
+  accessories:  { bg: "bg-rose-500/10",    text: "text-rose-700 dark:text-rose-300",      border: "border-rose-500/20" },
+  vinyl:        { bg: "bg-amber-500/10",   text: "text-amber-700 dark:text-amber-400",    border: "border-amber-500/20" },
+  electronics:  { bg: "bg-blue-500/10",    text: "text-blue-700 dark:text-blue-300",      border: "border-blue-500/20" },
+  posters:      { bg: "bg-pink-500/10",    text: "text-pink-700 dark:text-pink-300",      border: "border-pink-500/20" },
+  collectibles: { bg: "bg-teal-500/10",    text: "text-teal-700 dark:text-teal-300",      border: "border-teal-500/20" },
+};
+const DEFAULT_PALETTE = { bg: "bg-orange-500/10", text: "text-orange-700 dark:text-orange-300", border: "border-orange-500/20" };
+
+function getCategoryPalette(cat: string) {
+  return CATEGORY_PALETTES[cat.toLowerCase()] ?? DEFAULT_PALETTE;
+}
+
+function ProductImageArea({ product }: { product: Product }) {
   const inStock = product.stockStatus === "available";
+  const palette = getCategoryPalette(product.categoryName);
+  const initial = product.name.charAt(0).toUpperCase();
+
+  return (
+    <div className="relative aspect-square overflow-hidden bg-muted/40 rounded-t-xl">
+      {product.imageUrl ? (
+        <img
+          src={product.imageUrl}
+          alt={product.name}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+      ) : (
+        <div className={`w-full h-full flex flex-col items-center justify-center gap-2 ${palette.bg}`}>
+          <span className={`text-5xl font-black tracking-tight ${palette.text} opacity-40`}>{initial}</span>
+          <Package className={`h-6 w-6 ${palette.text} opacity-20`} />
+        </div>
+      )}
+
+      {!inStock && (
+        <div className="absolute top-3 left-3">
+          <span className="bg-black/80 text-white text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-sm">
+            Sold Out
+          </span>
+        </div>
+      )}
+
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+        <span className="bg-white text-black text-xs font-semibold px-4 py-2 rounded-full shadow-lg translate-y-1 group-hover:translate-y-0 transition-transform duration-200">
+          View
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ProductCard({ product }: { product: Product }) {
   return (
     <Link href={`/store/products/${product.slug}`}>
       <div
         data-testid={`card-product-${product.id}`}
-        className="group border border-border rounded-xl bg-card hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col"
+        className="group cursor-pointer flex flex-col"
       >
-        <div className="bg-muted/40 flex items-center justify-center h-44 rounded-t-xl overflow-hidden">
-          <Package className="h-16 w-16 text-muted-foreground/30" />
-        </div>
-        <div className="p-4 flex flex-col gap-2">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-sm leading-tight group-hover:text-primary transition-colors line-clamp-2 min-w-0">
-              {product.name}
-            </h3>
-            <Badge
-              variant={inStock ? "default" : "secondary"}
-              className="shrink-0 text-xs"
-              data-testid={`status-stock-${product.id}`}
-            >
-              {inStock ? "In Stock" : "Sold Out"}
-            </Badge>
-          </div>
-          <p className="text-xs text-muted-foreground line-clamp-3">
-            {product.description || "No description provided."}
+        <ProductImageArea product={product} />
+        <div className="pt-3 pb-1 px-0.5 flex flex-col gap-0.5">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium truncate">
+            {product.categoryName}
           </p>
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-muted-foreground text-xs flex items-center gap-1 truncate">
-              <Tag className="h-3 w-3 shrink-0" />
-              {product.categoryName}
-            </span>
-            <span
-              className="font-bold text-base shrink-0"
-              data-testid={`text-price-${product.id}`}
-            >
-              ${product.price.toFixed(2)}
-            </span>
-          </div>
+          <h3 className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+            {product.name}
+          </h3>
+          <p
+            className="text-sm font-bold mt-0.5"
+            data-testid={`text-price-${product.id}`}
+          >
+            ${product.price.toFixed(2)}
+          </p>
         </div>
       </div>
     </Link>
@@ -58,46 +107,101 @@ function ProductCard({ product }: { product: Product }) {
 
 function ProductCardSkeleton() {
   return (
-    <div className="border border-border rounded-xl bg-card flex flex-col">
-      <Skeleton className="h-44 w-full rounded-t-xl" />
-      <div className="p-4 flex flex-col gap-2">
+    <div className="flex flex-col">
+      <Skeleton className="aspect-square w-full rounded-xl" />
+      <div className="pt-3 flex flex-col gap-1.5">
+        <Skeleton className="h-2.5 w-16" />
         <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-2/3" />
-        <div className="flex justify-between pt-1">
-          <Skeleton className="h-3 w-1/4" />
-          <Skeleton className="h-5 w-16" />
-        </div>
+        <Skeleton className="h-4 w-1/3" />
       </div>
     </div>
   );
+}
+
+function CategoryBanner({ name, count, active, onClick }: {
+  name: string; count: number; active: boolean; onClick: () => void;
+}) {
+  const palette = getCategoryPalette(name);
+  return (
+    <button
+      onClick={onClick}
+      data-testid={`banner-category-${name.toLowerCase().replace(/\s+/g, "-")}`}
+      className={`group relative rounded-xl overflow-hidden border transition-all duration-200 cursor-pointer text-left shrink-0 w-36 md:w-auto ${
+        active
+          ? `${palette.bg} ${palette.border} border-2 shadow-sm`
+          : "border-border bg-card hover:border-orange-300 dark:hover:border-orange-700"
+      }`}
+    >
+      <div className={`h-20 w-full flex items-end p-3 ${active ? palette.bg : "bg-muted/30 group-hover:bg-muted/60 transition-colors"}`}>
+        <div>
+          <p className={`text-xs font-bold leading-tight ${active ? palette.text : "text-foreground"}`}>{name}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">{count} item{count !== 1 ? "s" : ""}</p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function AllCategoryBanner({ active, count, onClick }: { active: boolean; count: number; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      data-testid="banner-category-all"
+      className={`group relative rounded-xl overflow-hidden border transition-all duration-200 cursor-pointer text-left shrink-0 w-36 md:w-auto ${
+        active
+          ? "bg-orange-500/10 border-orange-500/30 border-2 shadow-sm"
+          : "border-border bg-card hover:border-orange-300 dark:hover:border-orange-700"
+      }`}
+    >
+      <div className={`h-20 w-full flex items-end p-3 ${active ? "bg-orange-500/10" : "bg-muted/30 group-hover:bg-muted/60 transition-colors"}`}>
+        <div>
+          <p className={`text-xs font-bold leading-tight ${active ? "text-orange-700 dark:text-orange-300" : "text-foreground"}`}>All Products</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">{count} item{count !== 1 ? "s" : ""}</p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function sortProducts(products: Product[], sort: SortKey): Product[] {
+  const sorted = [...products];
+  switch (sort) {
+    case "price-asc":  return sorted.sort((a, b) => a.price - b.price);
+    case "price-desc": return sorted.sort((a, b) => b.price - a.price);
+    case "name-asc":   return sorted.sort((a, b) => a.name.localeCompare(b.name));
+    case "name-desc":  return sorted.sort((a, b) => b.name.localeCompare(a.name));
+    default:           return sorted.sort((a, b) => b.id - a.id);
+  }
 }
 
 export default function StorePage() {
   const { role } = usePermission();
   const canManage = role && CAN_MANAGE_STORE.includes(role);
   const [activeCategory, setActiveCategory] = useState("all");
+  const [sort, setSort] = useState<SortKey>("featured");
 
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["/api/store/products"],
   });
 
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    products.forEach((p) => set.add(p.categoryName));
-    return Array.from(set).sort();
+  const categoryMap = useMemo(() => {
+    const map = new Map<string, number>();
+    products.forEach((p) => map.set(p.categoryName, (map.get(p.categoryName) ?? 0) + 1));
+    return map;
   }, [products]);
 
+  const categories = useMemo(() => Array.from(categoryMap.keys()).sort(), [categoryMap]);
+
   const filtered = useMemo(() => {
-    if (activeCategory === "all") return products;
-    return products.filter((p) => p.categoryName === activeCategory);
-  }, [products, activeCategory]);
+    const base = activeCategory === "all" ? products : products.filter((p) => p.categoryName === activeCategory);
+    return sortProducts(base, sort);
+  }, [products, activeCategory, sort]);
 
   return (
     <div className="min-h-screen bg-background">
       <div className="relative overflow-hidden bg-gradient-to-br from-orange-600 via-orange-500 to-amber-400 px-6 py-14 md:py-20">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
-        <div className="relative max-w-5xl mx-auto flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+        <div className="relative max-w-6xl mx-auto flex flex-col md:flex-row md:items-end md:justify-between gap-6">
           <div>
             <div className="flex items-center gap-3 mb-3">
               <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
@@ -124,36 +228,87 @@ export default function StorePage() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        {categories.length > 0 && (
-          <Tabs value={activeCategory} onValueChange={setActiveCategory} className="mb-8">
-            <TabsList data-testid="tabs-category-filter" className="flex flex-wrap h-auto gap-1 bg-muted/60 p-1">
-              <TabsTrigger value="all" data-testid="tab-category-all">All</TabsTrigger>
-              {categories.map((cat) => (
-                <TabsTrigger key={cat} value={cat} data-testid={`tab-category-${cat}`}>
-                  {cat}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+      <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col gap-8">
+        {(isLoading || categories.length > 0) && (
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-3 flex items-center gap-1.5">
+              <SlidersHorizontal className="h-3 w-3" />
+              Browse by Category
+            </p>
+            <div className="flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-4 lg:grid-cols-6 md:overflow-visible scrollbar-none">
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-20 w-36 md:w-auto rounded-xl shrink-0" />
+                ))
+              ) : (
+                <>
+                  <AllCategoryBanner
+                    active={activeCategory === "all"}
+                    count={products.length}
+                    onClick={() => setActiveCategory("all")}
+                  />
+                  {categories.map((cat) => (
+                    <CategoryBanner
+                      key={cat}
+                      name={cat}
+                      count={categoryMap.get(cat) ?? 0}
+                      active={activeCategory === cat}
+                      onClick={() => setActiveCategory(cat)}
+                    />
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
         )}
 
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">
+            {isLoading ? (
+              <Skeleton className="h-4 w-24 inline-block" />
+            ) : (
+              <>{filtered.length} {filtered.length === 1 ? "product" : "products"}{activeCategory !== "all" ? ` in ${activeCategory}` : ""}</>
+            )}
+          </p>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2 h-8 text-xs" data-testid="button-sort">
+                <ArrowUpDown className="h-3 w-3" />
+                {SORT_LABELS[sort]}
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
+                <DropdownMenuItem
+                  key={key}
+                  onClick={() => setSort(key)}
+                  className={`text-xs cursor-pointer ${sort === key ? "font-semibold" : ""}`}
+                  data-testid={`sort-option-${key}`}
+                >
+                  {SORT_LABELS[key]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {Array.from({ length: 6 }).map((_, i) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-8">
+            {Array.from({ length: 8 }).map((_, i) => (
               <ProductCardSkeleton key={i} />
             ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
             <div className="h-14 w-14 rounded-2xl bg-orange-500/10 flex items-center justify-center">
-              <AlertCircle className="h-7 w-7 text-orange-500" />
+              <Package className="h-7 w-7 text-orange-500 opacity-60" />
             </div>
             <div>
               <p className="font-semibold text-base">No products found</p>
               <p className="text-muted-foreground text-sm mt-1">
                 {activeCategory !== "all"
-                  ? `No items in the "${activeCategory}" category yet.`
+                  ? `No items in "${activeCategory}" yet.`
                   : "The store is empty. Check back soon."}
               </p>
             </div>
@@ -167,7 +322,7 @@ export default function StorePage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-8">
             {filtered.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

@@ -24,6 +24,7 @@ const formSchema = z.object({
   price: z.coerce.number().positive("Price must be greater than 0"),
   categoryName: z.string().min(1, "Category is required").max(100),
   stockStatus: z.enum(["available", "sold_out"]),
+  imageUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -77,6 +78,7 @@ export default function StoreProductForm() {
       price: 0,
       categoryName: "",
       stockStatus: "available",
+      imageUrl: "",
     },
   });
 
@@ -89,6 +91,7 @@ export default function StoreProductForm() {
         price: values.price,
         categoryName: values.categoryName,
         stockStatus: values.stockStatus,
+        imageUrl: values.imageUrl || null,
       });
     },
     onSuccess: async () => {
@@ -249,6 +252,34 @@ export default function StoreProductForm() {
                     />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Image URL <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="https://example.com/image.jpg"
+                      data-testid="input-product-image-url"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                  {field.value && (
+                    <div className="mt-2 rounded-lg overflow-hidden border border-border bg-muted/30 h-32 flex items-center justify-center">
+                      <img
+                        src={field.value}
+                        alt="Preview"
+                        className="h-full w-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                      />
+                    </div>
+                  )}
                 </FormItem>
               )}
             />

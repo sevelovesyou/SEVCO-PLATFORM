@@ -155,6 +155,7 @@ export const products = pgTable("products", {
   price: real("price").notNull(),
   categoryName: text("category_name").notNull(),
   stockStatus: text("stock_status").notNull().default("available"),
+  imageUrl: text("image_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

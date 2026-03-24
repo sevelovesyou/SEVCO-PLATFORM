@@ -1,10 +1,11 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, jsonb, boolean, real } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, jsonb, boolean, real, pgEnum } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const ROLES = ["admin", "executive", "staff", "partner", "client", "user"] as const;
+export const roleEnum = pgEnum("user_role", ["admin", "executive", "staff", "partner", "client", "user"]);
+export const ROLES = roleEnum.enumValues;
 export type Role = typeof ROLES[number];
 
 export const users = pgTable("users", {
@@ -14,7 +15,7 @@ export const users = pgTable("users", {
   displayName: text("display_name"),
   bio: text("bio"),
   email: text("email"),
-  role: text("role").notNull().default("user"),
+  role: roleEnum("role").notNull().default("user"),
 });
 
 export const categories = pgTable("categories", {

@@ -247,9 +247,9 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/articles/:slug", requireAuth, async (req, res) => {
+  app.patch("/api/articles/:slug", requireAuth, requireRole(...CAN_CREATE_ARTICLE), async (req, res) => {
     try {
-      const article = await storage.getArticleBySlug(req.params.slug);
+      const article = await storage.getArticleBySlug(req.params.slug as string);
       if (!article) return res.status(404).json({ message: "Article not found" });
 
       const { citations: citationsData, editSummary, ...updateData } = req.body;
@@ -296,7 +296,7 @@ export async function registerRoutes(
 
   app.delete("/api/articles/:id", requireAuth, requireRole(...CAN_DELETE_ARTICLE), async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ message: "Invalid article id" });
       await storage.deleteArticle(id);
       res.json({ success: true });
@@ -305,7 +305,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/revisions/pending-count", requireAuth, async (_req, res) => {
+  app.get("/api/revisions/pending-count", requireAuth, requireRole(...CAN_ACCESS_REVIEW_QUEUE), async (_req, res) => {
     const count = await storage.getPendingRevisionCount();
     res.json({ count });
   });
@@ -322,7 +322,7 @@ export async function registerRoutes(
 
   app.patch("/api/revisions/:id", requireAuth, requireRole(...CAN_ACCESS_REVIEW_QUEUE), async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       const { status, reviewNote } = req.body;
 
       const updated = await storage.updateRevisionStatus(id, status, reviewNote);

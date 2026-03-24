@@ -1,8 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import type { Role } from "@shared/schema";
 
-const ROLE_HIERARCHY: Role[] = ["admin", "executive", "staff", "partner", "client", "user"];
-
 function hasRole(userRole: Role | undefined, allowed: Role[]): boolean {
   if (!userRole) return false;
   return allowed.includes(userRole);
@@ -10,7 +8,7 @@ function hasRole(userRole: Role | undefined, allowed: Role[]): boolean {
 
 export function usePermission() {
   const { user } = useAuth();
-  const role = (user as any)?.role as Role | undefined;
+  const role = user?.role as Role | undefined;
 
   return {
     role,

@@ -13,8 +13,8 @@ export function requireRole(...roles: Role[]) {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Authentication required" });
     }
-    const userRole = (req.user as any)?.role as Role;
-    if (!roles.includes(userRole)) {
+    const userRole = req.user?.role as Role | undefined;
+    if (!userRole || !roles.includes(userRole)) {
       return res.status(403).json({ message: "Insufficient permissions" });
     }
     next();

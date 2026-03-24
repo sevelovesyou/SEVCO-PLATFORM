@@ -110,15 +110,15 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Not authenticated" });
     }
-    const { password: _, ...safeUser } = req.user as any;
+    const { password: _, ...safeUser } = req.user;
     res.json(safeUser);
   });
 
   app.patch("/api/user", async (req, res, next) => {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Not authenticated" });
     }
     try {
@@ -126,7 +126,7 @@ export function setupAuth(app: Express) {
       if (!parsed.success) {
         return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
       }
-      const userId = (req.user as any).id;
+      const userId = req.user.id;
       const updated = await storage.updateUser(userId, parsed.data);
       req.login(updated, (err) => {
         if (err) return next(err);

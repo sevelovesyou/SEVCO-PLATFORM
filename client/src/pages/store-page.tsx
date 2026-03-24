@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import {
   ShoppingBag, Plus, Package, ArrowUpDown, SlidersHorizontal,
   AlertCircle, Eye, ShoppingCart,
@@ -212,9 +212,15 @@ function sortProducts(products: Product[], sort: SortKey): Product[] {
 export default function StorePage() {
   const { role } = usePermission();
   const canManage = role && CAN_MANAGE_STORE_PRODUCTS.includes(role);
-  const [activeCategory, setActiveCategory] = useState("all");
+  const search = useSearch();
+  const urlCategory = new URLSearchParams(search).get("category") ?? "all";
+  const [activeCategory, setActiveCategory] = useState(urlCategory);
   const [sort, setSort] = useState<SortKey>("featured");
   const { addItem, itemCount, openCart } = useCart();
+
+  useEffect(() => {
+    setActiveCategory(urlCategory);
+  }, [urlCategory]);
 
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["/api/store/products"],

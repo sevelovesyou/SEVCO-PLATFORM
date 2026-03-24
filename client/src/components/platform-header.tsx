@@ -10,7 +10,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Home,
   BookOpen,
@@ -25,9 +31,23 @@ import {
   ChevronDown,
   ArrowRight,
   Circle,
+  Mail,
+  Users,
+  Music2,
+  Headphones,
+  ListMusic,
+  Send,
+  Tag,
+  Package,
+  Code2,
+  Palette,
+  TrendingUp,
+  Settings2,
+  Handshake,
+  HeadphonesIcon,
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
-import type { Project } from "@shared/schema";
+import type { Project, Service } from "@shared/schema";
 
 const ROLE_BADGE_VARIANTS: Record<string, string> = {
   admin:     "bg-primary text-primary-foreground",
@@ -47,14 +67,11 @@ const CATEGORY_COLORS: Record<string, string> = {
   Other:    "text-muted-foreground",
 };
 
-const APP_NAV = [
-  { label: "Home",      path: "/",          icon: Home },
-  { label: "Wiki",      path: "/wiki",       icon: BookOpen },
-  { label: "Music",     path: "/music",      icon: Music },
-  { label: "Store",     path: "/store",      icon: ShoppingBag },
-  { label: "Services",  path: "/services",   icon: Briefcase },
-  { label: "CMD",       path: "/command",    icon: LayoutDashboard },
-];
+const SERVICE_ICON_MAP: Record<string, React.ElementType> = {
+  Code2, Palette, TrendingUp, Settings2, Handshake, HeadphonesIcon,
+  Engineering: Code2, Design: Palette, Marketing: TrendingUp,
+  Operations: Settings2, Sales: Handshake, Support: HeadphonesIcon,
+};
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/", "/account"];
 
@@ -64,17 +81,279 @@ function getActiveApp(location: string): string {
     if (location === prefix || location.startsWith(prefix)) return "/wiki";
   }
   if (location.startsWith("/projects")) return "/projects";
-  for (const app of APP_NAV) {
-    if (app.path !== "/" && app.path !== "/wiki" && location.startsWith(app.path)) {
-      return app.path;
-    }
-  }
+  if (location.startsWith("/services")) return "/services";
+  if (location.startsWith("/store")) return "/store";
+  if (location.startsWith("/music")) return "/music";
+  if (location.startsWith("/command")) return "/command";
   return "";
 }
 
-function ProjectsDropdown({ isActive }: { isActive: boolean }) {
+function useDropdown() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return { open, setOpen, ref };
+}
+
+function NavButton({
+  label,
+  isActive,
+  onClick,
+  open,
+  "data-testid": testId,
+}: {
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+  open: boolean;
+  "data-testid"?: string;
+}) {
+  return (
+    <Button
+      variant={isActive ? "secondary" : "ghost"}
+      size="sm"
+      className={`gap-1 h-8 text-xs font-medium pr-2 ${
+        isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+      }`}
+      onClick={onClick}
+      data-testid={testId}
+    >
+      {label}
+      <ChevronDown className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} />
+    </Button>
+  );
+}
+
+function DropdownPanel({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`absolute top-full left-0 mt-1.5 rounded-xl border bg-popover shadow-xl z-50 overflow-hidden ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+function HomeDropdown({ isActive }: { isActive: boolean }) {
+  const { open, setOpen, ref } = useDropdown();
+
+  const items = [
+    { label: "About",    href: "/wiki/company-overview", icon: BookOpen, desc: "Learn about SEVCO" },
+    { label: "Wiki",     href: "/wiki",                  icon: BookOpen, desc: "Internal knowledge base" },
+    { label: "Contact",  href: "/contact",               icon: Mail,     desc: "Get in touch" },
+    { label: "Jobs",     href: "/jobs",                  icon: Users,    desc: "Open positions" },
+    { label: "Account",  href: "/account",               icon: User,     desc: "Manage your profile" },
+  ];
+
+  return (
+    <div className="relative" ref={ref}>
+      <NavButton
+        label="Home"
+        isActive={isActive}
+        onClick={() => setOpen((o) => !o)}
+        open={open}
+        data-testid="nav-home"
+      />
+      {open && (
+        <DropdownPanel className="w-64">
+          <div className="p-2">
+            {items.map((item) => (
+              <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
+                <div
+                  className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer group"
+                  data-testid={`dropdown-home-${item.label.toLowerCase()}`}
+                >
+                  <item.icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">{item.label}</p>
+                    <p className="text-[11px] text-muted-foreground">{item.desc}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </DropdownPanel>
+      )}
+    </div>
+  );
+}
+
+function StoreDropdown({ isActive }: { isActive: boolean }) {
+  const { open, setOpen, ref } = useDropdown();
+
+  const categories = [
+    { label: "Apparel",  value: "Apparel" },
+    { label: "Games",    value: "Games" },
+    { label: "Grocery",  value: "Grocery" },
+    { label: "Health",   value: "Health" },
+    { label: "Music",    value: "Music" },
+    { label: "Books",    value: "Books" },
+  ];
+
+  return (
+    <div className="relative" ref={ref}>
+      <NavButton
+        label="Store"
+        isActive={isActive}
+        onClick={() => setOpen((o) => !o)}
+        open={open}
+        data-testid="nav-store"
+      />
+      {open && (
+        <DropdownPanel className="w-52">
+          <div className="p-2">
+            <Link href="/store" onClick={() => setOpen(false)}>
+              <div
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer"
+                data-testid="dropdown-store-all"
+              >
+                <ShoppingBag className="h-4 w-4 text-muted-foreground shrink-0" />
+                <p className="text-xs font-semibold text-foreground">All Products</p>
+              </div>
+            </Link>
+            <div className="border-t border-border/60 mt-1 pt-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-1.5">
+                Collections
+              </p>
+              {categories.map((cat) => (
+                <Link key={cat.value} href={`/store?category=${cat.value}`} onClick={() => setOpen(false)}>
+                  <div
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer"
+                    data-testid={`dropdown-store-${cat.label.toLowerCase()}`}
+                  >
+                    <Tag className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <p className="text-xs text-foreground">{cat.label}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </DropdownPanel>
+      )}
+    </div>
+  );
+}
+
+function ServicesDropdown({ isActive }: { isActive: boolean }) {
+  const { open, setOpen, ref } = useDropdown();
+
+  const { data: services } = useQuery<Service[]>({
+    queryKey: ["/api/services"],
+  });
+
+  const featuredServices = (services ?? []).filter((s) => s.featured).slice(0, 6);
+  const categories = ["Engineering", "Design", "Marketing"];
+
+  const byCategory = categories.reduce<Record<string, Service[]>>((acc, cat) => {
+    const items = (services ?? []).filter((s) => s.category === cat).slice(0, 2);
+    if (items.length > 0) acc[cat] = items;
+    return acc;
+  }, {});
+
+  const displayServices = featuredServices.length > 0
+    ? featuredServices
+    : Object.values(byCategory).flat().slice(0, 6);
+
+  return (
+    <div className="relative" ref={ref}>
+      <NavButton
+        label="Services"
+        isActive={isActive}
+        onClick={() => setOpen((o) => !o)}
+        open={open}
+        data-testid="nav-services"
+      />
+      {open && (
+        <DropdownPanel className="w-[480px]">
+          <div className="p-3">
+            <div className="grid grid-cols-2 gap-1">
+              {displayServices.map((service) => {
+                const IconComp = (service.iconName && SERVICE_ICON_MAP[service.iconName]) ? SERVICE_ICON_MAP[service.iconName] : Briefcase;
+                return (
+                  <Link key={service.id} href={`/services/${service.slug}`} onClick={() => setOpen(false)}>
+                    <div
+                      className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer group"
+                      data-testid={`dropdown-service-${service.slug}`}
+                    >
+                      <IconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-foreground leading-none">{service.name}</p>
+                        {service.tagline && (
+                          <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{service.tagline}</p>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+          <div className="border-t border-border/60 px-4 py-2.5">
+            <Link href="/services" onClick={() => setOpen(false)}>
+              <div className="flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer group" data-testid="dropdown-services-all">
+                <span className="font-medium">View all services</span>
+                <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </Link>
+          </div>
+        </DropdownPanel>
+      )}
+    </div>
+  );
+}
+
+function MusicDropdown({ isActive }: { isActive: boolean }) {
+  const { open, setOpen, ref } = useDropdown();
+
+  const items = [
+    { label: "SEVCO RECORDS", href: "/music",             icon: Music,        desc: "The label" },
+    { label: "Listen",        href: "/listen",            icon: Headphones,   desc: "Stream music" },
+    { label: "Artists",       href: "/music/artists",     icon: Music2,       desc: "Browse artists" },
+    { label: "Playlists",     href: "/music/playlists",   icon: ListMusic,    desc: "Curated playlists" },
+    { label: "Submit",        href: "/music/submit",      icon: Send,         desc: "Submit your music" },
+  ];
+
+  return (
+    <div className="relative" ref={ref}>
+      <NavButton
+        label="Music"
+        isActive={isActive}
+        onClick={() => setOpen((o) => !o)}
+        open={open}
+        data-testid="nav-music"
+      />
+      {open && (
+        <DropdownPanel className="w-64">
+          <div className="p-2">
+            {items.map((item) => (
+              <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
+                <div
+                  className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer"
+                  data-testid={`dropdown-music-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  <item.icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">{item.label}</p>
+                    <p className="text-[11px] text-muted-foreground">{item.desc}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </DropdownPanel>
+      )}
+    </div>
+  );
+}
+
+function ProjectsDropdown({ isActive }: { isActive: boolean }) {
+  const { open, setOpen, ref } = useDropdown();
 
   const { data: projects } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
@@ -87,31 +366,15 @@ function ProjectsDropdown({ isActive }: { isActive: boolean }) {
   const activeProjects = featuredProjects.filter((p) => p.status === "active");
   const devProjects = featuredProjects.filter((p) => p.status === "in-development");
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   return (
     <div className="relative" ref={ref}>
-      <Button
-        variant={isActive ? "secondary" : "ghost"}
-        size="sm"
-        className={`gap-1.5 h-8 text-xs font-medium ${
-          isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-        }`}
+      <NavButton
+        label="Projects"
+        isActive={isActive}
         onClick={() => setOpen((o) => !o)}
+        open={open}
         data-testid="nav-projects"
-      >
-        <Folder className="h-3.5 w-3.5" />
-        Projects
-        <ChevronDown className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} />
-      </Button>
+      />
 
       {open && (
         <div className="absolute top-full left-0 mt-1.5 w-72 rounded-xl border bg-popover shadow-xl z-50 overflow-hidden">
@@ -137,17 +400,11 @@ function ProjectsDropdown({ isActive }: { isActive: boolean }) {
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-semibold text-foreground group-hover:text-foreground leading-none">
-                                {project.name}
-                              </span>
-                              <span className={`text-[10px] font-medium ${CATEGORY_COLORS[project.category ?? "Other"] ?? "text-muted-foreground"}`}>
-                                {project.category}
-                              </span>
+                              <span className="text-xs font-semibold text-foreground leading-none">{project.name}</span>
+                              <span className={`text-[10px] font-medium ${CATEGORY_COLORS[project.category ?? "Other"] ?? "text-muted-foreground"}`}>{project.category}</span>
                             </div>
                             {project.description && (
-                              <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-1">
-                                {project.description}
-                              </p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-1">{project.description}</p>
                             )}
                           </div>
                         </div>
@@ -174,17 +431,11 @@ function ProjectsDropdown({ isActive }: { isActive: boolean }) {
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-semibold text-foreground leading-none">
-                                {project.name}
-                              </span>
-                              <span className="text-[10px] text-blue-500 font-medium">
-                                Soon
-                              </span>
+                              <span className="text-xs font-semibold text-foreground leading-none">{project.name}</span>
+                              <span className="text-[10px] text-blue-500 font-medium">Soon</span>
                             </div>
                             {project.description && (
-                              <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-1">
-                                {project.description}
-                              </p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-1">{project.description}</p>
                             )}
                           </div>
                         </div>
@@ -216,8 +467,26 @@ export function PlatformHeader() {
   const [location] = useLocation();
   const activeApp = getActiveApp(location);
   const roleBadgeClass = ROLE_BADGE_VARIANTS[role ?? "user"] ?? ROLE_BADGE_VARIANTS.user;
-
   const canAccessCMD = role === "admin" || role === "executive" || role === "staff";
+
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileSection, setMobileSection] = useState<string | null>(null);
+
+  const storeCategories = ["Apparel", "Games", "Grocery", "Health", "Music", "Books"];
+  const musicItems = [
+    { label: "SEVCO RECORDS", href: "/music" },
+    { label: "Listen",        href: "/listen" },
+    { label: "Artists",       href: "/music/artists" },
+    { label: "Playlists",     href: "/music/playlists" },
+    { label: "Submit",        href: "/music/submit" },
+  ];
+  const homeItems = [
+    { label: "About",   href: "/wiki/company-overview" },
+    { label: "Wiki",    href: "/wiki" },
+    { label: "Contact", href: "/contact" },
+    { label: "Jobs",    href: "/jobs" },
+    { label: "Account", href: "/account" },
+  ];
 
   return (
     <header
@@ -226,10 +495,7 @@ export function PlatformHeader() {
     >
       <div className="flex h-12 items-center gap-2 px-3">
         <Link href="/" className="shrink-0">
-          <div
-            className="flex items-center gap-2 cursor-pointer"
-            data-testid="link-platform-home"
-          >
+          <div className="flex items-center gap-2 cursor-pointer" data-testid="link-platform-home">
             <img
               src={wordmarkBlack}
               alt="SEVCO"
@@ -240,125 +506,189 @@ export function PlatformHeader() {
 
         <div className="w-px h-5 bg-border mx-1 hidden md:block" />
 
+        {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-0.5 flex-1" data-testid="nav-app-switcher">
-          {APP_NAV.filter((item) => item.path !== "/command").map((item) => {
-            const isActive = activeApp === item.path;
-            return (
-              <Link href={item.path} key={item.path}>
-                <Button
-                  variant={isActive ? "secondary" : "ghost"}
-                  size="sm"
-                  className={`gap-1.5 h-8 text-xs font-medium ${
-                    isActive
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  data-testid={`nav-${item.label.toLowerCase()}`}
-                >
-                  <item.icon className="h-3.5 w-3.5" />
-                  {item.label}
-                </Button>
-              </Link>
-            );
-          })}
-
+          <HomeDropdown isActive={activeApp === "/"} />
+          <StoreDropdown isActive={activeApp === "/store"} />
+          <ServicesDropdown isActive={activeApp === "/services"} />
+          <MusicDropdown isActive={activeApp === "/music"} />
           <ProjectsDropdown isActive={activeApp === "/projects"} />
 
-          {canAccessCMD && (() => {
-            const cmdItem = APP_NAV.find((item) => item.path === "/command")!;
-            const isActive = activeApp === "/command";
-            return (
-              <Link href="/command" key="/command">
-                <Button
-                  variant={isActive ? "secondary" : "ghost"}
-                  size="sm"
-                  className={`gap-1.5 h-8 text-xs font-medium ${
-                    isActive
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  data-testid="nav-cmd"
-                >
-                  <cmdItem.icon className="h-3.5 w-3.5" />
-                  {cmdItem.label}
-                </Button>
-              </Link>
-            );
-          })()}
+          {canAccessCMD && (
+            <Link href="/command">
+              <Button
+                variant={activeApp === "/command" ? "secondary" : "ghost"}
+                size="sm"
+                className={`gap-1.5 h-8 text-xs font-medium ${
+                  activeApp === "/command"
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                data-testid="nav-cmd"
+              >
+                <LayoutDashboard className="h-3.5 w-3.5" />
+                CMD
+              </Button>
+            </Link>
+          )}
         </nav>
 
         <div className="md:hidden flex-1" />
 
+        {/* Right side actions */}
         <div className="flex items-center gap-1.5">
+          {/* Mobile hamburger */}
           <div className="md:hidden">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8" data-testid="button-mobile-menu">
-                  <Menu className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                {APP_NAV.filter((item) => {
-                  if (item.path === "/command") return canAccessCMD;
-                  return true;
-                }).map((item) => {
-                  const isActive = activeApp === item.path;
-                  return (
-                    <Link href={item.path} key={item.path}>
-                      <DropdownMenuItem
-                        className={`gap-2 cursor-pointer ${isActive ? "font-semibold" : ""}`}
-                        data-testid={`mobile-nav-${item.label.toLowerCase()}`}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </DropdownMenuItem>
-                    </Link>
-                  );
-                })}
-                <Link href="/projects">
-                  <DropdownMenuItem
-                    className={`gap-2 cursor-pointer ${activeApp === "/projects" ? "font-semibold" : ""}`}
-                    data-testid="mobile-nav-projects"
-                  >
-                    <Folder className="h-4 w-4" />
-                    Projects
-                  </DropdownMenuItem>
-                </Link>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          {user && (
-            <Link href="/account" className="hidden sm:flex items-center gap-1.5 cursor-pointer" data-testid="link-account">
-              <span
-                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded capitalize ${roleBadgeClass}`}
-                data-testid="badge-role"
-              >
-                {role}
-              </span>
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <User className="h-3 w-3" />
-                <span data-testid="text-username">{user.displayName || user.username}</span>
-              </span>
-            </Link>
-          )}
-
-          <ThemeToggle />
-
-          {user && (
             <Button
               variant="ghost"
-              size="sm"
-              onClick={logout}
-              data-testid="button-logout"
-              className="gap-1 h-8 text-xs"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => { setMobileOpen((o) => !o); setMobileSection(null); }}
+              data-testid="button-mobile-menu"
             >
-              <LogOut className="h-3.5 w-3.5" />
-              <span className="hidden sm:block">Sign out</span>
+              <Menu className="h-4 w-4" />
             </Button>
+          </div>
+
+          {user ? (
+            <>
+              <Link href="/account" className="hidden sm:flex items-center gap-1.5 cursor-pointer" data-testid="link-account">
+                <span
+                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded capitalize ${roleBadgeClass}`}
+                  data-testid="badge-role"
+                >
+                  {role}
+                </span>
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <User className="h-3 w-3" />
+                  <span data-testid="text-username">{user.displayName || user.username}</span>
+                </span>
+              </Link>
+              <ThemeToggle />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={logout}
+                data-testid="button-logout"
+                className="gap-1 h-8 text-xs"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="hidden sm:block">Sign out</span>
+              </Button>
+            </>
+          ) : (
+            <>
+              <ThemeToggle />
+              <Link href="/auth">
+                <Button size="sm" className="h-8 text-xs" data-testid="button-sign-in">
+                  Sign in
+                </Button>
+              </Link>
+            </>
           )}
         </div>
       </div>
+
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <div className="md:hidden border-t bg-popover px-3 py-2 space-y-0.5" data-testid="mobile-nav-drawer">
+          {/* Home section */}
+          <Collapsible open={mobileSection === "home"} onOpenChange={(o) => setMobileSection(o ? "home" : null)}>
+            <CollapsibleTrigger asChild>
+              <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors" data-testid="mobile-nav-home">
+                Home
+                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${mobileSection === "home" ? "rotate-180" : ""}`} />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="pl-4 space-y-0.5 py-1">
+                {homeItems.map((item) => (
+                  <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
+                    <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid={`mobile-nav-${item.label.toLowerCase()}`}>
+                      {item.label}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Store section */}
+          <Collapsible open={mobileSection === "store"} onOpenChange={(o) => setMobileSection(o ? "store" : null)}>
+            <CollapsibleTrigger asChild>
+              <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors" data-testid="mobile-nav-store">
+                Store
+                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${mobileSection === "store" ? "rotate-180" : ""}`} />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="pl-4 space-y-0.5 py-1">
+                <Link href="/store" onClick={() => setMobileOpen(false)}>
+                  <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">All Products</div>
+                </Link>
+                {storeCategories.map((cat) => (
+                  <Link key={cat} href={`/store?category=${cat}`} onClick={() => setMobileOpen(false)}>
+                    <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid={`mobile-nav-store-${cat.toLowerCase()}`}>{cat}</div>
+                  </Link>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Services */}
+          <Link href="/services" onClick={() => setMobileOpen(false)}>
+            <div className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors cursor-pointer" data-testid="mobile-nav-services">
+              Services
+            </div>
+          </Link>
+
+          {/* Music section */}
+          <Collapsible open={mobileSection === "music"} onOpenChange={(o) => setMobileSection(o ? "music" : null)}>
+            <CollapsibleTrigger asChild>
+              <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors" data-testid="mobile-nav-music">
+                Music
+                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${mobileSection === "music" ? "rotate-180" : ""}`} />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="pl-4 space-y-0.5 py-1">
+                {musicItems.map((item) => (
+                  <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
+                    <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid={`mobile-nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}>
+                      {item.label}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Projects */}
+          <Link href="/projects" onClick={() => setMobileOpen(false)}>
+            <div className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors cursor-pointer" data-testid="mobile-nav-projects">
+              Projects
+            </div>
+          </Link>
+
+          {canAccessCMD && (
+            <Link href="/command" onClick={() => setMobileOpen(false)}>
+              <div className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors cursor-pointer" data-testid="mobile-nav-cmd">
+                CMD
+              </div>
+            </Link>
+          )}
+
+          {!user && (
+            <div className="pt-2 border-t border-border mt-2">
+              <Link href="/auth" onClick={() => setMobileOpen(false)}>
+                <Button size="sm" className="w-full h-9 text-sm" data-testid="mobile-button-sign-in">
+                  Sign in
+                </Button>
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
     </header>
   );
 }

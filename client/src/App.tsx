@@ -69,33 +69,38 @@ function Router() {
     <Switch>
       <Route path="/auth" component={AuthPage} />
       <Route path="/verify-email" component={VerifyEmailPage} />
-      <Route path="/" component={() => <ProtectedRoute><Landing /></ProtectedRoute>} />
-      <Route path="/wiki" component={() => <ProtectedRoute><Home /></ProtectedRoute>} />
-      <Route path="/wiki/:slug" component={() => <ProtectedRoute><ArticleView /></ProtectedRoute>} />
+
+      {/* Public routes — no ProtectedRoute */}
+      <Route path="/" component={Landing} />
+      <Route path="/wiki" component={Home} />
+      <Route path="/wiki/:slug" component={ArticleView} />
+      <Route path="/search" component={SearchPage} />
+      <Route path="/category/:slug" component={CategoryView} />
+      <Route path="/music" component={MusicPage} />
+      <Route path="/music/artists" component={MusicArtistsPage} />
+      <Route path="/music/artists/:slug" component={MusicArtistDetail} />
+      <Route path="/music/albums/:slug" component={MusicAlbumDetail} />
+      <Route path="/store" component={StorePage} />
+      <Route path="/store/products/:slug" component={StoreProductDetail} />
+      <Route path="/services" component={ServicesListingPage} />
+      <Route path="/services/:slug" component={ServiceDetailPage} />
+      <Route path="/projects" component={ProjectsPage} />
+      <Route path="/projects/:slug" component={ProjectDetail} />
+
+      {/* Protected write/manage routes */}
       <Route path="/edit/:slug" component={() => <ProtectedRoute><ArticleEditor /></ProtectedRoute>} />
       <Route path="/new" component={() => <ProtectedRoute><ArticleEditor /></ProtectedRoute>} />
-      <Route path="/search" component={() => <ProtectedRoute><SearchPage /></ProtectedRoute>} />
       <Route path="/review" component={() => <ProtectedRoute><ReviewQueue /></ProtectedRoute>} />
       <Route path="/account" component={() => <ProtectedRoute><AccountPage /></ProtectedRoute>} />
-      <Route path="/category/:slug" component={() => <ProtectedRoute><CategoryView /></ProtectedRoute>} />
-      <Route path="/music" component={() => <ProtectedRoute><MusicPage /></ProtectedRoute>} />
-      <Route path="/music/artists" component={() => <ProtectedRoute><MusicArtistsPage /></ProtectedRoute>} />
-      <Route path="/music/artists/new" component={() => <ProtectedRoute><MusicArtistForm /></ProtectedRoute>} />
-      <Route path="/music/artists/:slug" component={() => <ProtectedRoute><MusicArtistDetail /></ProtectedRoute>} />
-      <Route path="/music/albums/new" component={() => <ProtectedRoute><MusicAlbumForm /></ProtectedRoute>} />
-      <Route path="/music/albums/:slug" component={() => <ProtectedRoute><MusicAlbumDetail /></ProtectedRoute>} />
-      <Route path="/store" component={() => <ProtectedRoute><StorePage /></ProtectedRoute>} />
       <Route path="/store/stats" component={() => <ProtectedRoute><StoreStatsPage /></ProtectedRoute>} />
       <Route path="/store/success" component={() => <ProtectedRoute><StoreSuccessPage /></ProtectedRoute>} />
       <Route path="/store/cancel" component={() => <ProtectedRoute><StoreCancelPage /></ProtectedRoute>} />
       <Route path="/store/products/new" component={() => <ProtectedRoute><StoreProductForm /></ProtectedRoute>} />
-      <Route path="/store/products/:slug" component={() => <ProtectedRoute><StoreProductDetail /></ProtectedRoute>} />
-      <Route path="/services" component={ServicesListingPage} />
-      <Route path="/services/:slug" component={ServiceDetailPage} />
-      <Route path="/projects" component={() => <ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
+      <Route path="/music/artists/new" component={() => <ProtectedRoute><MusicArtistForm /></ProtectedRoute>} />
+      <Route path="/music/albums/new" component={() => <ProtectedRoute><MusicAlbumForm /></ProtectedRoute>} />
       <Route path="/projects/new" component={() => <ProtectedRoute><ProjectCreatePage /></ProtectedRoute>} />
       <Route path="/projects/:slug/edit" component={() => <ProtectedRoute><ProjectEditPage /></ProtectedRoute>} />
-      <Route path="/projects/:slug" component={ProjectDetail} />
+
       <Route path="/dashboard" component={() => <Redirect to="/command" />} />
       <Route path="/command" component={() => (
         <ProtectedRoute>
@@ -141,6 +146,8 @@ function AppShell() {
   const { user, isLoading } = useAuth();
   const [location] = useLocation();
 
+  const isAuthPage = location === "/auth" || location === "/verify-email";
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -149,12 +156,12 @@ function AppShell() {
     );
   }
 
-  if (!user) {
+  if (isAuthPage) {
     return <Router />;
   }
 
-  const showWikiSidebar = isWikiRoute(location);
-  const showCommandSidebar = isCommandRoute(location);
+  const showWikiSidebar = !!user && isWikiRoute(location);
+  const showCommandSidebar = !!user && isCommandRoute(location);
 
   return (
     <SidebarProvider
@@ -167,7 +174,7 @@ function AppShell() {
           {showCommandSidebar && <CommandSidebar />}
           <main className="flex-1 overflow-auto flex flex-col">
             <Router />
-            {location !== "/auth" && <PlatformFooter />}
+            <PlatformFooter />
           </main>
         </div>
       </div>

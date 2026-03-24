@@ -3,7 +3,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 
-type AuthUser = { id: string; username: string; role: string; displayName?: string; bio?: string; email?: string };
+import type { Role } from "@shared/schema";
+
+type AuthUser = { id: string; username: string; role: Role; displayName?: string; bio?: string; email?: string };
 
 type AuthContextType = {
   user: AuthUser | null;

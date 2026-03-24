@@ -8,7 +8,7 @@ function hasRole(userRole: Role | undefined, allowed: Role[]): boolean {
 
 export function usePermission() {
   const { user } = useAuth();
-  const role = user?.role as Role | undefined;
+  const role = user?.role;
 
   return {
     role,

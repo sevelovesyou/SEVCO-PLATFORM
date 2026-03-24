@@ -145,6 +145,9 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Invalid role", errors: parsed.error.flatten() });
       }
       const updated = await storage.updateUserRole(req.params.id as string, parsed.data.role);
+      if (!updated) {
+        return res.status(404).json({ message: "User not found" });
+      }
       const { password: _, ...safeUser } = updated;
       return res.json(safeUser);
     } catch (err) {

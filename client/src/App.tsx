@@ -20,6 +20,11 @@ import CategoryView from "@/pages/category-view";
 import AuthPage from "@/pages/auth-page";
 import AccountPage from "@/pages/account-page";
 import MusicPage from "@/pages/music-page";
+import MusicArtistsPage from "@/pages/music-artists-page";
+import MusicArtistDetail from "@/pages/music-artist-detail";
+import MusicAlbumDetail from "@/pages/music-album-detail";
+import MusicArtistForm from "@/pages/music-artist-form";
+import MusicAlbumForm from "@/pages/music-album-form";
 import StorePage from "@/pages/store-page";
 import ProjectsPage from "@/pages/projects-page";
 import DashboardPage from "@/pages/dashboard-page";
@@ -47,6 +52,11 @@ function Router() {
       <Route path="/account" component={() => <ProtectedRoute><AccountPage /></ProtectedRoute>} />
       <Route path="/category/:slug" component={() => <ProtectedRoute><CategoryView /></ProtectedRoute>} />
       <Route path="/music" component={() => <ProtectedRoute><MusicPage /></ProtectedRoute>} />
+      <Route path="/music/artists" component={() => <ProtectedRoute><MusicArtistsPage /></ProtectedRoute>} />
+      <Route path="/music/artists/new" component={() => <ProtectedRoute><MusicArtistForm /></ProtectedRoute>} />
+      <Route path="/music/artists/:slug" component={() => <ProtectedRoute><MusicArtistDetail /></ProtectedRoute>} />
+      <Route path="/music/albums/new" component={() => <ProtectedRoute><MusicAlbumForm /></ProtectedRoute>} />
+      <Route path="/music/albums/:slug" component={() => <ProtectedRoute><MusicAlbumDetail /></ProtectedRoute>} />
       <Route path="/store" component={() => <ProtectedRoute><StorePage /></ProtectedRoute>} />
       <Route path="/projects" component={() => <ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
       <Route path="/dashboard" component={() => <ProtectedRoute><DashboardPage /></ProtectedRoute>} />

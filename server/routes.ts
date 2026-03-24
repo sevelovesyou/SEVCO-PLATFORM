@@ -367,5 +367,50 @@ export async function registerRoutes(
     res.json(stats);
   });
 
+  app.get("/api/users", requireAuth, requireRole("admin"), async (_req, res) => {
+    const allUsers = await storage.getAllUsers();
+    res.json(allUsers.map(({ password: _, ...u }) => u));
+  });
+
+  app.get("/api/dashboard", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const role = user.role as Role;
+
+      const stats = await storage.getStats();
+      const result: Record<string, unknown> = { stats };
+
+      if (["admin", "executive", "staff", "partner"].includes(role)) {
+        const userCount = await storage.getUserCount();
+        (result.stats as Record<string, unknown>).totalUsers = userCount;
+      }
+
+      if (role === "admin") {
+        const allUsers = await storage.getAllUsers();
+        const usersByRole: Record<string, number> = {};
+        for (const u of allUsers) {
+          usersByRole[u.role] = (usersByRole[u.role] || 0) + 1;
+        }
+        result.usersByRole = usersByRole;
+        result.users = allUsers.map(({ password: _, ...u }) => u);
+      }
+
+      const contributions = await storage.getRevisionsByAuthor(user.username);
+      result.myContributions = contributions.map((r) => ({
+        id: r.id,
+        articleId: r.articleId,
+        articleTitle: r.article.title,
+        articleSlug: r.article.slug,
+        editSummary: r.editSummary,
+        status: r.status,
+        createdAt: r.createdAt,
+      }));
+
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   return httpServer;
 }

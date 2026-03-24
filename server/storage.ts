@@ -46,6 +46,9 @@ export interface IStorage {
   deleteCrosslinksBySource(sourceArticleId: number): Promise<void>;
 
   getStats(): Promise<{ totalArticles: number; totalRevisions: number; pendingReviews: number; totalCitations: number }>;
+  getAllUsers(): Promise<User[]>;
+  getUserCount(): Promise<number>;
+  getRevisionsByAuthor(authorName: string): Promise<(Revision & { article: Article })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -232,6 +235,26 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCrosslinksBySource(sourceArticleId: number): Promise<void> {
     await db.delete(crosslinks).where(eq(crosslinks.sourceArticleId, sourceArticleId));
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return db.select().from(users).orderBy(users.role, users.username);
+  }
+
+  async getUserCount(): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)::int` }).from(users);
+    return result?.count || 0;
+  }
+
+  async getRevisionsByAuthor(authorName: string): Promise<(Revision & { article: Article })[]> {
+    const rows = await db
+      .select()
+      .from(revisions)
+      .innerJoin(articles, eq(revisions.articleId, articles.id))
+      .where(eq(revisions.authorName, authorName))
+      .orderBy(desc(revisions.createdAt))
+      .limit(10);
+    return rows.map((r) => ({ ...r.revisions, article: r.articles }));
   }
 
   async getStats(): Promise<{ totalArticles: number; totalRevisions: number; pendingReviews: number; totalCitations: number }> {

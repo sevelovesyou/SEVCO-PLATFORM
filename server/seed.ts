@@ -1,7 +1,15 @@
 import { storage } from "./storage";
 import { db } from "./db";
-import { articles, categories, revisions, citations, crosslinks } from "@shared/schema";
+import { articles, categories, revisions, citations, crosslinks, users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+
+export async function promoteFounderToAdmin() {
+  const founder = await storage.getUserByUsername("severin@sevelovesyou.com");
+  if (founder && founder.role === "user") {
+    await storage.updateUserRole(founder.id, "admin");
+    console.log("Promoted severin@sevelovesyou.com to admin.");
+  }
+}
 
 export async function seedDatabase() {
   // Check whether the new categories are already present

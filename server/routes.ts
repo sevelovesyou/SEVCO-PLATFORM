@@ -376,13 +376,16 @@ export async function registerRoutes(
     try {
       const user = req.user!;
       const role = user.role as Role;
+      const isPrivileged = ["admin", "executive", "staff", "partner"].includes(role);
 
-      const stats = await storage.getStats();
-      const result: Record<string, unknown> = { stats };
+      const result: Record<string, unknown> = {};
 
-      if (["admin", "executive", "staff", "partner"].includes(role)) {
+      if (isPrivileged) {
+        const stats = await storage.getStats();
         const userCount = await storage.getUserCount();
-        (result.stats as Record<string, unknown>).totalUsers = userCount;
+        result.stats = { ...stats, totalUsers: userCount };
+      } else {
+        result.stats = {};
       }
 
       if (role === "admin") {
@@ -395,16 +398,18 @@ export async function registerRoutes(
         result.users = allUsers.map(({ password: _, ...u }) => u);
       }
 
-      const contributions = await storage.getRevisionsByAuthor(user.username);
-      result.myContributions = contributions.map((r) => ({
-        id: r.id,
-        articleId: r.articleId,
-        articleTitle: r.article.title,
-        articleSlug: r.article.slug,
-        editSummary: r.editSummary,
-        status: r.status,
-        createdAt: r.createdAt,
-      }));
+      if (isPrivileged) {
+        const contributions = await storage.getRevisionsByAuthor(user.username);
+        result.myContributions = contributions.map((r) => ({
+          id: r.id,
+          articleId: r.articleId,
+          articleTitle: r.article.title,
+          articleSlug: r.article.slug,
+          editSummary: r.editSummary,
+          status: r.status,
+          createdAt: r.createdAt,
+        }));
+      }
 
       res.json(result);
     } catch (err: any) {

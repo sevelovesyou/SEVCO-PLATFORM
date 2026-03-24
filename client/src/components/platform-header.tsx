@@ -239,10 +239,7 @@ export function PlatformHeader() {
         <div className="w-px h-5 bg-border mx-1 hidden md:block" />
 
         <nav className="hidden md:flex items-center gap-0.5 flex-1" data-testid="nav-app-switcher">
-          {APP_NAV.filter((item) => {
-            if (item.path === "/command") return canAccessCMD;
-            return true;
-          }).map((item) => {
+          {APP_NAV.filter((item) => item.path !== "/command").map((item) => {
             const isActive = activeApp === item.path;
             return (
               <Link href={item.path} key={item.path}>
@@ -264,6 +261,28 @@ export function PlatformHeader() {
           })}
 
           <ProjectsDropdown isActive={activeApp === "/projects"} />
+
+          {canAccessCMD && (() => {
+            const cmdItem = APP_NAV.find((item) => item.path === "/command")!;
+            const isActive = activeApp === "/command";
+            return (
+              <Link href="/command" key="/command">
+                <Button
+                  variant={isActive ? "secondary" : "ghost"}
+                  size="sm"
+                  className={`gap-1.5 h-8 text-xs font-medium ${
+                    isActive
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  data-testid="nav-cmd"
+                >
+                  <cmdItem.icon className="h-3.5 w-3.5" />
+                  {cmdItem.label}
+                </Button>
+              </Link>
+            );
+          })()}
         </nav>
 
         <div className="md:hidden flex-1" />

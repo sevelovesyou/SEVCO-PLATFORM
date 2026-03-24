@@ -72,11 +72,11 @@ function ServiceForm({
     defaultValues: {
       name: initialData?.name ?? "",
       slug: initialData?.slug ?? "",
-      category: (initialData?.category as any) ?? "Engineering",
+      category: (initialData?.category as FormValues["category"]) ?? "Engineering",
       tagline: initialData?.tagline ?? "",
       description: initialData?.description ?? "",
       iconName: initialData?.iconName ?? "",
-      status: (initialData?.status as any) ?? "active",
+      status: (initialData?.status as FormValues["status"]) ?? "active",
       featured: initialData?.featured ?? false,
     },
   });
@@ -89,7 +89,7 @@ function ServiceForm({
       return apiRequest("POST", "/api/services", values);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/services"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/services", "all"] });
       toast({ title: isEdit ? "Service updated" : "Service created" });
       onSuccess();
     },
@@ -239,13 +239,14 @@ export default function CommandServices() {
   const [deleteService, setDeleteService] = useState<Service | null>(null);
 
   const { data: services, isLoading } = useQuery<Service[]>({
-    queryKey: ["/api/services"],
+    queryKey: ["/api/services", "all"],
+    queryFn: () => fetch("/api/services?all=true").then((r) => r.json()),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => apiRequest("DELETE", `/api/services/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/services"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/services", "all"] });
       toast({ title: "Service deleted" });
       setDeleteService(null);
     },

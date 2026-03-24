@@ -859,10 +859,13 @@ export async function registerRoutes(
 
   const CAN_MANAGE_SERVICES: Role[] = ["admin", "executive"];
 
-  app.get("/api/services", async (_req, res) => {
+  app.get("/api/services", async (req, res) => {
     try {
       const all = await storage.getServices();
-      res.json(all);
+      const showAll = req.query.all === "true" && req.isAuthenticated() &&
+        ["admin", "executive", "staff"].includes((req.user as any)?.role ?? "");
+      const result = showAll ? all : all.filter((s) => s.status === "active");
+      res.json(result);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

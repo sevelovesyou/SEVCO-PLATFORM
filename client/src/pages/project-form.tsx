@@ -35,6 +35,7 @@ const formSchema = z.object({
   launchDate: z.string().max(100).optional(),
   heroImageUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   logoUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  galleryUrls: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -97,6 +98,7 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
       launchDate: project?.launchDate ?? "",
       heroImageUrl: project?.heroImageUrl ?? "",
       logoUrl: project?.logoUrl ?? "",
+      galleryUrls: project?.galleryUrls?.join(", ") ?? "",
     },
   });
 
@@ -107,6 +109,9 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
         : [];
       const tagList = values.tags
         ? values.tags.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
+      const galleryList = values.galleryUrls
+        ? values.galleryUrls.split(",").map((s) => s.trim()).filter(Boolean)
         : [];
       return apiRequest("POST", "/api/projects", {
         name: values.name,
@@ -124,6 +129,7 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
         launchDate: values.launchDate || null,
         heroImageUrl: values.heroImageUrl || null,
         logoUrl: values.logoUrl || null,
+        galleryUrls: galleryList.length > 0 ? galleryList : null,
       });
     },
     onSuccess: async (res) => {
@@ -145,6 +151,9 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
       const tagList = values.tags
         ? values.tags.split(",").map((s) => s.trim()).filter(Boolean)
         : [];
+      const galleryList = values.galleryUrls
+        ? values.galleryUrls.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
       return apiRequest("PATCH", `/api/projects/${project!.id}`, {
         name: values.name,
         slug: values.slug,
@@ -161,6 +170,7 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
         launchDate: values.launchDate || null,
         heroImageUrl: values.heroImageUrl || null,
         logoUrl: values.logoUrl || null,
+        galleryUrls: galleryList.length > 0 ? galleryList : null,
       });
     },
     onSuccess: async (res) => {
@@ -484,6 +494,28 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
                       <FormControl>
                         <Input placeholder="https://... (project logo or icon)" data-testid="input-project-logo" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="galleryUrls"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gallery Image URLs</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="https://..., https://... (comma-separated image URLs)"
+                          rows={3}
+                          data-testid="textarea-project-gallery"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">
+                        Comma-separated URLs for the project gallery images.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

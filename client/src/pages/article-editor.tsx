@@ -40,6 +40,8 @@ import {
   Link2,
 } from "lucide-react";
 import type { Article, Category, Citation } from "@shared/schema";
+import { usePermission } from "@/hooks/use-permission";
+import { Lock } from "lucide-react";
 
 const articleFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -76,6 +78,7 @@ export default function ArticleEditor() {
   const slug = params?.slug;
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { canCreateArticle } = usePermission();
 
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
@@ -225,6 +228,22 @@ export default function ArticleEditor() {
   }
 
   const isPending = createMutation.isPending || updateMutation.isPending;
+
+  if (!canCreateArticle) {
+    return (
+      <div className="max-w-sm mx-auto p-4 md:p-6 mt-16">
+        <div className="text-center mb-6">
+          <div className="h-14 w-14 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-3">
+            <Lock className="h-6 w-6 text-destructive" />
+          </div>
+          <h1 className="text-xl font-bold mb-1">Access Restricted</h1>
+          <p className="text-sm text-muted-foreground">
+            You need Staff, Partner, Executive, or Admin access to create or edit articles.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6">

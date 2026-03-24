@@ -1,6 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import {
+  requireAuth,
+  requireRole,
+  CAN_CREATE_ARTICLE,
+  CAN_ACCESS_REVIEW_QUEUE,
+  CAN_DELETE_ARTICLE,
+} from "./middleware/permissions";
 
 function extractKeywords(text: string): string[] {
   const stopWords = new Set([
@@ -190,7 +197,7 @@ export async function registerRoutes(
     });
   });
 
-  app.post("/api/articles", async (req, res) => {
+  app.post("/api/articles", requireAuth, requireRole(...CAN_CREATE_ARTICLE), async (req, res) => {
     try {
       const { citations: citationsData, editSummary, ...articleData } = req.body;
 
@@ -240,7 +247,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/articles/:slug", async (req, res) => {
+  app.patch("/api/articles/:slug", requireAuth, async (req, res) => {
     try {
       const article = await storage.getArticleBySlug(req.params.slug);
       if (!article) return res.status(404).json({ message: "Article not found" });
@@ -287,7 +294,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/articles/:id", async (req, res) => {
+  app.delete("/api/articles/:id", requireAuth, requireRole(...CAN_DELETE_ARTICLE), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) return res.status(400).json({ message: "Invalid article id" });
@@ -298,22 +305,22 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/revisions/pending-count", async (_req, res) => {
+  app.get("/api/revisions/pending-count", requireAuth, async (_req, res) => {
     const count = await storage.getPendingRevisionCount();
     res.json({ count });
   });
 
-  app.get("/api/revisions/pending", async (_req, res) => {
+  app.get("/api/revisions/pending", requireAuth, requireRole(...CAN_ACCESS_REVIEW_QUEUE), async (_req, res) => {
     const pending = await storage.getPendingRevisions();
     res.json(pending);
   });
 
-  app.get("/api/revisions", async (_req, res) => {
+  app.get("/api/revisions", requireAuth, requireRole(...CAN_ACCESS_REVIEW_QUEUE), async (_req, res) => {
     const all = await storage.getAllRevisions();
     res.json(all);
   });
 
-  app.patch("/api/revisions/:id", async (req, res) => {
+  app.patch("/api/revisions/:id", requireAuth, requireRole(...CAN_ACCESS_REVIEW_QUEUE), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { status, reviewNote } = req.body;

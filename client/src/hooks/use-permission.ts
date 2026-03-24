@@ -1,0 +1,29 @@
+import { useAuth } from "@/hooks/use-auth";
+import type { Role } from "@shared/schema";
+
+const ROLE_HIERARCHY: Role[] = ["admin", "executive", "staff", "partner", "client", "user"];
+
+function hasRole(userRole: Role | undefined, allowed: Role[]): boolean {
+  if (!userRole) return false;
+  return allowed.includes(userRole);
+}
+
+export function usePermission() {
+  const { user } = useAuth();
+  const role = (user as any)?.role as Role | undefined;
+
+  return {
+    role,
+    canCreateArticle: hasRole(role, ["admin", "executive", "staff", "partner"]),
+    canAccessReviewQueue: hasRole(role, ["admin", "executive"]),
+    canPublishArticles: hasRole(role, ["admin", "executive"]),
+    canDeleteArticle: hasRole(role, ["admin", "executive"]),
+    canManageRoles: hasRole(role, ["admin"]),
+    isAdmin: role === "admin",
+    isExecutive: role === "executive",
+    isStaff: role === "staff",
+    isPartner: role === "partner",
+    isClient: role === "client",
+    isUser: role === "user",
+  };
+}

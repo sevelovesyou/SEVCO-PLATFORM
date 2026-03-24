@@ -5,7 +5,8 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
-import { insertUserSchema, updateUserSchema } from "@shared/schema";
+import { insertUserSchema, updateUserSchema, updateRoleSchema } from "@shared/schema";
+import { requireRole, CAN_MANAGE_ROLES } from "./middleware/permissions";
 import { pool } from "./db";
 
 const PgSession = connectPgSimple(session);
@@ -132,6 +133,20 @@ export function setupAuth(app: Express) {
         const { password: _, ...safeUser } = updated;
         return res.json(safeUser);
       });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.patch("/api/users/:id/role", requireRole(...CAN_MANAGE_ROLES), async (req, res, next) => {
+    try {
+      const parsed = updateRoleSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid role", errors: parsed.error.flatten() });
+      }
+      const updated = await storage.updateUserRole(req.params.id as string, parsed.data.role);
+      const { password: _, ...safeUser } = updated;
+      return res.json(safeUser);
     } catch (err) {
       next(err);
     }

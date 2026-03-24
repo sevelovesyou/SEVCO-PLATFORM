@@ -30,6 +30,7 @@ import {
   User,
 } from "lucide-react";
 import type { Category, Article } from "@shared/schema";
+import { usePermission } from "@/hooks/use-permission";
 
 import logoImg from "@assets/SEVCO_App_Icon_-_SEVCO_App_Icon_2_(1)_1771523059981.png";
 
@@ -46,6 +47,7 @@ const CATEGORY_ORDER = ["general", "operations", "engineering", "design", "sales
 
 export function AppSidebar() {
   const [location] = useLocation();
+  const { canCreateArticle, canAccessReviewQueue } = usePermission();
 
   const { data: categories, isLoading: catLoading } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
@@ -57,15 +59,16 @@ export function AppSidebar() {
 
   const { data: pendingCount } = useQuery<{ count: number }>({
     queryKey: ["/api/revisions", "pending-count"],
+    enabled: canAccessReviewQueue,
   });
 
   const navItems = [
-    { title: "Home", url: "/", icon: BookOpen },
-    { title: "Search", url: "/search", icon: Search },
-    { title: "New Article", url: "/new", icon: Plus },
-    { title: "Review Queue", url: "/review", icon: Shield },
-    { title: "Account", url: "/account", icon: User },
-  ];
+    { title: "Home", url: "/", icon: BookOpen, show: true },
+    { title: "Search", url: "/search", icon: Search, show: true },
+    { title: "New Article", url: "/new", icon: Plus, show: canCreateArticle },
+    { title: "Review Queue", url: "/review", icon: Shield, show: canAccessReviewQueue },
+    { title: "Account", url: "/account", icon: User, show: true },
+  ].filter((item) => item.show);
 
   return (
     <Sidebar>

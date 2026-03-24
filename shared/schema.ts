@@ -4,6 +4,9 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const ROLES = ["admin", "executive", "staff", "partner", "client", "user"] as const;
+export type Role = typeof ROLES[number];
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
@@ -11,6 +14,7 @@ export const users = pgTable("users", {
   displayName: text("display_name"),
   bio: text("bio"),
   email: text("email"),
+  role: text("role").notNull().default("user"),
 });
 
 export const categories = pgTable("categories", {
@@ -122,6 +126,10 @@ export const updateUserSchema = z.object({
   email: z.string().email().optional().or(z.literal("")),
 });
 
+export const updateRoleSchema = z.object({
+  role: z.enum(ROLES),
+});
+
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
 
 export const insertArticleSchema = createInsertSchema(articles).omit({
@@ -144,6 +152,7 @@ export const insertCrosslinkSchema = createInsertSchema(crosslinks).omit({ id: t
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
+export type UpdateRole = z.infer<typeof updateRoleSchema>;
 export type User = typeof users.$inferSelect;
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;

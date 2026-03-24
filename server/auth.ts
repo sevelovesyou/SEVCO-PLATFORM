@@ -4,10 +4,12 @@ import { type Express } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { storage } from "./storage";
 import { insertUserSchema, updateUserSchema, updateRoleSchema } from "@shared/schema";
 import { requireRole, CAN_MANAGE_ROLES } from "./middleware/permissions";
 import { pool } from "./db";
+import { sendVerificationEmail } from "./emailClient";
 
 const PgSession = connectPgSimple(session);
 
@@ -75,14 +77,33 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Username already taken" });
       }
 
-      const hashed = await bcrypt.hash(parsed.data.password, 10);
-      const user = await storage.createUser({ username: parsed.data.username, password: hashed });
+      const existingEmail = await storage.getUserByEmail(parsed.data.email);
+      if (existingEmail) {
+        return res.status(400).json({ message: "Email already taken" });
+      }
 
-      req.login(user, (err) => {
-        if (err) return next(err);
-        const { password: _, ...safeUser } = user;
-        return res.status(201).json(safeUser);
+      const token = crypto.randomBytes(32).toString("hex");
+      const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      const hashed = await bcrypt.hash(parsed.data.password, 10);
+      const user = await storage.createUser({
+        username: parsed.data.username,
+        password: hashed,
+        email: parsed.data.email,
       });
+
+      await storage.updateEmailVerification(user.id, {
+        emailVerificationToken: token,
+        emailVerificationExpires: expires,
+      });
+
+      try {
+        await sendVerificationEmail(parsed.data.email, token);
+      } catch (emailErr) {
+        console.error("Failed to send verification email:", emailErr);
+      }
+
+      return res.status(200).json({ status: "pending_verification" });
     } catch (err) {
       next(err);
     }
@@ -94,12 +115,95 @@ export function setupAuth(app: Express) {
       if (!user) {
         return res.status(401).json({ message: info?.message || "Authentication failed" });
       }
+      if (!user.emailVerified) {
+        return res.status(403).json({ code: "EMAIL_NOT_VERIFIED", message: "Please verify your email before signing in." });
+      }
       req.login(user, (err) => {
         if (err) return next(err);
         const { password: _, ...safeUser } = user;
         return res.json(safeUser);
       });
     })(req, res, next);
+  });
+
+  app.get("/api/verify-email", async (req, res, next) => {
+    try {
+      const token = req.query.token as string;
+      if (!token) {
+        return res.status(400).json({ message: "Token is required" });
+      }
+
+      const user = await storage.getUserByVerificationToken(token);
+      if (!user) {
+        return res.status(400).json({ message: "This link has expired or is invalid." });
+      }
+
+      if (user.emailVerificationExpires && new Date() > user.emailVerificationExpires) {
+        return res.status(400).json({ message: "This link has expired or is invalid." });
+      }
+
+      await storage.updateEmailVerification(user.id, {
+        emailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
+      });
+
+      const freshUser = await storage.getUser(user.id);
+      if (!freshUser) {
+        return res.status(500).json({ message: "User not found after verification" });
+      }
+
+      req.login(freshUser, (err) => {
+        if (err) return next(err);
+        const { password: _, ...safeUser } = freshUser;
+        return res.json(safeUser);
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post("/api/resend-verification", async (req, res, next) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(200).json({ message: "If that email exists, a verification link has been sent." });
+      }
+
+      if (user.emailVerified) {
+        return res.status(200).json({ message: "Email is already verified." });
+      }
+
+      if (user.emailVerificationExpires) {
+        const tokenAge = 24 * 60 * 60 * 1000 - (user.emailVerificationExpires.getTime() - Date.now());
+        if (tokenAge < 60 * 1000) {
+          return res.status(429).json({ message: "Please wait before requesting another verification email." });
+        }
+      }
+
+      const token = crypto.randomBytes(32).toString("hex");
+      const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      await storage.updateEmailVerification(user.id, {
+        emailVerificationToken: token,
+        emailVerificationExpires: expires,
+      });
+
+      try {
+        await sendVerificationEmail(email, token);
+      } catch (emailErr) {
+        console.error("Failed to resend verification email:", emailErr);
+      }
+
+      return res.status(200).json({ message: "Verification email sent." });
+    } catch (err) {
+      next(err);
+    }
   });
 
   app.post("/api/logout", (req, res, next) => {

@@ -16,6 +16,9 @@ export const users = pgTable("users", {
   bio: text("bio"),
   email: text("email"),
   role: roleEnum("role").notNull().default("user"),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  emailVerificationToken: text("email_verification_token"),
+  emailVerificationExpires: timestamp("email_verification_expires"),
 });
 
 export const categories = pgTable("categories", {
@@ -209,6 +212,8 @@ export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, cre
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+}).extend({
+  email: z.string().email("Please enter a valid email"),
 });
 
 export const updateUserSchema = z.object({

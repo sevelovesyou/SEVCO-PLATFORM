@@ -11,6 +11,20 @@ export async function promoteFounderToAdmin() {
   }
 }
 
+export async function markExistingUsersVerified() {
+  const allUsers = await storage.getAllUsers();
+  let count = 0;
+  for (const user of allUsers) {
+    if (!user.emailVerified && !user.emailVerificationToken) {
+      await storage.updateEmailVerification(user.id, { emailVerified: true });
+      count++;
+    }
+  }
+  if (count > 0) {
+    console.log(`Marked ${count} pre-existing user(s) as email-verified.`);
+  }
+}
+
 export async function seedDatabase() {
   // Check whether the new categories are already present
   const [engCat] = await db.select().from(categories).where(eq(categories.slug, "engineering"));

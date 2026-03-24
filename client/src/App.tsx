@@ -21,6 +21,7 @@ import SearchPage from "@/pages/search";
 import ReviewQueue from "@/pages/review-queue";
 import CategoryView from "@/pages/category-view";
 import AuthPage from "@/pages/auth-page";
+import VerifyEmailPage from "@/pages/verify-email-page";
 import AccountPage from "@/pages/account-page";
 import MusicPage from "@/pages/music-page";
 import MusicArtistsPage from "@/pages/music-artists-page";
@@ -64,6 +65,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
+      <Route path="/verify-email" component={VerifyEmailPage} />
       <Route path="/" component={() => <ProtectedRoute><Landing /></ProtectedRoute>} />
       <Route path="/wiki" component={() => <ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/wiki/:slug" component={() => <ProtectedRoute><ArticleView /></ProtectedRoute>} />

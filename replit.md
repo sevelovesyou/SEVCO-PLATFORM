@@ -23,7 +23,10 @@ A multi-app platform for sevelovesyou.com (SEVE / SEVCO Records). Built as a pla
 - passport.js LocalStrategy with bcryptjs password hashing
 - express-session with connect-pg-simple (stored in PostgreSQL)
 - Protected routes redirect unauthenticated users to /auth
-- API routes: POST /api/register, POST /api/login, POST /api/logout, GET /api/user
+- **Email verification required on signup**: Registration collects email, sends verification link via Resend, user must verify before logging in
+- API routes: POST /api/register, POST /api/login, POST /api/logout, GET /api/user, GET /api/verify-email, POST /api/resend-verification
+- Email client: server/emailClient.ts (Resend integration via Replit connector)
+- Existing users auto-marked as email-verified on startup
 
 ## Platform Routes
 | Route | Page | Sidebar |
@@ -44,6 +47,7 @@ A multi-app platform for sevelovesyou.com (SEVE / SEVCO Records). Built as a pla
 | `/command/users` | Command — User Management (admin) | Command sidebar |
 | `/command/changelog` | Command — Changelog (admin/exec/staff) | Command sidebar |
 | `/auth` | Login/Register | None |
+| `/verify-email` | Email Verification (unguarded) | None |
 
 ## Project Structure
 ```

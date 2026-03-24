@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { seedDatabase, promoteFounderToAdmin } from "./seed";
+import { seedDatabase, promoteFounderToAdmin, markExistingUsersVerified } from "./seed";
 import { setupAuth } from "./auth";
 import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
@@ -114,6 +114,7 @@ async function initStripe() {
   await initStripe().catch((err) => console.error("Stripe init error:", err));
   await seedDatabase().catch((err) => console.error("Seed error:", err));
   await promoteFounderToAdmin().catch((err) => console.error("Promotion error:", err));
+  await markExistingUsersVerified().catch((err) => console.error("Email verify migration error:", err));
   setupAuth(app);
   await registerRoutes(httpServer, app);
 

@@ -30,6 +30,7 @@ import MusicAlbumForm from "@/pages/music-album-form";
 import StorePage from "@/pages/store-page";
 import StoreProductDetail from "@/pages/store-product-detail";
 import StoreProductForm from "@/pages/store-product-form";
+import StoreStatsPage from "@/pages/store-stats-page";
 import ProjectsPage from "@/pages/projects-page";
 import ProjectDetail from "@/pages/project-detail";
 import { ProjectCreatePage, ProjectEditPage } from "@/pages/project-form";
@@ -76,6 +77,7 @@ function Router() {
       <Route path="/music/albums/new" component={() => <ProtectedRoute><MusicAlbumForm /></ProtectedRoute>} />
       <Route path="/music/albums/:slug" component={() => <ProtectedRoute><MusicAlbumDetail /></ProtectedRoute>} />
       <Route path="/store" component={() => <ProtectedRoute><StorePage /></ProtectedRoute>} />
+      <Route path="/store/stats" component={() => <ProtectedRoute><StoreStatsPage /></ProtectedRoute>} />
       <Route path="/store/products/new" component={() => <ProtectedRoute><StoreProductForm /></ProtectedRoute>} />
       <Route path="/store/products/:slug" component={() => <ProtectedRoute><StoreProductDetail /></ProtectedRoute>} />
       <Route path="/projects" component={() => <ProtectedRoute><ProjectsPage /></ProtectedRoute>} />

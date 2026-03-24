@@ -603,6 +603,15 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/store/stats", requireAuth, requireRole(...CAN_MANAGE_STORE), async (_req, res) => {
+    try {
+      const stats = await storage.getStoreStats();
+      res.json(stats);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/projects", async (_req, res) => {
     try {
       const all = await storage.getProjects();

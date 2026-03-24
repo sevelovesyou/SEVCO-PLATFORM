@@ -80,6 +80,16 @@ export interface IStorage {
   getChangelog(): Promise<Changelog[]>;
   createChangelogEntry(entry: InsertChangelog): Promise<Changelog>;
   getLatestArticleUpdatedAt(): Promise<Date | null>;
+  getStoreStats(): Promise<{
+    totalProducts: number;
+    inStock: number;
+    outOfStock: number;
+    catalogValue: number;
+    avgPrice: number;
+    byCategory: Array<{ name: string; count: number; value: number }>;
+    byStockStatus: Array<{ status: string; count: number }>;
+    byPriceRange: Array<{ range: string; count: number }>;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -412,6 +422,56 @@ export class DatabaseStorage implements IStorage {
       .select({ maxUpdatedAt: sql<string>`MAX(updated_at)` })
       .from(articles);
     return result?.maxUpdatedAt ? new Date(result.maxUpdatedAt) : null;
+  }
+
+  async getStoreStats(): Promise<{
+    totalProducts: number;
+    inStock: number;
+    outOfStock: number;
+    catalogValue: number;
+    avgPrice: number;
+    byCategory: Array<{ name: string; count: number; value: number }>;
+    byStockStatus: Array<{ status: string; count: number }>;
+    byPriceRange: Array<{ range: string; count: number }>;
+  }> {
+    const all = await db.select().from(products);
+
+    const totalProducts = all.length;
+    const inStock = all.filter((p) => p.stockStatus === "available").length;
+    const outOfStock = all.filter((p) => p.stockStatus !== "available").length;
+    const catalogValue = all.reduce((sum, p) => sum + (p.price ?? 0), 0);
+    const avgPrice = totalProducts > 0 ? catalogValue / totalProducts : 0;
+
+    const categoryMap: Record<string, { count: number; value: number }> = {};
+    for (const p of all) {
+      const cat = p.categoryName || "Uncategorized";
+      if (!categoryMap[cat]) categoryMap[cat] = { count: 0, value: 0 };
+      categoryMap[cat].count++;
+      categoryMap[cat].value += p.price ?? 0;
+    }
+    const byCategory = Object.entries(categoryMap)
+      .map(([name, v]) => ({ name, count: v.count, value: Math.round(v.value * 100) / 100 }))
+      .sort((a, b) => b.count - a.count);
+
+    const statusMap: Record<string, number> = {};
+    for (const p of all) {
+      const s = p.stockStatus || "available";
+      statusMap[s] = (statusMap[s] || 0) + 1;
+    }
+    const byStockStatus = Object.entries(statusMap).map(([status, count]) => ({ status, count }));
+
+    const rangeLabels = ["<$25", "$25–$50", "$50–$100", "$100+"];
+    const rangeCounts = [0, 0, 0, 0];
+    for (const p of all) {
+      const price = p.price ?? 0;
+      if (price < 25) rangeCounts[0]++;
+      else if (price < 50) rangeCounts[1]++;
+      else if (price < 100) rangeCounts[2]++;
+      else rangeCounts[3]++;
+    }
+    const byPriceRange = rangeLabels.map((range, i) => ({ range, count: rangeCounts[i] }));
+
+    return { totalProducts, inStock, outOfStock, catalogValue: Math.round(catalogValue * 100) / 100, avgPrice: Math.round(avgPrice * 100) / 100, byCategory, byStockStatus, byPriceRange };
   }
 }
 

@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { PlatformHeader } from "@/components/platform-header";
+import { PlatformFooter } from "@/components/platform-footer";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/protected-route";
 
@@ -100,8 +101,9 @@ function AppShell() {
         <PlatformHeader showSidebarTrigger={showSidebar} />
         <div className="flex flex-1 min-h-0">
           {showSidebar && <AppSidebar />}
-          <main className="flex-1 overflow-auto">
+          <main className="flex-1 overflow-auto flex flex-col">
             <Router />
+            {location !== "/auth" && <PlatformFooter />}
           </main>
         </div>
       </div>

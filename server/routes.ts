@@ -1408,6 +1408,19 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/articles/:id/republish", requireAuth, requireRole(...CAN_CREATE_ARTICLE), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid article id" });
+      const userRole = (req.user as any)?.role as Role | undefined;
+      const canPublish = !!userRole && (CAN_PUBLISH_ARTICLES as string[]).includes(userRole);
+      const updated = await storage.updateArticle(id, { status: canPublish ? "published" : "pending" });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
   app.get("/api/social-links", async (_req, res) => {
     try {
       const links = await storage.getSocialLinks();

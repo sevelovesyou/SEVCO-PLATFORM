@@ -33,8 +33,10 @@ import {
   ShieldCheck,
   Trash2,
   Archive,
+  RefreshCw,
 } from "lucide-react";
 import type { Article, Citation, Revision } from "@shared/schema";
+import { usePermission } from "@/hooks/use-permission";
 
 const STAFF_PASSCODE = "4434";
 
@@ -54,6 +56,7 @@ export default function ArticleView() {
   const slug = params?.slug;
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const { canDeleteArticle, canPublishArticles } = usePermission();
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletePasscode, setDeletePasscode] = useState("");
@@ -110,6 +113,21 @@ export default function ArticleView() {
     },
     onError: () => {
       toast({ title: "Failed to archive article", variant: "destructive" });
+    },
+  });
+
+  const republishMutation = useMutation({
+    mutationFn: (articleId: number) =>
+      apiRequest("PATCH", `/api/articles/${articleId}/republish`),
+    onSuccess: async (res) => {
+      const result = await res.json();
+      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/articles", slug] });
+      const statusLabel = result.status === "published" ? "published" : "submitted for review";
+      toast({ title: `Article ${statusLabel}` });
+    },
+    onError: () => {
+      toast({ title: "Failed to republish article", variant: "destructive" });
     },
   });
 
@@ -241,28 +259,54 @@ export default function ArticleView() {
               Edit
             </Button>
           </Link>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setArchiveDialogOpen(true)}
-            data-testid="button-archive-article"
-          >
-            <Archive className="h-3 w-3 mr-1" />
-            Archive
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={() => { setDeleteDialogOpen(true); setDeletePasscode(""); setDeletePasscodeError(false); }}
-            data-testid="button-delete-article"
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
+          {article.status === "archived" ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => republishMutation.mutate(article.id)}
+              disabled={republishMutation.isPending}
+              data-testid="button-republish-article"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              {canPublishArticles ? "Republish" : "Submit for Review"}
+            </Button>
+          ) : (
+            <>
+              {canDeleteArticle && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setArchiveDialogOpen(true)}
+                  data-testid="button-archive-article"
+                >
+                  <Archive className="h-3 w-3 mr-1" />
+                  Archive
+                </Button>
+              )}
+              {canDeleteArticle && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => { setDeleteDialogOpen(true); setDeletePasscode(""); setDeletePasscodeError(false); }}
+                  data-testid="button-delete-article"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              )}
+            </>
+          )}
         </div>
       </div>
 
       <Separator className="mb-6" />
+
+      {article.status === "archived" && (
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+          <Archive className="h-4 w-4 shrink-0" />
+          <span>This article is archived and not visible in the public wiki. Use the Republish button to restore it.</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-6">
         <div>

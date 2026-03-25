@@ -151,6 +151,7 @@ export interface IStorage {
   updateSocialLink(id: number, data: Partial<InsertPlatformSocialLink>): Promise<PlatformSocialLink>;
   deleteSocialLink(id: number): Promise<void>;
   seedSocialLinksIfEmpty(): Promise<void>;
+  migrateSocialLinksShowOnListen(): Promise<void>;
 
   getNotes(authorId: string): Promise<Note[]>;
   getNoteById(id: number): Promise<Note | undefined>;
@@ -807,23 +808,57 @@ export class DatabaseStorage implements IStorage {
     await db.delete(platformSocialLinks).where(eq(platformSocialLinks.id, id));
   }
 
+  async migrateSocialLinksShowOnListen(): Promise<void> {
+    const existing = await db.select().from(platformSocialLinks);
+    if (existing.length === 0) return;
+    const anyListenEnabled = existing.some((l) => l.showOnListen);
+    if (anyListenEnabled) return;
+    const listenPlatforms = new Set(["Instagram", "YouTube", "TikTok", "X", "Spotify", "Apple Music", "SoundCloud", "YouTube Music"]);
+    const existingNames = new Set(existing.map((l) => l.platform));
+    for (const link of existing) {
+      if (listenPlatforms.has(link.platform)) {
+        await db.update(platformSocialLinks).set({ showOnListen: true }).where(eq(platformSocialLinks.id, link.id));
+      }
+    }
+    const streamingDefaults: Array<{ platform: string; url: string; iconName: string; displayOrder: number }> = [
+      { platform: "Spotify",       url: "#", iconName: "SiSpotify",     displayOrder: 13 },
+      { platform: "Apple Music",   url: "#", iconName: "SiApplemusic",  displayOrder: 14 },
+      { platform: "SoundCloud",    url: "#", iconName: "SiSoundcloud",  displayOrder: 15 },
+      { platform: "YouTube Music", url: "#", iconName: "SiYoutubemusic",displayOrder: 16 },
+    ];
+    for (const entry of streamingDefaults) {
+      if (!existingNames.has(entry.platform)) {
+        await db.insert(platformSocialLinks).values({
+          ...entry,
+          showInFooter: false,
+          showOnContact: false,
+          showOnListen: true,
+        });
+      }
+    }
+  }
+
   async seedSocialLinksIfEmpty(): Promise<void> {
     const existing = await db.select().from(platformSocialLinks).limit(1);
     if (existing.length > 0) return;
     const seeds: InsertPlatformSocialLink[] = [
-      { platform: "Facebook",  url: "https://www.facebook.com/sevelovesyou/",           iconName: "SiFacebook",  displayOrder: 0, showInFooter: true, showOnContact: false },
-      { platform: "Instagram", url: "https://instagram.com/sevelovesyou",               iconName: "SiInstagram", displayOrder: 1, showInFooter: true, showOnContact: true  },
-      { platform: "YouTube",   url: "https://www.youtube.com/@sevelovesyou",            iconName: "SiYoutube",   displayOrder: 2, showInFooter: true, showOnContact: false },
-      { platform: "TikTok",    url: "https://www.tiktok.com/@sevelovesu",               iconName: "SiTiktok",    displayOrder: 3, showInFooter: true, showOnContact: true  },
-      { platform: "X",         url: "https://x.com/sevelovesu",                         iconName: "SiX",         displayOrder: 4, showInFooter: true, showOnContact: true  },
-      { platform: "Threads",   url: "https://www.threads.com/@sevelovesyou",            iconName: "SiThreads",   displayOrder: 5, showInFooter: true, showOnContact: false },
-      { platform: "LinkedIn",  url: "https://www.linkedin.com/company/sev-co/",         iconName: "SiLinkedin",  displayOrder: 6, showInFooter: true, showOnContact: false },
-      { platform: "Bluesky",   url: "https://bsky.app/profile/sevelovesyou.bsky.social",iconName: "SiBluesky",   displayOrder: 7, showInFooter: true, showOnContact: false },
-      { platform: "Snapchat",  url: "https://www.snapchat.com/@sevelovesu",             iconName: "SiSnapchat",  displayOrder: 8, showInFooter: true, showOnContact: false },
-      { platform: "Pinterest", url: "https://pin.it/2iQOE7UYW",                         iconName: "SiPinterest", displayOrder: 9, showInFooter: true, showOnContact: false },
-      { platform: "Vimeo",     url: "https://vimeo.com/sevelovesyou",                   iconName: "SiVimeo",     displayOrder:10, showInFooter: true, showOnContact: false },
-      { platform: "GitHub",    url: "https://github.com/sevelovesyou",                  iconName: "SiGithub",    displayOrder:11, showInFooter: true, showOnContact: false },
-      { platform: "Discord",   url: "https://discord.gg/sevco",                         iconName: "SiDiscord",   displayOrder:12, showInFooter: false, showOnContact: true },
+      { platform: "Facebook",     url: "https://www.facebook.com/sevelovesyou/",            iconName: "SiFacebook",    displayOrder: 0,  showInFooter: true,  showOnContact: false, showOnListen: false },
+      { platform: "Instagram",    url: "https://instagram.com/sevelovesyou",                iconName: "SiInstagram",   displayOrder: 1,  showInFooter: true,  showOnContact: true,  showOnListen: true  },
+      { platform: "YouTube",      url: "https://www.youtube.com/@sevelovesyou",             iconName: "SiYoutube",     displayOrder: 2,  showInFooter: true,  showOnContact: false, showOnListen: true  },
+      { platform: "TikTok",       url: "https://www.tiktok.com/@sevelovesu",                iconName: "SiTiktok",      displayOrder: 3,  showInFooter: true,  showOnContact: true,  showOnListen: true  },
+      { platform: "X",            url: "https://x.com/sevelovesu",                          iconName: "SiX",           displayOrder: 4,  showInFooter: true,  showOnContact: true,  showOnListen: true  },
+      { platform: "Threads",      url: "https://www.threads.com/@sevelovesyou",             iconName: "SiThreads",     displayOrder: 5,  showInFooter: true,  showOnContact: false, showOnListen: false },
+      { platform: "LinkedIn",     url: "https://www.linkedin.com/company/sev-co/",          iconName: "SiLinkedin",    displayOrder: 6,  showInFooter: true,  showOnContact: false, showOnListen: false },
+      { platform: "Bluesky",      url: "https://bsky.app/profile/sevelovesyou.bsky.social", iconName: "SiBluesky",     displayOrder: 7,  showInFooter: true,  showOnContact: false, showOnListen: false },
+      { platform: "Snapchat",     url: "https://www.snapchat.com/@sevelovesu",              iconName: "SiSnapchat",    displayOrder: 8,  showInFooter: true,  showOnContact: false, showOnListen: false },
+      { platform: "Pinterest",    url: "https://pin.it/2iQOE7UYW",                          iconName: "SiPinterest",   displayOrder: 9,  showInFooter: true,  showOnContact: false, showOnListen: false },
+      { platform: "Vimeo",        url: "https://vimeo.com/sevelovesyou",                    iconName: "SiVimeo",       displayOrder: 10, showInFooter: true,  showOnContact: false, showOnListen: false },
+      { platform: "GitHub",       url: "https://github.com/sevelovesyou",                   iconName: "SiGithub",      displayOrder: 11, showInFooter: true,  showOnContact: false, showOnListen: false },
+      { platform: "Discord",      url: "https://discord.gg/sevco",                          iconName: "SiDiscord",     displayOrder: 12, showInFooter: false, showOnContact: true,  showOnListen: false },
+      { platform: "Spotify",      url: "#",                                                 iconName: "SiSpotify",     displayOrder: 13, showInFooter: false, showOnContact: false, showOnListen: true  },
+      { platform: "Apple Music",  url: "#",                                                 iconName: "SiApplemusic",  displayOrder: 14, showInFooter: false, showOnContact: false, showOnListen: true  },
+      { platform: "SoundCloud",   url: "#",                                                 iconName: "SiSoundcloud",  displayOrder: 15, showInFooter: false, showOnContact: false, showOnListen: true  },
+      { platform: "YouTube Music",url: "#",                                                 iconName: "SiYoutubemusic",displayOrder: 16, showInFooter: false, showOnContact: false, showOnListen: true  },
     ];
     await db.insert(platformSocialLinks).values(seeds);
   }

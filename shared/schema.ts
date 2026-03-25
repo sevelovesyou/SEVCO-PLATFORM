@@ -367,6 +367,7 @@ export const platformSocialLinks = pgTable("platform_social_links", {
   displayOrder: integer("display_order").notNull().default(0),
   showInFooter: boolean("show_in_footer").notNull().default(true),
   showOnContact: boolean("show_on_contact").notNull().default(false),
+  showOnListen: boolean("show_on_listen").notNull().default(false),
 });
 
 export const insertPlatformSocialLinkSchema = createInsertSchema(platformSocialLinks).omit({ id: true });

@@ -44,6 +44,7 @@ const addLinkSchema = z.object({
   displayOrder: z.number().int().default(0),
   showInFooter: z.boolean().default(true),
   showOnContact: z.boolean().default(false),
+  showOnListen: z.boolean().default(false),
 });
 
 type AddLinkData = z.infer<typeof addLinkSchema>;
@@ -59,6 +60,7 @@ function AddLinkDialog({ open, onClose, nextOrder }: { open: boolean; onClose: (
       displayOrder: nextOrder,
       showInFooter: true,
       showOnContact: false,
+      showOnListen: false,
     },
   });
 
@@ -116,7 +118,7 @@ function AddLinkDialog({ open, onClose, nextOrder }: { open: boolean; onClose: (
                 <FormMessage />
               </FormItem>
             )} />
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-4">
               <FormField control={form.control} name="showInFooter" render={({ field }) => (
                 <FormItem className="flex items-center gap-2">
                   <FormControl>
@@ -131,6 +133,14 @@ function AddLinkDialog({ open, onClose, nextOrder }: { open: boolean; onClose: (
                     <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-show-contact" />
                   </FormControl>
                   <Label className="text-xs">Show on Contact</Label>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="showOnListen" render={({ field }) => (
+                <FormItem className="flex items-center gap-2">
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-show-listen" />
+                  </FormControl>
+                  <Label className="text-xs">Show on Listen</Label>
                 </FormItem>
               )} />
             </div>
@@ -158,6 +168,12 @@ function SocialLinkRow({ link }: { link: PlatformSocialLink }) {
 
   const toggleContact = useMutation({
     mutationFn: () => apiRequest("PATCH", `/api/social-links/${link.id}`, { showOnContact: !link.showOnContact }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/social-links"] }),
+    onError: () => toast({ title: "Failed to update", variant: "destructive" }),
+  });
+
+  const toggleListen = useMutation({
+    mutationFn: () => apiRequest("PATCH", `/api/social-links/${link.id}`, { showOnListen: !link.showOnListen }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/social-links"] }),
     onError: () => toast({ title: "Failed to update", variant: "destructive" }),
   });
@@ -209,6 +225,15 @@ function SocialLinkRow({ link }: { link: PlatformSocialLink }) {
           onCheckedChange={() => toggleContact.mutate()}
           disabled={toggleContact.isPending}
           data-testid={`switch-contact-${link.id}`}
+          className="scale-75"
+        />
+      </td>
+      <td className="p-3 text-center">
+        <Switch
+          checked={link.showOnListen}
+          onCheckedChange={() => toggleListen.mutate()}
+          disabled={toggleListen.isPending}
+          data-testid={`switch-listen-${link.id}`}
           className="scale-75"
         />
       </td>
@@ -276,6 +301,7 @@ export default function CommandSocialLinks() {
                 <th className="text-left p-3 text-xs font-medium text-muted-foreground hidden md:table-cell">URL</th>
                 <th className="text-center p-3 text-xs font-medium text-muted-foreground">Footer</th>
                 <th className="text-center p-3 text-xs font-medium text-muted-foreground">Contact</th>
+                <th className="text-center p-3 text-xs font-medium text-muted-foreground">Listen</th>
                 <th className="text-left p-3 text-xs font-medium text-muted-foreground"></th>
               </tr>
             </thead>
@@ -287,6 +313,7 @@ export default function CommandSocialLinks() {
                     <td className="p-3 hidden md:table-cell"><Skeleton className="h-4 w-40" /></td>
                     <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
                     <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
+                    <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
                     <td className="p-3"><Skeleton className="h-4 w-6" /></td>
                   </tr>
                 ))
@@ -294,7 +321,7 @@ export default function CommandSocialLinks() {
                 socialLinks.map((link) => <SocialLinkRow key={link.id} link={link} />)
               ) : (
                 <tr>
-                  <td colSpan={5} className="p-6 text-center text-sm text-muted-foreground">
+                  <td colSpan={6} className="p-6 text-center text-sm text-muted-foreground">
                     No social links configured.
                   </td>
                 </tr>

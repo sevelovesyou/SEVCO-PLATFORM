@@ -120,6 +120,7 @@ async function initStripe() {
   await seedServices().catch((err) => console.error("Service seed error:", err));
   await seedPlaylists().catch((err) => console.error("Playlist seed error:", err));
   await storage.seedSocialLinksIfEmpty().catch((err) => console.error("Social links seed error:", err));
+  await storage.migrateSocialLinksShowOnListen().catch((err) => console.error("Social links listen migration error:", err));
   setupAuth(app);
   await registerRoutes(httpServer, app);
 

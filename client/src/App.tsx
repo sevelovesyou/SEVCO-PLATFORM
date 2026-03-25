@@ -191,11 +191,7 @@ function Router() {
           </CommandPageLayout>
         </ProtectedRoute>
       )} />
-      <Route path="/notes" component={() => (
-        <ProtectedRoute>
-          <NotesPage />
-        </ProtectedRoute>
-      )} />
+      <Route path="/notes" component={NotesPage} />
       <Route component={NotFound} />
     </Switch>
   );

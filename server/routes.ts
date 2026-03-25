@@ -1546,6 +1546,22 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/notes/:id", requireAuth, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const note = await storage.getNoteById(id);
+      if (!note) return res.status(404).json({ message: "Note not found" });
+      if (note.authorId !== req.user.id) {
+        const collaborators = await storage.getNoteCollaborators(id);
+        const isCollaborator = collaborators.some((c) => c.userId === req.user.id);
+        if (!isCollaborator) return res.status(403).json({ message: "Access denied" });
+      }
+      res.json(note);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.post("/api/notes", requireAuth, async (req: any, res) => {
     try {
       const parsed = insertNoteSchema.safeParse(req.body);

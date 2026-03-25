@@ -35,6 +35,7 @@ import {
   Check,
   ChevronLeft,
 } from "lucide-react";
+import { Link } from "wouter";
 import type { Note, NoteCollaborator } from "@shared/schema";
 
 const NOTE_COLORS: { value: string; label: string; bg: string; border: string; dot: string }[] = [
@@ -243,7 +244,7 @@ function NoteListItem({
 }
 
 export default function NotesPage() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
@@ -258,6 +259,7 @@ export default function NotesPage() {
 
   const { data: notes = [], isLoading } = useQuery<Note[]>({
     queryKey: ["/api/notes"],
+    enabled: !!user,
   });
 
   const selectedNote = notes.find((n) => n.id === selectedId) ?? null;
@@ -337,6 +339,23 @@ export default function NotesPage() {
   }
 
   const color = selectedNote ? getNoteColor(selectedNote.color) : getNoteColor("default");
+
+  if (!authLoading && !user) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-3rem)] gap-6 px-4">
+        <StickyNote className="h-12 w-12 text-muted-foreground" />
+        <div className="text-center space-y-2">
+          <h2 className="text-xl font-semibold">Sign in to access Notes</h2>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            Your personal notes are private to your account. Sign in to create and manage them.
+          </p>
+        </div>
+        <Link href="/auth">
+          <Button data-testid="button-signin-notes">Sign in</Button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100vh-3rem)] overflow-hidden">

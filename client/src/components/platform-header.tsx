@@ -30,7 +30,6 @@ import {
   Menu,
   ChevronDown,
   ArrowRight,
-  Circle,
   Mail,
   Users,
   Music2,
@@ -65,6 +64,15 @@ const CATEGORY_COLORS: Record<string, string> = {
   Label:    "text-pink-500",
   Media:    "text-orange-500",
   Other:    "text-muted-foreground",
+};
+
+const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
+  Platform: Code2,
+  App:      Code2,
+  Game:     Folder,
+  Label:    Music,
+  Media:    TrendingUp,
+  Other:    Folder,
 };
 
 const SERVICE_ICON_MAP: Record<string, React.ElementType> = {
@@ -377,85 +385,76 @@ function ProjectsDropdown({ isActive }: { isActive: boolean }) {
       />
 
       {open && (
-        <div className="absolute top-full left-0 mt-1.5 w-72 rounded-xl border bg-popover shadow-xl z-50 overflow-hidden">
-          <div className="p-3">
+        <DropdownPanel className="w-72">
+          <div className="p-2">
             {featuredProjects.length === 0 ? (
               <p className="text-xs text-muted-foreground px-2 py-3 text-center">No projects yet</p>
             ) : (
               <>
                 {activeProjects.length > 0 && (
-                  <div className="mb-2">
-                    {activeProjects.map((project) => (
-                      <Link key={project.id} href={`/projects/${project.slug}`} onClick={() => setOpen(false)}>
-                        <div
-                          className="flex items-start gap-3 px-2.5 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer group"
-                          data-testid={`dropdown-project-${project.slug}`}
-                        >
-                          <div className="mt-0.5 shrink-0">
-                            {project.logoUrl ? (
-                              <img src={project.logoUrl} alt={project.name} className="h-5 w-5 object-contain rounded" />
-                            ) : (
-                              <Circle className={`h-2.5 w-2.5 fill-current mt-0.5 ${CATEGORY_COLORS[project.category ?? "Other"] ?? "text-muted-foreground"}`} />
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-semibold text-foreground leading-none">{project.name}</span>
-                              <span className={`text-[10px] font-medium ${CATEGORY_COLORS[project.category ?? "Other"] ?? "text-muted-foreground"}`}>{project.category}</span>
+                  <div className="mb-1">
+                    {activeProjects.map((project) => {
+                      const IconComp = CATEGORY_ICON_MAP[project.category ?? "Other"] ?? Folder;
+                      return (
+                        <Link key={project.id} href={`/projects/${project.slug}`} onClick={() => setOpen(false)}>
+                          <div
+                            className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer group"
+                            data-testid={`dropdown-project-${project.slug}`}
+                          >
+                            <IconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-foreground leading-none">{project.name}</p>
+                              {project.description && (
+                                <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{project.description}</p>
+                              )}
                             </div>
-                            {project.description && (
-                              <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-1">{project.description}</p>
-                            )}
                           </div>
-                        </div>
-                      </Link>
-                    ))}
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
 
                 {devProjects.length > 0 && (
                   <div className="border-t border-border/60 pt-2 mt-1">
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider px-2.5 mb-1.5">In Development</p>
-                    {devProjects.map((project) => (
-                      <Link key={project.id} href={`/projects/${project.slug}`} onClick={() => setOpen(false)}>
-                        <div
-                          className="flex items-start gap-3 px-2.5 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer group"
-                          data-testid={`dropdown-project-${project.slug}`}
-                        >
-                          <div className="mt-0.5 shrink-0">
-                            {project.logoUrl ? (
-                              <img src={project.logoUrl} alt={project.name} className="h-5 w-5 object-contain rounded" />
-                            ) : (
-                              <Circle className={`h-2.5 w-2.5 fill-current mt-0.5 ${CATEGORY_COLORS[project.category ?? "Other"] ?? "text-muted-foreground"}`} />
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-semibold text-foreground leading-none">{project.name}</span>
-                              <span className="text-[10px] text-blue-500 font-medium">Soon</span>
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider px-3 mb-1">In Development</p>
+                    {devProjects.map((project) => {
+                      const IconComp = CATEGORY_ICON_MAP[project.category ?? "Other"] ?? Folder;
+                      return (
+                        <Link key={project.id} href={`/projects/${project.slug}`} onClick={() => setOpen(false)}>
+                          <div
+                            className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer group"
+                            data-testid={`dropdown-project-${project.slug}`}
+                          >
+                            <IconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs font-semibold text-foreground leading-none">{project.name}</p>
+                                <span className="text-[10px] text-blue-500 font-medium">Soon</span>
+                              </div>
+                              {project.description && (
+                                <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{project.description}</p>
+                              )}
                             </div>
-                            {project.description && (
-                              <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-1">{project.description}</p>
-                            )}
                           </div>
-                        </div>
-                      </Link>
-                    ))}
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
               </>
             )}
           </div>
 
-          <div className="border-t border-border/60 px-3 py-2.5">
+          <div className="border-t border-border/60 px-4 py-2.5">
             <Link href="/projects" onClick={() => setOpen(false)}>
-              <div className="flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer group px-0.5" data-testid="dropdown-view-all-projects">
+              <div className="flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer group" data-testid="dropdown-view-all-projects">
                 <span className="font-medium">View all projects</span>
                 <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
               </div>
             </Link>
           </div>
-        </div>
+        </DropdownPanel>
       )}
     </div>
   );

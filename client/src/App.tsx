@@ -102,7 +102,7 @@ function Router() {
       <Route path="/profile/:username" component={ProfilePage} />
 
       {/* Protected write/manage routes */}
-      <Route path="/profile" component={() => <ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+      <Route path="/profile" component={ProfilePage} />
       <Route path="/edit/:slug" component={() => <ProtectedRoute><ArticleEditor /></ProtectedRoute>} />
       <Route path="/new" component={() => <ProtectedRoute><ArticleEditor /></ProtectedRoute>} />
       <Route path="/review" component={() => <ProtectedRoute><ReviewQueue /></ProtectedRoute>} />

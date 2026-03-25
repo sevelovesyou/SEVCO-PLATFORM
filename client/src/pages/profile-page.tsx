@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useLocation } from "wouter";
+import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -532,7 +532,6 @@ function ProfileView({ profile, isOwnProfile, onEdit }: {
 export default function ProfilePage() {
   const { username: paramUsername } = useParams<{ username?: string }>();
   const { user: authUser } = useAuth();
-  const [, setLocation] = useLocation();
   const [editOpen, setEditOpen] = useState(!paramUsername);
   const [liveForm, setLiveForm] = useState<ProfileFormState | null>(null);
 
@@ -551,8 +550,28 @@ export default function ProfilePage() {
   const isOwnProfile = !!authUser && profile?.username === authUser.username;
 
   if (!resolvedUsername && !authUser) {
-    setLocation("/auth");
-    return null;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-sm px-4">
+          <img
+            src={planetIcon}
+            alt="SEVCO"
+            className="h-14 w-14 object-contain mx-auto mb-4 opacity-40 dark:invert"
+          />
+          <h2 className="text-lg font-bold mb-2">Sign in to view your profile</h2>
+          <p className="text-sm text-muted-foreground mb-5">
+            Create an account or sign in to customize your SEVCO profile.
+          </p>
+          <a
+            href="/auth"
+            className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-5 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
+            data-testid="link-sign-in"
+          >
+            Sign In
+          </a>
+        </div>
+      </div>
+    );
   }
 
   if (isLoading) {

@@ -39,6 +39,7 @@ import ProjectsPage from "@/pages/projects-page";
 import ProjectDetail from "@/pages/project-detail";
 import { ProjectCreatePage, ProjectEditPage } from "@/pages/project-form";
 import ContactPage from "@/pages/contact-page";
+import ProfilePage from "@/pages/profile-page";
 import NotFound from "@/pages/not-found";
 
 import { CommandPageLayout } from "@/pages/command-page";
@@ -88,8 +89,10 @@ function Router() {
       <Route path="/projects" component={ProjectsPage} />
       <Route path="/projects/:slug" component={ProjectDetail} />
       <Route path="/contact" component={ContactPage} />
+      <Route path="/profile/:username" component={ProfilePage} />
 
       {/* Protected write/manage routes */}
+      <Route path="/profile" component={() => <ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       <Route path="/edit/:slug" component={() => <ProtectedRoute><ArticleEditor /></ProtectedRoute>} />
       <Route path="/new" component={() => <ProtectedRoute><ArticleEditor /></ProtectedRoute>} />
       <Route path="/review" component={() => <ProtectedRoute><ReviewQueue /></ProtectedRoute>} />

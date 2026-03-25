@@ -19,6 +19,11 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").notNull().default(false),
   emailVerificationToken: text("email_verification_token"),
   emailVerificationExpires: timestamp("email_verification_expires"),
+  avatarUrl: text("avatar_url"),
+  profileBgColor: text("profile_bg_color"),
+  profileAccentColor: text("profile_accent_color"),
+  profileBgImageUrl: text("profile_bg_image_url"),
+  socialLinks: jsonb("social_links"),
 });
 
 export const categories = pgTable("categories", {
@@ -243,6 +248,27 @@ export const updateUserSchema = z.object({
   bio: z.string().max(500).optional(),
   email: z.string().email().optional().or(z.literal("")),
 });
+
+const optionalUrl = z.string().url().optional().or(z.literal("")).or(z.null());
+const hexColor = z.string().regex(/^#[0-9a-fA-F]{3,8}$/).optional().or(z.literal("")).or(z.null());
+
+export const updateProfileSchema = z.object({
+  displayName: z.string().max(80).optional(),
+  bio: z.string().max(500).transform((s) => s.replace(/<[^>]*>/g, "")).optional(),
+  avatarUrl: optionalUrl,
+  profileBgColor: hexColor,
+  profileAccentColor: hexColor,
+  profileBgImageUrl: optionalUrl,
+  socialLinks: z.object({
+    instagram: z.string().optional().or(z.null()),
+    twitter: z.string().optional().or(z.null()),
+    tiktok: z.string().optional().or(z.null()),
+    discord: z.string().optional().or(z.null()),
+    website: z.string().optional().or(z.null()),
+  }).optional().or(z.null()),
+});
+
+export type UpdateProfile = z.infer<typeof updateProfileSchema>;
 
 export const updateRoleSchema = z.object({
   role: z.enum(ROLES),

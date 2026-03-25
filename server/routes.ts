@@ -11,7 +11,7 @@ import {
   CAN_DELETE_ARTICLE,
 } from "./middleware/permissions";
 import type { Role } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
@@ -986,6 +986,32 @@ export async function registerRoutes(
       await generateCrosslinks(article.id);
 
       res.json({ action: "created", article });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Profile routes
+  app.get("/api/profile/:username", async (req, res) => {
+    try {
+      const user = await storage.getUserByUsername(req.params.username);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const { password, emailVerificationToken, emailVerificationExpires, ...publicUser } = user;
+      res.json(publicUser);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/profile", requireAuth, async (req: any, res) => {
+    try {
+      const parsed = updateProfileSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid input" });
+      }
+      const updated = await storage.updateUserProfile(req.user.id, parsed.data);
+      const { password, emailVerificationToken, emailVerificationExpires, ...publicUser } = updated;
+      res.json(publicUser);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

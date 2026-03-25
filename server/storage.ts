@@ -1,5 +1,5 @@
 import {
-  type User, type InsertUser, type UpdateUser, type Role,
+  type User, type InsertUser, type UpdateUser, type UpdateProfile, type Role,
   type Category, type InsertCategory,
   type Article, type InsertArticle,
   type Revision, type InsertRevision,
@@ -25,6 +25,7 @@ export interface IStorage {
   getUserByVerificationToken(token: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, data: UpdateUser): Promise<User>;
+  updateUserProfile(id: string, data: UpdateProfile): Promise<User>;
   updateUserRole(id: string, role: Role): Promise<User | undefined>;
   updateEmailVerification(id: string, data: { emailVerified?: boolean; emailVerificationToken?: string | null; emailVerificationExpires?: Date | null }): Promise<User>;
 
@@ -131,6 +132,15 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db
       .update(users)
       .set(data)
+      .where(eq(users.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateUserProfile(id: string, data: UpdateProfile): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set(data as any)
       .where(eq(users.id, id))
       .returning();
     return updated;

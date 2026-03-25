@@ -1456,7 +1456,22 @@ export async function registerRoutes(
       if (isNaN(id)) return res.status(400).json({ message: "Invalid article id" });
       const userRole = (req.user as any)?.role as Role | undefined;
       const canPublish = !!userRole && (CAN_PUBLISH_ARTICLES as string[]).includes(userRole);
-      const updated = await storage.updateArticle(id, { status: canPublish ? "published" : "pending" });
+      if (canPublish) {
+        const updated = await storage.updateArticle(id, { status: "published" });
+        return res.json(updated);
+      }
+      const article = await storage.getArticleById(id);
+      if (!article) return res.status(404).json({ message: "Article not found" });
+      await storage.createRevision({
+        articleId: id,
+        content: article.content,
+        infoboxData: article.infoboxData,
+        summary: article.summary,
+        editSummary: "Submitted for republication",
+        status: "pending",
+        authorName: req.user?.username ?? "Editor",
+      });
+      const updated = await storage.updateArticle(id, { status: "draft" });
       res.json(updated);
     } catch (err: any) {
       res.status(400).json({ message: err.message });

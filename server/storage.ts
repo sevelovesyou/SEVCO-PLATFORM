@@ -43,6 +43,7 @@ export interface IStorage {
   createCategory(category: InsertCategory): Promise<Category>;
 
   getArticles(): Promise<Article[]>;
+  getArticleById(id: number): Promise<Article | undefined>;
   getArticleBySlug(slug: string): Promise<Article | undefined>;
   getArticlesByCategory(categoryId: number): Promise<Article[]>;
   getArticlesByAuthor(authorName: string): Promise<Article[]>;
@@ -251,6 +252,11 @@ export class DatabaseStorage implements IStorage {
 
   async getArticles(): Promise<Article[]> {
     return db.select().from(articles).orderBy(desc(articles.updatedAt));
+  }
+
+  async getArticleById(id: number): Promise<Article | undefined> {
+    const [article] = await db.select().from(articles).where(eq(articles.id, id));
+    return article || undefined;
   }
 
   async getArticleBySlug(slug: string): Promise<Article | undefined> {

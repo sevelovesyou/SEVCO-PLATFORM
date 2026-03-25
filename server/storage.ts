@@ -111,7 +111,8 @@ export interface IStorage {
   updateJob(id: number, data: Partial<InsertJob>): Promise<Job>;
   deleteJob(id: number): Promise<void>;
   getJobApplications(jobId?: number): Promise<JobApplication[]>;
-  createJobApplication(app: InsertJobApplication): Promise<JobApplication>;
+  getUserJobApplication(userId: string, jobId: number): Promise<JobApplication | undefined>;
+  createJobApplication(app: InsertJobApplication & { userId: string }): Promise<JobApplication>;
   updateJobApplicationStatus(id: number, status: string): Promise<JobApplication>;
 
   getMusicSubmissions(): Promise<MusicSubmission[]>;
@@ -643,7 +644,13 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(jobApplications).orderBy(desc(jobApplications.createdAt));
   }
 
-  async createJobApplication(app: InsertJobApplication): Promise<JobApplication> {
+  async getUserJobApplication(userId: string, jobId: number): Promise<JobApplication | undefined> {
+    const [row] = await db.select().from(jobApplications)
+      .where(and(eq(jobApplications.userId, userId), eq(jobApplications.jobId, jobId)));
+    return row;
+  }
+
+  async createJobApplication(app: InsertJobApplication & { userId: string }): Promise<JobApplication> {
     const [row] = await db.insert(jobApplications).values(app).returning();
     return row;
   }

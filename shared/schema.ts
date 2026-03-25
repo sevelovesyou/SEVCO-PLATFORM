@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, jsonb, boolean, real, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, jsonb, boolean, real, pgEnum, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -234,6 +234,7 @@ export const jobs = pgTable("jobs", {
 export const jobApplications = pgTable("job_applications", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   jobId: integer("job_id").notNull(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   email: text("email").notNull(),
   phone: text("phone"),
@@ -241,7 +242,7 @@ export const jobApplications = pgTable("job_applications", {
   coverLetter: text("cover_letter"),
   status: text("status").notNull().default("pending"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [uniqueIndex("job_applications_job_user_idx").on(t.jobId, t.userId)]);
 
 export const musicSubmissions = pgTable("music_submissions", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -267,7 +268,7 @@ export const changelog = pgTable("changelog", {
 });
 
 export const insertJobSchema = createInsertSchema(jobs).omit({ id: true, createdAt: true });
-export const insertJobApplicationSchema = createInsertSchema(jobApplications).omit({ id: true, createdAt: true, status: true });
+export const insertJobApplicationSchema = createInsertSchema(jobApplications).omit({ id: true, createdAt: true, status: true, userId: true });
 export const insertMusicSubmissionSchema = createInsertSchema(musicSubmissions).omit({ id: true, createdAt: true, status: true });
 
 export const insertChangelogSchema = createInsertSchema(changelog).omit({ id: true, createdAt: true });

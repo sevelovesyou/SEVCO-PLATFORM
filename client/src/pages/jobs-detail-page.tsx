@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,7 +26,7 @@ import {
   ArrowLeft, CheckCircle, AlertCircle, Send,
 } from "lucide-react";
 import { Link } from "wouter";
-import type { Job } from "@shared/schema";
+import type { Job, JobApplication } from "@shared/schema";
 
 const applySchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -62,7 +62,7 @@ export default function JobsDetailPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
-  const [submitted, setSubmitted] = useState(false);
+  const [justSubmitted, setJustSubmitted] = useState(false);
 
   const { data: job, isLoading, error } = useQuery<Job>({
     queryKey: ["/api/jobs", slug],
@@ -73,6 +73,18 @@ export default function JobsDetailPage() {
     },
     enabled: !!slug,
   });
+
+  const { data: myApplication } = useQuery<JobApplication | null>({
+    queryKey: ["/api/jobs", slug, "my-application"],
+    queryFn: async () => {
+      const res = await fetch(`/api/jobs/${slug}/my-application`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!slug && !!user,
+  });
+
+  const submitted = justSubmitted || !!myApplication;
 
   const form = useForm<ApplyForm>({
     resolver: zodResolver(applySchema),
@@ -89,8 +101,9 @@ export default function JobsDetailPage() {
     mutationFn: (data: ApplyForm) =>
       apiRequest("POST", `/api/jobs/${slug}/apply`, data),
     onSuccess: () => {
-      setSubmitted(true);
+      setJustSubmitted(true);
       form.reset();
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs", slug, "my-application"] });
     },
     onError: (e: Error) => {
       toast({ title: "Submission failed", description: e.message, variant: "destructive" });

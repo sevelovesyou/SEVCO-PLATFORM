@@ -1178,12 +1178,29 @@ export async function registerRoutes(
 
   app.post("/api/jobs/:id/apply", requireAuth, async (req: any, res) => {
     try {
+      const userId: string = req.user.id;
       const job = await storage.getJobBySlug(req.params.id);
       const jobId = job?.id ?? Number(req.params.id);
+      const existing = await storage.getUserJobApplication(userId, jobId);
+      if (existing) {
+        return res.status(409).json({ message: "You have already applied for this job." });
+      }
       const parsed = insertJobApplicationSchema.safeParse({ ...req.body, jobId });
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
-      const app2 = await storage.createJobApplication(parsed.data);
+      const app2 = await storage.createJobApplication({ ...parsed.data, userId });
       res.status(201).json(app2);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/jobs/:id/my-application", requireAuth, async (req: any, res) => {
+    try {
+      const userId: string = req.user.id;
+      const job = await storage.getJobBySlug(req.params.id);
+      const jobId = job?.id ?? Number(req.params.id);
+      const app2 = await storage.getUserJobApplication(userId, jobId);
+      res.json(app2 ?? null);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

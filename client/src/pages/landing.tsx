@@ -152,7 +152,7 @@ export default function Landing() {
             <img
               src={planetIcon}
               alt="SEVCO Planet"
-              className="h-28 w-28 md:h-36 md:w-36 object-contain invert"
+              className="h-28 w-28 md:h-36 md:w-36 object-contain invert dark:invert-0"
               data-testid="img-planet-hero"
             />
           </div>

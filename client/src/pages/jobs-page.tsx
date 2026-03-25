@@ -145,7 +145,7 @@ export default function JobsPage() {
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                 Featured Openings
               </h2>
-              <div className="space-y-3">
+              <div className="flex flex-col gap-4">
                 {featured.map((job) => <JobCard key={job.id} job={job} />)}
               </div>
             </section>

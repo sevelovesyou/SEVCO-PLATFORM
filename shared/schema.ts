@@ -279,6 +279,7 @@ export const changelog = pgTable("changelog", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   category: changelogCategoryEnum("category").notNull().default("improvement"),
+  version: varchar("version", { length: 20 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ScrollText, Plus, Shield } from "lucide-react";
+import { ScrollText, Plus, Shield, Tag } from "lucide-react";
 import type { Changelog, ChangelogCategory } from "@shared/schema";
 import { insertChangelogSchema } from "@shared/schema";
 import { z } from "zod";
@@ -37,9 +37,22 @@ const CHANGELOG_CATEGORY_COLORS: Record<ChangelogCategory, string> = {
   other:       "bg-muted text-muted-foreground border-border",
 };
 
+const VERSION_REGEX = /^\d+\.\d+\.\d+$/;
+
+function suggestNextVersion(current: string | null | undefined): string {
+  if (!current || !VERSION_REGEX.test(current)) return "1.0.0";
+  const parts = current.split(".").map(Number);
+  parts[2] += 1;
+  return parts.join(".");
+}
+
 const changelogFormSchema = insertChangelogSchema.extend({
   title: z.string().min(1, "Title is required").max(200),
   description: z.string().min(1, "Description is required").max(1000),
+  version: z.string()
+    .regex(/^\d+\.\d+\.\d+$/, "Version must be in MAJOR.MINOR.PATCH format (e.g. 1.2.0)")
+    .optional()
+    .or(z.literal("")),
 });
 type ChangelogFormValues = z.infer<typeof changelogFormSchema>;
 
@@ -55,20 +68,33 @@ export default function CommandChangelog() {
     enabled: canAccess,
   });
 
+  const latestVersion = entries?.[0]?.version ?? null;
+  const suggestedVersion = suggestNextVersion(latestVersion);
+
   const form = useForm<ChangelogFormValues>({
     resolver: zodResolver(changelogFormSchema),
     defaultValues: {
       title: "",
       description: "",
       category: "improvement",
+      version: "",
     },
   });
 
+  const handleOpenForm = () => {
+    form.setValue("version", suggestedVersion);
+    setFormOpen(true);
+  };
+
   const mutation = useMutation({
     mutationFn: (data: ChangelogFormValues) =>
-      apiRequest("POST", "/api/changelog", data),
+      apiRequest("POST", "/api/changelog", {
+        ...data,
+        version: data.version || null,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/changelog"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/changelog/latest"] });
       form.reset();
       setFormOpen(false);
       toast({ title: "Changelog entry added" });
@@ -95,12 +121,17 @@ export default function CommandChangelog() {
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Platform Changelog
           </h2>
+          {latestVersion && (
+            <span className="text-[10px] font-mono bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+              v{latestVersion}
+            </span>
+          )}
         </div>
         <Button
           variant="outline"
           size="sm"
           className="h-7 text-xs gap-1"
-          onClick={() => setFormOpen((v: boolean) => !v)}
+          onClick={handleOpenForm}
           data-testid="button-toggle-changelog-form"
         >
           <Plus className="h-3 w-3" />
@@ -110,29 +141,61 @@ export default function CommandChangelog() {
 
       {formOpen && (
         <Card className="p-4 overflow-visible">
+          <div className="mb-3 p-2.5 rounded bg-muted/50 border border-border">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              <span className="font-semibold">Semantic versioning:</span>{" "}
+              <span className="font-mono">MAJOR.MINOR.PATCH</span> —
+              bump <span className="font-mono">PATCH</span> for fixes,
+              <span className="font-mono"> MINOR</span> for new features,
+              <span className="font-mono"> MAJOR</span> for breaking changes.
+            </p>
+          </div>
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
               className="flex flex-col gap-3"
             >
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs">Title</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="What changed?"
-                        className="h-8 text-sm"
-                        data-testid="input-changelog-title"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem className="col-span-2 sm:col-span-1">
+                      <FormLabel className="text-xs">Title</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="What changed?"
+                          className="h-8 text-sm"
+                          data-testid="input-changelog-title"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="version"
+                  render={({ field }) => (
+                    <FormItem className="col-span-2 sm:col-span-1">
+                      <FormLabel className="text-xs flex items-center gap-1">
+                        <Tag className="h-3 w-3" />
+                        Version
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g. 1.2.0"
+                          className="h-8 text-sm font-mono"
+                          data-testid="input-changelog-version"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name="description"
@@ -223,6 +286,14 @@ export default function CommandChangelog() {
                     >
                       {entry.category}
                     </span>
+                    {entry.version && (
+                      <span
+                        className="inline-block text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded border bg-muted text-muted-foreground border-border"
+                        data-testid={`badge-changelog-version-${entry.id}`}
+                      >
+                        v{entry.version}
+                      </span>
+                    )}
                     <span className="text-[10px] text-muted-foreground">
                       {new Date(entry.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </span>

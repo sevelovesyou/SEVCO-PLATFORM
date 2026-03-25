@@ -189,46 +189,42 @@ async function seedChangelog() {
   const existing = await storage.getChangelog();
   if (existing.length > 0) return;
 
-  const INITIAL_ENTRIES = [
+  const INITIAL_ENTRIES: Array<{ title: string; description: string; category: "feature" | "fix" | "improvement" | "other"; version: string; createdAt?: Date }> = [
     {
-      title: "Role-Based Access Control (RBAC)",
-      description: "Implemented a full RBAC system with six roles: Admin, Executive, Staff, Partner, Client, and User. Each role has tailored permissions across the platform.",
-      category: "feature" as const,
+      title: "Wiki MVP",
+      description: "Launched the internal wiki with article creation, categorization, revision history, and citation support. Initial content across six category areas seeded.",
+      category: "feature",
+      version: "0.1.0",
     },
     {
-      title: "Platform Shell & Navigation",
-      description: "Built the global platform shell including the persistent header with app switcher, wiki sidebar, and platform footer with social links and site map.",
-      category: "feature" as const,
+      title: "Platform Shell & Auth",
+      description: "Built the global platform shell with persistent header, app switcher, wiki sidebar, and platform footer. Added full authentication with six role tiers: Admin, Executive, Staff, Partner, Client, and User.",
+      category: "feature",
+      version: "0.2.0",
     },
     {
-      title: "Landing Page & Dashboard",
-      description: "Launched the landing page with platform overview and role-adaptive dashboard showing stats, contributions, user management, and quick access links.",
-      category: "feature" as const,
+      title: "Store & Stripe Integration",
+      description: "Launched the SEVCO Store with product catalog, category filtering, stock status, and Stripe-powered checkout. Admin product management added to Command Center.",
+      category: "feature",
+      version: "0.3.0",
     },
     {
-      title: "SEVCO Music (SEVCO RECORDS)",
-      description: "Added the Music section featuring artist profiles, album listings with track lists, and management tools for staff and above.",
-      category: "feature" as const,
+      title: "Home Page, Mega-Menu & Contact",
+      description: "Launched the home landing page with platform overview and role-adaptive dashboard. Introduced mega-menu navigation with per-section dropdowns. Added Contact page with form, social links, and Resend email integration. Added Profile, Jobs listing, and policy wiki pages (Privacy Policy, Terms, Refund Policy).",
+      category: "feature",
+      version: "1.0.0",
     },
     {
-      title: "SEVCO Store",
-      description: "Launched the Store section with product catalog, category filtering, stock status display, and admin product management.",
-      category: "feature" as const,
+      title: "Services & SEVCO Records Expansion",
+      description: "Added the Services page with filterable categories and admin CRUD. Expanded SEVCO Records with playlist management, music submissions, and a global Spotify player bar. Admin social link management added to Command Center footer settings.",
+      category: "feature",
+      version: "1.1.0",
     },
     {
-      title: "SEVCO Projects (Ventures)",
-      description: "Introduced the Projects section showcasing SEVCO Ventures with status tracking, team leads, website links, and wiki cross-references.",
-      category: "feature" as const,
-    },
-    {
-      title: "Logo & Favicon Polish",
-      description: "Updated the platform to use the official SEVCO wordmark and planet icon across the header, footer, wiki sidebar, and browser tab favicon.",
-      category: "improvement" as const,
-    },
-    {
-      title: "Platform Polish & Dashboard Changelog",
-      description: "Fixed content clipping across store and project cards. Added wiki sidebar last-updated date, relocated sidebar toggle, updated footer to use wordmark, linked policy pages to internal wiki articles, and introduced this changelog feed.",
-      category: "improvement" as const,
+      title: "Wiki Archive System & Version Changelog",
+      description: "Replaced wiki article deletion with an archive workflow. Archived articles are hidden from the public and accessible only to staff+. Staff can edit and submit archived articles for republication; admins can publish directly. Added semantic versioning to changelog entries. Footer now displays the current platform version pulled live from the latest changelog entry.",
+      category: "feature",
+      version: "1.2.0",
     },
   ];
 
@@ -914,6 +910,16 @@ export async function registerRoutes(
     try {
       const entries = await storage.getChangelog();
       res.json(entries);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/changelog/latest", async (_req, res) => {
+    try {
+      const entry = await storage.getLatestChangelogEntry();
+      if (!entry) return res.json(null);
+      res.json(entry);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

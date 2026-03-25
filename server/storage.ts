@@ -102,6 +102,7 @@ export interface IStorage {
   updateProject(id: number, data: Partial<InsertProject>): Promise<Project>;
 
   getChangelog(): Promise<Changelog[]>;
+  getLatestChangelogEntry(): Promise<Changelog | undefined>;
   createChangelogEntry(entry: InsertChangelog): Promise<Changelog>;
   getLatestArticleUpdatedAt(): Promise<Date | null>;
 
@@ -563,6 +564,11 @@ export class DatabaseStorage implements IStorage {
 
   async getChangelog(): Promise<Changelog[]> {
     return db.select().from(changelog).orderBy(desc(changelog.createdAt));
+  }
+
+  async getLatestChangelogEntry(): Promise<Changelog | undefined> {
+    const [entry] = await db.select().from(changelog).orderBy(desc(changelog.createdAt)).limit(1);
+    return entry || undefined;
   }
 
   async createChangelogEntry(entry: InsertChangelog): Promise<Changelog> {

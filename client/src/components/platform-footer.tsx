@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { usePermission } from "@/hooks/use-permission";
+import type { Changelog } from "@shared/schema";
 import {
   SiFacebook,
   SiInstagram,
@@ -107,6 +108,10 @@ export function PlatformFooter() {
     queryKey: ["/api/social-links"],
   });
 
+  const { data: latestChangelog } = useQuery<Changelog | null>({
+    queryKey: ["/api/changelog/latest"],
+  });
+
   const footerSocials = socialLinks
     ? socialLinks.filter((l) => l.showInFooter)
     : STATIC_SOCIALS.map((s, i) => ({ ...s, id: i, showInFooter: true, showOnContact: false, displayOrder: i, url: s.href }));
@@ -175,9 +180,20 @@ export function PlatformFooter() {
 
       <div className="border-t">
         <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-muted-foreground" data-testid="text-footer-copyright">
-            &copy; 2026 SEVCO. All rights reserved.
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-xs text-muted-foreground" data-testid="text-footer-copyright">
+              &copy; 2026 SEVCO. All rights reserved.
+            </p>
+            {latestChangelog && (
+              <Link
+                href="/changelog"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                data-testid="text-footer-version"
+              >
+                v{latestChangelog.version ?? "—"} &mdash; {new Date(latestChangelog.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              </Link>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-4">
             {POLICY_LINKS.map(({ label, path }) => (
               <Link

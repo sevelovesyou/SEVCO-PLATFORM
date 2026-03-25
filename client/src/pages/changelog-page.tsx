@@ -95,6 +95,14 @@ export default function ChangelogPage() {
                           >
                             {meta.label}
                           </span>
+                          {entry.version && (
+                            <span
+                              className="inline-block text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border bg-muted text-muted-foreground border-border"
+                              data-testid={`badge-changelog-version-${entry.id}`}
+                            >
+                              v{entry.version}
+                            </span>
+                          )}
                           <span className="text-xs text-muted-foreground">{formatDate(entry.createdAt)}</span>
                         </div>
                         <p className="text-sm font-semibold leading-snug mb-0.5" data-testid={`text-changelog-entry-title-${entry.id}`}>

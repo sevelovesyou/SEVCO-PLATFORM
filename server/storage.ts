@@ -20,11 +20,12 @@ import {
   type Note, type InsertNote, type NoteCollaborator, type NoteAttachment,
   type FeedPost, type InsertFeedPost,
   type Post, type InsertPost, type PostLike, type PostReply, type InsertPostReply, type UserFollow,
+  type PlatformSetting,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
   posts, postLikes, postReplies, userFollows,
-  noteCollaborators, noteAttachments,
+  noteCollaborators, noteAttachments, platformSettings,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or, inArray } from "drizzle-orm";
@@ -190,6 +191,9 @@ export interface IStorage {
   getFollowing(userId: string): Promise<FollowUser[]>;
   getFollowerCount(userId: string): Promise<number>;
   getFollowingCount(userId: string): Promise<number>;
+
+  getPlatformSettings(): Promise<Record<string, string>>;
+  setPlatformSettings(entries: Record<string, string>): Promise<void>;
 }
 
 export type PostAuthor = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
@@ -1162,6 +1166,24 @@ export class DatabaseStorage implements IStorage {
   async getFollowingCount(userId: string): Promise<number> {
     const [r] = await db.select({ count: sql<number>`count(*)::int` }).from(userFollows).where(eq(userFollows.followerId, userId));
     return r?.count || 0;
+  }
+
+  async getPlatformSettings(): Promise<Record<string, string>> {
+    const rows = await db.select().from(platformSettings);
+    const result: Record<string, string> = {};
+    for (const row of rows) {
+      result[row.key] = row.value;
+    }
+    return result;
+  }
+
+  async setPlatformSettings(entries: Record<string, string>): Promise<void> {
+    for (const [key, value] of Object.entries(entries)) {
+      await db
+        .insert(platformSettings)
+        .values({ key, value })
+        .onConflictDoUpdate({ target: platformSettings.key, set: { value } });
+    }
   }
 }
 

@@ -2462,5 +2462,44 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/meta", async (_req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      res.json({
+        faviconUrl: settings["platform.faviconUrl"] || null,
+        ogImageUrl: settings["platform.ogImageUrl"] || null,
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/platform-settings", async (_req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      res.json(settings);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put("/api/platform-settings", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const entries = req.body;
+      if (typeof entries !== "object" || Array.isArray(entries)) {
+        return res.status(400).json({ message: "Body must be a key-value object" });
+      }
+      const stringEntries: Record<string, string> = {};
+      for (const [k, v] of Object.entries(entries)) {
+        stringEntries[k] = String(v);
+      }
+      await storage.setPlatformSettings(stringEntries);
+      const updated = await storage.getPlatformSettings();
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   return httpServer;
 }

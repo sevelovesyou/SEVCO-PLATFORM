@@ -22,6 +22,7 @@ import {
   Music,
   Share2,
   Server,
+  MonitorCog,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -88,6 +89,12 @@ export function CommandSidebar() {
       title: "Hosting",
       url: "/command/hosting",
       icon: Server,
+      show: isAdmin,
+    },
+    {
+      title: "Display",
+      url: "/command/display",
+      icon: MonitorCog,
       show: isAdmin,
     },
   ].filter((item) => item.show);

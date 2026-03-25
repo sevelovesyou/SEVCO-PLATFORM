@@ -1,6 +1,6 @@
 import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -14,6 +14,7 @@ import { ProtectedRoute } from "@/components/protected-route";
 import { CartProvider } from "@/hooks/use-cart";
 import { SpotifyPlayerProvider, useSpotifyPlayer } from "@/hooks/use-spotify-player";
 import { SpotifyPlayerBar } from "@/components/spotify-player-bar";
+import { useEffect } from "react";
 
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
@@ -60,6 +61,7 @@ import CommandMusic from "@/pages/command-music";
 import CommandPlaylists from "@/pages/command-playlists";
 import CommandSocialLinks from "@/pages/command-social-links";
 import CommandHosting from "@/pages/command-hosting";
+import CommandDisplay from "@/pages/command-display";
 import DomainsPage from "@/pages/domains-page";
 import NotesPage from "@/pages/notes-page";
 import FeedPage from "@/pages/feed-page";
@@ -198,11 +200,38 @@ function Router() {
           </CommandPageLayout>
         </ProtectedRoute>
       )} />
+      <Route path="/command/display" component={() => (
+        <ProtectedRoute requiredRole="admin">
+          <CommandPageLayout title="Display" subtitle="Control the visual presentation of the platform">
+            <CommandDisplay />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
       <Route path="/domains" component={DomainsPage} />
       <Route path="/notes" component={NotesPage} />
       <Route component={NotFound} />
     </Switch>
   );
+}
+
+function DynamicHead() {
+  const { data: meta } = useQuery<{ faviconUrl: string | null; ogImageUrl: string | null }>({
+    queryKey: ["/api/meta"],
+  });
+
+  useEffect(() => {
+    if (!meta) return;
+    const el = document.getElementById("dynamic-favicon") as HTMLLinkElement | null;
+    if (el) {
+      el.href = meta.faviconUrl || "/favicon.jpg";
+    }
+    const ogMeta = document.getElementById("og-image") as HTMLMetaElement | null;
+    if (ogMeta) {
+      ogMeta.content = meta.ogImageUrl || "";
+    }
+  }, [meta]);
+
+  return null;
 }
 
 function AppShell() {
@@ -260,6 +289,7 @@ function App() {
           <CartProvider>
             <SpotifyPlayerProvider>
               <TooltipProvider>
+                <DynamicHead />
                 <AppShell />
                 <Toaster />
               </TooltipProvider>

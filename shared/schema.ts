@@ -529,3 +529,10 @@ export type Playlist = typeof playlists.$inferSelect;
 export type InsertPlaylist = z.infer<typeof insertPlaylistSchema>;
 export type MusicSubmission = typeof musicSubmissions.$inferSelect;
 export type InsertMusicSubmission = z.infer<typeof insertMusicSubmissionSchema>;
+
+export const platformSettings = pgTable("platform_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+});
+
+export type PlatformSetting = typeof platformSettings.$inferSelect;

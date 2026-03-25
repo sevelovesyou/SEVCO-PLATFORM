@@ -24,11 +24,12 @@ import {
   type BrandAsset, type InsertBrandAsset,
   type Resource, type InsertResource,
   type GalleryImage, type InsertGalleryImage,
+  type SpotifyArtist, type InsertSpotifyArtist,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
   posts, postLikes, postReplies, userFollows,
-  noteCollaborators, noteAttachments, platformSettings, brandAssets, resources, galleryImages,
+  noteCollaborators, noteAttachments, platformSettings, brandAssets, resources, galleryImages, spotifyArtists,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or, inArray } from "drizzle-orm";
@@ -213,6 +214,10 @@ export interface IStorage {
   createGalleryImage(data: InsertGalleryImage): Promise<GalleryImage>;
   updateGalleryImage(id: number, data: Partial<InsertGalleryImage>): Promise<GalleryImage>;
   deleteGalleryImage(id: number): Promise<void>;
+
+  getSpotifyArtists(): Promise<SpotifyArtist[]>;
+  addSpotifyArtist(data: InsertSpotifyArtist): Promise<SpotifyArtist>;
+  removeSpotifyArtist(id: number): Promise<void>;
 }
 
 export type SearchResultItem = {
@@ -1221,6 +1226,19 @@ export class DatabaseStorage implements IStorage {
         .values({ key, value })
         .onConflictDoUpdate({ target: platformSettings.key, set: { value } });
     }
+  }
+
+  async getSpotifyArtists(): Promise<SpotifyArtist[]> {
+    return db.select().from(spotifyArtists).orderBy(spotifyArtists.displayOrder, spotifyArtists.displayName);
+  }
+
+  async addSpotifyArtist(data: InsertSpotifyArtist): Promise<SpotifyArtist> {
+    const [artist] = await db.insert(spotifyArtists).values(data).returning();
+    return artist;
+  }
+
+  async removeSpotifyArtist(id: number): Promise<void> {
+    await db.delete(spotifyArtists).where(eq(spotifyArtists.id, id));
   }
 
   async searchAll(query: string, isStaff: boolean, limit: number): Promise<SearchAllResult> {

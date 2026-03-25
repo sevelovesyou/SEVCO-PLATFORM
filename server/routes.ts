@@ -17,6 +17,7 @@ import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClie
 import { sendContactEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
 import * as hostinger from "./hostinger";
+import { registerSpotifyRoutes } from "./spotify";
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive"];
 const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
@@ -2832,6 +2833,8 @@ export async function registerRoutes(
       res.status(500).json({ message: err.message });
     }
   });
+
+  registerSpotifyRoutes(app);
 
   app.get("/api/meta", async (_req, res) => {
     try {

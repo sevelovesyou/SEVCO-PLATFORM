@@ -588,3 +588,15 @@ export const galleryImages = pgTable("gallery_images", {
 export const insertGalleryImageSchema = createInsertSchema(galleryImages).omit({ id: true, createdAt: true });
 export type GalleryImage = typeof galleryImages.$inferSelect;
 export type InsertGalleryImage = z.infer<typeof insertGalleryImageSchema>;
+
+export const spotifyArtists = pgTable("spotify_artists", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  spotifyArtistId: text("spotify_artist_id").notNull(),
+  displayName: text("display_name").notNull(),
+  displayOrder: integer("display_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertSpotifyArtistSchema = createInsertSchema(spotifyArtists).omit({ id: true, createdAt: true });
+export type SpotifyArtist = typeof spotifyArtists.$inferSelect;
+export type InsertSpotifyArtist = z.infer<typeof insertSpotifyArtistSchema>;

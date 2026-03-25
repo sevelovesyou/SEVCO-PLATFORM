@@ -1663,7 +1663,15 @@ export async function registerRoutes(
 
   app.delete("/api/notes/attachments/:attachmentId", requireAuth, async (req: any, res) => {
     try {
-      await storage.removeNoteAttachment(parseInt(req.params.attachmentId));
+      const attachmentId = parseInt(req.params.attachmentId);
+      const attachment = await storage.getNoteAttachmentById(attachmentId);
+      if (!attachment) return res.status(404).json({ message: "Attachment not found" });
+      const note = await storage.getNoteById(attachment.noteId);
+      if (!note) return res.status(404).json({ message: "Note not found" });
+      const accessibleNotes = await storage.getNotes(req.user.id);
+      const canAccess = accessibleNotes.some((n) => n.id === attachment.noteId);
+      if (!canAccess) return res.status(403).json({ message: "Access denied" });
+      await storage.removeNoteAttachment(attachmentId);
       res.status(204).end();
     } catch (err: any) {
       res.status(500).json({ message: err.message });

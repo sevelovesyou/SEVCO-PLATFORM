@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePermission } from "@/hooks/use-permission";
 import { queryClient } from "@/lib/queryClient";
+import { AttachNotePanel } from "@/components/attach-note-panel";
 import type { Project } from "@shared/schema";
 
 const CAN_MANAGE_PROJECTS = ["admin", "executive", "staff"];
@@ -309,6 +310,7 @@ export default function ProjectDetail() {
           </div>
 
           <div className="space-y-6">
+            <AttachNotePanel resourceType="project" resourceId={project.id} />
             <div className="border border-border rounded-xl overflow-hidden">
               <div className="px-4 py-3 bg-muted/30 border-b border-border">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Project Info</h3>

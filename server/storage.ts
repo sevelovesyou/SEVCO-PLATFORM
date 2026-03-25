@@ -154,12 +154,13 @@ export interface IStorage {
   getNotes(authorId: string): Promise<Note[]>;
   getNoteById(id: number): Promise<Note | undefined>;
   createNote(data: InsertNote & { authorId: string }): Promise<Note>;
-  updateNote(id: number, authorId: string, data: Partial<InsertNote>): Promise<Note>;
+  updateNote(id: number, userId: string, data: Partial<InsertNote>): Promise<Note>;
   deleteNote(id: number, authorId: string): Promise<void>;
   getNoteCollaborators(noteId: number): Promise<(NoteCollaborator & { user: { id: string; username: string; displayName: string | null; avatarUrl: string | null } })[]>;
   addNoteCollaborator(noteId: number, userId: string): Promise<NoteCollaborator>;
   removeNoteCollaborator(noteId: number, userId: string): Promise<void>;
   getNoteAttachments(noteId: number): Promise<NoteAttachment[]>;
+  getNoteAttachmentById(attachmentId: number): Promise<NoteAttachment | undefined>;
   addNoteAttachment(noteId: number, resourceType: "project" | "article", resourceId: number): Promise<NoteAttachment>;
   removeNoteAttachment(attachmentId: number): Promise<void>;
 
@@ -840,10 +841,14 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
-  async updateNote(id: number, authorId: string, data: Partial<InsertNote>): Promise<Note> {
+  async updateNote(id: number, userId: string, data: Partial<InsertNote>): Promise<Note> {
+    const collaboratorIds = db
+      .select({ id: noteCollaborators.userId })
+      .from(noteCollaborators)
+      .where(eq(noteCollaborators.noteId, id));
     const [row] = await db.update(notes)
       .set({ ...data, updatedAt: new Date() })
-      .where(and(eq(notes.id, id), eq(notes.authorId, authorId)))
+      .where(and(eq(notes.id, id), sql`(${notes.authorId} = ${userId} OR ${userId} IN (${collaboratorIds}))`))
       .returning();
     return row;
   }
@@ -890,10 +895,21 @@ export class DatabaseStorage implements IStorage {
   async addNoteAttachment(noteId: number, resourceType: "project" | "article", resourceId: number): Promise<NoteAttachment> {
     const [row] = await db.insert(noteAttachments).values({ noteId, resourceType, resourceId }).onConflictDoNothing().returning();
     if (!row) {
-      const [existing] = await db.select().from(noteAttachments).where(and(eq(noteAttachments.noteId, noteId)));
+      const [existing] = await db.select().from(noteAttachments).where(
+        and(
+          eq(noteAttachments.noteId, noteId),
+          eq(noteAttachments.resourceType, resourceType),
+          eq(noteAttachments.resourceId, resourceId),
+        )
+      );
       return existing;
     }
     return row;
+  }
+
+  async getNoteAttachmentById(attachmentId: number): Promise<NoteAttachment | undefined> {
+    const [row] = await db.select().from(noteAttachments).where(eq(noteAttachments.id, attachmentId));
+    return row || undefined;
   }
 
   async removeNoteAttachment(attachmentId: number): Promise<void> {

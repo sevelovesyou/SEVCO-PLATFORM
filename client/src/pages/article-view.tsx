@@ -19,6 +19,7 @@ import { WikiInfobox } from "@/components/wiki-infobox";
 import { CitationList } from "@/components/citation-badge";
 import { CrosslinkPanel } from "@/components/crosslink-panel";
 import { RevisionTimeline } from "@/components/revision-timeline";
+import { AttachNotePanel } from "@/components/attach-note-panel";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -334,6 +335,7 @@ export default function ArticleView() {
               title={article.title}
             />
           )}
+          <AttachNotePanel resourceType="article" resourceId={article.id} />
         </div>
       </div>
 

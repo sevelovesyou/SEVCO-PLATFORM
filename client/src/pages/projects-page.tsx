@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Folder, Plus, Globe, AlertCircle, Building2 } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -49,7 +50,18 @@ function TypeBadge({ type }: { type: string }) {
   );
 }
 
+function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
+  if (!name) return null;
+  const icons = LucideIcons as Record<string, unknown>;
+  const comp = icons[name] ?? icons[name.charAt(0).toUpperCase() + name.slice(1)];
+  if (typeof comp === "function" || (typeof comp === "object" && comp !== null)) {
+    return comp as React.ComponentType<{ className?: string }>;
+  }
+  return null;
+}
+
 function ProjectCard({ project }: { project: Project }) {
+  const MenuIcon = resolveLucideIcon(project.menuIcon) ?? Building2;
   return (
     <Link href={`/projects/${project.slug}`}>
       <div
@@ -58,7 +70,7 @@ function ProjectCard({ project }: { project: Project }) {
       >
         <div className="flex items-start justify-between gap-2">
           <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
-            <Building2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <MenuIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
           </div>
           <StatusBadge status={project.status} />
         </div>

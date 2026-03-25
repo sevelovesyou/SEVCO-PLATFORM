@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import * as LucideIcons from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { usePermission } from "@/hooks/use-permission";
@@ -15,6 +16,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChevronLeft, Folder, ShieldOff, Share2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { Project } from "@shared/schema";
+
+function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
+  if (!name) return null;
+  const icons = LucideIcons as unknown as Record<string, React.ElementType>;
+  return icons[name] ?? null;
+}
 
 const optUrl = z.string().url("Must be a valid URL").optional().or(z.literal(""));
 
@@ -37,6 +44,8 @@ const formSchema = z.object({
   launchDate: z.string().max(100).optional(),
   heroImageUrl: optUrl,
   logoUrl: optUrl,
+  appIcon: optUrl,
+  menuIcon: z.string().max(100).optional(),
   galleryUrls: z.string().optional(),
   socialTwitter: optUrl,
   socialInstagram: optUrl,
@@ -84,9 +93,13 @@ interface ProjectFormProps {
   project?: Project;
 }
 
+const CAN_EDIT_ICONS = ["admin", "executive"];
+
 function ProjectFormInner({ mode, project }: ProjectFormProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { role } = usePermission();
+  const canEditIcons = role ? CAN_EDIT_ICONS.includes(role) : false;
 
   const sl = (project?.socialLinks ?? {}) as Record<string, string>;
 
@@ -108,6 +121,8 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
       launchDate: project?.launchDate ?? "",
       heroImageUrl: project?.heroImageUrl ?? "",
       logoUrl: project?.logoUrl ?? "",
+      appIcon: project?.appIcon ?? "",
+      menuIcon: project?.menuIcon ?? "",
       galleryUrls: project?.galleryUrls?.join(", ") ?? "",
       socialTwitter: sl.twitter ?? "",
       socialInstagram: sl.instagram ?? "",
@@ -156,6 +171,8 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
         launchDate: values.launchDate || null,
         heroImageUrl: values.heroImageUrl || null,
         logoUrl: values.logoUrl || null,
+        appIcon: values.appIcon || null,
+        menuIcon: values.menuIcon || null,
         galleryUrls: galleryList.length > 0 ? galleryList : null,
         socialLinks: buildSocialLinks(values),
       });
@@ -198,6 +215,8 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
         launchDate: values.launchDate || null,
         heroImageUrl: values.heroImageUrl || null,
         logoUrl: values.logoUrl || null,
+        appIcon: values.appIcon || null,
+        menuIcon: values.menuIcon || null,
         galleryUrls: galleryList.length > 0 ? galleryList : null,
         socialLinks: buildSocialLinks(values),
       });
@@ -529,6 +548,63 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
                     </FormItem>
                   )}
                 />
+
+                {canEditIcons && (
+                  <FormField
+                    control={form.control}
+                    name="appIcon"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>App Icon URL</FormLabel>
+                        <FormControl>
+                          <div className="space-y-2">
+                            <Input placeholder="https://... (square app icon shown in project header)" data-testid="input-project-app-icon" {...field} />
+                            {field.value && (
+                              <div className="flex items-center gap-2">
+                                <img
+                                  src={field.value}
+                                  alt="App icon preview"
+                                  className="h-10 w-10 rounded-lg object-cover border border-border"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                                />
+                                <span className="text-xs text-muted-foreground">Preview</span>
+                              </div>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormDescription className="text-xs">Square image shown alongside the project name in the header.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {canEditIcons && (
+                  <FormField
+                    control={form.control}
+                    name="menuIcon"
+                    render={({ field }) => {
+                      const ResolvedIcon = resolveLucideIcon(field.value);
+                      return (
+                        <FormItem>
+                          <FormLabel>Menu Icon</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center gap-2">
+                              <Input placeholder="e.g. Rocket, Folder, Music (Lucide icon name)" data-testid="input-project-menu-icon" {...field} />
+                              {ResolvedIcon && (
+                                <div className="h-9 w-9 flex items-center justify-center border border-border rounded-md bg-muted shrink-0">
+                                  <ResolvedIcon className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                              )}
+                            </div>
+                          </FormControl>
+                          <FormDescription className="text-xs">Lucide icon name (PascalCase) used in navigation menus. Falls back to a category icon if not set.</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+                )}
 
                 <FormField
                   control={form.control}

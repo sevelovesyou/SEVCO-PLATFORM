@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import * as LucideIcons from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -23,9 +24,15 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, ExternalLink, Briefcase } from "lucide-react";
 import { Link } from "wouter";
 import type { Service } from "@shared/schema";
+
+function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
+  if (!name) return null;
+  const icons = LucideIcons as unknown as Record<string, React.ElementType>;
+  return icons[name] ?? null;
+}
 
 const SERVICE_CATEGORIES = ["Engineering", "Design", "Marketing", "Operations", "Sales", "Support"];
 
@@ -181,16 +188,30 @@ function ServiceForm({
           </FormItem>
         )} />
 
-        <FormField control={form.control} name="iconName" render={({ field }) => (
-          <FormItem>
-            <FormLabel>Icon Name</FormLabel>
-            <FormControl>
-              <Input {...field} placeholder="e.g. Code2, Palette, TrendingUp" data-testid="input-service-icon" />
-            </FormControl>
-            <FormDescription className="text-xs">Lucide icon name (PascalCase)</FormDescription>
-            <FormMessage />
-          </FormItem>
-        )} />
+        <FormField control={form.control} name="iconName" render={({ field }) => {
+          const ResolvedIcon = resolveLucideIcon(field.value);
+          return (
+            <FormItem>
+              <FormLabel>Icon Name</FormLabel>
+              <FormControl>
+                <div className="flex items-center gap-2">
+                  <Input {...field} placeholder="e.g. Code2, Palette, TrendingUp" data-testid="input-service-icon" />
+                  {ResolvedIcon ? (
+                    <div className="h-9 w-9 flex items-center justify-center border border-border rounded-md bg-muted shrink-0">
+                      <ResolvedIcon className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <div className="h-9 w-9 flex items-center justify-center border border-border rounded-md bg-muted shrink-0 opacity-40">
+                      <Briefcase className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+              </FormControl>
+              <FormDescription className="text-xs">Lucide icon name (PascalCase). Falls back to a briefcase icon if not set.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          );
+        }} />
 
         <FormField control={form.control} name="description" render={({ field }) => (
           <FormItem>

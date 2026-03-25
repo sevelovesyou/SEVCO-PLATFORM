@@ -1,7 +1,7 @@
 import { storage } from "./storage";
 import { db } from "./db";
-import { articles, categories, revisions, citations, crosslinks, users, projects, services, playlists } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { articles, categories, revisions, citations, crosslinks, users, projects, services, playlists, products } from "@shared/schema";
+import { eq, sql } from "drizzle-orm";
 
 export async function promoteFounderToAdmin() {
   const founder = await storage.getUserByUsername("severin@sevelovesyou.com");
@@ -401,4 +401,89 @@ export async function seedPlaylists() {
   });
 
   console.log("Seeded 3 placeholder playlists.");
+}
+
+export async function seedStoreProducts() {
+  const [countResult] = await db.select({ count: sql<number>`count(*)::int` }).from(products);
+  if ((countResult?.count ?? 0) >= 3) return;
+
+  console.log("Seeding placeholder store products...");
+
+  const PLACEHOLDER_PRODUCTS = [
+    {
+      name: "SEVCO Classic Tee",
+      slug: "sevco-classic-tee",
+      description: "A clean, comfortable tee with the SEVCO wordmark. Made from 100% premium cotton. Available in multiple sizes.",
+      price: 29.99,
+      categoryName: "Apparel",
+      stockStatus: "available",
+      imageUrl: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&q=80",
+      stripeProductId: null,
+      stripePriceId: null,
+    },
+    {
+      name: "SEVCO Hoodie — Black",
+      slug: "sevco-hoodie-black",
+      description: "A heavyweight pullover hoodie in deep black with an embroidered SEVCO logo on the chest. Unisex fit.",
+      price: 59.99,
+      categoryName: "Apparel",
+      stockStatus: "available",
+      imageUrl: "https://images.unsplash.com/photo-1556821840-3a63f15732ce?w=800&q=80",
+      stripeProductId: null,
+      stripePriceId: null,
+    },
+    {
+      name: "SEVCO Planet Sticker Pack",
+      slug: "sevco-planet-sticker-pack",
+      description: "A pack of 10 die-cut stickers featuring SEVCO logos, icons, and original artwork. Weatherproof vinyl.",
+      price: 9.99,
+      categoryName: "Accessories",
+      stockStatus: "available",
+      imageUrl: "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=800&q=80",
+      stripeProductId: null,
+      stripePriceId: null,
+    },
+    {
+      name: "SEVCO Snapback Cap",
+      slug: "sevco-snapback-cap",
+      description: "Structured 6-panel snapback with an embroidered SEVCO logo and flat brim. One size fits all.",
+      price: 34.99,
+      categoryName: "Accessories",
+      stockStatus: "sold_out",
+      imageUrl: "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=800&q=80",
+      stripeProductId: null,
+      stripePriceId: null,
+    },
+    {
+      name: "SEVCO Digital Album — Vol. 1",
+      slug: "sevco-digital-album-vol-1",
+      description: "The first official SEVCO Records compilation — 12 tracks from the roster's finest. Digital download included.",
+      price: 7.99,
+      categoryName: "Music",
+      stockStatus: "available",
+      imageUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&q=80",
+      stripeProductId: null,
+      stripePriceId: null,
+    },
+    {
+      name: "SEVCO Tote Bag",
+      slug: "sevco-tote-bag",
+      description: "A durable, oversized canvas tote with the SEVCO logo screen-printed on the front. Perfect for everyday carry.",
+      price: 19.99,
+      categoryName: "Accessories",
+      stockStatus: "available",
+      imageUrl: "https://images.unsplash.com/photo-1544816155-12df9643f363?w=800&q=80",
+      stripeProductId: null,
+      stripePriceId: null,
+    },
+  ];
+
+  for (const product of PLACEHOLDER_PRODUCTS) {
+    const existing = await storage.getProductBySlug(product.slug);
+    if (!existing) {
+      await storage.createProduct(product);
+    }
+  }
+
+  console.log("Seeded placeholder store products.");
 }

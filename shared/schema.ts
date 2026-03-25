@@ -199,6 +199,8 @@ export const projects = pgTable("projects", {
   launchDate: text("launch_date"),
   galleryUrls: text("gallery_urls").array(),
   socialLinks: jsonb("social_links"),
+  menuIcon: text("menu_icon"),
+  appIcon: text("app_icon"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

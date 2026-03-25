@@ -1,5 +1,6 @@
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import * as LucideIcons from "lucide-react";
 import {
   ArrowLeft, Globe, User, BookOpen, CircleX, Pencil, Tag,
   Calendar, ArrowRight, ExternalLink,
@@ -188,7 +189,14 @@ export default function ProjectDetail() {
 
           <div className="relative px-6 pb-8 pt-4">
             <div className="flex items-start gap-4">
-              {project.logoUrl ? (
+              {project.appIcon ? (
+                <img
+                  src={project.appIcon}
+                  alt={`${project.name} icon`}
+                  className="h-16 w-16 rounded-xl object-cover border bg-background shadow-sm shrink-0"
+                  data-testid="img-project-app-icon"
+                />
+              ) : project.logoUrl ? (
                 <img
                   src={project.logoUrl}
                   alt={project.name}

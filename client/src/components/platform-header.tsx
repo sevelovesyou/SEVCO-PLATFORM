@@ -19,6 +19,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import * as LucideIcons from "lucide-react";
 import {
   Home,
   BookOpen,
@@ -63,6 +64,12 @@ import {
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import type { Project, Service } from "@shared/schema";
+
+function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
+  if (!name) return null;
+  const icons = LucideIcons as unknown as Record<string, React.ElementType>;
+  return icons[name] ?? null;
+}
 
 const ROLE_BADGE_VARIANTS: Record<string, string> = {
   admin:     "bg-primary text-primary-foreground",
@@ -314,9 +321,7 @@ function ServicesDropdown({ isActive }: { isActive: boolean }) {
                         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</p>
                       </div>
                       {items.map((service) => {
-                        const IconComp = (service.iconName && SERVICE_ICON_MAP[service.iconName])
-                          ? SERVICE_ICON_MAP[service.iconName]
-                          : Briefcase;
+                        const IconComp = resolveLucideIcon(service.iconName) ?? Briefcase;
                         return (
                           <Link key={service.id} href={`/services/${service.slug}`} onClick={() => setOpen(false)}>
                             <div
@@ -450,14 +455,14 @@ function ProjectsDropdown({ isActive }: { isActive: boolean }) {
                 {activeProjects.length > 0 && (
                   <div className="mb-1">
                     {activeProjects.map((project) => {
-                      const IconComp = CATEGORY_ICON_MAP[project.category ?? "Other"] ?? Folder;
+                      const MenuIconComp = resolveLucideIcon(project.menuIcon) ?? CATEGORY_ICON_MAP[project.category ?? "Other"] ?? Folder;
                       return (
                         <Link key={project.id} href={`/projects/${project.slug}`} onClick={() => setOpen(false)}>
                           <div
                             className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer group"
                             data-testid={`dropdown-project-${project.slug}`}
                           >
-                            <IconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <MenuIconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                             <div className="min-w-0">
                               <p className="text-xs font-semibold text-foreground leading-none">{project.name}</p>
                               {project.description && (
@@ -475,14 +480,14 @@ function ProjectsDropdown({ isActive }: { isActive: boolean }) {
                   <div className="border-t border-border/60 pt-2 mt-1">
                     <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider px-3 mb-1">In Development</p>
                     {devProjects.map((project) => {
-                      const IconComp = CATEGORY_ICON_MAP[project.category ?? "Other"] ?? Folder;
+                      const MenuIconComp = resolveLucideIcon(project.menuIcon) ?? CATEGORY_ICON_MAP[project.category ?? "Other"] ?? Folder;
                       return (
                         <Link key={project.id} href={`/projects/${project.slug}`} onClick={() => setOpen(false)}>
                           <div
                             className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer group"
                             data-testid={`dropdown-project-${project.slug}`}
                           >
-                            <IconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <MenuIconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
                                 <p className="text-xs font-semibold text-foreground leading-none">{project.name}</p>

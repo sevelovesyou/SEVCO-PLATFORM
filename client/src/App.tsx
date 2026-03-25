@@ -70,6 +70,7 @@ import ServiceDetailPage from "@/pages/service-detail-page";
 import ServicesListingPage from "@/pages/services-listing";
 import WikiArchivePage from "@/pages/wiki-archive-page";
 import AboutPage from "@/pages/about-page";
+import HostingPage from "@/pages/hosting-page";
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
 const COMMAND_PREFIXES = ["/command"];
@@ -113,6 +114,7 @@ function Router() {
       <Route path="/projects" component={ProjectsPage} />
       <Route path="/projects/:slug" component={ProjectDetail} />
       <Route path="/about" component={AboutPage} />
+      <Route path="/hosting" component={HostingPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/feed" component={FeedPage} />
       <Route path="/changelog" component={ChangelogPage} />

@@ -100,3 +100,77 @@ ${verifyUrl}
 
 This link expires in 24 hours.`;
 }
+
+const CONTACT_EMAIL = process.env.CONTACT_EMAIL || "hello@sevco.us";
+
+export async function sendContactEmail(
+  name: string,
+  email: string,
+  subject: string,
+  message: string
+) {
+  const resend = await getUncachableResendClient();
+
+  await resend.emails.send({
+    from: `SEVCO <${FROM_EMAIL}>`,
+    to: CONTACT_EMAIL,
+    replyTo: email,
+    subject: `[Contact] ${subject} — from ${name}`,
+    html: buildContactHtml(name, email, subject, message),
+    text: buildContactText(name, email, subject, message),
+  });
+}
+
+function buildContactHtml(name: string, email: string, subject: string, message: string): string {
+  const safeMsg = message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>");
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
+    <tr><td align="center">
+      <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;padding:40px;">
+        <tr><td style="padding-bottom:24px;border-bottom:1px solid #e4e4e7;">
+          <span style="font-size:24px;">🪐</span>
+          <span style="font-size:18px;font-weight:600;color:#18181b;margin-left:8px;">SEVCO</span>
+          <p style="margin:4px 0 0;color:#71717a;font-size:13px;">New contact form submission</p>
+        </td></tr>
+        <tr><td style="padding:24px 0 16px;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="color:#71717a;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding-bottom:4px;">From</td>
+              <td style="color:#18181b;font-size:14px;">${name} &lt;${email}&gt;</td>
+            </tr>
+            <tr><td style="padding:6px 0;" colspan="2"></td></tr>
+            <tr>
+              <td style="color:#71717a;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding-bottom:4px;">Subject</td>
+              <td style="color:#18181b;font-size:14px;">${subject}</td>
+            </tr>
+          </table>
+        </td></tr>
+        <tr><td style="background:#f4f4f5;border-radius:6px;padding:16px;color:#3f3f46;font-size:14px;line-height:1.7;">
+          ${safeMsg}
+        </td></tr>
+        <tr><td style="padding-top:24px;color:#71717a;font-size:12px;">
+          Sent via SEVCO contact form. Reply directly to this email to respond to ${name}.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+function buildContactText(name: string, email: string, subject: string, message: string): string {
+  return `New SEVCO Contact Form Submission
+
+From: ${name} <${email}>
+Subject: ${subject}
+
+Message:
+${message}
+
+---
+Reply directly to this email to respond to ${name}.`;
+}

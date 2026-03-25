@@ -13,6 +13,7 @@ import {
 import type { Role } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
+import { sendContactEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive", "staff"];
@@ -985,6 +986,52 @@ export async function registerRoutes(
       await generateCrosslinks(article.id);
 
       res.json({ action: "created", article });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Contact form rate limiting: max 3 per IP per hour
+  const contactRateMap = new Map<string, { count: number; resetAt: number }>();
+
+  app.post("/api/contact", async (req, res) => {
+    try {
+      const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ?? req.socket.remoteAddress ?? "unknown";
+      const now = Date.now();
+      const entry = contactRateMap.get(ip);
+
+      if (entry && now < entry.resetAt) {
+        if (entry.count >= 3) {
+          return res.status(429).json({ message: "Too many submissions. Please try again later." });
+        }
+        entry.count += 1;
+      } else {
+        contactRateMap.set(ip, { count: 1, resetAt: now + 60 * 60 * 1000 });
+      }
+
+      const { z } = await import("zod");
+      const schema = z.object({
+        name: z.string().min(1, "Name is required"),
+        email: z.string().email("Valid email required"),
+        subject: z.enum(["Support", "Business Inquiry", "Press", "Other"]),
+        message: z.string().min(10, "Message must be at least 10 characters"),
+      });
+
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid input" });
+      }
+
+      const { name, email, subject, message } = parsed.data;
+
+      try {
+        await sendContactEmail(name, email, subject, message);
+      } catch (emailErr: any) {
+        console.error("[contact] Email send failed:", emailErr.message);
+        return res.status(502).json({ message: "Failed to send message. Please try again." });
+      }
+
+      res.json({ ok: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

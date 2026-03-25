@@ -18,7 +18,7 @@ import bcrypt from "bcryptjs";
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
-const CAN_MANAGE_JOBS: Role[] = ["admin", "executive", "staff"];
+const CAN_MANAGE_JOBS: Role[] = ["admin", "executive"];
 const CAN_MANAGE_STORE_PRODUCTS: Role[] = ["admin", "executive"];
 const CAN_MANAGE_PROJECTS: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_CHANGELOG: Role[] = ["admin", "executive", "staff"];
@@ -1176,7 +1176,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/jobs/:id/apply", async (req, res) => {
+  app.post("/api/jobs/:id/apply", requireAuth, async (req: any, res) => {
     try {
       const job = await storage.getJobBySlug(req.params.id);
       const jobId = job?.id ?? Number(req.params.id);

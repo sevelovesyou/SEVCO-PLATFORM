@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -60,6 +61,7 @@ export default function JobsDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [submitted, setSubmitted] = useState(false);
 
   const { data: job, isLoading, error } = useQuery<Job>({
@@ -188,7 +190,18 @@ export default function JobsDetailPage() {
           We review every application personally. We'll be in touch within a week.
         </p>
 
-        {submitted ? (
+        {!user ? (
+          <Card className="p-8 overflow-visible text-center" data-testid="apply-sign-in-prompt">
+            <AlertCircle className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
+            <h3 className="font-semibold mb-1">Sign in to apply</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              You need a SEVCO account to submit an application.
+            </p>
+            <Button size="sm" onClick={() => setLocation("/auth")} data-testid="button-sign-in-to-apply">
+              Sign in / Create account
+            </Button>
+          </Card>
+        ) : submitted ? (
           <Card className="p-8 overflow-visible text-center" data-testid="application-success">
             <CheckCircle className="h-10 w-10 text-green-500 mx-auto mb-3" />
             <h3 className="font-bold text-lg mb-1">Application received!</h3>

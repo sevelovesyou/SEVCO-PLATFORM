@@ -226,7 +226,7 @@ export default function ArticleView() {
               Edit
             </Button>
           </Link>
-          {article.status === "archived" ? (
+          {article.status === "archived" && canAccessArchive ? (
             <Button
               size="sm"
               variant="outline"

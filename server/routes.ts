@@ -379,6 +379,12 @@ export async function registerRoutes(
     const article = await storage.getArticleBySlug(req.params.slug);
     if (!article) return res.status(404).json({ message: "Article not found" });
 
+    if (article.status === "archived") {
+      const userRole = (req.user as any)?.role as Role | undefined;
+      const canAccess = !!userRole && (CAN_ACCESS_ARCHIVE as string[]).includes(userRole);
+      if (!canAccess) return res.status(404).json({ message: "Article not found" });
+    }
+
     const articleCitations = await storage.getCitations(article.id);
     const articleRevisions = await storage.getRevisions(article.id);
     const articleCrosslinks = await storage.getCrosslinks(article.id);
@@ -1440,7 +1446,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/articles/:id/republish", requireAuth, requireRole(...CAN_CREATE_ARTICLE), async (req, res) => {
+  app.patch("/api/articles/:id/republish", requireAuth, requireRole(...CAN_ACCESS_ARCHIVE), async (req, res) => {
     try {
       const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ message: "Invalid article id" });

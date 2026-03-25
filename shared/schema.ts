@@ -298,8 +298,8 @@ const optionalUrl = z.string().url().optional().or(z.literal("")).or(z.null());
 const hexColor = z.string().regex(/^#[0-9a-fA-F]{3,8}$/).optional().or(z.literal("")).or(z.null());
 
 export const updateProfileSchema = z.object({
-  displayName: z.string().max(80).optional(),
-  bio: z.string().max(500).transform((s) => s.replace(/<[^>]*>/g, "")).optional(),
+  displayName: z.string().max(80).optional().nullable(),
+  bio: z.union([z.string().max(500).transform((s) => s.replace(/<[^>]*>/g, "")), z.null()]).optional(),
   avatarUrl: optionalUrl,
   profileBgColor: hexColor,
   profileAccentColor: hexColor,

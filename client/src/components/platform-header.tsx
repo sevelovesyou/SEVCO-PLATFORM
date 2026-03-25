@@ -44,6 +44,14 @@ import {
   Settings2,
   Handshake,
   HeadphonesIcon,
+  Plug,
+  Lightbulb,
+  MousePointer2,
+  Sparkles,
+  FileText,
+  Share2,
+  ClipboardList,
+  Target,
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import type { Project, Service } from "@shared/schema";
@@ -76,10 +84,18 @@ const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
 };
 
 const SERVICE_ICON_MAP: Record<string, React.ElementType> = {
-  Code2, Palette, TrendingUp, Settings2, Handshake, HeadphonesIcon,
+  Code2, Plug, Lightbulb, Palette, MousePointer2, Sparkles,
+  FileText, Share2, TrendingUp, ClipboardList, Settings2,
+  Handshake, Target, HeadphonesIcon, BookOpen, Briefcase,
   Engineering: Code2, Design: Palette, Marketing: TrendingUp,
   Operations: Settings2, Sales: Handshake, Support: HeadphonesIcon,
 };
+
+const SERVICE_COLUMN_GROUPS = [
+  ["Engineering", "Design"],
+  ["Marketing", "Operations"],
+  ["Sales", "Support"],
+] as const;
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/", "/account"];
 
@@ -255,18 +271,8 @@ function ServicesDropdown({ isActive }: { isActive: boolean }) {
     queryKey: ["/api/services"],
   });
 
-  const featuredServices = (services ?? []).filter((s) => s.featured).slice(0, 6);
-  const categories = ["Engineering", "Design", "Marketing"];
-
-  const byCategory = categories.reduce<Record<string, Service[]>>((acc, cat) => {
-    const items = (services ?? []).filter((s) => s.category === cat).slice(0, 2);
-    if (items.length > 0) acc[cat] = items;
-    return acc;
-  }, {});
-
-  const displayServices = featuredServices.length > 0
-    ? featuredServices
-    : Object.values(byCategory).flat().slice(0, 6);
+  const byCategory = (cat: string) =>
+    (services ?? []).filter((s) => s.category === cat).slice(0, 2);
 
   return (
     <div className="relative" ref={ref}>
@@ -278,29 +284,46 @@ function ServicesDropdown({ isActive }: { isActive: boolean }) {
         data-testid="nav-services"
       />
       {open && (
-        <DropdownPanel className="w-[480px]">
-          <div className="p-3">
-            <div className="grid grid-cols-2 gap-1">
-              {displayServices.map((service) => {
-                const IconComp = (service.iconName && SERVICE_ICON_MAP[service.iconName]) ? SERVICE_ICON_MAP[service.iconName] : Briefcase;
-                return (
-                  <Link key={service.id} href={`/services/${service.slug}`} onClick={() => setOpen(false)}>
-                    <div
-                      className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer group"
-                      data-testid={`dropdown-service-${service.slug}`}
-                    >
-                      <IconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-foreground leading-none">{service.name}</p>
-                        {service.tagline && (
-                          <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{service.tagline}</p>
-                        )}
+        <DropdownPanel className="w-[620px]">
+          <div className="p-3 grid grid-cols-3 gap-2">
+            {SERVICE_COLUMN_GROUPS.map((pair) => (
+              <div key={pair.join("-")} className="space-y-3">
+                {pair.map((cat) => {
+                  const items = byCategory(cat);
+                  if (items.length === 0) return null;
+                  const CatIcon = SERVICE_ICON_MAP[cat] ?? Briefcase;
+                  return (
+                    <div key={cat}>
+                      <div className="flex items-center gap-1.5 px-2 mb-1">
+                        <CatIcon className="h-3 w-3 text-muted-foreground/60" />
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</p>
                       </div>
+                      {items.map((service) => {
+                        const IconComp = (service.iconName && SERVICE_ICON_MAP[service.iconName])
+                          ? SERVICE_ICON_MAP[service.iconName]
+                          : Briefcase;
+                        return (
+                          <Link key={service.id} href={`/services/${service.slug}`} onClick={() => setOpen(false)}>
+                            <div
+                              className="flex items-start gap-2.5 px-2 py-2 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer group"
+                              data-testid={`dropdown-service-${service.slug}`}
+                            >
+                              <IconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-foreground leading-none">{service.name}</p>
+                                {service.tagline && (
+                                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{service.tagline}</p>
+                                )}
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      })}
                     </div>
-                  </Link>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
           <div className="border-t border-border/60 px-4 py-2.5">
             <Link href="/services" onClick={() => setOpen(false)}>

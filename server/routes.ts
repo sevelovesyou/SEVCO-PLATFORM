@@ -1537,6 +1537,17 @@ export async function registerRoutes(
   });
 
   // Notes routes
+  app.get("/api/public-notes/:resourceType/:resourceId", async (req, res) => {
+    try {
+      const { resourceType, resourceId } = req.params;
+      if (!["project", "article"].includes(resourceType)) return res.status(400).json({ message: "Invalid resourceType" });
+      const notesList = await storage.getPublicResourceNotes(resourceType as "project" | "article", parseInt(resourceId));
+      res.json(notesList);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/notes", requireAuth, async (req: any, res) => {
     try {
       const notesList = await storage.getNotes(req.user.id);

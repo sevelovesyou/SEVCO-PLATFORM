@@ -27,7 +27,7 @@ import {
   noteCollaborators, noteAttachments,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, ilike, or } from "drizzle-orm";
+import { eq, desc, and, sql, ilike, or, inArray } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -163,6 +163,7 @@ export interface IStorage {
   getNoteAttachmentById(attachmentId: number): Promise<NoteAttachment | undefined>;
   addNoteAttachment(noteId: number, resourceType: "project" | "article", resourceId: number): Promise<NoteAttachment>;
   removeNoteAttachment(attachmentId: number): Promise<void>;
+  getPublicResourceNotes(resourceType: "project" | "article", resourceId: number): Promise<(Note & { author: { id: string; username: string; displayName: string | null; avatarUrl: string | null } | null })[]>;
 
   getFeedPosts(limit?: number): Promise<(FeedPost & { author: { username: string; displayName: string | null; avatarUrl: string | null } | null })[]>;
   createFeedPost(data: InsertFeedPost & { authorId: string }): Promise<FeedPost>;
@@ -914,6 +915,35 @@ export class DatabaseStorage implements IStorage {
 
   async removeNoteAttachment(attachmentId: number): Promise<void> {
     await db.delete(noteAttachments).where(eq(noteAttachments.id, attachmentId));
+  }
+
+  async getPublicResourceNotes(resourceType: "project" | "article", resourceId: number): Promise<(Note & { author: { id: string; username: string; displayName: string | null; avatarUrl: string | null } | null })[]> {
+    const rows = await db
+      .select({
+        note: notes,
+        author: {
+          id: users.id,
+          username: users.username,
+          displayName: users.displayName,
+          avatarUrl: users.avatarUrl,
+          role: users.role,
+        },
+      })
+      .from(noteAttachments)
+      .innerJoin(notes, eq(noteAttachments.noteId, notes.id))
+      .innerJoin(users, eq(notes.authorId, users.id))
+      .where(
+        and(
+          eq(noteAttachments.resourceType, resourceType),
+          eq(noteAttachments.resourceId, resourceId),
+          inArray(users.role, ["admin", "executive", "staff"]),
+        )
+      )
+      .orderBy(noteAttachments.addedAt);
+    return rows.map((r) => ({
+      ...r.note,
+      author: { id: r.author.id, username: r.author.username, displayName: r.author.displayName, avatarUrl: r.author.avatarUrl },
+    }));
   }
 
   async getFeedPosts(limit = 50): Promise<(FeedPost & { author: { username: string; displayName: string | null; avatarUrl: string | null } | null })[]> {

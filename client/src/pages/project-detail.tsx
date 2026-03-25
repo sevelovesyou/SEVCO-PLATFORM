@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { usePermission } from "@/hooks/use-permission";
 import { queryClient } from "@/lib/queryClient";
 import { AttachNotePanel } from "@/components/attach-note-panel";
+import { StaffNotes } from "@/components/staff-notes";
 import type { Project } from "@shared/schema";
 
 const CAN_MANAGE_PROJECTS = ["admin", "executive", "staff"];
@@ -307,6 +308,8 @@ export default function ProjectDetail() {
                 </div>
               </section>
             )}
+
+            <StaffNotes resourceType="project" resourceId={project.id} />
           </div>
 
           <div className="space-y-6">

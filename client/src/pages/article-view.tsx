@@ -20,6 +20,7 @@ import { CitationList } from "@/components/citation-badge";
 import { CrosslinkPanel } from "@/components/crosslink-panel";
 import { RevisionTimeline } from "@/components/revision-timeline";
 import { AttachNotePanel } from "@/components/attach-note-panel";
+import { StaffNotes } from "@/components/staff-notes";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -310,6 +311,7 @@ export default function ArticleView() {
 
               <CitationList citations={article.citations || []} />
               <CrosslinkPanel relatedArticles={article.crosslinks || []} />
+              <StaffNotes resourceType="article" resourceId={article.id} />
             </TabsContent>
 
             <TabsContent value="revisions">

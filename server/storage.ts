@@ -649,7 +649,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getChangelog(): Promise<Changelog[]> {
-    return db.select().from(changelog).orderBy(desc(changelog.createdAt));
+    const entries = await db.select().from(changelog);
+    return entries.sort((a, b) => {
+      const parseSemver = (v: string | null | undefined) => {
+        if (!v) return null;
+        const m = v.match(/^(\d+)\.(\d+)\.(\d+)/);
+        if (!m) return null;
+        return [parseInt(m[1]), parseInt(m[2]), parseInt(m[3])] as [number, number, number];
+      };
+      const av = parseSemver(a.version);
+      const bv = parseSemver(b.version);
+      if (!av && !bv) return 0;
+      if (!av) return 1;
+      if (!bv) return -1;
+      if (av[0] !== bv[0]) return bv[0] - av[0];
+      if (av[1] !== bv[1]) return bv[1] - av[1];
+      return bv[2] - av[2];
+    });
   }
 
   async getLatestChangelogEntry(): Promise<Changelog | undefined> {

@@ -109,7 +109,7 @@ export function AppSidebar() {
       <SidebarHeader className="p-3">
         <div className="flex items-center gap-2">
           <SidebarTrigger data-testid="button-sidebar-toggle" className="-ml-0.5 shrink-0" />
-          <Link href="/wiki" className="flex-1 min-w-0">
+          <Link href="/wiki" className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
             <div className="flex items-center gap-2 cursor-pointer" data-testid="link-home-logo">
               <div className="h-7 w-7 flex items-center justify-center shrink-0">
                 <img src={planetBlack} alt="SEVCO Planet" className="h-full w-full object-contain dark:invert" />

@@ -194,7 +194,6 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
     { label: "Wiki",       href: "/wiki",    icon: BookOpen,    desc: "Internal knowledge base",        authRequired: false },
     ...(user ? [
       { label: "Feed",     href: "/feed",    icon: Rss,         desc: "Posts from people you follow",   authRequired: true },
-      { label: "Notes",    href: "/notes",   icon: StickyNote,  desc: "Your personal & shared notes",   authRequired: true },
     ] : []),
     { label: "Contact",    href: "/contact", icon: Mail,        desc: "Get in touch",                   authRequired: false },
     { label: "Jobs",       href: "/jobs",    icon: Users,       desc: "Open positions",                 authRequired: false },

@@ -23,6 +23,7 @@ import {
   Share2,
   Server,
   MonitorCog,
+  BookMarked,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -83,6 +84,12 @@ export function CommandSidebar() {
       title: "Social Links",
       url: "/command/social-links",
       icon: Share2,
+      show: isAdmin,
+    },
+    {
+      title: "Resources",
+      url: "/command/resources",
+      icon: BookMarked,
       show: isAdmin,
     },
     {

@@ -27,7 +27,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Shield, Plus, Trash2, GripVertical, ExternalLink } from "lucide-react";
+import { Shield, Plus, Trash2, GripVertical, ExternalLink, Pencil } from "lucide-react";
 import type { PlatformSocialLink } from "@shared/schema";
 
 const ICON_SUGGESTIONS = [
@@ -49,35 +49,63 @@ const addLinkSchema = z.object({
 
 type AddLinkData = z.infer<typeof addLinkSchema>;
 
-function AddLinkDialog({ open, onClose, nextOrder }: { open: boolean; onClose: () => void; nextOrder: number }) {
+function SocialLinkDialog({
+  open,
+  onClose,
+  existing,
+  nextOrder,
+}: {
+  open: boolean;
+  onClose: () => void;
+  existing?: PlatformSocialLink;
+  nextOrder: number;
+}) {
   const { toast } = useToast();
+  const isEdit = !!existing;
+
   const form = useForm<AddLinkData>({
     resolver: zodResolver(addLinkSchema),
-    defaultValues: {
-      platform: "",
-      url: "",
-      iconName: "",
-      displayOrder: nextOrder,
-      showInFooter: true,
-      showOnContact: false,
-      showOnListen: false,
-    },
+    defaultValues: existing
+      ? {
+          platform: existing.platform,
+          url: existing.url,
+          iconName: existing.iconName,
+          displayOrder: existing.displayOrder,
+          showInFooter: existing.showInFooter,
+          showOnContact: existing.showOnContact,
+          showOnListen: existing.showOnListen,
+        }
+      : {
+          platform: "",
+          url: "",
+          iconName: "",
+          displayOrder: nextOrder,
+          showInFooter: true,
+          showOnContact: false,
+          showOnListen: false,
+        },
   });
 
   const mutation = useMutation({
     mutationFn: async (data: AddLinkData) => {
-      const res = await apiRequest("POST", "/api/social-links", data);
-      if (!res.ok) throw new Error((await res.json()).message);
-      return res.json();
+      if (isEdit) {
+        const res = await apiRequest("PATCH", `/api/social-links/${existing!.id}`, data);
+        if (!res.ok) throw new Error((await res.json()).message);
+        return res.json();
+      } else {
+        const res = await apiRequest("POST", "/api/social-links", data);
+        if (!res.ok) throw new Error((await res.json()).message);
+        return res.json();
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/social-links"] });
-      toast({ title: "Social link added" });
+      toast({ title: isEdit ? "Social link updated" : "Social link added" });
       form.reset();
       onClose();
     },
     onError: (err: any) => {
-      toast({ title: err.message || "Failed to add link", variant: "destructive" });
+      toast({ title: err.message || "Failed to save link", variant: "destructive" });
     },
   });
 
@@ -85,7 +113,7 @@ function AddLinkDialog({ open, onClose, nextOrder }: { open: boolean; onClose: (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Add Social Link</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit Social Link" : "Add Social Link"}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit((d) => mutation.mutate(d))} className="flex flex-col gap-3">
@@ -147,7 +175,7 @@ function AddLinkDialog({ open, onClose, nextOrder }: { open: boolean; onClose: (
             <DialogFooter className="gap-2">
               <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
               <Button type="submit" disabled={mutation.isPending} data-testid="button-submit-social">
-                {mutation.isPending ? "Adding..." : "Add Link"}
+                {mutation.isPending ? "Saving..." : isEdit ? "Save Changes" : "Add Link"}
               </Button>
             </DialogFooter>
           </form>
@@ -157,7 +185,7 @@ function AddLinkDialog({ open, onClose, nextOrder }: { open: boolean; onClose: (
   );
 }
 
-function SocialLinkRow({ link }: { link: PlatformSocialLink }) {
+function SocialLinkRow({ link, onEdit }: { link: PlatformSocialLink; onEdit: (l: PlatformSocialLink) => void }) {
   const { toast } = useToast();
 
   const toggleFooter = useMutation({
@@ -238,18 +266,29 @@ function SocialLinkRow({ link }: { link: PlatformSocialLink }) {
         />
       </td>
       <td className="p-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-destructive hover:text-destructive"
-          onClick={() => {
-            if (window.confirm(`Remove "${link.platform}"?`)) deleteMutation.mutate();
-          }}
-          disabled={deleteMutation.isPending}
-          data-testid={`button-delete-social-${link.id}`}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => onEdit(link)}
+            data-testid={`button-edit-social-${link.id}`}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-destructive hover:text-destructive"
+            onClick={() => {
+              if (window.confirm(`Remove "${link.platform}"?`)) deleteMutation.mutate();
+            }}
+            disabled={deleteMutation.isPending}
+            data-testid={`button-delete-social-${link.id}`}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </td>
     </tr>
   );
@@ -257,7 +296,8 @@ function SocialLinkRow({ link }: { link: PlatformSocialLink }) {
 
 export default function CommandSocialLinks() {
   const { isAdmin } = usePermission();
-  const [showAdd, setShowAdd] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingLink, setEditingLink] = useState<PlatformSocialLink | undefined>(undefined);
 
   const { data: socialLinks, isLoading } = useQuery<PlatformSocialLink[]>({
     queryKey: ["/api/social-links"],
@@ -272,6 +312,21 @@ export default function CommandSocialLinks() {
     );
   }
 
+  const handleAdd = () => {
+    setEditingLink(undefined);
+    setShowDialog(true);
+  };
+
+  const handleEdit = (link: PlatformSocialLink) => {
+    setEditingLink(link);
+    setShowDialog(true);
+  };
+
+  const handleClose = () => {
+    setShowDialog(false);
+    setEditingLink(undefined);
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
@@ -284,7 +339,7 @@ export default function CommandSocialLinks() {
         <Button
           size="sm"
           className="ml-auto h-7 text-xs gap-1"
-          onClick={() => setShowAdd(true)}
+          onClick={handleAdd}
           data-testid="button-add-social"
         >
           <Plus className="h-3.5 w-3.5" />
@@ -314,11 +369,11 @@ export default function CommandSocialLinks() {
                     <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
                     <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
                     <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
-                    <td className="p-3"><Skeleton className="h-4 w-6" /></td>
+                    <td className="p-3"><Skeleton className="h-4 w-12" /></td>
                   </tr>
                 ))
               ) : socialLinks && socialLinks.length > 0 ? (
-                socialLinks.map((link) => <SocialLinkRow key={link.id} link={link} />)
+                socialLinks.map((link) => <SocialLinkRow key={link.id} link={link} onEdit={handleEdit} />)
               ) : (
                 <tr>
                   <td colSpan={6} className="p-6 text-center text-sm text-muted-foreground">
@@ -331,9 +386,10 @@ export default function CommandSocialLinks() {
         </div>
       </Card>
 
-      <AddLinkDialog
-        open={showAdd}
-        onClose={() => setShowAdd(false)}
+      <SocialLinkDialog
+        open={showDialog}
+        onClose={handleClose}
+        existing={editingLink}
         nextOrder={socialLinks?.length ?? 0}
       />
     </div>

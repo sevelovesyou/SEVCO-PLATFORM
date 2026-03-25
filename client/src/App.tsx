@@ -60,6 +60,7 @@ import CommandJobs from "@/pages/command-jobs";
 import CommandMusic from "@/pages/command-music";
 import CommandPlaylists from "@/pages/command-playlists";
 import CommandSocialLinks from "@/pages/command-social-links";
+import CommandResources from "@/pages/command-resources";
 import CommandHosting from "@/pages/command-hosting";
 import CommandDisplay from "@/pages/command-display";
 import DomainsPage from "@/pages/domains-page";
@@ -192,6 +193,13 @@ function Router() {
         <ProtectedRoute>
           <CommandPageLayout title="Social Links" subtitle="Manage platform social media presence">
             <CommandSocialLinks />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/resources" component={() => (
+        <ProtectedRoute requiredRole="admin">
+          <CommandPageLayout title="Resources" subtitle="Manage quick links and platform resources">
+            <CommandResources />
           </CommandPageLayout>
         </ProtectedRoute>
       )} />

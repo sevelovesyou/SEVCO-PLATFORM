@@ -22,11 +22,12 @@ import {
   type Post, type InsertPost, type PostLike, type PostReply, type InsertPostReply, type UserFollow,
   type PlatformSetting,
   type BrandAsset, type InsertBrandAsset,
+  type Resource, type InsertResource,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
   posts, postLikes, postReplies, userFollows,
-  noteCollaborators, noteAttachments, platformSettings, brandAssets,
+  noteCollaborators, noteAttachments, platformSettings, brandAssets, resources,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or, inArray } from "drizzle-orm";
@@ -201,6 +202,11 @@ export interface IStorage {
   createBrandAsset(data: InsertBrandAsset): Promise<BrandAsset>;
   updateBrandAsset(id: number, data: Partial<InsertBrandAsset>): Promise<BrandAsset>;
   deleteBrandAsset(id: number): Promise<void>;
+
+  getResources(): Promise<Resource[]>;
+  createResource(data: InsertResource): Promise<Resource>;
+  updateResource(id: number, data: Partial<InsertResource>): Promise<Resource>;
+  deleteResource(id: number): Promise<void>;
 }
 
 export type SearchResultItem = {
@@ -1353,6 +1359,24 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBrandAsset(id: number): Promise<void> {
     await db.delete(brandAssets).where(eq(brandAssets.id, id));
+  }
+
+  async getResources(): Promise<Resource[]> {
+    return db.select().from(resources).orderBy(resources.displayOrder, resources.title);
+  }
+
+  async createResource(data: InsertResource): Promise<Resource> {
+    const [created] = await db.insert(resources).values(data).returning();
+    return created;
+  }
+
+  async updateResource(id: number, data: Partial<InsertResource>): Promise<Resource> {
+    const [updated] = await db.update(resources).set(data).where(eq(resources.id, id)).returning();
+    return updated;
+  }
+
+  async deleteResource(id: number): Promise<void> {
+    await db.delete(resources).where(eq(resources.id, id));
   }
 }
 

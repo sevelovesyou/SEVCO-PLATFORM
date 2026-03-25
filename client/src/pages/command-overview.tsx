@@ -34,8 +34,11 @@ import {
   ScrollText,
   ClipboardList,
   MessageCircle,
+  BookMarked,
+  StickyNote,
+  ExternalLink,
 } from "lucide-react";
-import type { Role } from "@shared/schema";
+import type { Role, Resource, Note } from "@shared/schema";
 
 const ROLE_COLORS: Record<string, string> = {
   admin:     "bg-primary/10 text-primary border-primary/20",
@@ -570,6 +573,159 @@ function RecentSubmissionsCard({ submissions, isLoading }: { submissions: Submis
   );
 }
 
+function QuickLinksWidget() {
+  const { data: resources, isLoading } = useQuery<Resource[]>({
+    queryKey: ["/api/resources"],
+  });
+
+  const quickLinks = resources?.filter((r) => r.showOnOverview).sort((a, b) => a.displayOrder - b.displayOrder).slice(0, 8) ?? [];
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Quick Links
+        </h2>
+        <Link href="/command/resources">
+          <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 text-muted-foreground">
+            Manage Resources <ArrowRight className="h-3 w-3" />
+          </Button>
+        </Link>
+      </div>
+      <Card className="overflow-hidden overflow-visible" data-testid="card-quick-links">
+        {isLoading ? (
+          <div className="divide-y">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="p-3">
+                <Skeleton className="h-3.5 w-32 mb-1" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+            ))}
+          </div>
+        ) : quickLinks.length === 0 ? (
+          <div className="p-6 text-center">
+            <BookMarked className="h-7 w-7 mx-auto mb-2 text-muted-foreground opacity-30" />
+            <p className="text-xs text-muted-foreground">No quick links configured.</p>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Add resources and enable "Show on Overview" to display them here.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y">
+            {quickLinks.map((r) => (
+              <a
+                key={r.id}
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/30 transition-colors"
+                data-testid={`quick-link-${r.id}`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium text-primary truncate">{r.title}</p>
+                    <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
+                  </div>
+                  {r.description && (
+                    <p className="text-xs text-muted-foreground truncate">{r.description}</p>
+                  )}
+                </div>
+                {r.category !== "general" && (
+                  <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded shrink-0">{r.category}</span>
+                )}
+              </a>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function RecentNotesWidget({ userId }: { userId: string }) {
+  const { data: notes, isLoading } = useQuery<Note[]>({
+    queryKey: ["/api/notes"],
+    enabled: !!userId,
+  });
+
+  const recentNotes = notes?.slice(0, 5) ?? [];
+
+  const NOTE_COLOR_MAP: Record<string, string> = {
+    default: "bg-muted-foreground",
+    yellow: "bg-yellow-400",
+    blue: "bg-blue-400",
+    green: "bg-green-400",
+    red: "bg-red-400",
+    purple: "bg-purple-400",
+    pink: "bg-pink-400",
+    orange: "bg-orange-400",
+  };
+
+  function relativeTime(dateStr: string) {
+    const now = Date.now();
+    const then = new Date(dateStr).getTime();
+    const diff = now - then;
+    const secs = Math.floor(diff / 1000);
+    if (secs < 60) return "just now";
+    const mins = Math.floor(secs / 60);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return `${days}d ago`;
+    return new Date(dateStr).toLocaleDateString();
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Recent Notes
+        </h2>
+        <Link href="/notes">
+          <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 text-muted-foreground">
+            View All Notes <ArrowRight className="h-3 w-3" />
+          </Button>
+        </Link>
+      </div>
+      <Card className="overflow-hidden overflow-visible" data-testid="card-recent-notes">
+        {isLoading ? (
+          <div className="divide-y">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="p-3">
+                <Skeleton className="h-3.5 w-32 mb-1" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            ))}
+          </div>
+        ) : recentNotes.length === 0 ? (
+          <div className="p-6 text-center">
+            <StickyNote className="h-7 w-7 mx-auto mb-2 text-muted-foreground opacity-30" />
+            <p className="text-xs text-muted-foreground">No notes yet.</p>
+          </div>
+        ) : (
+          <div className="divide-y">
+            {recentNotes.map((note) => (
+              <Link key={note.id} href="/notes">
+                <div className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/30 transition-colors cursor-pointer" data-testid={`recent-note-${note.id}`}>
+                  <div
+                    className={`h-2.5 w-2.5 rounded-full shrink-0 ${NOTE_COLOR_MAP[note.color] ?? NOTE_COLOR_MAP.default}`}
+                    data-testid={`note-color-dot-${note.id}`}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{note.title}</p>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground shrink-0">{relativeTime(note.updatedAt)}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
 function AdminOverview({ data, summary, summaryLoading, userId }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean; userId: string }) {
   return (
     <div className="flex flex-col gap-6">
@@ -641,6 +797,11 @@ function AdminOverview({ data, summary, summaryLoading, userId }: { data: Dashbo
         <RecentSubmissionsCard submissions={summary?.recentSubmissions} isLoading={summaryLoading} />
       </div>
 
+      <div className="grid md:grid-cols-2 gap-6">
+        <QuickLinksWidget />
+        <RecentNotesWidget userId={userId} />
+      </div>
+
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
           My Recent Contributions
@@ -651,7 +812,7 @@ function AdminOverview({ data, summary, summaryLoading, userId }: { data: Dashbo
   );
 }
 
-function ExecutiveOverview({ data, summary, summaryLoading }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean }) {
+function ExecutiveOverview({ data, summary, summaryLoading, userId }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean; userId: string }) {
   return (
     <div className="flex flex-col gap-6">
       <LatestChangelogCard entry={summary?.latestChangelog} isLoading={summaryLoading} />
@@ -674,6 +835,11 @@ function ExecutiveOverview({ data, summary, summaryLoading }: { data: DashboardD
       <div className="grid md:grid-cols-2 gap-6">
         <RecentApplicantsCard applicants={summary?.recentApplicants} isLoading={summaryLoading} />
         <RecentSubmissionsCard submissions={summary?.recentSubmissions} isLoading={summaryLoading} />
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <QuickLinksWidget />
+        <RecentNotesWidget userId={userId} />
       </div>
 
       <div>
@@ -799,7 +965,7 @@ export default function CommandOverview() {
   return (
     <>
       {role === "admin" && <AdminOverview data={data} summary={summary} summaryLoading={summaryLoading} userId={user?.id ?? ""} />}
-      {role === "executive" && <ExecutiveOverview data={data} summary={summary} summaryLoading={summaryLoading} />}
+      {role === "executive" && <ExecutiveOverview data={data} summary={summary} summaryLoading={summaryLoading} userId={user?.id ?? ""} />}
       {role === "staff" && <StaffOverview data={data} summary={summary} summaryLoading={summaryLoading} />}
       {isClientOrUser && <ClientOverview user={{ username: user?.username ?? "", displayName: user?.displayName }} />}
     </>

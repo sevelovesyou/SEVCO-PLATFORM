@@ -12,7 +12,7 @@ import {
   CAN_ACCESS_ARCHIVE,
 } from "./middleware/permissions";
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
@@ -2396,6 +2396,52 @@ export async function registerRoutes(
       const currentUserId = req.user?.id;
       const userPosts = await storage.getPosts({ userId: profile.id, followedByUserId: currentUserId });
       res.json(userPosts);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  const CAN_MANAGE_RESOURCES: Role[] = ["admin"];
+
+  app.get("/api/resources", requireAuth, requireRole(...CAN_MANAGE_RESOURCES), async (_req, res) => {
+    try {
+      const list = await storage.getResources();
+      res.json(list);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/resources", requireAuth, requireRole(...CAN_MANAGE_RESOURCES), async (req, res) => {
+    try {
+      const parsed = insertResourceSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
+      const resource = await storage.createResource(parsed.data);
+      res.status(201).json(resource);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/resources/:id", requireAuth, requireRole(...CAN_MANAGE_RESOURCES), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      const parsed = insertResourceSchema.partial().safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
+      const updated = await storage.updateResource(id, parsed.data);
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/resources/:id", requireAuth, requireRole(...CAN_MANAGE_RESOURCES), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      await storage.deleteResource(id);
+      res.status(204).end();
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

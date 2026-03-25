@@ -553,3 +553,18 @@ export const brandAssets = pgTable("brand_assets", {
 export const insertBrandAssetSchema = createInsertSchema(brandAssets).omit({ id: true, createdAt: true });
 export type BrandAsset = typeof brandAssets.$inferSelect;
 export type InsertBrandAsset = z.infer<typeof insertBrandAssetSchema>;
+
+export const resources = pgTable("resources", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  title: text("title").notNull(),
+  url: text("url").notNull(),
+  description: text("description"),
+  category: text("category").notNull().default("general"),
+  displayOrder: integer("display_order").notNull().default(0),
+  showOnOverview: boolean("show_on_overview").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertResourceSchema = createInsertSchema(resources).omit({ id: true, createdAt: true });
+export type Resource = typeof resources.$inferSelect;
+export type InsertResource = z.infer<typeof insertResourceSchema>;

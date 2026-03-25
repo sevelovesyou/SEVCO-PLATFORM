@@ -636,8 +636,8 @@ export default function FeedPage() {
           ) : user && (socialPosts ?? []).length === 0 ? (
             <div className="text-center py-20 text-muted-foreground">
               <MessageCircle className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p className="text-sm font-medium mb-1">Your timeline is empty</p>
-              <p className="text-xs">Follow other members to see their posts here, or write your first post above.</p>
+              <p className="text-sm font-medium mb-1">No posts yet</p>
+              <p className="text-xs">{canManageFeed ? "Be the first to post in the timeline." : "Follow other members to see their posts here, or write your first post above."}</p>
             </div>
           ) : !user && (socialPosts ?? []).length === 0 ? null : (
             <div className="flex flex-col gap-3">

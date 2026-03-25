@@ -174,18 +174,12 @@ function Router() {
       )} />
       <Route path="/command/music" component={() => (
         <ProtectedRoute>
-          <CommandPageLayout title="Music Submissions" subtitle="Review A&R demos and playlist pitches">
+          <CommandPageLayout title="Music" subtitle="Manage submissions, A&R demos, and playlists">
             <CommandMusic />
           </CommandPageLayout>
         </ProtectedRoute>
       )} />
-      <Route path="/command/playlists" component={() => (
-        <ProtectedRoute>
-          <CommandPageLayout title="Playlists" subtitle="Manage official and community playlists">
-            <CommandPlaylists />
-          </CommandPageLayout>
-        </ProtectedRoute>
-      )} />
+      <Route path="/command/playlists" component={() => <Redirect to="/command/music" />} />
       <Route path="/command/social-links" component={() => (
         <ProtectedRoute>
           <CommandPageLayout title="Social Links" subtitle="Manage platform social media presence">

@@ -7,12 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip as RechartsTooltip,
-} from "recharts";
-import {
   FileText,
   Clock,
   Shield,
@@ -27,7 +21,9 @@ import {
   ArrowRight,
   LayoutDashboard,
   Link as LinkIcon,
-  BarChart2,
+  ScrollText,
+  ClipboardList,
+  MessageCircle,
 } from "lucide-react";
 import type { Role } from "@shared/schema";
 
@@ -44,6 +40,20 @@ const STATUS_COLORS: Record<string, string> = {
   approved: "text-green-600 dark:text-green-400",
   pending:  "text-yellow-600 dark:text-yellow-400",
   rejected: "text-red-600 dark:text-red-400",
+};
+
+const APP_STATUS_COLORS: Record<string, string> = {
+  pending:   "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
+  reviewing: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
+  accepted:  "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
+  rejected:  "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
+};
+
+const SUBMISSION_STATUS_COLORS: Record<string, string> = {
+  pending:  "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
+  reviewed: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
+  accepted: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
+  rejected: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
 };
 
 interface DashboardContribution {
@@ -71,116 +81,47 @@ interface DashboardData {
   myContributions?: DashboardContribution[];
 }
 
+interface ChangelogEntry {
+  id: number;
+  title: string;
+  version: string | null;
+  category: string;
+  description: string;
+  createdAt: string;
+}
+
+interface ApplicantSummary {
+  id: number;
+  name: string;
+  email: string;
+  jobId: number;
+  jobTitle: string;
+  status: string;
+  createdAt: string;
+}
+
+interface SubmissionSummary {
+  id: number;
+  artistName: string;
+  trackTitle: string;
+  submitterName: string;
+  type: string;
+  status: string;
+  createdAt: string;
+}
+
+interface DashboardSummary {
+  latestChangelog: ChangelogEntry | null;
+  recentApplicants: ApplicantSummary[];
+  recentSubmissions: SubmissionSummary[];
+  counts: {
+    feedPosts: number;
+    totalUsers: number;
+    usersByRole: Record<string, number>;
+  };
+}
+
 const ROLES: Role[] = ["admin", "executive", "staff", "partner", "client", "user"];
-
-interface StoreStats {
-  totalProducts: number;
-  inStock: number;
-  outOfStock: number;
-  catalogValue: number;
-  avgPrice: number;
-  byStockStatus: Array<{ status: string; count: number }>;
-}
-
-const STOCK_COLORS: Record<string, string> = {
-  available: "hsl(var(--chart-2))",
-  sold_out: "hsl(var(--destructive))",
-};
-
-function StoreStatsPreview() {
-  const { data: stats, isLoading } = useQuery<StoreStats>({
-    queryKey: ["/api/store/stats"],
-  });
-
-  const donutData = stats?.byStockStatus.map((s) => ({
-    name: s.status === "available" ? "In Stock" : "Sold Out",
-    value: s.count,
-    originalStatus: s.status,
-  })) ?? [];
-
-  return (
-    <Link href="/store/stats">
-      <Card
-        className="p-4 hover-elevate active-elevate-2 cursor-pointer overflow-visible group"
-        data-testid="card-store-stats-preview"
-      >
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-md bg-orange-500/10 flex items-center justify-center shrink-0">
-              <BarChart2 className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
-            </div>
-            <span className="text-sm font-semibold">Store Analytics</span>
-          </div>
-          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:translate-x-0.5 transition-transform shrink-0" />
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-2">
-            {isLoading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i}>
-                  <Skeleton className="h-3 w-16 mb-1" />
-                  <Skeleton className="h-5 w-10" />
-                </div>
-              ))
-            ) : (
-              <>
-                <div data-testid="preview-total-products">
-                  <p className="text-xs text-muted-foreground">Total Products</p>
-                  <p className="text-lg font-bold">{stats?.totalProducts ?? 0}</p>
-                </div>
-                <div data-testid="preview-in-stock">
-                  <p className="text-xs text-muted-foreground">In Stock</p>
-                  <p className="text-lg font-bold text-green-600 dark:text-green-400">{stats?.inStock ?? 0}</p>
-                </div>
-                <div data-testid="preview-out-of-stock">
-                  <p className="text-xs text-muted-foreground">Sold Out</p>
-                  <p className="text-lg font-bold text-red-600 dark:text-red-400">{stats?.outOfStock ?? 0}</p>
-                </div>
-                <div data-testid="preview-catalog-value">
-                  <p className="text-xs text-muted-foreground">Catalog Value</p>
-                  <p className="text-lg font-bold text-violet-600 dark:text-violet-400">
-                    ${(stats?.catalogValue ?? 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-          {!isLoading && donutData.length > 0 && (
-            <div className="shrink-0">
-              <PieChart width={80} height={80}>
-                <Pie
-                  data={donutData}
-                  cx={35}
-                  cy={35}
-                  innerRadius={22}
-                  outerRadius={36}
-                  paddingAngle={2}
-                  dataKey="value"
-                >
-                  {donutData.map((entry) => (
-                    <Cell
-                      key={entry.originalStatus}
-                      fill={STOCK_COLORS[entry.originalStatus] ?? "hsl(var(--chart-1))"}
-                    />
-                  ))}
-                </Pie>
-                <RechartsTooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "6px",
-                    fontSize: "11px",
-                    color: "hsl(var(--foreground))",
-                  }}
-                />
-              </PieChart>
-            </div>
-          )}
-        </div>
-      </Card>
-    </Link>
-  );
-}
 
 function StatCard({
   label,
@@ -264,7 +205,154 @@ function ContributionsList({ items, isLoading }: { items?: DashboardContribution
   );
 }
 
-function AdminOverview({ data, userId }: { data: DashboardData; userId: string }) {
+function LatestChangelogCard({ entry, isLoading }: { entry: ChangelogEntry | null | undefined; isLoading: boolean }) {
+  const CATEGORY_COLORS: Record<string, string> = {
+    feature:     "bg-primary/10 text-primary border-primary/20",
+    fix:         "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+    improvement: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+    other:       "bg-muted text-muted-foreground border-border",
+  };
+
+  return (
+    <div>
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+        Latest Release
+      </h2>
+      <Link href="/command/changelog">
+        <Card className="p-4 hover-elevate active-elevate-2 cursor-pointer overflow-visible group" data-testid="card-latest-changelog">
+          {isLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-3 w-full" />
+            </div>
+          ) : !entry ? (
+            <p className="text-sm text-muted-foreground">No changelog entries yet.</p>
+          ) : (
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <p className="text-sm font-semibold">{entry.title}</p>
+                  {entry.version && (
+                    <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded">{entry.version}</span>
+                  )}
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border capitalize ${CATEGORY_COLORS[entry.category] ?? CATEGORY_COLORS.other}`}>
+                    {entry.category}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-2">{entry.description}</p>
+                <p className="text-[10px] text-muted-foreground/60 mt-1">
+                  {new Date(entry.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                </p>
+              </div>
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:translate-x-0.5 transition-transform shrink-0 mt-0.5" />
+            </div>
+          )}
+        </Card>
+      </Link>
+    </div>
+  );
+}
+
+function RecentApplicantsCard({ applicants, isLoading }: { applicants: ApplicantSummary[] | undefined; isLoading: boolean }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Recent Applicants
+        </h2>
+        <Link href="/command/jobs">
+          <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 text-muted-foreground">
+            View all <ArrowRight className="h-3 w-3" />
+          </Button>
+        </Link>
+      </div>
+      <Card className="overflow-hidden overflow-visible" data-testid="card-recent-applicants">
+        {isLoading ? (
+          <div className="divide-y">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="p-3">
+                <Skeleton className="h-3.5 w-32 mb-1" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+            ))}
+          </div>
+        ) : !applicants || applicants.length === 0 ? (
+          <div className="p-6 text-center">
+            <ClipboardList className="h-7 w-7 mx-auto mb-2 text-muted-foreground opacity-30" />
+            <p className="text-xs text-muted-foreground">No applications yet.</p>
+          </div>
+        ) : (
+          <div className="divide-y">
+            {applicants.map((a) => (
+              <div key={a.id} className="flex items-center gap-3 px-3 py-2.5" data-testid={`overview-applicant-${a.id}`}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{a.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{a.jobTitle} · {new Date(a.createdAt).toLocaleDateString()}</p>
+                </div>
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border capitalize shrink-0 ${APP_STATUS_COLORS[a.status] ?? "bg-muted text-muted-foreground border-border"}`}>
+                  {a.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function RecentSubmissionsCard({ submissions, isLoading }: { submissions: SubmissionSummary[] | undefined; isLoading: boolean }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Recent Music Submissions
+        </h2>
+        <Link href="/command/music">
+          <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 text-muted-foreground">
+            View all <ArrowRight className="h-3 w-3" />
+          </Button>
+        </Link>
+      </div>
+      <Card className="overflow-hidden overflow-visible" data-testid="card-recent-submissions">
+        {isLoading ? (
+          <div className="divide-y">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="p-3">
+                <Skeleton className="h-3.5 w-32 mb-1" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+            ))}
+          </div>
+        ) : !submissions || submissions.length === 0 ? (
+          <div className="p-6 text-center">
+            <Music className="h-7 w-7 mx-auto mb-2 text-muted-foreground opacity-30" />
+            <p className="text-xs text-muted-foreground">No submissions yet.</p>
+          </div>
+        ) : (
+          <div className="divide-y">
+            {submissions.map((s) => (
+              <div key={s.id} className="flex items-center gap-3 px-3 py-2.5" data-testid={`overview-submission-${s.id}`}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{s.artistName} — {s.trackTitle}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {s.submitterName} · {s.type === "playlist" ? "Playlist Pitch" : "A&R"} · {new Date(s.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border capitalize shrink-0 ${SUBMISSION_STATUS_COLORS[s.status] ?? "bg-muted text-muted-foreground border-border"}`}>
+                  {s.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function AdminOverview({ data, summary, summaryLoading, userId }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean; userId: string }) {
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -278,6 +366,30 @@ function AdminOverview({ data, userId }: { data: DashboardData; userId: string }
           <StatCard label="Citations" value={data.stats.totalCitations} icon={LinkIcon} testId="stat-citations" />
           <StatCard label="Users" value={data.stats.totalUsers} icon={Users} testId="stat-users" color="text-green-600 dark:text-green-400" />
         </div>
+      </div>
+
+      {/* Feed posts + user by role summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="p-4 overflow-visible" data-testid="card-feed-post-count">
+          <div className="flex items-center gap-2 mb-1.5">
+            <MessageCircle className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Feed Posts</span>
+          </div>
+          {summaryLoading ? <Skeleton className="h-7 w-12" /> : (
+            <p className="text-2xl font-bold">{summary?.counts.feedPosts ?? 0}</p>
+          )}
+        </Card>
+        {["admin", "executive", "staff"].map((r) => (
+          <Card key={r} className="p-4 overflow-visible" data-testid={`card-role-count-${r}`}>
+            <div className="flex items-center gap-2 mb-1.5">
+              <Shield className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground capitalize">{r}s</span>
+            </div>
+            {summaryLoading ? <Skeleton className="h-7 w-8" /> : (
+              <p className="text-2xl font-bold">{summary?.counts.usersByRole[r] ?? 0}</p>
+            )}
+          </Card>
+        ))}
       </div>
 
       {data.usersByRole && (
@@ -300,8 +412,11 @@ function AdminOverview({ data, userId }: { data: DashboardData; userId: string }
         </div>
       )}
 
-      <div>
-        <StoreStatsPreview />
+      <LatestChangelogCard entry={summary?.latestChangelog} isLoading={summaryLoading} />
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <RecentApplicantsCard applicants={summary?.recentApplicants} isLoading={summaryLoading} />
+        <RecentSubmissionsCard submissions={summary?.recentSubmissions} isLoading={summaryLoading} />
       </div>
 
       <div>
@@ -314,7 +429,7 @@ function AdminOverview({ data, userId }: { data: DashboardData; userId: string }
   );
 }
 
-function ExecutiveOverview({ data }: { data: DashboardData }) {
+function ExecutiveOverview({ data, summary, summaryLoading }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean }) {
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -325,11 +440,15 @@ function ExecutiveOverview({ data }: { data: DashboardData }) {
           <StatCard label="Articles" value={data.stats.totalArticles} icon={FileText} testId="stat-articles" color="text-primary" />
           <StatCard label="Pending Reviews" value={data.stats.pendingReviews} icon={Shield} testId="stat-pending" color="text-yellow-600 dark:text-yellow-400" />
           <StatCard label="Total Users" value={data.stats.totalUsers} icon={Users} testId="stat-users" color="text-green-600 dark:text-green-400" />
-          <StatCard label="Total Revisions" value={data.stats.totalRevisions} icon={TrendingUp} testId="stat-revisions" />
+          <StatCard label="Feed Posts" value={summary?.counts.feedPosts} icon={MessageCircle} testId="stat-feed-posts" />
         </div>
       </div>
-      <div>
-        <StoreStatsPreview />
+
+      <LatestChangelogCard entry={summary?.latestChangelog} isLoading={summaryLoading} />
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <RecentApplicantsCard applicants={summary?.recentApplicants} isLoading={summaryLoading} />
+        <RecentSubmissionsCard submissions={summary?.recentSubmissions} isLoading={summaryLoading} />
       </div>
 
       <div>
@@ -342,7 +461,7 @@ function ExecutiveOverview({ data }: { data: DashboardData }) {
   );
 }
 
-function StaffOverview({ data }: { data: DashboardData }) {
+function StaffOverview({ data, summary, summaryLoading }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean }) {
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -355,9 +474,9 @@ function StaffOverview({ data }: { data: DashboardData }) {
           <StatCard label="Total Revisions" value={data.stats.totalRevisions} icon={Clock} testId="stat-revisions" />
         </div>
       </div>
-      <div>
-        <StoreStatsPreview />
-      </div>
+
+      <LatestChangelogCard entry={summary?.latestChangelog} isLoading={summaryLoading} />
+
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
           My Contributions
@@ -423,6 +542,13 @@ export default function CommandOverview() {
     queryKey: ["/api/dashboard"],
   });
 
+  const isStaffOrAbove = role === "admin" || role === "executive" || role === "staff";
+
+  const { data: summary, isLoading: summaryLoading } = useQuery<DashboardSummary>({
+    queryKey: ["/api/dashboard/summary"],
+    enabled: isStaffOrAbove,
+  });
+
   const isClientOrUser = role === "client" || role === "user";
 
   if (isLoading) {
@@ -444,9 +570,9 @@ export default function CommandOverview() {
 
   return (
     <>
-      {role === "admin" && <AdminOverview data={data} userId={user?.id ?? ""} />}
-      {role === "executive" && <ExecutiveOverview data={data} />}
-      {role === "staff" && <StaffOverview data={data} />}
+      {role === "admin" && <AdminOverview data={data} summary={summary} summaryLoading={summaryLoading} userId={user?.id ?? ""} />}
+      {role === "executive" && <ExecutiveOverview data={data} summary={summary} summaryLoading={summaryLoading} />}
+      {role === "staff" && <StaffOverview data={data} summary={summary} summaryLoading={summaryLoading} />}
       {isClientOrUser && <ClientOverview user={{ username: user?.username ?? "", displayName: user?.displayName }} />}
     </>
   );

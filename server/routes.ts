@@ -971,6 +971,70 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/dashboard/summary", requireAuth, requireRole("admin", "executive", "staff"), async (req, res) => {
+    try {
+      const [
+        latestChangelog,
+        applications,
+        submissions,
+        allPosts,
+        allUsers,
+      ] = await Promise.all([
+        storage.getLatestChangelogEntry(),
+        storage.getJobApplications(),
+        storage.getMusicSubmissions(),
+        storage.getPosts({}),
+        storage.getAllUsers(),
+      ]);
+      const recentApplicants = [...applications]
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5);
+      const recentSubmissions = [...submissions]
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5);
+
+      const allJobs = await storage.getJobs(true);
+      const jobMap: Record<number, string> = {};
+      for (const job of allJobs) {
+        jobMap[job.id] = job.title;
+      }
+
+      const usersByRole: Record<string, number> = {};
+      for (const u of allUsers) {
+        usersByRole[u.role] = (usersByRole[u.role] || 0) + 1;
+      }
+
+      res.json({
+        latestChangelog: latestChangelog ?? null,
+        recentApplicants: recentApplicants.map((a) => ({
+          id: a.id,
+          name: a.name,
+          email: a.email,
+          jobId: a.jobId,
+          jobTitle: jobMap[a.jobId] ?? "Unknown",
+          status: a.status,
+          createdAt: a.createdAt,
+        })),
+        recentSubmissions: recentSubmissions.map((s) => ({
+          id: s.id,
+          artistName: s.artistName,
+          trackTitle: s.trackTitle,
+          submitterName: s.submitterName,
+          type: s.type,
+          status: s.status,
+          createdAt: s.createdAt,
+        })),
+        counts: {
+          feedPosts: allPosts.length,
+          totalUsers: allUsers.length,
+          usersByRole,
+        },
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/dashboard", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
@@ -1766,11 +1830,13 @@ export async function registerRoutes(
     try {
       const userId = (req.query.userId as string) || undefined;
       const currentUserId = req.user?.id;
+      const userRole = req.user?.role as Role;
       const limit = Math.min(parseInt((req.query.limit as string) || "50"), 100);
       const timeline = !userId;
+      const isPrivilegedUser = ["admin", "executive", "staff"].includes(userRole);
       const result = await storage.getPosts({
         userId,
-        followedByUserId: timeline ? currentUserId : undefined,
+        followedByUserId: timeline && !isPrivilegedUser ? currentUserId : undefined,
         limit,
       });
       res.json(result);

@@ -20,7 +20,6 @@ import {
   Briefcase,
   ClipboardList,
   Music,
-  ListMusic,
   Share2,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
@@ -73,15 +72,9 @@ export function CommandSidebar() {
       show: isAdmin || isExec,
     },
     {
-      title: "Music Submissions",
+      title: "Music",
       url: "/command/music",
       icon: Music,
-      show: isAdmin || isExec,
-    },
-    {
-      title: "Playlists",
-      url: "/command/playlists",
-      icon: ListMusic,
       show: isAdmin || isExec,
     },
     {

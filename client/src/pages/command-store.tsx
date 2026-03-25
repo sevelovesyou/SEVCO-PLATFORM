@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -35,7 +36,31 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { ShoppingBag, Shield, Trash2, ToggleLeft, ToggleRight, Plus } from "lucide-react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
+import {
+  ShoppingBag,
+  Shield,
+  Trash2,
+  ToggleLeft,
+  ToggleRight,
+  Plus,
+  CheckCircle,
+  XCircle,
+  DollarSign,
+  TrendingUp,
+  BarChart2,
+} from "lucide-react";
 import type { Product } from "@shared/schema";
 
 const STOCK_STATUS_COLORS: Record<string, string> = {
@@ -107,6 +132,7 @@ function AddProductDialog({ open, onClose }: { open: boolean; onClose: () => voi
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/store/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/store/stats"] });
       toast({ title: "Product created" });
       form.reset();
       onClose();
@@ -268,6 +294,7 @@ function ProductRow({ product }: { product: Product }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/store/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/store/stats"] });
       toast({ title: "Stock status updated" });
     },
     onError: () => {
@@ -279,6 +306,7 @@ function ProductRow({ product }: { product: Product }) {
     mutationFn: () => apiRequest("DELETE", `/api/store/products/${product.id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/store/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/store/stats"] });
       toast({ title: "Product deleted" });
     },
     onError: () => {
@@ -338,6 +366,205 @@ function ProductRow({ product }: { product: Product }) {
   );
 }
 
+interface StoreStats {
+  totalProducts: number;
+  inStock: number;
+  outOfStock: number;
+  catalogValue: number;
+  avgPrice: number;
+  byCategory: Array<{ name: string; count: number; value: number }>;
+  byStockStatus: Array<{ status: string; count: number }>;
+  byPriceRange: Array<{ range: string; count: number }>;
+}
+
+const CHART_COLORS = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+];
+
+const STOCK_PIE_COLORS: Record<string, string> = {
+  available: "hsl(var(--chart-2))",
+  sold_out: "hsl(var(--destructive))",
+};
+
+function StoreAnalyticsTab() {
+  const { data: stats, isLoading } = useQuery<StoreStats>({
+    queryKey: ["/api/store/stats"],
+  });
+
+  const stockStatusData = stats?.byStockStatus.map((s) => ({
+    name: s.status === "available" ? "In Stock" : s.status === "sold_out" ? "Sold Out" : s.status,
+    value: s.count,
+    originalStatus: s.status,
+  })) ?? [];
+
+  const topCategoriesByValue = [...(stats?.byCategory ?? [])].sort((a, b) => b.value - a.value).slice(0, 8);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        {[
+          { label: "Total Products", value: stats?.totalProducts, icon: ShoppingBag, color: "text-primary", testId: "stat-total-products" },
+          { label: "In Stock", value: stats?.inStock, icon: CheckCircle, color: "text-green-600 dark:text-green-400", testId: "stat-in-stock" },
+          { label: "Sold Out", value: stats?.outOfStock, icon: XCircle, color: "text-red-600 dark:text-red-400", testId: "stat-out-of-stock" },
+          { label: "Catalog Value", value: stats?.catalogValue, icon: DollarSign, color: "text-violet-600 dark:text-violet-400", testId: "stat-catalog-value", formatter: (v: number) => `$${v.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` },
+          { label: "Avg Price", value: stats?.avgPrice, icon: TrendingUp, color: "text-orange-600 dark:text-orange-400", testId: "stat-avg-price", formatter: (v: number) => `$${v.toFixed(2)}` },
+        ].map(({ label, value, icon: Icon, color, testId, formatter }) => (
+          <Card key={label} className="p-4 overflow-visible">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Icon className={`h-4 w-4 ${color ?? "text-muted-foreground"}`} />
+              <span className="text-xs text-muted-foreground">{label}</span>
+            </div>
+            {value === undefined ? (
+              <Skeleton className="h-7 w-20" />
+            ) : (
+              <p className="text-2xl font-bold" data-testid={testId}>
+                {formatter ? formatter(value) : value}
+              </p>
+            )}
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <div>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+            Stock Status
+          </h2>
+          <Card className="p-4 overflow-visible">
+            {isLoading ? (
+              <Skeleton className="h-52 w-full" />
+            ) : stockStatusData.length === 0 ? (
+              <div className="h-52 flex items-center justify-center text-sm text-muted-foreground">
+                No products yet
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie
+                    data={stockStatusData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={85}
+                    paddingAngle={2}
+                    dataKey="value"
+                    nameKey="name"
+                  >
+                    {stockStatusData.map((entry, idx) => (
+                      <Cell
+                        key={entry.originalStatus}
+                        fill={STOCK_PIE_COLORS[entry.originalStatus] ?? CHART_COLORS[idx % CHART_COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      color: "hsl(var(--foreground))",
+                    }}
+                  />
+                  <Legend iconSize={8} wrapperStyle={{ fontSize: "12px" }} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
+        </div>
+
+        <div>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+            Price Distribution
+          </h2>
+          <Card className="p-4 overflow-visible">
+            {isLoading ? (
+              <Skeleton className="h-52 w-full" />
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={stats?.byPriceRange ?? []} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
+                  <XAxis dataKey="range" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} width={30} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      color: "hsl(var(--foreground))",
+                    }}
+                    formatter={(v: number) => [v, "Products"]}
+                  />
+                  <Bar dataKey="count" fill="hsl(var(--chart-3))" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+          Products by Category
+        </h2>
+        <Card className="p-4 overflow-visible">
+          {isLoading ? (
+            <Skeleton className="h-64 w-full" />
+          ) : (stats?.byCategory.length ?? 0) === 0 ? (
+            <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
+              No products yet
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={stats?.byCategory} margin={{ top: 4, right: 8, bottom: 24, left: 0 }}>
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-20} textAnchor="end" interval={0} />
+                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} width={30} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    color: "hsl(var(--foreground))",
+                  }}
+                  formatter={(v: number) => [v, "Products"]}
+                />
+                <Bar dataKey="count" fill="hsl(var(--chart-1))" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
+      </div>
+
+      {topCategoriesByValue.length > 0 && (
+        <div>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+            Top Categories by Value
+          </h2>
+          <Card className="overflow-hidden overflow-visible">
+            <div className="divide-y">
+              {topCategoriesByValue.map((cat, idx) => (
+                <div key={cat.name} className="flex items-center gap-3 px-4 py-3" data-testid={`row-category-value-${idx}`}>
+                  <span className="text-xs font-bold text-muted-foreground w-4 text-right shrink-0">{idx + 1}</span>
+                  <span className="flex-1 text-sm font-medium">{cat.name}</span>
+                  <span className="text-xs text-muted-foreground">{cat.count} products</span>
+                  <span className="text-sm font-bold text-violet-600 dark:text-violet-400">
+                    ${cat.value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CommandStore() {
   const { isAdmin, isExecutive } = usePermission();
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -356,68 +583,85 @@ export default function CommandStore() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Product Catalog
-        </h2>
-        {products && (
-          <span className="text-xs text-muted-foreground">
-            {products.length} product{products.length !== 1 ? "s" : ""}
-          </span>
-        )}
-        <Button
-          size="sm"
-          className="ml-auto h-7 text-xs gap-1"
-          onClick={() => setShowAddDialog(true)}
-          data-testid="button-add-product"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Add Product
-        </Button>
-      </div>
+    <Tabs defaultValue="catalog">
+      <TabsList className="mb-6">
+        <TabsTrigger value="catalog" data-testid="tab-store-catalog">
+          <ShoppingBag className="h-3.5 w-3.5 mr-1.5" /> Catalog
+        </TabsTrigger>
+        <TabsTrigger value="analytics" data-testid="tab-store-analytics">
+          <BarChart2 className="h-3.5 w-3.5 mr-1.5" /> Analytics
+        </TabsTrigger>
+      </TabsList>
 
-      <Card className="overflow-hidden overflow-visible" data-testid="table-products">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="border-b bg-muted/50">
-              <tr>
-                <th className="text-left p-3 text-xs font-medium text-muted-foreground">Name</th>
-                <th className="text-left p-3 text-xs font-medium text-muted-foreground hidden md:table-cell">Category</th>
-                <th className="text-left p-3 text-xs font-medium text-muted-foreground">Price</th>
-                <th className="text-left p-3 text-xs font-medium text-muted-foreground">Stock</th>
-                <th className="text-left p-3 text-xs font-medium text-muted-foreground">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="border-b last:border-0">
-                    <td className="p-3"><Skeleton className="h-4 w-32" /></td>
-                    <td className="p-3 hidden md:table-cell"><Skeleton className="h-4 w-20" /></td>
-                    <td className="p-3"><Skeleton className="h-4 w-14" /></td>
-                    <td className="p-3"><Skeleton className="h-4 w-16" /></td>
-                    <td className="p-3"><Skeleton className="h-4 w-16" /></td>
+      <TabsContent value="catalog">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-2">
+            <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Product Catalog
+            </h2>
+            {products && (
+              <span className="text-xs text-muted-foreground">
+                {products.length} product{products.length !== 1 ? "s" : ""}
+              </span>
+            )}
+            <Button
+              size="sm"
+              className="ml-auto h-7 text-xs gap-1"
+              onClick={() => setShowAddDialog(true)}
+              data-testid="button-add-product"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add Product
+            </Button>
+          </div>
+
+          <Card className="overflow-hidden overflow-visible" data-testid="table-products">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b bg-muted/50">
+                  <tr>
+                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">Name</th>
+                    <th className="text-left p-3 text-xs font-medium text-muted-foreground hidden md:table-cell">Category</th>
+                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">Price</th>
+                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">Stock</th>
+                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">Actions</th>
                   </tr>
-                ))
-              ) : products && products.length > 0 ? (
-                products.map((product) => (
-                  <ProductRow key={product.id} product={product} />
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="p-6 text-center text-sm text-muted-foreground">
-                    No products found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+                </thead>
+                <tbody>
+                  {isLoading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i} className="border-b last:border-0">
+                        <td className="p-3"><Skeleton className="h-4 w-32" /></td>
+                        <td className="p-3 hidden md:table-cell"><Skeleton className="h-4 w-20" /></td>
+                        <td className="p-3"><Skeleton className="h-4 w-14" /></td>
+                        <td className="p-3"><Skeleton className="h-4 w-16" /></td>
+                        <td className="p-3"><Skeleton className="h-4 w-16" /></td>
+                      </tr>
+                    ))
+                  ) : products && products.length > 0 ? (
+                    products.map((product) => (
+                      <ProductRow key={product.id} product={product} />
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="p-6 text-center text-sm text-muted-foreground">
+                        No products found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
 
-      <AddProductDialog open={showAddDialog} onClose={() => setShowAddDialog(false)} />
-    </div>
+          <AddProductDialog open={showAddDialog} onClose={() => setShowAddDialog(false)} />
+        </div>
+      </TabsContent>
+
+      <TabsContent value="analytics">
+        <StoreAnalyticsTab />
+      </TabsContent>
+    </Tabs>
   );
 }

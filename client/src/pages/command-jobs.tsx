@@ -24,8 +24,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, ExternalLink, Mail, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, ExternalLink, Mail, FileText, Users } from "lucide-react";
 import { Link } from "wouter";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Job, JobApplication } from "@shared/schema";
 
 const DEPARTMENTS = ["Engineering", "Design", "Operations", "Music", "Marketing", "Sales"];
@@ -397,6 +398,117 @@ function ApplicationsPanel({ job, onClose }: { job: Job; onClose: () => void }) 
   );
 }
 
+function AllApplicantsList({ jobs }: { jobs: Job[] | undefined }) {
+  const { toast } = useToast();
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const { data: allApplications, isLoading } = useQuery<JobApplication[]>({
+    queryKey: ["/api/job-applications"],
+    queryFn: async () => {
+      const res = await fetch("/api/job-applications");
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const jobMap: Record<number, string> = {};
+  for (const job of jobs ?? []) {
+    jobMap[job.id] = job.title;
+  }
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      apiRequest("PATCH", `/api/job-applications/${id}`, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/job-applications"] });
+      toast({ title: "Application status updated" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const sorted = [...(allApplications ?? [])].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  const filtered = sorted.filter((a) => statusFilter === "all" || a.status === statusFilter);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-sm text-muted-foreground">
+          {filtered.length} {filtered.length === 1 ? "applicant" : "applicants"}
+        </span>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-32 h-8 text-xs ml-auto" data-testid="select-applicants-filter">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="reviewing">Reviewing</SelectItem>
+            <SelectItem value="accepted">Accepted</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
+          <p className="font-medium text-sm">No applications yet</p>
+        </div>
+      ) : (
+        <div className="border border-border rounded-xl divide-y divide-border overflow-hidden">
+          {filtered.map((app) => (
+            <div key={app.id} className="flex items-start gap-4 px-4 py-3" data-testid={`applicant-row-${app.id}`}>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-sm">{app.name}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${APP_STATUS_BADGE[app.status] ?? ""}`}>
+                    {app.status}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {jobMap[app.jobId] ?? "Unknown Job"} · {new Date(app.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                </p>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                  <Mail className="h-3 w-3 shrink-0" />
+                  <a href={`mailto:${app.email}`} className="hover:underline truncate">{app.email}</a>
+                </div>
+                {app.resumeUrl && (
+                  <a href={app.resumeUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-0.5 w-fit">
+                    <ExternalLink className="h-3 w-3" /> Resume / Portfolio
+                  </a>
+                )}
+              </div>
+              <Select
+                value={app.status}
+                onValueChange={(status) => statusMutation.mutate({ id: app.id, status })}
+              >
+                <SelectTrigger className="w-28 h-7 text-xs shrink-0" data-testid={`select-applicant-status-${app.id}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="reviewing">Reviewing</SelectItem>
+                  <SelectItem value="accepted">Accepted</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CommandJobs() {
   const { toast } = useToast();
   const { role } = usePermission();
@@ -472,10 +584,27 @@ export default function CommandJobs() {
   }
 
   return (
-    <div className="space-y-6">
+    <Tabs defaultValue="jobs">
+      <div className="flex items-center gap-4 mb-6 flex-wrap">
+        <TabsList>
+          <TabsTrigger value="jobs" data-testid="tab-jobs">
+            <FileText className="h-3.5 w-3.5 mr-1.5" /> Jobs
+          </TabsTrigger>
+          <TabsTrigger value="applicants" data-testid="tab-applicants">
+            <Users className="h-3.5 w-3.5 mr-1.5" /> Applicants
+            {totalApps > 0 && (
+              <span className="ml-1.5 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold">{totalApps}</span>
+            )}
+          </TabsTrigger>
+        </TabsList>
+        <span className="text-sm text-muted-foreground ml-auto">{total} total · {open} open</span>
+      </div>
+
+      <TabsContent value="jobs">
+      <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex gap-4 text-sm text-muted-foreground">
-          <span>{total} total · {open} open · {totalApps} applications</span>
+          <span>{filtered.length} {filtered.length === 1 ? "job" : "jobs"}</span>
         </div>
         <div className="flex items-center gap-3">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -643,5 +772,11 @@ export default function CommandJobs() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+      </TabsContent>
+
+      <TabsContent value="applicants">
+        <AllApplicantsList jobs={jobs} />
+      </TabsContent>
+    </Tabs>
   );
 }

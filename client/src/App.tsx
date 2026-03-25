@@ -12,7 +12,7 @@ import { PlatformFooter } from "@/components/platform-footer";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/protected-route";
 import { CartProvider } from "@/hooks/use-cart";
-import { SpotifyPlayerProvider } from "@/hooks/use-spotify-player";
+import { SpotifyPlayerProvider, useSpotifyPlayer } from "@/hooks/use-spotify-player";
 import { SpotifyPlayerBar } from "@/components/spotify-player-bar";
 
 import Landing from "@/pages/landing";
@@ -204,6 +204,7 @@ function Router() {
 function AppShell() {
   const { user, isLoading } = useAuth();
   const [location] = useLocation();
+  const { activePlaylist } = useSpotifyPlayer();
 
   const isAuthPage = location === "/auth" || location === "/verify-email";
 
@@ -231,7 +232,10 @@ function AppShell() {
         <div className="flex flex-1">
           {showWikiSidebar && <AppSidebar />}
           {showCommandSidebar && <CommandSidebar />}
-          <main className="flex-1 flex flex-col">
+          <main
+            className="flex-1 flex flex-col"
+            style={{ paddingBottom: activePlaylist ? "220px" : undefined }}
+          >
             <div className="flex-1">
               <Router />
             </div>

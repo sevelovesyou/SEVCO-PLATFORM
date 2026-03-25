@@ -4,7 +4,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -31,14 +30,12 @@ import {
   ArrowLeft,
   CheckCircle,
   ShieldCheck,
-  Trash2,
   Archive,
   RefreshCw,
 } from "lucide-react";
 import type { Article, Citation, Revision } from "@shared/schema";
 import { usePermission } from "@/hooks/use-permission";
 
-const STAFF_PASSCODE = "4434";
 
 interface ArticleDetail extends Article {
   citations: Citation[];
@@ -58,9 +55,6 @@ export default function ArticleView() {
   const [, navigate] = useLocation();
   const { canDeleteArticle, canPublishArticles } = usePermission();
 
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deletePasscode, setDeletePasscode] = useState("");
-  const [deletePasscodeError, setDeletePasscodeError] = useState(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
 
   const { data: article, isLoading } = useQuery<ArticleDetail>({
@@ -85,20 +79,6 @@ export default function ArticleView() {
       queryClient.invalidateQueries({ queryKey: ["/api/articles", slug] });
       queryClient.invalidateQueries({ queryKey: ["/api/revisions", "pending-count"] });
       toast({ title: "Revision rejected" });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (articleId: number) =>
-      apiRequest("DELETE", `/api/articles/${articleId}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-      toast({ title: "Article deleted" });
-      navigate("/wiki");
-    },
-    onError: () => {
-      toast({ title: "Failed to delete article", variant: "destructive" });
     },
   });
 
@@ -130,19 +110,6 @@ export default function ArticleView() {
       toast({ title: "Failed to republish article", variant: "destructive" });
     },
   });
-
-  function handleDeleteConfirm() {
-    if (deletePasscode !== STAFF_PASSCODE) {
-      setDeletePasscodeError(true);
-      setDeletePasscode("");
-      return;
-    }
-    if (article) {
-      deleteMutation.mutate(article.id);
-      setDeleteDialogOpen(false);
-      setDeletePasscode("");
-    }
-  }
 
   if (isLoading) {
     return (
@@ -271,30 +238,17 @@ export default function ArticleView() {
               {canPublishArticles ? "Republish" : "Submit for Review"}
             </Button>
           ) : (
-            <>
-              {canDeleteArticle && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setArchiveDialogOpen(true)}
-                  data-testid="button-archive-article"
-                >
-                  <Archive className="h-3 w-3 mr-1" />
-                  Archive
-                </Button>
-              )}
-              {canDeleteArticle && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => { setDeleteDialogOpen(true); setDeletePasscode(""); setDeletePasscodeError(false); }}
-                  data-testid="button-delete-article"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              )}
-            </>
+            canDeleteArticle && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setArchiveDialogOpen(true)}
+                data-testid="button-archive-article"
+              >
+                <Archive className="h-3 w-3 mr-1" />
+                Archive
+              </Button>
+            )
           )}
         </div>
       </div>
@@ -405,44 +359,6 @@ export default function ArticleView() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={deleteDialogOpen} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) { setDeletePasscode(""); setDeletePasscodeError(false); } }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Article</DialogTitle>
-            <DialogDescription>
-              This will permanently delete <strong>{article.title}</strong> and all its revisions, citations, and crosslinks. Enter the staff passcode to confirm.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2 py-2">
-            <Input
-              type="password"
-              placeholder="Enter staff passcode"
-              value={deletePasscode}
-              onChange={(e) => { setDeletePasscode(e.target.value); setDeletePasscodeError(false); }}
-              className={deletePasscodeError ? "border-destructive" : ""}
-              data-testid="input-delete-passcode"
-              onKeyDown={(e) => { if (e.key === "Enter") handleDeleteConfirm(); }}
-            />
-            {deletePasscodeError && (
-              <p className="text-xs text-destructive">Incorrect passcode. Please try again.</p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} data-testid="button-cancel-delete">
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteConfirm}
-              disabled={deleteMutation.isPending || !deletePasscode}
-              data-testid="button-confirm-delete"
-            >
-              <Trash2 className="h-3 w-3 mr-1" />
-              Delete Article
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

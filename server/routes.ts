@@ -320,7 +320,7 @@ export async function registerRoutes(
     const cat = await storage.getCategoryBySlug(req.params.slug);
     if (!cat) return res.status(404).json({ message: "Category not found" });
     const catArticles = await storage.getArticlesByCategory(cat.id);
-    res.json({ ...cat, articles: catArticles });
+    res.json({ ...cat, articles: catArticles.filter((a) => a.status !== "archived") });
   });
 
   app.get("/api/articles/archived", requireAuth, requireRole(...CAN_DELETE_ARTICLE), async (_req, res) => {

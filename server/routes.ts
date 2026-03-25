@@ -1119,9 +1119,17 @@ export async function registerRoutes(
   });
 
   // Jobs routes
-  app.get("/api/jobs", async (req, res) => {
+  app.get("/api/jobs", async (req: any, res) => {
     try {
       const includeAll = req.query.all === "true";
+      if (includeAll) {
+        if (!req.isAuthenticated || !req.isAuthenticated()) {
+          return res.status(401).json({ message: "Unauthorized" });
+        }
+        if (!CAN_MANAGE_JOBS.includes(req.user?.role)) {
+          return res.status(403).json({ message: "Forbidden" });
+        }
+      }
       const jobList = await storage.getJobs(includeAll);
       res.json(jobList);
     } catch (err: any) {

@@ -67,7 +67,7 @@ export function CommandSidebar() {
       title: "Jobs",
       url: "/command/jobs",
       icon: ClipboardList,
-      show: isAdmin || isExec || isStaff,
+      show: isAdmin || isExec,
     },
   ].filter((item) => item.show);
 

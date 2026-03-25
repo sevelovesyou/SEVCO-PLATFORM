@@ -13,7 +13,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { User, Loader2 } from "lucide-react";
+import { User, Loader2, ExternalLink } from "lucide-react";
+import { Link } from "wouter";
 
 const profileSchema = z.object({
   displayName: z.string().max(80, "Max 80 characters").optional().or(z.literal("")),
@@ -68,9 +69,19 @@ export default function AccountPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-6 space-y-6">
-      <div className="flex items-center gap-2">
-        <User className="h-5 w-5 text-primary" />
-        <h1 className="text-xl font-bold">Account</h1>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <User className="h-5 w-5 text-primary" />
+          <h1 className="text-xl font-bold">Account</h1>
+        </div>
+        {user?.username && (
+          <Link href={`/profile/${user.username}`}>
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" data-testid="link-view-profile">
+              <ExternalLink className="h-3.5 w-3.5" />
+              View Profile
+            </Button>
+          </Link>
+        )}
       </div>
 
       <Card>

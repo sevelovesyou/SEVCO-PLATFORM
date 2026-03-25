@@ -41,6 +41,7 @@ import {
   Trash2,
   UserPlus,
   UserCheck,
+  Settings,
 } from "lucide-react";
 import { SiDiscord, SiInstagram, SiX, SiTiktok } from "react-icons/si";
 import planetIcon from "@assets/SEVCO_planet_icon_black_1774331331137.png";
@@ -566,17 +567,31 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
                   </Link>
                 )}
                 {isOwnProfile && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onEdit}
-                    className="gap-1.5 text-xs"
-                    style={accentColor ? { borderColor: `${accentColor}66`, color: accentColor } : {}}
-                    data-testid="button-edit-profile"
-                  >
-                    <Pencil className="h-3 w-3" />
-                    Edit Profile
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Link href="/account">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5 text-xs"
+                        style={accentColor ? { color: accentColor, opacity: 0.7 } : {}}
+                        data-testid="link-account-settings"
+                      >
+                        <Settings className="h-3 w-3" />
+                        Account
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={onEdit}
+                      className="gap-1.5 text-xs"
+                      style={accentColor ? { borderColor: `${accentColor}66`, color: accentColor } : {}}
+                      data-testid="button-edit-profile"
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Edit Profile
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>

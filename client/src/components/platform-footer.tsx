@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { usePermission } from "@/hooks/use-permission";
+import { useAuth } from "@/hooks/use-auth";
 import type { Changelog } from "@shared/schema";
 import {
   SiFacebook,
@@ -64,17 +64,6 @@ const STATIC_SOCIALS = [
   { label: "GitHub",    href: "https://github.com/sevelovesyou",                  iconName: "SiGithub" },
 ];
 
-const SITEMAP = [
-  { label: "Home",       path: "/" },
-  { label: "Wiki",       path: "/wiki" },
-  { label: "Feed",       path: "/feed" },
-  { label: "Changelog",  path: "/changelog" },
-  { label: "Music",      path: "/music" },
-  { label: "Store",      path: "/store" },
-  { label: "Projects",   path: "/projects" },
-  { label: "Command",    path: "/command" },
-];
-
 const POLICY_LINKS = [
   { label: "Privacy Policy",   path: "/wiki/privacy-policy" },
   { label: "Terms of Service", path: "/wiki/terms-of-service" },
@@ -99,10 +88,11 @@ function SocialIcon({ iconName, label, href }: { iconName: string; label: string
   );
 }
 
+type SitemapLink = { label: string; path: string; external?: boolean };
+type SitemapColumn = { heading: string; links: SitemapLink[] };
+
 export function PlatformFooter() {
-  const { role } = usePermission();
-  const canSeeCommand = role === "admin" || role === "executive" || role === "staff";
-  const visibleSitemap = SITEMAP.filter((item) => item.path !== "/command" || canSeeCommand);
+  const { user } = useAuth();
 
   const { data: socialLinks } = useQuery<PlatformSocialLink[]>({
     queryKey: ["/api/social-links"],
@@ -116,55 +106,119 @@ export function PlatformFooter() {
     ? socialLinks.filter((l) => l.showInFooter)
     : STATIC_SOCIALS.map((s, i) => ({ ...s, id: i, showInFooter: true, showOnContact: false, displayOrder: i, url: s.href }));
 
+  const communityLinks: SitemapLink[] = [
+    { label: "Discord", path: "https://discord.gg/sevco", external: true },
+    { label: "Contact", path: "/contact" },
+    ...(user ? [{ label: "Profile", path: `/profile/${user.username}` }] : []),
+  ];
+
+  const SITEMAP_COLUMNS: SitemapColumn[] = [
+    {
+      heading: "Platform",
+      links: [
+        { label: "Home",      path: "/" },
+        { label: "Wiki",      path: "/wiki" },
+        { label: "Feed",      path: "/feed" },
+        { label: "Changelog", path: "/changelog" },
+        { label: "About",     path: "/about" },
+      ],
+    },
+    {
+      heading: "Music",
+      links: [
+        { label: "RECORDS",      path: "/music" },
+        { label: "Listen",       path: "/listen" },
+        { label: "Artists",      path: "/music/artists" },
+        { label: "Submit Music", path: "/music/submit" },
+      ],
+    },
+    {
+      heading: "Commerce",
+      links: [
+        { label: "Store",    path: "/store" },
+        { label: "Services", path: "/services" },
+        { label: "Hosting",  path: "/domains" },
+        { label: "Jobs",     path: "/jobs" },
+      ],
+    },
+    {
+      heading: "Community",
+      links: communityLinks,
+    },
+    {
+      heading: "Legal & Info",
+      links: [
+        { label: "Privacy Policy",   path: "/wiki/privacy-policy" },
+        { label: "Terms of Service", path: "/wiki/terms-of-service" },
+        { label: "Refund Policy",    path: "/wiki/refund-policy" },
+      ],
+    },
+  ];
+
   return (
     <footer
       className="border-t bg-background text-foreground mt-auto"
       data-testid="platform-footer"
     >
-      <div className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-3 gap-10">
-        <div className="flex flex-col gap-3" data-testid="footer-brand">
-          <div className="flex items-center gap-2">
-            <img
-              src={planetIcon}
-              alt="SEVCO Planet"
-              className="h-8 w-8 object-contain dark:invert"
-              data-testid="img-footer-planet"
-            />
-            <img
-              src={wordmarkBlack}
-              alt="SEVCO"
-              className="h-5 w-auto object-contain dark:invert"
-              data-testid="img-footer-logo"
-            />
+      <div className="max-w-6xl mx-auto px-6 py-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-10">
+          <div className="md:col-span-1 flex flex-col gap-3" data-testid="footer-brand">
+            <div className="flex items-center gap-2">
+              <img
+                src={planetIcon}
+                alt="SEVCO Planet"
+                className="h-8 w-8 object-contain dark:invert"
+                data-testid="img-footer-planet"
+              />
+              <img
+                src={wordmarkBlack}
+                alt="SEVCO"
+                className="h-5 w-auto object-contain dark:invert"
+                data-testid="img-footer-logo"
+              />
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              The creative platform for the SEVCO universe.
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            The creative platform for the SEVCO universe.
-          </p>
-        </div>
 
-        <div data-testid="footer-sitemap">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-            Platform
-          </h3>
-          <ul className="flex flex-col gap-1.5">
-            {visibleSitemap.map((item) => (
-              <li key={item.path}>
-                <Link
-                  href={item.path}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  data-testid={`link-footer-${item.label.toLowerCase()}`}
-                >
-                  {item.label}
-                </Link>
-              </li>
+          <div className="md:col-span-2 lg:col-span-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6" data-testid="footer-sitemap">
+            {SITEMAP_COLUMNS.map((col) => (
+              <div key={col.heading}>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                  {col.heading}
+                </h3>
+                <ul className="flex flex-col gap-1.5">
+                  {col.links.map((item) => (
+                    <li key={item.path}>
+                      {item.external ? (
+                        <a
+                          href={item.path}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                          data-testid={`link-footer-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+                        >
+                          {item.label}
+                        </a>
+                      ) : (
+                        <Link
+                          href={item.path}
+                          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                          data-testid={`link-footer-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+                        >
+                          {item.label}
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
 
-        <div data-testid="footer-socials">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-            Follow Us
-          </h3>
+        <div className="mt-8 pt-6 border-t" data-testid="footer-socials">
           <div className="flex flex-wrap gap-3">
             {footerSocials.map((social) => (
               <SocialIcon

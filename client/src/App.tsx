@@ -36,7 +36,6 @@ import MusicAlbumForm from "@/pages/music-album-form";
 import StorePage from "@/pages/store-page";
 import StoreProductDetail from "@/pages/store-product-detail";
 import StoreProductForm from "@/pages/store-product-form";
-import StoreStatsPage from "@/pages/store-stats-page";
 import StoreSuccessPage from "@/pages/store-success-page";
 import StoreCancelPage from "@/pages/store-cancel-page";
 import ProjectsPage from "@/pages/projects-page";
@@ -130,7 +129,6 @@ function Router() {
       <Route path="/new" component={() => <ProtectedRoute><ArticleEditor /></ProtectedRoute>} />
       <Route path="/review" component={() => <ProtectedRoute><ReviewQueue /></ProtectedRoute>} />
       <Route path="/account" component={() => <ProtectedRoute><AccountPage /></ProtectedRoute>} />
-      <Route path="/store/stats" component={() => <ProtectedRoute><StoreStatsPage /></ProtectedRoute>} />
       <Route path="/store/success" component={() => <ProtectedRoute><StoreSuccessPage /></ProtectedRoute>} />
       <Route path="/store/cancel" component={() => <ProtectedRoute><StoreCancelPage /></ProtectedRoute>} />
       <Route path="/store/products/new" component={() => <ProtectedRoute><StoreProductForm /></ProtectedRoute>} />

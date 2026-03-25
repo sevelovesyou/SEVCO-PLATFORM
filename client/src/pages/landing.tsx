@@ -7,10 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import * as LucideIcons from "lucide-react";
 import {
   BookOpen, ShoppingBag, Music, Folder, Briefcase,
-  ArrowRight, Users, Star, ChevronRight,
+  ArrowRight, Users, Star, ChevronRight, Pin,
 } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
-import type { Article, Product } from "@shared/schema";
+import type { Article, Product, FeedPost } from "@shared/schema";
 import planetIcon from "@assets/SEVCO_planet_icon_black_1774331331137.png";
 
 function getLucideIcon(name: string | undefined): LucideIcons.LucideIcon | null {
@@ -160,6 +160,20 @@ export default function Landing() {
     queryKey: ["/api/platform-settings"],
   });
 
+  type FeedPostWithAuthor = FeedPost & {
+    author: { username: string; displayName: string | null; avatarUrl: string | null } | null;
+  };
+
+  const { data: pinnedFeedPosts = [] } = useQuery<FeedPostWithAuthor[]>({
+    queryKey: ["/api/feed?pinned=true&limit=1"],
+    queryFn: async () => {
+      const res = await fetch("/api/feed?pinned=true&limit=1");
+      return res.json();
+    },
+  });
+
+  const pinnedPost = pinnedFeedPosts[0] ?? null;
+
   const recentArticles = articles.filter((a) => a.status === "published").slice(0, 3);
   const featuredProducts = products.slice(0, 4);
 
@@ -180,6 +194,7 @@ export default function Landing() {
   const showStorePreview = toBool(settings["section.storePreview.visible"]);
   const showWikiLatest = toBool(settings["section.wikiLatest.visible"]);
   const showCommunityCta = toBool(settings["section.communityCta.visible"]);
+  const showBulletin = toBool(settings["section.bulletin.visible"]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -234,6 +249,50 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* ── BULLETIN ── */}
+      {showBulletin && pinnedPost && (
+        <section className="max-w-6xl mx-auto px-6 py-8">
+          <div className="rounded-2xl border bg-muted/30 border-border/60 p-5 flex flex-col sm:flex-row sm:items-start gap-4" data-testid="section-bulletin">
+            <div className="flex items-center gap-2 shrink-0 sm:pt-0.5">
+              <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center">
+                <Pin className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <span className="text-xs font-bold uppercase tracking-widest text-primary">Bulletin</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                <Badge variant="secondary" className="text-[10px] capitalize px-1.5 py-0">{pinnedPost.type}</Badge>
+                <span className="text-xs text-muted-foreground">
+                  {pinnedPost.author?.displayName || pinnedPost.author?.username || "SEVCO"}
+                  {" · "}
+                  {(() => {
+                    const d = new Date(pinnedPost.createdAt);
+                    const now = new Date();
+                    const diff = now.getTime() - d.getTime();
+                    const mins = Math.floor(diff / 60000);
+                    const hours = Math.floor(diff / 3600000);
+                    const days = Math.floor(diff / 86400000);
+                    if (mins < 1) return "just now";
+                    if (mins < 60) return `${mins}m ago`;
+                    if (hours < 24) return `${hours}h ago`;
+                    if (days < 7) return `${days}d ago`;
+                    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                  })()}
+                </span>
+              </div>
+              <p className="text-sm text-foreground leading-relaxed line-clamp-3">
+                {pinnedPost.content.length > 280 ? pinnedPost.content.slice(0, 280) + "…" : pinnedPost.content}
+              </p>
+            </div>
+            <Link href="/feed" className="shrink-0">
+              <Button variant="outline" size="sm" className="gap-1 text-xs whitespace-nowrap" data-testid="link-bulletin-read-more">
+                Read more <ArrowRight className="h-3 w-3" />
+              </Button>
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* ── PLATFORM GRID ── */}
       {showPlatformGrid && (

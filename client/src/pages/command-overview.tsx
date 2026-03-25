@@ -263,7 +263,7 @@ function StoreStatsPreview() {
   })) ?? [];
 
   return (
-    <Link href="/store/stats">
+    <Link href="/command/store">
       <Card
         className="p-4 hover-elevate active-elevate-2 cursor-pointer overflow-visible group"
         data-testid="card-store-stats-preview"

@@ -2178,7 +2178,12 @@ export async function registerRoutes(
   app.get("/api/feed", async (req, res) => {
     try {
       const limit = Math.min(parseInt((req.query.limit as string) || "50"), 100);
+      const pinned = req.query.pinned === "true";
       const posts = await storage.getFeedPosts(limit);
+      if (pinned) {
+        const pinnedPost = posts.find((p) => p.pinned);
+        return res.json(pinnedPost ? [pinnedPost] : []);
+      }
       res.json(posts);
     } catch (err: any) {
       res.status(500).json({ message: err.message });

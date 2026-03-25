@@ -21,11 +21,12 @@ import {
   type FeedPost, type InsertFeedPost,
   type Post, type InsertPost, type PostLike, type PostReply, type InsertPostReply, type UserFollow,
   type PlatformSetting,
+  type BrandAsset, type InsertBrandAsset,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
   posts, postLikes, postReplies, userFollows,
-  noteCollaborators, noteAttachments, platformSettings,
+  noteCollaborators, noteAttachments, platformSettings, brandAssets,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or, inArray } from "drizzle-orm";
@@ -195,6 +196,11 @@ export interface IStorage {
   getPlatformSettings(): Promise<Record<string, string>>;
   setPlatformSettings(entries: Record<string, string>): Promise<void>;
   searchAll(query: string, isStaff: boolean, limit: number): Promise<SearchAllResult>;
+
+  getBrandAssets(isPublic?: boolean): Promise<BrandAsset[]>;
+  createBrandAsset(data: InsertBrandAsset): Promise<BrandAsset>;
+  updateBrandAsset(id: number, data: Partial<InsertBrandAsset>): Promise<BrandAsset>;
+  deleteBrandAsset(id: number): Promise<void>;
 }
 
 export type SearchResultItem = {
@@ -1324,6 +1330,29 @@ export class DatabaseStorage implements IStorage {
       services: serviceItems,
       total,
     };
+  }
+
+  async getBrandAssets(isPublic?: boolean): Promise<BrandAsset[]> {
+    if (isPublic === true) {
+      return db.select().from(brandAssets)
+        .where(eq(brandAssets.isPublic, true))
+        .orderBy(brandAssets.displayOrder, brandAssets.name);
+    }
+    return db.select().from(brandAssets).orderBy(brandAssets.displayOrder, brandAssets.name);
+  }
+
+  async createBrandAsset(data: InsertBrandAsset): Promise<BrandAsset> {
+    const [created] = await db.insert(brandAssets).values(data).returning();
+    return created;
+  }
+
+  async updateBrandAsset(id: number, data: Partial<InsertBrandAsset>): Promise<BrandAsset> {
+    const [updated] = await db.update(brandAssets).set(data).where(eq(brandAssets.id, id)).returning();
+    return updated;
+  }
+
+  async deleteBrandAsset(id: number): Promise<void> {
+    await db.delete(brandAssets).where(eq(brandAssets.id, id));
   }
 }
 

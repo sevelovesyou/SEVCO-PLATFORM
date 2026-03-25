@@ -536,3 +536,20 @@ export const platformSettings = pgTable("platform_settings", {
 });
 
 export type PlatformSetting = typeof platformSettings.$inferSelect;
+
+export const brandAssets = pgTable("brand_assets", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  description: text("description"),
+  assetType: text("asset_type").notNull().default("other"),
+  downloadUrl: text("download_url").notNull(),
+  previewUrl: text("preview_url"),
+  fileFormat: text("file_format"),
+  displayOrder: integer("display_order").notNull().default(0),
+  isPublic: boolean("is_public").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertBrandAssetSchema = createInsertSchema(brandAssets).omit({ id: true, createdAt: true });
+export type BrandAsset = typeof brandAssets.$inferSelect;
+export type InsertBrandAsset = z.infer<typeof insertBrandAssetSchema>;

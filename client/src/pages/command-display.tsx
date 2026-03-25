@@ -9,7 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Save, Image, Type, Eye, EyeOff, Globe, Link2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Save, Image, Type, Eye, EyeOff, Globe, Link2, Package, Pencil, Trash2, Plus } from "lucide-react";
+import type { BrandAsset, InsertBrandAsset } from "@shared/schema";
 
 const SECTION_KEYS = [
   { key: "section.platformGrid.visible", label: "Platform Grid", description: "The six platform section cards (Wiki, Store, Music, etc.)" },
@@ -19,9 +23,38 @@ const SECTION_KEYS = [
   { key: "section.communityCta.visible", label: "Community CTA", description: "Discord join section at the bottom" },
 ];
 
+const ASSET_TYPES = [
+  { value: "logo", label: "Logo" },
+  { value: "color_palette", label: "Color Palette" },
+  { value: "font", label: "Font / Typography" },
+  { value: "banner", label: "Banner" },
+  { value: "icon", label: "Icon" },
+  { value: "other", label: "Other" },
+];
+
+const ASSET_TYPE_LABELS: Record<string, string> = {
+  logo: "Logo",
+  color_palette: "Color Palette",
+  font: "Font",
+  banner: "Banner",
+  icon: "Icon",
+  other: "Other",
+};
+
 function toBool(val: string | undefined): boolean {
   return val !== "false";
 }
+
+const EMPTY_ASSET: Omit<InsertBrandAsset, "id"> = {
+  name: "",
+  description: "",
+  assetType: "logo",
+  downloadUrl: "",
+  previewUrl: "",
+  fileFormat: "",
+  displayOrder: 0,
+  isPublic: true,
+};
 
 export default function CommandDisplay() {
   const { toast } = useToast();
@@ -102,6 +135,87 @@ export default function CommandDisplay() {
       "platform.ogImageUrl": ogImageUrl,
     });
   }
+
+  const { data: brandAssets = [], isLoading: brandLoading } = useQuery<BrandAsset[]>({
+    queryKey: ["/api/brand-assets"],
+  });
+
+  const [brandDialogOpen, setBrandDialogOpen] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<BrandAsset | null>(null);
+  const [assetForm, setAssetForm] = useState<typeof EMPTY_ASSET>({ ...EMPTY_ASSET });
+
+  function openAddDialog() {
+    setEditingAsset(null);
+    setAssetForm({ ...EMPTY_ASSET });
+    setBrandDialogOpen(true);
+  }
+
+  function openEditDialog(asset: BrandAsset) {
+    setEditingAsset(asset);
+    setAssetForm({
+      name: asset.name,
+      description: asset.description ?? "",
+      assetType: asset.assetType,
+      downloadUrl: asset.downloadUrl,
+      previewUrl: asset.previewUrl ?? "",
+      fileFormat: asset.fileFormat ?? "",
+      displayOrder: asset.displayOrder,
+      isPublic: asset.isPublic,
+    });
+    setBrandDialogOpen(true);
+  }
+
+  const createBrandAsset = useMutation({
+    mutationFn: async (data: typeof EMPTY_ASSET) =>
+      apiRequest("POST", "/api/brand-assets", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/brand-assets"] });
+      setBrandDialogOpen(false);
+      toast({ title: "Asset added", description: "Brand asset created successfully." });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const updateBrandAsset = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: typeof EMPTY_ASSET }) =>
+      apiRequest("PATCH", `/api/brand-assets/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/brand-assets"] });
+      setBrandDialogOpen(false);
+      toast({ title: "Asset updated", description: "Brand asset saved successfully." });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const deleteBrandAsset = useMutation({
+    mutationFn: async (id: number) =>
+      apiRequest("DELETE", `/api/brand-assets/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/brand-assets"] });
+      toast({ title: "Asset deleted" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  function handleBrandSave() {
+    const payload = {
+      ...assetForm,
+      displayOrder: Number(assetForm.displayOrder) || 0,
+    };
+    if (editingAsset) {
+      updateBrandAsset.mutate({ id: editingAsset.id, data: payload });
+    } else {
+      createBrandAsset.mutate(payload);
+    }
+  }
+
+  const isBrandPending = createBrandAsset.isPending || updateBrandAsset.isPending;
 
   return (
     <div className="space-y-8 max-w-3xl">
@@ -337,6 +451,217 @@ export default function CommandDisplay() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Brand Assets */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                Brand Assets
+              </CardTitle>
+              <CardDescription className="mt-1">
+                Manage downloadable brand materials shown on the public About page. Logos, colour palettes, fonts, banners, and more.
+              </CardDescription>
+            </div>
+            <Button onClick={openAddDialog} size="sm" className="gap-2 shrink-0" data-testid="button-add-brand-asset">
+              <Plus className="h-3.5 w-3.5" />
+              Add Asset
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {brandLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-12 bg-muted animate-pulse rounded-lg" />
+              ))}
+            </div>
+          ) : brandAssets.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground" data-testid="text-brand-assets-empty-cmd">
+              <Package className="h-8 w-8 mx-auto mb-2 opacity-40" />
+              <p className="text-sm">No brand assets yet. Add your first one above.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {brandAssets.map((asset) => (
+                <div
+                  key={asset.id}
+                  className="flex items-center gap-3 p-3 border border-border rounded-lg"
+                  data-testid={`row-brand-asset-${asset.id}`}
+                >
+                  {asset.previewUrl ? (
+                    <img
+                      src={asset.previewUrl}
+                      alt={asset.name}
+                      className="h-10 w-10 object-contain rounded border border-border shrink-0 bg-muted/30"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 rounded border border-border bg-muted/30 flex items-center justify-center shrink-0">
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium text-foreground truncate">{asset.name}</p>
+                      <Badge variant="secondary" className="text-[10px]" data-testid={`badge-type-${asset.id}`}>
+                        {ASSET_TYPE_LABELS[asset.assetType] ?? asset.assetType}
+                      </Badge>
+                      {asset.fileFormat && (
+                        <Badge variant="outline" className="text-[10px]">
+                          {asset.fileFormat}
+                        </Badge>
+                      )}
+                      {!asset.isPublic && (
+                        <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                          Private
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">Order: {asset.displayOrder}</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => openEditDialog(asset)}
+                      data-testid={`button-edit-brand-asset-${asset.id}`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={() => deleteBrandAsset.mutate(asset.id)}
+                      disabled={deleteBrandAsset.isPending}
+                      data-testid={`button-delete-brand-asset-${asset.id}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Add/Edit Brand Asset Dialog */}
+      <Dialog open={brandDialogOpen} onOpenChange={setBrandDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingAsset ? "Edit Brand Asset" : "Add Brand Asset"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="asset-name">Name <span className="text-destructive">*</span></Label>
+              <Input
+                id="asset-name"
+                placeholder="SEVCO Primary Logo — Black"
+                value={assetForm.name}
+                onChange={(e) => setAssetForm((f) => ({ ...f, name: e.target.value }))}
+                data-testid="input-asset-name"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="asset-description">Description</Label>
+              <Textarea
+                id="asset-description"
+                placeholder="For use on light backgrounds"
+                value={assetForm.description ?? ""}
+                onChange={(e) => setAssetForm((f) => ({ ...f, description: e.target.value }))}
+                rows={2}
+                data-testid="input-asset-description"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="asset-type">Asset Type <span className="text-destructive">*</span></Label>
+                <Select
+                  value={assetForm.assetType}
+                  onValueChange={(v) => setAssetForm((f) => ({ ...f, assetType: v }))}
+                >
+                  <SelectTrigger id="asset-type" data-testid="select-asset-type">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ASSET_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="asset-format">File Format</Label>
+                <Input
+                  id="asset-format"
+                  placeholder="PNG, SVG, PDF..."
+                  value={assetForm.fileFormat ?? ""}
+                  onChange={(e) => setAssetForm((f) => ({ ...f, fileFormat: e.target.value }))}
+                  data-testid="input-asset-format"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="asset-download-url">Download URL <span className="text-destructive">*</span></Label>
+              <Input
+                id="asset-download-url"
+                placeholder="https://cdn.sevco.com/logo-black.png"
+                value={assetForm.downloadUrl}
+                onChange={(e) => setAssetForm((f) => ({ ...f, downloadUrl: e.target.value }))}
+                data-testid="input-asset-download-url"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="asset-preview-url">Preview URL <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Input
+                id="asset-preview-url"
+                placeholder="https://cdn.sevco.com/logo-black-thumb.png"
+                value={assetForm.previewUrl ?? ""}
+                onChange={(e) => setAssetForm((f) => ({ ...f, previewUrl: e.target.value }))}
+                data-testid="input-asset-preview-url"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3 items-end">
+              <div className="space-y-1.5">
+                <Label htmlFor="asset-order">Display Order</Label>
+                <Input
+                  id="asset-order"
+                  type="number"
+                  placeholder="0"
+                  value={assetForm.displayOrder}
+                  onChange={(e) => setAssetForm((f) => ({ ...f, displayOrder: parseInt(e.target.value) || 0 }))}
+                  data-testid="input-asset-order"
+                />
+              </div>
+              <div className="flex items-center gap-2 pb-1">
+                <Switch
+                  checked={assetForm.isPublic}
+                  onCheckedChange={(checked) => setAssetForm((f) => ({ ...f, isPublic: checked }))}
+                  id="asset-public"
+                  data-testid="switch-asset-public"
+                />
+                <Label htmlFor="asset-public" className="cursor-pointer">Public</Label>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBrandDialogOpen(false)} data-testid="button-cancel-brand-asset">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBrandSave}
+              disabled={isBrandPending || !assetForm.name || !assetForm.downloadUrl}
+              data-testid="button-save-brand-asset"
+            >
+              {isBrandPending ? "Saving…" : editingAsset ? "Save Changes" : "Add Asset"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

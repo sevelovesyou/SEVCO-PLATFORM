@@ -2516,5 +2516,54 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/brand-assets", async (req, res) => {
+    try {
+      const user = req.user as any;
+      const staffRoles = ["admin", "executive", "staff"];
+      const isStaff = user && staffRoles.includes(user.role);
+      const assets = isStaff
+        ? await storage.getBrandAssets()
+        : await storage.getBrandAssets(true);
+      res.json(assets);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/brand-assets", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const { insertBrandAssetSchema } = await import("@shared/schema");
+      const parsed = insertBrandAssetSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.message });
+      const asset = await storage.createBrandAsset(parsed.data);
+      res.status(201).json(asset);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/brand-assets/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { insertBrandAssetSchema } = await import("@shared/schema");
+      const parsed = insertBrandAssetSchema.partial().safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.message });
+      const asset = await storage.updateBrandAsset(id, parsed.data);
+      res.json(asset);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/brand-assets/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteBrandAsset(id);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   return httpServer;
 }

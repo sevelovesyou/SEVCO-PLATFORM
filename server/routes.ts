@@ -1180,7 +1180,8 @@ export async function registerRoutes(
     try {
       const userId: string = req.user.id;
       const job = await storage.getJobBySlug(req.params.id);
-      const jobId = job?.id ?? Number(req.params.id);
+      if (!job) return res.status(404).json({ message: "Job not found" });
+      const jobId = job.id;
       const existing = await storage.getUserJobApplication(userId, jobId);
       if (existing) {
         return res.status(409).json({ message: "You have already applied for this job." });
@@ -1198,8 +1199,8 @@ export async function registerRoutes(
     try {
       const userId: string = req.user.id;
       const job = await storage.getJobBySlug(req.params.id);
-      const jobId = job?.id ?? Number(req.params.id);
-      const app2 = await storage.getUserJobApplication(userId, jobId);
+      if (!job) return res.status(404).json({ message: "Job not found" });
+      const app2 = await storage.getUserJobApplication(userId, job.id);
       res.json(app2 ?? null);
     } catch (err: any) {
       res.status(500).json({ message: err.message });

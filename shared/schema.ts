@@ -570,3 +570,21 @@ export const resources = pgTable("resources", {
 export const insertResourceSchema = createInsertSchema(resources).omit({ id: true, createdAt: true });
 export type Resource = typeof resources.$inferSelect;
 export type InsertResource = z.infer<typeof insertResourceSchema>;
+
+export const galleryCategoryEnum = pgEnum("gallery_category", ["profile", "banner", "wallpaper", "logo", "other"]);
+export type GalleryCategory = typeof galleryCategoryEnum.enumValues[number];
+
+export const galleryImages = pgTable("gallery_images", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  title: text("title").notNull(),
+  imageUrl: text("image_url").notNull(),
+  category: galleryCategoryEnum("category").notNull(),
+  altText: text("alt_text"),
+  displayOrder: integer("display_order").notNull().default(0),
+  isPublic: boolean("is_public").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertGalleryImageSchema = createInsertSchema(galleryImages).omit({ id: true, createdAt: true });
+export type GalleryImage = typeof galleryImages.$inferSelect;
+export type InsertGalleryImage = z.infer<typeof insertGalleryImageSchema>;

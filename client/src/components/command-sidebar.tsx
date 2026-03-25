@@ -24,6 +24,7 @@ import {
   Server,
   MonitorCog,
   BookMarked,
+  Images,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -79,6 +80,12 @@ export function CommandSidebar() {
       url: "/command/music",
       icon: Music,
       show: isAdmin || isExec,
+    },
+    {
+      title: "Gallery",
+      url: "/command/gallery",
+      icon: Images,
+      show: isAdmin,
     },
     {
       title: "Social Links",

@@ -72,6 +72,8 @@ import ServicesListingPage from "@/pages/services-listing";
 import WikiArchivePage from "@/pages/wiki-archive-page";
 import AboutPage from "@/pages/about-page";
 import HostingPage from "@/pages/hosting-page";
+import GalleryPage from "@/pages/gallery-page";
+import CommandGallery from "@/pages/command-gallery";
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
 const COMMAND_PREFIXES = ["/command"];
@@ -218,6 +220,14 @@ function Router() {
       )} />
       <Route path="/domains" component={DomainsPage} />
       <Route path="/notes" component={NotesPage} />
+      <Route path="/gallery" component={GalleryPage} />
+      <Route path="/command/gallery" component={() => (
+        <ProtectedRoute requiredRole="admin">
+          <CommandPageLayout title="Gallery" subtitle="Manage gallery images for the platform">
+            <CommandGallery />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
       <Route component={NotFound} />
     </Switch>
   );

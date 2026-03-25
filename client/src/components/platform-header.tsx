@@ -61,6 +61,8 @@ import {
   Globe,
   Search,
   HardDrive,
+  Wrench,
+  Images,
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import type { Project, Service } from "@shared/schema";
@@ -125,6 +127,8 @@ function getActiveApp(location: string): string {
   if (location.startsWith("/store")) return "/store";
   if (location.startsWith("/music")) return "/music";
   if (location.startsWith("/command")) return "/command";
+  if (location.startsWith("/notes")) return "/notes";
+  if (location.startsWith("/gallery")) return "/gallery";
   return "";
 }
 
@@ -521,6 +525,50 @@ function ProjectsDropdown({ isActive }: { isActive: boolean }) {
   );
 }
 
+function ToolsDropdown({ isActive }: { isActive: boolean }) {
+  const { open, setOpen, ref } = useDropdown();
+
+  const items = [
+    { label: "Notes",   href: "/notes",   icon: StickyNote, desc: "Personal & shared notes" },
+    { label: "Gallery", href: "/gallery", icon: Images,     desc: "Quick-copy images for your profile" },
+  ];
+
+  return (
+    <div className="relative" ref={ref}>
+      <NavButton
+        label="Tools"
+        isActive={isActive}
+        onClick={() => setOpen((o) => !o)}
+        open={open}
+        data-testid="nav-tools"
+      />
+      {open && (
+        <DropdownPanel className="w-64">
+          <div className="p-2">
+            {items.map((item) => (
+              <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
+                <div
+                  className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer"
+                  data-testid={`dropdown-tools-${item.label.toLowerCase()}`}
+                >
+                  <item.icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">{item.label}</p>
+                    <p className="text-[11px] text-muted-foreground">{item.desc}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+            <div className="mt-1 pt-1.5 border-t border-border/60 px-3 pb-1">
+              <p className="text-[10px] text-muted-foreground/60 italic">More tools coming soon</p>
+            </div>
+          </div>
+        </DropdownPanel>
+      )}
+    </div>
+  );
+}
+
 export function PlatformHeader() {
   const { user, logout } = useAuth();
   const { role } = usePermission();
@@ -578,6 +626,9 @@ export function PlatformHeader() {
           <ServicesDropdown isActive={activeApp === "/services"} />
           <MusicDropdown isActive={activeApp === "/music"} />
           <ProjectsDropdown isActive={activeApp === "/projects"} />
+          {user && (
+            <ToolsDropdown isActive={activeApp === "/notes" || activeApp === "/gallery"} />
+          )}
 
           {canAccessCMD && (
             <Link href="/command">
@@ -799,6 +850,31 @@ export function PlatformHeader() {
               Projects
             </div>
           </Link>
+
+          {user && (
+            <Collapsible open={mobileSection === "tools"} onOpenChange={(o) => setMobileSection(o ? "tools" : null)}>
+              <CollapsibleTrigger asChild>
+                <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors" data-testid="mobile-nav-tools">
+                  Tools
+                  <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${mobileSection === "tools" ? "rotate-180" : ""}`} />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="pl-4 space-y-0.5 py-1">
+                  <Link href="/notes" onClick={() => setMobileOpen(false)}>
+                    <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-tools-notes">
+                      Notes
+                    </div>
+                  </Link>
+                  <Link href="/gallery" onClick={() => setMobileOpen(false)}>
+                    <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-tools-gallery">
+                      Gallery
+                    </div>
+                  </Link>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
 
           {canAccessCMD && (
             <Link href="/command" onClick={() => setMobileOpen(false)}>

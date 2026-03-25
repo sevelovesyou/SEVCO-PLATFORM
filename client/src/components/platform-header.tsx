@@ -170,15 +170,16 @@ function DropdownPanel({ children, className = "" }: { children: React.ReactNode
 
 function HomeDropdown({ isActive }: { isActive: boolean }) {
   const { open, setOpen, ref } = useDropdown();
+  const { user } = useAuth();
 
   const items = [
-    { label: "About",      href: "/wiki/company-overview", icon: BookOpen,   desc: "Learn about SEVCO" },
-    { label: "Wiki",       href: "/wiki",                  icon: BookOpen,   desc: "Internal knowledge base" },
-    { label: "Feed",       href: "/feed",                  icon: Rss,        desc: "Latest updates from the team" },
-    { label: "Changelog",  href: "/changelog",             icon: ScrollText, desc: "Platform update history" },
-    { label: "Contact",    href: "/contact",               icon: Mail,       desc: "Get in touch" },
-    { label: "Jobs",       href: "/jobs",                  icon: Users,      desc: "Open positions" },
-    { label: "Account",    href: "/account",               icon: User,       desc: "Manage your profile" },
+    { label: "About",      href: "/wiki/company-overview", icon: BookOpen,   desc: "Learn about SEVCO",              authRequired: false },
+    { label: "Wiki",       href: "/wiki",                  icon: BookOpen,   desc: "Internal knowledge base",        authRequired: false },
+    ...(user ? [{ label: "Feed", href: "/feed", icon: Rss, desc: "Posts from people you follow", authRequired: true }] : []),
+    { label: "Changelog",  href: "/changelog",             icon: ScrollText, desc: "Platform update history",        authRequired: false },
+    { label: "Contact",    href: "/contact",               icon: Mail,       desc: "Get in touch",                   authRequired: false },
+    { label: "Jobs",       href: "/jobs",                  icon: Users,      desc: "Open positions",                 authRequired: false },
+    { label: "Account",    href: "/account",               icon: User,       desc: "Manage your profile",            authRequired: false },
   ];
 
   return (
@@ -512,7 +513,7 @@ export function PlatformHeader() {
   const homeItems = [
     { label: "About",     href: "/wiki/company-overview" },
     { label: "Wiki",      href: "/wiki" },
-    { label: "Feed",      href: "/feed" },
+    ...(user ? [{ label: "Feed", href: "/feed" }] : []),
     { label: "Changelog", href: "/changelog" },
     { label: "Contact",   href: "/contact" },
     { label: "Jobs",      href: "/jobs" },

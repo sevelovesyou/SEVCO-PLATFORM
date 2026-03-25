@@ -422,6 +422,7 @@ export default function FeedPage() {
 
   const { data: socialPosts, isLoading: postsLoading } = useQuery<PostWithMeta[]>({
     queryKey: ["/api/posts"],
+    enabled: !!user,
   });
 
   const adminForm = useForm<FeedFormValues>({

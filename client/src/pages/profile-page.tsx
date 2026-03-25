@@ -558,6 +558,13 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
                     )}
                   </Button>
                 )}
+                {!isOwnProfile && !currentUserId && (
+                  <Link href="/auth">
+                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" data-testid="button-follow-signin">
+                      <UserPlus className="h-3.5 w-3.5" /> Follow
+                    </Button>
+                  </Link>
+                )}
                 {isOwnProfile && (
                   <Button
                     variant="outline"

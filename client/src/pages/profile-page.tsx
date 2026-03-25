@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -14,11 +14,8 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import {
-  Link,
-  ExternalLink,
   Pencil,
   Globe,
   AlertCircle,
@@ -59,8 +56,8 @@ type PublicUser = {
   emailVerified?: boolean;
 };
 
-function hexWithFallback(hex: string | null | undefined, fallback: string) {
-  return hex && /^#[0-9a-fA-F]{3,8}$/.test(hex) ? hex : fallback;
+function hexWithFallback(hex: string | null | undefined): string | undefined {
+  return hex && /^#[0-9a-fA-F]{3,8}$/.test(hex) ? hex : undefined;
 }
 
 function SocialBadge({ href, icon: Icon, label, accentColor }: { href: string; icon: React.ElementType; label: string; accentColor: string }) {
@@ -114,7 +111,7 @@ function ProfileEditPanel({ user, onSaved }: { user: PublicUser; onSaved: (u: Pu
           website: form.website || null,
         },
       }),
-    onSuccess: (updated: any) => {
+    onSuccess: (updated: PublicUser) => {
       toast({ title: "Profile saved!" });
       qc.invalidateQueries({ queryKey: ["/api/user"] });
       qc.invalidateQueries({ queryKey: ["/api/profile", user.username] });
@@ -129,8 +126,8 @@ function ProfileEditPanel({ user, onSaved }: { user: PublicUser; onSaved: (u: Pu
     setForm((f) => ({ ...f, [key]: val }));
   }
 
-  const accentColor = hexWithFallback(form.profileAccentColor, "#000000");
-  const bgColor = hexWithFallback(form.profileBgColor, "#ffffff");
+  const accentColor = hexWithFallback(form.profileAccentColor) ?? "#000000";
+  const bgColor = hexWithFallback(form.profileBgColor) ?? "#ffffff";
 
   return (
     <div className="flex flex-col gap-5 py-2">
@@ -257,17 +254,17 @@ function ProfileEditPanel({ user, onSaved }: { user: PublicUser; onSaved: (u: Pu
       <div className="border-t pt-4 space-y-3">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Social Links</p>
         {[
-          { key: "instagram", label: "Instagram", placeholder: "@handle or URL" },
-          { key: "twitter",   label: "X / Twitter", placeholder: "@handle or URL" },
-          { key: "tiktok",    label: "TikTok", placeholder: "@handle or URL" },
-          { key: "discord",   label: "Discord", placeholder: "Server invite URL" },
-          { key: "website",   label: "Website", placeholder: "https://yoursite.com" },
+          { key: "instagram" as const, label: "Instagram", placeholder: "@handle or URL" },
+          { key: "twitter"   as const, label: "X / Twitter", placeholder: "@handle or URL" },
+          { key: "tiktok"    as const, label: "TikTok", placeholder: "@handle or URL" },
+          { key: "discord"   as const, label: "Discord", placeholder: "Server invite URL" },
+          { key: "website"   as const, label: "Website", placeholder: "https://yoursite.com" },
         ].map(({ key, label, placeholder }) => (
           <div key={key}>
             <Label htmlFor={`social-${key}`}>{label}</Label>
             <Input
               id={`social-${key}`}
-              value={(form as any)[key]}
+              value={form[key]}
               onChange={(e) => set(key, e.target.value)}
               placeholder={placeholder}
               className="mt-1"
@@ -296,8 +293,8 @@ function ProfileView({ profile, isOwnProfile, onEdit }: {
   isOwnProfile: boolean;
   onEdit: () => void;
 }) {
-  const bgColor = hexWithFallback(profile.profileBgColor, undefined as any);
-  const accentColor = hexWithFallback(profile.profileAccentColor, undefined as any);
+  const bgColor = hexWithFallback(profile.profileBgColor);
+  const accentColor = hexWithFallback(profile.profileAccentColor);
   const bgImage = profile.profileBgImageUrl;
 
   const roleBadge = ROLE_BADGE[profile.role] ?? ROLE_BADGE.user;

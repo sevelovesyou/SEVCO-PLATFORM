@@ -327,9 +327,9 @@ export default function ArticleView() {
         </div>
 
         <div className="space-y-3">
-          {article.infoboxType && article.infoboxData && (
+          {!!(article.infoboxType && article.infoboxData) && (
             <WikiInfobox
-              type={article.infoboxType}
+              type={article.infoboxType!}
               data={article.infoboxData as Record<string, any>}
               title={article.title}
             />

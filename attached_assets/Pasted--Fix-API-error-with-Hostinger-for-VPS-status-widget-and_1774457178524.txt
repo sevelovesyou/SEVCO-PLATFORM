@@ -1,0 +1,35 @@
+- Fix API error with Hostinger for VPS status widget and Domain tool
+- Fix: nav bar hides CMD menu controls/title
+- Recent Notes widget in CMD Overview
+- Allow Admins to edit existing social links in CMD
+- Add "Resources" tab to CMD where Admins can edit helpful links to off-platform SEVCO resources and "Quick Links" to Overview that shows the top few links from Resources tab.
+- Add "Brand" section to bottom of About page with full SEVCO Brand Guidelines and download links for brand assets for use in marketing materials that I can add from CMD.
+- Add Bulletin section to home page that shows the pinned Official Post from the feed publicly.
+- A "Gallery" page with quick-copy image links for use in profile pics or banner images. Explore options for sourcing images and get my input.
+- A new "Tools" dropdown containing Notes and the Gallery for logged in users+ (more to come)
+- Update Footer to add more comprehensive sitemap
+- Add Profile link in Account page and vice versa
+- Fix: Can only seem to view cart by clicking the icon from the Store page, if its in the nav bar, users should always be able to open the Cart.
+- Create a new "Hosting" landing page and link it under Services:
+(Create a complete, single-file, beautiful, modern, mobile-first landing page for SEVCO Hosting — a new all-in-one hosting company that offers website hosting, Minecraft & game server hosting, VPS, and “anything else” (custom apps, databases, etc.).Brand & Tone:Name: SEVCO Hosting
+Tagline: “Lightning-Fast Hosting for Websites, Minecraft Servers & Everything In Between”)
+- Allow Executive+ to edit Project & Service menu Icons and add an app Icon to each Project
+- Add a "Spotify" section to the music tab of CMD where we can see streaming stats, streaming revenue, followers, etc for multiple Artists on Spotify, allow Admins to edit the artists. Also in this tab, we should have a tool for building playlists/adding songs to playlists. 
+Use the following API rules:
+*** SPOTIFY API RULES (Prompt)
+You are helping me build an application using the Spotify Web API. Follow these rules:
+- OpenAPI spec: Refer to the Spotify OpenAPI specification at https://developer.spotify.com/reference/web-api/open-api-schema.yaml for all endpoint paths, parameters, and response schemas. Do not guess endpoints or field names.
+- Authorization: Use the Authorization Code with PKCE flow (https://developer.spotify.com/documentation/web-api/tutorials/code-pkce-flow) for any user-specific data. If the app has a secure backend, the Authorization Code flow (https://developer.spotify.com/documentation/web-api/tutorials/code-flow) is also acceptable. Only use Client Credentials for public, non-user data. Never use the Implicit Grant flow (it is deprecated).
+- Redirect URIs: Always use HTTPS redirect URIs (except http://127.0.0.1 for local development). Never use http://localhost or wildcard URIs. See https://developer.spotify.com/documentation/web-api/concepts/redirect_uri for requirements.
+- Scopes: Request only the minimum scopes (https://developer.spotify.com/documentation/web-api/concepts/scopes) needed for the features being built. Do not request broad scopes preemptively.
+- Token management: Store tokens securely. Never expose the Client Secret in client-side code. Implement token refresh (https://developer.spotify.com/documentation/web-api/tutorials/refreshing-tokens) logic so the app does not break when access tokens expire.
+- Rate limits: Implement exponential backoff and respect the Retry-After header when receiving HTTP 429 responses. Do not retry immediately or in tight loops.
+- Deprecated endpoints: Do not use deprecated endpoints. Prefer /playlists/{id}/items over /playlists/{id}/tracks, and use /me/library over the type-specific library endpoints.
+- Error handling: Handle all HTTP error codes documented in the OpenAPI schema. Read the returned error message and use it to provide meaningful feedback to the user.
+- Developer Terms of Service: Comply with the Spotify Developer Terms (https://developer.spotify.com/terms). In particular: do not cache Spotify content beyond what is needed for immediate use, always attribute content to Spotify, and do not use the API to train machine learning models on Spotify data.
+***
+- We can remove /store/stats because we now have the same info in /command/store, link the store tab of Command from Overview instead.
+- Add some placeholder products with images so i can see what it looks like and test functions.
+- Add full sitemap to Footer much like the footer on SeveLovesYou.com but, with the sitemap for this SEVCO Platform.
+- At the end, Turn all task summaries into individual wiki articles, add changelog entry for each, add timestamps to Changelog and update Changelog entries to link those corresponding articles in engineering marked with Replit and the version number in a General type info box. Use the content from your task summaries for article content.
+- Double check to make sure you don't miss ANYTHING on this list.

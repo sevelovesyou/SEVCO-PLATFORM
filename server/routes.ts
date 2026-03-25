@@ -1064,8 +1064,20 @@ export async function registerRoutes(
     try {
       const user = await storage.getUserByUsername(req.params.username);
       if (!user) return res.status(404).json({ message: "User not found" });
-      const { password, emailVerificationToken, emailVerificationExpires, ...publicUser } = user;
-      res.json(publicUser);
+      const publicProfile = {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        bio: user.bio,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+        profileBgColor: user.profileBgColor,
+        profileAccentColor: user.profileAccentColor,
+        profileBgImageUrl: user.profileBgImageUrl,
+        socialLinks: user.socialLinks,
+        emailVerified: user.emailVerified,
+      };
+      res.json(publicProfile);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -1078,8 +1090,20 @@ export async function registerRoutes(
         return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid input" });
       }
       const updated = await storage.updateUserProfile(req.user.id, parsed.data);
-      const { password, emailVerificationToken, emailVerificationExpires, ...publicUser } = updated;
-      res.json(publicUser);
+      const publicProfile = {
+        id: updated.id,
+        username: updated.username,
+        displayName: updated.displayName,
+        bio: updated.bio,
+        role: updated.role,
+        avatarUrl: updated.avatarUrl,
+        profileBgColor: updated.profileBgColor,
+        profileAccentColor: updated.profileAccentColor,
+        profileBgImageUrl: updated.profileBgImageUrl,
+        socialLinks: updated.socialLinks,
+        emailVerified: updated.emailVerified,
+      };
+      res.json(publicProfile);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

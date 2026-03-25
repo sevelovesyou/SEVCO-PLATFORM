@@ -1628,7 +1628,7 @@ export async function registerRoutes(
   });
 
   // Social posts
-  app.get("/api/posts", async (req: any, res) => {
+  app.get("/api/posts", requireAuth, async (req: any, res) => {
     try {
       const userId = (req.query.userId as string) || undefined;
       const currentUserId = req.user?.id;
@@ -1647,7 +1647,7 @@ export async function registerRoutes(
 
   app.post("/api/posts", requireAuth, async (req: any, res) => {
     try {
-      const parsed = insertPostSchema.safeParse(req.body);
+      const parsed = insertPostSchema.extend({ content: z.string().min(1).max(500) }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
       const post = await storage.createPost({ ...parsed.data, authorId: req.user.id });
       res.status(201).json(post);
@@ -1710,7 +1710,7 @@ export async function registerRoutes(
     try {
       const postId = parseInt(req.params.id);
       if (isNaN(postId)) return res.status(400).json({ message: "Invalid id" });
-      const parsed = insertPostReplySchema.safeParse(req.body);
+      const parsed = insertPostReplySchema.extend({ content: z.string().min(1).max(500) }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
       const reply = await storage.createReply({ ...parsed.data, postId, authorId: req.user.id });
       res.status(201).json(reply);

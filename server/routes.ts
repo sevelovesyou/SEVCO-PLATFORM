@@ -10,7 +10,7 @@ import {
   CAN_ACCESS_REVIEW_QUEUE,
   CAN_DELETE_ARTICLE,
 } from "./middleware/permissions";
-import type { Role } from "@shared/schema";
+import type { Role, InsertJob } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertMusicSubmissionSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail } from "./emailClient";
@@ -239,7 +239,7 @@ async function seedChangelog() {
 async function seedJobs() {
   const existing = await storage.getJobs(true);
   if (existing.length > 0) return;
-  const JOB_SEED = [
+  const JOB_SEED: InsertJob[] = [
     {
       title: "Frontend Engineer",
       slug: "frontend-engineer",
@@ -298,7 +298,7 @@ async function seedJobs() {
     },
   ];
   for (const job of JOB_SEED) {
-    await storage.createJob(job as any);
+    await storage.createJob(job);
   }
 }
 
@@ -1080,6 +1080,15 @@ export async function registerRoutes(
       const updated = await storage.updateUserProfile(req.user.id, parsed.data);
       const { password, emailVerificationToken, emailVerificationExpires, ...publicUser } = updated;
       res.json(publicUser);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/profile/:username/articles", async (req, res) => {
+    try {
+      const arts = await storage.getArticlesByAuthor(req.params.username);
+      res.json(arts.filter((a) => a.status === "published"));
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

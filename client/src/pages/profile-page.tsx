@@ -42,6 +42,20 @@ type SocialLinks = {
   website?: string | null;
 };
 
+type ProfileFormState = {
+  displayName: string;
+  bio: string;
+  avatarUrl: string;
+  profileBgColor: string;
+  profileAccentColor: string;
+  profileBgImageUrl: string;
+  instagram: string;
+  twitter: string;
+  tiktok: string;
+  discord: string;
+  website: string;
+};
+
 type PublicUser = {
   id: string;
   username: string;
@@ -76,11 +90,19 @@ function SocialBadge({ href, icon: Icon, label, accentColor }: { href: string; i
   );
 }
 
-function ProfileEditPanel({ user, onSaved }: { user: PublicUser; onSaved: (u: PublicUser) => void }) {
+function ProfileEditPanel({
+  user,
+  onSaved,
+  onFormChange,
+}: {
+  user: PublicUser;
+  onSaved: (u: PublicUser) => void;
+  onFormChange: (f: ProfileFormState) => void;
+}) {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<ProfileFormState>({
     displayName: user.displayName ?? "",
     bio: user.bio ?? "",
     avatarUrl: user.avatarUrl ?? "",
@@ -122,8 +144,12 @@ function ProfileEditPanel({ user, onSaved }: { user: PublicUser; onSaved: (u: Pu
     },
   });
 
-  function set(key: string, val: string) {
-    setForm((f) => ({ ...f, [key]: val }));
+  function set(key: keyof ProfileFormState, val: string) {
+    setForm((f) => {
+      const updated = { ...f, [key]: val };
+      onFormChange(updated);
+      return updated;
+    });
   }
 
   const accentColor = hexWithFallback(form.profileAccentColor) ?? "#000000";
@@ -288,6 +314,8 @@ function ProfileEditPanel({ user, onSaved }: { user: PublicUser; onSaved: (u: Pu
   );
 }
 
+type ArticleSnippet = { id: number; title: string; slug: string; summary: string | null; updatedAt: string };
+
 function ProfileView({ profile, isOwnProfile, onEdit }: {
   profile: PublicUser;
   isOwnProfile: boolean;
@@ -296,6 +324,15 @@ function ProfileView({ profile, isOwnProfile, onEdit }: {
   const bgColor = hexWithFallback(profile.profileBgColor);
   const accentColor = hexWithFallback(profile.profileAccentColor);
   const bgImage = profile.profileBgImageUrl;
+
+  const { data: recentArticles } = useQuery<ArticleSnippet[]>({
+    queryKey: ["/api/profile", profile.username, "articles"],
+    queryFn: async () => {
+      const res = await fetch(`/api/profile/${profile.username}/articles`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
 
   const roleBadge = ROLE_BADGE[profile.role] ?? ROLE_BADGE.user;
   const displayName = profile.displayName || profile.username;
@@ -441,6 +478,52 @@ function ProfileView({ profile, isOwnProfile, onEdit }: {
           <span className="font-medium">SEVCO Platform Member</span>
           {profile.emailVerified && <span className="ml-3 opacity-60">· Verified</span>}
         </div>
+
+        {/* Recent wiki contributions */}
+        {recentArticles && recentArticles.length > 0 && (
+          <div
+            className="mt-4 rounded-xl border overflow-hidden"
+            style={{
+              background: bgColor ? `${bgColor}88` : "var(--card)",
+              borderColor: accentColor ? `${accentColor}33` : "var(--border)",
+            }}
+          >
+            <div
+              className="px-5 py-3 border-b text-xs font-semibold uppercase tracking-wider"
+              style={{
+                borderColor: accentColor ? `${accentColor}22` : "var(--border)",
+                color: accentColor ? `${accentColor}99` : "var(--muted-foreground)",
+              }}
+            >
+              Wiki Contributions
+            </div>
+            <div className="divide-y" style={{ borderColor: accentColor ? `${accentColor}11` : "var(--border)" }}>
+              {recentArticles.map((article) => (
+                <a
+                  key={article.id}
+                  href={`/wiki/${article.slug}`}
+                  className="flex flex-col px-5 py-3 hover:opacity-80 transition-opacity"
+                  data-testid={`link-contribution-${article.id}`}
+                >
+                  <span
+                    className="text-sm font-medium"
+                    style={{ color: accentColor || "var(--foreground)" }}
+                  >
+                    {article.title}
+                  </span>
+                  {article.summary && (
+                    <span
+                      className="text-xs mt-0.5 line-clamp-1"
+                      style={{ color: accentColor ? `${accentColor}88` : "var(--muted-foreground)" }}
+                    >
+                      {article.summary}
+                    </span>
+                  )}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -450,7 +533,8 @@ export default function ProfilePage() {
   const { username: paramUsername } = useParams<{ username?: string }>();
   const { user: authUser } = useAuth();
   const [, setLocation] = useLocation();
-  const [editOpen, setEditOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(!paramUsername);
+  const [liveForm, setLiveForm] = useState<ProfileFormState | null>(null);
 
   const resolvedUsername = paramUsername || authUser?.username;
 
@@ -494,6 +578,25 @@ export default function ProfilePage() {
     );
   }
 
+  const displayProfile: PublicUser = editOpen && liveForm
+    ? {
+        ...profile,
+        displayName: liveForm.displayName || null,
+        bio: liveForm.bio || null,
+        avatarUrl: liveForm.avatarUrl || null,
+        profileBgColor: liveForm.profileBgColor || null,
+        profileAccentColor: liveForm.profileAccentColor || null,
+        profileBgImageUrl: liveForm.profileBgImageUrl || null,
+        socialLinks: {
+          instagram: liveForm.instagram || null,
+          twitter: liveForm.twitter || null,
+          tiktok: liveForm.tiktok || null,
+          discord: liveForm.discord || null,
+          website: liveForm.website || null,
+        },
+      }
+    : profile;
+
   return (
     <>
       <Sheet open={editOpen} onOpenChange={setEditOpen}>
@@ -503,13 +606,14 @@ export default function ProfilePage() {
           </SheetHeader>
           <ProfileEditPanel
             user={profile}
-            onSaved={() => setEditOpen(false)}
+            onSaved={(u) => { setEditOpen(false); setLiveForm(null); }}
+            onFormChange={setLiveForm}
           />
         </SheetContent>
       </Sheet>
 
       <ProfileView
-        profile={profile}
+        profile={displayProfile}
         isOwnProfile={isOwnProfile}
         onEdit={() => setEditOpen(true)}
       />

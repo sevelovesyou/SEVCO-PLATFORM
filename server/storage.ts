@@ -40,6 +40,7 @@ export interface IStorage {
   getArticles(): Promise<Article[]>;
   getArticleBySlug(slug: string): Promise<Article | undefined>;
   getArticlesByCategory(categoryId: number): Promise<Article[]>;
+  getArticlesByAuthor(authorName: string): Promise<Article[]>;
   searchArticles(query: string): Promise<Article[]>;
   createArticle(article: InsertArticle): Promise<Article>;
   updateArticle(id: number, data: Partial<InsertArticle>): Promise<Article>;
@@ -155,11 +156,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserProfile(id: string, data: UpdateProfile): Promise<User> {
-    const [updated] = await db
-      .update(users)
-      .set(data as any)
-      .where(eq(users.id, id))
-      .returning();
+    const updateObj: Partial<typeof users.$inferInsert> = {};
+    if (data.displayName !== undefined) updateObj.displayName = data.displayName;
+    if (data.bio !== undefined) updateObj.bio = data.bio;
+    if (data.avatarUrl !== undefined) updateObj.avatarUrl = data.avatarUrl;
+    if (data.profileBgColor !== undefined) updateObj.profileBgColor = data.profileBgColor;
+    if (data.profileAccentColor !== undefined) updateObj.profileAccentColor = data.profileAccentColor;
+    if (data.profileBgImageUrl !== undefined) updateObj.profileBgImageUrl = data.profileBgImageUrl;
+    if (data.socialLinks !== undefined) {
+      const sl: unknown = data.socialLinks;
+      updateObj.socialLinks = sl;
+    }
+    const [updated] = await db.update(users).set(updateObj).where(eq(users.id, id)).returning();
     return updated;
   }
 
@@ -216,6 +224,13 @@ export class DatabaseStorage implements IStorage {
 
   async getArticlesByCategory(categoryId: number): Promise<Article[]> {
     return db.select().from(articles).where(eq(articles.categoryId, categoryId)).orderBy(desc(articles.updatedAt));
+  }
+
+  async getArticlesByAuthor(authorName: string): Promise<Article[]> {
+    return db.select().from(articles)
+      .where(eq(articles.authorName, authorName))
+      .orderBy(desc(articles.updatedAt))
+      .limit(10);
   }
 
   async searchArticles(query: string): Promise<Article[]> {

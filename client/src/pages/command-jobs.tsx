@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { usePermission } from "@/hooks/use-permission";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,15 +28,15 @@ import { Plus, Pencil, Trash2, ExternalLink, Mail, FileText } from "lucide-react
 import { Link } from "wouter";
 import type { Job, JobApplication } from "@shared/schema";
 
-const DEPARTMENTS = ["Engineering", "Design", "Operations", "SEVCO Records", "Marketing", "Sales"];
-const JOB_TYPES = ["full-time", "part-time", "contract", "internship"];
+const DEPARTMENTS = ["Engineering", "Design", "Operations", "Music", "Marketing", "Sales"];
+const JOB_TYPES = ["full-time", "part-time", "contract", "freelance", "internship"];
 const JOB_STATUSES = ["open", "closed", "draft"];
 
 const jobFormSchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
   slug: z.string().min(1, "Slug is required").max(200).regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, and hyphens only"),
   department: z.string().min(1, "Department is required"),
-  type: z.enum(["full-time", "part-time", "contract", "internship"]),
+  type: z.enum(["full-time", "part-time", "contract", "freelance", "internship"]),
   location: z.string().optional(),
   remote: z.boolean(),
   description: z.string().min(1, "Description is required"),
@@ -398,20 +399,33 @@ function ApplicationsPanel({ job, onClose }: { job: Job; onClose: () => void }) 
 
 export default function CommandJobs() {
   const { toast } = useToast();
+  const { role } = usePermission();
   const [formOpen, setFormOpen] = useState(false);
   const [editJob, setEditJob] = useState<Job | null>(null);
   const [deleteJob, setDeleteJob] = useState<Job | null>(null);
   const [viewApplicationsFor, setViewApplicationsFor] = useState<Job | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
+  const canManage = role === "admin" || role === "executive";
+
   const { data: jobs, isLoading } = useQuery<Job[]>({
     queryKey: ["/api/jobs", "all"],
-    queryFn: () => fetch("/api/jobs?all=true").then((r) => r.json()),
+    queryFn: async () => {
+      const res = await fetch("/api/jobs?all=true");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: canManage,
   });
 
   const { data: allApplications } = useQuery<JobApplication[]>({
     queryKey: ["/api/job-applications"],
-    queryFn: () => fetch("/api/job-applications").then((r) => r.json()),
+    queryFn: async () => {
+      const res = await fetch("/api/job-applications");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: canManage,
   });
 
   const deleteMutation = useMutation({
@@ -446,6 +460,16 @@ export default function CommandJobs() {
   const total = jobs?.length ?? 0;
   const open = jobs?.filter((j) => j.status === "open").length ?? 0;
   const totalApps = allApplications?.length ?? 0;
+
+  if (!canManage) {
+    return (
+      <div className="text-center py-16 text-muted-foreground" data-testid="jobs-access-denied">
+        <FileText className="h-8 w-8 mx-auto mb-3 opacity-30" />
+        <p className="font-medium">Access restricted</p>
+        <p className="text-sm mt-1">You don't have permission to manage jobs.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

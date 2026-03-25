@@ -1,0 +1,32 @@
+- Add a way for admins to add/change the hero buttons and the hero background image on Home page from Command, create a "Display" tab in CMD for this and we will add more control features for individual pages, for example: the ability to toggle a home page section's visibility when its not ready like the "Shop the latest" section with no products yet. Admin should also be able to update favicon and social image for the platform from this tab.
+- New Custom “About” page with unique icon and is not a wiki article but, its own page.
+- A search icon in the nav bar that allows you to search all viewable content based on your permission level with results page and a search google button that opens in a new tab with the same query for google. This should function, visually, like Shopify search but search all platform content, not just products.
+- Move the Changelog from the Home dropdown to a tab in the wiki menu (Its other place in CMD is fine)
+- Fix: Main Nav bar hides wiki menu button.
+- Fix: App Icon doesn’t show on iPhone when adding to homescreen.
+- Fix: Failed to post when trying to post on timeline (from Admin account)
+- Combine the Music Submissions tab and the Playlists tab into one "Music" tab, I noticed the redundant features in both tabs.
+- Rename "Home" dropdown to "SEVCO" and add a "Home" link to dropdown that links to the main Landing page.
+- Integrate Hostinger API and set up a "Hosting" section in CMD for Admins only, suggest feature set based on the Hostinger API available endpoints and get my approval/input.
+- Using the Hostinger API and Stripe if needed, create a "Domains" page where users can search available domains and purchase one through SEVCO, place it under the services dropdown in the menu.
+- Throughout the platform I noticed a small footnote in many places that says "sevelovesyou.com" for example below the menu in the wiki, can we replace that with sevco.us, our new official domain.
+- Show applications and applicants in the Jobs tab of CMD
+- Put Store Analytics in the Store tab instead of its own page.
+- Add Archive tab to wiki navigation for staff+
+CMD Overview Updates
+- Latest Changelog entry at the top
+- Latest Applicants (Jobs)
+- Latest Submissions (Music)
+- Hostinger VPS status
+- Any other relevant stats or cards you can add from our recent additions to CMD, integrations or APIs.
+- Turn tasks #1-latest into individual wiki articles, add timestamps to Changelog and update Changelog entries to link those corresponding articles in engineering marked with Replit and the version number in a General type info box. Use the content from your task summaries for article content.
+
+#FIXES
+- Hiding the menu on the wiki hides the button too, I suggest just callapsing the wiki menu down to icons instead of completely gone.
+- Domain search tool is not working (domain lookup shows everything as taken, see screenshot)
+- I dont see the "Display" tab in CMD like my first instruction asked for, check to see if we missed any other instructions while youre at it.
+- Latest Release section in CMD Overview is not the top section, it should be.
+- I still dont see an actual "About" page, still just the wiki article in the menu.
+- Each Project should have its own set of optional links; website, x.com, IG, etc... so when you click into the project detail, you can follow the links.
+- Add back to wiki menu to Changelog page or seat Changelog in the wiki (/wiki/changelog)
+- In Social links section of CMD keep same beautiful design and just add the ability to change the Listen page social links as well.

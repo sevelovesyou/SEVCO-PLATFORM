@@ -11,7 +11,7 @@ import {
   CAN_DELETE_ARTICLE,
 } from "./middleware/permissions";
 import type { Role, InsertJob } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
@@ -868,7 +868,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/changelog", requireAuth, requireRole(...CAN_MANAGE_CHANGELOG), async (_req, res) => {
+  app.get("/api/changelog", async (_req, res) => {
     try {
       const entries = await storage.getChangelog();
       res.json(entries);
@@ -1485,6 +1485,54 @@ export async function registerRoutes(
   app.delete("/api/notes/:id", requireAuth, async (req: any, res) => {
     try {
       await storage.deleteNote(parseInt(req.params.id), req.user.id);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Feed routes
+  const CAN_MANAGE_FEED: Role[] = ["admin", "executive"];
+
+  app.get("/api/feed", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt((req.query.limit as string) || "50"), 100);
+      const posts = await storage.getFeedPosts(limit);
+      res.json(posts);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/feed", requireAuth, requireRole(...CAN_MANAGE_FEED), async (req: any, res) => {
+    try {
+      const parsed = insertFeedPostSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
+      const post = await storage.createFeedPost({ ...parsed.data, authorId: req.user.id });
+      res.status(201).json(post);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/feed/:id", requireAuth, requireRole(...CAN_MANAGE_FEED), async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      const parsed = insertFeedPostSchema.partial().safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
+      const post = await storage.updateFeedPost(id, parsed.data);
+      res.json(post);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/feed/:id", requireAuth, requireRole(...CAN_MANAGE_FEED), async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      await storage.deleteFeedPost(id);
       res.status(204).end();
     } catch (err: any) {
       res.status(500).json({ message: err.message });

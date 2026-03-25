@@ -54,6 +54,8 @@ import {
   ClipboardList,
   Target,
   StickyNote,
+  Rss,
+  ScrollText,
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import type { Project, Service } from "@shared/schema";
@@ -170,11 +172,13 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
   const { open, setOpen, ref } = useDropdown();
 
   const items = [
-    { label: "About",    href: "/wiki/company-overview", icon: BookOpen, desc: "Learn about SEVCO" },
-    { label: "Wiki",     href: "/wiki",                  icon: BookOpen, desc: "Internal knowledge base" },
-    { label: "Contact",  href: "/contact",               icon: Mail,     desc: "Get in touch" },
-    { label: "Jobs",     href: "/jobs",                  icon: Users,    desc: "Open positions" },
-    { label: "Account",  href: "/account",               icon: User,     desc: "Manage your profile" },
+    { label: "About",      href: "/wiki/company-overview", icon: BookOpen,   desc: "Learn about SEVCO" },
+    { label: "Wiki",       href: "/wiki",                  icon: BookOpen,   desc: "Internal knowledge base" },
+    { label: "Feed",       href: "/feed",                  icon: Rss,        desc: "Latest updates from the team" },
+    { label: "Changelog",  href: "/changelog",             icon: ScrollText, desc: "Platform update history" },
+    { label: "Contact",    href: "/contact",               icon: Mail,       desc: "Get in touch" },
+    { label: "Jobs",       href: "/jobs",                  icon: Users,      desc: "Open positions" },
+    { label: "Account",    href: "/account",               icon: User,       desc: "Manage your profile" },
   ];
 
   return (
@@ -506,11 +510,13 @@ export function PlatformHeader() {
     { label: "Submit",        href: "/music/submit" },
   ];
   const homeItems = [
-    { label: "About",   href: "/wiki/company-overview" },
-    { label: "Wiki",    href: "/wiki" },
-    { label: "Contact", href: "/contact" },
-    { label: "Jobs",    href: "/jobs" },
-    { label: "Account", href: "/account" },
+    { label: "About",     href: "/wiki/company-overview" },
+    { label: "Wiki",      href: "/wiki" },
+    { label: "Feed",      href: "/feed" },
+    { label: "Changelog", href: "/changelog" },
+    { label: "Contact",   href: "/contact" },
+    { label: "Jobs",      href: "/jobs" },
+    { label: "Account",   href: "/account" },
   ];
 
   return (

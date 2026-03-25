@@ -385,6 +385,33 @@ export const insertNoteSchema = createInsertSchema(notes).omit({ id: true, creat
 export type Note = typeof notes.$inferSelect;
 export type InsertNote = z.infer<typeof insertNoteSchema>;
 
+export const feedPostTypeEnum = pgEnum("feed_post_type", ["update", "release", "milestone", "media", "event"]);
+export type FeedPostType = typeof feedPostTypeEnum.enumValues[number];
+
+export const feedPosts = pgTable("feed_posts", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  authorId: varchar("author_id").references(() => users.id, { onDelete: "set null" }),
+  type: feedPostTypeEnum("type").notNull().default("update"),
+  content: text("content").notNull(),
+  mediaUrl: text("media_url"),
+  linkUrl: text("link_url"),
+  linkLabel: text("link_label"),
+  pinned: boolean("pinned").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const feedPostsRelations = relations(feedPosts, ({ one }) => ({
+  author: one(users, {
+    fields: [feedPosts.authorId],
+    references: [users.id],
+  }),
+}));
+
+export const insertFeedPostSchema = createInsertSchema(feedPosts).omit({ id: true, createdAt: true, updatedAt: true, authorId: true });
+export type FeedPost = typeof feedPosts.$inferSelect;
+export type InsertFeedPost = z.infer<typeof insertFeedPostSchema>;
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type UpdateRole = z.infer<typeof updateRoleSchema>;

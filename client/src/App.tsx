@@ -58,6 +58,8 @@ import CommandMusic from "@/pages/command-music";
 import CommandPlaylists from "@/pages/command-playlists";
 import CommandSocialLinks from "@/pages/command-social-links";
 import NotesPage from "@/pages/notes-page";
+import FeedPage from "@/pages/feed-page";
+import ChangelogPage from "@/pages/changelog-page";
 import ServiceDetailPage from "@/pages/service-detail-page";
 import ServicesListingPage from "@/pages/services-listing";
 
@@ -102,6 +104,8 @@ function Router() {
       <Route path="/projects" component={ProjectsPage} />
       <Route path="/projects/:slug" component={ProjectDetail} />
       <Route path="/contact" component={ContactPage} />
+      <Route path="/feed" component={FeedPage} />
+      <Route path="/changelog" component={ChangelogPage} />
       <Route path="/jobs" component={JobsPage} />
       <Route path="/jobs/:slug" component={JobsDetailPage} />
       <Route path="/profile/:username" component={ProfilePage} />

@@ -64,12 +64,14 @@ const STATIC_SOCIALS = [
 ];
 
 const SITEMAP = [
-  { label: "Home",      path: "/" },
-  { label: "Wiki",      path: "/wiki" },
-  { label: "Music",     path: "/music" },
-  { label: "Store",     path: "/store" },
-  { label: "Projects",  path: "/projects" },
-  { label: "Command",   path: "/command" },
+  { label: "Home",       path: "/" },
+  { label: "Wiki",       path: "/wiki" },
+  { label: "Feed",       path: "/feed" },
+  { label: "Changelog",  path: "/changelog" },
+  { label: "Music",      path: "/music" },
+  { label: "Store",      path: "/store" },
+  { label: "Projects",   path: "/projects" },
+  { label: "Command",    path: "/command" },
 ];
 
 const POLICY_LINKS = [

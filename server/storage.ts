@@ -18,9 +18,10 @@ import {
   type MusicSubmission, type InsertMusicSubmission,
   type PlatformSocialLink, type InsertPlatformSocialLink,
   type Note, type InsertNote,
+  type FeedPost, type InsertFeedPost,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
-  jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes,
+  jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or } from "drizzle-orm";
@@ -149,6 +150,11 @@ export interface IStorage {
   createNote(data: InsertNote & { authorId: string }): Promise<Note>;
   updateNote(id: number, authorId: string, data: Partial<InsertNote>): Promise<Note>;
   deleteNote(id: number, authorId: string): Promise<void>;
+
+  getFeedPosts(limit?: number): Promise<(FeedPost & { author: { username: string; displayName: string | null; avatarUrl: string | null } | null })[]>;
+  createFeedPost(data: InsertFeedPost & { authorId: string }): Promise<FeedPost>;
+  updateFeedPost(id: number, data: Partial<InsertFeedPost>): Promise<FeedPost>;
+  deleteFeedPost(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -787,6 +793,41 @@ export class DatabaseStorage implements IStorage {
 
   async deleteNote(id: number, authorId: string): Promise<void> {
     await db.delete(notes).where(and(eq(notes.id, id), eq(notes.authorId, authorId)));
+  }
+
+  async getFeedPosts(limit = 50): Promise<(FeedPost & { author: { username: string; displayName: string | null; avatarUrl: string | null } | null })[]> {
+    const rows = await db
+      .select({
+        post: feedPosts,
+        author: {
+          username: users.username,
+          displayName: users.displayName,
+          avatarUrl: users.avatarUrl,
+        },
+      })
+      .from(feedPosts)
+      .leftJoin(users, eq(feedPosts.authorId, users.id))
+      .orderBy(desc(feedPosts.pinned), desc(feedPosts.createdAt))
+      .limit(limit);
+
+    return rows.map((r) => ({
+      ...r.post,
+      author: r.author?.username ? r.author : null,
+    }));
+  }
+
+  async createFeedPost(data: InsertFeedPost & { authorId: string }): Promise<FeedPost> {
+    const [row] = await db.insert(feedPosts).values(data).returning();
+    return row;
+  }
+
+  async updateFeedPost(id: number, data: Partial<InsertFeedPost>): Promise<FeedPost> {
+    const [row] = await db.update(feedPosts).set({ ...data, updatedAt: new Date() }).where(eq(feedPosts.id, id)).returning();
+    return row;
+  }
+
+  async deleteFeedPost(id: number): Promise<void> {
+    await db.delete(feedPosts).where(eq(feedPosts.id, id));
   }
 }
 

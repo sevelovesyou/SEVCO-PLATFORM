@@ -63,6 +63,8 @@ A multi-app platform for sevelovesyou.com (SEVE / SEVCO Records). Built as a pla
 | `/command/playlists` | Command — Playlist Management (admin/exec) | Command sidebar |
 | `/command/jobs` | Command — Jobs & Applications (admin/exec) | Command sidebar |
 | `/command/social-links` | Command — Social Links admin (admin) | Command sidebar |
+| `/feed` | SEVCO Feed (public, manage if admin/exec) | None |
+| `/changelog` | Public Platform Changelog | None |
 | `/notes` | Personal Notes (auth required) | None |
 | `/auth` | Login/Register | None |
 | `/verify-email` | Email Verification (unguarded) | None |

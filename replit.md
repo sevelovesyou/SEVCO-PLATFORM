@@ -38,7 +38,20 @@ A multi-app platform for sevelovesyou.com (SEVE / SEVCO Records). Built as a pla
 | `/search`, `/review` | Wiki tools | Wiki sidebar |
 | `/category/:slug` | Category View | Wiki sidebar |
 | `/account` | Account Settings | Wiki sidebar |
-| `/music` | SEVCO RECORDS | None |
+| `/music` | SEVCO RECORDS hub | None |
+| `/listen` | Music catalog / listen | None |
+| `/music/submit` | Submit music to SEVCO Records | None |
+| `/music/playlists` | Curated playlists | None |
+| `/music/artists` | Artists listing | None |
+| `/music/artists/:slug` | Artist detail | None |
+| `/music/albums/:slug` | Album detail | None |
+| `/jobs` | Jobs board | None |
+| `/jobs/:slug` | Job detail + application form | None |
+| `/contact` | Contact page | None |
+| `/profile` | Own profile (auth required) | None |
+| `/profile/:username` | Public user profile | None |
+| `/services` | Services listing | None |
+| `/services/:slug` | Service detail | None |
 | `/store` | Store | None |
 | `/projects` | SEVCO Ventures | None |
 | `/dashboard` | Redirects to /command | None |

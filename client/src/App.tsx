@@ -40,6 +40,11 @@ import ProjectDetail from "@/pages/project-detail";
 import { ProjectCreatePage, ProjectEditPage } from "@/pages/project-form";
 import ContactPage from "@/pages/contact-page";
 import ProfilePage from "@/pages/profile-page";
+import JobsPage from "@/pages/jobs-page";
+import JobsDetailPage from "@/pages/jobs-detail-page";
+import MusicSubmitPage from "@/pages/music-submit-page";
+import MusicListenPage from "@/pages/music-listen-page";
+import MusicPlaylistsPage from "@/pages/music-playlists-page";
 import NotFound from "@/pages/not-found";
 
 import { CommandPageLayout } from "@/pages/command-page";
@@ -79,6 +84,9 @@ function Router() {
       <Route path="/search" component={SearchPage} />
       <Route path="/category/:slug" component={CategoryView} />
       <Route path="/music" component={MusicPage} />
+      <Route path="/music/submit" component={MusicSubmitPage} />
+      <Route path="/music/playlists" component={MusicPlaylistsPage} />
+      <Route path="/listen" component={MusicListenPage} />
       <Route path="/music/artists" component={MusicArtistsPage} />
       <Route path="/music/artists/:slug" component={MusicArtistDetail} />
       <Route path="/music/albums/:slug" component={MusicAlbumDetail} />
@@ -89,6 +97,8 @@ function Router() {
       <Route path="/projects" component={ProjectsPage} />
       <Route path="/projects/:slug" component={ProjectDetail} />
       <Route path="/contact" component={ContactPage} />
+      <Route path="/jobs" component={JobsPage} />
+      <Route path="/jobs/:slug" component={JobsDetailPage} />
       <Route path="/profile/:username" component={ProfilePage} />
 
       {/* Protected write/manage routes */}
@@ -172,13 +182,15 @@ function AppShell() {
     <SidebarProvider
       style={{ "--sidebar-width": "16rem", "--sidebar-width-icon": "3rem" } as React.CSSProperties}
     >
-      <div className="flex flex-col h-screen w-full">
+      <div className="flex flex-col min-h-screen w-full">
         <PlatformHeader />
-        <div className="flex flex-1 min-h-0">
+        <div className="flex flex-1">
           {showWikiSidebar && <AppSidebar />}
           {showCommandSidebar && <CommandSidebar />}
-          <main className="flex-1 overflow-auto flex flex-col">
-            <Router />
+          <main className="flex-1 flex flex-col">
+            <div className="flex-1">
+              <Router />
+            </div>
             <PlatformFooter />
           </main>
         </div>

@@ -12,8 +12,12 @@ import {
   type Changelog, type InsertChangelog,
   type Order, type InsertOrder,
   type Service, type InsertService,
+  type Job, type InsertJob,
+  type JobApplication, type InsertJobApplication,
+  type MusicSubmission, type InsertMusicSubmission,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
+  jobs, jobApplications, musicSubmissions,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or } from "drizzle-orm";
@@ -100,6 +104,19 @@ export interface IStorage {
   createService(service: InsertService): Promise<Service>;
   updateService(id: number, data: Partial<InsertService>): Promise<Service>;
   deleteService(id: number): Promise<void>;
+  getJobs(includeAll?: boolean): Promise<Job[]>;
+  getJobBySlug(slug: string): Promise<Job | undefined>;
+  createJob(job: InsertJob): Promise<Job>;
+  updateJob(id: number, data: Partial<InsertJob>): Promise<Job>;
+  deleteJob(id: number): Promise<void>;
+  getJobApplications(jobId?: number): Promise<JobApplication[]>;
+  createJobApplication(app: InsertJobApplication): Promise<JobApplication>;
+  updateJobApplicationStatus(id: number, status: string): Promise<JobApplication>;
+
+  getMusicSubmissions(): Promise<MusicSubmission[]>;
+  createMusicSubmission(sub: InsertMusicSubmission): Promise<MusicSubmission>;
+  updateMusicSubmissionStatus(id: number, status: string): Promise<MusicSubmission>;
+
   getStoreStats(): Promise<{
     totalProducts: number;
     inStock: number;
@@ -578,6 +595,61 @@ export class DatabaseStorage implements IStorage {
     const byPriceRange = rangeLabels.map((range, i) => ({ range, count: rangeCounts[i] }));
 
     return { totalProducts, inStock, outOfStock, catalogValue: Math.round(catalogValue * 100) / 100, avgPrice: Math.round(avgPrice * 100) / 100, byCategory, byStockStatus, byPriceRange };
+  }
+
+  async getJobs(includeAll = false): Promise<Job[]> {
+    const all = await db.select().from(jobs).orderBy(desc(jobs.createdAt));
+    return includeAll ? all : all.filter((j) => j.status === "open");
+  }
+
+  async getJobBySlug(slug: string): Promise<Job | undefined> {
+    const [row] = await db.select().from(jobs).where(eq(jobs.slug, slug));
+    return row;
+  }
+
+  async createJob(job: InsertJob): Promise<Job> {
+    const [row] = await db.insert(jobs).values(job).returning();
+    return row;
+  }
+
+  async updateJob(id: number, data: Partial<InsertJob>): Promise<Job> {
+    const [row] = await db.update(jobs).set(data).where(eq(jobs.id, id)).returning();
+    return row;
+  }
+
+  async deleteJob(id: number): Promise<void> {
+    await db.delete(jobs).where(eq(jobs.id, id));
+  }
+
+  async getJobApplications(jobId?: number): Promise<JobApplication[]> {
+    if (jobId) {
+      return db.select().from(jobApplications).where(eq(jobApplications.jobId, jobId)).orderBy(desc(jobApplications.createdAt));
+    }
+    return db.select().from(jobApplications).orderBy(desc(jobApplications.createdAt));
+  }
+
+  async createJobApplication(app: InsertJobApplication): Promise<JobApplication> {
+    const [row] = await db.insert(jobApplications).values(app).returning();
+    return row;
+  }
+
+  async updateJobApplicationStatus(id: number, status: string): Promise<JobApplication> {
+    const [row] = await db.update(jobApplications).set({ status }).where(eq(jobApplications.id, id)).returning();
+    return row;
+  }
+
+  async getMusicSubmissions(): Promise<MusicSubmission[]> {
+    return db.select().from(musicSubmissions).orderBy(desc(musicSubmissions.createdAt));
+  }
+
+  async createMusicSubmission(sub: InsertMusicSubmission): Promise<MusicSubmission> {
+    const [row] = await db.insert(musicSubmissions).values(sub).returning();
+    return row;
+  }
+
+  async updateMusicSubmissionStatus(id: number, status: string): Promise<MusicSubmission> {
+    const [row] = await db.update(musicSubmissions).set({ status }).where(eq(musicSubmissions.id, id)).returning();
+    return row;
   }
 }
 

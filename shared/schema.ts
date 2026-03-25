@@ -214,6 +214,47 @@ export const services = pgTable("services", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const jobs = pgTable("jobs", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  department: text("department").notNull(),
+  type: text("type").notNull().default("full-time"),
+  location: text("location"),
+  remote: boolean("remote").default(false),
+  description: text("description").notNull(),
+  requirements: text("requirements"),
+  salaryMin: integer("salary_min"),
+  salaryMax: integer("salary_max"),
+  status: text("status").notNull().default("open"),
+  featured: boolean("featured").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const jobApplications = pgTable("job_applications", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  jobId: integer("job_id").notNull(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  resumeUrl: text("resume_url"),
+  coverLetter: text("cover_letter"),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const musicSubmissions = pgTable("music_submissions", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  artistName: text("artist_name").notNull(),
+  email: text("email").notNull(),
+  genre: text("genre"),
+  socialLink: text("social_link"),
+  musicLink: text("music_link").notNull(),
+  message: text("message"),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const changelogCategoryEnum = pgEnum("changelog_category", ["feature", "fix", "improvement", "other"]);
 export type ChangelogCategory = typeof changelogCategoryEnum.enumValues[number];
 
@@ -224,6 +265,10 @@ export const changelog = pgTable("changelog", {
   category: changelogCategoryEnum("category").notNull().default("improvement"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const insertJobSchema = createInsertSchema(jobs).omit({ id: true, createdAt: true });
+export const insertJobApplicationSchema = createInsertSchema(jobApplications).omit({ id: true, createdAt: true, status: true });
+export const insertMusicSubmissionSchema = createInsertSchema(musicSubmissions).omit({ id: true, createdAt: true, status: true });
 
 export const insertChangelogSchema = createInsertSchema(changelog).omit({ id: true, createdAt: true });
 export type InsertChangelog = z.infer<typeof insertChangelogSchema>;
@@ -320,3 +365,9 @@ export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type Service = typeof services.$inferSelect;
 export type InsertService = z.infer<typeof insertServiceSchema>;
+export type Job = typeof jobs.$inferSelect;
+export type InsertJob = z.infer<typeof insertJobSchema>;
+export type JobApplication = typeof jobApplications.$inferSelect;
+export type InsertJobApplication = z.infer<typeof insertJobApplicationSchema>;
+export type MusicSubmission = typeof musicSubmissions.$inferSelect;
+export type InsertMusicSubmission = z.infer<typeof insertMusicSubmissionSchema>;

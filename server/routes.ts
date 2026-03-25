@@ -11,13 +11,14 @@ import {
   CAN_DELETE_ARTICLE,
 } from "./middleware/permissions";
 import type { Role } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertMusicSubmissionSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
+const CAN_MANAGE_JOBS: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_STORE_PRODUCTS: Role[] = ["admin", "executive"];
 const CAN_MANAGE_PROJECTS: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_CHANGELOG: Role[] = ["admin", "executive", "staff"];
@@ -235,6 +236,72 @@ async function seedChangelog() {
   }
 }
 
+async function seedJobs() {
+  const existing = await storage.getJobs(true);
+  if (existing.length > 0) return;
+  const JOB_SEED = [
+    {
+      title: "Frontend Engineer",
+      slug: "frontend-engineer",
+      department: "Engineering",
+      type: "full-time",
+      location: "Remote",
+      remote: true,
+      description: "We're looking for a skilled Frontend Engineer to help build and maintain the SEVCO Platform. You'll work closely with design and backend teams to deliver fast, accessible, and beautiful web experiences.\n\n## What You'll Do\n- Build new features across the SEVCO Platform\n- Collaborate on design implementation with the design team\n- Write clean, maintainable TypeScript and React code\n- Participate in code reviews and architectural decisions\n\n## What We Offer\n- Fully remote, flexible hours\n- Competitive compensation\n- Direct access to leadership\n- A creative, fast-moving environment",
+      requirements: "- 2+ years of React experience\n- Strong TypeScript skills\n- Experience with REST APIs\n- Eye for design and detail\n- Bonus: Tailwind CSS, shadcn/ui",
+      salaryMin: 80000,
+      salaryMax: 120000,
+      status: "open",
+      featured: true,
+    },
+    {
+      title: "A&R Coordinator",
+      slug: "ar-coordinator",
+      department: "SEVCO Records",
+      type: "part-time",
+      location: "Remote",
+      remote: true,
+      description: "SEVCO Records is growing and we need an A&R Coordinator to help us find and develop new talent. You'll be the bridge between emerging artists and our label infrastructure.\n\n## What You'll Do\n- Source and evaluate artist submissions\n- Conduct outreach to promising talent\n- Support artists through the onboarding process\n- Help coordinate release planning and promotion\n\n## What We Offer\n- Flexible, part-time role\n- Opportunity to shape SEVCO's artist roster\n- Creative, music-first environment",
+      requirements: "- Passion for music and artist development\n- Strong communication skills\n- Experience in the music industry preferred\n- Familiarity with streaming platforms and social media trends",
+      salaryMin: null,
+      salaryMax: null,
+      status: "open",
+      featured: true,
+    },
+    {
+      title: "Community Manager",
+      slug: "community-manager",
+      department: "Operations",
+      type: "full-time",
+      location: "Remote",
+      remote: true,
+      description: "We're looking for an enthusiastic Community Manager to grow and support the SEVCO community across Discord, social media, and the platform itself.\n\n## What You'll Do\n- Moderate and grow the SEVCO Discord server\n- Create and schedule social media content\n- Engage with community members and surface feedback\n- Plan and run community events and campaigns\n\n## What We Offer\n- Fully remote, flexible hours\n- Creative freedom\n- Be part of a growing platform from the ground floor",
+      requirements: "- Experience managing online communities\n- Strong writing and communication skills\n- Familiarity with Discord, Instagram, TikTok, and X\n- Passion for building communities",
+      salaryMin: 50000,
+      salaryMax: 70000,
+      status: "open",
+      featured: false,
+    },
+    {
+      title: "Brand Designer",
+      slug: "brand-designer",
+      department: "Design",
+      type: "contract",
+      location: "Remote",
+      remote: true,
+      description: "We need a talented Brand Designer to help define and expand the visual identity of the SEVCO Platform and its sub-brands including SEVCO Records and the SEV Store.\n\n## What You'll Do\n- Develop brand assets for campaigns and launches\n- Collaborate on product design and UI improvements\n- Create social graphics, merch designs, and marketing materials\n- Maintain and evolve the SEVCO design system\n\n## What We Offer\n- Contract-to-hire opportunity\n- Creative ownership over brand evolution\n- Collaborative, design-forward team",
+      requirements: "- Strong portfolio of brand and visual design work\n- Proficiency in Figma\n- Experience with motion design a plus\n- Understanding of digital-first brand systems",
+      salaryMin: null,
+      salaryMax: null,
+      status: "open",
+      featured: false,
+    },
+  ];
+  for (const job of JOB_SEED) {
+    await storage.createJob(job as any);
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -242,6 +309,7 @@ export async function registerRoutes(
 
   seedPolicyArticles().catch(console.error);
   seedChangelog().catch(console.error);
+  seedJobs().catch(console.error);
 
   app.get("/api/categories", async (_req, res) => {
     const cats = await storage.getCategories();
@@ -1012,6 +1080,100 @@ export async function registerRoutes(
       const updated = await storage.updateUserProfile(req.user.id, parsed.data);
       const { password, emailVerificationToken, emailVerificationExpires, ...publicUser } = updated;
       res.json(publicUser);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Jobs routes
+  app.get("/api/jobs", async (req, res) => {
+    try {
+      const includeAll = req.query.all === "true";
+      const jobList = await storage.getJobs(includeAll);
+      res.json(jobList);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/jobs/:slug", async (req, res) => {
+    try {
+      const job = await storage.getJobBySlug(req.params.slug);
+      if (!job) return res.status(404).json({ message: "Job not found" });
+      res.json(job);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/jobs", requireAuth, requireRole(CAN_MANAGE_JOBS), async (req: any, res) => {
+    try {
+      const parsed = insertJobSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
+      const job = await storage.createJob(parsed.data);
+      res.status(201).json(job);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/jobs/:id", requireAuth, requireRole(CAN_MANAGE_JOBS), async (req: any, res) => {
+    try {
+      const job = await storage.updateJob(Number(req.params.id), req.body);
+      res.json(job);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/jobs/:id", requireAuth, requireRole(CAN_MANAGE_JOBS), async (req: any, res) => {
+    try {
+      await storage.deleteJob(Number(req.params.id));
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/jobs/:id/apply", async (req, res) => {
+    try {
+      const job = await storage.getJobBySlug(req.params.id);
+      const jobId = job?.id ?? Number(req.params.id);
+      const parsed = insertJobApplicationSchema.safeParse({ ...req.body, jobId });
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
+      const app2 = await storage.createJobApplication(parsed.data);
+      res.status(201).json(app2);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/job-applications", requireAuth, requireRole(CAN_MANAGE_JOBS), async (req: any, res) => {
+    try {
+      const jobId = req.query.jobId ? Number(req.query.jobId) : undefined;
+      const apps = await storage.getJobApplications(jobId);
+      res.json(apps);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Music submission routes
+  app.post("/api/music/submit", async (req, res) => {
+    try {
+      const parsed = insertMusicSubmissionSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
+      const sub = await storage.createMusicSubmission(parsed.data);
+      res.status(201).json(sub);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/music/submissions", requireAuth, requireRole(CAN_MANAGE_MUSIC), async (req: any, res) => {
+    try {
+      const subs = await storage.getMusicSubmissions();
+      res.json(subs);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

@@ -189,47 +189,59 @@ async function seedChangelog() {
   const existing = await storage.getChangelog();
   if (existing.length > 0) return;
 
-  const INITIAL_ENTRIES: Array<{ title: string; description: string; category: "feature" | "fix" | "improvement" | "other"; version: string; createdAt?: Date }> = [
+  type SeededEntry = { title: string; description: string; category: "feature" | "fix" | "improvement" | "other"; version: string; date: string };
+  const INITIAL_ENTRIES: SeededEntry[] = [
     {
-      title: "Wiki MVP",
-      description: "Launched the internal wiki with article creation, categorization, revision history, and citation support. Initial content across six category areas seeded.",
+      title: "Wiki MVP & Platform Shell",
+      description: "Launched the internal wiki with article creation, categorization, revision history, and citation support. Built the global platform shell including persistent header, app switcher, wiki sidebar, and platform footer with social links.",
       category: "feature",
       version: "0.1.0",
+      date: "2026-02-15",
     },
     {
-      title: "Platform Shell & Auth",
-      description: "Built the global platform shell with persistent header, app switcher, wiki sidebar, and platform footer. Added full authentication with six role tiers: Admin, Executive, Staff, Partner, Client, and User.",
+      title: "Platform Auth & RBAC",
+      description: "Added full user authentication with six role tiers: Admin, Executive, Staff, Partner, Client, and User. Each role has tailored permissions across the platform. Added role-adaptive dashboard with stats and contributor views.",
       category: "feature",
       version: "0.2.0",
+      date: "2026-02-22",
     },
     {
-      title: "Store & Stripe Integration",
-      description: "Launched the SEVCO Store with product catalog, category filtering, stock status, and Stripe-powered checkout. Admin product management added to Command Center.",
+      title: "Landing Page, Store & Projects",
+      description: "Launched the home landing page with platform overview. Launched the SEVCO Store with product catalog, category filtering, stock status, and Stripe-powered checkout. Introduced the Projects section showcasing SEVCO Ventures with status tracking.",
       category: "feature",
       version: "0.3.0",
+      date: "2026-03-01",
     },
     {
-      title: "Home Page, Mega-Menu & Contact",
-      description: "Launched the home landing page with platform overview and role-adaptive dashboard. Introduced mega-menu navigation with per-section dropdowns. Added Contact page with form, social links, and Resend email integration. Added Profile, Jobs listing, and policy wiki pages (Privacy Policy, Terms, Refund Policy).",
+      title: "Home Page, Mega-Menu, Contact & Music",
+      description: "Introduced mega-menu navigation with per-section dropdowns. Added Contact page with Resend email integration. Added Profile, Jobs listing, and policy wiki pages. Added SEVCO Music with artist profiles, album listings, and management tools for staff and above.",
       category: "feature",
       version: "1.0.0",
+      date: "2026-03-10",
     },
     {
       title: "Services & SEVCO Records Expansion",
       description: "Added the Services page with filterable categories and admin CRUD. Expanded SEVCO Records with playlist management, music submissions, and a global Spotify player bar. Admin social link management added to Command Center footer settings.",
       category: "feature",
       version: "1.1.0",
+      date: "2026-03-20",
     },
     {
       title: "Wiki Archive System & Version Changelog",
       description: "Replaced wiki article deletion with an archive workflow. Archived articles are hidden from the public and accessible only to staff+. Staff can edit and submit archived articles for republication; admins can publish directly. Added semantic versioning to changelog entries. Footer now displays the current platform version pulled live from the latest changelog entry.",
       category: "feature",
       version: "1.2.0",
+      date: "2026-03-25",
     },
   ];
 
   for (const entry of INITIAL_ENTRIES) {
-    await storage.createChangelogEntry(entry);
+    await storage.createChangelogEntryWithDate({
+      title: entry.title,
+      description: entry.description,
+      category: entry.category,
+      version: entry.version,
+    }, new Date(entry.date));
   }
 }
 

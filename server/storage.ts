@@ -104,6 +104,7 @@ export interface IStorage {
   getChangelog(): Promise<Changelog[]>;
   getLatestChangelogEntry(): Promise<Changelog | undefined>;
   createChangelogEntry(entry: InsertChangelog): Promise<Changelog>;
+  createChangelogEntryWithDate(entry: InsertChangelog, createdAt: Date): Promise<Changelog>;
   getLatestArticleUpdatedAt(): Promise<Date | null>;
 
   getServices(): Promise<Service[]>;
@@ -573,6 +574,11 @@ export class DatabaseStorage implements IStorage {
 
   async createChangelogEntry(entry: InsertChangelog): Promise<Changelog> {
     const [created] = await db.insert(changelog).values(entry).returning();
+    return created;
+  }
+
+  async createChangelogEntryWithDate(entry: InsertChangelog, createdAt: Date): Promise<Changelog> {
+    const [created] = await db.insert(changelog).values({ ...entry, createdAt }).returning();
     return created;
   }
 

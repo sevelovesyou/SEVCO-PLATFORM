@@ -50,9 +50,8 @@ const changelogFormSchema = insertChangelogSchema.extend({
   title: z.string().min(1, "Title is required").max(200),
   description: z.string().min(1, "Description is required").max(1000),
   version: z.string()
-    .regex(/^\d+\.\d+\.\d+$/, "Version must be in MAJOR.MINOR.PATCH format (e.g. 1.2.0)")
-    .optional()
-    .or(z.literal("")),
+    .min(1, "Version is required")
+    .regex(/^\d+\.\d+\.\d+$/, "Use MAJOR.MINOR.PATCH format (e.g. 1.2.0)"),
 });
 type ChangelogFormValues = z.infer<typeof changelogFormSchema>;
 
@@ -77,21 +76,18 @@ export default function CommandChangelog() {
       title: "",
       description: "",
       category: "improvement",
-      version: "",
+      version: suggestedVersion,
     },
   });
 
   const handleOpenForm = () => {
-    form.setValue("version", suggestedVersion);
+    form.setValue("version", suggestNextVersion(latestVersion));
     setFormOpen(true);
   };
 
   const mutation = useMutation({
     mutationFn: (data: ChangelogFormValues) =>
-      apiRequest("POST", "/api/changelog", {
-        ...data,
-        version: data.version || null,
-      }),
+      apiRequest("POST", "/api/changelog", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/changelog"] });
       queryClient.invalidateQueries({ queryKey: ["/api/changelog/latest"] });

@@ -357,7 +357,7 @@ export default function MusicPage() {
         </section>
 
         <div className="mt-12 text-center text-xs text-muted-foreground">
-          SEVCO RECORDS · sevelovesyou.com
+          SEVCO RECORDS · sevco.us
         </div>
       </div>
     </div>

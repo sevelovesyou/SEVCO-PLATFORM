@@ -115,7 +115,7 @@ export default function MusicListenPage() {
               SEVCO RECORDS
             </p>
           </Link>
-          <p className="text-[10px] text-muted-foreground/60">sevelovesyou.com</p>
+          <p className="text-[10px] text-muted-foreground/60">sevco.us</p>
         </div>
       </div>
     </div>

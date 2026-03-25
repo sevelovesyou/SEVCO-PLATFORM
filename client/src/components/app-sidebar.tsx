@@ -30,6 +30,7 @@ import {
   LifeBuoy,
   Archive,
   RotateCcw,
+  ScrollText,
 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -97,12 +98,14 @@ export function AppSidebar() {
   const navItems = [
     { title: "Home", url: "/wiki", icon: BookOpen, show: true },
     { title: "Search", url: "/search", icon: Search, show: true },
+    { title: "Changelog", url: "/changelog", icon: ScrollText, show: true },
     { title: "New Article", url: "/new", icon: Plus, show: canCreateArticle },
     { title: "Review Queue", url: "/review", icon: Shield, show: canAccessReviewQueue },
+    { title: "Archive", url: "/wiki/archive", icon: Archive, show: canAccessArchive },
   ].filter((item) => item.show);
 
   return (
-    <Sidebar>
+    <Sidebar className="top-12 h-[calc(100svh-3rem)]">
       <SidebarHeader className="p-3">
         <div className="flex items-center gap-2">
           <SidebarTrigger data-testid="button-sidebar-toggle" className="-ml-0.5 shrink-0" />
@@ -254,7 +257,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-3">
         <div className="text-[10px] text-muted-foreground text-center">
-          Encyclopedia for sevelovesyou.com
+          Encyclopedia for sevco.us
         </div>
       </SidebarFooter>
     </Sidebar>

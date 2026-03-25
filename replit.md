@@ -1,7 +1,7 @@
 # SEVCO Platform
 
 ## Overview
-A multi-app platform for sevelovesyou.com (SEVE / SEVCO Records). Built as a platform shell wrapping multiple apps: Wiki (encyclopedic knowledge base), Music (SEVCO RECORDS), Store, Projects (SEVCO Ventures), and a role-based Dashboard. The platform features a persistent global header/nav, and each app can have its own sidebar or layout.
+A multi-app platform for sevco.us (SEVE / SEVCO Records). Built as a platform shell wrapping multiple apps: Wiki (encyclopedic knowledge base), Music (SEVCO RECORDS), Store, Projects (SEVCO Ventures), and a role-based Dashboard. The platform features a persistent global header/nav, and each app can have its own sidebar or layout.
 
 ## Architecture
 - **Frontend**: React + Vite + TailwindCSS + Shadcn UI + Wouter routing + TanStack Query

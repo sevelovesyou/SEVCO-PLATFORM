@@ -173,13 +173,13 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
   const { user } = useAuth();
 
   const items = [
+    { label: "Home",       href: "/",                      icon: Home,        desc: "Go to landing page",             authRequired: false },
     { label: "About",      href: "/wiki/company-overview", icon: BookOpen,    desc: "Learn about SEVCO",              authRequired: false },
     { label: "Wiki",       href: "/wiki",                  icon: BookOpen,    desc: "Internal knowledge base",        authRequired: false },
     ...(user ? [
       { label: "Feed",     href: "/feed",                  icon: Rss,         desc: "Posts from people you follow",   authRequired: true },
       { label: "Notes",    href: "/notes",                 icon: StickyNote,  desc: "Your personal & shared notes",   authRequired: true },
     ] : []),
-    { label: "Changelog",  href: "/changelog",             icon: ScrollText,  desc: "Platform update history",        authRequired: false },
     { label: "Contact",    href: "/contact",               icon: Mail,        desc: "Get in touch",                   authRequired: false },
     { label: "Jobs",       href: "/jobs",                  icon: Users,       desc: "Open positions",                 authRequired: false },
     { label: "Account",    href: "/account",               icon: User,        desc: "Manage your profile",            authRequired: false },
@@ -188,7 +188,7 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
   return (
     <div className="relative" ref={ref}>
       <NavButton
-        label="Home"
+        label="SEVCO"
         isActive={isActive}
         onClick={() => setOpen((o) => !o)}
         open={open}
@@ -514,10 +514,10 @@ export function PlatformHeader() {
     { label: "Submit",        href: "/music/submit" },
   ];
   const homeItems = [
+    { label: "Home",      href: "/" },
     { label: "About",     href: "/wiki/company-overview" },
     { label: "Wiki",      href: "/wiki" },
     ...(user ? [{ label: "Feed", href: "/feed" }, { label: "Notes", href: "/notes" }] : []),
-    { label: "Changelog", href: "/changelog" },
     { label: "Contact",   href: "/contact" },
     { label: "Jobs",      href: "/jobs" },
     { label: "Account",   href: "/account" },
@@ -669,7 +669,7 @@ export function PlatformHeader() {
           <Collapsible open={mobileSection === "home"} onOpenChange={(o) => setMobileSection(o ? "home" : null)}>
             <CollapsibleTrigger asChild>
               <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors" data-testid="mobile-nav-home">
-                Home
+                SEVCO
                 <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${mobileSection === "home" ? "rotate-180" : ""}`} />
               </button>
             </CollapsibleTrigger>

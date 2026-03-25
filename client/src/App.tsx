@@ -64,6 +64,7 @@ import FeedPage from "@/pages/feed-page";
 import ChangelogPage from "@/pages/changelog-page";
 import ServiceDetailPage from "@/pages/service-detail-page";
 import ServicesListingPage from "@/pages/services-listing";
+import WikiArchivePage from "@/pages/wiki-archive-page";
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
 const COMMAND_PREFIXES = ["/command"];
@@ -89,6 +90,7 @@ function Router() {
       {/* Public routes — no ProtectedRoute */}
       <Route path="/" component={Landing} />
       <Route path="/wiki" component={Home} />
+      <Route path="/wiki/archive" component={() => <ProtectedRoute><WikiArchivePage /></ProtectedRoute>} />
       <Route path="/wiki/:slug" component={ArticleView} />
       <Route path="/search" component={SearchPage} />
       <Route path="/category/:slug" component={CategoryView} />

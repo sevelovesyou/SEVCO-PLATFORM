@@ -107,7 +107,7 @@ export function CommandSidebar() {
   ].filter((item) => item.show);
 
   return (
-    <Sidebar>
+    <Sidebar className="top-12 h-[calc(100svh-3rem)]">
       <SidebarHeader className="p-3">
         <div className="flex items-center gap-2">
           <SidebarTrigger data-testid="button-command-sidebar-toggle" className="-ml-0.5 shrink-0" />

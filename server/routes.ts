@@ -2450,19 +2450,29 @@ export async function registerRoutes(
   const CAN_MANAGE_HOSTING: Role[] = ["admin"];
 
   app.get("/api/hostinger/vps", requireAuth, requireRole(...CAN_MANAGE_HOSTING), async (_req, res) => {
+    if (!hostinger.isHostingerConfigured()) {
+      return res.status(503).json({ message: "Hostinger API is not configured. HOSTINGER_API_KEY is missing." });
+    }
     try {
       const data = await hostinger.getVirtualMachines();
+      const vms: any[] = Array.isArray(data) ? data : ((data as any)?.data ?? []);
+      console.log(`[Hostinger] VPS list returned ${vms.length} machine(s)`);
       res.json(data);
     } catch (err: any) {
+      console.error("[Hostinger] VPS list error:", err.message);
       res.status(500).json({ message: err.message });
     }
   });
 
   app.get("/api/hostinger/vps/:id", requireAuth, requireRole(...CAN_MANAGE_HOSTING), async (req, res) => {
+    if (!hostinger.isHostingerConfigured()) {
+      return res.status(503).json({ message: "Hostinger API is not configured. HOSTINGER_API_KEY is missing." });
+    }
     try {
       const data = await hostinger.getVirtualMachine(req.params.id);
       res.json(data);
     } catch (err: any) {
+      console.error("[Hostinger] VPS detail error:", err.message);
       res.status(500).json({ message: err.message });
     }
   });

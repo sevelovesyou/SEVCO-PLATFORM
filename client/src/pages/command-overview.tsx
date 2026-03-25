@@ -173,7 +173,7 @@ function formatUptime(secs?: number) {
 }
 
 function VpsStatusCard() {
-  const { data, isLoading, isError } = useQuery<VirtualMachine[] | { data: VirtualMachine[] }>({
+  const { data, isLoading, isError, error } = useQuery<VirtualMachine[] | { data: VirtualMachine[] }>({
     queryKey: ["/api/hostinger/vps"],
     retry: 1,
     staleTime: 60_000,
@@ -184,6 +184,8 @@ function VpsStatusCard() {
     : ((data as any)?.data ?? []);
 
   const primaryVm = vms[0];
+
+  const isNotConfigured = isError && error instanceof Error && error.message.includes("not configured");
 
   return (
     <Link href="/command/hosting">
@@ -210,7 +212,7 @@ function VpsStatusCard() {
           <div className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4 text-muted-foreground opacity-50" />
             <p className="text-xs text-muted-foreground" data-testid="text-vps-status-error">
-              {isError ? "Unable to connect" : "No VPS found"}
+              {isNotConfigured ? "Not configured" : isError ? "Unable to connect" : "No VPS found"}
             </p>
           </div>
         ) : (

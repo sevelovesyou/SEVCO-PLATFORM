@@ -14,6 +14,7 @@ import { ProtectedRoute } from "@/components/protected-route";
 import { CartProvider } from "@/hooks/use-cart";
 import { SpotifyPlayerProvider, useSpotifyPlayer } from "@/hooks/use-spotify-player";
 import { SpotifyPlayerBar } from "@/components/spotify-player-bar";
+import { CartDrawer } from "@/components/cart-drawer";
 import { useEffect } from "react";
 
 import Landing from "@/pages/landing";
@@ -287,6 +288,7 @@ function AppShell() {
         </div>
       </div>
       <SpotifyPlayerBar />
+      <CartDrawer />
     </SidebarProvider>
   );
 }

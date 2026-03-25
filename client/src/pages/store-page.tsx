@@ -10,7 +10,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePermission } from "@/hooks/use-permission";
 import { useCart } from "@/hooks/use-cart";
-import { CartDrawer } from "@/components/cart-drawer";
 import type { Product } from "@shared/schema";
 
 const CAN_MANAGE_STORE_PRODUCTS = ["admin", "executive"];
@@ -405,8 +404,6 @@ export default function StorePage() {
           </div>
         )}
       </div>
-
-      <CartDrawer />
     </div>
   );
 }

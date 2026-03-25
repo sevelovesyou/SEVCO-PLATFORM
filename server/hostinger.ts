@@ -11,18 +11,35 @@ function hostingerHeaders() {
 
 async function hostingerFetch(path: string, options: RequestInit = {}) {
   const url = `${HOSTINGER_BASE}${path}`;
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      ...hostingerHeaders(),
-      ...(options.headers as Record<string, string> ?? {}),
-    },
-  });
+  console.log(`[Hostinger] ${options.method ?? "GET"} ${path}`);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers: {
+        ...hostingerHeaders(),
+        ...(options.headers as Record<string, string> ?? {}),
+      },
+    });
+  } catch (networkErr: any) {
+    console.error(`[Hostinger] Network error for ${path}:`, networkErr.message);
+    throw new Error(`Hostinger API unreachable: ${networkErr.message}`);
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => "");
+    console.error(`[Hostinger] HTTP ${res.status} for ${path}: ${text}`);
     throw new Error(`Hostinger API error ${res.status}: ${text}`);
   }
-  return res.json();
+  const json = await res.json().catch((parseErr: any) => {
+    console.error(`[Hostinger] JSON parse error for ${path}:`, parseErr.message);
+    throw new Error(`Hostinger API returned non-JSON response`);
+  });
+  console.log(`[Hostinger] OK ${res.status} for ${path}`);
+  return json;
+}
+
+export function isHostingerConfigured() {
+  return !!process.env.HOSTINGER_API_KEY;
 }
 
 export async function getVirtualMachines() {

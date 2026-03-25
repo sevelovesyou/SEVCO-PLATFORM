@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCart } from "@/hooks/use-cart";
-import { CartDrawer } from "@/components/cart-drawer";
 import type { Product } from "@shared/schema";
 
 export default function StoreProductDetail() {
@@ -171,7 +170,6 @@ export default function StoreProductDetail() {
           </div>
         </div>
       </div>
-      <CartDrawer />
     </div>
   );
 }

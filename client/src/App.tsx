@@ -58,7 +58,7 @@ import CommandMusic from "@/pages/command-music";
 import ServiceDetailPage from "@/pages/service-detail-page";
 import ServicesListingPage from "@/pages/services-listing";
 
-const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/", "/account"];
+const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
 const COMMAND_PREFIXES = ["/command"];
 
 function isWikiRoute(location: string): boolean {

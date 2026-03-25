@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermission } from "@/hooks/use-permission";
+import { useCart } from "@/hooks/use-cart";
 import { useQuery } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -97,7 +98,7 @@ const SERVICE_COLUMN_GROUPS = [
   ["Sales", "Support"],
 ] as const;
 
-const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/", "/account"];
+const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
 
 function getActiveApp(location: string): string {
   if (location === "/") return "/";
@@ -486,6 +487,7 @@ function ProjectsDropdown({ isActive }: { isActive: boolean }) {
 export function PlatformHeader() {
   const { user, logout } = useAuth();
   const { role } = usePermission();
+  const { openCart, itemCount } = useCart();
   const [location] = useLocation();
   const activeApp = getActiveApp(location);
   const roleBadgeClass = ROLE_BADGE_VARIANTS[role ?? "user"] ?? ROLE_BADGE_VARIANTS.user;
@@ -559,6 +561,22 @@ export function PlatformHeader() {
 
         {/* Right side actions */}
         <div className="flex items-center gap-1.5">
+          {/* Cart button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative h-8 w-8"
+            onClick={openCart}
+            data-testid="button-open-cart"
+          >
+            <ShoppingBag className="h-4 w-4" />
+            {itemCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center" data-testid="cart-badge">
+                {itemCount > 9 ? "9+" : itemCount}
+              </span>
+            )}
+          </Button>
+
           {/* Mobile hamburger */}
           <div className="md:hidden">
             <Button

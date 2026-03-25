@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
 import type { Article, Product } from "@shared/schema";
-import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import planetIcon from "@assets/SEVCO_planet_icon_black_1774331331137.png";
 
 const PLATFORM_SECTIONS = [
@@ -153,17 +152,11 @@ export default function Landing() {
             <img
               src={planetIcon}
               alt="SEVCO Planet"
-              className="h-16 w-16 object-contain invert"
+              className="h-28 w-28 md:h-36 md:w-36 object-contain invert"
               data-testid="img-planet-hero"
             />
           </div>
           <div>
-            <img
-              src={wordmarkBlack}
-              alt="SEVCO"
-              className="h-10 md:h-14 w-auto object-contain invert mx-auto mb-4"
-              data-testid="img-wordmark-hero"
-            />
             <p className="text-background/60 text-base md:text-lg max-w-xl mx-auto leading-relaxed">
               One platform for all things SEVCO — music, merch, projects, and a community built to last.
             </p>

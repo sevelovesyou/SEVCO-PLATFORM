@@ -1158,7 +1158,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/jobs/:id", requireAuth, requireRole(CAN_MANAGE_JOBS), async (req: any, res) => {
+  app.patch("/api/jobs/:id", requireAuth, requireRole(...CAN_MANAGE_JOBS), async (req: any, res) => {
     try {
       const job = await storage.updateJob(Number(req.params.id), req.body);
       res.json(job);
@@ -1167,7 +1167,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/jobs/:id", requireAuth, requireRole(CAN_MANAGE_JOBS), async (req: any, res) => {
+  app.delete("/api/jobs/:id", requireAuth, requireRole(...CAN_MANAGE_JOBS), async (req: any, res) => {
     try {
       await storage.deleteJob(Number(req.params.id));
       res.json({ success: true });
@@ -1257,10 +1257,10 @@ export async function registerRoutes(
       const parsed = insertMusicSubmissionSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
       const type = req.body.type ?? "label";
-      if (type === "label" && !req.session?.userId) {
+      if (type === "label" && !req.isAuthenticated()) {
         return res.status(401).json({ message: "Sign in to submit to SEVCO RECORDS" });
       }
-      const userId = req.session?.userId ?? null;
+      const userId = req.user?.id ?? null;
       const sub = await storage.createMusicSubmission({ ...parsed.data, userId });
       res.status(201).json(sub);
     } catch (err: any) {

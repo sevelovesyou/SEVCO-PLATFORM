@@ -44,8 +44,8 @@ const SOCIALS = [
 const POLICY_LINKS = [
   { label: "Privacy Policy",   path: "/wiki/privacy-policy" },
   { label: "Terms of Service", path: "/wiki/terms-of-service" },
-  { label: "Contact",          path: "/wiki/contact" },
   { label: "Refund Policy",    path: "/wiki/refund-policy" },
+  { label: "Contact",          path: "/contact" },
 ];
 
 export function PlatformFooter() {

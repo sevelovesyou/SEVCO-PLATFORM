@@ -21,6 +21,7 @@ import {
   ClipboardList,
   Music,
   Share2,
+  Server,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -81,6 +82,12 @@ export function CommandSidebar() {
       title: "Social Links",
       url: "/command/social-links",
       icon: Share2,
+      show: isAdmin,
+    },
+    {
+      title: "Hosting",
+      url: "/command/hosting",
+      icon: Server,
       show: isAdmin,
     },
   ].filter((item) => item.show);

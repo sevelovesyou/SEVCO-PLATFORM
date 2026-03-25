@@ -59,6 +59,8 @@ import CommandJobs from "@/pages/command-jobs";
 import CommandMusic from "@/pages/command-music";
 import CommandPlaylists from "@/pages/command-playlists";
 import CommandSocialLinks from "@/pages/command-social-links";
+import CommandHosting from "@/pages/command-hosting";
+import DomainsPage from "@/pages/domains-page";
 import NotesPage from "@/pages/notes-page";
 import FeedPage from "@/pages/feed-page";
 import ChangelogPage from "@/pages/changelog-page";
@@ -187,6 +189,14 @@ function Router() {
           </CommandPageLayout>
         </ProtectedRoute>
       )} />
+      <Route path="/command/hosting" component={() => (
+        <ProtectedRoute>
+          <CommandPageLayout title="Hosting" subtitle="Hostinger VPS management">
+            <CommandHosting />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/domains" component={DomainsPage} />
       <Route path="/notes" component={NotesPage} />
       <Route component={NotFound} />
     </Switch>

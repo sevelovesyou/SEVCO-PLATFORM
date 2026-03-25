@@ -64,6 +64,8 @@ A multi-app platform for sevco.us (SEVE / SEVCO Records). Built as a platform sh
 | `/command/playlists` | Command — Playlist Management (admin/exec) | Command sidebar |
 | `/command/jobs` | Command — Jobs & Applications (admin/exec) | Command sidebar |
 | `/command/social-links` | Command — Social Links admin (admin) | Command sidebar |
+| `/command/hosting` | Command — Hostinger VPS Hosting Management (admin) | Command sidebar |
+| `/domains` | Public Domains search & registration page (powered by Hostinger) | None |
 | `/feed` | SEVCO Feed (public, manage if admin/exec) | None |
 | `/changelog` | Public Platform Changelog | None |
 | `/notes` | Personal Notes (auth required) | None |
@@ -77,7 +79,8 @@ server/db.ts                  - Database connection (exports pool and db)
 server/auth.ts                - Passport setup, session config, auth routes
 server/middleware/permissions.ts  - requireAuth, requireRole middleware + RBAC constants
 server/storage.ts             - DatabaseStorage implementing IStorage interface
-server/routes.ts              - REST API routes + crosslink generation + citation validation
+server/routes.ts              - REST API routes + crosslink generation + citation validation + Hostinger API proxy
+server/hostinger.ts           - Hostinger API client (VPS, domains, catalog, WHOIS)
 client/src/App.tsx            - Platform shell with PlatformHeader, conditional wiki sidebar, routing
 client/src/components/platform-header.tsx - Global header: logo, app-switcher, user badge/role, sign-out
 client/src/components/app-sidebar.tsx - Wiki-specific sidebar (nav, categories, recent articles)

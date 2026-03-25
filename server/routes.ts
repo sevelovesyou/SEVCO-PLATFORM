@@ -16,6 +16,7 @@ import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProje
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
+import * as hostinger from "./hostinger";
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive"];
 const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
@@ -2380,6 +2381,79 @@ export async function registerRoutes(
       const currentUserId = req.user?.id;
       const userPosts = await storage.getPosts({ userId: profile.id, followedByUserId: currentUserId });
       res.json(userPosts);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  const CAN_MANAGE_HOSTING: Role[] = ["admin"];
+
+  app.get("/api/hostinger/vps", requireAuth, requireRole(...CAN_MANAGE_HOSTING), async (_req, res) => {
+    try {
+      const data = await hostinger.getVirtualMachines();
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/hostinger/vps/:id", requireAuth, requireRole(...CAN_MANAGE_HOSTING), async (req, res) => {
+    try {
+      const data = await hostinger.getVirtualMachine(req.params.id);
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/hostinger/domains/availability", async (req, res) => {
+    try {
+      const { domain, tlds } = req.body;
+      if (!domain || typeof domain !== "string") {
+        return res.status(400).json({ message: "domain is required" });
+      }
+      const data = await hostinger.checkDomainAvailability(domain, tlds ?? []);
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/hostinger/domains/catalog", async (req, res) => {
+    try {
+      const data = await hostinger.getBillingCatalog();
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/hostinger/domains/portfolio", requireAuth, requireRole(...CAN_MANAGE_HOSTING), async (_req, res) => {
+    try {
+      const data = await hostinger.getDomainPortfolio();
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/hostinger/whois", requireAuth, requireRole(...CAN_MANAGE_HOSTING), async (_req, res) => {
+    try {
+      const data = await hostinger.getWhoisProfiles();
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/hostinger/domains/purchase", requireAuth, requireRole(...CAN_MANAGE_HOSTING), async (req, res) => {
+    try {
+      const { domain, whoisId, paymentMethodId } = req.body;
+      if (!domain || !whoisId) {
+        return res.status(400).json({ message: "domain and whoisId are required" });
+      }
+      const data = await hostinger.purchaseDomain({ domain, whoisId, paymentMethodId });
+      res.json(data);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

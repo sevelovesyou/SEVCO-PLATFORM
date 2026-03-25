@@ -56,6 +56,7 @@ import {
   StickyNote,
   Rss,
   ScrollText,
+  Globe,
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import type { Project, Service } from "@shared/schema";
@@ -110,6 +111,7 @@ function getActiveApp(location: string): string {
   }
   if (location.startsWith("/projects")) return "/projects";
   if (location.startsWith("/services")) return "/services";
+  if (location.startsWith("/domains")) return "/services";
   if (location.startsWith("/store")) return "/store";
   if (location.startsWith("/music")) return "/music";
   if (location.startsWith("/command")) return "/command";
@@ -335,7 +337,16 @@ function ServicesDropdown({ isActive }: { isActive: boolean }) {
               </div>
             ))}
           </div>
-          <div className="border-t border-border/60 px-4 py-2.5">
+          <div className="border-t border-border/60 px-4 py-2.5 space-y-1.5">
+            <Link href="/domains" onClick={() => setOpen(false)}>
+              <div className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/70 transition-colors cursor-pointer group" data-testid="dropdown-services-domains">
+                <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-foreground leading-none">Domains</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Search & register domain names</p>
+                </div>
+              </div>
+            </Link>
             <Link href="/services" onClick={() => setOpen(false)}>
               <div className="flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer group" data-testid="dropdown-services-all">
                 <span className="font-medium">View all services</span>
@@ -709,11 +720,24 @@ export function PlatformHeader() {
           </Collapsible>
 
           {/* Services */}
-          <Link href="/services" onClick={() => setMobileOpen(false)}>
-            <div className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors cursor-pointer" data-testid="mobile-nav-services">
-              Services
-            </div>
-          </Link>
+          <Collapsible open={mobileSection === "services"} onOpenChange={(o) => setMobileSection(o ? "services" : null)}>
+            <CollapsibleTrigger asChild>
+              <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors" data-testid="mobile-nav-services">
+                Services
+                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${mobileSection === "services" ? "rotate-180" : ""}`} />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="pl-4 space-y-0.5 py-1">
+                <Link href="/services" onClick={() => setMobileOpen(false)}>
+                  <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-services-all">All Services</div>
+                </Link>
+                <Link href="/domains" onClick={() => setMobileOpen(false)}>
+                  <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-services-domains">Domains</div>
+                </Link>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           {/* Music section */}
           <Collapsible open={mobileSection === "music"} onOpenChange={(o) => setMobileSection(o ? "music" : null)}>

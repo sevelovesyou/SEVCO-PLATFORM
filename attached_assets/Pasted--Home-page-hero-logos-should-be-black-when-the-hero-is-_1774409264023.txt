@@ -1,0 +1,20 @@
+- Home page, hero logos should be black when the hero is light (dark mode) and the planet should be larger, remove the sevco text logo because its redundant (in menu bar, top left)
+- Be able to add products from Store tab of CMD
+- Fix card spacing on Jobs page (featured positions are too close together)
+- When updating a job listing as Admin from CMD, it says I don’t have permission and didn’t work, fix that, executives should have permission too.
+- Fix 401 error when trying to submit music
+- Add a music player that matches the platform design language and use the Spotify API to load in Official SEVCO RECORDS Playlists, submitted tracks, etc to their appropriate locations throughout the platform.
+- Expand the Official Playlists sections and allow editing from CMD so, I can add the real ones via link. (Spotify, Apple Music or Soundcloud Playlists)
+- Fix spacing of social cards on contact page, allow Admins to edit this list through CMD as well as the same control for the footer social icon links (including changing the icon and adding new links, etc…)
+- Update footer to show new pages in sitemap, organize to mirror top menu
+- Create a notes tool within the platform just like apple notes, that allows users to save personal notes, collaborate on notes with other members and attach notes to projects or wiki articles, restricted to registered users.
+- Add cart to menu bar
+- The Account page seems to be seated within the wiki section, let’s fix that and remove the wiki menu from that page.
+- Add Profile to home dropdown, allow users to edit banner image in profile.
+- Allow users to follow, like and reply to each other’s posts like twitter. Create a new “Feed” page for this under Home and display the users individual timelines on their profiles.
+- Users must be registered to view Profile and Feed pages.
+- Allow admins to change user usernames in CMD
+- In the Footer, bottom right contact link should be last in this list and should link to our new contact page instead of the deleted contact wiki article that we are no longer using.
+- In the wiki, Instead of deleting articles to remove them, let’s archive them, create a new section of the wiki for staff only called “Archive” that houses all deleted articles and allow staff to edit, and republish as they see fit.
+- Start a unique and easy to understand version system for our updates and label each new Changelog entry, display the current version in the footer that pulls from latest Changelog entry with the date and time.
+- Update Changelog on platform with everything you’ve done today, break it up into digestible chunks. 

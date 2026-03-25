@@ -1233,7 +1233,7 @@ export async function registerRoutes(
   // Playlist routes
   app.get("/api/music/playlists", async (_req, res) => {
     try {
-      const items = await storage.getPlaylists();
+      const items = await storage.getPlaylists(true);
       res.json(items);
     } catch (err: any) {
       res.status(500).json({ message: err.message });

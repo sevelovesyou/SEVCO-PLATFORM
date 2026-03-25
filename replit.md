@@ -59,7 +59,7 @@ A multi-app platform for sevelovesyou.com (SEVE / SEVCO Records). Built as a pla
 | `/command/store` | Command — Store Management (admin/exec) | Command sidebar |
 | `/command/users` | Command — User Management (admin) | Command sidebar |
 | `/command/changelog` | Command — Changelog (admin/exec/staff) | Command sidebar |
-| `/command/music` | Command — Music Submissions (admin/exec/staff) | Command sidebar |
+| `/command/music` | Command — Music Submissions (admin/exec) | Command sidebar |
 | `/command/jobs` | Command — Jobs & Applications (admin/exec) | Command sidebar |
 | `/auth` | Login/Register | None |
 | `/verify-email` | Email Verification (unguarded) | None |

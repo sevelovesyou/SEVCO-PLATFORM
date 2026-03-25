@@ -116,7 +116,7 @@ export interface IStorage {
   createJobApplication(app: InsertJobApplication & { userId: string }): Promise<JobApplication>;
   updateJobApplicationStatus(id: number, status: string): Promise<JobApplication>;
 
-  getPlaylists(): Promise<Playlist[]>;
+  getPlaylists(officialOnly?: boolean): Promise<Playlist[]>;
   createPlaylist(playlist: InsertPlaylist): Promise<Playlist>;
   getMusicSubmissions(): Promise<MusicSubmission[]>;
   createMusicSubmission(sub: InsertMusicSubmission & { userId?: string | null }): Promise<MusicSubmission>;
@@ -663,7 +663,10 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
-  async getPlaylists(): Promise<Playlist[]> {
+  async getPlaylists(officialOnly = false): Promise<Playlist[]> {
+    if (officialOnly) {
+      return db.select().from(playlists).where(eq(playlists.isOfficial, true)).orderBy(desc(playlists.createdAt));
+    }
     return db.select().from(playlists).orderBy(desc(playlists.createdAt));
   }
 

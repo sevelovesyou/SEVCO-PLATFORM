@@ -371,6 +371,63 @@ export const insertPlatformSocialLinkSchema = createInsertSchema(platformSocialL
 export type PlatformSocialLink = typeof platformSocialLinks.$inferSelect;
 export type InsertPlatformSocialLink = z.infer<typeof insertPlatformSocialLinkSchema>;
 
+export const posts = pgTable("posts", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  authorId: varchar("author_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  imageUrl: text("image_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const postLikes = pgTable("post_likes", {
+  postId: integer("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+}, (t) => [uniqueIndex("post_likes_post_user_idx").on(t.postId, t.userId)]);
+
+export const postReplies = pgTable("post_replies", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  postId: integer("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
+  authorId: varchar("author_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const userFollows = pgTable("user_follows", {
+  followerId: varchar("follower_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  followingId: varchar("following_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+}, (t) => [uniqueIndex("user_follows_idx").on(t.followerId, t.followingId)]);
+
+export const postsRelations = relations(posts, ({ one, many }) => ({
+  author: one(users, { fields: [posts.authorId], references: [users.id] }),
+  likes: many(postLikes),
+  replies: many(postReplies),
+}));
+
+export const postLikesRelations = relations(postLikes, ({ one }) => ({
+  post: one(posts, { fields: [postLikes.postId], references: [posts.id] }),
+  user: one(users, { fields: [postLikes.userId], references: [users.id] }),
+}));
+
+export const postRepliesRelations = relations(postReplies, ({ one }) => ({
+  post: one(posts, { fields: [postReplies.postId], references: [posts.id] }),
+  author: one(users, { fields: [postReplies.authorId], references: [users.id] }),
+}));
+
+export const userFollowsRelations = relations(userFollows, ({ one }) => ({
+  follower: one(users, { fields: [userFollows.followerId], references: [users.id], relationName: "follower" }),
+  following: one(users, { fields: [userFollows.followingId], references: [users.id], relationName: "following" }),
+}));
+
+export const insertPostSchema = createInsertSchema(posts).omit({ id: true, createdAt: true, authorId: true });
+export const insertPostReplySchema = createInsertSchema(postReplies).omit({ id: true, createdAt: true, authorId: true, postId: true });
+
+export type Post = typeof posts.$inferSelect;
+export type InsertPost = z.infer<typeof insertPostSchema>;
+export type PostLike = typeof postLikes.$inferSelect;
+export type PostReply = typeof postReplies.$inferSelect;
+export type InsertPostReply = z.infer<typeof insertPostReplySchema>;
+export type UserFollow = typeof userFollows.$inferSelect;
+
 export const notes = pgTable("notes", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   title: text("title").notNull(),

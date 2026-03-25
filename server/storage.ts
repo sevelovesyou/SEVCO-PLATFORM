@@ -19,9 +19,11 @@ import {
   type PlatformSocialLink, type InsertPlatformSocialLink,
   type Note, type InsertNote,
   type FeedPost, type InsertFeedPost,
+  type Post, type InsertPost, type PostLike, type PostReply, type InsertPostReply, type UserFollow,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
+  posts, postLikes, postReplies, userFollows,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or } from "drizzle-orm";
@@ -158,7 +160,31 @@ export interface IStorage {
   createFeedPost(data: InsertFeedPost & { authorId: string }): Promise<FeedPost>;
   updateFeedPost(id: number, data: Partial<InsertFeedPost>): Promise<FeedPost>;
   deleteFeedPost(id: number): Promise<void>;
+
+  getPosts(options: { userId?: string; followedByUserId?: string; limit?: number }): Promise<PostWithMeta[]>;
+  getPostById(id: number): Promise<Post | undefined>;
+  createPost(data: InsertPost & { authorId: string }): Promise<Post>;
+  deletePost(id: number, authorId: string): Promise<void>;
+
+  likePost(postId: number, userId: string): Promise<void>;
+  unlikePost(postId: number, userId: string): Promise<void>;
+
+  getReplies(postId: number): Promise<ReplyWithAuthor[]>;
+  createReply(data: InsertPostReply & { postId: number; authorId: string }): Promise<PostReply>;
+
+  followUser(followerId: string, followingId: string): Promise<void>;
+  unfollowUser(followerId: string, followingId: string): Promise<void>;
+  isFollowing(followerId: string, followingId: string): Promise<boolean>;
+  getFollowers(userId: string): Promise<FollowUser[]>;
+  getFollowing(userId: string): Promise<FollowUser[]>;
+  getFollowerCount(userId: string): Promise<number>;
+  getFollowingCount(userId: string): Promise<number>;
 }
+
+export type PostAuthor = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
+export type PostWithMeta = Post & { author: PostAuthor; likeCount: number; replyCount: number; likedByCurrentUser: boolean };
+export type ReplyWithAuthor = PostReply & { author: PostAuthor };
+export type FollowUser = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
 
 export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
@@ -846,6 +872,148 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFeedPost(id: number): Promise<void> {
     await db.delete(feedPosts).where(eq(feedPosts.id, id));
+  }
+
+  private async getPostsBase(
+    whereClause: ReturnType<typeof and> | ReturnType<typeof eq> | undefined,
+    currentUserId: string | undefined,
+    limit = 50
+  ): Promise<PostWithMeta[]> {
+    const rows = await db
+      .select({
+        post: posts,
+        author: {
+          id: users.id,
+          username: users.username,
+          displayName: users.displayName,
+          avatarUrl: users.avatarUrl,
+        },
+        likeCount: sql<number>`(SELECT COUNT(*) FROM post_likes WHERE post_id = ${posts.id})::int`,
+        replyCount: sql<number>`(SELECT COUNT(*) FROM post_replies WHERE post_id = ${posts.id})::int`,
+        likedByCurrentUser: currentUserId
+          ? sql<boolean>`EXISTS(SELECT 1 FROM post_likes WHERE post_id = ${posts.id} AND user_id = ${currentUserId})`
+          : sql<boolean>`false`,
+      })
+      .from(posts)
+      .innerJoin(users, eq(posts.authorId, users.id))
+      .where(whereClause)
+      .orderBy(desc(posts.createdAt))
+      .limit(limit);
+
+    return rows.map((r) => ({
+      ...r.post,
+      author: r.author,
+      likeCount: r.likeCount,
+      replyCount: r.replyCount,
+      likedByCurrentUser: r.likedByCurrentUser,
+    }));
+  }
+
+  async getPosts({ userId, followedByUserId, limit = 50 }: { userId?: string; followedByUserId?: string; limit?: number }): Promise<PostWithMeta[]> {
+    if (userId) {
+      return this.getPostsBase(eq(posts.authorId, userId), followedByUserId, limit);
+    }
+    if (followedByUserId) {
+      const followingIds = db
+        .select({ id: userFollows.followingId })
+        .from(userFollows)
+        .where(eq(userFollows.followerId, followedByUserId));
+      return this.getPostsBase(
+        sql`(${posts.authorId} IN (${followingIds}) OR ${posts.authorId} = ${followedByUserId})`,
+        followedByUserId,
+        limit
+      );
+    }
+    return this.getPostsBase(undefined, undefined, limit);
+  }
+
+  async getPostById(id: number): Promise<Post | undefined> {
+    const [row] = await db.select().from(posts).where(eq(posts.id, id));
+    return row || undefined;
+  }
+
+  async createPost(data: InsertPost & { authorId: string }): Promise<Post> {
+    const [row] = await db.insert(posts).values(data).returning();
+    return row;
+  }
+
+  async deletePost(id: number, authorId: string): Promise<void> {
+    await db.delete(posts).where(and(eq(posts.id, id), eq(posts.authorId, authorId)));
+  }
+
+  async likePost(postId: number, userId: string): Promise<void> {
+    await db.insert(postLikes).values({ postId, userId }).onConflictDoNothing();
+  }
+
+  async unlikePost(postId: number, userId: string): Promise<void> {
+    await db.delete(postLikes).where(and(eq(postLikes.postId, postId), eq(postLikes.userId, userId)));
+  }
+
+  async getReplies(postId: number): Promise<ReplyWithAuthor[]> {
+    const rows = await db
+      .select({
+        reply: postReplies,
+        author: {
+          id: users.id,
+          username: users.username,
+          displayName: users.displayName,
+          avatarUrl: users.avatarUrl,
+        },
+      })
+      .from(postReplies)
+      .innerJoin(users, eq(postReplies.authorId, users.id))
+      .where(eq(postReplies.postId, postId))
+      .orderBy(postReplies.createdAt);
+
+    return rows.map((r) => ({ ...r.reply, author: r.author }));
+  }
+
+  async createReply(data: InsertPostReply & { postId: number; authorId: string }): Promise<PostReply> {
+    const [row] = await db.insert(postReplies).values(data).returning();
+    return row;
+  }
+
+  async followUser(followerId: string, followingId: string): Promise<void> {
+    await db.insert(userFollows).values({ followerId, followingId }).onConflictDoNothing();
+  }
+
+  async unfollowUser(followerId: string, followingId: string): Promise<void> {
+    await db.delete(userFollows).where(and(eq(userFollows.followerId, followerId), eq(userFollows.followingId, followingId)));
+  }
+
+  async isFollowing(followerId: string, followingId: string): Promise<boolean> {
+    const [row] = await db.select().from(userFollows).where(and(eq(userFollows.followerId, followerId), eq(userFollows.followingId, followingId)));
+    return !!row;
+  }
+
+  async getFollowers(userId: string): Promise<FollowUser[]> {
+    const rows = await db
+      .select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl })
+      .from(userFollows)
+      .innerJoin(users, eq(userFollows.followerId, users.id))
+      .where(eq(userFollows.followingId, userId))
+      .orderBy(users.username);
+    return rows;
+  }
+
+  async getFollowing(userId: string): Promise<FollowUser[]> {
+    const rows = await db
+      .select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl })
+      .from(userFollows)
+      .innerJoin(users, eq(userFollows.followingId, users.id))
+      .where(eq(userFollows.followerId, userId))
+      .orderBy(users.username);
+    return rows;
+  }
+
+  async getFollowerCount(userId: string): Promise<number> {
+    const [r] = await db.select({ count: sql<number>`count(*)::int` }).from(userFollows).where(eq(userFollows.followingId, userId));
+    return r?.count || 0;
+  }
+
+  async getFollowingCount(userId: string): Promise<number> {
+    const [r] = await db.select({ count: sql<number>`count(*)::int` }).from(userFollows).where(eq(userFollows.followerId, userId));
+    return r?.count || 0;
   }
 }
 

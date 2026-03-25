@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "wouter";
+import { useParams, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card } from "@/components/ui/card";
 import {
   Sheet,
   SheetContent,
@@ -16,11 +18,29 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Pencil,
   Globe,
   AlertCircle,
   UserCircle2,
   Check,
+  Heart,
+  MessageCircle,
+  MoreVertical,
+  Trash2,
+  UserPlus,
+  UserCheck,
 } from "lucide-react";
 import { SiDiscord, SiInstagram, SiX, SiTiktok } from "react-icons/si";
 import planetIcon from "@assets/SEVCO_planet_icon_black_1774331331137.png";
@@ -68,10 +88,34 @@ type PublicUser = {
   profileBgImageUrl?: string | null;
   socialLinks?: SocialLinks | null;
   emailVerified?: boolean;
+  followerCount?: number;
+  followingCount?: number;
+  isFollowing?: boolean;
 };
+
+type PostAuthor = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
+type PostWithMeta = {
+  id: number; authorId: string; content: string; imageUrl: string | null; createdAt: string;
+  author: PostAuthor; likeCount: number; replyCount: number; likedByCurrentUser: boolean;
+};
+type FollowUser = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
 
 function hexWithFallback(hex: string | null | undefined): string | undefined {
   return hex && /^#[0-9a-fA-F]{3,8}$/.test(hex) ? hex : undefined;
+}
+
+function formatRelativeTime(dateStr: string | Date) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: days > 365 ? "numeric" : undefined });
 }
 
 function SocialBadge({ href, icon: Icon, label, accentColor }: { href: string; icon: React.ElementType; label: string; accentColor: string }) {
@@ -87,6 +131,56 @@ function SocialBadge({ href, icon: Icon, label, accentColor }: { href: string; i
       <Icon className="h-3.5 w-3.5" />
       {label}
     </a>
+  );
+}
+
+function FollowListDialog({ username, type, open, onClose }: { username: string; type: "followers" | "following"; open: boolean; onClose: () => void }) {
+  const { data, isLoading } = useQuery<FollowUser[]>({
+    queryKey: [`/api/users/${username}/${type}`],
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${username}/${type}`);
+      return res.json();
+    },
+    enabled: open,
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="capitalize">{type}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-2 max-h-72 overflow-y-auto">
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 py-1">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+            ))
+          ) : (data ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              {type === "followers" ? "No followers yet" : "Not following anyone yet"}
+            </p>
+          ) : (
+            (data ?? []).map((u) => (
+              <Link key={u.id} href={`/profile/${u.username}`} onClick={onClose}>
+                <div className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-muted/60 cursor-pointer" data-testid={`follow-user-${u.username}`}>
+                  <Avatar className="h-8 w-8">
+                    {u.avatarUrl && <AvatarImage src={u.avatarUrl} />}
+                    <AvatarFallback className="text-xs">{(u.displayName || u.username).charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-medium leading-none">{u.displayName || u.username}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">@{u.username}</p>
+                  </div>
+                </div>
+              </Link>
+            ))
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -157,7 +251,6 @@ function ProfileEditPanel({
 
   return (
     <div className="flex flex-col gap-5 py-2">
-      {/* Live mini-preview */}
       <div
         className="h-16 rounded-xl flex items-center gap-3 px-4 border transition-all"
         style={{ background: bgColor, borderColor: `${accentColor}44` }}
@@ -180,42 +273,19 @@ function ProfileEditPanel({
       <div className="space-y-4">
         <div>
           <Label htmlFor="displayName">Display Name</Label>
-          <Input
-            id="displayName"
-            value={form.displayName}
-            onChange={(e) => set("displayName", e.target.value)}
-            placeholder={user.username}
-            className="mt-1"
-            maxLength={80}
-            data-testid="input-display-name"
-          />
+          <Input id="displayName" value={form.displayName} onChange={(e) => set("displayName", e.target.value)}
+            placeholder={user.username} className="mt-1" maxLength={80} data-testid="input-display-name" />
         </div>
-
         <div>
           <Label htmlFor="bio">Bio</Label>
-          <Textarea
-            id="bio"
-            value={form.bio}
-            onChange={(e) => set("bio", e.target.value)}
-            placeholder="Tell the world about yourself..."
-            className="mt-1 resize-none"
-            rows={3}
-            maxLength={500}
-            data-testid="input-bio"
-          />
+          <Textarea id="bio" value={form.bio} onChange={(e) => set("bio", e.target.value)}
+            placeholder="Tell the world about yourself..." className="mt-1 resize-none" rows={3} maxLength={500} data-testid="input-bio" />
           <p className="text-xs text-muted-foreground mt-1">{form.bio.length}/500</p>
         </div>
-
         <div>
           <Label htmlFor="avatarUrl">Avatar Image URL</Label>
-          <Input
-            id="avatarUrl"
-            value={form.avatarUrl}
-            onChange={(e) => set("avatarUrl", e.target.value)}
-            placeholder="https://example.com/photo.jpg"
-            className="mt-1"
-            data-testid="input-avatar-url"
-          />
+          <Input id="avatarUrl" value={form.avatarUrl} onChange={(e) => set("avatarUrl", e.target.value)}
+            placeholder="https://example.com/photo.jpg" className="mt-1" data-testid="input-avatar-url" />
         </div>
       </div>
 
@@ -225,55 +295,28 @@ function ProfileEditPanel({
           <div>
             <Label htmlFor="bgColor">Background Color</Label>
             <div className="flex items-center gap-2 mt-1">
-              <input
-                id="bgColor"
-                type="color"
-                value={form.profileBgColor || "#ffffff"}
+              <input id="bgColor" type="color" value={form.profileBgColor || "#ffffff"}
                 onChange={(e) => set("profileBgColor", e.target.value)}
-                className="h-9 w-9 rounded cursor-pointer border border-border p-0.5"
-                data-testid="input-bg-color"
-              />
-              <Input
-                value={form.profileBgColor}
-                onChange={(e) => set("profileBgColor", e.target.value)}
-                placeholder="#ffffff"
-                className="font-mono text-xs"
-                maxLength={9}
-              />
+                className="h-9 w-9 rounded cursor-pointer border border-border p-0.5" data-testid="input-bg-color" />
+              <Input value={form.profileBgColor} onChange={(e) => set("profileBgColor", e.target.value)}
+                placeholder="#ffffff" className="font-mono text-xs" maxLength={9} />
             </div>
           </div>
           <div>
             <Label htmlFor="accentColor">Accent Color</Label>
             <div className="flex items-center gap-2 mt-1">
-              <input
-                id="accentColor"
-                type="color"
-                value={form.profileAccentColor || "#000000"}
+              <input id="accentColor" type="color" value={form.profileAccentColor || "#000000"}
                 onChange={(e) => set("profileAccentColor", e.target.value)}
-                className="h-9 w-9 rounded cursor-pointer border border-border p-0.5"
-                data-testid="input-accent-color"
-              />
-              <Input
-                value={form.profileAccentColor}
-                onChange={(e) => set("profileAccentColor", e.target.value)}
-                placeholder="#000000"
-                className="font-mono text-xs"
-                maxLength={9}
-              />
+                className="h-9 w-9 rounded cursor-pointer border border-border p-0.5" data-testid="input-accent-color" />
+              <Input value={form.profileAccentColor} onChange={(e) => set("profileAccentColor", e.target.value)}
+                placeholder="#000000" className="font-mono text-xs" maxLength={9} />
             </div>
           </div>
         </div>
-
         <div>
           <Label htmlFor="bgImageUrl">Background Image URL</Label>
-          <Input
-            id="bgImageUrl"
-            value={form.profileBgImageUrl}
-            onChange={(e) => set("profileBgImageUrl", e.target.value)}
-            placeholder="https://example.com/bg.jpg (optional)"
-            className="mt-1"
-            data-testid="input-bg-image-url"
-          />
+          <Input id="bgImageUrl" value={form.profileBgImageUrl} onChange={(e) => set("profileBgImageUrl", e.target.value)}
+            placeholder="https://example.com/bg.jpg (optional)" className="mt-1" data-testid="input-bg-image-url" />
         </div>
       </div>
 
@@ -288,27 +331,14 @@ function ProfileEditPanel({
         ].map(({ key, label, placeholder }) => (
           <div key={key}>
             <Label htmlFor={`social-${key}`}>{label}</Label>
-            <Input
-              id={`social-${key}`}
-              value={form[key]}
-              onChange={(e) => set(key, e.target.value)}
-              placeholder={placeholder}
-              className="mt-1"
-              data-testid={`input-social-${key}`}
-            />
+            <Input id={`social-${key}`} value={form[key]} onChange={(e) => set(key, e.target.value)}
+              placeholder={placeholder} className="mt-1" data-testid={`input-social-${key}`} />
           </div>
         ))}
       </div>
 
-      <Button
-        onClick={() => mutation.mutate()}
-        disabled={mutation.isPending}
-        className="w-full font-semibold gap-2"
-        data-testid="button-save-profile"
-      >
-        {mutation.isPending ? "Saving..." : (
-          <><Check className="h-4 w-4" /> Save Profile</>
-        )}
+      <Button onClick={() => mutation.mutate()} disabled={mutation.isPending} className="w-full font-semibold gap-2" data-testid="button-save-profile">
+        {mutation.isPending ? "Saving..." : (<><Check className="h-4 w-4" /> Save Profile</>)}
       </Button>
     </div>
   );
@@ -316,14 +346,103 @@ function ProfileEditPanel({
 
 type ArticleSnippet = { id: number; title: string; slug: string; summary: string | null; updatedAt: string };
 
-function ProfileView({ profile, isOwnProfile, onEdit }: {
+function PostCard({ post, currentUserId, canDelete, onDelete }: {
+  post: PostWithMeta;
+  currentUserId?: string;
+  canDelete?: boolean;
+  onDelete?: (id: number) => void;
+}) {
+  const { toast } = useToast();
+  const [repliesOpen, setRepliesOpen] = useState(false);
+
+  const likeMutation = useMutation({
+    mutationFn: () =>
+      post.likedByCurrentUser
+        ? apiRequest("DELETE", `/api/posts/${post.id}/like`)
+        : apiRequest("POST", `/api/posts/${post.id}/like`),
+    onSuccess: () => {
+      import("@/lib/queryClient").then(({ queryClient }) => {
+        queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+        queryClient.invalidateQueries({ queryKey: [`/api/users`] });
+      });
+    },
+    onError: () => toast({ title: "Failed to update like", variant: "destructive" }),
+  });
+
+  return (
+    <Card className="p-4 overflow-visible" data-testid={`card-profile-post-${post.id}`}>
+      <div className="flex gap-2.5">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2 mb-1.5">
+            <span className="text-xs text-muted-foreground">{formatRelativeTime(post.createdAt)}</span>
+            {canDelete && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 -mr-1 -mt-1">
+                    <MoreVertical className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete?.(post.id)}>
+                    <Trash2 className="h-4 w-4 mr-2" /> Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap mb-2">{post.content}</p>
+          {post.imageUrl && (
+            <div className="mb-2 rounded-xl overflow-hidden border">
+              <img src={post.imageUrl} alt="Post" className="w-full max-h-48 object-cover" />
+            </div>
+          )}
+          <div className="flex items-center gap-4">
+            <button
+              className={`flex items-center gap-1.5 text-xs transition-colors ${post.likedByCurrentUser ? "text-rose-500" : "text-muted-foreground hover:text-rose-500"} ${!currentUserId ? "opacity-50 cursor-default" : "cursor-pointer"}`}
+              onClick={() => currentUserId && likeMutation.mutate()}
+              disabled={!currentUserId || likeMutation.isPending}
+              data-testid={`button-profile-like-${post.id}`}
+            >
+              <Heart className={`h-3.5 w-3.5 ${post.likedByCurrentUser ? "fill-current" : ""}`} />
+              <span>{post.likeCount}</span>
+            </button>
+            <button
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              onClick={() => setRepliesOpen((v) => !v)}
+              data-testid={`button-profile-reply-${post.id}`}
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              <span>{post.replyCount}</span>
+            </button>
+          </div>
+          {repliesOpen && (
+            <div className="mt-3 pt-3 border-t">
+              <Link href={`/feed`}>
+                <span className="text-xs text-primary hover:underline cursor-pointer">View on Feed →</span>
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
   profile: PublicUser;
   isOwnProfile: boolean;
   onEdit: () => void;
+  currentUserId?: string;
 }) {
   const bgColor = hexWithFallback(profile.profileBgColor);
   const accentColor = hexWithFallback(profile.profileAccentColor);
   const bgImage = profile.profileBgImageUrl;
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [followersOpen, setFollowersOpen] = useState(false);
+  const [followingOpen, setFollowingOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"posts" | "articles">("posts");
+  const [deletePostId, setDeletePostId] = useState<number | null>(null);
 
   const { data: recentArticles } = useQuery<ArticleSnippet[]>({
     queryKey: ["/api/profile", profile.username, "articles"],
@@ -332,6 +451,37 @@ function ProfileView({ profile, isOwnProfile, onEdit }: {
       if (!res.ok) return [];
       return res.json();
     },
+  });
+
+  const { data: userPosts, isLoading: postsLoading } = useQuery<PostWithMeta[]>({
+    queryKey: ["/api/users", profile.username, "posts"],
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${profile.username}/posts`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const followMutation = useMutation({
+    mutationFn: () =>
+      profile.isFollowing
+        ? apiRequest("DELETE", `/api/users/${profile.username}/follow`)
+        : apiRequest("POST", `/api/users/${profile.username}/follow`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/profile", profile.username] });
+      toast({ title: profile.isFollowing ? "Unfollowed" : "Following!" });
+    },
+    onError: () => toast({ title: "Failed to update follow", variant: "destructive" }),
+  });
+
+  const deletePostMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/posts/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/users", profile.username, "posts"] });
+      setDeletePostId(null);
+      toast({ title: "Post deleted" });
+    },
+    onError: () => toast({ title: "Failed to delete post", variant: "destructive" }),
   });
 
   const roleBadge = ROLE_BADGE[profile.role] ?? ROLE_BADGE.user;
@@ -347,16 +497,11 @@ function ProfileView({ profile, isOwnProfile, onEdit }: {
 
   return (
     <div className="min-h-screen relative" style={bgColor ? { backgroundColor: bgColor } : {}}>
-      {/* Background image */}
       {bgImage && (
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
-          style={{ backgroundImage: `url(${bgImage})` }}
-        />
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20" style={{ backgroundImage: `url(${bgImage})` }} />
       )}
 
       <div className="relative z-10 max-w-3xl mx-auto px-4 py-10">
-        {/* Profile card */}
         <div
           className="rounded-2xl border shadow-lg overflow-hidden"
           style={{
@@ -365,13 +510,10 @@ function ProfileView({ profile, isOwnProfile, onEdit }: {
           }}
           data-testid="profile-card"
         >
-          {/* Banner strip */}
           <div
             className="h-24 md:h-32 w-full relative overflow-hidden"
             style={bgImage ? {
-              backgroundImage: `url(${bgImage})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
+              backgroundImage: `url(${bgImage})`, backgroundSize: "cover", backgroundPosition: "center",
             } : {
               background: accentColor
                 ? `linear-gradient(135deg, ${accentColor}66, ${accentColor}22)`
@@ -379,15 +521,11 @@ function ProfileView({ profile, isOwnProfile, onEdit }: {
             }}
           />
 
-          {/* Main content */}
           <div className="px-6 pb-6">
-            {/* Avatar overlapping banner */}
             <div className="flex items-end justify-between -mt-10 mb-4">
               <div>
                 {profile.avatarUrl ? (
-                  <img
-                    src={profile.avatarUrl}
-                    alt={displayName}
+                  <img src={profile.avatarUrl} alt={displayName}
                     className="h-20 w-20 md:h-24 md:w-24 rounded-2xl object-cover border-4 shadow-lg"
                     style={{ borderColor: accentColor || "var(--background)" }}
                     data-testid="img-avatar"
@@ -396,62 +534,62 @@ function ProfileView({ profile, isOwnProfile, onEdit }: {
                 ) : (
                   <div
                     className="h-20 w-20 md:h-24 md:w-24 rounded-2xl border-4 shadow-lg flex items-center justify-center"
-                    style={{
-                      borderColor: accentColor || "var(--background)",
-                      background: accentColor ? `${accentColor}22` : "var(--muted)",
-                    }}
+                    style={{ borderColor: accentColor || "var(--background)", background: accentColor ? `${accentColor}22` : "var(--muted)" }}
                     data-testid="img-avatar-fallback"
                   >
                     <img src={planetIcon} alt="SEVCO" className="h-10 w-10 object-contain opacity-60" style={accentColor ? { filter: `drop-shadow(0 0 4px ${accentColor})` } : {}} />
                   </div>
                 )}
               </div>
-              {isOwnProfile && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onEdit}
-                  className="gap-1.5 text-xs"
-                  style={accentColor ? { borderColor: `${accentColor}66`, color: accentColor } : {}}
-                  data-testid="button-edit-profile"
-                >
-                  <Pencil className="h-3 w-3" />
-                  Edit Profile
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {!isOwnProfile && currentUserId && (
+                  <Button
+                    size="sm"
+                    variant={profile.isFollowing ? "outline" : "default"}
+                    className="gap-1.5 text-xs"
+                    onClick={() => followMutation.mutate()}
+                    disabled={followMutation.isPending}
+                    data-testid="button-follow"
+                  >
+                    {profile.isFollowing ? (
+                      <><UserCheck className="h-3.5 w-3.5" /> Following</>
+                    ) : (
+                      <><UserPlus className="h-3.5 w-3.5" /> Follow</>
+                    )}
+                  </Button>
+                )}
+                {isOwnProfile && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onEdit}
+                    className="gap-1.5 text-xs"
+                    style={accentColor ? { borderColor: `${accentColor}66`, color: accentColor } : {}}
+                    data-testid="button-edit-profile"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Edit Profile
+                  </Button>
+                )}
+              </div>
             </div>
 
-            {/* Name + role + username */}
             <div className="mb-3">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1
-                  className="text-xl md:text-2xl font-bold"
-                  style={accentColor ? { color: accentColor } : {}}
-                  data-testid="text-display-name"
-                >
+                <h1 className="text-xl md:text-2xl font-bold" style={accentColor ? { color: accentColor } : {}} data-testid="text-display-name">
                   {displayName}
                 </h1>
-                <span
-                  className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-                  style={{ background: `${roleBadge.color}22`, color: roleBadge.color }}
-                  data-testid="badge-role"
-                >
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${roleBadge.color}22`, color: roleBadge.color }} data-testid="badge-role">
                   {roleBadge.label}
                 </span>
               </div>
-              <p
-                className="text-sm opacity-60 mt-0.5"
-                style={accentColor ? { color: accentColor } : {}}
-                data-testid="text-username"
-              >
+              <p className="text-sm opacity-60 mt-0.5" style={accentColor ? { color: accentColor } : {}} data-testid="text-username">
                 @{profile.username}
               </p>
             </div>
 
-            {/* Bio */}
             {profile.bio && (
-              <p
-                className="text-sm leading-relaxed mb-4 max-w-lg"
+              <p className="text-sm leading-relaxed mb-4 max-w-lg"
                 style={accentColor ? { color: accentColor, opacity: 0.85 } : { color: "var(--foreground)" }}
                 data-testid="text-bio"
               >
@@ -459,7 +597,28 @@ function ProfileView({ profile, isOwnProfile, onEdit }: {
               </p>
             )}
 
-            {/* Social links */}
+            {/* Follower / following counts */}
+            <div className="flex items-center gap-4 mt-2 mb-3">
+              <button
+                className="flex items-center gap-1.5 text-sm hover:opacity-70 transition-opacity cursor-pointer"
+                style={accentColor ? { color: accentColor } : {}}
+                onClick={() => setFollowersOpen(true)}
+                data-testid="button-followers"
+              >
+                <span className="font-bold">{profile.followerCount ?? 0}</span>
+                <span className="opacity-60 text-xs">Followers</span>
+              </button>
+              <button
+                className="flex items-center gap-1.5 text-sm hover:opacity-70 transition-opacity cursor-pointer"
+                style={accentColor ? { color: accentColor } : {}}
+                onClick={() => setFollowingOpen(true)}
+                data-testid="button-following"
+              >
+                <span className="font-bold">{profile.followingCount ?? 0}</span>
+                <span className="opacity-60 text-xs">Following</span>
+              </button>
+            </div>
+
             {socials.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3" data-testid="social-links">
                 {socials.map((s) => (
@@ -470,7 +629,6 @@ function ProfileView({ profile, isOwnProfile, onEdit }: {
           </div>
         </div>
 
-        {/* Member since / stats */}
         <div
           className="mt-4 rounded-xl border px-5 py-4 text-xs"
           style={{
@@ -483,52 +641,100 @@ function ProfileView({ profile, isOwnProfile, onEdit }: {
           {profile.emailVerified && <span className="ml-3 opacity-60">· Verified</span>}
         </div>
 
-        {/* Recent wiki contributions */}
-        {recentArticles && recentArticles.length > 0 && (
-          <div
-            className="mt-4 rounded-xl border overflow-hidden"
-            style={{
-              background: bgColor ? `${bgColor}88` : "var(--card)",
-              borderColor: accentColor ? `${accentColor}33` : "var(--border)",
-            }}
-          >
-            <div
-              className="px-5 py-3 border-b text-xs font-semibold uppercase tracking-wider"
-              style={{
-                borderColor: accentColor ? `${accentColor}22` : "var(--border)",
-                color: accentColor ? `${accentColor}99` : "var(--muted-foreground)",
-              }}
+        {/* Tabs */}
+        <div className="mt-5 flex border-b" style={{ borderColor: accentColor ? `${accentColor}22` : "var(--border)" }}>
+          {[
+            { id: "posts" as const, label: "Posts" },
+            { id: "articles" as const, label: "Wiki Contributions" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              style={activeTab === tab.id && accentColor ? { borderColor: accentColor, color: accentColor } : {}}
+              data-testid={`tab-profile-${tab.id}`}
             >
-              Wiki Contributions
-            </div>
-            <div className="divide-y" style={{ borderColor: accentColor ? `${accentColor}11` : "var(--border)" }}>
-              {recentArticles.map((article) => (
-                <a
-                  key={article.id}
-                  href={`/wiki/${article.slug}`}
-                  className="flex flex-col px-5 py-3 hover:opacity-80 transition-opacity"
-                  data-testid={`link-contribution-${article.id}`}
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Posts tab */}
+        {activeTab === "posts" && (
+          <div className="mt-4 space-y-3">
+            {postsLoading ? (
+              Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)
+            ) : (userPosts ?? []).length === 0 ? (
+              <div
+                className="rounded-xl border px-5 py-8 text-center"
+                style={{ background: bgColor ? `${bgColor}88` : "var(--card)", borderColor: accentColor ? `${accentColor}33` : "var(--border)" }}
+              >
+                <p className="text-sm" style={{ color: accentColor ? `${accentColor}88` : "var(--muted-foreground)" }}>
+                  No posts yet.
+                </p>
+              </div>
+            ) : (
+              (userPosts ?? []).map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  currentUserId={currentUserId}
+                  canDelete={isOwnProfile}
+                  onDelete={(id) => deletePostMutation.mutate(id)}
+                />
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Articles tab */}
+        {activeTab === "articles" && (
+          <div className="mt-4">
+            {recentArticles && recentArticles.length > 0 ? (
+              <div
+                className="rounded-xl border overflow-hidden"
+                style={{ background: bgColor ? `${bgColor}88` : "var(--card)", borderColor: accentColor ? `${accentColor}33` : "var(--border)" }}
+              >
+                <div
+                  className="px-5 py-3 border-b text-xs font-semibold uppercase tracking-wider"
+                  style={{ borderColor: accentColor ? `${accentColor}22` : "var(--border)", color: accentColor ? `${accentColor}99` : "var(--muted-foreground)" }}
                 >
-                  <span
-                    className="text-sm font-medium"
-                    style={{ color: accentColor || "var(--foreground)" }}
-                  >
-                    {article.title}
-                  </span>
-                  {article.summary && (
-                    <span
-                      className="text-xs mt-0.5 line-clamp-1"
-                      style={{ color: accentColor ? `${accentColor}88` : "var(--muted-foreground)" }}
+                  Wiki Contributions
+                </div>
+                <div className="divide-y" style={{ borderColor: accentColor ? `${accentColor}11` : "var(--border)" }}>
+                  {recentArticles.map((article) => (
+                    <a key={article.id} href={`/wiki/${article.slug}`}
+                      className="flex flex-col px-5 py-3 hover:opacity-80 transition-opacity"
+                      data-testid={`link-contribution-${article.id}`}
                     >
-                      {article.summary}
-                    </span>
-                  )}
-                </a>
-              ))}
-            </div>
+                      <span className="text-sm font-medium" style={{ color: accentColor || "var(--foreground)" }}>
+                        {article.title}
+                      </span>
+                      {article.summary && (
+                        <span className="text-xs mt-0.5 line-clamp-1" style={{ color: accentColor ? `${accentColor}88` : "var(--muted-foreground)" }}>
+                          {article.summary}
+                        </span>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div
+                className="rounded-xl border px-5 py-8 text-center"
+                style={{ background: bgColor ? `${bgColor}88` : "var(--card)", borderColor: accentColor ? `${accentColor}33` : "var(--border)" }}
+              >
+                <p className="text-sm" style={{ color: accentColor ? `${accentColor}88` : "var(--muted-foreground)" }}>
+                  No wiki contributions yet.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      <FollowListDialog username={profile.username} type="followers" open={followersOpen} onClose={() => setFollowersOpen(false)} />
+      <FollowListDialog username={profile.username} type="following" open={followingOpen} onClose={() => setFollowingOpen(false)} />
     </div>
   );
 }
@@ -544,8 +750,12 @@ export default function ProfilePage() {
   const { data: profile, isLoading, error } = useQuery<PublicUser>({
     queryKey: ["/api/profile", resolvedUsername],
     queryFn: async () => {
-      const res = await fetch(`/api/profile/${resolvedUsername}`);
-      if (!res.ok) throw new Error("User not found");
+      const res = await fetch(`/api/users/${resolvedUsername}/profile`);
+      if (!res.ok) {
+        const fallback = await fetch(`/api/profile/${resolvedUsername}`);
+        if (!fallback.ok) throw new Error("User not found");
+        return fallback.json();
+      }
       return res.json();
     },
     enabled: !!resolvedUsername,
@@ -557,20 +767,10 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center max-w-sm px-4">
-          <img
-            src={planetIcon}
-            alt="SEVCO"
-            className="h-14 w-14 object-contain mx-auto mb-4 opacity-40 dark:invert"
-          />
+          <img src={planetIcon} alt="SEVCO" className="h-14 w-14 object-contain mx-auto mb-4 opacity-40 dark:invert" />
           <h2 className="text-lg font-bold mb-2">Sign in to view your profile</h2>
-          <p className="text-sm text-muted-foreground mb-5">
-            Create an account or sign in to customize your SEVCO profile.
-          </p>
-          <a
-            href="/auth"
-            className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-5 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
-            data-testid="link-sign-in"
-          >
+          <p className="text-sm text-muted-foreground mb-5">Create an account or sign in to customize your SEVCO profile.</p>
+          <a href="/auth" className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-5 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity" data-testid="link-sign-in">
             Sign In
           </a>
         </div>
@@ -629,7 +829,7 @@ export default function ProfilePage() {
           </SheetHeader>
           <ProfileEditPanel
             user={profile}
-            onSaved={(u) => { setEditOpen(false); setLiveForm(null); }}
+            onSaved={() => { setEditOpen(false); setLiveForm(null); }}
             onFormChange={setLiveForm}
           />
         </SheetContent>
@@ -639,6 +839,7 @@ export default function ProfilePage() {
         profile={displayProfile}
         isOwnProfile={isOwnProfile}
         onEdit={() => setEditOpen(true)}
+        currentUserId={authUser?.id}
       />
     </>
   );

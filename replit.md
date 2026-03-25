@@ -49,7 +49,8 @@ A multi-app platform for sevelovesyou.com (SEVE / SEVCO Records). Built as a pla
 | `/jobs/:slug` | Job detail + application form | None |
 | `/contact` | Contact page | None |
 | `/profile` | Own profile (auth required) | None |
-| `/profile/:username` | Public user profile | None |
+| `/profile/:username` | Public user profile (Posts tab, Follow/Unfollow, follower counts) | None |
+| `/feed` | Social Feed — Timeline (social posts) + Official (admin broadcast) | None |
 | `/services` | Services listing | None |
 | `/services/:slug` | Service detail | None |
 | `/store` | Store | None |

@@ -12,7 +12,7 @@ import {
   CAN_ACCESS_ARCHIVE,
 } from "./middleware/permissions";
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
@@ -1622,6 +1622,185 @@ export async function registerRoutes(
       if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
       await storage.deleteFeedPost(id);
       res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Social posts
+  app.get("/api/posts", async (req: any, res) => {
+    try {
+      const userId = (req.query.userId as string) || undefined;
+      const currentUserId = req.user?.id;
+      const limit = Math.min(parseInt((req.query.limit as string) || "50"), 100);
+      const timeline = !userId;
+      const result = await storage.getPosts({
+        userId,
+        followedByUserId: timeline ? currentUserId : undefined,
+        limit,
+      });
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/posts", requireAuth, async (req: any, res) => {
+    try {
+      const parsed = insertPostSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
+      const post = await storage.createPost({ ...parsed.data, authorId: req.user.id });
+      res.status(201).json(post);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/posts/:id", requireAuth, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      const post = await storage.getPostById(id);
+      if (!post) return res.status(404).json({ message: "Post not found" });
+      const userRole = req.user?.role as Role;
+      const isOwner = post.authorId === req.user.id;
+      const canDelete = isOwner || ["admin", "executive"].includes(userRole);
+      if (!canDelete) return res.status(403).json({ message: "Not authorized" });
+      await storage.deletePost(id, post.authorId);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/posts/:id/like", requireAuth, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      await storage.likePost(id, req.user.id);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/posts/:id/like", requireAuth, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      await storage.unlikePost(id, req.user.id);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/posts/:id/replies", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      const replies = await storage.getReplies(id);
+      res.json(replies);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/posts/:id/replies", requireAuth, async (req: any, res) => {
+    try {
+      const postId = parseInt(req.params.id);
+      if (isNaN(postId)) return res.status(400).json({ message: "Invalid id" });
+      const parsed = insertPostReplySchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
+      const reply = await storage.createReply({ ...parsed.data, postId, authorId: req.user.id });
+      res.status(201).json(reply);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // User follow routes
+  app.get("/api/users/:username/profile", async (req, res) => {
+    try {
+      const profile = await storage.getUserByUsername(req.params.username);
+      if (!profile) return res.status(404).json({ message: "User not found" });
+      const followerCount = await storage.getFollowerCount(profile.id);
+      const followingCount = await storage.getFollowingCount(profile.id);
+      const currentUserId = (req.user as any)?.id;
+      const isFollowing = currentUserId ? await storage.isFollowing(currentUserId, profile.id) : false;
+      res.json({
+        id: profile.id,
+        username: profile.username,
+        displayName: profile.displayName,
+        bio: profile.bio,
+        avatarUrl: profile.avatarUrl,
+        role: profile.role,
+        emailVerified: profile.emailVerified,
+        profileBgColor: profile.profileBgColor,
+        profileAccentColor: profile.profileAccentColor,
+        profileBgImageUrl: profile.profileBgImageUrl,
+        socialLinks: profile.socialLinks,
+        followerCount,
+        followingCount,
+        isFollowing,
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/users/:username/follow", requireAuth, async (req: any, res) => {
+    try {
+      const target = await storage.getUserByUsername(req.params.username);
+      if (!target) return res.status(404).json({ message: "User not found" });
+      if (target.id === req.user.id) return res.status(400).json({ message: "Cannot follow yourself" });
+      await storage.followUser(req.user.id, target.id);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/users/:username/follow", requireAuth, async (req: any, res) => {
+    try {
+      const target = await storage.getUserByUsername(req.params.username);
+      if (!target) return res.status(404).json({ message: "User not found" });
+      await storage.unfollowUser(req.user.id, target.id);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/users/:username/followers", async (req, res) => {
+    try {
+      const profile = await storage.getUserByUsername(req.params.username);
+      if (!profile) return res.status(404).json({ message: "User not found" });
+      const followers = await storage.getFollowers(profile.id);
+      res.json(followers);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/users/:username/following", async (req, res) => {
+    try {
+      const profile = await storage.getUserByUsername(req.params.username);
+      if (!profile) return res.status(404).json({ message: "User not found" });
+      const following = await storage.getFollowing(profile.id);
+      res.json(following);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/users/:username/posts", async (req: any, res) => {
+    try {
+      const profile = await storage.getUserByUsername(req.params.username);
+      if (!profile) return res.status(404).json({ message: "User not found" });
+      const currentUserId = req.user?.id;
+      const userPosts = await storage.getPosts({ userId: profile.id, followedByUserId: currentUserId });
+      res.json(userPosts);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

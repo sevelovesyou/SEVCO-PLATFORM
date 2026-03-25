@@ -33,11 +33,37 @@ export async function getVirtualMachine(id: number | string) {
   return hostingerFetch(`/api/vps/v1/virtual-machines/${id}`);
 }
 
+interface HostingerAvailabilityItem {
+  domain?: string;
+  name?: string;
+  available?: boolean;
+  is_available?: boolean;
+  price?: number;
+  unit_price?: number;
+  period?: number;
+}
+
+interface NormalizedDomainResult {
+  domain: string;
+  available: boolean;
+  price?: number;
+  period?: number;
+}
+
 export async function checkDomainAvailability(domain: string, tlds: string[] = []) {
-  return hostingerFetch("/api/domains/v1/availability", {
-    method: "POST",
-    body: JSON.stringify({ domain, tlds }),
-  });
+  const raw: HostingerAvailabilityItem[] | { data: HostingerAvailabilityItem[] } =
+    await hostingerFetch("/api/domains/v1/availability", {
+      method: "POST",
+      body: JSON.stringify({ domain, tlds }),
+    });
+  const items: HostingerAvailabilityItem[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
+  const normalized: NormalizedDomainResult[] = items.map((item) => ({
+    domain: item.domain ?? item.name ?? "",
+    available: !!(item.available ?? item.is_available ?? false),
+    price: item.price ?? item.unit_price ?? undefined,
+    period: item.period ?? undefined,
+  }));
+  return { data: normalized };
 }
 
 export async function getDomainCatalog(tld?: string) {

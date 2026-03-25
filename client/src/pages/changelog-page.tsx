@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollText, Zap, Wrench, TrendingUp, MoreHorizontal, ArrowRight } from "lucide-react";
+import { ScrollText, Zap, Wrench, TrendingUp, MoreHorizontal, ArrowRight, ChevronLeft } from "lucide-react";
 import { Link } from "wouter";
 import type { Changelog, ChangelogCategory } from "@shared/schema";
 
@@ -35,6 +35,14 @@ export default function ChangelogPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
       <div className="mb-10">
+        <Link
+          href="/wiki"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-4"
+          data-testid="link-back-to-wiki"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          Wiki
+        </Link>
         <div className="flex items-center gap-3 mb-3">
           <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
             <ScrollText className="h-5 w-5 text-primary" />

@@ -105,7 +105,7 @@ export function AppSidebar() {
   ].filter((item) => item.show);
 
   return (
-    <Sidebar className="top-12 h-[calc(100svh-3rem)]">
+    <Sidebar collapsible="icon" className="top-12 h-[calc(100svh-3rem)]">
       <SidebarHeader className="p-3">
         <div className="flex items-center gap-2">
           <SidebarTrigger data-testid="button-sidebar-toggle" className="-ml-0.5 shrink-0" />
@@ -133,6 +133,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
+                    tooltip={item.title}
                     data-active={location === item.url}
                   >
                     <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(" ", "-")}`}>
@@ -174,6 +175,7 @@ export function AppSidebar() {
                     <SidebarMenuItem key={cat.id}>
                       <SidebarMenuButton
                         asChild
+                        tooltip={cat.name}
                         data-active={location === `/category/${cat.slug}`}
                       >
                         <Link href={`/category/${cat.slug}`} data-testid={`link-category-${cat.slug}`}>
@@ -206,6 +208,7 @@ export function AppSidebar() {
                   <SidebarMenuItem key={article.id}>
                     <SidebarMenuButton
                       asChild
+                      tooltip={article.title}
                       data-active={location === `/wiki/${article.slug}`}
                     >
                       <Link href={`/wiki/${article.slug}`} data-testid={`link-recent-${article.slug}`}>

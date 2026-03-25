@@ -2407,6 +2407,9 @@ export async function registerRoutes(
   });
 
   app.post("/api/hostinger/domains/availability", async (req, res) => {
+    if (!process.env.HOSTINGER_API_KEY) {
+      return res.status(503).json({ message: "Domain search is not configured. HOSTINGER_API_KEY is missing." });
+    }
     try {
       const { domain, tlds } = req.body;
       if (!domain || typeof domain !== "string") {

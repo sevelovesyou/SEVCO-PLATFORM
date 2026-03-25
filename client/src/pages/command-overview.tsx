@@ -573,6 +573,8 @@ function RecentSubmissionsCard({ submissions, isLoading }: { submissions: Submis
 function AdminOverview({ data, summary, summaryLoading, userId }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean; userId: string }) {
   return (
     <div className="flex flex-col gap-6">
+      <LatestChangelogCard entry={summary?.latestChangelog} isLoading={summaryLoading} />
+
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
           Platform Stats
@@ -634,8 +636,6 @@ function AdminOverview({ data, summary, summaryLoading, userId }: { data: Dashbo
         <VpsStatusCard />
       </div>
 
-      <LatestChangelogCard entry={summary?.latestChangelog} isLoading={summaryLoading} />
-
       <div className="grid md:grid-cols-2 gap-6">
         <RecentApplicantsCard applicants={summary?.recentApplicants} isLoading={summaryLoading} />
         <RecentSubmissionsCard submissions={summary?.recentSubmissions} isLoading={summaryLoading} />
@@ -654,6 +654,8 @@ function AdminOverview({ data, summary, summaryLoading, userId }: { data: Dashbo
 function ExecutiveOverview({ data, summary, summaryLoading }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean }) {
   return (
     <div className="flex flex-col gap-6">
+      <LatestChangelogCard entry={summary?.latestChangelog} isLoading={summaryLoading} />
+
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
           Business Overview
@@ -668,8 +670,6 @@ function ExecutiveOverview({ data, summary, summaryLoading }: { data: DashboardD
       <div>
         <StoreStatsPreview />
       </div>
-
-      <LatestChangelogCard entry={summary?.latestChangelog} isLoading={summaryLoading} />
 
       <div className="grid md:grid-cols-2 gap-6">
         <RecentApplicantsCard applicants={summary?.recentApplicants} isLoading={summaryLoading} />

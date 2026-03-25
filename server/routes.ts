@@ -11,7 +11,7 @@ import {
   CAN_DELETE_ARTICLE,
   CAN_ACCESS_ARCHIVE,
 } from "./middleware/permissions";
-import type { Role, InsertJob } from "@shared/schema";
+import type { Role, InsertJob, InsertArticle } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail } from "./emailClient";
@@ -468,20 +468,22 @@ export async function registerRoutes(
 
       const { citations: citationsData, editSummary, ...updateData } = req.body;
       const userRole = (req.user as any)?.role as Role | undefined;
-      const canPublish = !!userRole && (CAN_PUBLISH_ARTICLES as string[]).includes(userRole);
       const isArchived = article.status === "archived";
 
       if (isArchived) {
-        const directUpdate: Record<string, unknown> = {};
-        if (updateData.title !== undefined) directUpdate.title = updateData.title;
-        if (updateData.slug !== undefined) directUpdate.slug = updateData.slug;
-        if (updateData.content !== undefined) directUpdate.content = updateData.content;
-        if (updateData.summary !== undefined) directUpdate.summary = updateData.summary;
-        if (updateData.categoryId !== undefined) directUpdate.categoryId = updateData.categoryId;
-        if (updateData.tags !== undefined) directUpdate.tags = updateData.tags;
-        if (updateData.infoboxType !== undefined) directUpdate.infoboxType = updateData.infoboxType;
-        if (updateData.infoboxData !== undefined) directUpdate.infoboxData = updateData.infoboxData;
-        const updated = await storage.updateArticle(article.id, directUpdate as any);
+        const canArchive = !!userRole && (CAN_ACCESS_ARCHIVE as string[]).includes(userRole);
+        if (!canArchive) return res.status(403).json({ message: "Insufficient permissions to edit archived articles" });
+
+        const archivedUpdate: Partial<InsertArticle> = {};
+        if (updateData.title !== undefined) archivedUpdate.title = updateData.title;
+        if (updateData.slug !== undefined) archivedUpdate.slug = updateData.slug;
+        if (updateData.content !== undefined) archivedUpdate.content = updateData.content;
+        if (updateData.summary !== undefined) archivedUpdate.summary = updateData.summary;
+        if (updateData.categoryId !== undefined) archivedUpdate.categoryId = updateData.categoryId;
+        if (updateData.tags !== undefined) archivedUpdate.tags = updateData.tags;
+        if (updateData.infoboxType !== undefined) archivedUpdate.infoboxType = updateData.infoboxType;
+        if (updateData.infoboxData !== undefined) archivedUpdate.infoboxData = updateData.infoboxData;
+        const updated = await storage.updateArticle(article.id, archivedUpdate);
         if (citationsData && Array.isArray(citationsData)) {
           await storage.deleteCitationsByArticle(article.id);
           for (const cit of citationsData) {
@@ -498,6 +500,8 @@ export async function registerRoutes(
         }
         return res.json(updated);
       }
+
+      const canPublish = !!userRole && (CAN_PUBLISH_ARTICLES as string[]).includes(userRole);
 
       await storage.createRevision({
         articleId: article.id,

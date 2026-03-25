@@ -52,7 +52,7 @@ const CATEGORY_ORDER = ["general", "operations", "engineering", "design", "sales
 
 export function AppSidebar() {
   const [location] = useLocation();
-  const { canCreateArticle, canAccessReviewQueue, canDeleteArticle } = usePermission();
+  const { canCreateArticle, canAccessReviewQueue, canDeleteArticle, canAccessArchive } = usePermission();
   const { toast } = useToast();
 
   const { data: categories, isLoading: catLoading } = useQuery<Category[]>({
@@ -74,7 +74,7 @@ export function AppSidebar() {
 
   const { data: archivedArticles } = useQuery<Article[]>({
     queryKey: ["/api/articles/archived"],
-    enabled: canDeleteArticle,
+    enabled: canAccessArchive,
   });
 
   const unarchiveMutation = useMutation({
@@ -216,7 +216,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {canDeleteArticle && archivedArticles && archivedArticles.length > 0 && (
+        {canAccessArchive && archivedArticles && archivedArticles.length > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel className="flex items-center gap-1.5">
               <Archive className="h-3 w-3" />

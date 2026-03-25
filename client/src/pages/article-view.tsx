@@ -53,7 +53,7 @@ export default function ArticleView() {
   const slug = params?.slug;
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const { canDeleteArticle, canPublishArticles } = usePermission();
+  const { canPublishArticles, canAccessArchive } = usePermission();
 
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
 
@@ -238,7 +238,7 @@ export default function ArticleView() {
               {canPublishArticles ? "Republish" : "Submit for Review"}
             </Button>
           ) : (
-            canDeleteArticle && (
+            canAccessArchive && (
               <Button
                 size="sm"
                 variant="outline"

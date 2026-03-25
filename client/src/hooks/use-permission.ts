@@ -16,6 +16,7 @@ export function usePermission() {
     canAccessReviewQueue: hasRole(role, ["admin", "executive"]),
     canPublishArticles: hasRole(role, ["admin", "executive"]),
     canDeleteArticle: hasRole(role, ["admin", "executive"]),
+    canAccessArchive: hasRole(role, ["admin", "executive", "staff"]),
     canManageRoles: hasRole(role, ["admin"]),
     isAdmin: role === "admin",
     isExecutive: role === "executive",

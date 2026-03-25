@@ -9,6 +9,7 @@ import {
   CAN_PUBLISH_ARTICLES,
   CAN_ACCESS_REVIEW_QUEUE,
   CAN_DELETE_ARTICLE,
+  CAN_ACCESS_ARCHIVE,
 } from "./middleware/permissions";
 import type { Role, InsertJob } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema } from "@shared/schema";
@@ -323,7 +324,7 @@ export async function registerRoutes(
     res.json({ ...cat, articles: catArticles.filter((a) => a.status !== "archived") });
   });
 
-  app.get("/api/articles/archived", requireAuth, requireRole(...CAN_DELETE_ARTICLE), async (_req, res) => {
+  app.get("/api/articles/archived", requireAuth, requireRole(...CAN_ACCESS_ARCHIVE), async (_req, res) => {
     try {
       const all = await storage.getArticles();
       res.json(all.filter((a) => a.status === "archived"));
@@ -501,12 +502,12 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/articles/:id", requireAuth, requireRole(...CAN_DELETE_ARTICLE), async (req, res) => {
+  app.delete("/api/articles/:id", requireAuth, requireRole(...CAN_ACCESS_ARCHIVE), async (req, res) => {
     try {
       const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ message: "Invalid article id" });
-      await storage.deleteArticle(id);
-      res.json({ success: true });
+      const updated = await storage.updateArticle(id, { status: "archived" });
+      res.json(updated);
     } catch (err: any) {
       res.status(400).json({ message: err.message });
     }
@@ -1386,7 +1387,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/articles/:id/archive", requireAuth, requireRole(...CAN_DELETE_ARTICLE), async (req, res) => {
+  app.patch("/api/articles/:id/archive", requireAuth, requireRole(...CAN_ACCESS_ARCHIVE), async (req, res) => {
     try {
       const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ message: "Invalid article id" });
@@ -1397,7 +1398,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/articles/:id/unarchive", requireAuth, requireRole(...CAN_DELETE_ARTICLE), async (req, res) => {
+  app.patch("/api/articles/:id/unarchive", requireAuth, requireRole(...CAN_ACCESS_ARCHIVE), async (req, res) => {
     try {
       const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ message: "Invalid article id" });

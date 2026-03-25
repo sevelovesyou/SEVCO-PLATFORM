@@ -18,6 +18,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -34,6 +35,10 @@ import {
   UserPlus,
   Check,
   ChevronLeft,
+  Share2,
+  Copy,
+  Download,
+  FileText,
 } from "lucide-react";
 import { Link } from "wouter";
 import type { Note, NoteCollaborator } from "@shared/schema";
@@ -241,6 +246,28 @@ function NoteListItem({
       </div>
     </button>
   );
+}
+
+function toMarkdown(title: string, content: string) {
+  return `# ${title}\n\n${content}`;
+}
+
+function toPlainText(title: string, content: string) {
+  return `${title}\n\n${content}`;
+}
+
+function downloadFile(filename: string, text: string, mimeType: string) {
+  const blob = new Blob([text], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function safeName(title: string) {
+  return (title || "untitled").replace(/[/\\?%*:|"<>]/g, "-").trim() || "untitled";
 }
 
 export default function NotesPage() {
@@ -520,6 +547,81 @@ export default function NotesPage() {
                 >
                   <Users className={`h-3.5 w-3.5 ${selectedNote.isShared ? "text-blue-500" : ""}`} />
                 </Button>
+
+                {/* Share / Export */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" data-testid="button-share-export" title="Share / Export">
+                      <Share2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">Share / Export</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      data-testid="menu-copy-markdown"
+                      onClick={() => {
+                        const title = titleRef.current?.value ?? selectedNote.title;
+                        const content = contentRef.current?.value ?? selectedNote.content;
+                        navigator.clipboard.writeText(toMarkdown(title, content)).then(() => {
+                          toast({ title: "Copied to clipboard" });
+                        });
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5 mr-2" />
+                      Copy as Markdown
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      data-testid="menu-copy-plain-text"
+                      onClick={() => {
+                        const title = titleRef.current?.value ?? selectedNote.title;
+                        const content = contentRef.current?.value ?? selectedNote.content;
+                        navigator.clipboard.writeText(toPlainText(title, content)).then(() => {
+                          toast({ title: "Copied to clipboard" });
+                        });
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5 mr-2" />
+                      Copy as Plain Text
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      data-testid="menu-download-markdown"
+                      onClick={() => {
+                        const title = titleRef.current?.value ?? selectedNote.title;
+                        const content = contentRef.current?.value ?? selectedNote.content;
+                        downloadFile(`${safeName(title)}.md`, toMarkdown(title, content), "text/markdown");
+                      }}
+                    >
+                      <Download className="h-3.5 w-3.5 mr-2" />
+                      Download as Markdown (.md)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      data-testid="menu-download-text"
+                      onClick={() => {
+                        const title = titleRef.current?.value ?? selectedNote.title;
+                        const content = contentRef.current?.value ?? selectedNote.content;
+                        downloadFile(`${safeName(title)}.txt`, toPlainText(title, content), "text/plain");
+                      }}
+                    >
+                      <FileText className="h-3.5 w-3.5 mr-2" />
+                      Download as Text (.txt)
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      data-testid="menu-open-in-bear"
+                      onClick={() => {
+                        const title = titleRef.current?.value ?? selectedNote.title;
+                        const content = contentRef.current?.value ?? selectedNote.content;
+                        const url = `bear://x-callback-url/create?title=${encodeURIComponent(title)}&text=${encodeURIComponent(content)}`;
+                        window.open(url, "_blank");
+                      }}
+                    >
+                      <Share2 className="h-3.5 w-3.5 mr-2" />
+                      Open in Bear
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
                 {/* More actions */}
                 <DropdownMenu>

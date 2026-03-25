@@ -5,6 +5,7 @@ import { usePermission } from "@/hooks/use-permission";
 import { useCart } from "@/hooks/use-cart";
 import { useQuery } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SearchOverlay } from "@/components/search-overlay";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -57,6 +58,7 @@ import {
   Rss,
   ScrollText,
   Globe,
+  Search,
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import type { Project, Service } from "@shared/schema";
@@ -515,6 +517,7 @@ export function PlatformHeader() {
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSection, setMobileSection] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const storeCategories = ["Apparel", "Games", "Grocery", "Health", "Music", "Books"];
   const musicItems = [
@@ -535,6 +538,7 @@ export function PlatformHeader() {
   ];
 
   return (
+    <>
     <header
       className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm"
       data-testid="platform-header"
@@ -583,6 +587,17 @@ export function PlatformHeader() {
 
         {/* Right side actions */}
         <div className="flex items-center gap-1.5">
+          {/* Search button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setSearchOpen(true)}
+            data-testid="button-open-search"
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+
           {/* Cart button */}
           <Button
             variant="ghost"
@@ -787,5 +802,8 @@ export function PlatformHeader() {
         </div>
       )}
     </header>
+
+    <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
+    </>
   );
 }

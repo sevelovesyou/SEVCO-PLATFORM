@@ -723,6 +723,21 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/search", async (req, res) => {
+    const query = ((req.query.q as string) || "").trim();
+    const limit = Math.min(parseInt((req.query.limit as string) || "5"), 20);
+
+    if (!query || query.length < 2) {
+      return res.json({ wiki: [], projects: [], store: [], music: [], jobs: [], services: [], total: 0 });
+    }
+
+    const userRole = req.user?.role as Role | undefined;
+    const isStaff = !!userRole && (["admin", "executive", "staff"] as Role[]).includes(userRole);
+
+    const results = await storage.searchAll(query, isStaff, limit);
+    res.json(results);
+  });
+
   app.get("/api/articles/search", async (req, res) => {
     const query = (req.query.q as string) || "";
     const categoryFilter = (req.query.category as string) || "all";

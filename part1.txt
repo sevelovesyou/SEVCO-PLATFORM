@@ -1,0 +1,18 @@
+<<<<<<< HEAD
+  async getPlatformSettings(): Promise<Record<string, string>> {
+    const rows = await db.select().from(platformSettings);
+    const result: Record<string, string> = {};
+    for (const row of rows) {
+      result[row.key] = row.value;
+    }
+    return result;
+  }
+
+  async setPlatformSettings(entries: Record<string, string>): Promise<void> {
+    for (const [key, value] of Object.entries(entries)) {
+      await db
+        .insert(platformSettings)
+        .values({ key, value })
+        .onConflictDoUpdate({ target: platformSettings.key, set: { value } });
+    }
+=======

@@ -194,7 +194,26 @@ export interface IStorage {
 
   getPlatformSettings(): Promise<Record<string, string>>;
   setPlatformSettings(entries: Record<string, string>): Promise<void>;
+  searchAll(query: string, isStaff: boolean, limit: number): Promise<SearchAllResult>;
 }
+
+export type SearchResultItem = {
+  id: number;
+  title: string;
+  description?: string | null;
+  href: string;
+  meta?: string | null;
+};
+
+export type SearchAllResult = {
+  wiki: SearchResultItem[];
+  projects: SearchResultItem[];
+  store: SearchResultItem[];
+  music: SearchResultItem[];
+  jobs: SearchResultItem[];
+  services: SearchResultItem[];
+  total: number;
+};
 
 export type PostAuthor = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
 export type PostWithMeta = Post & { author: PostAuthor; likeCount: number; replyCount: number; likedByCurrentUser: boolean };
@@ -1184,6 +1203,127 @@ export class DatabaseStorage implements IStorage {
         .values({ key, value })
         .onConflictDoUpdate({ target: platformSettings.key, set: { value } });
     }
+  }
+
+  async searchAll(query: string, isStaff: boolean, limit: number): Promise<SearchAllResult> {
+    const pattern = `%${query}%`;
+
+    const wikiRows = await db
+      .select({ id: articles.id, title: articles.title, summary: articles.summary, slug: articles.slug, status: articles.status })
+      .from(articles).where(
+        and(
+          isStaff ? undefined : eq(articles.status, "published"),
+          or(ilike(articles.title, pattern), ilike(articles.summary, pattern))
+        )
+      ).orderBy(desc(articles.updatedAt)).limit(limit);
+
+    const projectRows = await db
+      .select({ id: projects.id, name: projects.name, description: projects.description, slug: projects.slug, status: projects.status })
+      .from(projects).where(
+        or(ilike(projects.name, pattern), ilike(projects.description, pattern))
+      ).orderBy(projects.name).limit(limit);
+
+    const productRows = await db
+      .select({ id: products.id, name: products.name, description: products.description, slug: products.slug, categoryName: products.categoryName })
+      .from(products).where(
+        or(ilike(products.name, pattern), ilike(products.description, pattern))
+      ).orderBy(products.name).limit(limit);
+
+    const artistRows = await db
+      .select({ id: artists.id, name: artists.name, bio: artists.bio, slug: artists.slug })
+      .from(artists).where(
+        or(ilike(artists.name, pattern), ilike(artists.bio, pattern))
+      ).orderBy(artists.name).limit(limit);
+
+    const albumRows = await db
+      .select({ id: albums.id, title: albums.title, slug: albums.slug })
+      .from(albums).where(
+        ilike(albums.title, pattern)
+      ).orderBy(albums.title).limit(limit);
+
+    const jobRows = await db
+      .select({ id: jobs.id, title: jobs.title, slug: jobs.slug, department: jobs.department, type: jobs.type, status: jobs.status })
+      .from(jobs).where(
+        and(
+          isStaff ? undefined : eq(jobs.status, "open"),
+          or(ilike(jobs.title, pattern), ilike(jobs.description, pattern), ilike(jobs.department, pattern))
+        )
+      ).orderBy(jobs.title).limit(limit);
+
+    const serviceRows = await db
+      .select({ id: services.id, name: services.name, tagline: services.tagline, slug: services.slug, category: services.category })
+      .from(services).where(
+        or(ilike(services.name, pattern), ilike(services.tagline, pattern), ilike(services.description, pattern))
+      ).orderBy(services.name).limit(limit);
+
+    const wikiItems: SearchResultItem[] = wikiRows.map((a) => ({
+      id: a.id,
+      title: a.title,
+      description: a.summary,
+      href: `/wiki/${a.slug}`,
+      meta: a.status !== "published" ? a.status : undefined,
+    }));
+
+    const projectItems: SearchResultItem[] = projectRows.map((p) => ({
+      id: p.id,
+      title: p.name,
+      description: p.description,
+      href: `/projects/${p.slug}`,
+      meta: p.status,
+    }));
+
+    const storeItems: SearchResultItem[] = productRows.map((p) => ({
+      id: p.id,
+      title: p.name,
+      description: p.description,
+      href: `/store/products/${p.slug}`,
+      meta: p.categoryName,
+    }));
+
+    const musicItems: SearchResultItem[] = [
+      ...artistRows.map((a) => ({
+        id: a.id,
+        title: a.name,
+        description: a.bio,
+        href: `/music/artists/${a.slug}`,
+        meta: "Artist",
+      })),
+      ...albumRows.map((a) => ({
+        id: a.id + 100000,
+        title: a.title,
+        description: null,
+        href: `/music/albums/${a.slug}`,
+        meta: "Album",
+      })),
+    ].slice(0, limit);
+
+    const jobItems: SearchResultItem[] = jobRows.map((j) => ({
+      id: j.id,
+      title: j.title,
+      description: j.department ? `${j.department} · ${j.type}` : j.type,
+      href: `/jobs/${j.slug}`,
+      meta: j.status,
+    }));
+
+    const serviceItems: SearchResultItem[] = serviceRows.map((s) => ({
+      id: s.id,
+      title: s.name,
+      description: s.tagline,
+      href: `/services/${s.slug}`,
+      meta: s.category,
+    }));
+
+    const total = wikiItems.length + projectItems.length + storeItems.length + musicItems.length + jobItems.length + serviceItems.length;
+
+    return {
+      wiki: wikiItems,
+      projects: projectItems,
+      store: storeItems,
+      music: musicItems,
+      jobs: jobItems,
+      services: serviceItems,
+      total,
+    };
   }
 }
 

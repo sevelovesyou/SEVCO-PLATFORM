@@ -12,8 +12,10 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Save, Image, Type, Eye, EyeOff, Globe, Link2, Package, Pencil, Trash2, Plus } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Save, Image, Type, Eye, EyeOff, Globe, Link2, Package, Pencil, Trash2, Plus, Palette, RotateCcw } from "lucide-react";
 import type { BrandAsset, InsertBrandAsset } from "@shared/schema";
+import { hexToHsl, hslToHex } from "@/lib/colorUtils";
 
 const SECTION_KEYS = [
   { key: "section.platformGrid.visible", label: "Platform Grid", description: "The six platform section cards (Wiki, Store, Music, etc.)" },
@@ -89,6 +91,30 @@ export default function CommandDisplay() {
   const [faviconUrl, setFaviconUrl] = useState("");
   const [ogImageUrl, setOgImageUrl] = useState("");
 
+  const DEFAULT_COLORS = {
+    lightPrimary: "225 60% 48%",
+    lightBackground: "210 20% 98%",
+    lightForeground: "220 20% 12%",
+    lightAccent: "220 14% 93%",
+    darkPrimary: "225 65% 58%",
+    darkBackground: "222 20% 8%",
+    darkForeground: "210 20% 92%",
+    darkAccent: "222 14% 16%",
+    brandMain: "",
+    brandSecondary: "",
+  };
+
+  const [lightPrimary, setLightPrimary] = useState(DEFAULT_COLORS.lightPrimary);
+  const [lightBackground, setLightBackground] = useState(DEFAULT_COLORS.lightBackground);
+  const [lightForeground, setLightForeground] = useState(DEFAULT_COLORS.lightForeground);
+  const [lightAccent, setLightAccent] = useState(DEFAULT_COLORS.lightAccent);
+  const [darkPrimary, setDarkPrimary] = useState(DEFAULT_COLORS.darkPrimary);
+  const [darkBackground, setDarkBackground] = useState(DEFAULT_COLORS.darkBackground);
+  const [darkForeground, setDarkForeground] = useState(DEFAULT_COLORS.darkForeground);
+  const [darkAccent, setDarkAccent] = useState(DEFAULT_COLORS.darkAccent);
+  const [brandMain, setBrandMain] = useState(DEFAULT_COLORS.brandMain);
+  const [brandSecondary, setBrandSecondary] = useState(DEFAULT_COLORS.brandSecondary);
+
   useEffect(() => {
     if (isLoading) return;
     setHeroBgUrl(settings["hero.backgroundImageUrl"] ?? "");
@@ -106,7 +132,47 @@ export default function CommandDisplay() {
       vis[s.key] = toBool(settings[s.key]);
     }
     setSectionVisibility(vis);
+    setLightPrimary(settings["color.light.primary"] || DEFAULT_COLORS.lightPrimary);
+    setLightBackground(settings["color.light.background"] || DEFAULT_COLORS.lightBackground);
+    setLightForeground(settings["color.light.foreground"] || DEFAULT_COLORS.lightForeground);
+    setLightAccent(settings["color.light.accent"] || DEFAULT_COLORS.lightAccent);
+    setDarkPrimary(settings["color.dark.primary"] || DEFAULT_COLORS.darkPrimary);
+    setDarkBackground(settings["color.dark.background"] || DEFAULT_COLORS.darkBackground);
+    setDarkForeground(settings["color.dark.foreground"] || DEFAULT_COLORS.darkForeground);
+    setDarkAccent(settings["color.dark.accent"] || DEFAULT_COLORS.darkAccent);
+    setBrandMain(settings["color.brand.main"] || DEFAULT_COLORS.brandMain);
+    setBrandSecondary(settings["color.brand.secondary"] || DEFAULT_COLORS.brandSecondary);
   }, [settings, isLoading]);
+
+  function saveColors() {
+    mutation.mutate({
+      "color.light.primary": lightPrimary,
+      "color.light.background": lightBackground,
+      "color.light.foreground": lightForeground,
+      "color.light.accent": lightAccent,
+      "color.dark.primary": darkPrimary,
+      "color.dark.background": darkBackground,
+      "color.dark.foreground": darkForeground,
+      "color.dark.accent": darkAccent,
+      "color.brand.main": brandMain,
+      "color.brand.secondary": brandSecondary,
+    });
+  }
+
+  function resetColors() {
+    mutation.mutate({
+      "color.light.primary": "",
+      "color.light.background": "",
+      "color.light.foreground": "",
+      "color.light.accent": "",
+      "color.dark.primary": "",
+      "color.dark.background": "",
+      "color.dark.foreground": "",
+      "color.dark.accent": "",
+      "color.brand.main": "",
+      "color.brand.secondary": "",
+    });
+  }
 
   function saveHero() {
     mutation.mutate({
@@ -217,8 +283,113 @@ export default function CommandDisplay() {
 
   const isBrandPending = createBrandAsset.isPending || updateBrandAsset.isPending;
 
+  function ColorPickerRow({
+    label,
+    hsl,
+    onChange,
+    testIdBase,
+  }: {
+    label: string;
+    hsl: string;
+    onChange: (hsl: string) => void;
+    testIdBase: string;
+  }) {
+    const hexVal = hsl ? hslToHex(hsl) : "#000000";
+    return (
+      <div className="flex items-center gap-3">
+        <div className="relative shrink-0">
+          <div
+            className="h-8 w-8 rounded-md border border-border"
+            style={{ backgroundColor: hsl ? `hsl(${hsl})` : "transparent" }}
+          />
+          <input
+            type="color"
+            value={hexVal}
+            onChange={(e) => onChange(hexToHsl(e.target.value))}
+            className="absolute inset-0 opacity-0 cursor-pointer w-8 h-8"
+            data-testid={`color-picker-${testIdBase}`}
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-foreground">{label}</p>
+          <p className="text-[10px] text-muted-foreground font-mono truncate">{hsl || "—"}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 max-w-3xl">
+
+      {/* Platform Colors */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-4 w-4" />
+                Platform Colors
+              </CardTitle>
+              <CardDescription className="mt-1">
+                Customize the color scheme used across the entire platform. Changes take effect immediately after saving.
+              </CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 text-muted-foreground shrink-0"
+              onClick={resetColors}
+              disabled={mutation.isPending}
+              data-testid="button-reset-colors"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Reset to defaults
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <Tabs defaultValue="light">
+            <TabsList className="mb-4" data-testid="tabs-color-mode">
+              <TabsTrigger value="light" data-testid="tab-light-mode">Light Mode</TabsTrigger>
+              <TabsTrigger value="dark" data-testid="tab-dark-mode">Dark Mode</TabsTrigger>
+            </TabsList>
+            <TabsContent value="light" className="space-y-4">
+              <ColorPickerRow label="Primary" hsl={lightPrimary} onChange={setLightPrimary} testIdBase="light-primary" />
+              <ColorPickerRow label="Background" hsl={lightBackground} onChange={setLightBackground} testIdBase="light-background" />
+              <ColorPickerRow label="Foreground" hsl={lightForeground} onChange={setLightForeground} testIdBase="light-foreground" />
+              <ColorPickerRow label="Accent" hsl={lightAccent} onChange={setLightAccent} testIdBase="light-accent" />
+            </TabsContent>
+            <TabsContent value="dark" className="space-y-4">
+              <ColorPickerRow label="Primary" hsl={darkPrimary} onChange={setDarkPrimary} testIdBase="dark-primary" />
+              <ColorPickerRow label="Background" hsl={darkBackground} onChange={setDarkBackground} testIdBase="dark-background" />
+              <ColorPickerRow label="Foreground" hsl={darkForeground} onChange={setDarkForeground} testIdBase="dark-foreground" />
+              <ColorPickerRow label="Accent" hsl={darkAccent} onChange={setDarkAccent} testIdBase="dark-accent" />
+            </TabsContent>
+          </Tabs>
+
+          <Separator />
+
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-foreground">Brand Colors</p>
+            <p className="text-xs text-muted-foreground">These apply globally across both modes and feed into the Brand &amp; Assets section of the About page.</p>
+            <ColorPickerRow label="Brand Main" hsl={brandMain} onChange={setBrandMain} testIdBase="brand-main" />
+            <ColorPickerRow label="Brand Secondary" hsl={brandSecondary} onChange={setBrandSecondary} testIdBase="brand-secondary" />
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              onClick={saveColors}
+              disabled={mutation.isPending}
+              className="gap-2"
+              data-testid="button-save-colors"
+            >
+              <Save className="h-3.5 w-3.5" />
+              Save Colors
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Hero Editor */}
       <Card>
         <CardHeader>

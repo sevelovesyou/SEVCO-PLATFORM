@@ -65,9 +65,8 @@ function assetTypeIcon(type: string) {
 }
 
 const PRIMARY_COLORS = [
-  { name: "Primary Black", hex: "#0a0a0a", usage: "Main brand color" },
-  { name: "Primary White", hex: "#ffffff", usage: "On dark backgrounds" },
-  { name: "Accent", hex: "#6b21a8", usage: "Highlights & CTAs" },
+  { name: "Brand Main", cssVar: "--brand-main", fallback: "hsl(225 60% 48%)", usage: "Primary brand color" },
+  { name: "Brand Secondary", cssVar: "--brand-secondary", fallback: "hsl(225 65% 58%)", usage: "Secondary brand color" },
 ];
 
 export default function AboutPage() {
@@ -224,17 +223,17 @@ export default function AboutPage() {
               </div>
 
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-foreground">Primary colours</p>
+                <p className="text-xs font-semibold text-foreground">Brand colours</p>
                 <div className="flex flex-wrap gap-3">
                   {PRIMARY_COLORS.map((color) => (
-                    <div key={color.hex} className="flex items-center gap-2.5 border border-border rounded-lg px-3 py-2" data-testid={`swatch-${color.name.toLowerCase().replace(/\s+/g, "-")}`}>
+                    <div key={color.cssVar} className="flex items-center gap-2.5 border border-border rounded-lg px-3 py-2" data-testid={`swatch-${color.name.toLowerCase().replace(/\s+/g, "-")}`}>
                       <div
                         className="h-5 w-5 rounded-md border border-border/50 shrink-0"
-                        style={{ backgroundColor: color.hex }}
+                        style={{ backgroundColor: `var(${color.cssVar}, ${color.fallback})` }}
                       />
                       <div>
                         <p className="text-xs font-medium text-foreground">{color.name}</p>
-                        <p className="text-[10px] text-muted-foreground font-mono">{color.hex} · {color.usage}</p>
+                        <p className="text-[10px] text-muted-foreground">{color.usage}</p>
                       </div>
                     </div>
                   ))}

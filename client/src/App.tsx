@@ -15,7 +15,7 @@ import { CartProvider } from "@/hooks/use-cart";
 import { SpotifyPlayerProvider, useSpotifyPlayer } from "@/hooks/use-spotify-player";
 import { SpotifyPlayerBar } from "@/components/spotify-player-bar";
 import { CartDrawer } from "@/components/cart-drawer";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
@@ -253,6 +253,80 @@ function DynamicHead() {
   return null;
 }
 
+const COLOR_KEYS_LIGHT = ["color.light.primary", "color.light.background", "color.light.foreground", "color.light.accent"];
+const COLOR_KEYS_DARK = ["color.dark.primary", "color.dark.background", "color.dark.foreground", "color.dark.accent"];
+const CSS_VAR_MAP_LIGHT: Record<string, string> = {
+  "color.light.primary": "--primary",
+  "color.light.background": "--background",
+  "color.light.foreground": "--foreground",
+  "color.light.accent": "--accent",
+};
+const CSS_VAR_MAP_DARK: Record<string, string> = {
+  "color.dark.primary": "--primary",
+  "color.dark.background": "--background",
+  "color.dark.foreground": "--foreground",
+  "color.dark.accent": "--accent",
+};
+
+function PlatformColorInjector() {
+  const { data: settings } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
+  });
+  const styleRef = useRef<HTMLStyleElement | null>(null);
+
+  useEffect(() => {
+    if (!settings) return;
+
+    const lightRules: string[] = [];
+    for (const key of COLOR_KEYS_LIGHT) {
+      const val = settings[key];
+      if (val) {
+        const cssVar = CSS_VAR_MAP_LIGHT[key];
+        lightRules.push(`  ${cssVar}: ${val};`);
+      }
+    }
+    const brandMain = settings["color.brand.main"];
+    const brandSecondary = settings["color.brand.secondary"];
+    if (brandMain) lightRules.push(`  --brand-main: ${brandMain};`);
+    if (brandSecondary) lightRules.push(`  --brand-secondary: ${brandSecondary};`);
+
+    const darkRules: string[] = [];
+    for (const key of COLOR_KEYS_DARK) {
+      const val = settings[key];
+      if (val) {
+        const cssVar = CSS_VAR_MAP_DARK[key];
+        darkRules.push(`  ${cssVar}: ${val};`);
+      }
+    }
+    if (brandMain) darkRules.push(`  --brand-main: ${brandMain};`);
+    if (brandSecondary) darkRules.push(`  --brand-secondary: ${brandSecondary};`);
+
+    const hasOverrides = lightRules.length > 0 || darkRules.length > 0;
+
+    if (!hasOverrides) {
+      if (styleRef.current) {
+        styleRef.current.remove();
+        styleRef.current = null;
+      }
+      return;
+    }
+
+    let css = "";
+    if (lightRules.length > 0) css += `:root {\n${lightRules.join("\n")}\n}\n`;
+    if (darkRules.length > 0) css += `.dark {\n${darkRules.join("\n")}\n}\n`;
+
+    if (!styleRef.current) {
+      const style = document.createElement("style");
+      style.id = "platform-color-overrides";
+      document.head.appendChild(style);
+      styleRef.current = style;
+    }
+    styleRef.current.textContent = css;
+  }, [settings]);
+
+  return null;
+}
+
 function AppShell() {
   const { user, isLoading } = useAuth();
   const [location] = useLocation();
@@ -310,6 +384,7 @@ function App() {
             <SpotifyPlayerProvider>
               <TooltipProvider>
                 <DynamicHead />
+                <PlatformColorInjector />
                 <AppShell />
                 <Toaster />
               </TooltipProvider>

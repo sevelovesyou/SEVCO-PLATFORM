@@ -6,10 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Music, Users, Disc, Plus, ArrowRight, Headphones, ListMusic, Send,
+  Music, Users, Disc, Plus, ArrowRight, Headphones, ListMusic, Send, Play, ExternalLink,
 } from "lucide-react";
-import type { Artist, Album } from "@shared/schema";
+import type { Artist, Album, Playlist } from "@shared/schema";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
+import { SiSpotify } from "react-icons/si";
+import { useSpotifyPlayer, isSpotifyUrl } from "@/hooks/use-spotify-player";
 
 const CAN_MANAGE_MUSIC = ["admin", "executive", "staff"];
 
@@ -57,6 +59,45 @@ function AlbumCard({ album }: { album: AlbumWithArtist }) {
   );
 }
 
+function FeaturedPlaylistCard({ playlist }: { playlist: Playlist }) {
+  const { activePlaylist, toggle } = useSpotifyPlayer();
+  const isActive = activePlaylist?.id === playlist.id;
+  const spotify = isSpotifyUrl(playlist.playlistUrl);
+
+  return (
+    <div
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all group cursor-pointer ${
+        isActive ? "border-[#1DB954] bg-[#1DB954]/5" : "hover:border-foreground/20 hover:bg-muted/30"
+      }`}
+      onClick={() => spotify ? toggle(playlist) : window.open(playlist.playlistUrl, "_blank")}
+      data-testid={`card-featured-playlist-${playlist.id}`}
+    >
+      <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/10 flex items-center justify-center shrink-0 overflow-hidden">
+        {playlist.coverImageUrl ? (
+          <img src={playlist.coverImageUrl} alt={playlist.title} className="h-full w-full object-cover rounded-lg" />
+        ) : (
+          <ListMusic className="h-4 w-4 text-violet-400 opacity-60" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm truncate">{playlist.title}</p>
+        {playlist.description && (
+          <p className="text-[11px] text-muted-foreground truncate">{playlist.description}</p>
+        )}
+      </div>
+      {spotify ? (
+        isActive ? (
+          <Badge className="bg-[#1DB954] text-black text-[10px] px-1.5 py-0 font-semibold shrink-0">Playing</Badge>
+        ) : (
+          <Play className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all shrink-0" />
+        )
+      ) : (
+        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all shrink-0" />
+      )}
+    </div>
+  );
+}
+
 export default function MusicPage() {
   const { role } = usePermission();
   const canManage = CAN_MANAGE_MUSIC.includes(role ?? "");
@@ -69,8 +110,13 @@ export default function MusicPage() {
     queryKey: ["/api/music/albums"],
   });
 
+  const { data: playlistsList, isLoading: playlistsLoading } = useQuery<Playlist[]>({
+    queryKey: ["/api/music/playlists"],
+  });
+
   const featuredArtists = artistsList?.slice(0, 6) || [];
   const latestAlbums = albumsList?.slice(0, 8) || [];
+  const featuredPlaylists = playlistsList?.slice(0, 4) || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -196,29 +242,47 @@ export default function MusicPage() {
           )}
         </section>
 
-        {/* Our Playlists teaser */}
+        {/* Playlists section */}
         <section className="mb-12">
-          <div className="border rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6">
-            <div className="h-16 w-16 rounded-2xl bg-violet-500/10 flex items-center justify-center shrink-0">
-              <ListMusic className="h-8 w-8 text-violet-500" />
-            </div>
-            <div className="flex-1 text-center md:text-left">
+          <div className="flex items-center justify-between mb-5">
+            <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">Curated</p>
-              <h3 className="font-bold text-lg mb-1">Our Playlists</h3>
-              <p className="text-sm text-muted-foreground">
-                Handpicked selections from the SEVCO team. Moods, moments, and everything in between.
-                Want your music featured? Submit for consideration.
-              </p>
+              <h2 className="text-2xl font-bold tracking-tight">Our Playlists</h2>
             </div>
-            <div className="flex gap-2 shrink-0">
-              <Link href="/music/playlists">
-                <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-view-playlists">
-                  <ListMusic className="h-3.5 w-3.5" />
-                  Browse Playlists
-                </Button>
-              </Link>
-            </div>
+            <Link href="/music/playlists">
+              <span className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1" data-testid="link-all-playlists">
+                View all <ArrowRight className="h-3 w-3" />
+              </span>
+            </Link>
           </div>
+
+          {playlistsLoading ? (
+            <div className="grid sm:grid-cols-2 gap-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 rounded-xl" />
+              ))}
+            </div>
+          ) : featuredPlaylists.length === 0 ? (
+            <div className="border border-dashed rounded-2xl p-10 text-center">
+              <ListMusic className="h-8 w-8 mx-auto mb-3 text-muted-foreground opacity-40" />
+              <p className="text-sm text-muted-foreground mb-1 font-medium">No playlists yet</p>
+              <p className="text-xs text-muted-foreground">Curation in progress — check back soon.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid sm:grid-cols-2 gap-2">
+                {featuredPlaylists.map((pl) => (
+                  <FeaturedPlaylistCard key={pl.id} playlist={pl} />
+                ))}
+              </div>
+              {featuredPlaylists.some((p) => isSpotifyUrl(p.playlistUrl)) && (
+                <p className="text-[10px] text-muted-foreground mt-3 flex items-center gap-1">
+                  <SiSpotify className="h-2.5 w-2.5 text-[#1DB954]" />
+                  Click a Spotify playlist to stream it right here.
+                </p>
+              )}
+            </>
+          )}
         </section>
 
         {/* Submit CTA */}

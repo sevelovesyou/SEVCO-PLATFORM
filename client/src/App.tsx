@@ -12,6 +12,8 @@ import { PlatformFooter } from "@/components/platform-footer";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/protected-route";
 import { CartProvider } from "@/hooks/use-cart";
+import { SpotifyPlayerProvider } from "@/hooks/use-spotify-player";
+import { SpotifyPlayerBar } from "@/components/spotify-player-bar";
 
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
@@ -237,6 +239,7 @@ function AppShell() {
           </main>
         </div>
       </div>
+      <SpotifyPlayerBar />
     </SidebarProvider>
   );
 }
@@ -247,10 +250,12 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <CartProvider>
-            <TooltipProvider>
-              <AppShell />
-              <Toaster />
-            </TooltipProvider>
+            <SpotifyPlayerProvider>
+              <TooltipProvider>
+                <AppShell />
+                <Toaster />
+              </TooltipProvider>
+            </SpotifyPlayerProvider>
           </CartProvider>
         </AuthProvider>
       </QueryClientProvider>

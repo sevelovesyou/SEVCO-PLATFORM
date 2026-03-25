@@ -19,10 +19,11 @@ import {
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
-  ListMusic, ExternalLink, Music, Send, CheckCircle, Disc, Play, X,
+  ListMusic, ExternalLink, Music, Send, CheckCircle, Disc, Play, Pause,
 } from "lucide-react";
 import type { Playlist } from "@shared/schema";
 import { SiSpotify, SiApplemusic, SiYoutubemusic, SiSoundcloud } from "react-icons/si";
+import { useSpotifyPlayer, isSpotifyUrl } from "@/hooks/use-spotify-player";
 
 const PLATFORM_ICONS: Record<string, React.ElementType> = {
   Spotify: SiSpotify,
@@ -43,84 +44,13 @@ const GENRES = [
   "Alternative", "Rock", "Indie", "Jazz", "Lo-Fi", "Other",
 ];
 
-function getSpotifyEmbedUrl(url: string): string | null {
-  const match = url.match(/open\.spotify\.com\/(playlist|album|track|artist)\/([a-zA-Z0-9]+)/);
-  if (!match) return null;
-  return `https://open.spotify.com/embed/${match[1]}/${match[2]}?utm_source=generator&theme=0`;
-}
+function PlaylistCard({ playlist }: { playlist: Playlist }) {
+  const { activePlaylist, toggle } = useSpotifyPlayer();
+  const isActive = activePlaylist?.id === playlist.id;
+  const spotify = isSpotifyUrl(playlist.playlistUrl);
 
-function isSpotifyUrl(url: string): boolean {
-  return /open\.spotify\.com/.test(url);
-}
-
-function SpotifyPlayerBar({
-  playlist,
-  onClose,
-}: {
-  playlist: Playlist;
-  onClose: () => void;
-}) {
-  const embedUrl = getSpotifyEmbedUrl(playlist.playlistUrl);
-  if (!embedUrl) return null;
-
-  return (
-    <div
-      className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t shadow-2xl"
-      data-testid="spotify-player-bar"
-    >
-      <div className="max-w-5xl mx-auto px-4 py-3">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <SiSpotify className="h-4 w-4 text-[#1DB954] shrink-0" />
-            <p className="text-sm font-semibold truncate">{playlist.title}</p>
-          </div>
-          <a
-            href={playlist.playlistUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-            data-testid="link-open-spotify"
-          >
-            <ExternalLink className="h-3 w-3" />
-            Open in Spotify
-          </a>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 shrink-0"
-            onClick={onClose}
-            data-testid="button-close-player"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        <iframe
-          src={embedUrl}
-          width="100%"
-          height="152"
-          frameBorder="0"
-          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-          loading="lazy"
-          className="rounded-xl"
-          data-testid="iframe-spotify-player"
-        />
-      </div>
-    </div>
-  );
-}
-
-function PlaylistCard({
-  playlist,
-  onPlay,
-  isActive,
-}: {
-  playlist: Playlist;
-  onPlay: (p: Playlist) => void;
-  isActive: boolean;
-}) {
   const PlatformIcon = playlist.platform ? PLATFORM_ICONS[playlist.platform] : undefined;
   const platformColor = playlist.platform ? PLATFORM_COLORS[playlist.platform] : "";
-  const spotify = isSpotifyUrl(playlist.playlistUrl);
 
   return (
     <Card
@@ -142,12 +72,12 @@ function PlaylistCard({
           {spotify ? (
             <Button
               size="sm"
-              className="gap-1.5 bg-[#1DB954] hover:bg-[#1DB954]/90 text-black font-semibold"
-              onClick={() => onPlay(playlist)}
+              className={`gap-1.5 font-semibold ${isActive ? "bg-white text-black hover:bg-white/90" : "bg-[#1DB954] hover:bg-[#1DB954]/90 text-black"}`}
+              onClick={() => toggle(playlist)}
               data-testid={`button-play-playlist-${playlist.id}`}
             >
-              <Play className="h-3.5 w-3.5" />
-              Play
+              {isActive ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+              {isActive ? "Stop" : "Play"}
             </Button>
           ) : (
             <a href={playlist.playlistUrl} target="_blank" rel="noopener noreferrer">
@@ -364,21 +294,14 @@ function PlaylistSubmitFormComponent() {
 }
 
 export default function MusicPlaylistsPage() {
-  const [activePlaylist, setActivePlaylist] = useState<Playlist | null>(null);
+  const { activePlaylist } = useSpotifyPlayer();
 
   const { data: playlists, isLoading } = useQuery<Playlist[]>({
     queryKey: ["/api/music/playlists"],
   });
 
-  const officialPlaylists = playlists ?? [];
-
-  const handlePlay = (playlist: Playlist) => {
-    if (activePlaylist?.id === playlist.id) {
-      setActivePlaylist(null);
-    } else {
-      setActivePlaylist(playlist);
-    }
-  };
+  const allPlaylists = playlists ?? [];
+  const hasSpotify = allPlaylists.some((p) => isSpotifyUrl(p.playlistUrl));
 
   return (
     <div className="min-h-screen bg-background">
@@ -398,13 +321,13 @@ export default function MusicPlaylistsPage() {
           </p>
         </div>
 
-        {/* Official Playlists */}
+        {/* Playlist grid */}
         <section className="mb-14">
           <div className="flex items-center gap-2 mb-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Official Playlists</p>
-            {officialPlaylists.length > 0 && (
+            {allPlaylists.length > 0 && hasSpotify && (
               <span className="text-xs text-muted-foreground">
-                · {officialPlaylists.filter((p) => isSpotifyUrl(p.playlistUrl)).length} Spotify
+                · {allPlaylists.filter((p) => isSpotifyUrl(p.playlistUrl)).length} streamable
               </span>
             )}
           </div>
@@ -419,7 +342,7 @@ export default function MusicPlaylistsPage() {
                 </div>
               ))}
             </div>
-          ) : officialPlaylists.length === 0 ? (
+          ) : allPlaylists.length === 0 ? (
             <div className="border border-dashed rounded-2xl p-12 text-center">
               <Disc className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-30" />
               <p className="font-medium text-sm mb-1">No playlists yet</p>
@@ -427,21 +350,16 @@ export default function MusicPlaylistsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {officialPlaylists.map((pl) => (
-                <PlaylistCard
-                  key={pl.id}
-                  playlist={pl}
-                  onPlay={handlePlay}
-                  isActive={activePlaylist?.id === pl.id}
-                />
+              {allPlaylists.map((pl) => (
+                <PlaylistCard key={pl.id} playlist={pl} />
               ))}
             </div>
           )}
 
-          {officialPlaylists.some((p) => isSpotifyUrl(p.playlistUrl)) && (
+          {hasSpotify && (
             <p className="text-[10px] text-muted-foreground mt-3 flex items-center gap-1">
               <SiSpotify className="h-2.5 w-2.5 text-[#1DB954]" />
-              Spotify playlists can be played directly in the page. Other platforms open in a new tab.
+              Spotify playlists stream directly in-page. Other platforms open in a new tab.
             </p>
           )}
         </section>
@@ -458,7 +376,7 @@ export default function MusicPlaylistsPage() {
                   <h2 className="font-bold text-lg mb-1">Suggest Your Music</h2>
                   <p className="text-sm text-muted-foreground">
                     Think your track belongs in one of our playlists? Submit it for consideration.
-                    No SEVCO account needed — just fill out the form.
+                    No SEVCO account needed.
                   </p>
                 </div>
               </div>
@@ -481,11 +399,6 @@ export default function MusicPlaylistsPage() {
           </Link>
         </div>
       </div>
-
-      {/* Spotify embed player bar */}
-      {activePlaylist && isSpotifyUrl(activePlaylist.playlistUrl) && (
-        <SpotifyPlayerBar playlist={activePlaylist} onClose={() => setActivePlaylist(null)} />
-      )}
     </div>
   );
 }

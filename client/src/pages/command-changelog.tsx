@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ScrollText, Plus, Shield, Tag } from "lucide-react";
+import { ScrollText, Plus, Shield, Tag, ExternalLink, Link2 } from "lucide-react";
 import type { Changelog, ChangelogCategory } from "@shared/schema";
 import { insertChangelogSchema } from "@shared/schema";
 import { z } from "zod";
@@ -46,19 +46,27 @@ function suggestNextVersion(current: string | null | undefined): string {
   return parts.join(".");
 }
 
-const changelogFormSchema = insertChangelogSchema.extend({
+const changelogFormSchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
   description: z.string().min(1, "Description is required").max(1000),
   version: z.string()
     .min(1, "Version is required")
     .regex(/^\d+\.\d+\.\d+$/, "Use MAJOR.MINOR.PATCH format (e.g. 1.2.0)"),
+  category: z.enum(["feature", "fix", "improvement", "other"]).default("improvement"),
+  wikiSlug: z.string().optional().nullable(),
 });
 type ChangelogFormValues = z.infer<typeof changelogFormSchema>;
+
+const wikiSlugFormSchema = z.object({
+  wikiSlug: z.string().optional().nullable(),
+});
+type WikiSlugFormValues = z.infer<typeof wikiSlugFormSchema>;
 
 export default function CommandChangelog() {
   const { isAdmin, isExecutive, isStaff } = usePermission();
   const { toast } = useToast();
   const [formOpen, setFormOpen] = useState(false);
+  const [editingSlugId, setEditingSlugId] = useState<number | null>(null);
 
   const canAccess = isAdmin || isExecutive || isStaff;
 
@@ -77,7 +85,13 @@ export default function CommandChangelog() {
       description: "",
       category: "improvement",
       version: suggestedVersion,
+      wikiSlug: "",
     },
+  });
+
+  const slugForm = useForm<WikiSlugFormValues>({
+    resolver: zodResolver(wikiSlugFormSchema),
+    defaultValues: { wikiSlug: "" },
   });
 
   const handleOpenForm = () => {
@@ -97,6 +111,19 @@ export default function CommandChangelog() {
     },
     onError: () => {
       toast({ title: "Failed to add entry", variant: "destructive" });
+    },
+  });
+
+  const slugMutation = useMutation({
+    mutationFn: ({ id, wikiSlug }: { id: number; wikiSlug: string | null | undefined }) =>
+      apiRequest("PATCH", `/api/changelog/${id}`, { wikiSlug: wikiSlug || null }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/changelog"] });
+      setEditingSlugId(null);
+      toast({ title: "Wiki link updated" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update wiki link", variant: "destructive" });
     },
   });
 
@@ -211,29 +238,53 @@ export default function CommandChangelog() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs">Category</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+              <div className="grid grid-cols-2 gap-3">
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Category</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger className="h-8 text-sm" data-testid="select-changelog-category">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="feature">Feature</SelectItem>
+                          <SelectItem value="fix">Fix</SelectItem>
+                          <SelectItem value="improvement">Improvement</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="wikiSlug"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs flex items-center gap-1">
+                        <Link2 className="h-3 w-3" />
+                        Wiki Article Slug
+                      </FormLabel>
                       <FormControl>
-                        <SelectTrigger className="h-8 text-sm" data-testid="select-changelog-category">
-                          <SelectValue />
-                        </SelectTrigger>
+                        <Input
+                          placeholder="e.g. eng-task-36-..."
+                          className="h-8 text-sm font-mono"
+                          data-testid="input-changelog-wiki-slug"
+                          {...field}
+                          value={field.value ?? ""}
+                        />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="feature">Feature</SelectItem>
-                        <SelectItem value="fix">Fix</SelectItem>
-                        <SelectItem value="improvement">Improvement</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <div className="flex gap-2">
                 <Button
                   type="submit"
@@ -290,12 +341,74 @@ export default function CommandChangelog() {
                         v{entry.version}
                       </span>
                     )}
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-[10px] text-muted-foreground" data-testid={`text-changelog-date-${entry.id}`}>
                       {new Date(entry.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </span>
                   </div>
                   <p className="text-sm font-medium leading-snug">{entry.title}</p>
                   <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{entry.description}</p>
+
+                  {editingSlugId === entry.id ? (
+                    <form
+                      className="mt-2 flex gap-2 items-center"
+                      onSubmit={slugForm.handleSubmit((data) =>
+                        slugMutation.mutate({ id: entry.id, wikiSlug: data.wikiSlug })
+                      )}
+                    >
+                      <Input
+                        className="h-7 text-xs font-mono flex-1"
+                        placeholder="wiki article slug..."
+                        data-testid={`input-wiki-slug-${entry.id}`}
+                        {...slugForm.register("wikiSlug")}
+                        defaultValue={entry.wikiSlug ?? ""}
+                      />
+                      <Button type="submit" size="sm" className="h-7 text-xs" disabled={slugMutation.isPending}>
+                        Save
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => setEditingSlugId(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </form>
+                  ) : (
+                    <div className="mt-1.5 flex items-center gap-2">
+                      {entry.wikiSlug ? (
+                        <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded" data-testid={`text-wiki-slug-${entry.id}`}>
+                          /wiki/{entry.wikiSlug}
+                        </span>
+                      ) : null}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-[10px] px-2 text-muted-foreground"
+                        onClick={() => {
+                          slugForm.setValue("wikiSlug", entry.wikiSlug ?? "");
+                          setEditingSlugId(entry.id);
+                        }}
+                        data-testid={`button-edit-wiki-slug-${entry.id}`}
+                      >
+                        <Link2 className="h-3 w-3 mr-1" />
+                        {entry.wikiSlug ? "Edit link" : "Link article"}
+                      </Button>
+                      {entry.wikiSlug && (
+                        <a
+                          href={`/wiki/${entry.wikiSlug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-0.5 text-[10px] text-primary hover:underline"
+                          data-testid={`link-wiki-article-${entry.id}`}
+                        >
+                          <ExternalLink className="h-2.5 w-2.5" />
+                          View
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </Card>

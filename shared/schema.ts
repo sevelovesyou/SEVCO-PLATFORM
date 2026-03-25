@@ -280,6 +280,7 @@ export const changelog = pgTable("changelog", {
   description: text("description").notNull(),
   category: changelogCategoryEnum("category").notNull().default("improvement"),
   version: varchar("version", { length: 20 }),
+  wikiSlug: text("wiki_slug"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

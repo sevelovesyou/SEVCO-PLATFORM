@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollText, Zap, Wrench, TrendingUp, MoreHorizontal } from "lucide-react";
+import { ScrollText, Zap, Wrench, TrendingUp, MoreHorizontal, ArrowRight } from "lucide-react";
+import { Link } from "wouter";
 import type { Changelog, ChangelogCategory } from "@shared/schema";
 
 const CATEGORY_META: Record<ChangelogCategory, { label: string; color: string; icon: React.ElementType }> = {
@@ -111,6 +112,15 @@ export default function ChangelogPage() {
                         <p className="text-sm text-muted-foreground leading-relaxed" data-testid={`text-changelog-entry-desc-${entry.id}`}>
                           {entry.description}
                         </p>
+                        {entry.wikiSlug && (
+                          <Link
+                            href={`/wiki/${entry.wikiSlug}`}
+                            className="inline-flex items-center gap-1 mt-1.5 text-xs text-primary hover:underline font-medium"
+                            data-testid={`link-wiki-article-${entry.id}`}
+                          >
+                            Read more <ArrowRight className="h-3 w-3" />
+                          </Link>
+                        )}
                       </div>
                     </div>
                   );

@@ -311,14 +311,381 @@ async function seedJobs() {
   }
 }
 
+type EngineeringTask = {
+  taskNum: number;
+  slug: string;
+  title: string;
+  summary: string;
+  content: string;
+  version: string | null;
+};
+
+const ENGINEERING_TASKS: EngineeringTask[] = [
+  {
+    taskNum: 1,
+    slug: "eng-task-1-rbac-role-permission-system",
+    title: "Task #1 — RBAC & Role Permission System",
+    summary: "Add a role-based access control system with six role tiers that control what each user can see and do across the platform.",
+    content: `# Task #1 — RBAC & Role Permission System\n\n## Summary\nAdded a role-based access control system to the SEVCO Platform. Every user gets one of six roles: Admin, Executive, Staff, Partner, Client, or User. Roles control what each person can see and do across the platform.\n\n## What Was Built\n- Added a \`role\` field to the users table with an enum of: admin, executive, staff, partner, client, user (default: user)\n- Built backend middleware to enforce role requirements on protected API routes\n- Created a \`usePermission\` hook on the frontend that returns whether the current user can perform a given action\n- Wiki UI hides or disables "New Article" for Client and User roles, and hides "Review Queue" for everyone except Admin and Executive\n- Admins can update any user's role via the account management API (PATCH /api/users/:id/role)\n- Role is included in the session/user object returned by GET /api/user\n\n## Technical Notes\n- Uses a PostgreSQL enum for role values\n- Role checks are enforced server-side via \`requireRole\` middleware\n- Frontend \`usePermission\` hook derives permissions from the current user's role`,
+    version: "0.2.0",
+  },
+  {
+    taskNum: 2,
+    slug: "eng-task-2-platform-shell-global-navigation",
+    title: "Task #2 — Platform Shell & Global Navigation",
+    summary: "Built a persistent global header bar wrapping all platform apps, with app switcher, branding, and user menu.",
+    content: `# Task #2 — Platform Shell & Global Navigation\n\n## Summary\nWrapped the wiki and all platform apps inside a top-level SEVCO Platform shell with persistent global navigation.\n\n## What Was Built\n- Global header visible on all authenticated platform pages\n- Header shows: SEVCO wordmark/logo, app-switcher navigation, user avatar + role badge + sign-out\n- App switcher routes to: / (Home), /wiki, /music, /store, /projects, /dashboard\n- Wiki section retains its collapsible sidebar under /wiki\n- Non-wiki sections render without the wiki sidebar\n- Active app is visually highlighted in the global nav\n- Responsive layout — app-switcher collapses on mobile\n- Stub pages created for Music, Store, Projects, and Dashboard\n\n## Technical Notes\n- Uses wouter for routing\n- SidebarProvider and AppSidebar components power the wiki sidebar\n- PlatformHeader component handles global nav rendering`,
+    version: "0.1.0",
+  },
+  {
+    taskNum: 3,
+    slug: "eng-task-3-landing-page-dashboard",
+    title: "Task #3 — Landing Page & Dashboard",
+    summary: "Built the main platform landing page and a role-aware dashboard with analytics and management views.",
+    content: `# Task #3 — Landing Page & Dashboard\n\n## Summary\nBuilt the platform landing page and a role-aware dashboard.\n\n## What Was Built\n- The / landing page greets users by name, shows platform app cards, and displays recent wiki activity\n- The /dashboard provides role-adaptive views: Admins see user stats and all activity; Executives see business KPIs; Staff and Partners see their own contributions\n- Placeholder pages converted to proper content-bearing pages\n- Dashboard stats include article counts, user counts, pending review counts, and recent revision activity\n\n## Technical Notes\n- Role-based rendering uses the usePermission hook\n- Stats are fetched from the /api/stats endpoint\n- Fully integrated with platform header and no wiki sidebar`,
+    version: "0.3.0",
+  },
+  {
+    taskNum: 4,
+    slug: "eng-task-4-music-page-sevco-records",
+    title: "Task #4 — Music Page — SEVCO RECORDS",
+    summary: "Built the Music section (/music) for SEVCO RECORDS with artist profiles, album listings, and staff management tools.",
+    content: `# Task #4 — Music Page — SEVCO RECORDS\n\n## Summary\nBuilt the Music section of the SEVCO Platform for SEVCO RECORDS.\n\n## What Was Built\n- /music hub page with artist and album highlights\n- /music/artists lists all artists with their genres and bios\n- /music/artists/:slug shows artist detail with bio and album list\n- /music/albums/:slug shows album detail with title, artist, release year, and track listing\n- Admin/Executive/Staff see "Add Artist" and "Add Album" buttons\n- Create forms for artists (name, slug, bio, genres) and albums (title, slug, release year, track list)\n\n## Technical Notes\n- Artists and albums stored in dedicated database tables\n- Track lists stored as JSONB\n- All pages use the global platform header with no wiki sidebar`,
+    version: "1.0.0",
+  },
+  {
+    taskNum: 5,
+    slug: "eng-task-5-store-marketplace-section",
+    title: "Task #5 — Store / Marketplace Section",
+    summary: "Launched the SEVCO Store with product catalog, category filtering, stock status, and Stripe-powered checkout.",
+    content: `# Task #5 — Store / Marketplace Section\n\n## Summary\nBuilt the Store section for SEVCO merchandise and offerings.\n\n## What Was Built\n- /store shows a catalog grid organized by category\n- /store/products/:slug shows product detail with title, description, price, category, and image\n- Category filtering via tabs\n- Admin/Executive/Staff can add products\n- Create product form: name, slug, description, price, category, stock status\n- Stripe integration for checkout\n- Stock status: available / sold out\n\n## Technical Notes\n- Products stored in the products table\n- Stripe product and price IDs stored on product records\n- Cart powered by CartProvider context`,
+    version: "0.3.0",
+  },
+  {
+    taskNum: 6,
+    slug: "eng-task-6-projects-page-sevco-ventures",
+    title: "Task #6 — Projects Page — SEVCO Ventures",
+    summary: "Built the Projects section to showcase SEVCO's active companies, businesses, and ventures with status tracking.",
+    content: `# Task #6 — Projects Page — SEVCO Ventures\n\n## Summary\nBuilt the Projects section to showcase SEVCO's portfolio of companies and ventures.\n\n## What Was Built\n- /projects shows a grid of all SEVCO projects with name, description, status badge (Active, In Development, Archived), and category/type tag\n- /projects/:slug shows project detail: full description, status, website link, team lead, related wiki articles, and key info\n- Project filtering by status\n- Admin/Executive/Staff can add and edit projects\n- Create/edit form captures: name, slug, description, status, type, website URL, team lead, and related wiki article slugs\n\n## Technical Notes\n- Projects stored in the projects table\n- Related wiki article slugs stored as a text array\n- Status and type are free-text with suggested values`,
+    version: "0.3.0",
+  },
+  {
+    taskNum: 7,
+    slug: "eng-task-7-logo-favicon-update",
+    title: "Task #7 — Logo & Favicon Update",
+    summary: "Replaced placeholder logos, icons, and the favicon with real SEVCO brand assets across the platform.",
+    content: `# Task #7 — Logo & Favicon Update\n\n## Summary\nReplaced all placeholder brand assets with real SEVCO logos and icons.\n\n## What Was Built\n- Replaced old elephant placeholder icon with real SEVCO wordmark and planet icon\n- Updated favicon to SEVCO brand asset\n- Auth and landing pages now display the real SEVCO logo\n- Five brand assets deployed: SEVCO wordmark (black + white), planet icon (black + white), elephant app icon\n\n## Technical Notes\n- Logo images placed in attached_assets and referenced via @assets/ import paths\n- Multiple logo variants for light/dark mode`,
+    version: null,
+  },
+  {
+    taskNum: 8,
+    slug: "eng-task-8-logo-display-fix",
+    title: "Task #8 — Logo Display Fix",
+    summary: "Fixed broken logo assets from the background removal pass using CSS blend-mode techniques instead of processed images.",
+    content: `# Task #8 — Logo Display Fix\n\n## Summary\nFixed broken logo display issues caused by the image processing in Task #7.\n\n## What Was Fixed\n- Background-removed files that had missing chunks were replaced\n- Black box artifacts in light mode wordmark images resolved\n- Dropped background-removed files; now uses original PNGs with CSS blend-mode techniques\n- Blend-mode naturally hides logo background color based on placement context\n\n## Technical Notes\n- CSS mix-blend-mode: multiply in light mode, screen in dark mode\n- No image processing required — pure CSS solution`,
+    version: null,
+  },
+  {
+    taskNum: 9,
+    slug: "eng-task-9-logo-no-skew",
+    title: "Task #9 — Prevent Logo Skewing on Resize",
+    summary: "Fixed logo images from stretching or skewing when the browser window is resized to narrow widths.",
+    content: `# Task #9 — Prevent Logo Skewing on Resize\n\n## Summary\nEnsured all logo/wordmark images preserve their aspect ratio at any window size.\n\n## What Was Fixed\n- Logo images now use fixed height with auto width, or max-width constraints\n- object-fit: contain applied where images are in flex containers\n- Tested across narrow, medium, and wide viewport widths\n\n## Technical Notes\n- Applied to PlatformHeader and AppSidebar logo components\n- No layout changes — purely aspect ratio preservation`,
+    version: null,
+  },
+  {
+    taskNum: 10,
+    slug: "eng-task-10-platform-footer",
+    title: "Task #10 — Platform Footer",
+    summary: "Added a platform-level footer with social media links, sitemap, copyright notice, and policy links.",
+    content: `# Task #10 — Platform Footer\n\n## Summary\nAdded a comprehensive platform footer to the SEVCO Platform.\n\n## What Was Built\n- PlatformFooter component with SEVCO branding\n- All social media links matching sevelovesyou.com\n- Internal sitemap linking key platform sections\n- Policy links (Privacy Policy, Terms of Service, Refund Policy)\n- Copyright notice\n- Footer appears on all non-auth pages\n\n## Technical Notes\n- Footer is part of the AppShell layout\n- Social links are hardcoded initially; later made admin-configurable (Task #32)`,
+    version: "0.1.0",
+  },
+  {
+    taskNum: 11,
+    slug: "eng-task-11-pre-publish-fixes",
+    title: "Task #11 — Pre-Publish Fixes",
+    summary: "Fixed critical issues before public launch: product edit permissions, partner access restrictions, cart fixes, and stats preview.",
+    content: `# Task #11 — Pre-Publish Fixes\n\n## Summary\nFixed critical issues identified before the platform's first public deployment.\n\n## What Was Fixed\n- Only admins and executives can edit products (enforced server-side)\n- Command Center hidden from Partner role\n- Cart edge cases resolved\n- Store stats preview page fixed\n- Various permission enforcement gaps closed\n\n## Technical Notes\n- Permission checks tightened across product edit routes\n- Role checks added to Command Center navigation guard`,
+    version: null,
+  },
+  {
+    taskNum: 12,
+    slug: "eng-task-12-stripe-checkout-cart",
+    title: "Task #12 — Stripe Checkout & Cart",
+    summary: "Added a shopping cart and Stripe-powered checkout to the SEVCO Store with session-based order tracking.",
+    content: `# Task #12 — Stripe Checkout & Cart\n\n## Summary\nImplemented full Stripe checkout flow with a persistent shopping cart.\n\n## What Was Built\n- Shopping cart with add/remove/quantity controls\n- Stripe Checkout Session creation via /api/store/checkout\n- Order tracking via Stripe session ID\n- Success and cancel redirect pages\n- Orders stored in the orders table with status tracking\n- Stripe webhook integration for payment confirmation\n\n## Technical Notes\n- CartProvider context manages cart state\n- Orders linked to users (optional) and Stripe session IDs\n- Webhook at /api/stripe/webhook processes payment_intent.succeeded events`,
+    version: "0.3.0",
+  },
+  {
+    taskNum: 13,
+    slug: "eng-task-13-platform-polish-changelog",
+    title: "Task #13 — Platform Polish & Dashboard Changelog",
+    summary: "Applied UI polish fixes and added a Dashboard changelog feed for staff to track platform improvements.",
+    content: `# Task #13 — Platform Polish & Dashboard Changelog\n\n## Summary\nA polish and quality sprint that also introduced the changelog feature.\n\n## What Was Built\n- Dashboard changelog feed showing recent platform updates\n- Staff+ can add changelog entries from the dashboard\n- Multiple UI polish fixes: redundant content removed, wiki presentation cleaned up, footer improvements\n- Visible UI issues identified and corrected across multiple pages\n\n## Technical Notes\n- Changelog entries stored in the changelog table\n- Initial changelog management UI lives in the dashboard before being moved to Command Center`,
+    version: null,
+  },
+  {
+    taskNum: 14,
+    slug: "eng-task-14-fix-production-auth",
+    title: "Task #14 — Fix Production Authentication",
+    summary: "Fixed 401 errors on POST requests in production by adding trust proxy configuration for Replit's reverse proxy.",
+    content: `# Task #14 — Fix Production Authentication\n\n## Summary\nFixed session cookie issues causing authentication to fail in the deployed environment.\n\n## Root Cause\nExpress was missing \`app.set('trust proxy', 1)\` — required for session cookies to work behind Replit's reverse proxy. Without it, Express sees connections as plain HTTP, so express-session never writes Set-Cookie when secure: true is set.\n\n## What Was Fixed\n- Added \`app.set('trust proxy', 1)\` to the Express app configuration\n- Session cookies now correctly written in the production environment\n- All authenticated API calls (POST, PATCH, DELETE) work correctly after login\n\n## Technical Notes\n- Single-line fix with significant production impact\n- Only affects deployments behind a reverse proxy (Replit production)`,
+    version: null,
+  },
+  {
+    taskNum: 15,
+    slug: "eng-task-15-sidebar-account-cleanup",
+    title: "Task #15 — Sidebar & Account Cleanup",
+    summary: "Cleaned up the wiki sidebar and account page, removing redundant items and improving navigation clarity.",
+    content: `# Task #15 — Sidebar & Account Cleanup\n\n## Summary\nCleaned up the wiki sidebar navigation and the account/profile pages.\n\n## What Was Done\n- Removed redundant sidebar items\n- Improved sidebar navigation hierarchy\n- Account page cleaned up and streamlined\n- Consistent spacing and visual treatment applied throughout\n- Minor navigation UX improvements\n\n## Technical Notes\n- Changes to AppSidebar component\n- AccountPage layout improvements`,
+    version: null,
+  },
+  {
+    taskNum: 16,
+    slug: "eng-task-16-auth-copy-tweak",
+    title: "Task #16 — Auth Copy Tweak",
+    summary: "Adjusted authentication page copy and messaging for clarity and brand voice.",
+    content: `# Task #16 — Auth Copy Tweak\n\n## Summary\nUpdated the authentication page text for clarity and brand alignment.\n\n## What Was Changed\n- Login and registration page copy updated to match SEVCO brand voice\n- Error messages improved for clarity\n- Placeholder text updated\n- Form labels refined\n\n## Technical Notes\n- Copy-only changes to AuthPage component`,
+    version: null,
+  },
+  {
+    taskNum: 17,
+    slug: "eng-task-17-auto-wiki-engineering-articles",
+    title: "Task #17 — Auto Wiki Engineering Articles",
+    summary: "Added automatic generation of Engineering category wiki articles for completed platform tasks.",
+    content: `# Task #17 — Auto Wiki Engineering Articles\n\n## Summary\nAdded automatic wiki article generation for completed engineering tasks.\n\n## What Was Built\n- Seeding function that creates Engineering category wiki articles for each completed task\n- Each article includes the task title, summary, and a General infobox with Tool=Replit and Task=#N\n- Engineering category created automatically if it doesn't exist\n- Articles are published and tagged with "engineering" and "auto-generated"\n\n## Technical Notes\n- Seeding runs on server start if articles don't already exist\n- Uses the same article creation infrastructure as manual articles`,
+    version: null,
+  },
+  {
+    taskNum: 18,
+    slug: "eng-task-18-store-analytics",
+    title: "Task #18 — Store Analytics",
+    summary: "Added a store analytics and stats page with inventory metrics, category breakdowns, and price range analysis.",
+    content: `# Task #18 — Store Analytics\n\n## Summary\nAdded analytics and stats to the SEVCO Store management tools.\n\n## What Was Built\n- /store/stats page with inventory analytics\n- Total products, in-stock, out-of-stock counts\n- Catalog value and average price metrics\n- Breakdown by category and stock status\n- Price range distribution chart\n- Accessible to admin/executive/staff roles\n\n## Technical Notes\n- Stats computed server-side via getStoreStats() storage method\n- Endpoint at GET /api/store/stats\n- Charts rendered using recharts or similar`,
+    version: null,
+  },
+  {
+    taskNum: 19,
+    slug: "eng-task-19-projects-dropdown-style-fix",
+    title: "Task #19 — Projects Dropdown Style Fix",
+    summary: "Aligned the Projects mega-menu dropdown with the visual style of other navigation dropdowns.",
+    content: `# Task #19 — Projects Dropdown Style Fix\n\n## Summary\nFixed visual inconsistency in the Projects navigation dropdown.\n\n## What Was Fixed\n- Projects dropdown now uses the same icon + title + description row pattern as other dropdowns\n- Wrapped in the DropdownPanel component for consistency\n- Replaced project logo images/colored circles with the standard pattern\n- Visual alignment now matches Home, Music, Store, and Services dropdowns\n\n## Technical Notes\n- Changes to PlatformHeader navigation components\n- No functional changes — UI/visual alignment only`,
+    version: null,
+  },
+  {
+    taskNum: 20,
+    slug: "eng-task-20-command-center",
+    title: "Task #20 — Command Center: Sidebar + Store Management",
+    summary: "Renamed Dashboard to Command Center, added a persistent CMD sidebar, and built the store management back-office view.",
+    content: `# Task #20 — Command Center: Sidebar + Store Management\n\n## Summary\nRenamed the Dashboard to Command Center and built out the internal management tools.\n\n## What Was Built\n- Renamed "Dashboard" to "Command" (CMD in compact spaces) across the platform\n- Persistent left sidebar on Command pages, mirroring the wiki sidebar pattern\n- CommandSidebar component with navigation between CMD sections\n- Store management section with Shopify-like product back-office view\n- Admin/exec can view product inventory and manage listings from the CMD panel\n\n## Technical Notes\n- CommandPageLayout component wraps all command pages\n- CommandSidebar lists available management sections\n- /command route replaces /dashboard`,
+    version: null,
+  },
+  {
+    taskNum: 21,
+    slug: "eng-task-21-email-verification",
+    title: "Task #21 — Email Verification",
+    summary: "Added email verification to the authentication flow, requiring users to confirm their email address after registration.",
+    content: `# Task #21 — Email Verification\n\n## Summary\nAdded email verification to the SEVCO Platform authentication system.\n\n## What Was Built\n- After registration, users receive a verification email with a confirmation link\n- Unverified users see a prompt to verify their email\n- Email verification token and expiry stored on the user record\n- GET /verify-email route handles confirmation\n- Resend integration used to send verification emails\n- Admins can see verification status in the Command Center user management\n\n## Technical Notes\n- emailVerified, emailVerificationToken, emailVerificationExpires fields on users table\n- Verification emails sent via Resend\n- Tokens expire after a configurable window`,
+    version: null,
+  },
+  {
+    taskNum: 22,
+    slug: "eng-task-22-public-access-mega-menu",
+    title: "Task #22 — Public Access + Mega-Menu Navigation",
+    summary: "Opened key sections to unauthenticated users and added a mega-menu navigation system with per-section dropdowns.",
+    content: `# Task #22 — Public Access + Mega-Menu Navigation\n\n## Summary\nOpened the platform to the public and introduced mega-menu navigation.\n\n## What Was Built\n- Selected pages (store, projects, music, services, jobs, changelog) are accessible without login\n- Global header redesigned with a mega-menu for large dropdowns per section\n- Each section's mega-menu shows sub-pages and featured content\n- Auth-gated pages still redirect to /auth when visited unauthenticated\n- Public landing page updated to work for logged-out users\n\n## Technical Notes\n- Uses wouter for routing; public routes are unwrapped from ProtectedRoute\n- Mega-menu built as a custom dropdown component in PlatformHeader`,
+    version: "1.0.0",
+  },
+  {
+    taskNum: 23,
+    slug: "eng-task-23-home-page-contact-page",
+    title: "Task #23 — Home Page Redesign + Contact Page",
+    summary: "Redesigned the home/landing page and added a Contact page with Resend email integration.",
+    content: `# Task #23 — Home Page Redesign + Contact Page\n\n## Summary\nRedesigned the main landing page and added a contact form.\n\n## What Was Built\n- Redesigned home landing page with hero section, platform overview, and featured content\n- /contact page with a contact form that sends emails via Resend\n- Form captures name, email, subject, and message\n- Success/error states handled gracefully\n- Policy wiki pages (Privacy Policy, Terms of Service, Refund Policy, Contact) seeded automatically\n\n## Technical Notes\n- Resend integration for transactional email\n- Contact form endpoint at POST /api/contact\n- Policy articles seeded via seedPolicyArticles() on server start`,
+    version: "1.0.0",
+  },
+  {
+    taskNum: 24,
+    slug: "eng-task-24-profile-page",
+    title: "Task #24 — Profile Page with MySpace-Style Customization",
+    summary: "Built user profile pages with customizable background color, accent color, background image, bio, avatar, and social links.",
+    content: `# Task #24 — Profile Page with MySpace-Style Customization\n\n## Summary\nAdded public and private user profile pages with visual customization options.\n\n## What Was Built\n- /profile/:username shows a public profile page\n- /profile (authenticated) shows the logged-in user's own profile with edit capability\n- Customization options: background color, accent color, background image URL, avatar URL, display name, bio, social links\n- Social links: Instagram, Twitter/X, TikTok, Discord, website\n- Account settings page at /account\n\n## Technical Notes\n- Profile data stored on the users table\n- updateProfileSchema validates profile updates\n- Background and accent colors stored as hex values`,
+    version: "1.0.0",
+  },
+  {
+    taskNum: 25,
+    slug: "eng-task-25-jobs-board",
+    title: "Task #25 — Jobs Board — Listings, Details & Applications",
+    summary: "Built a jobs board with listings, detail pages, and an application system for authenticated users.",
+    content: `# Task #25 — Jobs Board — Listings, Details & Applications\n\n## Summary\nBuilt the jobs board for SEVCO open positions.\n\n## What Was Built\n- /jobs shows a listing of open roles with department, type, location, and salary range\n- /jobs/:slug shows full job detail with description, requirements, and apply button\n- Authenticated users can apply to jobs via an application form\n- Applications capture: name, email, phone, resume URL, cover letter\n- Admin/Executive can manage job postings (create, edit, close)\n- Jobs can be filtered by department and type\n\n## Technical Notes\n- Jobs and job_applications stored in dedicated tables\n- Unique constraint prevents duplicate applications per user per job\n- Applications are visible to admins in the Command Center`,
+    version: "1.0.0",
+  },
+  {
+    taskNum: 26,
+    slug: "eng-task-26-services-page",
+    title: "Task #26 — Services Page + Mega-Menu",
+    summary: "Added the Services page with filterable service categories and admin CRUD, plus mega-menu integration.",
+    content: `# Task #26 — Services Page + Mega-Menu\n\n## Summary\nAdded the Services section to showcase SEVCO service offerings.\n\n## What Was Built\n- /services shows all SEVCO services organized by category\n- /services/:slug shows a service detail page\n- Services can be filtered by category\n- Admin/Executive/Staff can create, edit, and delete services\n- Services added to the mega-menu navigation\n- Command Center services management page\n\n## Technical Notes\n- Services stored in the services table\n- iconName field maps to lucide-react icon names\n- Featured services can be highlighted on the listing page`,
+    version: "1.1.0",
+  },
+  {
+    taskNum: 27,
+    slug: "eng-task-27-music-expansion",
+    title: "Task #27 — Music Expansion — SEVCO RECORDS, Listen, Playlists, Submit",
+    summary: "Expanded SEVCO Records with playlist management, music submissions, and a global Spotify player bar.",
+    content: `# Task #27 — Music Expansion — SEVCO RECORDS, Listen, Playlists, Submit\n\n## Summary\nMajor expansion of the Music section with new features for playlists, submissions, and playback.\n\n## What Was Built\n- /music/playlists — lists official and community playlists\n- /music/submit — public form for artists to submit music for A&R review\n- /listen — dedicated listening page with embedded Spotify player\n- Global Spotify player bar that persists across navigation\n- Admin/Executive can manage playlists (add, edit, delete)\n- Command Center music submissions review page\n- Admin social link management in Command Center footer settings\n\n## Technical Notes\n- Playlists stored in the playlists table\n- Music submissions stored in the music_submissions table\n- Spotify playback managed via SpotifyPlayerProvider context\n- Global player bar stacks above the footer`,
+    version: "1.1.0",
+  },
+  {
+    taskNum: 28,
+    slug: "eng-task-28-projects-megamenu-marketing",
+    title: "Task #28 — Projects Mega-Menu + Project & Service Marketing Pages",
+    summary: "Enhanced project and service detail pages with richer marketing content and integrated them into the mega-menu.",
+    content: `# Task #28 — Projects Mega-Menu + Project & Service Marketing Pages\n\n## Summary\nEnhanced Projects and Services with richer marketing pages and mega-menu integration.\n\n## What Was Built\n- Project detail pages now include: hero image, logo, gallery, long description, tags, and launch date\n- Service detail pages expanded with richer content and iconography\n- Projects and Services added to the mega-menu with featured items highlighted\n- Featured projects can be pinned to appear in the mega-menu\n- Project create/edit form updated with new fields\n\n## Technical Notes\n- New fields added to projects table: heroImageUrl, logoUrl, longDescription, tags, launchDate, galleryUrls\n- featured flag controls mega-menu inclusion`,
+    version: "0.3.0",
+  },
+  // Note: Task #29 does not exist in the project task history. The task numbering
+  // jumps from #28 to #30. There is no task-29.md file in .local/tasks/.
+  {
+    taskNum: 30,
+    slug: "eng-task-30-bug-fixes-quick-wins",
+    title: "Task #30 — Bug Fixes & Quick UI Wins",
+    summary: "Addressed accumulated bug fixes and quick UI improvements across the platform.",
+    content: `# Task #30 — Bug Fixes & Quick UI Wins\n\n## Summary\nA focused sprint to resolve accumulated bugs and improve platform polish.\n\n## What Was Fixed\n- Various routing and navigation edge cases\n- Form validation improvements\n- UI consistency fixes across components\n- Accessibility and keyboard navigation improvements\n- Responsive layout corrections on mobile\n- Minor data display bugs\n\n## Technical Notes\n- No new features; focused on stability and quality\n- Addressed issues surfaced from earlier releases`,
+    version: null,
+  },
+  {
+    taskNum: 31,
+    slug: "eng-task-31-profile-user-enhancements",
+    title: "Task #31 — Profile & User Admin Enhancements",
+    summary: "Enhanced user profile pages and admin user management capabilities in the Command Center.",
+    content: `# Task #31 — Profile & User Admin Enhancements\n\n## Summary\nImproved user profiles and admin tools for managing users.\n\n## What Was Built\n- Enhanced profile page with richer display of social links, bio, and custom background\n- Admin Command Center user management page with role editing\n- Admins can change any user's role from the Command Center\n- Username editing by admins\n- Email verification status visible to admins\n\n## Technical Notes\n- User management at /command/users\n- Role changes via PATCH /api/users/:id/role\n- Username changes via PATCH /api/users/:id/username`,
+    version: null,
+  },
+  {
+    taskNum: 32,
+    slug: "eng-task-32-footer-social-links-admin",
+    title: "Task #32 — Footer Redesign & Social Links Admin",
+    summary: "Redesigned the platform footer and added an admin interface to manage social media links.",
+    content: `# Task #32 — Footer Redesign & Social Links Admin\n\n## Summary\nRedesigned the platform footer and added admin management of social links.\n\n## What Was Built\n- New PlatformFooter component with cleaner layout and social link display\n- Admin/Executive Command Center page for managing platform social links\n- Social links include: platform name, URL, icon name, and display order\n- Links can be shown in footer and/or on the contact page\n- Footer displays current platform version from latest changelog entry\n\n## Technical Notes\n- platform_social_links table stores all social link data\n- Seeded with default social links on first run\n- CRUD via /api/social-links endpoints`,
+    version: null,
+  },
+  {
+    taskNum: 33,
+    slug: "eng-task-33-store-cmd-product-creation",
+    title: "Task #33 — Store CMD — Product Creation",
+    summary: "Added product creation and management capabilities to the Command Center store management page.",
+    content: `# Task #33 — Store CMD — Product Creation\n\n## Summary\nAdded Command Center store management with product creation.\n\n## What Was Built\n- Command Center store management page at /command/store\n- Admins/staff can create new products directly from the Command Center\n- Product creation form in the CMD panel with validation\n- Product list with stock status management\n- Stripe product/price creation triggered automatically on product add\n\n## Technical Notes\n- Product creation calls /api/products which creates Stripe product and price\n- Store stats page at /store/stats shows inventory analytics`,
+    version: null,
+  },
+  {
+    taskNum: 34,
+    slug: "eng-task-34-music-player-playlist-cmd",
+    title: "Task #34 — Music Player & Playlist CMD Editing",
+    summary: "Added Command Center playlist management and improved the global Spotify player bar.",
+    content: `# Task #34 — Music Player & Playlist CMD Editing\n\n## Summary\nAdded Command Center controls for playlist management and improved the player bar.\n\n## What Was Built\n- Command Center playlists page at /command/playlists\n- Admins can create, edit, and delete playlists from the CMD panel\n- Playlist create/edit form with platform, URL, cover image, and official flag\n- Global Spotify player bar improvements: better controls, queue display\n- Player persists across page navigation\n\n## Technical Notes\n- Playlists CRUD via /api/playlists endpoints\n- Player state managed via SpotifyPlayerProvider and useSpotifyPlayer hook`,
+    version: null,
+  },
+  {
+    taskNum: 35,
+    slug: "eng-task-35-wiki-archive-system",
+    title: "Task #35 — Wiki Article Archive System",
+    summary: "Replaced wiki article deletion with an archive workflow. Archived articles are hidden from public but accessible to staff+.",
+    content: `# Task #35 — Wiki Article Archive System\n\n## Summary\nReplaced hard deletion of wiki articles with a soft archive system.\n\n## What Was Built\n- Articles now have an "archived" status in addition to draft/published\n- Archived articles are hidden from public wiki and search results\n- Staff+ users can view archived articles via the Command Center\n- Archived articles can be edited and submitted for republication\n- Admins can publish archived articles directly\n- Archive action replaces the delete button in the article editor\n\n## Technical Notes\n- Article status enum extended with "archived"\n- Archived article routes check user role before serving content\n- /api/articles/archived endpoint requires staff+ role\n- Archive is reversible via republication workflow`,
+    version: "1.2.0",
+  },
+  {
+    taskNum: 36,
+    slug: "eng-task-36-version-system-changelog",
+    title: "Task #36 — Version System & Changelog",
+    summary: "Added semantic versioning to changelog entries and a footer version display pulled live from the latest changelog.",
+    content: `# Task #36 — Version System & Changelog\n\n## Summary\nAdded a versioned changelog system and public changelog page.\n\n## What Was Built\n- Changelog entries now include a version field using semantic versioning (MAJOR.MINOR.PATCH)\n- Public changelog page at /changelog with timeline view grouped by year\n- Command Center changelog management at /command/changelog\n- Suggested next version auto-computed from latest entry\n- Platform footer displays the current version from the latest changelog entry\n- Changelog entries seeded with historical version data\n\n## Technical Notes\n- Changelog stored in the changelog table\n- Version validated with MAJOR.MINOR.PATCH regex\n- Footer version pulled from GET /api/changelog/latest`,
+    version: "1.2.0",
+  },
+  {
+    taskNum: 37,
+    slug: "eng-task-37-social-feed",
+    title: "Task #37 — Social Feed — Posts, Follows & Timelines",
+    summary: "Built a social feed with posts, likes, replies, user following, and personalized timelines.",
+    content: `# Task #37 — Social Feed — Posts, Follows & Timelines\n\n## Summary\nAdded a full social feed system to the SEVCO Platform.\n\n## What Was Built\n- /feed — social feed page showing posts from followed users and global posts\n- Users can create text posts with optional image URLs\n- Posts can be liked and replied to\n- Users can follow/unfollow other users\n- Profile pages show follow/follower counts and follow button\n- Timeline shows posts sorted by recency\n\n## Technical Notes\n- Posts, post_likes, post_replies, and user_follows tables\n- Feed endpoint supports followedByUserId filter for personalized timelines\n- Like and follow counts computed at query time`,
+    version: null,
+  },
+  {
+    taskNum: 38,
+    slug: "eng-task-38-notes-tool",
+    title: "Task #38 — Notes Tool — Personal & Collaborative",
+    summary: "Added a personal and collaborative notes system with pinning, color coding, sharing, and wiki/project attachments.",
+    content: `# Task #38 — Notes Tool — Personal & Collaborative\n\n## Summary\nAdded a notes tool for personal and team use.\n\n## What Was Built\n- /notes — personal notes page with create, edit, delete\n- Notes can be pinned and color-coded\n- Shared notes are visible to all platform users\n- Collaborators can be added to notes for joint editing\n- Notes can be attached to wiki articles or projects as resource links\n- Notes appear as a related section on wiki articles and project detail pages\n\n## Technical Notes\n- notes, note_collaborators, and note_attachments tables\n- Note attachment supports "project" and "article" resource types\n- Shared notes are fetched via /api/notes/public/:type/:id endpoints`,
+    version: null,
+  },
+];
+
+async function seedEngineeringWikiArticles() {
+  let engCategory = await storage.getCategoryBySlug("engineering");
+  if (!engCategory) {
+    engCategory = await storage.createCategory({
+      name: "Engineering",
+      slug: "engineering",
+      description: "Internal engineering task documentation and platform development history.",
+      icon: "Code2",
+    });
+  }
+
+  for (const task of ENGINEERING_TASKS) {
+    const existing = await storage.getArticleBySlug(task.slug);
+    if (!existing) {
+      await storage.createArticle({
+        title: task.title,
+        slug: task.slug,
+        content: task.content,
+        summary: task.summary,
+        categoryId: engCategory.id,
+        status: "published",
+        infoboxType: "General",
+        infoboxData: {
+          Tool: "Replit",
+          Version: task.version ?? "—",
+          Task: `#${task.taskNum}`,
+        },
+        tags: ["engineering", "task", `task-${task.taskNum}`],
+      });
+    }
+  }
+}
+
+async function linkChangelogToWikiArticles() {
+  const entries = await storage.getChangelog();
+  const versionToSlug: Record<string, string> = {
+    "0.1.0": "eng-task-2-platform-shell-global-navigation",
+    "0.2.0": "eng-task-1-rbac-role-permission-system",
+    "0.3.0": "eng-task-3-landing-page-dashboard",
+    "1.0.0": "eng-task-23-home-page-contact-page",
+    "1.1.0": "eng-task-27-music-expansion",
+    "1.2.0": "eng-task-36-version-system-changelog",
+  };
+
+  for (const entry of entries) {
+    if (entry.wikiSlug) continue;
+    if (!entry.version) continue;
+    const slug = versionToSlug[entry.version];
+    if (slug) {
+      await storage.updateChangelogEntry(entry.id, { wikiSlug: slug });
+    }
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
 
   seedPolicyArticles().catch(console.error);
-  seedChangelog().catch(console.error);
+  seedChangelog()
+    .then(() => linkChangelogToWikiArticles())
+    .catch(console.error);
   seedJobs().catch(console.error);
+  seedEngineeringWikiArticles().catch(console.error);
 
   app.get("/api/categories", async (_req, res) => {
     const cats = await storage.getCategories();
@@ -941,6 +1308,18 @@ export async function registerRoutes(
     try {
       const data = insertChangelogSchema.parse(req.body);
       const entry = await storage.createChangelogEntry(data);
+      res.json(entry);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/changelog/:id", requireAuth, requireRole(...CAN_MANAGE_CHANGELOG), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      const data = insertChangelogSchema.partial().parse(req.body);
+      const entry = await storage.updateChangelogEntry(id, data);
       res.json(entry);
     } catch (err: any) {
       res.status(400).json({ message: err.message });

@@ -28,14 +28,14 @@ import { useSpotifyPlayer, isSpotifyUrl } from "@/hooks/use-spotify-player";
 const PLATFORM_ICONS: Record<string, React.ElementType> = {
   Spotify: SiSpotify,
   "Apple Music": SiApplemusic,
-  YouTube: SiYoutubemusic,
+  "YouTube Music": SiYoutubemusic,
   SoundCloud: SiSoundcloud,
 };
 
 const PLATFORM_COLORS: Record<string, string> = {
   Spotify: "bg-[#1DB954]/10 text-[#1DB954] border-[#1DB954]/20",
   "Apple Music": "bg-[#FC3C44]/10 text-[#FC3C44] border-[#FC3C44]/20",
-  YouTube: "bg-[#FF0000]/10 text-[#FF0000] border-[#FF0000]/20",
+  "YouTube Music": "bg-[#FF0000]/10 text-[#FF0000] border-[#FF0000]/20",
   SoundCloud: "bg-[#FF5500]/10 text-[#FF5500] border-[#FF5500]/20",
 };
 

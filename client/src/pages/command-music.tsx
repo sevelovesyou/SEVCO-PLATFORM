@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -222,18 +222,18 @@ function SubmissionsTab() {
 const PLATFORM_ICONS: Record<string, React.ElementType> = {
   Spotify: SiSpotify,
   "Apple Music": SiApplemusic,
-  YouTube: SiYoutubemusic,
+  "YouTube Music": SiYoutubemusic,
   SoundCloud: SiSoundcloud,
 };
 
 const PLATFORM_COLORS: Record<string, string> = {
   Spotify: "bg-[#1DB954]/10 text-[#1DB954] border-[#1DB954]/20",
   "Apple Music": "bg-[#FC3C44]/10 text-[#FC3C44] border-[#FC3C44]/20",
-  YouTube: "bg-[#FF0000]/10 text-[#FF0000] border-[#FF0000]/20",
+  "YouTube Music": "bg-[#FF0000]/10 text-[#FF0000] border-[#FF0000]/20",
   SoundCloud: "bg-[#FF5500]/10 text-[#FF5500] border-[#FF5500]/20",
 };
 
-const PLATFORMS = ["Spotify", "Apple Music", "YouTube", "SoundCloud"];
+const PLATFORMS = ["Spotify", "Apple Music", "YouTube Music", "SoundCloud"];
 
 const playlistSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -270,6 +270,18 @@ function PlaylistDialog({
       isOfficial: playlist?.isOfficial ?? true,
     },
   });
+
+  useEffect(() => {
+    form.reset({
+      title: playlist?.title ?? "",
+      slug: playlist?.slug ?? "",
+      description: playlist?.description ?? "",
+      platform: playlist?.platform ?? "",
+      playlistUrl: playlist?.playlistUrl ?? "",
+      coverImageUrl: playlist?.coverImageUrl ?? "",
+      isOfficial: playlist?.isOfficial ?? true,
+    });
+  }, [playlist, open]);
 
   const mutation = useMutation({
     mutationFn: (data: PlaylistForm) =>

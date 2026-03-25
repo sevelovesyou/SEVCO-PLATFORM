@@ -17,13 +17,14 @@ import {
   type Playlist, type InsertPlaylist,
   type MusicSubmission, type InsertMusicSubmission,
   type PlatformSocialLink, type InsertPlatformSocialLink,
-  type Note, type InsertNote,
+  type Note, type InsertNote, type NoteCollaborator, type NoteAttachment,
   type FeedPost, type InsertFeedPost,
   type Post, type InsertPost, type PostLike, type PostReply, type InsertPostReply, type UserFollow,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
   posts, postLikes, postReplies, userFollows,
+  noteCollaborators, noteAttachments,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or } from "drizzle-orm";
@@ -155,6 +156,12 @@ export interface IStorage {
   createNote(data: InsertNote & { authorId: string }): Promise<Note>;
   updateNote(id: number, authorId: string, data: Partial<InsertNote>): Promise<Note>;
   deleteNote(id: number, authorId: string): Promise<void>;
+  getNoteCollaborators(noteId: number): Promise<(NoteCollaborator & { user: { id: string; username: string; displayName: string | null; avatarUrl: string | null } })[]>;
+  addNoteCollaborator(noteId: number, userId: string): Promise<NoteCollaborator>;
+  removeNoteCollaborator(noteId: number, userId: string): Promise<void>;
+  getNoteAttachments(noteId: number): Promise<NoteAttachment[]>;
+  addNoteAttachment(noteId: number, resourceType: "project" | "article", resourceId: number): Promise<NoteAttachment>;
+  removeNoteAttachment(attachmentId: number): Promise<void>;
 
   getFeedPosts(limit?: number): Promise<(FeedPost & { author: { username: string; displayName: string | null; avatarUrl: string | null } | null })[]>;
   createFeedPost(data: InsertFeedPost & { authorId: string }): Promise<FeedPost>;
@@ -814,7 +821,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getNotes(authorId: string): Promise<Note[]> {
-    return db.select().from(notes).where(eq(notes.authorId, authorId)).orderBy(desc(notes.pinned), desc(notes.updatedAt));
+    const sharedNoteIds = db
+      .select({ id: noteCollaborators.noteId })
+      .from(noteCollaborators)
+      .where(eq(noteCollaborators.userId, authorId));
+    return db.select().from(notes)
+      .where(or(eq(notes.authorId, authorId), sql`${notes.id} IN (${sharedNoteIds})`))
+      .orderBy(desc(notes.pinned), desc(notes.updatedAt));
   }
 
   async getNoteById(id: number): Promise<Note | undefined> {
@@ -837,6 +850,54 @@ export class DatabaseStorage implements IStorage {
 
   async deleteNote(id: number, authorId: string): Promise<void> {
     await db.delete(notes).where(and(eq(notes.id, id), eq(notes.authorId, authorId)));
+  }
+
+  async getNoteCollaborators(noteId: number): Promise<(NoteCollaborator & { user: { id: string; username: string; displayName: string | null; avatarUrl: string | null } })[]> {
+    const rows = await db
+      .select({
+        collab: noteCollaborators,
+        user: { id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl },
+      })
+      .from(noteCollaborators)
+      .innerJoin(users, eq(noteCollaborators.userId, users.id))
+      .where(eq(noteCollaborators.noteId, noteId))
+      .orderBy(noteCollaborators.addedAt);
+    return rows.map((r) => ({ ...r.collab, user: r.user }));
+  }
+
+  async addNoteCollaborator(noteId: number, userId: string): Promise<NoteCollaborator> {
+    const [row] = await db.insert(noteCollaborators).values({ noteId, userId }).onConflictDoNothing().returning();
+    if (!row) {
+      const [existing] = await db.select().from(noteCollaborators).where(and(eq(noteCollaborators.noteId, noteId), eq(noteCollaborators.userId, userId)));
+      return existing;
+    }
+    await db.update(notes).set({ isShared: true }).where(eq(notes.id, noteId));
+    return row;
+  }
+
+  async removeNoteCollaborator(noteId: number, userId: string): Promise<void> {
+    await db.delete(noteCollaborators).where(and(eq(noteCollaborators.noteId, noteId), eq(noteCollaborators.userId, userId)));
+    const [remaining] = await db.select({ count: sql<number>`count(*)::int` }).from(noteCollaborators).where(eq(noteCollaborators.noteId, noteId));
+    if ((remaining?.count || 0) === 0) {
+      await db.update(notes).set({ isShared: false }).where(eq(notes.id, noteId));
+    }
+  }
+
+  async getNoteAttachments(noteId: number): Promise<NoteAttachment[]> {
+    return db.select().from(noteAttachments).where(eq(noteAttachments.noteId, noteId)).orderBy(noteAttachments.addedAt);
+  }
+
+  async addNoteAttachment(noteId: number, resourceType: "project" | "article", resourceId: number): Promise<NoteAttachment> {
+    const [row] = await db.insert(noteAttachments).values({ noteId, resourceType, resourceId }).onConflictDoNothing().returning();
+    if (!row) {
+      const [existing] = await db.select().from(noteAttachments).where(and(eq(noteAttachments.noteId, noteId)));
+      return existing;
+    }
+    return row;
+  }
+
+  async removeNoteAttachment(attachmentId: number): Promise<void> {
+    await db.delete(noteAttachments).where(eq(noteAttachments.id, attachmentId));
   }
 
   async getFeedPosts(limit = 50): Promise<(FeedPost & { author: { username: string; displayName: string | null; avatarUrl: string | null } | null })[]> {

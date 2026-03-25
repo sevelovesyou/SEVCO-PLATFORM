@@ -1579,6 +1579,97 @@ export async function registerRoutes(
     }
   });
 
+  // Note collaborator routes
+  app.get("/api/notes/:id/collaborators", requireAuth, async (req: any, res) => {
+    try {
+      const noteId = parseInt(req.params.id);
+      const note = await storage.getNoteById(noteId);
+      if (!note) return res.status(404).json({ message: "Note not found" });
+      const isAuthor = note.authorId === req.user.id;
+      const allNotes = await storage.getNotes(req.user.id);
+      const canAccess = isAuthor || allNotes.some((n) => n.id === noteId);
+      if (!canAccess) return res.status(403).json({ message: "Access denied" });
+      const collaborators = await storage.getNoteCollaborators(noteId);
+      res.json(collaborators);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/notes/:id/collaborators", requireAuth, async (req: any, res) => {
+    try {
+      const noteId = parseInt(req.params.id);
+      const note = await storage.getNoteById(noteId);
+      if (!note) return res.status(404).json({ message: "Note not found" });
+      if (note.authorId !== req.user.id) return res.status(403).json({ message: "Only the author can add collaborators" });
+      const { username } = req.body;
+      if (!username) return res.status(400).json({ message: "Username is required" });
+      const targetUser = await storage.getUserByUsername(username);
+      if (!targetUser) return res.status(404).json({ message: "User not found" });
+      if (targetUser.id === req.user.id) return res.status(400).json({ message: "Cannot add yourself as collaborator" });
+      const collab = await storage.addNoteCollaborator(noteId, targetUser.id);
+      res.status(201).json(collab);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/notes/:id/collaborators/:userId", requireAuth, async (req: any, res) => {
+    try {
+      const noteId = parseInt(req.params.id);
+      const note = await storage.getNoteById(noteId);
+      if (!note) return res.status(404).json({ message: "Note not found" });
+      if (note.authorId !== req.user.id) return res.status(403).json({ message: "Only the author can remove collaborators" });
+      await storage.removeNoteCollaborator(noteId, req.params.userId);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Note attachment routes
+  app.get("/api/notes/:id/attachments", requireAuth, async (req: any, res) => {
+    try {
+      const noteId = parseInt(req.params.id);
+      const note = await storage.getNoteById(noteId);
+      if (!note) return res.status(404).json({ message: "Note not found" });
+      const allNotes = await storage.getNotes(req.user.id);
+      const canAccess = note.authorId === req.user.id || allNotes.some((n) => n.id === noteId);
+      if (!canAccess) return res.status(403).json({ message: "Access denied" });
+      const attachments = await storage.getNoteAttachments(noteId);
+      res.json(attachments);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/notes/:id/attachments", requireAuth, async (req: any, res) => {
+    try {
+      const noteId = parseInt(req.params.id);
+      const note = await storage.getNoteById(noteId);
+      if (!note) return res.status(404).json({ message: "Note not found" });
+      const allNotes = await storage.getNotes(req.user.id);
+      const canAccess = note.authorId === req.user.id || allNotes.some((n) => n.id === noteId);
+      if (!canAccess) return res.status(403).json({ message: "Access denied" });
+      const { resourceType, resourceId } = req.body;
+      if (!resourceType || !resourceId) return res.status(400).json({ message: "resourceType and resourceId are required" });
+      if (!["project", "article"].includes(resourceType)) return res.status(400).json({ message: "resourceType must be 'project' or 'article'" });
+      const attachment = await storage.addNoteAttachment(noteId, resourceType, parseInt(resourceId));
+      res.status(201).json(attachment);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/notes/attachments/:attachmentId", requireAuth, async (req: any, res) => {
+    try {
+      await storage.removeNoteAttachment(parseInt(req.params.attachmentId));
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // Feed routes
   const CAN_MANAGE_FEED: Role[] = ["admin", "executive"];
 

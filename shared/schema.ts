@@ -435,6 +435,7 @@ export const notes = pgTable("notes", {
   authorId: varchar("author_id").references(() => users.id, { onDelete: "cascade" }),
   pinned: boolean("pinned").notNull().default(false),
   color: text("color").notNull().default("default"),
+  isShared: boolean("is_shared").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -442,6 +443,27 @@ export const notes = pgTable("notes", {
 export const insertNoteSchema = createInsertSchema(notes).omit({ id: true, createdAt: true, updatedAt: true, authorId: true });
 export type Note = typeof notes.$inferSelect;
 export type InsertNote = z.infer<typeof insertNoteSchema>;
+
+export const noteCollaborators = pgTable("note_collaborators", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  noteId: integer("note_id").notNull().references(() => notes.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  addedAt: timestamp("added_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("note_collaborators_unique").on(t.noteId, t.userId)]);
+
+export type NoteCollaborator = typeof noteCollaborators.$inferSelect;
+
+export const noteResourceTypeEnum = pgEnum("note_resource_type", ["project", "article"]);
+
+export const noteAttachments = pgTable("note_attachments", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  noteId: integer("note_id").notNull().references(() => notes.id, { onDelete: "cascade" }),
+  resourceType: noteResourceTypeEnum("resource_type").notNull(),
+  resourceId: integer("resource_id").notNull(),
+  addedAt: timestamp("added_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("note_attachments_unique").on(t.noteId, t.resourceType, t.resourceId)]);
+
+export type NoteAttachment = typeof noteAttachments.$inferSelect;
 
 export const feedPostTypeEnum = pgEnum("feed_post_type", ["update", "release", "milestone", "media", "event"]);
 export type FeedPostType = typeof feedPostTypeEnum.enumValues[number];

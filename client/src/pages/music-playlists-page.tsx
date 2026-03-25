@@ -5,10 +5,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
@@ -18,7 +18,9 @@ import {
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ListMusic, ExternalLink, Music, Send, CheckCircle, Disc } from "lucide-react";
+import {
+  ListMusic, ExternalLink, Music, Send, CheckCircle, Disc, Play, X,
+} from "lucide-react";
 import type { Playlist } from "@shared/schema";
 import { SiSpotify, SiApplemusic, SiYoutubemusic, SiSoundcloud } from "react-icons/si";
 
@@ -41,6 +43,164 @@ const GENRES = [
   "Alternative", "Rock", "Indie", "Jazz", "Lo-Fi", "Other",
 ];
 
+function getSpotifyEmbedUrl(url: string): string | null {
+  const match = url.match(/open\.spotify\.com\/(playlist|album|track|artist)\/([a-zA-Z0-9]+)/);
+  if (!match) return null;
+  return `https://open.spotify.com/embed/${match[1]}/${match[2]}?utm_source=generator&theme=0`;
+}
+
+function isSpotifyUrl(url: string): boolean {
+  return /open\.spotify\.com/.test(url);
+}
+
+function SpotifyPlayerBar({
+  playlist,
+  onClose,
+}: {
+  playlist: Playlist;
+  onClose: () => void;
+}) {
+  const embedUrl = getSpotifyEmbedUrl(playlist.playlistUrl);
+  if (!embedUrl) return null;
+
+  return (
+    <div
+      className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t shadow-2xl"
+      data-testid="spotify-player-bar"
+    >
+      <div className="max-w-5xl mx-auto px-4 py-3">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <SiSpotify className="h-4 w-4 text-[#1DB954] shrink-0" />
+            <p className="text-sm font-semibold truncate">{playlist.title}</p>
+          </div>
+          <a
+            href={playlist.playlistUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            data-testid="link-open-spotify"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Open in Spotify
+          </a>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0"
+            onClick={onClose}
+            data-testid="button-close-player"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <iframe
+          src={embedUrl}
+          width="100%"
+          height="152"
+          frameBorder="0"
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"
+          className="rounded-xl"
+          data-testid="iframe-spotify-player"
+        />
+      </div>
+    </div>
+  );
+}
+
+function PlaylistCard({
+  playlist,
+  onPlay,
+  isActive,
+}: {
+  playlist: Playlist;
+  onPlay: (p: Playlist) => void;
+  isActive: boolean;
+}) {
+  const PlatformIcon = playlist.platform ? PLATFORM_ICONS[playlist.platform] : undefined;
+  const platformColor = playlist.platform ? PLATFORM_COLORS[playlist.platform] : "";
+  const spotify = isSpotifyUrl(playlist.playlistUrl);
+
+  return (
+    <Card
+      className={`overflow-hidden group transition-all ${isActive ? "ring-2 ring-[#1DB954]" : "hover-elevate"}`}
+      data-testid={`card-playlist-${playlist.id}`}
+    >
+      <div className="aspect-square bg-gradient-to-br from-violet-500/20 to-purple-500/10 flex items-center justify-center relative overflow-hidden">
+        {playlist.coverImageUrl ? (
+          <img
+            src={playlist.coverImageUrl}
+            alt={playlist.title}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <ListMusic className="h-10 w-10 text-violet-400 opacity-50 group-hover:scale-110 transition-transform duration-300" />
+        )}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
+        <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          {spotify ? (
+            <Button
+              size="sm"
+              className="gap-1.5 bg-[#1DB954] hover:bg-[#1DB954]/90 text-black font-semibold"
+              onClick={() => onPlay(playlist)}
+              data-testid={`button-play-playlist-${playlist.id}`}
+            >
+              <Play className="h-3.5 w-3.5" />
+              Play
+            </Button>
+          ) : (
+            <a href={playlist.playlistUrl} target="_blank" rel="noopener noreferrer">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="gap-1.5"
+                data-testid={`button-open-playlist-${playlist.id}`}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Open
+              </Button>
+            </a>
+          )}
+        </div>
+        {isActive && (
+          <div className="absolute top-2 right-2">
+            <Badge className="bg-[#1DB954] text-black text-[10px] px-1.5 py-0 font-semibold">
+              Playing
+            </Badge>
+          </div>
+        )}
+      </div>
+      <div className="p-3">
+        {playlist.platform && (
+          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 mb-1.5 flex items-center gap-1 w-fit ${platformColor}`}>
+            {PlatformIcon && <PlatformIcon className="h-2.5 w-2.5" />}
+            {playlist.platform}
+          </Badge>
+        )}
+        <h3 className="font-semibold text-sm leading-tight">{playlist.title}</h3>
+        {playlist.description && (
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+            {playlist.description}
+          </p>
+        )}
+        {!spotify && (
+          <a
+            href={playlist.playlistUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground mt-2 transition-colors"
+            data-testid={`link-playlist-ext-${playlist.id}`}
+          >
+            <ExternalLink className="h-2.5 w-2.5" />
+            Open
+          </a>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 const playlistSubmitSchema = z.object({
   submitterName: z.string().min(1, "Your name is required"),
   submitterEmail: z.string().email("Valid email is required"),
@@ -53,44 +213,7 @@ const playlistSubmitSchema = z.object({
 
 type PlaylistSubmitForm = z.infer<typeof playlistSubmitSchema>;
 
-function PlaylistCard({ playlist }: { playlist: Playlist }) {
-  const PlatformIcon = playlist.platform ? PLATFORM_ICONS[playlist.platform] : undefined;
-  const platformColor = playlist.platform ? PLATFORM_COLORS[playlist.platform] : "";
-  return (
-    <a
-      href={playlist.playlistUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      data-testid={`card-playlist-${playlist.id}`}
-    >
-      <Card className="overflow-hidden hover-elevate active-elevate-2 cursor-pointer group">
-        <div className="aspect-video bg-gradient-to-br from-violet-500/20 to-purple-500/10 flex items-center justify-center relative overflow-hidden">
-          {playlist.coverImageUrl ? (
-            <img src={playlist.coverImageUrl} alt={playlist.title} className="w-full h-full object-cover" />
-          ) : (
-            <ListMusic className="h-10 w-10 text-violet-400 opacity-50 group-hover:scale-110 transition-transform duration-300" />
-          )}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-          <ExternalLink className="absolute bottom-2 right-2 h-3.5 w-3.5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-        </div>
-        <div className="p-4">
-          {playlist.platform && (
-            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 mb-2 flex items-center gap-1 w-fit ${platformColor}`}>
-              {PlatformIcon && <PlatformIcon className="h-2.5 w-2.5" />}
-              {playlist.platform}
-            </Badge>
-          )}
-          <h3 className="font-semibold text-sm leading-tight">{playlist.title}</h3>
-          {playlist.description && (
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">{playlist.description}</p>
-          )}
-        </div>
-      </Card>
-    </a>
-  );
-}
-
-function PlaylistSubmitForm() {
+function PlaylistSubmitFormComponent() {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
 
@@ -241,16 +364,28 @@ function PlaylistSubmitForm() {
 }
 
 export default function MusicPlaylistsPage() {
+  const [activePlaylist, setActivePlaylist] = useState<Playlist | null>(null);
+
   const { data: playlists, isLoading } = useQuery<Playlist[]>({
     queryKey: ["/api/music/playlists"],
   });
 
   const officialPlaylists = playlists ?? [];
 
+  const handlePlay = (playlist: Playlist) => {
+    if (activePlaylist?.id === playlist.id) {
+      setActivePlaylist(null);
+    } else {
+      setActivePlaylist(playlist);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-5xl mx-auto px-4 md:px-8 py-10 md:py-14">
-
+      <div
+        className="max-w-5xl mx-auto px-4 md:px-8 py-10 md:py-14"
+        style={{ paddingBottom: activePlaylist ? "260px" : undefined }}
+      >
         {/* Header */}
         <div className="mb-10">
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
@@ -265,13 +400,20 @@ export default function MusicPlaylistsPage() {
 
         {/* Official Playlists */}
         <section className="mb-14">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Official Playlists</p>
+          <div className="flex items-center gap-2 mb-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Official Playlists</p>
+            {officialPlaylists.length > 0 && (
+              <span className="text-xs text-muted-foreground">
+                · {officialPlaylists.filter((p) => isSpotifyUrl(p.playlistUrl)).length} Spotify
+              </span>
+            )}
+          </div>
 
           {isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="space-y-3">
-                  <Skeleton className="aspect-video rounded-xl" />
+                  <Skeleton className="aspect-square rounded-xl" />
                   <Skeleton className="h-4 w-3/4" />
                   <Skeleton className="h-3 w-full" />
                 </div>
@@ -286,9 +428,21 @@ export default function MusicPlaylistsPage() {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {officialPlaylists.map((pl) => (
-                <PlaylistCard key={pl.id} playlist={pl} />
+                <PlaylistCard
+                  key={pl.id}
+                  playlist={pl}
+                  onPlay={handlePlay}
+                  isActive={activePlaylist?.id === pl.id}
+                />
               ))}
             </div>
+          )}
+
+          {officialPlaylists.some((p) => isSpotifyUrl(p.playlistUrl)) && (
+            <p className="text-[10px] text-muted-foreground mt-3 flex items-center gap-1">
+              <SiSpotify className="h-2.5 w-2.5 text-[#1DB954]" />
+              Spotify playlists can be played directly in the page. Other platforms open in a new tab.
+            </p>
           )}
         </section>
 
@@ -308,7 +462,7 @@ export default function MusicPlaylistsPage() {
                   </p>
                 </div>
               </div>
-              <PlaylistSubmitForm />
+              <PlaylistSubmitFormComponent />
             </div>
           </div>
         </section>
@@ -327,6 +481,11 @@ export default function MusicPlaylistsPage() {
           </Link>
         </div>
       </div>
+
+      {/* Spotify embed player bar */}
+      {activePlaylist && isSpotifyUrl(activePlaylist.playlistUrl) && (
+        <SpotifyPlayerBar playlist={activePlaylist} onClose={() => setActivePlaylist(null)} />
+      )}
     </div>
   );
 }

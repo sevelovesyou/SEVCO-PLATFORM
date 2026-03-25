@@ -1576,7 +1576,15 @@ export async function registerRoutes(
   app.patch("/api/notes/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const parsed = insertNoteSchema.partial().safeParse(req.body);
+      const existingNote = await storage.getNoteById(id);
+      if (!existingNote) return res.status(404).json({ message: "Note not found" });
+      const isOwner = existingNote.authorId === req.user.id;
+      const collaborators = await storage.getNoteCollaborators(id);
+      const isCollaborator = collaborators.some((c) => c.userId === req.user.id);
+      if (!isOwner && !isCollaborator) return res.status(403).json({ message: "Access denied" });
+      const safeSchema = insertNoteSchema.partial().pick({ title: true, content: true, color: true, pinned: true });
+      const ownerSchema = insertNoteSchema.partial().pick({ title: true, content: true, color: true, pinned: true, isShared: true });
+      const parsed = (isOwner ? ownerSchema : safeSchema).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
       const note = await storage.updateNote(id, req.user.id, parsed.data);
       if (!note) return res.status(404).json({ message: "Note not found" });

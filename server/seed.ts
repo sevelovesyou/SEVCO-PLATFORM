@@ -1,6 +1,6 @@
 import { storage } from "./storage";
 import { db } from "./db";
-import { articles, categories, revisions, citations, crosslinks, users, projects, services } from "@shared/schema";
+import { articles, categories, revisions, citations, crosslinks, users, projects, services, playlists } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 export async function promoteFounderToAdmin() {
@@ -365,4 +365,40 @@ export async function seedServices() {
   }
 
   console.log(`Seeded ${serviceData.length} services.`);
+}
+
+export async function seedPlaylists() {
+  const existing = await db.select().from(playlists);
+  if (existing.length > 0) return;
+
+  console.log("Seeding placeholder playlists...");
+
+  await storage.createPlaylist({
+    title: "Intro to SEVCO Records",
+    slug: "intro-to-sevco-records",
+    description: "The essential first listen — handpicked tracks that define the SEVCO sound.",
+    platform: "Spotify",
+    playlistUrl: "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M",
+    isOfficial: true,
+  });
+
+  await storage.createPlaylist({
+    title: "Late Night Vibes",
+    slug: "late-night-vibes",
+    description: "Deep cuts and slow burners for when the night gets quiet.",
+    platform: "Spotify",
+    playlistUrl: "https://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO",
+    isOfficial: true,
+  });
+
+  await storage.createPlaylist({
+    title: "Freshest Drops",
+    slug: "freshest-drops",
+    description: "The newest releases from across the SEVCO Records roster. Updated weekly.",
+    platform: "SoundCloud",
+    playlistUrl: "https://soundcloud.com",
+    isOfficial: true,
+  });
+
+  console.log("Seeded 3 placeholder playlists.");
 }

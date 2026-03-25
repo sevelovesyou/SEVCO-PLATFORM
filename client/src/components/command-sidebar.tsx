@@ -74,7 +74,7 @@ export function CommandSidebar() {
       title: "Music Submissions",
       url: "/command/music",
       icon: Music,
-      show: isAdmin || isExec || isStaff,
+      show: isAdmin || isExec,
     },
   ].filter((item) => item.show);
 

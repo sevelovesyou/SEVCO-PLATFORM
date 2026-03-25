@@ -16,7 +16,7 @@ import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClie
 import { sendContactEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
 
-const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive", "staff"];
+const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive"];
 const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_JOBS: Role[] = ["admin", "executive"];
 const CAN_MANAGE_STORE_PRODUCTS: Role[] = ["admin", "executive"];
@@ -1260,18 +1260,6 @@ export async function registerRoutes(
       if (type === "label" && !req.session?.userId) {
         return res.status(401).json({ message: "Sign in to submit to SEVCO RECORDS" });
       }
-      const userId = req.session?.userId ?? null;
-      const sub = await storage.createMusicSubmission({ ...parsed.data, userId });
-      res.status(201).json(sub);
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  app.post("/api/music/submit", async (req: any, res) => {
-    try {
-      const parsed = insertMusicSubmissionSchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
       const userId = req.session?.userId ?? null;
       const sub = await storage.createMusicSubmission({ ...parsed.data, userId });
       res.status(201).json(sub);

@@ -461,8 +461,39 @@ export async function registerRoutes(
       if (!article) return res.status(404).json({ message: "Article not found" });
 
       const { citations: citationsData, editSummary, ...updateData } = req.body;
+      const userRole = (req.user as any)?.role as Role | undefined;
+      const canPublish = !!userRole && (CAN_PUBLISH_ARTICLES as string[]).includes(userRole);
+      const isArchived = article.status === "archived";
 
-      const revision = await storage.createRevision({
+      if (isArchived) {
+        const directUpdate: Record<string, unknown> = {};
+        if (updateData.title !== undefined) directUpdate.title = updateData.title;
+        if (updateData.slug !== undefined) directUpdate.slug = updateData.slug;
+        if (updateData.content !== undefined) directUpdate.content = updateData.content;
+        if (updateData.summary !== undefined) directUpdate.summary = updateData.summary;
+        if (updateData.categoryId !== undefined) directUpdate.categoryId = updateData.categoryId;
+        if (updateData.tags !== undefined) directUpdate.tags = updateData.tags;
+        if (updateData.infoboxType !== undefined) directUpdate.infoboxType = updateData.infoboxType;
+        if (updateData.infoboxData !== undefined) directUpdate.infoboxData = updateData.infoboxData;
+        const updated = await storage.updateArticle(article.id, directUpdate as any);
+        if (citationsData && Array.isArray(citationsData)) {
+          await storage.deleteCitationsByArticle(article.id);
+          for (const cit of citationsData) {
+            await storage.createCitation({
+              articleId: article.id,
+              url: cit.url || null,
+              title: cit.title,
+              format: cit.format || "APA",
+              text: cit.text,
+              isValid: true,
+              errorMessage: null,
+            });
+          }
+        }
+        return res.json(updated);
+      }
+
+      await storage.createRevision({
         articleId: article.id,
         content: updateData.content || article.content,
         infoboxData: updateData.infoboxData || article.infoboxData,

@@ -2895,6 +2895,49 @@ export async function registerRoutes(
     }
   });
 
+  // Server-side file upload — bypasses Supabase RLS by using service_role key
+  app.post(
+    "/api/upload",
+    requireAuth,
+    (req, res, next) => {
+      // Parse raw binary body for this route only
+      (require("express").raw({ type: "*/*", limit: "51mb" }))(req, res, next);
+    },
+    async (req, res) => {
+      try {
+        const { supabase: supabaseAdmin } = await import("./supabase");
+        if (!supabaseAdmin) {
+          return res.status(503).json({ message: "File upload service not configured" });
+        }
+        const bucket = (req.query.bucket as string) || "";
+        const path = (req.query.path as string) || "";
+        if (!bucket || !path) {
+          return res.status(400).json({ message: "bucket and path query params are required" });
+        }
+        const contentType = req.headers["content-type"] || "application/octet-stream";
+        const body = req.body as Buffer;
+        if (!Buffer.isBuffer(body) || body.length === 0) {
+          return res.status(400).json({ message: "Request body is empty" });
+        }
+        const isPrivate = req.query.private === "true";
+        const { error: uploadError } = await supabaseAdmin.storage
+          .from(bucket)
+          .upload(path, body, { contentType, upsert: true });
+        if (uploadError) {
+          return res.status(500).json({ message: uploadError.message });
+        }
+        let publicUrl = path;
+        if (!isPrivate) {
+          const { data } = supabaseAdmin.storage.from(bucket).getPublicUrl(path);
+          publicUrl = data.publicUrl;
+        }
+        res.json({ url: publicUrl, path });
+      } catch (err: any) {
+        res.status(500).json({ message: err.message });
+      }
+    }
+  );
+
   app.get("/api/platform-settings", async (_req, res) => {
     try {
       const settings = await storage.getPlatformSettings();

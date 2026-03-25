@@ -6,6 +6,7 @@ import { useCart } from "@/hooks/use-cart";
 import { useQuery } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SearchOverlay } from "@/components/search-overlay";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -576,6 +577,10 @@ export function PlatformHeader() {
   const activeApp = getActiveApp(location);
   const roleBadgeClass = ROLE_BADGE_VARIANTS[role ?? "user"] ?? ROLE_BADGE_VARIANTS.user;
   const canAccessCMD = role === "admin" || role === "executive" || role === "staff";
+  const showSidebar = !!user && (
+    WIKI_PREFIXES.some((p) => location === p || location.startsWith(p)) ||
+    location === "/command" || location.startsWith("/command/")
+  );
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSection, setMobileSection] = useState<string | null>(null);
@@ -615,6 +620,13 @@ export function PlatformHeader() {
             />
           </div>
         </Link>
+
+        {showSidebar && (
+          <SidebarTrigger
+            className="md:hidden shrink-0 h-8 w-8"
+            data-testid="button-mobile-sidebar-toggle"
+          />
+        )}
 
         <div className="w-px h-5 bg-border mx-1 hidden md:block" />
 

@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Upload, X, FileAudio, ImageIcon, ChevronDown, ChevronUp } from "lucide-react";
-import { getSupabase, getSupabaseInitPromise } from "@/lib/supabase";
 
 interface FileUploadProps {
   bucket: string;
@@ -48,42 +47,35 @@ export function FileUpload({
     setProgress(0);
 
     try {
-      await getSupabaseInitPromise();
-      const supabase = getSupabase();
-
-      if (!supabase) {
-        setError("File upload is not configured");
-        setProgress(null);
-        return;
-      }
-
       const ext = file.name.split(".").pop() ?? "bin";
       const storagePath = path.replace("{ext}", ext);
 
       setProgress(30);
 
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(storagePath, file, { upsert: true });
+      const params = new URLSearchParams({ bucket, path: storagePath });
+      if (isPrivate) params.set("private", "true");
 
-      if (uploadError) {
-        setError(uploadError.message);
+      const res = await fetch(`/api/upload?${params}`, {
+        method: "POST",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file,
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const { message } = await res.json().catch(() => ({ message: "Upload failed" }));
+        setError(message);
         setProgress(null);
         return;
       }
 
       setProgress(80);
 
-      let publicUrl = "";
-      if (!isPrivate) {
-        const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath);
-        publicUrl = data.publicUrl;
-      } else {
-        publicUrl = storagePath;
-      }
+      const { url, path: returnedPath } = await res.json();
+      const resultUrl = isPrivate ? returnedPath : url;
 
       if (isImage && !isPrivate) {
-        setLocalPreview(publicUrl);
+        setLocalPreview(resultUrl);
       } else if (!isImage) {
         setLocalPreview(file.name);
       }
@@ -91,7 +83,7 @@ export function FileUpload({
       setProgress(100);
       setTimeout(() => setProgress(null), 800);
 
-      onUpload(publicUrl, storagePath);
+      onUpload(resultUrl, storagePath);
     } catch (err: any) {
       setError(err?.message ?? "Upload failed");
       setProgress(null);

@@ -620,6 +620,142 @@ const ENGINEERING_TASKS: EngineeringTask[] = [
     content: `# Task #38 — Notes Tool — Personal & Collaborative\n\n## Summary\nAdded a notes tool for personal and team use.\n\n## What Was Built\n- /notes — personal notes page with create, edit, delete\n- Notes can be pinned and color-coded\n- Shared notes are visible to all platform users\n- Collaborators can be added to notes for joint editing\n- Notes can be attached to wiki articles or projects as resource links\n- Notes appear as a related section on wiki articles and project detail pages\n\n## Technical Notes\n- notes, note_collaborators, and note_attachments tables\n- Note attachment supports "project" and "article" resource types\n- Shared notes are fetched via /api/notes/public/:type/:id endpoints`,
     version: null,
   },
+  {
+    taskNum: 39,
+    slug: "eng-task-39-nav-platform-housekeeping",
+    title: "Task #39 — Nav & Platform Housekeeping",
+    summary: "Navigation improvements: renamed Home dropdown to SEVCO, moved Changelog to wiki sidebar, fixed nav overlap, added iPhone app icon, replaced sevelovesyou.com with sevco.us, and added an Archive tab to the wiki sidebar.",
+    content: `# Task #39 — Nav & Platform Housekeeping\n\n## Summary\nA collection of navigation improvements, bug fixes, and platform-wide text corrections.\n\n## What Was Built\n- Top-level "Home" dropdown renamed to "SEVCO" with a "Home" link at the top navigating to /\n- Changelog link moved from the SEVCO dropdown to a dedicated tab in the wiki sidebar (AppSidebar), visible to all users\n- Fixed nav bar overlap that was hiding the wiki sidebar toggle button (z-index / layout fix)\n- Added apple-touch-icon link to index.html pointing to the correct square PNG asset for iPhone homescreen\n- Replaced all instances of "sevelovesyou.com" in UI labels with "sevco.us"\n- Added an "Archive" tab to the wiki sidebar visible only to staff/executive/admin roles, linking to archived articles view\n\n## Files Changed\n- client/src/components/platform-header.tsx\n- client/src/components/app-sidebar.tsx\n- client/index.html\n- client/src/components/platform-footer.tsx`,
+    version: null,
+  },
+  {
+    taskNum: 40,
+    slug: "eng-task-40-cmd-restructure",
+    title: "Task #40 — CMD Restructure, Fixes & Overview Refresh",
+    summary: "Merged redundant CMD music tabs, surfaced job applicants, moved store analytics to the Store CMD page, fixed admin timeline post bug, and refreshed the CMD Overview layout.",
+    content: `# Task #40 — CMD Restructure, Fixes & Overview Refresh\n\n## Summary\nSeveral Command Center improvements focused on consolidation and bug fixes.\n\n## What Was Built\n- CMD sidebar Music tab merged into a single /command/music page with Submissions and Playlists as sub-tabs\n- CMD Jobs tab now shows open positions and a list of applicants with status management\n- Store Analytics moved into the Store CMD page as a tab; standalone /command/store/stats route retired\n- Fixed admin account bug preventing post creation on the social timeline\n- CMD Overview refreshed with cleaner widget layout and better at-a-glance information\n\n## Files Changed\n- client/src/pages/command-music.tsx\n- client/src/pages/command-jobs.tsx\n- client/src/pages/command-store.tsx\n- client/src/pages/command-overview.tsx\n- client/src/components/command-sidebar.tsx\n- client/src/pages/feed-page.tsx`,
+    version: null,
+  },
+  {
+    taskNum: 41,
+    slug: "eng-task-41-hostinger-domains",
+    title: "Task #41 — Hostinger API Integration & Domains Page",
+    summary: "Integrated the Hostinger API for VPS status monitoring and domain availability search, with a CMD Hosting tab and a public Domains page.",
+    content: `# Task #41 — Hostinger API Integration & Domains Page\n\n## Summary\nIntegrated the Hostinger API to expose VPS status and domain availability search.\n\n## What Was Built\n- server/hostinger.ts proxy module wrapping Hostinger API endpoints (VPS status, domain availability)\n- Admin-only CMD Hosting tab at /command/hosting showing VPS state, hostname, and uptime\n- Compact VPS status card added to CMD Overview (admin-only)\n- /domains page with a domain name search input, availability results (available/taken), and pricing display\n- Domains link added to the Services mega-menu in PlatformHeader\n- Graceful error state when HOSTINGER_API_KEY is missing\n\n## Files Changed\n- server/hostinger.ts\n- server/routes.ts\n- client/src/pages/command-hosting.tsx\n- client/src/pages/domains-page.tsx\n- client/src/pages/command-overview.tsx\n- client/src/components/platform-header.tsx\n- client/src/App.tsx`,
+    version: null,
+  },
+  {
+    taskNum: 42,
+    slug: "eng-task-42-engineering-articles-changelog",
+    title: "Task #42 — Engineering Wiki Articles & Changelog Update",
+    summary: "Back-filled individual wiki articles for every completed task (#1–#38), added wikiSlug linking to changelog entries, and made the public changelog page render article links as 'Read more →'.",
+    content: `# Task #42 — Engineering Wiki Articles & Changelog Update\n\n## Summary\nDocumented the full engineering history by back-filling wiki articles and linking changelog entries.\n\n## What Was Built\n- Published wiki articles in the Engineering category for each completed task (#1–#38)\n- Each article has a General infobox: Tool = Replit, Version = corresponding changelog version, Task = #N\n- wikiSlug column added to the changelog table to link entries to their wiki articles\n- CMD changelog management page shows a "Link article" inline editor per entry\n- Public changelog page (/changelog) renders wikiSlug links as "Read more →" navigation\n- Automatic linkChangelogToWikiArticles() seeding maps existing version tags to article slugs\n\n## Files Changed\n- shared/schema.ts\n- server/storage.ts\n- server/routes.ts\n- client/src/pages/command-changelog.tsx\n- client/src/pages/changelog-page.tsx`,
+    version: "1.2.0",
+  },
+  {
+    taskNum: 43,
+    slug: "eng-task-43-bug-fixes-nav-polish",
+    title: "Task #43 — Bug Fixes & Navigation Polish",
+    summary: "Fixed wiki sidebar collapse to icon-only rail, domain search API parsing, CMD Overview latest release card ordering, and added a back-to-wiki link on the Changelog page.",
+    content: `# Task #43 — Bug Fixes & Navigation Polish\n\n## Summary\nResolved reported issues and small navigation gaps from the recent feature push.\n\n## What Was Fixed\n- Wiki sidebar now collapses to a narrow icon-only rail instead of fully disappearing; icons remain visible when collapsed with tooltip labels\n- Domain search on /domains correctly shows available and taken domains (Hostinger API response parsing fixed; graceful fallback shown when API key is missing)\n- CMD Overview shows the "Latest Release" changelog card as the topmost widget for admin/executive views\n- Changelog page (/changelog) has a "← Wiki" back-link so it feels connected to the wiki section\n\n## Files Changed\n- client/src/components/app-sidebar.tsx\n- client/src/pages/domains-page.tsx\n- server/hostinger.ts\n- client/src/pages/command-overview.tsx\n- client/src/pages/changelog-page.tsx`,
+    version: "1.2.1",
+  },
+  {
+    taskNum: 44,
+    slug: "eng-task-44-project-social-links-about-page",
+    title: "Task #44 — Project Social Links + About Page",
+    summary: "Added social link fields to projects (X, Instagram, YouTube, Discord, GitHub, Other), displayed them on project detail pages, and built a dedicated /about page linked from the SEVCO mega-menu.",
+    content: `# Task #44 — Project Social Links + About Page\n\n## Summary\nAdded per-project social links and launched a dedicated About page for SEVCO.\n\n## What Was Built\n- socialLinks JSONB column added to the projects table\n- Project create/edit forms include optional social link fields: X/Twitter, Instagram, YouTube, Discord, GitHub, Other\n- Project detail page shows social link icon buttons below the project title (conditional on data)\n- /about — a dedicated page with SEVCO's story, mission, and contact links (not a wiki article)\n- "About" link added to the SEVCO mega-menu dropdown in PlatformHeader\n\n## Files Changed\n- shared/schema.ts\n- server/storage.ts\n- server/routes.ts\n- client/src/pages/project-detail.tsx\n- client/src/pages/project-create-page.tsx\n- client/src/pages/project-edit-page.tsx\n- client/src/pages/about-page.tsx\n- client/src/components/platform-header.tsx\n- client/src/App.tsx`,
+    version: "1.3.0",
+  },
+  {
+    taskNum: 45,
+    slug: "eng-task-45-listen-page-social-links-cmd",
+    title: "Task #45 — Listen Page Social Links in CMD",
+    summary: "Moved hardcoded social/streaming links on the Music Listen page into the database, managed via the CMD Social Links page with a new 'Listen Page' toggle column.",
+    content: `# Task #45 — Listen Page Social Links in CMD\n\n## Summary\nMade the Music Listen page social links database-driven and manageable from CMD.\n\n## What Was Built\n- showOnListen boolean column added to platform_social_links table\n- CMD Social Links page (/command/social-links) gains a "Listen" toggle column alongside existing Footer and Contact toggles\n- /music/listen page fetches links from GET /api/social-links filtered by showOnListen: true\n- Hardcoded SOCIAL_LINKS and STREAMING_LINKS constants removed from music-listen-page.tsx\n- Seed defaults set showOnListen = true for streaming platforms (Spotify, Apple Music, YouTube Music, SoundCloud, etc.)\n\n## Files Changed\n- shared/schema.ts\n- server/storage.ts\n- server/routes.ts\n- client/src/pages/command-social-links.tsx\n- client/src/pages/music-listen-page.tsx`,
+    version: "1.3.1",
+  },
+  {
+    taskNum: 46,
+    slug: "eng-task-46-cmd-display-tab",
+    title: "Task #46 — CMD Display Tab — Platform Presentation Controls",
+    summary: "Added a CMD Display tab with a Hero Editor, Section Visibility toggles, and Platform Assets controls (favicon, OG image). Landing page reads settings from the API with hardcoded defaults as fallback.",
+    content: `# Task #46 — CMD Display Tab — Platform Presentation Controls\n\n## Summary\nBuilt a CMD Display tab to control the visual presentation of the platform without touching code.\n\n## What Was Built\n- platform_settings table (key text PK, value text) for key-value configuration storage\n- GET /api/platform-settings (public) and PUT /api/platform-settings (admin-only) routes\n- /command/display page with three sections:\n  - Hero Editor: background image URL, hero text, two button editors (label + URL + icon)\n  - Section Visibility: toggles for Platform Grid, RECORDS Spotlight, Store Preview, Wiki Latest, Community CTA\n  - Platform Assets: favicon URL and OG image URL inputs\n- Landing page (/) fetches platform settings and renders hero background, text, button labels, and section visibility with hardcoded defaults as fallback\n- App root dynamically updates favicon and og:image meta tags via useEffect\n- "Display" item added to CMD sidebar (admin-only)\n\n## Files Changed\n- shared/schema.ts\n- server/storage.ts\n- server/routes.ts\n- client/src/pages/command-display.tsx\n- client/src/pages/landing.tsx\n- client/src/components/command-sidebar.tsx\n- client/src/App.tsx\n- client/index.html`,
+    version: "1.4.0",
+  },
+  {
+    taskNum: 47,
+    slug: "eng-task-47-platform-search",
+    title: "Task #47 — Platform-Wide Search",
+    summary: "Added a platform-wide search with a full-width overlay modal in the nav, live grouped results by content type (Wiki, Projects, Store, Music, Jobs, Services), a /search results page, and a Google fallback.",
+    content: `# Task #47 — Platform-Wide Search\n\n## Summary\nBuilt a global search experience that spans all platform content sections.\n\n## What Was Built\n- Search icon added to PlatformHeader (desktop and mobile) toggling a full-width SearchOverlay modal\n- SearchOverlay: auto-focused input, live grouped results as user types (debounced 300ms), keyboard navigation (Escape to close), "Search Google" fallback button\n- Results grouped by type: Wiki, Projects, Store, Music/Artists, Jobs, Services\n- Results respect user permission level (archived articles only for staff+)\n- /search full results page with up to 10 results per group, total count header, and Google fallback link\n- GET /api/search?q=&limit= queries across all content types via Postgres ILIKE\n\n## Files Changed\n- client/src/components/platform-header.tsx\n- client/src/components/search-overlay.tsx\n- client/src/pages/search-page.tsx\n- server/routes.ts\n- server/storage.ts\n- client/src/App.tsx`,
+    version: "1.5.0",
+  },
+  {
+    taskNum: 48,
+    slug: "eng-task-48-bug-fixes",
+    title: "Task #48 — Bug Fixes: Hostinger API, CMD Nav Title, Global Cart Drawer",
+    summary: "Fixed Hostinger API error handling, resolved CMD page header being hidden by the sticky nav bar, and moved the cart drawer to mount globally in App.tsx so it works from any page.",
+    content: `# Task #48 — Bug Fixes: Hostinger API, CMD Nav Title, Global Cart Drawer\n\n## Summary\nThree targeted bug fixes addressing Hostinger API errors, CMD layout overlap, and global cart access.\n\n## What Was Fixed\n- Hostinger API: VPS status widget and Domain tool returning errors — fixed response parsing, added defensive error logging, shows clear "Not configured" state when API key is missing\n- CMD nav title/controls hidden by sticky PlatformHeader — audited CommandPageLayout for z-index/padding-top conflicts and fixed the overlap\n- Cart drawer moved from store-page.tsx and store-product-detail.tsx into App.tsx so it mounts globally; clicking the nav cart icon from any page now opens the drawer correctly\n\n## Files Changed\n- server/hostinger.ts\n- server/routes.ts\n- client/src/pages/command-overview.tsx\n- client/src/components/platform-header.tsx\n- client/src/components/cart-drawer.tsx\n- client/src/pages/store-page.tsx\n- client/src/pages/store-product-detail.tsx\n- client/src/App.tsx`,
+    version: "1.5.1",
+  },
+  {
+    taskNum: 49,
+    slug: "eng-task-49-cmd-enhancements",
+    title: "Task #49 — CMD Enhancements: Edit Social Links, Resources Tab, Recent Notes Widget",
+    summary: "Added social link editing in CMD, a new Resources tab with a Quick Links widget in CMD Overview, and a Recent Notes widget in CMD Overview.",
+    content: `# Task #49 — CMD Enhancements: Edit Social Links, Resources Tab, Recent Notes Widget\n\n## Summary\nThree CMD enhancements improving admin workflows and at-a-glance information.\n\n## What Was Built\n- Social Links CMD: each row now has an "Edit" button opening a pre-filled dialog for name, URL, and icon\n- resources table: id, title, url, description, category, displayOrder, showOnOverview, createdAt\n- GET/POST/PATCH/DELETE /api/resources endpoints (admin-only)\n- /command/resources page: table of resources with add/edit/delete and a showOnOverview toggle\n- "Resources" item added to CMD sidebar (admin-only)\n- Quick Links widget in CMD Overview: shows resources where showOnOverview = true, sorted by displayOrder\n- Recent Notes widget in CMD Overview: shows 5 most recently updated notes for the logged-in user\n\n## Files Changed\n- shared/schema.ts\n- server/storage.ts\n- server/routes.ts\n- client/src/components/command-sidebar.tsx\n- client/src/pages/command-overview.tsx\n- client/src/pages/command-social-links.tsx\n- client/src/pages/command-resources.tsx\n- client/src/App.tsx`,
+    version: "1.5.2",
+  },
+  {
+    taskNum: 50,
+    slug: "eng-task-50-home-bulletin-footer-store-cleanup",
+    title: "Task #50 — Home Bulletin, Footer Sitemap, Profile/Account Cross-Links, Store Stats Cleanup",
+    summary: "Added a Bulletin section on the home page showing pinned feed posts, expanded the footer into a comprehensive multi-column sitemap, added profile/account cross-links, and removed the redundant /store/stats page.",
+    content: `# Task #50 — Home Bulletin, Footer Sitemap, Profile/Account Cross-Links, Store Stats Cleanup\n\n## Summary\nFour improvements to the home page, footer, user navigation, and store.\n\n## What Was Built\n- Bulletin section on landing page: fetches pinned Official Posts from the feed, shows a styled card with truncated content and "Read more" link; hidden if no pinned post exists\n- Footer expanded to a comprehensive multi-column sitemap: Platform, Music, Commerce, Community, Legal & Info columns\n- Account page gains a "View Profile" link to the user's public profile; profile page (own view) gains an "Account Settings" link\n- /store/stats page and store-stats-page.tsx removed; CMD Overview Store Analytics link updated to /command/store\n\n## Files Changed\n- client/src/pages/landing.tsx\n- client/src/components/platform-footer.tsx\n- client/src/pages/account-page.tsx\n- client/src/pages/profile-page.tsx\n- client/src/pages/command-overview.tsx\n- client/src/App.tsx\n- server/routes.ts`,
+    version: "1.5.3",
+  },
+  {
+    taskNum: 51,
+    slug: "eng-task-51-gallery-tools-dropdown",
+    title: "Task #51 — Gallery Page + Tools Dropdown in Nav",
+    summary: "Built an admin-managed image gallery with file upload, a /gallery page with category filtering and copy-link functionality, and a 'Tools' mega-menu dropdown in the nav for authenticated users.",
+    content: `# Task #51 — Gallery Page + Tools Dropdown in Nav\n\n## Summary\nAdded an image gallery system and a Tools nav dropdown for logged-in users.\n\n## What Was Built\n- gallery_images table: id, title, imageUrl, category (profile/banner/wallpaper/logo/other), altText, displayOrder, isPublic, createdAt\n- GET/POST/PATCH/DELETE /api/gallery endpoints\n- /gallery page: category filter tabs, image grid with thumbnail, title, category badge, and "Copy Link" button; unauthenticated users see only public images\n- /command/gallery CMD page: table of images with add/edit/delete, isPublic toggle, and file upload via Supabase Storage\n- "Gallery" item added to CMD sidebar (admin-only)\n- "Tools" mega-menu dropdown added to PlatformHeader for authenticated users (Notes, Gallery, with "more coming soon" hint)\n\n## Files Changed\n- shared/schema.ts\n- server/storage.ts\n- server/routes.ts\n- client/src/components/platform-header.tsx\n- client/src/components/command-sidebar.tsx\n- client/src/pages/gallery-page.tsx\n- client/src/pages/command-gallery.tsx\n- client/src/App.tsx`,
+    version: "1.6.0",
+  },
+  {
+    taskNum: 52,
+    slug: "eng-task-52-brand-section-about",
+    title: "Task #52 — Brand Section on About Page + CMD Brand Assets Management",
+    summary: "Added a Brand & Assets section to the About page for downloading official SEVCO brand assets, with an admin management interface in the CMD Display tab using Supabase Storage for file uploads.",
+    content: `# Task #52 — Brand Section on About Page + CMD Brand Assets Management\n\n## Summary\nBuilt a public brand assets section and an admin management interface.\n\n## What Was Built\n- brand_assets table: id, name, description, assetType (logo/color_palette/font/banner/icon/other), downloadUrl, previewUrl, fileFormat, displayOrder, isPublic, createdAt\n- GET /api/brand-assets (public, returns isPublic=true for guests), POST/PATCH/DELETE (admin-only)\n- About page (/about) gains a "Brand & Assets" section with asset cards grouped by type, each with a preview thumbnail and "Download" button\n- CMD Display tab (/command/display) gets a "Brand Assets" sub-section: table with add/edit/delete, file upload via Supabase Storage, and isPublic toggle\n\n## Files Changed\n- shared/schema.ts\n- server/storage.ts\n- server/routes.ts\n- client/src/pages/about-page.tsx\n- client/src/pages/command-display.tsx\n- client/src/App.tsx`,
+    version: "1.6.1",
+  },
+  {
+    taskNum: 53,
+    slug: "eng-task-53-hosting-landing-page",
+    title: "Task #53 — SEVCO Hosting Landing Page",
+    summary: "Built a modern public landing page for SEVCO Hosting at /hosting with a hero, service cards (Website Hosting, Minecraft/Game Servers, VPS, Custom Hosting), feature highlights, and CTAs.",
+    content: `# Task #53 — SEVCO Hosting Landing Page\n\n## Summary\nBuilt a complete marketing landing page for SEVCO Hosting.\n\n## What Was Built\n- /hosting public landing page (hosting-page.tsx) with:\n  - Full-width dark/gradient hero with SEVCO wordmark + "Hosting" label and tagline\n  - Two CTAs: "Get Started" → /contact, "Learn More" → scrolls down\n  - Services grid: Website Hosting, Minecraft & Game Servers, VPS, Custom Hosting — each with icon, description, and price hint\n  - Feature highlights: 99.9% uptime, DDoS protection, 24/7 support, instant provisioning\n  - "Why SEVCO Hosting" section with platform ecosystem nod\n  - CTA section at bottom linking to /contact\n- Page metadata: title, meta description, og:title, og:description\n- "Hosting" link added to the Services dropdown in PlatformHeader mega-menu and mobile drawer\n\n## Files Changed\n- client/src/pages/hosting-page.tsx\n- client/src/components/platform-header.tsx\n- client/src/App.tsx`,
+    version: "1.7.0",
+  },
+  {
+    taskNum: 54,
+    slug: "eng-task-54-project-service-icons-placeholder-products",
+    title: "Task #54 — Project/Service Icon Editing + Placeholder Store Products",
+    summary: "Added menuIcon and appIcon fields to projects, icon editing to services, and seeded 6–8 placeholder store products with images so the store is previewable.",
+    content: `# Task #54 — Project/Service Icon Editing + Placeholder Store Products\n\n## Summary\nAdded icon customization to projects and services, and seeded the store with placeholder products.\n\n## What Was Built\n- menuIcon text column added to projects table (lucide icon name)\n- appIcon text column added to projects table (image URL for project header icon)\n- Project form: "Menu Icon" field with live lucide icon preview, "App Icon URL" field with image preview; both Executive+ only\n- Project detail page: shows appIcon in the header if set; uses menuIcon in navigation contexts\n- Services: menuIcon field added if not already present; CMD Services page create/edit dialog gets icon field with lucide preview; mega-menu resolves icon dynamically with Briefcase as fallback\n- Placeholder store products seeded (runs only if fewer than 3 products exist): SEVCO Classic Tee, SEVCO Hoodie, Sticker Pack, Snapback Cap, Digital Album Vol. 1, Tote Bag — with Unsplash image URLs\n\n## Files Changed\n- shared/schema.ts\n- server/storage.ts\n- server/routes.ts\n- client/src/pages/project-form.tsx\n- client/src/pages/project-detail.tsx\n- client/src/pages/command-services.tsx\n- client/src/components/platform-header.tsx\n- client/src/App.tsx`,
+    version: "1.7.1",
+  },
+  {
+    taskNum: 55,
+    slug: "eng-task-55-spotify-integration",
+    title: "Task #55 — Spotify Integration in CMD Music Tab",
+    summary: "Integrated the Spotify Web API with server-side Authorization Code flow, artist stats tracking, and playlist management — all accessible from a new Spotify tab in the CMD Music page.",
+    content: `# Task #55 — Spotify Integration in CMD Music Tab\n\n## Summary\nBuilt a full Spotify integration for admins to track artist stats and manage playlists.\n\n## What Was Built\n- Server-side Spotify OAuth (Authorization Code flow): GET /api/spotify/auth and GET /api/spotify/callback; tokens stored in platform_settings\n- Token refresh middleware with exponential backoff on 429 responses\n- spotify_artists table: id, spotifyArtistId, displayName, displayOrder, createdAt\n- API endpoints: GET/POST/DELETE /api/spotify/artists, GET /api/spotify/artists/:id/stats, GET/POST /api/spotify/playlists, GET/POST/DELETE /api/spotify/playlists/:id/tracks\n- CMD Music page gains a third "Spotify" tab:\n  - "Connect Spotify" panel when not authenticated\n  - Artist Stats: grid of managed artist cards with follower count, monthly listeners (fetched live), add/remove\n  - Playlist Manager: list of connected account playlists with track view, add/remove track, create playlist\n- Spotify logo / "Data from Spotify" attribution on all displayed data\n- All Spotify API errors shown as user-facing toasts\n\n## Files Changed\n- shared/schema.ts\n- server/storage.ts\n- server/routes.ts\n- client/src/pages/command-music.tsx\n- client/src/App.tsx`,
+    version: "1.8.0",
+  },
 ];
 
 async function seedEngineeringWikiArticles() {
@@ -676,6 +812,162 @@ async function linkChangelogToWikiArticles() {
   }
 }
 
+type TaskChangelogEntry = {
+  title: string;
+  description: string;
+  category: "feature" | "fix" | "improvement" | "other";
+  version: string;
+  date: string;
+  wikiSlug: string;
+};
+
+const TASK_CHANGELOG_ENTRIES: TaskChangelogEntry[] = [
+  {
+    title: "Bug Fixes & Navigation Polish",
+    description: "Fixed wiki sidebar collapse to icon-only rail, corrected Hostinger domain search API parsing, reordered CMD Overview latest release card, and added back-to-wiki link on the Changelog page.",
+    category: "fix",
+    version: "1.2.1",
+    date: "2026-03-25",
+    wikiSlug: "eng-task-43-bug-fixes-nav-polish",
+  },
+  {
+    title: "Project Social Links + About Page",
+    description: "Added social link fields (X, Instagram, YouTube, Discord, GitHub) to projects with display on detail pages. Launched a dedicated /about page for SEVCO linked from the main nav.",
+    category: "feature",
+    version: "1.3.0",
+    date: "2026-03-25",
+    wikiSlug: "eng-task-44-project-social-links-about-page",
+  },
+  {
+    title: "Listen Page Social Links in CMD",
+    description: "Moved hardcoded streaming and social links on the Music Listen page into the database. Admins can now toggle which links appear on the Listen page from the CMD Social Links management page.",
+    category: "improvement",
+    version: "1.3.1",
+    date: "2026-03-25",
+    wikiSlug: "eng-task-45-listen-page-social-links-cmd",
+  },
+  {
+    title: "CMD Display Tab — Platform Presentation Controls",
+    description: "New CMD Display tab for admins to control hero image, text, buttons, section visibility, favicon, and OG image without touching code. Landing page reads all settings from the API.",
+    category: "feature",
+    version: "1.4.0",
+    date: "2026-03-25",
+    wikiSlug: "eng-task-46-cmd-display-tab",
+  },
+  {
+    title: "Platform-Wide Search",
+    description: "Added a full-width search overlay in the nav bar with live grouped results across Wiki, Projects, Store, Music, Jobs, and Services. Includes a dedicated /search results page and Google fallback.",
+    category: "feature",
+    version: "1.5.0",
+    date: "2026-03-25",
+    wikiSlug: "eng-task-47-platform-search",
+  },
+  {
+    title: "Bug Fixes: Hostinger API, CMD Nav Title, Global Cart Drawer",
+    description: "Fixed Hostinger API response parsing errors, resolved CMD page headers being hidden by the sticky nav bar, and moved the cart drawer to mount globally so it works from any page.",
+    category: "fix",
+    version: "1.5.1",
+    date: "2026-03-25",
+    wikiSlug: "eng-task-48-bug-fixes",
+  },
+  {
+    title: "CMD Enhancements: Edit Social Links, Resources Tab, Recent Notes Widget",
+    description: "Social links in CMD are now editable inline. Added a Resources tab for quick links management with an Overview widget. CMD Overview now shows a Recent Notes widget for admins.",
+    category: "improvement",
+    version: "1.5.2",
+    date: "2026-03-25",
+    wikiSlug: "eng-task-49-cmd-enhancements",
+  },
+  {
+    title: "Home Bulletin, Footer Sitemap, Profile/Account Cross-Links, Store Stats Cleanup",
+    description: "Added a Bulletin section on the home page for pinned feed posts. Expanded the footer into a full multi-column sitemap. Added profile/account cross-links and removed the redundant /store/stats page.",
+    category: "improvement",
+    version: "1.5.3",
+    date: "2026-03-25",
+    wikiSlug: "eng-task-50-home-bulletin-footer-store-cleanup",
+  },
+  {
+    title: "Gallery Page + Tools Dropdown in Nav",
+    description: "Built an admin-managed image gallery with category filtering and copy-link functionality. Added a Tools mega-menu item in the nav for authenticated users linking to Notes and Gallery.",
+    category: "feature",
+    version: "1.6.0",
+    date: "2026-03-25",
+    wikiSlug: "eng-task-51-gallery-tools-dropdown",
+  },
+  {
+    title: "Brand Section on About Page + CMD Brand Assets Management",
+    description: "Added a Brand & Assets section to the About page for downloading official SEVCO logos and brand files. Admins can upload and manage brand assets from the CMD Display tab.",
+    category: "feature",
+    version: "1.6.1",
+    date: "2026-03-25",
+    wikiSlug: "eng-task-52-brand-section-about",
+  },
+  {
+    title: "SEVCO Hosting Landing Page",
+    description: "Launched a full marketing landing page at /hosting for SEVCO Hosting, covering Website Hosting, Minecraft & Game Servers, VPS, and Custom Hosting with feature highlights and CTAs.",
+    category: "feature",
+    version: "1.7.0",
+    date: "2026-03-25",
+    wikiSlug: "eng-task-53-hosting-landing-page",
+  },
+  {
+    title: "Project/Service Icon Editing + Placeholder Store Products",
+    description: "Added menuIcon and appIcon fields to projects with live icon previews in forms. Services got editable icons in CMD. Seeded the store with 6 representative placeholder products and images.",
+    category: "improvement",
+    version: "1.7.1",
+    date: "2026-03-25",
+    wikiSlug: "eng-task-54-project-service-icons-placeholder-products",
+  },
+  {
+    title: "Spotify Integration in CMD Music Tab",
+    description: "Full Spotify Web API integration via server-side OAuth. Admins can track artist follower counts and monthly listeners, and manage playlists (create, add/remove tracks) from a new Spotify tab in CMD Music.",
+    category: "feature",
+    version: "1.8.0",
+    date: "2026-03-25",
+    wikiSlug: "eng-task-55-spotify-integration",
+  },
+];
+
+async function updateEngineeringArticleVersions() {
+  for (const task of ENGINEERING_TASKS) {
+    if (!task.version) continue;
+    const article = await storage.getArticleBySlug(task.slug);
+    if (!article) continue;
+    const infobox = article.infoboxData as Record<string, string> | null;
+    if (infobox?.Version === task.version) continue;
+    await storage.updateArticle(article.id, {
+      infoboxData: {
+        Tool: "Replit",
+        Version: task.version,
+        Task: `#${task.taskNum}`,
+      },
+    });
+  }
+}
+
+async function seedTaskChangelogEntries() {
+  const existing = await storage.getChangelog();
+  const existingByTitle = new Map(existing.map((e) => [e.title, e]));
+
+  for (const entry of TASK_CHANGELOG_ENTRIES) {
+    const found = existingByTitle.get(entry.title);
+    if (!found) {
+      await storage.createChangelogEntryWithDate(
+        {
+          title: entry.title,
+          description: entry.description,
+          category: entry.category,
+          version: entry.version,
+          wikiSlug: entry.wikiSlug,
+        },
+        new Date(entry.date),
+      );
+    } else if (!found.wikiSlug) {
+      await storage.updateChangelogEntry(found.id, { wikiSlug: entry.wikiSlug });
+    }
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -686,7 +978,10 @@ export async function registerRoutes(
     .then(() => linkChangelogToWikiArticles())
     .catch(console.error);
   seedJobs().catch(console.error);
-  seedEngineeringWikiArticles().catch(console.error);
+  seedEngineeringWikiArticles()
+    .then(() => updateEngineeringArticleVersions())
+    .catch(console.error);
+  seedTaskChangelogEntries().catch(console.error);
 
   app.get("/api/categories", async (_req, res) => {
     const cats = await storage.getCategories();

@@ -18,6 +18,7 @@ import {
   Users,
   ScrollText,
   Briefcase,
+  ClipboardList,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -61,6 +62,12 @@ export function CommandSidebar() {
       url: "/command/services",
       icon: Briefcase,
       show: isAdmin || isExec,
+    },
+    {
+      title: "Jobs",
+      url: "/command/jobs",
+      icon: ClipboardList,
+      show: isAdmin || isExec || isStaff,
     },
   ].filter((item) => item.show);
 

@@ -1191,6 +1191,19 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/job-applications/:id", requireAuth, requireRole(CAN_MANAGE_JOBS), async (req: any, res) => {
+    try {
+      const { status } = req.body;
+      if (!status || !["pending", "reviewing", "accepted", "rejected"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      const app2 = await storage.updateJobApplicationStatus(Number(req.params.id), status);
+      res.json(app2);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // Music submission routes
   app.post("/api/music/submit", async (req, res) => {
     try {

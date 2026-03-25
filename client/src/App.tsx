@@ -53,6 +53,7 @@ import CommandUsers from "@/pages/command-users";
 import CommandChangelog from "@/pages/command-changelog";
 import CommandStore from "@/pages/command-store";
 import CommandServices from "@/pages/command-services";
+import CommandJobs from "@/pages/command-jobs";
 import ServiceDetailPage from "@/pages/service-detail-page";
 import ServicesListingPage from "@/pages/services-listing";
 
@@ -149,6 +150,13 @@ function Router() {
         <ProtectedRoute>
           <CommandPageLayout title="Services" subtitle="Manage SEVCO service offerings">
             <CommandServices />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/jobs" component={() => (
+        <ProtectedRoute>
+          <CommandPageLayout title="Jobs" subtitle="Manage job postings and applications">
+            <CommandJobs />
           </CommandPageLayout>
         </ProtectedRoute>
       )} />

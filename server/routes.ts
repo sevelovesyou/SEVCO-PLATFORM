@@ -984,6 +984,21 @@ export async function registerRoutes(
     .catch(console.error);
   seedTaskChangelogEntries().catch(console.error);
 
+  // Initialize Supabase storage buckets
+  import("./supabase").then(({ ensureBucketsExist }) => ensureBucketsExist().catch(console.error));
+
+  // Public Supabase config endpoint — anon key is safe to expose
+  app.get("/api/config/supabase", async (_req, res) => {
+    try {
+      const { getSupabaseUrl } = await import("./supabase");
+      const url = getSupabaseUrl();
+      const anonKey = process.env.SUPABASE_ANON_KEY?.trim() || null;
+      res.json({ url, anonKey });
+    } catch {
+      res.json({ url: null, anonKey: null });
+    }
+  });
+
   app.get("/api/categories", async (_req, res) => {
     const cats = await storage.getCategories();
     res.json(cats);
@@ -2150,6 +2165,38 @@ export async function registerRoutes(
       if (!status) return res.status(400).json({ message: "status is required" });
       const sub = await storage.updateMusicSubmissionStatus(id, status);
       res.json(sub);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/music/submissions/:id/track-file", requireAuth, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { trackFileUrl } = req.body;
+      if (!trackFileUrl) return res.status(400).json({ message: "trackFileUrl is required" });
+      const sub = await storage.getMusicSubmissionById(id);
+      if (!sub) return res.status(404).json({ message: "Submission not found" });
+      if (sub.userId !== req.user?.id && !["admin", "executive"].includes(req.user?.role)) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      const updated = await storage.updateMusicSubmissionTrackFile(id, trackFileUrl);
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/music/submissions/:id/track-url", requireAuth, requireRole(...CAN_MANAGE_MUSIC), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const sub = await storage.getMusicSubmissionById(id);
+      if (!sub) return res.status(404).json({ message: "Submission not found" });
+      if (!sub.trackFileUrl) return res.status(404).json({ message: "No uploaded track file" });
+      const { getSignedUrl } = await import("./supabase");
+      const signedUrl = await getSignedUrl("tracks", sub.trackFileUrl);
+      if (!signedUrl) return res.status(503).json({ message: "Could not generate signed URL" });
+      res.json({ signedUrl });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

@@ -28,6 +28,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Music, CheckCircle, Send, Mic2, Disc3, Radio, Lock } from "lucide-react";
 import { Link } from "wouter";
+import { FileUpload } from "@/components/file-upload";
 
 const submitSchema = z.object({
   submitterName: z.string().min(1, "Your name is required"),
@@ -80,6 +81,7 @@ export default function MusicSubmitPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [submitted, setSubmitted] = useState(false);
+  const [trackFilePath, setTrackFilePath] = useState<string>("");
 
   const form = useForm<SubmitForm>({
     resolver: zodResolver(submitSchema),
@@ -96,12 +98,21 @@ export default function MusicSubmitPage() {
   });
 
   const mutation = useMutation({
-    mutationFn: (data: SubmitForm) => {
+    mutationFn: async (data: SubmitForm) => {
       const { agreed: _agreed, ...payload } = data;
-      return apiRequest("POST", "/api/music/submissions", { ...payload, type: "label" });
+      const sub = await apiRequest("POST", "/api/music/submissions", { ...payload, type: "label" });
+      if (trackFilePath && sub?.id) {
+        try {
+          await apiRequest("PATCH", `/api/music/submissions/${sub.id}/track-file`, { trackFileUrl: trackFilePath });
+        } catch {
+          // non-fatal
+        }
+      }
+      return sub;
     },
     onSuccess: () => {
       setSubmitted(true);
+      setTrackFilePath("");
       form.reset();
     },
     onError: (e: Error) => {
@@ -226,6 +237,24 @@ export default function MusicSubmitPage() {
                     <p className="text-xs text-muted-foreground">Share a link to your best work.</p>
                   </FormItem>
                 )} />
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Upload Track File <span className="text-muted-foreground font-normal">(optional)</span></p>
+                  <p className="text-xs text-muted-foreground">Upload an audio file directly instead of or in addition to the link above. Max 50 MB.</p>
+                  <FileUpload
+                    bucket="tracks"
+                    path={`submissions/pending/${Date.now()}.{ext}`}
+                    accept="audio/mpeg,audio/wav,audio/ogg,audio/flac,audio/aac,audio/mp4"
+                    maxSizeMb={50}
+                    currentUrl={trackFilePath}
+                    onUpload={(_url, storagePath) => setTrackFilePath(storagePath)}
+                    label="Upload Audio File"
+                    isPrivate
+                  />
+                  {trackFilePath && (
+                    <p className="text-xs text-green-600 dark:text-green-400">Audio file ready to submit</p>
+                  )}
+                </div>
 
                 <FormField control={form.control} name="genre" render={({ field }) => (
                   <FormItem>

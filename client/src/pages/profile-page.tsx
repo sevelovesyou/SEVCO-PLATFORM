@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { FileUploadWithFallback } from "@/components/file-upload";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -284,9 +285,22 @@ function ProfileEditPanel({
           <p className="text-xs text-muted-foreground mt-1">{form.bio.length}/500</p>
         </div>
         <div>
-          <Label htmlFor="avatarUrl">Avatar Image URL</Label>
-          <Input id="avatarUrl" value={form.avatarUrl} onChange={(e) => set("avatarUrl", e.target.value)}
-            placeholder="https://example.com/photo.jpg" className="mt-1" data-testid="input-avatar-url" />
+          <Label>Avatar Image</Label>
+          <div className="mt-1">
+            <FileUploadWithFallback
+              bucket="avatars"
+              path={`${user.id}/avatar.{ext}`}
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              maxSizeMb={5}
+              currentUrl={form.avatarUrl}
+              onUpload={(url) => set("avatarUrl", url)}
+              label="Upload Avatar"
+              urlValue={form.avatarUrl}
+              onUrlChange={(url) => set("avatarUrl", url)}
+              urlPlaceholder="https://example.com/photo.jpg"
+              urlTestId="input-avatar-url"
+            />
+          </div>
         </div>
       </div>
 
@@ -315,9 +329,22 @@ function ProfileEditPanel({
           </div>
         </div>
         <div>
-          <Label htmlFor="bgImageUrl">Background Image URL</Label>
-          <Input id="bgImageUrl" value={form.profileBgImageUrl} onChange={(e) => set("profileBgImageUrl", e.target.value)}
-            placeholder="https://example.com/bg.jpg (optional)" className="mt-1" data-testid="input-bg-image-url" />
+          <Label>Background Image</Label>
+          <div className="mt-1">
+            <FileUploadWithFallback
+              bucket="banners"
+              path={`${user.id}/banner.{ext}`}
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              maxSizeMb={5}
+              currentUrl={form.profileBgImageUrl}
+              onUpload={(url) => set("profileBgImageUrl", url)}
+              label="Upload Banner"
+              urlValue={form.profileBgImageUrl}
+              onUrlChange={(url) => set("profileBgImageUrl", url)}
+              urlPlaceholder="https://example.com/bg.jpg (optional)"
+              urlTestId="input-bg-image-url"
+            />
+          </div>
         </div>
       </div>
 

@@ -267,6 +267,7 @@ export const musicSubmissions = pgTable("music_submissions", {
   artistName: text("artist_name").notNull(),
   trackTitle: text("track_title").notNull(),
   trackUrl: text("track_url").notNull(),
+  trackFileUrl: text("track_file_url"),
   genre: text("genre"),
   notes: text("notes"),
   type: text("type").notNull().default("label"),

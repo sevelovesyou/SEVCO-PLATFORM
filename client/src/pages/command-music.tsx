@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Music, ExternalLink, Filter, CheckCircle, XCircle, Clock, Eye,
   ListMusic, Plus, Pencil, Trash2, Users, ChevronDown, ChevronUp,
-  Search, RefreshCw, Unlink,
+  Search, RefreshCw, Unlink, Play, Loader2,
 } from "lucide-react";
 import { SiSpotify, SiApplemusic, SiYoutubemusic, SiSoundcloud } from "react-icons/si";
 import type { MusicSubmission, Playlist, SpotifyArtist } from "@shared/schema";
@@ -45,6 +45,41 @@ const STATUS_ICONS: Record<string, React.ElementType> = {
 };
 
 const STATUSES = ["pending", "reviewed", "accepted", "rejected"];
+
+function TrackPlayButton({ submissionId }: { submissionId: number }) {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+
+  async function getAndPlay() {
+    if (signedUrl) {
+      window.open(signedUrl, "_blank");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await apiRequest("GET", `/api/music/submissions/${submissionId}/track-url`);
+      setSignedUrl(res.signedUrl);
+      window.open(res.signedUrl, "_blank");
+    } catch (e: any) {
+      toast({ title: "Could not load track", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={getAndPlay}
+      disabled={loading}
+      className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+      data-testid={`button-play-track-${submissionId}`}
+    >
+      {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+      {loading ? "Loading..." : "Play File"}
+    </button>
+  );
+}
 
 function SubmissionRow({ sub }: { sub: MusicSubmission }) {
   const queryClient = useQueryClient();
@@ -93,13 +128,18 @@ function SubmissionRow({ sub }: { sub: MusicSubmission }) {
         <p className="text-xs text-muted-foreground bg-muted/40 rounded-lg px-3 py-2 line-clamp-2">{sub.notes}</p>
       )}
       <div className="flex items-center justify-between gap-3">
-        <a
-          href={sub.trackUrl} target="_blank" rel="noopener noreferrer"
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-          data-testid={`link-track-${sub.id}`}
-        >
-          <ExternalLink className="h-3 w-3" /> Listen
-        </a>
+        <div className="flex items-center gap-3">
+          <a
+            href={sub.trackUrl} target="_blank" rel="noopener noreferrer"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            data-testid={`link-track-${sub.id}`}
+          >
+            <ExternalLink className="h-3 w-3" /> Listen
+          </a>
+          {sub.trackFileUrl && (
+            <TrackPlayButton submissionId={sub.id} />
+          )}
+        </div>
         <Select value={sub.status} onValueChange={updateStatus} disabled={updating}>
           <SelectTrigger className="h-7 text-xs w-36" data-testid={`select-status-${sub.id}`}>
             <SelectValue />

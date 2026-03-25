@@ -137,8 +137,10 @@ export interface IStorage {
   updatePlaylist(id: number, data: Partial<InsertPlaylist>): Promise<Playlist>;
   deletePlaylist(id: number): Promise<void>;
   getMusicSubmissions(): Promise<MusicSubmission[]>;
+  getMusicSubmissionById(id: number): Promise<MusicSubmission | undefined>;
   createMusicSubmission(sub: InsertMusicSubmission & { userId?: string | null }): Promise<MusicSubmission>;
   updateMusicSubmissionStatus(id: number, status: string): Promise<MusicSubmission>;
+  updateMusicSubmissionTrackFile(id: number, trackFileUrl: string): Promise<MusicSubmission>;
 
   getStoreStats(): Promise<{
     totalProducts: number;
@@ -826,6 +828,11 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(musicSubmissions).orderBy(desc(musicSubmissions.createdAt));
   }
 
+  async getMusicSubmissionById(id: number): Promise<MusicSubmission | undefined> {
+    const [row] = await db.select().from(musicSubmissions).where(eq(musicSubmissions.id, id));
+    return row;
+  }
+
   async createMusicSubmission(sub: InsertMusicSubmission & { userId?: string | null }): Promise<MusicSubmission> {
     const [row] = await db.insert(musicSubmissions).values(sub).returning();
     return row;
@@ -833,6 +840,11 @@ export class DatabaseStorage implements IStorage {
 
   async updateMusicSubmissionStatus(id: number, status: string): Promise<MusicSubmission> {
     const [row] = await db.update(musicSubmissions).set({ status }).where(eq(musicSubmissions.id, id)).returning();
+    return row;
+  }
+
+  async updateMusicSubmissionTrackFile(id: number, trackFileUrl: string): Promise<MusicSubmission> {
+    const [row] = await db.update(musicSubmissions).set({ trackFileUrl }).where(eq(musicSubmissions.id, id)).returning();
     return row;
   }
 

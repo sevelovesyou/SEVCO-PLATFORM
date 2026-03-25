@@ -59,6 +59,8 @@ A multi-app platform for sevelovesyou.com (SEVE / SEVCO Records). Built as a pla
 | `/command/store` | Command — Store Management (admin/exec) | Command sidebar |
 | `/command/users` | Command — User Management (admin) | Command sidebar |
 | `/command/changelog` | Command — Changelog (admin/exec/staff) | Command sidebar |
+| `/command/music` | Command — Music Submissions (admin/exec/staff) | Command sidebar |
+| `/command/jobs` | Command — Jobs & Applications (admin/exec) | Command sidebar |
 | `/auth` | Login/Register | None |
 | `/verify-email` | Email Verification (unguarded) | None |
 
@@ -117,3 +119,9 @@ admin > executive > staff > partner > client > user
 - 2026-03-24: Platform shell: PlatformHeader global nav, routing restructure (/wiki hub, platform sections), stub pages
 - 2026-03-24: Command Center: renamed Dashboard→Command (CMD in nav, Command in footer). /dashboard redirects to /command. Added persistent CommandSidebar with Overview/Store/Users/Changelog sections. Split into role-gated sub-pages. Added Store Management page with stock toggle + delete. Added PATCH/DELETE endpoints for products.
 - 2026-03-24: Stripe Checkout & Cart — full e-commerce with cart drawer, Stripe Checkout, order tracking, admin order view
+- 2026-03-25: Public access + Mega-menu navigation — all pages public, PlatformHeader upgraded with mega-menu dropdowns for Music/Wiki/Store/Projects/Services
+- 2026-03-25: Home page redesign (platform hub) + Contact page with Resend email integration
+- 2026-03-25: Profile page with MySpace-style customization (bio, avatar, links, accent color)
+- 2026-03-25: Jobs board — listings, detail + application form, command management page
+- 2026-03-25: Services page + mega-menu (3-column category-grouped, 15 service types with icons)
+- 2026-03-25: Music expansion — SEVCO RECORDS label page, /listen bio-link page, /music/playlists (API-driven + submission form), /music/submit (auth-gated A&R submissions); playlists + musicSubmissions tables added; Command Music submissions management page

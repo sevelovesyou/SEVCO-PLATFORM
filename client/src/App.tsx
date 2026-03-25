@@ -54,6 +54,7 @@ import CommandChangelog from "@/pages/command-changelog";
 import CommandStore from "@/pages/command-store";
 import CommandServices from "@/pages/command-services";
 import CommandJobs from "@/pages/command-jobs";
+import CommandMusic from "@/pages/command-music";
 import ServiceDetailPage from "@/pages/service-detail-page";
 import ServicesListingPage from "@/pages/services-listing";
 
@@ -157,6 +158,13 @@ function Router() {
         <ProtectedRoute>
           <CommandPageLayout title="Jobs" subtitle="Manage job postings and applications">
             <CommandJobs />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/music" component={() => (
+        <ProtectedRoute>
+          <CommandPageLayout title="Music Submissions" subtitle="Review A&R demos and playlist pitches">
+            <CommandMusic />
           </CommandPageLayout>
         </ProtectedRoute>
       )} />

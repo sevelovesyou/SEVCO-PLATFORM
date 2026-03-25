@@ -244,14 +244,29 @@ export const jobApplications = pgTable("job_applications", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [uniqueIndex("job_applications_job_user_idx").on(t.jobId, t.userId)]);
 
+export const playlists = pgTable("playlists", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  platform: text("platform"),
+  playlistUrl: text("playlist_url").notNull(),
+  coverImageUrl: text("cover_image_url"),
+  isOfficial: boolean("is_official").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const musicSubmissions = pgTable("music_submissions", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  submitterName: text("submitter_name").notNull(),
+  submitterEmail: text("submitter_email").notNull(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
   artistName: text("artist_name").notNull(),
-  email: text("email").notNull(),
+  trackTitle: text("track_title").notNull(),
+  trackUrl: text("track_url").notNull(),
   genre: text("genre"),
-  socialLink: text("social_link"),
-  musicLink: text("music_link").notNull(),
-  message: text("message"),
+  notes: text("notes"),
+  type: text("type").notNull().default("label"),
   status: text("status").notNull().default("pending"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -269,7 +284,8 @@ export const changelog = pgTable("changelog", {
 
 export const insertJobSchema = createInsertSchema(jobs).omit({ id: true, createdAt: true });
 export const insertJobApplicationSchema = createInsertSchema(jobApplications).omit({ id: true, createdAt: true, status: true, userId: true });
-export const insertMusicSubmissionSchema = createInsertSchema(musicSubmissions).omit({ id: true, createdAt: true, status: true });
+export const insertPlaylistSchema = createInsertSchema(playlists).omit({ id: true, createdAt: true });
+export const insertMusicSubmissionSchema = createInsertSchema(musicSubmissions).omit({ id: true, createdAt: true, status: true, userId: true });
 
 export const insertChangelogSchema = createInsertSchema(changelog).omit({ id: true, createdAt: true });
 export type InsertChangelog = z.infer<typeof insertChangelogSchema>;
@@ -370,5 +386,7 @@ export type Job = typeof jobs.$inferSelect;
 export type InsertJob = z.infer<typeof insertJobSchema>;
 export type JobApplication = typeof jobApplications.$inferSelect;
 export type InsertJobApplication = z.infer<typeof insertJobApplicationSchema>;
+export type Playlist = typeof playlists.$inferSelect;
+export type InsertPlaylist = z.infer<typeof insertPlaylistSchema>;
 export type MusicSubmission = typeof musicSubmissions.$inferSelect;
 export type InsertMusicSubmission = z.infer<typeof insertMusicSubmissionSchema>;

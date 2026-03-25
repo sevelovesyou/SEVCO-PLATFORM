@@ -11,7 +11,7 @@ import {
   CAN_DELETE_ARTICLE,
 } from "./middleware/permissions";
 import type { Role, InsertJob } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertMusicSubmissionSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
@@ -1230,22 +1230,72 @@ export async function registerRoutes(
     }
   });
 
+  // Playlist routes
+  app.get("/api/music/playlists", async (_req, res) => {
+    try {
+      const items = await storage.getPlaylists();
+      res.json(items);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/music/playlists", requireAuth, requireRole(...CAN_MANAGE_MUSIC), async (req, res) => {
+    try {
+      const parsed = insertPlaylistSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
+      const playlist = await storage.createPlaylist(parsed.data);
+      res.status(201).json(playlist);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // Music submission routes
-  app.post("/api/music/submit", async (req, res) => {
+  app.post("/api/music/submissions", async (req: any, res) => {
     try {
       const parsed = insertMusicSubmissionSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
-      const sub = await storage.createMusicSubmission(parsed.data);
+      const type = req.body.type ?? "label";
+      if (type === "label" && !req.session?.userId) {
+        return res.status(401).json({ message: "Sign in to submit to SEVCO RECORDS" });
+      }
+      const userId = req.session?.userId ?? null;
+      const sub = await storage.createMusicSubmission({ ...parsed.data, userId });
       res.status(201).json(sub);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });
 
-  app.get("/api/music/submissions", requireAuth, requireRole(CAN_MANAGE_MUSIC), async (req: any, res) => {
+  app.post("/api/music/submit", async (req: any, res) => {
+    try {
+      const parsed = insertMusicSubmissionSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
+      const userId = req.session?.userId ?? null;
+      const sub = await storage.createMusicSubmission({ ...parsed.data, userId });
+      res.status(201).json(sub);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/music/submissions", requireAuth, requireRole(...CAN_MANAGE_MUSIC), async (_req, res) => {
     try {
       const subs = await storage.getMusicSubmissions();
       res.json(subs);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/music/submissions/:id/status", requireAuth, requireRole(...CAN_MANAGE_MUSIC), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      if (!status) return res.status(400).json({ message: "status is required" });
+      const sub = await storage.updateMusicSubmissionStatus(id, status);
+      res.json(sub);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

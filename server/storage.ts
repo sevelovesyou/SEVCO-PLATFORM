@@ -14,10 +14,11 @@ import {
   type Service, type InsertService,
   type Job, type InsertJob,
   type JobApplication, type InsertJobApplication,
+  type Playlist, type InsertPlaylist,
   type MusicSubmission, type InsertMusicSubmission,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
-  jobs, jobApplications, musicSubmissions,
+  jobs, jobApplications, playlists, musicSubmissions,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or } from "drizzle-orm";
@@ -115,8 +116,10 @@ export interface IStorage {
   createJobApplication(app: InsertJobApplication & { userId: string }): Promise<JobApplication>;
   updateJobApplicationStatus(id: number, status: string): Promise<JobApplication>;
 
+  getPlaylists(): Promise<Playlist[]>;
+  createPlaylist(playlist: InsertPlaylist): Promise<Playlist>;
   getMusicSubmissions(): Promise<MusicSubmission[]>;
-  createMusicSubmission(sub: InsertMusicSubmission): Promise<MusicSubmission>;
+  createMusicSubmission(sub: InsertMusicSubmission & { userId?: string | null }): Promise<MusicSubmission>;
   updateMusicSubmissionStatus(id: number, status: string): Promise<MusicSubmission>;
 
   getStoreStats(): Promise<{
@@ -660,11 +663,20 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
+  async getPlaylists(): Promise<Playlist[]> {
+    return db.select().from(playlists).orderBy(desc(playlists.createdAt));
+  }
+
+  async createPlaylist(playlist: InsertPlaylist): Promise<Playlist> {
+    const [row] = await db.insert(playlists).values(playlist).returning();
+    return row;
+  }
+
   async getMusicSubmissions(): Promise<MusicSubmission[]> {
     return db.select().from(musicSubmissions).orderBy(desc(musicSubmissions.createdAt));
   }
 
-  async createMusicSubmission(sub: InsertMusicSubmission): Promise<MusicSubmission> {
+  async createMusicSubmission(sub: InsertMusicSubmission & { userId?: string | null }): Promise<MusicSubmission> {
     const [row] = await db.insert(musicSubmissions).values(sub).returning();
     return row;
   }

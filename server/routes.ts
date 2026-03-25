@@ -2749,7 +2749,7 @@ export async function registerRoutes(
     }
   });
 
-  const CAN_MANAGE_RESOURCES: Role[] = ["admin"];
+  const CAN_MANAGE_RESOURCES: Role[] = ["admin", "executive"];
 
   app.get("/api/resources", requireAuth, requireRole(...CAN_MANAGE_RESOURCES), async (_req, res) => {
     try {
@@ -2985,7 +2985,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/gallery", requireAuth, requireRole("admin"), async (req, res) => {
+  app.post("/api/gallery", requireAuth, requireRole("admin", "executive", "staff"), async (req, res) => {
     try {
       const parsed = insertGalleryImageSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.message });
@@ -2996,7 +2996,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/gallery/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  app.patch("/api/gallery/:id", requireAuth, requireRole("admin", "executive", "staff"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const image = await storage.updateGalleryImage(id, req.body);
@@ -3006,7 +3006,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/gallery/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  app.delete("/api/gallery/:id", requireAuth, requireRole("admin", "executive", "staff"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteGalleryImage(id);

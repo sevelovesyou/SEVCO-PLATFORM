@@ -13,7 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Image, Type, Eye, EyeOff, Globe, Link2, Package, Pencil, Trash2, Plus, Palette, RotateCcw } from "lucide-react";
+import { Save, Image, Type, Eye, EyeOff, Globe, Link2, Package, Pencil, Trash2, Plus, Palette, RotateCcw, AlignLeft, Layers } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { FileUploadWithFallback } from "@/components/file-upload";
 import type { BrandAsset, InsertBrandAsset } from "@shared/schema";
 import { hexToHsl, hslToHex } from "@/lib/colorUtils";
 
@@ -81,6 +83,8 @@ export default function CommandDisplay() {
 
   const [heroBgUrl, setHeroBgUrl] = useState("");
   const [heroText, setHeroText] = useState("");
+  const [heroOverlayOpacity, setHeroOverlayOpacity] = useState(70);
+  const [footerTagline, setFooterTagline] = useState("");
   const [btn1Label, setBtn1Label] = useState("");
   const [btn1Url, setBtn1Url] = useState("");
   const [btn1Icon, setBtn1Icon] = useState("");
@@ -119,6 +123,8 @@ export default function CommandDisplay() {
     if (isLoading) return;
     setHeroBgUrl(settings["hero.backgroundImageUrl"] ?? "");
     setHeroText(settings["hero.text"] ?? "");
+    setHeroOverlayOpacity(settings["hero.overlayOpacity"] ? parseInt(settings["hero.overlayOpacity"]) : 70);
+    setFooterTagline(settings["footer.tagline"] ?? "");
     setBtn1Label(settings["hero.button1.label"] ?? "");
     setBtn1Url(settings["hero.button1.url"] ?? "");
     setBtn1Icon(settings["hero.button1.icon"] ?? "");
@@ -178,6 +184,8 @@ export default function CommandDisplay() {
     mutation.mutate({
       "hero.backgroundImageUrl": heroBgUrl,
       "hero.text": heroText,
+      "hero.overlayOpacity": String(heroOverlayOpacity),
+      "footer.tagline": footerTagline,
       "hero.button1.label": btn1Label,
       "hero.button1.url": btn1Url,
       "hero.button1.icon": btn1Icon,
@@ -403,14 +411,37 @@ export default function CommandDisplay() {
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="hero-bg-url">Hero background image URL</Label>
-            <Input
-              id="hero-bg-url"
-              placeholder="https://example.com/image.jpg (leave empty for gradient)"
-              value={heroBgUrl}
-              onChange={(e) => setHeroBgUrl(e.target.value)}
-              data-testid="input-hero-bg-url"
+            <Label>Hero background image</Label>
+            <FileUploadWithFallback
+              bucket="gallery"
+              path={`hero/background.{ext}`}
+              accept="image/*"
+              maxSizeMb={10}
+              currentUrl={heroBgUrl || null}
+              onUpload={(url) => setHeroBgUrl(url)}
+              onUrlChange={(url) => setHeroBgUrl(url)}
+              urlValue={heroBgUrl}
+              label="Upload Background"
+              urlPlaceholder="https://example.com/image.jpg (leave empty for gradient)"
+              urlTestId="input-hero-bg-url"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <Layers className="h-3.5 w-3.5" />
+              Overlay Opacity
+              <span className="text-muted-foreground text-xs ml-auto">{heroOverlayOpacity}%</span>
+            </Label>
+            <Slider
+              min={0}
+              max={100}
+              step={1}
+              value={[heroOverlayOpacity]}
+              onValueChange={([v]) => setHeroOverlayOpacity(v)}
+              data-testid="slider-overlay-opacity"
+            />
+            <p className="text-xs text-muted-foreground">Controls how dark the overlay is on top of the hero background image.</p>
           </div>
 
           <div className="space-y-2">
@@ -423,6 +454,21 @@ export default function CommandDisplay() {
               rows={3}
               data-testid="input-hero-text"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="footer-tagline" className="flex items-center gap-1.5">
+              <AlignLeft className="h-3.5 w-3.5" />
+              Footer Tagline
+            </Label>
+            <Input
+              id="footer-tagline"
+              placeholder="The creative platform for the SEVCO universe."
+              value={footerTagline}
+              onChange={(e) => setFooterTagline(e.target.value)}
+              data-testid="input-footer-tagline"
+            />
+            <p className="text-xs text-muted-foreground">Short tagline shown in the platform footer. Leave empty to use the default.</p>
           </div>
 
           <Separator />

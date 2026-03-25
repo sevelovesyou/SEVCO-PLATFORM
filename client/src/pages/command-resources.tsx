@@ -29,11 +29,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Shield, Plus, Trash2, Pencil, ExternalLink } from "lucide-react";
+import { FileUploadWithFallback } from "@/components/file-upload";
 import type { Resource } from "@shared/schema";
 
 const resourceSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  url: z.string().url("Must be a valid URL"),
+  url: z.string().min(1, "URL is required"),
   description: z.string().optional().or(z.literal("")),
   category: z.string().min(1, "Category is required"),
   displayOrder: z.coerce.number().int().default(0),
@@ -118,8 +119,22 @@ function ResourceDialog({
             )} />
             <FormField control={form.control} name="url" render={({ field }) => (
               <FormItem>
-                <FormLabel>URL</FormLabel>
-                <FormControl><Input {...field} placeholder="https://..." data-testid="input-resource-url" /></FormControl>
+                <FormLabel>File / URL</FormLabel>
+                <FormControl>
+                  <FileUploadWithFallback
+                    bucket="brand-assets"
+                    path={`resources/${Date.now()}.{ext}`}
+                    accept="*/*"
+                    maxSizeMb={50}
+                    currentUrl={field.value || null}
+                    onUpload={(url) => field.onChange(url)}
+                    onUrlChange={(url) => field.onChange(url)}
+                    urlValue={field.value}
+                    label="Upload File"
+                    urlPlaceholder="https://..."
+                    urlTestId="input-resource-url"
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )} />
@@ -257,7 +272,8 @@ function ResourceRow({
 }
 
 export default function CommandResources() {
-  const { isAdmin } = usePermission();
+  const { isAdmin, isExecutive } = usePermission();
+  const canManageResources = isAdmin || isExecutive;
   const [showDialog, setShowDialog] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | undefined>(undefined);
 
@@ -265,11 +281,11 @@ export default function CommandResources() {
     queryKey: ["/api/resources"],
   });
 
-  if (!isAdmin) {
+  if (!canManageResources) {
     return (
       <Card className="p-6 text-center overflow-visible">
         <Shield className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-40" />
-        <p className="text-sm text-muted-foreground">Admin access required.</p>
+        <p className="text-sm text-muted-foreground">Executive access required.</p>
       </Card>
     );
   }

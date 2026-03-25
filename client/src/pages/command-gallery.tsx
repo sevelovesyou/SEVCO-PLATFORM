@@ -6,6 +6,7 @@ import { z } from "zod";
 import { usePermission } from "@/hooks/use-permission";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { FileUploadWithFallback } from "@/components/file-upload";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -66,7 +67,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 const galleryFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  imageUrl: z.string().url("Must be a valid URL"),
+  imageUrl: z.string().min(1, "Image URL is required"),
   category: z.enum(["profile", "banner", "wallpaper", "logo", "other"]),
   altText: z.string().optional(),
   displayOrder: z.string().default("0"),
@@ -120,9 +121,21 @@ function GalleryForm({
           name="imageUrl"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Image URL</FormLabel>
+              <FormLabel>Image</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="https://..." data-testid="input-gallery-image-url" />
+                <FileUploadWithFallback
+                  bucket="gallery"
+                  path={`gallery/${Date.now()}.{ext}`}
+                  accept="image/*"
+                  maxSizeMb={10}
+                  currentUrl={field.value || null}
+                  onUpload={(url) => field.onChange(url)}
+                  onUrlChange={(url) => field.onChange(url)}
+                  urlValue={field.value}
+                  label="Upload Image"
+                  urlPlaceholder="https://..."
+                  urlTestId="input-gallery-image-url"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -213,9 +226,9 @@ function GalleryForm({
 }
 
 export default function CommandGallery() {
-  const { role } = usePermission();
+  const { isAdmin, isExecutive, isStaff } = usePermission();
   const { toast } = useToast();
-  const isAdmin = role === "admin";
+  const canManageGallery = isAdmin || isExecutive || isStaff;
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editImage, setEditImage] = useState<GalleryImage | null>(null);
@@ -279,11 +292,11 @@ export default function CommandGallery() {
     });
   }
 
-  if (!isAdmin) {
+  if (!canManageGallery) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <Shield className="h-10 w-10 text-muted-foreground/40 mb-3" />
-        <p className="text-sm text-muted-foreground">Admin access required</p>
+        <p className="text-sm text-muted-foreground">Staff access required</p>
       </div>
     );
   }

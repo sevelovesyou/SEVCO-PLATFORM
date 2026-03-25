@@ -185,6 +185,7 @@ export default function Landing() {
   const btn2Label = settings["hero.button2.label"] || DEFAULT_BTN2_LABEL;
   const btn2Url = settings["hero.button2.url"] || DEFAULT_BTN2_URL;
   const btn2IconName = settings["hero.button2.icon"];
+  const heroOverlayOpacity = settings["hero.overlayOpacity"] ? parseInt(settings["hero.overlayOpacity"]) / 100 : 0.7;
 
   const Btn1Icon = getLucideIcon(btn1IconName) || BookOpen;
   const Btn2Icon = getLucideIcon(btn2IconName) || ShoppingBag;
@@ -208,7 +209,7 @@ export default function Landing() {
         } : undefined}
       >
         <div className="absolute inset-0 opacity-5 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent pointer-events-none" />
-        {heroBgUrl && <div className="absolute inset-0 bg-foreground/70 pointer-events-none" />}
+        {heroBgUrl && <div className="absolute inset-0 bg-foreground pointer-events-none" style={{ opacity: heroOverlayOpacity }} />}
         <div className="relative max-w-6xl mx-auto px-6 py-24 md:py-32 flex flex-col items-center text-center gap-6">
           <div className="flex items-center gap-4">
             <img

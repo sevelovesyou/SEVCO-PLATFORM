@@ -102,6 +102,12 @@ export function PlatformFooter() {
     queryKey: ["/api/changelog/latest"],
   });
 
+  const { data: settings = {} } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
+  });
+
+  const footerTagline = settings["footer.tagline"] || "The creative platform for the SEVCO universe.";
+
   const footerSocials = socialLinks
     ? socialLinks.filter((l) => l.showInFooter)
     : STATIC_SOCIALS.map((s, i) => ({ ...s, id: i, showInFooter: true, showOnContact: false, displayOrder: i, url: s.href }));
@@ -177,8 +183,8 @@ export function PlatformFooter() {
                 data-testid="img-footer-logo"
               />
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              The creative platform for the SEVCO universe.
+            <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-footer-tagline">
+              {footerTagline}
             </p>
           </div>
 

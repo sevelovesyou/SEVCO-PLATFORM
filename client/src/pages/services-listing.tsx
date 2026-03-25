@@ -5,6 +5,7 @@ import {
   Code2, Plug, Lightbulb, Palette, MousePointer2, Sparkles,
   FileText, Share2, TrendingUp, ClipboardList, Settings2,
   Handshake, Target, BookOpen, HeadphonesIcon,
+  Server, Globe,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -149,7 +150,61 @@ export default function ServicesListingPage() {
           </div>
         )}
 
-        <div className="mt-16 border rounded-2xl p-8 md:p-10 bg-muted/30 text-center">
+        {/* Infrastructure section */}
+        <div className="mt-12 mb-8" data-testid="section-infrastructure">
+          <div className="flex items-center gap-3 mb-5">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-400">Infrastructure</h2>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <Link href="/hosting">
+              <div
+                data-testid="card-infra-hosting"
+                className="group border border-teal-500/20 rounded-xl p-6 bg-gradient-to-br from-teal-500/5 to-background hover:border-teal-500/40 hover:shadow-sm transition-all cursor-pointer"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="p-2.5 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 shrink-0">
+                    <Server className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-base">SEVCO Hosting</h3>
+                      <Badge variant="outline" className="text-xs bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/20">
+                        Infrastructure
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Reliable, managed hosting solutions for your websites and web applications.</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+                </div>
+              </div>
+            </Link>
+            <Link href="/domains">
+              <div
+                data-testid="card-infra-domains"
+                className="group border border-teal-500/20 rounded-xl p-6 bg-gradient-to-br from-teal-500/5 to-background hover:border-teal-500/40 hover:shadow-sm transition-all cursor-pointer"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="p-2.5 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 shrink-0">
+                    <Globe className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-base">Domain Registration</h3>
+                      <Badge variant="outline" className="text-xs bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/20">
+                        Infrastructure
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Register and manage domain names for your brand, business, or project.</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+                </div>
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-8 border rounded-2xl p-8 md:p-10 bg-muted/30 text-center">
           <h2 className="text-2xl font-bold mb-3">Ready to work together?</h2>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             Reach out and let's talk about what SEVCO can build for you.

@@ -101,6 +101,7 @@ function FeaturedPlaylistCard({ playlist }: { playlist: Playlist }) {
 export default function MusicPage() {
   const { role } = usePermission();
   const canManage = CAN_MANAGE_MUSIC.includes(role ?? "");
+  const { activePlaylist } = useSpotifyPlayer();
 
   const { data: artistsList, isLoading: artistsLoading } = useQuery<Artist[]>({
     queryKey: ["/api/music/artists"],
@@ -120,7 +121,10 @@ export default function MusicPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-5xl mx-auto px-4 md:px-8 py-10 md:py-14">
+      <div
+        className="max-w-5xl mx-auto px-4 md:px-8 py-10 md:py-14"
+        style={{ paddingBottom: activePlaylist ? "260px" : undefined }}
+      >
 
         {/* Hero */}
         <div className="rounded-2xl bg-gradient-to-br from-violet-700 via-violet-800 to-purple-900 text-white p-8 md:p-12 relative overflow-hidden mb-12">

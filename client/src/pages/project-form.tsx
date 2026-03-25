@@ -12,9 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, Folder, ShieldOff } from "lucide-react";
+import { ChevronLeft, Folder, ShieldOff, Share2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { Project } from "@shared/schema";
+
+const optUrl = z.string().url("Must be a valid URL").optional().or(z.literal(""));
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
@@ -28,14 +30,20 @@ const formSchema = z.object({
   type: z.enum(["Company", "Record Label", "Brand", "Initiative", "Platform", "App", "Other"]),
   category: z.string().max(100).optional(),
   featured: z.boolean().default(false),
-  websiteUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  websiteUrl: optUrl,
   teamLead: z.string().max(200).optional(),
   relatedWikiSlugs: z.string().optional(),
   tags: z.string().optional(),
   launchDate: z.string().max(100).optional(),
-  heroImageUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
-  logoUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  heroImageUrl: optUrl,
+  logoUrl: optUrl,
   galleryUrls: z.string().optional(),
+  socialTwitter: optUrl,
+  socialInstagram: optUrl,
+  socialYoutube: optUrl,
+  socialDiscord: optUrl,
+  socialGithub: optUrl,
+  socialOther: optUrl,
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -80,6 +88,8 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
+  const sl = (project?.socialLinks ?? {}) as Record<string, string>;
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -99,8 +109,25 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
       heroImageUrl: project?.heroImageUrl ?? "",
       logoUrl: project?.logoUrl ?? "",
       galleryUrls: project?.galleryUrls?.join(", ") ?? "",
+      socialTwitter: sl.twitter ?? "",
+      socialInstagram: sl.instagram ?? "",
+      socialYoutube: sl.youtube ?? "",
+      socialDiscord: sl.discord ?? "",
+      socialGithub: sl.github ?? "",
+      socialOther: sl.other ?? "",
     },
   });
+
+  function buildSocialLinks(values: FormValues) {
+    const links: Record<string, string> = {};
+    if (values.socialTwitter)   links.twitter   = values.socialTwitter;
+    if (values.socialInstagram) links.instagram = values.socialInstagram;
+    if (values.socialYoutube)   links.youtube   = values.socialYoutube;
+    if (values.socialDiscord)   links.discord   = values.socialDiscord;
+    if (values.socialGithub)    links.github    = values.socialGithub;
+    if (values.socialOther)     links.other     = values.socialOther;
+    return Object.keys(links).length > 0 ? links : null;
+  }
 
   const createMutation = useMutation({
     mutationFn: (values: FormValues) => {
@@ -130,6 +157,7 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
         heroImageUrl: values.heroImageUrl || null,
         logoUrl: values.logoUrl || null,
         galleryUrls: galleryList.length > 0 ? galleryList : null,
+        socialLinks: buildSocialLinks(values),
       });
     },
     onSuccess: async (res) => {
@@ -171,6 +199,7 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
         heroImageUrl: values.heroImageUrl || null,
         logoUrl: values.logoUrl || null,
         galleryUrls: galleryList.length > 0 ? galleryList : null,
+        socialLinks: buildSocialLinks(values),
       });
     },
     onSuccess: async (res) => {
@@ -522,6 +551,99 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
                     </FormItem>
                   )}
                 />
+              </div>
+            </div>
+
+            <div className="border-t border-border pt-4 mt-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                <Share2 className="h-3.5 w-3.5" />
+                Social Links
+              </p>
+              <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="socialTwitter"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>X / Twitter</FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://x.com/..." data-testid="input-project-social-twitter" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="socialInstagram"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Instagram</FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://instagram.com/..." data-testid="input-project-social-instagram" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="socialYoutube"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>YouTube</FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://youtube.com/..." data-testid="input-project-social-youtube" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="socialDiscord"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Discord</FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://discord.gg/..." data-testid="input-project-social-discord" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="socialGithub"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>GitHub</FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://github.com/..." data-testid="input-project-social-github" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="socialOther"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Other</FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://..." data-testid="input-project-social-other" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
             </div>
 

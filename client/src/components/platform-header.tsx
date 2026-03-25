@@ -175,16 +175,16 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
   const { user } = useAuth();
 
   const items = [
-    { label: "Home",       href: "/",                      icon: Home,        desc: "Go to landing page",             authRequired: false },
-    { label: "About",      href: "/wiki/company-overview", icon: BookOpen,    desc: "Learn about SEVCO",              authRequired: false },
-    { label: "Wiki",       href: "/wiki",                  icon: BookOpen,    desc: "Internal knowledge base",        authRequired: false },
+    { label: "Home",       href: "/",        icon: Home,        desc: "Go to landing page",             authRequired: false },
+    { label: "About",      href: "/about",   icon: BookOpen,    desc: "Learn about SEVCO",              authRequired: false },
+    { label: "Wiki",       href: "/wiki",    icon: BookOpen,    desc: "Internal knowledge base",        authRequired: false },
     ...(user ? [
-      { label: "Feed",     href: "/feed",                  icon: Rss,         desc: "Posts from people you follow",   authRequired: true },
-      { label: "Notes",    href: "/notes",                 icon: StickyNote,  desc: "Your personal & shared notes",   authRequired: true },
+      { label: "Feed",     href: "/feed",    icon: Rss,         desc: "Posts from people you follow",   authRequired: true },
+      { label: "Notes",    href: "/notes",   icon: StickyNote,  desc: "Your personal & shared notes",   authRequired: true },
     ] : []),
-    { label: "Contact",    href: "/contact",               icon: Mail,        desc: "Get in touch",                   authRequired: false },
-    { label: "Jobs",       href: "/jobs",                  icon: Users,       desc: "Open positions",                 authRequired: false },
-    { label: "Account",    href: "/account",               icon: User,        desc: "Manage your profile",            authRequired: false },
+    { label: "Contact",    href: "/contact", icon: Mail,        desc: "Get in touch",                   authRequired: false },
+    { label: "Jobs",       href: "/jobs",    icon: Users,       desc: "Open positions",                 authRequired: false },
+    { label: "Account",    href: "/account", icon: User,        desc: "Manage your profile",            authRequired: false },
   ];
 
   return (
@@ -526,7 +526,7 @@ export function PlatformHeader() {
   ];
   const homeItems = [
     { label: "Home",      href: "/" },
-    { label: "About",     href: "/wiki/company-overview" },
+    { label: "About",     href: "/about" },
     { label: "Wiki",      href: "/wiki" },
     ...(user ? [{ label: "Feed", href: "/feed" }, { label: "Notes", href: "/notes" }] : []),
     { label: "Contact",   href: "/contact" },

@@ -4,6 +4,7 @@ import {
   ArrowLeft, Globe, User, BookOpen, CircleX, Pencil, Tag,
   Calendar, ArrowRight, ExternalLink,
 } from "lucide-react";
+import { SiX, SiInstagram, SiYoutube, SiDiscord, SiGithub } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePermission } from "@/hooks/use-permission";
@@ -11,6 +12,28 @@ import { queryClient } from "@/lib/queryClient";
 import { AttachNotePanel } from "@/components/attach-note-panel";
 import { StaffNotes } from "@/components/staff-notes";
 import type { Project } from "@shared/schema";
+
+type SocialLinks = Record<string, string>;
+
+const SOCIAL_ICON_MAP: Record<string, React.ElementType> = {
+  twitter:   SiX,
+  instagram: SiInstagram,
+  youtube:   SiYoutube,
+  discord:   SiDiscord,
+  github:    SiGithub,
+  other:     Globe,
+};
+
+const SOCIAL_LABEL_MAP: Record<string, string> = {
+  twitter:   "X",
+  instagram: "Instagram",
+  youtube:   "YouTube",
+  discord:   "Discord",
+  github:    "GitHub",
+  other:     "Other",
+};
+
+const SOCIAL_PLATFORM_ORDER = ["twitter", "instagram", "youtube", "discord", "github", "other"];
 
 const CAN_MANAGE_PROJECTS = ["admin", "executive", "staff"];
 
@@ -224,6 +247,27 @@ export default function ProjectDetail() {
                       </Button>
                     </a>
                   )}
+                  {SOCIAL_PLATFORM_ORDER.map((platform) => {
+                    const links = (project.socialLinks ?? {}) as SocialLinks;
+                    const url = links[platform];
+                    if (!url) return null;
+                    const Icon = SOCIAL_ICON_MAP[platform] ?? Globe;
+                    const label = SOCIAL_LABEL_MAP[platform] ?? platform;
+                    return (
+                      <a
+                        key={platform}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-testid={`link-project-social-${platform}`}
+                      >
+                        <Button variant="outline" size="sm" className="gap-1.5">
+                          <Icon className="h-3.5 w-3.5" />
+                          {label}
+                        </Button>
+                      </a>
+                    );
+                  })}
                   <Link href="/projects">
                     <Button variant="outline" size="sm" className="gap-1.5">
                       <ArrowLeft className="h-3.5 w-3.5" />

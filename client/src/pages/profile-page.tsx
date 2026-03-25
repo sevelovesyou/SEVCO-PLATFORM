@@ -367,8 +367,12 @@ function ProfileView({ profile, isOwnProfile, onEdit }: {
         >
           {/* Banner strip */}
           <div
-            className="h-24 md:h-32 w-full"
-            style={{
+            className="h-24 md:h-32 w-full relative overflow-hidden"
+            style={bgImage ? {
+              backgroundImage: `url(${bgImage})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            } : {
               background: accentColor
                 ? `linear-gradient(135deg, ${accentColor}66, ${accentColor}22)`
                 : "linear-gradient(135deg, hsl(var(--primary)/0.3), hsl(var(--primary)/0.1))",

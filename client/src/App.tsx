@@ -55,6 +55,9 @@ import CommandStore from "@/pages/command-store";
 import CommandServices from "@/pages/command-services";
 import CommandJobs from "@/pages/command-jobs";
 import CommandMusic from "@/pages/command-music";
+import CommandPlaylists from "@/pages/command-playlists";
+import CommandSocialLinks from "@/pages/command-social-links";
+import NotesPage from "@/pages/notes-page";
 import ServiceDetailPage from "@/pages/service-detail-page";
 import ServicesListingPage from "@/pages/services-listing";
 
@@ -166,6 +169,25 @@ function Router() {
           <CommandPageLayout title="Music Submissions" subtitle="Review A&R demos and playlist pitches">
             <CommandMusic />
           </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/playlists" component={() => (
+        <ProtectedRoute>
+          <CommandPageLayout title="Playlists" subtitle="Manage official and community playlists">
+            <CommandPlaylists />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/social-links" component={() => (
+        <ProtectedRoute>
+          <CommandPageLayout title="Social Links" subtitle="Manage platform social media presence">
+            <CommandSocialLinks />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/notes" component={() => (
+        <ProtectedRoute>
+          <NotesPage />
         </ProtectedRoute>
       )} />
       <Route component={NotFound} />

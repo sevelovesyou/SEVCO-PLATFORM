@@ -356,6 +356,35 @@ export const insertCitationSchema = createInsertSchema(citations).omit({
 
 export const insertCrosslinkSchema = createInsertSchema(crosslinks).omit({ id: true });
 
+export const platformSocialLinks = pgTable("platform_social_links", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  platform: text("platform").notNull(),
+  url: text("url").notNull(),
+  iconName: text("icon_name").notNull(),
+  displayOrder: integer("display_order").notNull().default(0),
+  showInFooter: boolean("show_in_footer").notNull().default(true),
+  showOnContact: boolean("show_on_contact").notNull().default(false),
+});
+
+export const insertPlatformSocialLinkSchema = createInsertSchema(platformSocialLinks).omit({ id: true });
+export type PlatformSocialLink = typeof platformSocialLinks.$inferSelect;
+export type InsertPlatformSocialLink = z.infer<typeof insertPlatformSocialLinkSchema>;
+
+export const notes = pgTable("notes", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  title: text("title").notNull(),
+  content: text("content").notNull().default(""),
+  authorId: varchar("author_id").references(() => users.id, { onDelete: "cascade" }),
+  pinned: boolean("pinned").notNull().default(false),
+  color: text("color").notNull().default("default"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertNoteSchema = createInsertSchema(notes).omit({ id: true, createdAt: true, updatedAt: true, authorId: true });
+export type Note = typeof notes.$inferSelect;
+export type InsertNote = z.infer<typeof insertNoteSchema>;
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type UpdateRole = z.infer<typeof updateRoleSchema>;

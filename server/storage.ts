@@ -16,9 +16,11 @@ import {
   type JobApplication, type InsertJobApplication,
   type Playlist, type InsertPlaylist,
   type MusicSubmission, type InsertMusicSubmission,
+  type PlatformSocialLink, type InsertPlatformSocialLink,
+  type Note, type InsertNote,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
-  jobs, jobApplications, playlists, musicSubmissions,
+  jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or } from "drizzle-orm";
@@ -30,6 +32,7 @@ export interface IStorage {
   getUserByVerificationToken(token: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, data: UpdateUser): Promise<User>;
+  updateUsername(id: string, username: string): Promise<User>;
   updateUserProfile(id: string, data: UpdateProfile): Promise<User>;
   updateUserRole(id: string, role: Role): Promise<User | undefined>;
   updateEmailVerification(id: string, data: { emailVerified?: boolean; emailVerificationToken?: string | null; emailVerificationExpires?: Date | null }): Promise<User>;
@@ -118,6 +121,8 @@ export interface IStorage {
 
   getPlaylists(officialOnly?: boolean): Promise<Playlist[]>;
   createPlaylist(playlist: InsertPlaylist): Promise<Playlist>;
+  updatePlaylist(id: number, data: Partial<InsertPlaylist>): Promise<Playlist>;
+  deletePlaylist(id: number): Promise<void>;
   getMusicSubmissions(): Promise<MusicSubmission[]>;
   createMusicSubmission(sub: InsertMusicSubmission & { userId?: string | null }): Promise<MusicSubmission>;
   updateMusicSubmissionStatus(id: number, status: string): Promise<MusicSubmission>;
@@ -132,6 +137,18 @@ export interface IStorage {
     byStockStatus: Array<{ status: string; count: number }>;
     byPriceRange: Array<{ range: string; count: number }>;
   }>;
+
+  getSocialLinks(): Promise<PlatformSocialLink[]>;
+  createSocialLink(data: InsertPlatformSocialLink): Promise<PlatformSocialLink>;
+  updateSocialLink(id: number, data: Partial<InsertPlatformSocialLink>): Promise<PlatformSocialLink>;
+  deleteSocialLink(id: number): Promise<void>;
+  seedSocialLinksIfEmpty(): Promise<void>;
+
+  getNotes(authorId: string): Promise<Note[]>;
+  getNoteById(id: number): Promise<Note | undefined>;
+  createNote(data: InsertNote & { authorId: string }): Promise<Note>;
+  updateNote(id: number, authorId: string, data: Partial<InsertNote>): Promise<Note>;
+  deleteNote(id: number, authorId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -154,6 +171,15 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db
       .update(users)
       .set(data)
+      .where(eq(users.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateUsername(id: string, username: string): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({ username })
       .where(eq(users.id, id))
       .returning();
     return updated;
@@ -675,6 +701,15 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
+  async updatePlaylist(id: number, data: Partial<InsertPlaylist>): Promise<Playlist> {
+    const [row] = await db.update(playlists).set(data).where(eq(playlists.id, id)).returning();
+    return row;
+  }
+
+  async deletePlaylist(id: number): Promise<void> {
+    await db.delete(playlists).where(eq(playlists.id, id));
+  }
+
   async getMusicSubmissions(): Promise<MusicSubmission[]> {
     return db.select().from(musicSubmissions).orderBy(desc(musicSubmissions.createdAt));
   }
@@ -687,6 +722,71 @@ export class DatabaseStorage implements IStorage {
   async updateMusicSubmissionStatus(id: number, status: string): Promise<MusicSubmission> {
     const [row] = await db.update(musicSubmissions).set({ status }).where(eq(musicSubmissions.id, id)).returning();
     return row;
+  }
+
+  async getSocialLinks(): Promise<PlatformSocialLink[]> {
+    return db.select().from(platformSocialLinks).orderBy(platformSocialLinks.displayOrder);
+  }
+
+  async createSocialLink(data: InsertPlatformSocialLink): Promise<PlatformSocialLink> {
+    const [row] = await db.insert(platformSocialLinks).values(data).returning();
+    return row;
+  }
+
+  async updateSocialLink(id: number, data: Partial<InsertPlatformSocialLink>): Promise<PlatformSocialLink> {
+    const [row] = await db.update(platformSocialLinks).set(data).where(eq(platformSocialLinks.id, id)).returning();
+    return row;
+  }
+
+  async deleteSocialLink(id: number): Promise<void> {
+    await db.delete(platformSocialLinks).where(eq(platformSocialLinks.id, id));
+  }
+
+  async seedSocialLinksIfEmpty(): Promise<void> {
+    const existing = await db.select().from(platformSocialLinks).limit(1);
+    if (existing.length > 0) return;
+    const seeds: InsertPlatformSocialLink[] = [
+      { platform: "Facebook",  url: "https://www.facebook.com/sevelovesyou/",           iconName: "SiFacebook",  displayOrder: 0, showInFooter: true, showOnContact: false },
+      { platform: "Instagram", url: "https://instagram.com/sevelovesyou",               iconName: "SiInstagram", displayOrder: 1, showInFooter: true, showOnContact: true  },
+      { platform: "YouTube",   url: "https://www.youtube.com/@sevelovesyou",            iconName: "SiYoutube",   displayOrder: 2, showInFooter: true, showOnContact: false },
+      { platform: "TikTok",    url: "https://www.tiktok.com/@sevelovesu",               iconName: "SiTiktok",    displayOrder: 3, showInFooter: true, showOnContact: true  },
+      { platform: "X",         url: "https://x.com/sevelovesu",                         iconName: "SiX",         displayOrder: 4, showInFooter: true, showOnContact: true  },
+      { platform: "Threads",   url: "https://www.threads.com/@sevelovesyou",            iconName: "SiThreads",   displayOrder: 5, showInFooter: true, showOnContact: false },
+      { platform: "LinkedIn",  url: "https://www.linkedin.com/company/sev-co/",         iconName: "SiLinkedin",  displayOrder: 6, showInFooter: true, showOnContact: false },
+      { platform: "Bluesky",   url: "https://bsky.app/profile/sevelovesyou.bsky.social",iconName: "SiBluesky",   displayOrder: 7, showInFooter: true, showOnContact: false },
+      { platform: "Snapchat",  url: "https://www.snapchat.com/@sevelovesu",             iconName: "SiSnapchat",  displayOrder: 8, showInFooter: true, showOnContact: false },
+      { platform: "Pinterest", url: "https://pin.it/2iQOE7UYW",                         iconName: "SiPinterest", displayOrder: 9, showInFooter: true, showOnContact: false },
+      { platform: "Vimeo",     url: "https://vimeo.com/sevelovesyou",                   iconName: "SiVimeo",     displayOrder:10, showInFooter: true, showOnContact: false },
+      { platform: "GitHub",    url: "https://github.com/sevelovesyou",                  iconName: "SiGithub",    displayOrder:11, showInFooter: true, showOnContact: false },
+      { platform: "Discord",   url: "https://discord.gg/sevco",                         iconName: "SiDiscord",   displayOrder:12, showInFooter: false, showOnContact: true },
+    ];
+    await db.insert(platformSocialLinks).values(seeds);
+  }
+
+  async getNotes(authorId: string): Promise<Note[]> {
+    return db.select().from(notes).where(eq(notes.authorId, authorId)).orderBy(desc(notes.pinned), desc(notes.updatedAt));
+  }
+
+  async getNoteById(id: number): Promise<Note | undefined> {
+    const [row] = await db.select().from(notes).where(eq(notes.id, id));
+    return row;
+  }
+
+  async createNote(data: InsertNote & { authorId: string }): Promise<Note> {
+    const [row] = await db.insert(notes).values(data).returning();
+    return row;
+  }
+
+  async updateNote(id: number, authorId: string, data: Partial<InsertNote>): Promise<Note> {
+    const [row] = await db.update(notes)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(notes.id, id), eq(notes.authorId, authorId)))
+      .returning();
+    return row;
+  }
+
+  async deleteNote(id: number, authorId: string): Promise<void> {
+    await db.delete(notes).where(and(eq(notes.id, id), eq(notes.authorId, authorId)));
   }
 }
 

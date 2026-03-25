@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,12 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2, Mail, MessageSquare } from "lucide-react";
-import { SiDiscord, SiInstagram, SiX, SiTiktok } from "react-icons/si";
+import {
+  SiDiscord, SiInstagram, SiX, SiTiktok, SiFacebook, SiYoutube,
+  SiThreads, SiLinkedin, SiBluesky, SiSnapchat, SiPinterest, SiVimeo,
+  SiGithub, SiSoundcloud, SiSpotify, SiApplemusic, SiPatreon, SiTwitch,
+} from "react-icons/si";
+import type { PlatformSocialLink } from "@shared/schema";
 
 const contactSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -39,48 +44,31 @@ type ContactFormValues = z.infer<typeof contactSchema>;
 
 const DISCORD_INVITE = "https://discord.gg/sevco";
 
-const SOCIALS = [
-  {
-    label: "Discord",
-    handle: "SEVCO Community",
-    href: DISCORD_INVITE,
-    icon: SiDiscord,
-    color: "text-indigo-500",
-    bg: "bg-indigo-500/10",
-    border: "border-indigo-500/20",
-  },
-  {
-    label: "Instagram",
-    handle: "@sevelovesyou",
-    href: "https://instagram.com/sevelovesyou",
-    icon: SiInstagram,
-    color: "text-pink-500",
-    bg: "bg-pink-500/10",
-    border: "border-pink-500/20",
-  },
-  {
-    label: "X / Twitter",
-    handle: "@sevelovesu",
-    href: "https://x.com/sevelovesu",
-    icon: SiX,
-    color: "text-foreground",
-    bg: "bg-muted",
-    border: "border-border",
-  },
-  {
-    label: "TikTok",
-    handle: "@sevelovesu",
-    href: "https://www.tiktok.com/@sevelovesu",
-    icon: SiTiktok,
-    color: "text-foreground",
-    bg: "bg-muted",
-    border: "border-border",
-  },
+type IconComponent = React.ComponentType<{ className?: string }>;
+
+const ICON_MAP: Record<string, IconComponent> = {
+  SiFacebook, SiInstagram, SiYoutube, SiTiktok, SiX, SiThreads,
+  SiLinkedin, SiBluesky, SiSnapchat, SiPinterest, SiVimeo, SiGithub,
+  SiDiscord, SiSoundcloud, SiSpotify, SiApplemusic, SiPatreon, SiTwitch,
+};
+
+const FALLBACK_SOCIALS = [
+  { platform: "Instagram", url: "https://instagram.com/sevelovesyou", iconName: "SiInstagram" },
+  { platform: "X / Twitter", url: "https://x.com/sevelovesu", iconName: "SiX" },
+  { platform: "TikTok", url: "https://www.tiktok.com/@sevelovesu", iconName: "SiTiktok" },
 ];
 
 export default function ContactPage() {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
+
+  const { data: socialLinks } = useQuery<PlatformSocialLink[]>({
+    queryKey: ["/api/social-links"],
+  });
+
+  const contactSocials = socialLinks
+    ? socialLinks.filter((l) => l.showOnContact)
+    : FALLBACK_SOCIALS.map((s, i) => ({ ...s, id: i, showInFooter: false, showOnContact: true, displayOrder: i }));
 
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactSchema),
@@ -295,30 +283,35 @@ export default function ContactPage() {
             </a>
 
             {/* Socials */}
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                Follow Along
-              </h3>
-              <div className="space-y-2">
-                {SOCIALS.map((social) => (
-                  <a
-                    key={social.label}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-testid={`link-social-${social.label.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
-                  >
-                    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${social.border} ${social.bg} hover:opacity-80 transition-opacity cursor-pointer`}>
-                      <social.icon className={`h-4 w-4 ${social.color} shrink-0`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-foreground">{social.label}</p>
-                        <p className="text-xs text-muted-foreground">{social.handle}</p>
-                      </div>
-                    </div>
-                  </a>
-                ))}
+            {contactSocials.length > 0 && (
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                  Follow Along
+                </h3>
+                <div className="space-y-2">
+                  {contactSocials.map((social) => {
+                    const Icon = ICON_MAP[social.iconName];
+                    if (!Icon) return null;
+                    return (
+                      <a
+                        key={social.id}
+                        href={social.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-testid={`link-social-${social.platform.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
+                      >
+                        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted hover:opacity-80 transition-opacity cursor-pointer">
+                          <Icon className="h-4 w-4 text-foreground shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-foreground">{social.platform}</p>
+                          </div>
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* General info */}
             <div className="rounded-xl border bg-muted/30 p-4">

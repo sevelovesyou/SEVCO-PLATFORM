@@ -11,7 +11,7 @@ import {
   CAN_DELETE_ARTICLE,
 } from "./middleware/permissions";
 import type { Role, InsertJob } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
@@ -323,9 +323,18 @@ export async function registerRoutes(
     res.json({ ...cat, articles: catArticles });
   });
 
+  app.get("/api/articles/archived", requireAuth, requireRole(...CAN_DELETE_ARTICLE), async (_req, res) => {
+    try {
+      const all = await storage.getArticles();
+      res.json(all.filter((a) => a.status === "archived"));
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/articles/recent", async (_req, res) => {
     const arts = await storage.getArticles();
-    res.json(arts);
+    res.json(arts.filter((a) => a.status !== "archived"));
   });
 
   app.get("/api/articles/latest-update", async (_req, res) => {
@@ -358,6 +367,8 @@ export async function registerRoutes(
 
     if (statusFilter !== "all") {
       arts = arts.filter((a: any) => a.status === statusFilter);
+    } else {
+      arts = arts.filter((a: any) => a.status !== "archived");
     }
 
     res.json(arts);
@@ -881,6 +892,25 @@ export async function registerRoutes(
     res.json(allUsers.map(({ password: _, ...u }) => u));
   });
 
+  app.patch("/api/users/:id/username", requireAuth, requireRole("admin"), async (req: any, res) => {
+    try {
+      const { username } = req.body;
+      if (!username || typeof username !== "string" || username.trim().length < 2) {
+        return res.status(400).json({ message: "Username must be at least 2 characters" });
+      }
+      const trimmed = username.trim().toLowerCase().replace(/\s+/g, "_");
+      const existing = await storage.getUserByUsername(trimmed);
+      if (existing && existing.id !== req.params.id) {
+        return res.status(409).json({ message: "Username already taken" });
+      }
+      const updated = await storage.updateUsername(req.params.id, trimmed);
+      const { password: _, ...safe } = updated;
+      res.json(safe);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/dashboard", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
@@ -1251,6 +1281,27 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/music/playlists/:id", requireAuth, requireRole(...CAN_MANAGE_MUSIC), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const parsed = insertPlaylistSchema.partial().safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
+      const playlist = await storage.updatePlaylist(id, parsed.data);
+      res.json(playlist);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/music/playlists/:id", requireAuth, requireRole(...CAN_MANAGE_MUSIC), async (req, res) => {
+    try {
+      await storage.deletePlaylist(parseInt(req.params.id));
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // Music submission routes
   app.post("/api/music/submissions", async (req: any, res) => {
     try {
@@ -1330,6 +1381,111 @@ export async function registerRoutes(
       }
 
       res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/articles/:id/archive", requireAuth, requireRole(...CAN_DELETE_ARTICLE), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid article id" });
+      const updated = await storage.updateArticle(id, { status: "archived" });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/articles/:id/unarchive", requireAuth, requireRole(...CAN_DELETE_ARTICLE), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid article id" });
+      const updated = await storage.updateArticle(id, { status: "draft" });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/social-links", async (_req, res) => {
+    try {
+      const links = await storage.getSocialLinks();
+      res.json(links);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/social-links", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const link = await storage.createSocialLink(req.body);
+      res.status(201).json(link);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/social-links/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      const updated = await storage.updateSocialLink(id, req.body);
+      res.json(updated);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/social-links/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      await storage.deleteSocialLink(id);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  // Notes routes
+  app.get("/api/notes", requireAuth, async (req: any, res) => {
+    try {
+      const notesList = await storage.getNotes(req.user.id);
+      res.json(notesList);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/notes", requireAuth, async (req: any, res) => {
+    try {
+      const parsed = insertNoteSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
+      const note = await storage.createNote({ ...parsed.data, authorId: req.user.id });
+      res.status(201).json(note);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/notes/:id", requireAuth, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const parsed = insertNoteSchema.partial().safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
+      const note = await storage.updateNote(id, req.user.id, parsed.data);
+      if (!note) return res.status(404).json({ message: "Note not found" });
+      res.json(note);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/notes/:id", requireAuth, async (req: any, res) => {
+    try {
+      await storage.deleteNote(parseInt(req.params.id), req.user.id);
+      res.status(204).end();
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

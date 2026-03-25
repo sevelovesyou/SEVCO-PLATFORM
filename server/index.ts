@@ -4,6 +4,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { seedDatabase, promoteFounderToAdmin, markExistingUsersVerified, seedProjects, seedServices, seedPlaylists } from "./seed";
 import { setupAuth } from "./auth";
+import { storage } from "./storage";
 import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
@@ -118,6 +119,7 @@ async function initStripe() {
   await seedProjects().catch((err) => console.error("Project seed error:", err));
   await seedServices().catch((err) => console.error("Service seed error:", err));
   await seedPlaylists().catch((err) => console.error("Playlist seed error:", err));
+  await storage.seedSocialLinksIfEmpty().catch((err) => console.error("Social links seed error:", err));
   setupAuth(app);
   await registerRoutes(httpServer, app);
 

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermission } from "@/hooks/use-permission";
@@ -6,6 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -13,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield } from "lucide-react";
+import { Shield, Pencil, Check, X } from "lucide-react";
 import type { Role } from "@shared/schema";
 
 const ROLES: Role[] = ["admin", "executive", "staff", "partner", "client", "user"];
@@ -96,6 +99,84 @@ function UserRoleSelect({
   );
 }
 
+function ChangeUsernameInline({
+  userId,
+  currentUsername,
+}: {
+  userId: string;
+  currentUsername: string;
+}) {
+  const { toast } = useToast();
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(currentUsername);
+
+  const mutation = useMutation({
+    mutationFn: (newUsername: string) =>
+      apiRequest("PATCH", `/api/users/${userId}/username`, { username: newUsername }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      toast({ title: "Username updated" });
+      setEditing(false);
+    },
+    onError: async (err: any) => {
+      const msg = await err.response?.json().then((d: any) => d.message).catch(() => "Failed to update username");
+      toast({ title: msg, variant: "destructive" });
+    },
+  });
+
+  if (!editing) {
+    return (
+      <div className="flex items-center gap-1 group">
+        <span className="font-medium text-xs">{currentUsername}</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={() => { setValue(currentUsername); setEditing(true); }}
+          data-testid={`button-edit-username-${userId}`}
+        >
+          <Pencil className="h-3 w-3" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <Input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="h-6 text-xs w-28 px-1.5"
+        autoFocus
+        data-testid={`input-username-${userId}`}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") mutation.mutate(value);
+          if (e.key === "Escape") setEditing(false);
+        }}
+      />
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-6 w-6 text-green-600"
+        onClick={() => mutation.mutate(value)}
+        disabled={mutation.isPending}
+        data-testid={`button-confirm-username-${userId}`}
+      >
+        <Check className="h-3 w-3" />
+      </Button>
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-6 w-6"
+        onClick={() => setEditing(false)}
+        data-testid={`button-cancel-username-${userId}`}
+      >
+        <X className="h-3 w-3" />
+      </Button>
+    </div>
+  );
+}
+
 export default function CommandUsers() {
   const { user } = useAuth();
   const { isAdmin } = usePermission();
@@ -169,7 +250,13 @@ export default function CommandUsers() {
               <tbody>
                 {users.map((u) => (
                   <tr key={u.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors" data-testid={`row-user-${u.id}`}>
-                    <td className="p-3 font-medium text-xs">{u.username}</td>
+                    <td className="p-3">
+                      {u.id === user?.id ? (
+                        <span className="font-medium text-xs">{u.username}</span>
+                      ) : (
+                        <ChangeUsernameInline userId={u.id} currentUsername={u.username} />
+                      )}
+                    </td>
                     <td className="p-3 text-xs text-muted-foreground hidden md:table-cell">{u.displayName || "—"}</td>
                     <td className="p-3 text-xs text-muted-foreground hidden md:table-cell">{u.email || "—"}</td>
                     <td className="p-3">

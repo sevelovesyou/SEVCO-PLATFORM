@@ -60,7 +60,10 @@ A multi-app platform for sevelovesyou.com (SEVE / SEVCO Records). Built as a pla
 | `/command/users` | Command — User Management (admin) | Command sidebar |
 | `/command/changelog` | Command — Changelog (admin/exec/staff) | Command sidebar |
 | `/command/music` | Command — Music Submissions (admin/exec) | Command sidebar |
+| `/command/playlists` | Command — Playlist Management (admin/exec) | Command sidebar |
 | `/command/jobs` | Command — Jobs & Applications (admin/exec) | Command sidebar |
+| `/command/social-links` | Command — Social Links admin (admin) | Command sidebar |
+| `/notes` | Personal Notes (auth required) | None |
 | `/auth` | Login/Register | None |
 | `/verify-email` | Email Verification (unguarded) | None |
 
@@ -125,3 +128,9 @@ admin > executive > staff > partner > client > user
 - 2026-03-25: Jobs board — listings, detail + application form, command management page
 - 2026-03-25: Services page + mega-menu (3-column category-grouped, 15 service types with icons)
 - 2026-03-25: Music expansion — SEVCO RECORDS label page, /listen bio-link page, /music/playlists (API-driven + submission form), /music/submit (auth-gated A&R submissions); playlists + musicSubmissions tables added; Command Music submissions management page
+- 2026-03-25: Platform social links system — platformSocialLinks table, seed on startup, footer dynamic, contact page dynamic, command-social-links management page
+- 2026-03-25: Profile & user admin — header user dropdown (My Profile/Account/Sign out), profile banner using profileBgImageUrl, inline username edit in command-users, PATCH /api/users/:id/username route
+- 2026-03-25: Store CMD product creation — full Add Product dialog (name, slug, price, category, stock, image)
+- 2026-03-25: Wiki article archive system — archive/unarchive routes, article-view Archive+Delete buttons, sidebar Archived section with unarchive for admin/exec
+- 2026-03-25: Command Playlists page — full CRUD (add/edit/delete playlists) with PATCH+DELETE routes; Playlists link in command sidebar
+- 2026-03-25: Notes tool — personal notes page at /notes; notes table (title, content, color, pinned); CRUD API; Notes link in header user dropdown; masonry card layout with search/pin/color

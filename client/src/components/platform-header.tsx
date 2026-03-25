@@ -53,6 +53,7 @@ import {
   Share2,
   ClipboardList,
   Target,
+  StickyNote,
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import type { Project, Service } from "@shared/schema";
@@ -592,29 +593,51 @@ export function PlatformHeader() {
 
           {user ? (
             <>
-              <Link href="/account" className="hidden sm:flex items-center gap-1.5 cursor-pointer" data-testid="link-account">
-                <span
-                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded capitalize ${roleBadgeClass}`}
-                  data-testid="badge-role"
-                >
-                  {role}
-                </span>
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <User className="h-3 w-3" />
-                  <span data-testid="text-username">{user.displayName || user.username}</span>
-                </span>
-              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="hidden sm:flex items-center gap-1.5 cursor-pointer rounded-md px-1.5 py-1 hover:bg-muted/70 transition-colors"
+                    data-testid="button-user-menu"
+                  >
+                    <span
+                      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded capitalize ${roleBadgeClass}`}
+                      data-testid="badge-role"
+                    >
+                      {role}
+                    </span>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <User className="h-3 w-3" />
+                      <span data-testid="text-username">{user.displayName || user.username}</span>
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem asChild>
+                    <Link href={`/profile/${user.username}`} data-testid="link-my-profile">
+                      <User className="h-3.5 w-3.5 mr-2" />
+                      My Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/account" data-testid="link-account">
+                      <Settings2 className="h-3.5 w-3.5 mr-2" />
+                      Account
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/notes" data-testid="link-notes">
+                      <StickyNote className="h-3.5 w-3.5 mr-2" />
+                      Notes
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout} data-testid="button-logout" className="text-destructive focus:text-destructive">
+                    <LogOut className="h-3.5 w-3.5 mr-2" />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <ThemeToggle />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={logout}
-                data-testid="button-logout"
-                className="gap-1 h-8 text-xs"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                <span className="hidden sm:block">Sign out</span>
-              </Button>
             </>
           ) : (
             <>

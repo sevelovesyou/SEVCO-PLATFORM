@@ -32,6 +32,7 @@ import {
   CheckCircle,
   ShieldCheck,
   Trash2,
+  Archive,
 } from "lucide-react";
 import type { Article, Citation, Revision } from "@shared/schema";
 
@@ -57,6 +58,7 @@ export default function ArticleView() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletePasscode, setDeletePasscode] = useState("");
   const [deletePasscodeError, setDeletePasscodeError] = useState(false);
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
 
   const { data: article, isLoading } = useQuery<ArticleDetail>({
     queryKey: ["/api/articles", slug],
@@ -94,6 +96,20 @@ export default function ArticleView() {
     },
     onError: () => {
       toast({ title: "Failed to delete article", variant: "destructive" });
+    },
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: (articleId: number) =>
+      apiRequest("PATCH", `/api/articles/${articleId}/archive`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+      toast({ title: "Article archived", description: "It will no longer appear in the public wiki." });
+      setArchiveDialogOpen(false);
+      navigate("/wiki");
+    },
+    onError: () => {
+      toast({ title: "Failed to archive article", variant: "destructive" });
     },
   });
 
@@ -228,11 +244,20 @@ export default function ArticleView() {
           <Button
             size="sm"
             variant="outline"
+            onClick={() => setArchiveDialogOpen(true)}
+            data-testid="button-archive-article"
+          >
+            <Archive className="h-3 w-3 mr-1" />
+            Archive
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
             onClick={() => { setDeleteDialogOpen(true); setDeletePasscode(""); setDeletePasscodeError(false); }}
             data-testid="button-delete-article"
           >
-            <Trash2 className="h-3 w-3 mr-1" />
-            Delete
+            <Trash2 className="h-3 w-3" />
           </Button>
         </div>
       </div>
@@ -313,6 +338,28 @@ export default function ArticleView() {
           )}
         </div>
       </div>
+
+      <Dialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Archive Article</DialogTitle>
+            <DialogDescription>
+              <strong>{article.title}</strong> will be hidden from the public wiki. You can unarchive it later from the archived articles list. No content will be deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setArchiveDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => archiveMutation.mutate(article.id)}
+              disabled={archiveMutation.isPending}
+              data-testid="button-confirm-archive"
+            >
+              <Archive className="h-3 w-3 mr-1" />
+              Archive Article
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={deleteDialogOpen} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) { setDeletePasscode(""); setDeletePasscodeError(false); } }}>
         <DialogContent>

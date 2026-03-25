@@ -28,7 +28,12 @@ import {
   Palette,
   TrendingUp,
   LifeBuoy,
+  Archive,
+  RotateCcw,
 } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { Category, Article } from "@shared/schema";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -47,7 +52,8 @@ const CATEGORY_ORDER = ["general", "operations", "engineering", "design", "sales
 
 export function AppSidebar() {
   const [location] = useLocation();
-  const { canCreateArticle, canAccessReviewQueue } = usePermission();
+  const { canCreateArticle, canAccessReviewQueue, canDeleteArticle } = usePermission();
+  const { toast } = useToast();
 
   const { data: categories, isLoading: catLoading } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
@@ -64,6 +70,22 @@ export function AppSidebar() {
 
   const { data: latestUpdate } = useQuery<{ updatedAt: string | null }>({
     queryKey: ["/api/articles/latest-update"],
+  });
+
+  const { data: archivedArticles } = useQuery<Article[]>({
+    queryKey: ["/api/articles/archived"],
+    enabled: canDeleteArticle,
+  });
+
+  const unarchiveMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("PATCH", `/api/articles/${id}/unarchive`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+      toast({ title: "Article unarchived" });
+    },
+    onError: () => {
+      toast({ title: "Failed to unarchive article", variant: "destructive" });
+    },
   });
 
   const lastUpdatedLabel = (() => {
@@ -194,6 +216,40 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        {canDeleteArticle && archivedArticles && archivedArticles.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="flex items-center gap-1.5">
+              <Archive className="h-3 w-3" />
+              Archived ({archivedArticles.length})
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {archivedArticles.map((article) => (
+                  <SidebarMenuItem key={article.id}>
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-md text-muted-foreground w-full group hover:bg-muted/50 transition-colors">
+                      <FileText className="h-3.5 w-3.5 shrink-0" />
+                      <Link
+                        href={`/wiki/${article.slug}`}
+                        className="flex-1 min-w-0 text-xs truncate"
+                        data-testid={`link-archived-${article.slug}`}
+                      >
+                        {article.title}
+                      </Link>
+                      <button
+                        onClick={() => unarchiveMutation.mutate(article.id)}
+                        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                        title="Unarchive"
+                        data-testid={`button-unarchive-${article.id}`}
+                      >
+                        <RotateCcw className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      </button>
+                    </div>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="p-3">

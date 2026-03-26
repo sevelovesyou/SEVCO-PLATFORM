@@ -4,7 +4,7 @@ import type { FinanceInvoice } from "@shared/schema";
 
 const FROM_EMAIL = "noreply@sevco.us";
 
-async function getCredentials() {
+async function getCredentials(): Promise<{ apiKey: string; source: string }> {
   const fallbackKey = process.env.RESEND_API_KEY;
 
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
@@ -14,45 +14,70 @@ async function getCredentials() {
     ? 'depl ' + process.env.WEB_REPL_RENEWAL
     : null;
 
-  if (hostname && xReplitToken) {
+  if (!hostname) {
+    console.warn('[emailClient] REPLIT_CONNECTORS_HOSTNAME is not set — skipping connector lookup');
+  } else if (!xReplitToken) {
+    console.warn('[emailClient] No REPL_IDENTITY or WEB_REPL_RENEWAL token found — skipping connector lookup');
+  } else {
     try {
-      const res = await fetch(
-        'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
-        {
-          headers: {
-            'Accept': 'application/json',
-            'X-Replit-Token': xReplitToken
-          }
-        }
-      );
+      const url = 'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend';
+      console.log('[emailClient] Fetching Resend credentials from connector:', hostname);
+      const res = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+          'X-Replit-Token': xReplitToken,
+        },
+      });
       if (!res.ok) {
-        console.error(`[emailClient] Resend connector HTTP ${res.status}: ${await res.text()}`);
+        const body = await res.text();
+        console.error(`[emailClient] Resend connector responded HTTP ${res.status}. Body: ${body.slice(0, 300)}`);
       } else {
         const data = await res.json();
-        const connectionSettings = data.items?.[0];
-        if (connectionSettings?.settings?.api_key) {
-          return { apiKey: connectionSettings.settings.api_key };
+        const items: any[] = data.items ?? [];
+        if (items.length === 0) {
+          console.error('[emailClient] Resend connector returned 0 connections. Is the Resend integration installed and configured?');
         } else {
-          console.error('[emailClient] Resend connector: no api_key in connection settings. data=', JSON.stringify(data).slice(0, 200));
+          const connectionSettings = items[0];
+          const apiKey = connectionSettings?.settings?.api_key;
+          if (apiKey) {
+            console.log('[emailClient] Resend API key retrieved from connector (connection id:', connectionSettings?.id ?? 'unknown', ')');
+            return { apiKey, source: 'connector' };
+          } else {
+            console.error('[emailClient] Resend connector: api_key missing from connection settings. Keys present:', Object.keys(connectionSettings?.settings ?? {}));
+          }
         }
       }
     } catch (connErr: any) {
-      console.error('[emailClient] Resend connector lookup error:', connErr?.message || connErr);
+      console.error('[emailClient] Resend connector lookup threw an error:', connErr?.message ?? connErr);
     }
-  } else {
-    console.warn('[emailClient] Resend connector skipped — REPLIT_CONNECTORS_HOSTNAME or auth token not available');
   }
 
   if (fallbackKey) {
-    return { apiKey: fallbackKey };
+    console.log('[emailClient] Using RESEND_API_KEY environment variable as fallback');
+    return { apiKey: fallbackKey, source: 'env:RESEND_API_KEY' };
   }
 
-  throw new Error('Resend API key not found — check the Resend integration or set RESEND_API_KEY.');
+  throw new Error(
+    'Resend API key not found. ' +
+    'Install the Resend integration in Replit, or set the RESEND_API_KEY environment secret. ' +
+    `(REPLIT_CONNECTORS_HOSTNAME=${hostname ?? 'unset'}, xReplitToken=${xReplitToken ? 'present' : 'missing'}, RESEND_API_KEY=${fallbackKey ? 'set' : 'unset'})`
+  );
 }
 
 async function getUncachableResendClient() {
-  const { apiKey } = await getCredentials();
+  const { apiKey, source } = await getCredentials();
+  console.log(`[emailClient] Instantiating Resend client (key source: ${source})`);
   return new Resend(apiKey);
+}
+
+export async function checkEmailCredentials(): Promise<void> {
+  try {
+    const { source } = await getCredentials();
+    console.log(`[emailClient] Startup check: Resend API key available (source: ${source})`);
+  } catch (err: any) {
+    console.error(`[emailClient] Startup check: Resend API key NOT available — ${err?.message ?? err}`);
+    throw err;
+  }
 }
 
 async function resendSend(resend: Resend, payload: Parameters<Resend['emails']['send']>[0]) {
@@ -65,7 +90,9 @@ async function resendSend(resend: Resend, payload: Parameters<Resend['emails']['
 
 export async function sendVerificationEmail(email: string, token: string) {
   const resend = await getUncachableResendClient();
-  const verifyUrl = `${getBaseUrl()}/verify-email?token=${token}`;
+  const baseUrl = getBaseUrl();
+  const verifyUrl = `${baseUrl}/verify-email?token=${token}`;
+  console.log(`[emailClient] Sending verification email to ${email}. Base URL: ${baseUrl}`);
 
   await resendSend(resend, {
     from: `SEVCO <${FROM_EMAIL}>`,
@@ -74,15 +101,55 @@ export async function sendVerificationEmail(email: string, token: string) {
     html: buildVerificationHtml(verifyUrl),
     text: buildVerificationText(verifyUrl),
   });
+  console.log(`[emailClient] Verification email sent successfully to ${email}`);
+}
+
+export async function sendTestEmail(toEmail: string) {
+  const resend = await getUncachableResendClient();
+  const baseUrl = getBaseUrl();
+  console.log(`[emailClient] Sending test email to ${toEmail}. Base URL: ${baseUrl}`);
+
+  await resendSend(resend, {
+    from: `SEVCO <${FROM_EMAIL}>`,
+    to: toEmail,
+    subject: "SEVCO — Resend integration test",
+    html: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
+    <tr><td align="center">
+      <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;padding:40px;">
+        <tr><td align="center" style="padding-bottom:24px;">
+          <span style="font-size:32px;">🪐</span>
+          <h2 style="margin:8px 0 0;color:#18181b;font-size:20px;font-weight:600;">SEVCO</h2>
+        </td></tr>
+        <tr><td style="color:#3f3f46;font-size:15px;line-height:1.6;">
+          <p style="margin:0 0 12px;">This is a test email confirming that your Resend integration is working correctly.</p>
+          <p style="margin:0;color:#71717a;font-size:13px;">Sent from: ${FROM_EMAIL}<br>Base URL: ${baseUrl}</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+    text: `SEVCO — Resend integration test\n\nThis is a test email confirming your Resend integration is working.\n\nSent from: ${FROM_EMAIL}\nBase URL: ${baseUrl}`,
+  });
+  console.log(`[emailClient] Test email sent successfully to ${toEmail}`);
 }
 
 function getBaseUrl(): string {
   if (process.env.REPLIT_DEV_DOMAIN) {
-    return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+    const url = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+    console.log(`[emailClient] getBaseUrl() → ${url} (source: REPLIT_DEV_DOMAIN)`);
+    return url;
   }
   if (process.env.REPLIT_DEPLOYMENT_URL) {
-    return process.env.REPLIT_DEPLOYMENT_URL;
+    const url = process.env.REPLIT_DEPLOYMENT_URL;
+    console.log(`[emailClient] getBaseUrl() → ${url} (source: REPLIT_DEPLOYMENT_URL)`);
+    return url;
   }
+  console.warn('[emailClient] getBaseUrl() falling back to localhost:5000 — verification links will not work in production');
   return "http://localhost:5000";
 }
 

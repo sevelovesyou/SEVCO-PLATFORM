@@ -15,7 +15,7 @@ import {
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
-import { sendContactEmail, sendContactReplyEmail, sendInvoiceEmail } from "./emailClient";
+import { sendContactEmail, sendContactReplyEmail, sendInvoiceEmail, sendTestEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
 import * as hostinger from "./hostinger";
 import { registerSpotifyRoutes } from "./spotify";
@@ -4115,6 +4115,20 @@ export async function registerRoutes(
       res.json({ activeUsers });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/admin/send-test-email", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email || typeof email !== "string") {
+        return res.status(400).json({ message: "Email address is required" });
+      }
+      await sendTestEmail(email);
+      res.json({ success: true, message: `Test email sent to ${email}` });
+    } catch (err: any) {
+      console.error("[routes] Admin test email failed:", err?.message ?? err);
+      res.status(500).json({ success: false, message: err?.message ?? "Failed to send test email" });
     }
   });
 

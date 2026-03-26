@@ -98,14 +98,21 @@ export function setupAuth(app: Express) {
       });
 
       let emailSent = false;
+      let emailError: string | null = null;
       try {
         await sendVerificationEmail(parsed.data.email, token);
         emailSent = true;
-      } catch (emailErr) {
-        console.error("Failed to send verification email:", emailErr);
+      } catch (emailErr: any) {
+        const rawError = emailErr?.message ?? "Unknown error sending verification email";
+        console.error("[auth] Failed to send verification email:", rawError);
+        emailError = rawError.includes("API key")
+          ? "Email service is not configured. Please contact support."
+          : rawError.includes("domain") || rawError.includes("Domain")
+          ? "Email domain not verified. Please contact support."
+          : "Email delivery failed. Please use the resend button to retry.";
       }
 
-      return res.status(200).json({ status: "pending_verification", emailSent });
+      return res.status(200).json({ status: "pending_verification", emailSent, emailError });
     } catch (err) {
       next(err);
     }
@@ -182,9 +189,15 @@ export function setupAuth(app: Express) {
       }
 
       if (user.emailVerificationExpires) {
-        const tokenAge = 24 * 60 * 60 * 1000 - (user.emailVerificationExpires.getTime() - Date.now());
-        if (tokenAge < 60 * 1000) {
-          return res.status(429).json({ message: "Please wait before requesting another verification email." });
+        const expiresMs = user.emailVerificationExpires instanceof Date
+          ? user.emailVerificationExpires.getTime()
+          : new Date(user.emailVerificationExpires).getTime();
+        const issuedAtMs = expiresMs - 24 * 60 * 60 * 1000;
+        const secondsSinceIssued = (Date.now() - issuedAtMs) / 1000;
+        if (secondsSinceIssued < 60) {
+          return res.status(429).json({
+            message: `Please wait ${Math.ceil(60 - secondsSinceIssued)} second(s) before requesting another verification email.`,
+          });
         }
       }
 

@@ -8,6 +8,7 @@ import { storage } from "./storage";
 import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
+import { checkEmailCredentials } from "./emailClient";
 
 const app = express();
 app.set('trust proxy', 1);
@@ -123,6 +124,7 @@ async function initStripe() {
   await seedStoreProducts().catch((err) => console.error("Store products seed error:", err));
   await storage.seedSocialLinksIfEmpty().catch((err) => console.error("Social links seed error:", err));
   await storage.migrateSocialLinksShowOnListen().catch((err) => console.error("Social links listen migration error:", err));
+  await checkEmailCredentials().catch((err) => console.warn("[email] Startup credential check failed:", err?.message ?? err));
   setupAuth(app);
   await registerRoutes(httpServer, app);
 

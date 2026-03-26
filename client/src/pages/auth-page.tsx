@@ -87,7 +87,9 @@ export default function AuthPage() {
         if (!result.emailSent) {
           toast({
             title: "Verification email failed",
-            description: "We couldn't send your verification email. Use the resend link below or contact support.",
+            description: result.emailError
+              ? `Email delivery failed: ${result.emailError}. Use the resend button below to retry.`
+              : "We couldn't send your verification email. Use the resend link below or contact support.",
             variant: "destructive",
           });
         }

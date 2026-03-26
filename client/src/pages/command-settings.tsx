@@ -18,6 +18,7 @@ import {
   Save, Image, Type, Eye, EyeOff, Globe, Link2, Package, Pencil, Trash2, Plus,
   Palette, RotateCcw, AlignLeft, Layers, Share2, Server, GripVertical, ExternalLink,
   ChevronUp, ChevronDown, Settings2, Layout, Star, BarChart2, CheckCircle2, AlertCircle,
+  Mail, Send,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { FileUploadWithFallback } from "@/components/file-upload";
@@ -446,6 +447,97 @@ const DEFAULT_SITEMAP: SitemapColumn[] = [
     ],
   },
 ];
+
+// ─────────────────────────────────────────────────────────
+// Email Diagnostics Panel
+// ─────────────────────────────────────────────────────────
+function EmailDiagnosticsPanel() {
+  const { toast } = useToast();
+  const [testEmail, setTestEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [lastResult, setLastResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleSendTest = async () => {
+    if (!testEmail) {
+      toast({ title: "Email required", description: "Enter an email address to send the test to.", variant: "destructive" });
+      return;
+    }
+    setSending(true);
+    setLastResult(null);
+    try {
+      const res = await apiRequest("POST", "/api/admin/send-test-email", { email: testEmail });
+      const data = await res.json();
+      setLastResult({ success: data.success !== false, message: data.message });
+      if (data.success !== false) {
+        toast({ title: "Test email sent", description: data.message });
+      } else {
+        toast({ title: "Test email failed", description: data.message, variant: "destructive" });
+      }
+    } catch (err: any) {
+      const msg = err?.message ?? "Failed to send test email";
+      setLastResult({ success: false, message: msg });
+      toast({ title: "Test email failed", description: msg, variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <Label htmlFor="input-test-email">Recipient Email</Label>
+        <div className="flex gap-2">
+          <Input
+            id="input-test-email"
+            data-testid="input-test-email"
+            type="email"
+            placeholder="admin@example.com"
+            value={testEmail}
+            onChange={(e) => setTestEmail(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSendTest()}
+          />
+          <Button
+            onClick={handleSendTest}
+            disabled={sending}
+            data-testid="button-send-test-email"
+            size="sm"
+          >
+            {sending ? (
+              <>Sending…</>
+            ) : (
+              <>
+                <Send className="h-4 w-4 mr-1" />
+                Send Test
+              </>
+            )}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Sends a test email via Resend to confirm the integration is live. Check your inbox and server logs for details.
+        </p>
+      </div>
+      {lastResult && (
+        <div
+          data-testid="text-test-email-result"
+          className={`flex items-start gap-2 p-3 rounded-lg border text-sm ${
+            lastResult.success
+              ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900"
+              : "bg-destructive/10 border-destructive/30"
+          }`}
+        >
+          {lastResult.success ? (
+            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+          ) : (
+            <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+          )}
+          <span className={lastResult.success ? "text-green-800 dark:text-green-300" : "text-destructive"}>
+            {lastResult.message}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────
 // Main Settings Page
@@ -2147,6 +2239,24 @@ export default function CommandSettings() {
                 </ol>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Email Diagnostics */}
+      <section id="email-diagnostics">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Email Diagnostics
+            </CardTitle>
+            <CardDescription>
+              Send a test email to verify the Resend integration is working end-to-end.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <EmailDiagnosticsPanel />
           </CardContent>
         </Card>
       </section>

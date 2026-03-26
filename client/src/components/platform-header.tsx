@@ -9,6 +9,12 @@ import { SearchOverlay } from "@/components/search-overlay";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -313,73 +319,81 @@ function ServicesDropdown({ isActive }: { isActive: boolean }) {
         data-testid="nav-services"
       />
       {open && (
-        <DropdownPanel className="w-[620px]">
-          <div className="p-3 grid grid-cols-3 gap-2">
-            {SERVICE_COLUMN_GROUPS.map((pair) => (
-              <div key={pair.join("-")} className="space-y-3">
-                {pair.map((cat) => {
-                  const items = byCategory(cat);
-                  if (items.length === 0) return null;
-                  const CatIcon = SERVICE_ICON_MAP[cat] ?? Briefcase;
-                  return (
-                    <div key={cat}>
-                      <div className="flex items-center gap-1.5 px-2 mb-1">
-                        <CatIcon className="h-3 w-3 text-muted-foreground/60" />
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</p>
-                      </div>
-                      {items.map((service) => {
-                        const IconComp = resolveLucideIcon(service.iconName) ?? Briefcase;
-                        return (
-                          <Link key={service.id} href={`/services/${service.slug}`} onClick={() => setOpen(false)}>
-                            <div
-                              className="flex items-start gap-2.5 px-2 py-2 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer group"
-                              data-testid={`dropdown-service-${service.slug}`}
-                            >
-                              <IconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                              <div className="min-w-0">
-                                <p className="text-xs font-semibold text-foreground leading-none">{service.name}</p>
-                                {service.tagline && (
-                                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{service.tagline}</p>
-                                )}
-                              </div>
-                            </div>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-          <div className="border-t border-border/60 px-4 py-2.5 space-y-1.5">
+        <DropdownPanel className="w-[640px]">
+          {/* Featured platform offerings */}
+          <div className="p-3 grid grid-cols-3 gap-2 border-b border-border/60">
             <Link href="/hosting" onClick={() => setOpen(false)}>
-              <div className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/70 transition-colors cursor-pointer group" data-testid="dropdown-services-hosting">
-                <HardDrive className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div className="flex-1 min-w-0">
+              <div className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/70 transition-colors cursor-pointer group" data-testid="dropdown-services-hosting">
+                <HardDrive className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                <div className="min-w-0">
                   <p className="text-xs font-semibold text-foreground leading-none">Hosting</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Websites, game servers, VPS & more</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">Websites, game servers, VPS & more</p>
                 </div>
               </div>
             </Link>
             <Link href="/minecraft" onClick={() => setOpen(false)}>
-              <div className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/70 transition-colors cursor-pointer group" data-testid="dropdown-services-minecraft">
-                <Pickaxe className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div className="flex-1 min-w-0">
+              <div className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/70 transition-colors cursor-pointer group" data-testid="dropdown-services-minecraft">
+                <Pickaxe className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                <div className="min-w-0">
                   <p className="text-xs font-semibold text-foreground leading-none">Minecraft</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Join SEVCO's Minecraft servers</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">Join SEVCO's community servers</p>
                 </div>
               </div>
             </Link>
             <Link href="/domains" onClick={() => setOpen(false)}>
-              <div className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/70 transition-colors cursor-pointer group" data-testid="dropdown-services-domains">
-                <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div className="flex-1 min-w-0">
+              <div className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/70 transition-colors cursor-pointer group" data-testid="dropdown-services-domains">
+                <Globe className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                <div className="min-w-0">
                   <p className="text-xs font-semibold text-foreground leading-none">Domains</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Search & register domain names</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">Search & register domain names</p>
                 </div>
               </div>
             </Link>
+          </div>
+
+          {/* Professional services by category */}
+          {(services ?? []).length > 0 && (
+            <div className="p-3 grid grid-cols-3 gap-2">
+              {SERVICE_COLUMN_GROUPS.map((pair) => (
+                <div key={pair.join("-")} className="space-y-3">
+                  {pair.map((cat) => {
+                    const items = byCategory(cat);
+                    if (items.length === 0) return null;
+                    const CatIcon = SERVICE_ICON_MAP[cat] ?? Briefcase;
+                    return (
+                      <div key={cat}>
+                        <div className="flex items-center gap-1.5 px-2 mb-1">
+                          <CatIcon className="h-3 w-3 text-muted-foreground/60" />
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</p>
+                        </div>
+                        {items.map((service) => {
+                          const IconComp = resolveLucideIcon(service.iconName) ?? Briefcase;
+                          return (
+                            <Link key={service.id} href={`/services/${service.slug}`} onClick={() => setOpen(false)}>
+                              <div
+                                className="flex items-start gap-2.5 px-2 py-2 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer group"
+                                data-testid={`dropdown-service-${service.slug}`}
+                              >
+                                <IconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-xs font-semibold text-foreground leading-none">{service.name}</p>
+                                  {service.tagline && (
+                                    <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{service.tagline}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="border-t border-border/60 px-4 py-2.5">
             <Link href="/services" onClick={() => setOpen(false)}>
               <div className="flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer group" data-testid="dropdown-services-all">
                 <span className="font-medium">View all services</span>
@@ -586,6 +600,11 @@ export function PlatformHeader() {
   const { role } = usePermission();
   const { openCart, itemCount } = useCart();
   const [location] = useLocation();
+  const { data: platformSettings } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
+    staleTime: 300000,
+  });
+  const platformLogoUrl = platformSettings?.["platform.logoUrl"] || null;
   const activeApp = getActiveApp(location);
   const roleBadgeClass = ROLE_BADGE_VARIANTS[role ?? "user"] ?? ROLE_BADGE_VARIANTS.user;
   const canAccessCMD = role === "admin" || role === "executive" || role === "staff";
@@ -627,7 +646,7 @@ export function PlatformHeader() {
         <Link href="/" className="shrink-0">
           <div className="flex items-center gap-2 cursor-pointer" data-testid="link-platform-home">
             <img
-              src={wordmarkBlack}
+              src={platformLogoUrl || wordmarkBlack}
               alt="SEVCO"
               className="h-6 w-auto object-contain dark:invert"
             />
@@ -677,45 +696,62 @@ export function PlatformHeader() {
 
         {/* Right side actions */}
         <div className="flex items-center gap-1.5">
+          <TooltipProvider delayDuration={400}>
           {/* Search button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setSearchOpen(true)}
-            data-testid="button-open-search"
-          >
-            <Search className="h-4 w-4" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setSearchOpen(true)}
+                data-testid="button-open-search"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Search</TooltipContent>
+          </Tooltip>
 
           {/* Chat button — logged-in only */}
           {user && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setChatOpen(true)}
-              data-testid="button-open-chat"
-            >
-              <MessageCircle className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setChatOpen(true)}
+                  data-testid="button-open-chat"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Open Chat</TooltipContent>
+            </Tooltip>
           )}
 
           {/* Cart button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative h-8 w-8"
-            onClick={openCart}
-            data-testid="button-open-cart"
-          >
-            <ShoppingBag className="h-4 w-4" />
-            {itemCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center" data-testid="cart-badge">
-                {itemCount > 9 ? "9+" : itemCount}
-              </span>
-            )}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-8 w-8"
+                onClick={openCart}
+                data-testid="button-open-cart"
+              >
+                <ShoppingBag className="h-4 w-4" />
+                {itemCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center" data-testid="cart-badge">
+                    {itemCount > 9 ? "9+" : itemCount}
+                  </span>
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Cart{itemCount > 0 ? ` (${itemCount})` : ""}</TooltipContent>
+          </Tooltip>
+          </TooltipProvider>
 
           {/* Mobile hamburger */}
           <div className="md:hidden">

@@ -213,6 +213,7 @@ export default function AuthPage() {
                               data-testid="input-username"
                               placeholder="Enter your username"
                               autoComplete="username"
+                              autoFocus
                               {...field}
                             />
                           </FormControl>
@@ -301,6 +302,7 @@ export default function AuthPage() {
                               type="email"
                               placeholder="Enter your email"
                               autoComplete="email"
+                              autoFocus
                               {...field}
                             />
                           </FormControl>

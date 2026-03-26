@@ -40,8 +40,11 @@ import {
   Folder,
   ArrowLeft,
   Pencil,
+  ExternalLink,
+  RefreshCw,
+  CreditCard,
 } from "lucide-react";
-import type { FinanceTransaction, FinanceProject, FinanceInvoice } from "@shared/schema";
+import type { FinanceTransaction, FinanceProject, FinanceInvoice, Subscription } from "@shared/schema";
 
 const TRANSACTION_CATEGORIES = [
   "Server Costs",
@@ -1134,6 +1137,295 @@ function CalculatorTab() {
   );
 }
 
+const SUBSCRIPTION_CATEGORIES = ["software", "hosting", "marketing", "design", "communication", "finance", "productivity", "other"];
+const BILLING_CYCLES = ["monthly", "annual", "quarterly", "weekly"];
+const SUBSCRIPTION_STATUSES = ["active", "paused", "cancelled"];
+
+type SubForm = {
+  name: string;
+  category: string;
+  amount: number;
+  billingCycle: string;
+  status: string;
+  nextBillingDate: string;
+  url: string;
+  notes: string;
+};
+
+const defaultSubForm = (): SubForm => ({
+  name: "", category: "software", amount: 0, billingCycle: "monthly",
+  status: "active", nextBillingDate: "", url: "", notes: "",
+});
+
+function SubscriptionsTab() {
+  const { toast } = useToast();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Subscription | null>(null);
+  const [form, setForm] = useState<SubForm>(defaultSubForm());
+
+  const { data: subs = [], isLoading } = useQuery<Subscription[]>({
+    queryKey: ["/api/subscriptions"],
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data: SubForm) => apiRequest("POST", "/api/subscriptions", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/subscriptions"] });
+      setDialogOpen(false);
+      toast({ description: "Subscription added." });
+    },
+    onError: (e: any) => toast({ description: e.message, variant: "destructive" }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<SubForm> }) =>
+      apiRequest("PATCH", `/api/subscriptions/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/subscriptions"] });
+      setDialogOpen(false);
+      toast({ description: "Subscription updated." });
+    },
+    onError: (e: any) => toast({ description: e.message, variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/subscriptions/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/subscriptions"] });
+      toast({ description: "Subscription removed." });
+    },
+    onError: (e: any) => toast({ description: e.message, variant: "destructive" }),
+  });
+
+  function openAdd() {
+    setEditing(null);
+    setForm(defaultSubForm());
+    setDialogOpen(true);
+  }
+
+  function openEdit(sub: Subscription) {
+    setEditing(sub);
+    setForm({
+      name: sub.name,
+      category: sub.category,
+      amount: sub.amount,
+      billingCycle: sub.billingCycle,
+      status: sub.status,
+      nextBillingDate: sub.nextBillingDate ?? "",
+      url: sub.url ?? "",
+      notes: sub.notes ?? "",
+    });
+    setDialogOpen(true);
+  }
+
+  function handleSubmit() {
+    if (editing) {
+      updateMutation.mutate({ id: editing.id, data: form });
+    } else {
+      createMutation.mutate(form);
+    }
+  }
+
+  const totalMonthly = subs
+    .filter((s) => s.status === "active")
+    .reduce((sum, s) => {
+      const amt = s.amount ?? 0;
+      if (s.billingCycle === "annual") return sum + amt / 12;
+      if (s.billingCycle === "quarterly") return sum + amt / 3;
+      if (s.billingCycle === "weekly") return sum + amt * 4.33;
+      return sum + amt;
+    }, 0);
+
+  const statusColor: Record<string, string> = {
+    active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    paused: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+    cancelled: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-semibold text-foreground">{subs.filter((s) => s.status === "active").length}</span> active subscription{subs.filter((s) => s.status === "active").length !== 1 ? "s" : ""}{" "}
+            · <span className="font-semibold text-foreground">${totalMonthly.toFixed(2)}</span>/mo est.
+          </p>
+        </div>
+        <Button size="sm" className="gap-1.5" onClick={openAdd} data-testid="button-add-subscription">
+          <Plus className="h-3.5 w-3.5" /> Add Subscription
+        </Button>
+      </div>
+
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Cycle</TableHead>
+              <TableHead>Next Bill</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-[80px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading && (
+              <TableRow><TableCell colSpan={7}><div className="h-8 bg-muted/40 rounded animate-pulse" /></TableCell></TableRow>
+            )}
+            {!isLoading && subs.length === 0 && (
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground text-sm py-8">No subscriptions yet. Click "Add Subscription" to get started.</TableCell></TableRow>
+            )}
+            {subs.map((sub) => (
+              <TableRow key={sub.id} data-testid={`row-subscription-${sub.id}`}>
+                <TableCell>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-medium">{sub.name}</span>
+                    {sub.url && (
+                      <a href={sub.url} target="_blank" rel="noopener noreferrer" data-testid={`link-subscription-url-${sub.id}`}>
+                        <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      </a>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="capitalize text-sm text-muted-foreground">{sub.category}</TableCell>
+                <TableCell className="text-sm font-mono">${(sub.amount ?? 0).toFixed(2)}</TableCell>
+                <TableCell className="capitalize text-sm text-muted-foreground">{sub.billingCycle}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{sub.nextBillingDate || "—"}</TableCell>
+                <TableCell>
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${statusColor[sub.status] ?? statusColor.paused}`}>
+                    {sub.status}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(sub)} data-testid={`button-edit-subscription-${sub.id}`}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => deleteMutation.mutate(sub.id)} data-testid={`button-delete-subscription-${sub.id}`}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit Subscription" : "Add Subscription"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Name *</label>
+              <Input
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="e.g. GitHub, Figma, Notion"
+                data-testid="input-subscription-name"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Category</label>
+                <Select value={form.category} onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}>
+                  <SelectTrigger data-testid="select-subscription-category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUBSCRIPTION_CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Status</label>
+                <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v }))}>
+                  <SelectTrigger data-testid="select-subscription-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUBSCRIPTION_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Amount ($)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.amount}
+                  onChange={(e) => setForm((f) => ({ ...f, amount: parseFloat(e.target.value) || 0 }))}
+                  data-testid="input-subscription-amount"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Billing Cycle</label>
+                <Select value={form.billingCycle} onValueChange={(v) => setForm((f) => ({ ...f, billingCycle: v }))}>
+                  <SelectTrigger data-testid="select-subscription-cycle">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BILLING_CYCLES.map((c) => (
+                      <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Next Billing Date</label>
+              <Input
+                type="date"
+                value={form.nextBillingDate}
+                onChange={(e) => setForm((f) => ({ ...f, nextBillingDate: e.target.value }))}
+                data-testid="input-subscription-next-billing"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">URL</label>
+              <Input
+                value={form.url}
+                onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
+                placeholder="https://..."
+                data-testid="input-subscription-url"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Notes</label>
+              <Textarea
+                value={form.notes}
+                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                rows={2}
+                data-testid="input-subscription-notes"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-2">
+            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={createMutation.isPending || updateMutation.isPending || !form.name.trim()}
+              data-testid="button-save-subscription"
+            >
+              {editing ? "Save Changes" : "Add Subscription"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 export default function CommandFinance() {
   return (
     <div className="space-y-6">
@@ -1143,6 +1435,7 @@ export default function CommandFinance() {
           <TabsTrigger value="transactions" data-testid="tab-finance-transactions">Transactions</TabsTrigger>
           <TabsTrigger value="invoices" data-testid="tab-finance-invoices">Invoices</TabsTrigger>
           <TabsTrigger value="projects" data-testid="tab-finance-projects">Projects</TabsTrigger>
+          <TabsTrigger value="subscriptions" data-testid="tab-finance-subscriptions">Subscriptions</TabsTrigger>
           <TabsTrigger value="calculator" data-testid="tab-finance-calculator">Calculator</TabsTrigger>
         </TabsList>
 
@@ -1157,6 +1450,9 @@ export default function CommandFinance() {
         </TabsContent>
         <TabsContent value="projects" className="mt-6">
           <ProjectsTab />
+        </TabsContent>
+        <TabsContent value="subscriptions" className="mt-6">
+          <SubscriptionsTab />
         </TabsContent>
         <TabsContent value="calculator" className="mt-6">
           <CalculatorTab />

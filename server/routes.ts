@@ -248,6 +248,50 @@ async function seedChangelog() {
   }
 }
 
+async function seedMinecraftServers() {
+  const existing = await storage.getAllMinecraftServers();
+  if (existing.length > 0) return;
+  await storage.createMinecraftServer({
+    name: "SEVCO SMP",
+    host: "smp.sevco.us",
+    description: "The classic SEVCO survival experience. Build, explore, and thrive with the community.",
+    gameMode: "survival",
+    colorTheme: "emerald",
+    voteLinks: [
+      { name: "Planet Minecraft", url: "https://www.planetminecraft.com" },
+      { name: "Minecraft Server List", url: "https://minecraft-server-list.com" },
+      { name: "TopG", url: "https://topg.org" },
+    ],
+    isActive: true,
+    displayOrder: 0,
+  });
+  await storage.createMinecraftServer({
+    name: "SEVCO Creative",
+    host: "creative.sevco.us",
+    description: "Unlimited plots, world-edit access, and a community of builders pushing the limits.",
+    gameMode: "creative",
+    colorTheme: "green",
+    voteLinks: [
+      { name: "Planet Minecraft", url: "https://www.planetminecraft.com" },
+      { name: "Minecraft Server List", url: "https://minecraft-server-list.com" },
+    ],
+    isActive: true,
+    displayOrder: 1,
+  });
+}
+
+async function seedChangelogV13() {
+  const existing = await storage.getChangelog();
+  const alreadySeeded = existing.some((e) => e.version === "1.3.0");
+  if (alreadySeeded) return;
+  await storage.createChangelogEntryWithDate({
+    title: "Platform Expansion: Minecraft, Chat, Finance, Staff, Support, Media",
+    description: "Added Minecraft server hub with live status, game modes, and a CMD admin tab for server management. Launched platform-wide real-time chat with channels, DMs, and role-gated AI agents. Finance CMD gained a Subscriptions tab. Invoice and support emails now send via Resend. Brand asset logo preview and hero logo upload added to Command Center. Services mega-menu reorganized with new categories. Platform-wide hover tooltips added to all icon buttons.",
+    category: "feature",
+    version: "1.3.0",
+  }, new Date("2026-03-26"));
+}
+
 async function seedJobs() {
   const existing = await storage.getJobs(true);
   if (existing.length > 0) return;
@@ -977,6 +1021,7 @@ export async function registerRoutes(
 
   seedPolicyArticles().catch(console.error);
   seedChangelog()
+    .then(() => seedChangelogV13())
     .then(() => linkChangelogToWikiArticles())
     .catch(console.error);
   seedJobs().catch(console.error);
@@ -984,6 +1029,7 @@ export async function registerRoutes(
     .then(() => updateEngineeringArticleVersions())
     .catch(console.error);
   seedTaskChangelogEntries().catch(console.error);
+  seedMinecraftServers().catch(console.error);
 
   // Initialize Supabase storage buckets
   import("./supabase").then(({ ensureBucketsExist }) => ensureBucketsExist().catch(console.error));
@@ -3207,6 +3253,54 @@ export async function registerRoutes(
     }
   }
 
+  app.get("/api/minecraft/servers", async (req, res) => {
+    try {
+      const servers = await storage.getMinecraftServers();
+      res.json(servers);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/minecraft/servers/all", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const servers = await storage.getAllMinecraftServers();
+      res.json(servers);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/minecraft/servers", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const data = req.body;
+      const server = await storage.createMinecraftServer(data);
+      res.status(201).json(server);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/minecraft/servers/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const server = await storage.updateMinecraftServer(id, req.body);
+      res.json(server);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/minecraft/servers/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteMinecraftServer(id);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/minecraft/status", async (req, res) => {
     const host = req.query.host as string;
     if (!host || typeof host !== "string") {
@@ -3243,6 +3337,42 @@ export async function registerRoutes(
       const fallback = { online: false, players: { online: 0, max: 0 } };
       mcStatusCache.set(host, { data: fallback, expiresAt: Date.now() + 30_000 });
       return res.json(fallback);
+    }
+  });
+
+  app.get("/api/subscriptions", requireAuth, requireRole("admin", "executive"), async (_req, res) => {
+    try {
+      const subs = await storage.getSubscriptions();
+      res.json(subs);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/subscriptions", requireAuth, requireRole("admin", "executive"), async (req, res) => {
+    try {
+      const created = await storage.createSubscription(req.body);
+      res.status(201).json(created);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/subscriptions/:id", requireAuth, requireRole("admin", "executive"), async (req, res) => {
+    try {
+      const updated = await storage.updateSubscription(parseInt(req.params.id), req.body);
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/subscriptions/:id", requireAuth, requireRole("admin", "executive"), async (req, res) => {
+    try {
+      await storage.deleteSubscription(parseInt(req.params.id));
+      res.status(204).send();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
     }
   });
 

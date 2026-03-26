@@ -65,10 +65,10 @@ function assetTypeIcon(type: string) {
 }
 
 const PRIMARY_COLORS = [
-  { name: "Brand Main", cssVar: "--brand-main", fallback: "hsl(225 60% 48%)", usage: "Primary brand color" },
-  { name: "Brand Secondary", cssVar: "--brand-secondary", fallback: "hsl(225 65% 58%)", usage: "Secondary brand color" },
-  { name: "Brand Accent", cssVar: "--brand-accent", fallback: "hsl(220 14% 93%)", usage: "Accent brand color" },
-  { name: "Brand Highlight", cssVar: "--brand-highlight", fallback: "hsl(45 90% 60%)", usage: "Highlight brand color" },
+  { name: "Brand Main", cssVar: "--brand-main", fallback: "225 60% 48%", usage: "Primary brand color" },
+  { name: "Brand Secondary", cssVar: "--brand-secondary", fallback: "225 65% 58%", usage: "Secondary brand color" },
+  { name: "Brand Accent", cssVar: "--brand-accent", fallback: "220 14% 93%", usage: "Accent brand color" },
+  { name: "Brand Highlight", cssVar: "--brand-highlight", fallback: "45 90% 60%", usage: "Highlight brand color" },
 ];
 
 export default function AboutPage() {
@@ -231,7 +231,7 @@ export default function AboutPage() {
                     <div key={color.cssVar} className="flex items-center gap-2.5 border border-border rounded-lg px-3 py-2" data-testid={`swatch-${color.name.toLowerCase().replace(/\s+/g, "-")}`}>
                       <div
                         className="h-5 w-5 rounded-md border border-border/50 shrink-0"
-                        style={{ backgroundColor: `var(${color.cssVar}, ${color.fallback})` }}
+                        style={{ backgroundColor: `hsl(var(${color.cssVar}, ${color.fallback}))` }}
                       />
                       <div>
                         <p className="text-xs font-medium text-foreground">{color.name}</p>

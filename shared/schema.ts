@@ -703,3 +703,36 @@ export type InsertFinanceTransaction = z.infer<typeof insertFinanceTransactionSc
 export const insertFinanceInvoiceSchema = createInsertSchema(financeInvoices).omit({ id: true, createdAt: true });
 export type FinanceInvoice = typeof financeInvoices.$inferSelect;
 export type InsertFinanceInvoice = z.infer<typeof insertFinanceInvoiceSchema>;
+
+export const minecraftServers = pgTable("minecraft_servers", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: varchar("name", { length: 100 }).notNull(),
+  host: varchar("host", { length: 255 }).notNull(),
+  description: text("description"),
+  gameMode: varchar("game_mode", { length: 50 }),
+  colorTheme: varchar("color_theme", { length: 50 }).default("emerald").notNull(),
+  voteLinks: jsonb("vote_links").default([]).notNull().$type<{ name: string; url: string }[]>(),
+  isActive: boolean("is_active").default(true).notNull(),
+  displayOrder: integer("display_order").default(0).notNull(),
+});
+
+export const insertMinecraftServerSchema = createInsertSchema(minecraftServers).omit({ id: true });
+export type MinecraftServer = typeof minecraftServers.$inferSelect;
+export type InsertMinecraftServer = z.infer<typeof insertMinecraftServerSchema>;
+
+export const subscriptions = pgTable("subscriptions", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: varchar("name", { length: 120 }).notNull(),
+  category: varchar("category", { length: 60 }).notNull().default("software"),
+  amount: real("amount").notNull().default(0),
+  billingCycle: varchar("billing_cycle", { length: 20 }).notNull().default("monthly"),
+  status: varchar("status", { length: 20 }).notNull().default("active"),
+  nextBillingDate: varchar("next_billing_date", { length: 20 }),
+  url: text("url"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({ id: true, createdAt: true });
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;

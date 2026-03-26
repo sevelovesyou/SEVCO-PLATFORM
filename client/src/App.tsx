@@ -80,6 +80,7 @@ import CommandSupport from "@/pages/command-support";
 import CommandStaff from "@/pages/command-staff";
 import CommandChatLog from "@/pages/command-chat-log";
 import CommandFinance from "@/pages/command-finance";
+import CommandMinecraft from "@/pages/command-minecraft";
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
 const COMMAND_PREFIXES = ["/command"];
@@ -121,6 +122,7 @@ function Router() {
       <Route path="/services" component={ServicesListingPage} />
       <Route path="/services/:slug" component={ServiceDetailPage} />
       <Route path="/projects" component={ProjectsPage} />
+      <Route path="/projects/new" component={() => <ProtectedRoute><ProjectCreatePage /></ProtectedRoute>} />
       <Route path="/projects/:slug" component={ProjectDetail} />
       <Route path="/about" component={AboutPage} />
       <Route path="/hosting" component={HostingPage} />
@@ -143,7 +145,6 @@ function Router() {
       <Route path="/store/products/new" component={() => <ProtectedRoute><StoreProductForm /></ProtectedRoute>} />
       <Route path="/music/artists/new" component={() => <ProtectedRoute><MusicArtistForm /></ProtectedRoute>} />
       <Route path="/music/albums/new" component={() => <ProtectedRoute><MusicAlbumForm /></ProtectedRoute>} />
-      <Route path="/projects/new" component={() => <ProtectedRoute><ProjectCreatePage /></ProtectedRoute>} />
       <Route path="/projects/:slug/edit" component={() => <ProtectedRoute><ProjectEditPage /></ProtectedRoute>} />
 
       <Route path="/dashboard" component={() => <Redirect to="/command" />} />
@@ -261,6 +262,11 @@ function Router() {
           <CommandPageLayout title="Chat Log" subtitle="Full moderation log of all messages across channels and DMs">
             <CommandChatLog />
           </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/minecraft" component={() => (
+        <ProtectedRoute allowedRoles={["admin"]}>
+          <CommandMinecraft />
         </ProtectedRoute>
       )} />
       <Route path="/command/finance" component={() => (

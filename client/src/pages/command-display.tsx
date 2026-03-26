@@ -94,6 +94,7 @@ export default function CommandDisplay() {
   const [sectionVisibility, setSectionVisibility] = useState<Record<string, boolean>>({});
   const [faviconUrl, setFaviconUrl] = useState("");
   const [ogImageUrl, setOgImageUrl] = useState("");
+  const [platformLogoUrl, setPlatformLogoUrl] = useState("");
 
   const DEFAULT_COLORS = {
     lightPrimary: "225 60% 48%",
@@ -137,6 +138,7 @@ export default function CommandDisplay() {
     setBtn2Icon(settings["hero.button2.icon"] ?? "");
     setFaviconUrl(settings["platform.faviconUrl"] ?? "");
     setOgImageUrl(settings["platform.ogImageUrl"] ?? "");
+    setPlatformLogoUrl(settings["platform.logoUrl"] ?? "");
     const vis: Record<string, boolean> = {};
     for (const s of SECTION_KEYS) {
       vis[s.key] = toBool(settings[s.key]);
@@ -217,6 +219,7 @@ export default function CommandDisplay() {
     mutation.mutate({
       "platform.faviconUrl": faviconUrl,
       "platform.ogImageUrl": ogImageUrl,
+      "platform.logoUrl": platformLogoUrl,
     });
   }
 
@@ -637,6 +640,27 @@ export default function CommandDisplay() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <Link2 className="h-3.5 w-3.5" />
+              Platform Wordmark / Logo
+            </Label>
+            <FileUploadWithFallback
+              bucket="brand-assets"
+              path={`platform/logo.{ext}`}
+              accept="image/*"
+              maxSizeMb={2}
+              currentUrl={platformLogoUrl || null}
+              onUpload={(url) => setPlatformLogoUrl(url)}
+              onUrlChange={(url) => setPlatformLogoUrl(url)}
+              urlValue={platformLogoUrl}
+              label="Upload Logo"
+              urlPlaceholder="https://example.com/logo.png"
+              urlTestId="input-platform-logo-url"
+            />
+            <p className="text-xs text-muted-foreground">Displayed in the platform header. Recommended: transparent PNG or SVG, height ≤ 32px. Leave empty to use the default SEVCO wordmark.</p>
+          </div>
+
           <div className="space-y-2">
             <Label className="flex items-center gap-1.5">
               <Link2 className="h-3.5 w-3.5" />

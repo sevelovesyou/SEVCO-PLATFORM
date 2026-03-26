@@ -363,35 +363,7 @@ export default function StorePage() {
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex flex-wrap gap-2" data-testid="filter-pills">
-            <button
-              data-testid="pill-category-all"
-              onClick={() => setActiveCategory("all")}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide border transition-colors duration-150 ${
-                activeCategory === "all"
-                  ? "bg-orange-500 text-white border-orange-500"
-                  : "border-border text-muted-foreground hover:border-orange-400 hover:text-orange-500"
-              }`}
-            >
-              All
-            </button>
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                data-testid={`pill-category-${cat}`}
-                onClick={() => setActiveCategory(cat === activeCategory ? "all" : cat)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide border transition-colors duration-150 ${
-                  activeCategory === cat
-                    ? "bg-orange-500 text-white border-orange-500"
-                    : "border-border text-muted-foreground hover:border-orange-400 hover:text-orange-500"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
+        <div className="flex items-center justify-end gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
             <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>

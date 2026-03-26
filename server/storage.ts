@@ -32,6 +32,8 @@ import {
   type FinanceProject, type InsertFinanceProject,
   type FinanceTransaction, type InsertFinanceTransaction,
   type FinanceInvoice, type InsertFinanceInvoice,
+  type MinecraftServer, type InsertMinecraftServer,
+  type Subscription, type InsertSubscription,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
@@ -41,6 +43,8 @@ import {
   staffOrgNodes,
   chatChannels, chatMessages,
   financeProjects, financeTransactions, financeInvoices,
+  minecraftServers,
+  subscriptions,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or, inArray } from "drizzle-orm";
@@ -274,6 +278,17 @@ export interface IStorage {
   deleteFinanceInvoice(id: number): Promise<void>;
   getNextInvoiceNumber(): Promise<string>;
   getFinanceSummary(): Promise<{ totalIncomeMonth: number; totalExpensesMonth: number; netBalance: number; outstandingInvoices: number; monthlyData: Array<{ month: string; income: number; expenses: number }> }>;
+
+  getMinecraftServers(): Promise<MinecraftServer[]>;
+  getAllMinecraftServers(): Promise<MinecraftServer[]>;
+  createMinecraftServer(data: InsertMinecraftServer): Promise<MinecraftServer>;
+  updateMinecraftServer(id: number, data: Partial<InsertMinecraftServer>): Promise<MinecraftServer>;
+  deleteMinecraftServer(id: number): Promise<void>;
+
+  getSubscriptions(): Promise<Subscription[]>;
+  createSubscription(data: InsertSubscription): Promise<Subscription>;
+  updateSubscription(id: number, data: Partial<InsertSubscription>): Promise<Subscription>;
+  deleteSubscription(id: number): Promise<void>;
 }
 
 export type SearchResultItem = {
@@ -1858,6 +1873,46 @@ export class DatabaseStorage implements IStorage {
     }));
 
     return { totalIncomeMonth, totalExpensesMonth, netBalance, outstandingInvoices, monthlyData };
+  }
+
+  async getMinecraftServers(): Promise<MinecraftServer[]> {
+    return db.select().from(minecraftServers).where(eq(minecraftServers.isActive, true)).orderBy(minecraftServers.displayOrder);
+  }
+
+  async getAllMinecraftServers(): Promise<MinecraftServer[]> {
+    return db.select().from(minecraftServers).orderBy(minecraftServers.displayOrder);
+  }
+
+  async createMinecraftServer(data: InsertMinecraftServer): Promise<MinecraftServer> {
+    const [created] = await db.insert(minecraftServers).values(data).returning();
+    return created;
+  }
+
+  async updateMinecraftServer(id: number, data: Partial<InsertMinecraftServer>): Promise<MinecraftServer> {
+    const [updated] = await db.update(minecraftServers).set(data).where(eq(minecraftServers.id, id)).returning();
+    return updated;
+  }
+
+  async deleteMinecraftServer(id: number): Promise<void> {
+    await db.delete(minecraftServers).where(eq(minecraftServers.id, id));
+  }
+
+  async getSubscriptions(): Promise<Subscription[]> {
+    return db.select().from(subscriptions).orderBy(desc(subscriptions.createdAt));
+  }
+
+  async createSubscription(data: InsertSubscription): Promise<Subscription> {
+    const [created] = await db.insert(subscriptions).values(data).returning();
+    return created;
+  }
+
+  async updateSubscription(id: number, data: Partial<InsertSubscription>): Promise<Subscription> {
+    const [updated] = await db.update(subscriptions).set(data).where(eq(subscriptions.id, id)).returning();
+    return updated;
+  }
+
+  async deleteSubscription(id: number): Promise<void> {
+    await db.delete(subscriptions).where(eq(subscriptions.id, id));
   }
 }
 

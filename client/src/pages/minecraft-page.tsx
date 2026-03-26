@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import type { MinecraftServer } from "@shared/schema";
 import {
   Copy,
   Check,
@@ -17,48 +18,26 @@ import {
   MessageSquare,
 } from "lucide-react";
 
-interface VoteLink {
-  name: string;
-  url: string;
-}
+const THEME_MAP: Record<string, { color: string; accent: string }> = {
+  emerald: { color: "text-emerald-400", accent: "bg-emerald-500/10" },
+  green: { color: "text-green-400", accent: "bg-green-500/10" },
+  blue: { color: "text-blue-400", accent: "bg-blue-500/10" },
+  violet: { color: "text-violet-400", accent: "bg-violet-500/10" },
+  orange: { color: "text-orange-400", accent: "bg-orange-500/10" },
+  red: { color: "text-red-400", accent: "bg-red-500/10" },
+  cyan: { color: "text-cyan-400", accent: "bg-cyan-500/10" },
+};
 
-interface ServerDef {
-  name: string;
-  host: string;
-  description: string;
-  voteLinks: VoteLink[];
-  color: string;
-  accent: string;
-  icon: React.ElementType;
-}
-
-const SERVERS: ServerDef[] = [
-  {
-    name: "SEVCO SMP",
-    host: "smp.sevco.us",
-    description: "The classic SEVCO survival experience. Build, explore, and thrive with the community.",
-    voteLinks: [
-      { name: "Planet Minecraft", url: "https://www.planetminecraft.com" },
-      { name: "Minecraft Server List", url: "https://minecraft-server-list.com" },
-      { name: "TopG", url: "https://topg.org" },
-    ],
-    color: "text-emerald-400",
-    accent: "bg-emerald-500/10",
-    icon: Pickaxe,
-  },
-  {
-    name: "SEVCO Creative",
-    host: "creative.sevco.us",
-    description: "Unlimited plots, world-edit access, and a community of builders pushing the limits.",
-    voteLinks: [
-      { name: "Planet Minecraft", url: "https://www.planetminecraft.com" },
-      { name: "Minecraft Server List", url: "https://minecraft-server-list.com" },
-    ],
-    color: "text-green-400",
-    accent: "bg-green-500/10",
-    icon: Sword,
-  },
-];
+const GAMEMODE_ICON_MAP: Record<string, React.ElementType> = {
+  survival: Pickaxe,
+  creative: Sword,
+  minigames: Gamepad2,
+  skyblock: MessageSquare,
+  factions: Sword,
+  prison: MessageSquare,
+  hub: Gamepad2,
+  other: Gamepad2,
+};
 
 interface MinecraftStatus {
   online: boolean;
@@ -148,6 +127,11 @@ const gameModes = [
 ];
 
 export default function MinecraftPage() {
+  const { data: servers = [] } = useQuery<MinecraftServer[]>({
+    queryKey: ["/api/minecraft/servers"],
+    staleTime: 300000,
+  });
+
   useEffect(() => {
     document.title = "SEVCO Minecraft — Join Our Servers";
     let desc = document.querySelector('meta[name="description"]');
@@ -273,17 +257,21 @@ export default function MinecraftPage() {
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {SERVERS.map((server) => (
+            {servers.map((server) => {
+              const theme = THEME_MAP[server.colorTheme] ?? THEME_MAP.emerald;
+              const IconComponent = GAMEMODE_ICON_MAP[server.gameMode ?? "other"] ?? Gamepad2;
+              const voteLinks = (server.voteLinks as { name: string; url: string }[]) ?? [];
+              return (
               <div
-                key={server.host}
+                key={server.id}
                 className="relative rounded-2xl border border-white/8 bg-white/[0.025] p-6 hover:bg-white/[0.05] transition-colors flex flex-col gap-5"
                 data-testid={`card-server-${server.name.toLowerCase().replace(/\s+/g, "-")}`}
               >
                 {/* Header */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl ${server.accent} shrink-0`}>
-                      <server.icon className={`h-5 w-5 ${server.color}`} />
+                    <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl ${theme.accent} shrink-0`}>
+                      <IconComponent className={`h-5 w-5 ${theme.color}`} />
                     </div>
                     <div>
                       <h3 className="text-base font-semibold text-white leading-none">{server.name}</h3>
@@ -305,10 +293,11 @@ export default function MinecraftPage() {
                 </div>
 
                 {/* Vote links */}
+                {voteLinks.length > 0 && (
                 <div>
                   <p className="text-[10px] text-white/30 uppercase tracking-wider font-semibold mb-2">Vote</p>
                   <div className="flex flex-wrap gap-2">
-                    {server.voteLinks.map((link) => (
+                    {voteLinks.map((link) => (
                       <a
                         key={link.name}
                         href={link.url}
@@ -328,8 +317,10 @@ export default function MinecraftPage() {
                     ))}
                   </div>
                 </div>
+                )}
               </div>
-            ))}
+            );
+          })}
           </div>
         </div>
       </section>

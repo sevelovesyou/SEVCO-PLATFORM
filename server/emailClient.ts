@@ -5,6 +5,8 @@ import type { FinanceInvoice } from "@shared/schema";
 const FROM_EMAIL = "noreply@sevco.us";
 
 async function getCredentials() {
+  const fallbackKey = process.env.RESEND_API_KEY;
+
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
     ? 'repl ' + process.env.REPL_IDENTITY
@@ -12,24 +14,30 @@ async function getCredentials() {
     ? 'depl ' + process.env.WEB_REPL_RENEWAL
     : null;
 
-  if (!xReplitToken) {
-    throw new Error('X-Replit-Token not found for repl/depl');
-  }
+  if (hostname && xReplitToken) {
+    try {
+      const connectionSettings = await fetch(
+        'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
+        {
+          headers: {
+            'Accept': 'application/json',
+            'X-Replit-Token': xReplitToken
+          }
+        }
+      ).then(res => res.json()).then(data => data.items?.[0]);
 
-  const connectionSettings = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
-    {
-      headers: {
-        'Accept': 'application/json',
-        'X-Replit-Token': xReplitToken
+      if (connectionSettings?.settings?.api_key) {
+        return { apiKey: connectionSettings.settings.api_key };
       }
+    } catch {
     }
-  ).then(res => res.json()).then(data => data.items?.[0]);
-
-  if (!connectionSettings || !connectionSettings.settings.api_key) {
-    throw new Error('Resend not connected');
   }
-  return { apiKey: connectionSettings.settings.api_key };
+
+  if (fallbackKey) {
+    return { apiKey: fallbackKey };
+  }
+
+  throw new Error('Resend API key not found. Connect the Resend integration or set RESEND_API_KEY.');
 }
 
 async function getUncachableResendClient() {

@@ -27,7 +27,6 @@ import {
   Plus,
   Users,
   ChevronLeft,
-  X,
   Lock,
 } from "lucide-react";
 import type { ChatChannel, User } from "@shared/schema";
@@ -471,9 +470,6 @@ export function ChatSheet({ open, onClose }: { open: boolean; onClose: () => voi
                     <MessageCircle className="h-4 w-4" />
                     Chat
                   </SheetTitle>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleClose} data-testid="button-close-chat">
-                    <X className="h-4 w-4" />
-                  </Button>
                 </div>
               </SheetHeader>
 

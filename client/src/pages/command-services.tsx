@@ -353,11 +353,11 @@ export default function CommandServices() {
                     <div className="flex items-center gap-1 shrink-0">
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Link href={`/services/${service.slug}`}>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`button-view-service-${service.slug}`}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" asChild data-testid={`button-view-service-${service.slug}`}>
+                            <Link href={`/services/${service.slug}`}>
                               <ExternalLink className="h-3.5 w-3.5" />
-                            </Button>
-                          </Link>
+                            </Link>
+                          </Button>
                         </TooltipTrigger>
                         <TooltipContent>View</TooltipContent>
                       </Tooltip>

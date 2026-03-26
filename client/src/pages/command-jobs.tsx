@@ -697,11 +697,11 @@ export default function CommandJobs() {
                   </Select>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Link href={`/jobs/${job.slug}`}>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`button-view-job-${job.slug}`}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" asChild data-testid={`button-view-job-${job.slug}`}>
+                        <Link href={`/jobs/${job.slug}`}>
                           <ExternalLink className="h-3.5 w-3.5" />
-                        </Button>
-                      </Link>
+                        </Link>
+                      </Button>
                     </TooltipTrigger>
                     <TooltipContent>View</TooltipContent>
                   </Tooltip>

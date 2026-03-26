@@ -347,6 +347,9 @@ export async function seedServices() {
     // Support
     { name: "Dedicated Support", slug: "dedicated-support", category: "Support", tagline: "Ongoing technical and product support for your team", iconName: "HeadphonesIcon", featured: false, description: `Get reliable, responsive support from a team that knows your product. Our dedicated support service provides ongoing technical assistance and issue resolution.\n\n**What's included:**\n- Dedicated support channel\n- SLA-backed response times\n- Bug triage and resolution\n- Documentation maintenance\n- Monthly support reports` },
     { name: "Onboarding", slug: "onboarding", category: "Support", tagline: "Structured onboarding programs for new clients and teams", iconName: "BookOpen", featured: false, description: `Start every relationship the right way. We design and run onboarding programs that get new clients and team members up to speed quickly and confidently.\n\n**What's included:**\n- Onboarding flow design\n- Welcome materials and documentation\n- Training sessions (live and recorded)\n- Check-in schedule and milestones\n- Handoff to steady state` },
+
+    // Media
+    { name: "Music Production", slug: "music-production", category: "Media", tagline: "Recording, mixing, and production for artists and brands", iconName: "Music", featured: true, description: `From concept to final master, our production team brings your sound to life. We work with artists, brands, and creators to produce professional-quality music and audio.\n\n**What's included:**\n- Pre-production planning and arrangement\n- Studio recording sessions\n- Mixing and mastering\n- Distribution prep (streaming, licensing)\n- Sync licensing consultation` },
   ];
 
   for (const s of serviceData) {
@@ -363,6 +366,23 @@ export async function seedServices() {
   }
 
   console.log(`Seeded ${serviceData.length} services.`);
+}
+
+export async function migrateServiceCategories() {
+  const legacyMap: Record<string, string> = {
+    Engineering: "Technology",
+    Design:      "Creative",
+    Operations:  "Business",
+    Sales:       "Business",
+  };
+
+  for (const [oldCat, newCat] of Object.entries(legacyMap)) {
+    await db
+      .update(services)
+      .set({ category: newCat })
+      .where(sql`${services.category} = ${oldCat}`);
+  }
+  console.log("Service category migration applied (Engineering→Technology, Design→Creative, Operations/Sales→Business).");
 }
 
 export async function seedPlaylists() {

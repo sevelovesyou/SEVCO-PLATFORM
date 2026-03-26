@@ -559,16 +559,16 @@ export default function NotesPage() {
 
                 {/* Share / Export */}
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-7 w-7" data-testid="button-share-export">
                           <Share2 className="h-3.5 w-3.5" />
                         </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Share / Export</TooltipContent>
-                    </Tooltip>
-                  </DropdownMenuTrigger>
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Share / Export</TooltipContent>
+                  </Tooltip>
                   <DropdownMenuContent align="end" className="w-52">
                     <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">Share / Export</DropdownMenuLabel>
                     <DropdownMenuSeparator />

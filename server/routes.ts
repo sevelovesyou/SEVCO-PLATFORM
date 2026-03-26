@@ -12,7 +12,7 @@ import {
   CAN_ACCESS_ARCHIVE,
 } from "./middleware/permissions";
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail, sendContactReplyEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
@@ -3289,6 +3289,144 @@ export async function registerRoutes(
       const id = parseInt(req.params.id);
       await storage.deleteStaffOrgNode(id);
       res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ─── Chat: User list (for DM targeting) ──────────────────────────────────
+  app.get("/api/chat/users", requireAuth, async (req, res) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      res.json(allUsers.map(({ password: _, emailVerificationToken: __, ...u }) => u));
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ─── Chat: Channels ───────────────────────────────────────────────────────
+  app.get("/api/chat/channels", requireAuth, async (req, res) => {
+    try {
+      const channels = await storage.getChatChannels();
+      res.json(channels);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/chat/channels", requireAuth, requireRole("admin", "executive", "staff"), async (req, res) => {
+    try {
+      const body = insertChatChannelSchema.parse(req.body);
+      const channel = await storage.createChatChannel({ ...body, createdBy: req.user!.id });
+      res.json(channel);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/chat/channels/:id", requireAuth, requireRole("admin", "executive", "staff"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const body = insertChatChannelSchema.partial().parse(req.body);
+      const channel = await storage.updateChatChannel(id, body);
+      res.json(channel);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/chat/channels/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteChatChannel(id);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ─── Chat: Channel messages ────────────────────────────────────────────────
+  app.get("/api/chat/channels/:id/messages", requireAuth, async (req, res) => {
+    try {
+      const channelId = parseInt(req.params.id);
+      const before = req.query.before ? parseInt(req.query.before as string) : undefined;
+      const limit = req.query.limit ? Math.min(parseInt(req.query.limit as string), 100) : 50;
+      const messages = await storage.getChannelMessages(channelId, before, limit);
+      res.json(messages);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/chat/channels/:id/messages", requireAuth, async (req, res) => {
+    try {
+      const channelId = parseInt(req.params.id);
+      const { content } = req.body;
+      if (!content || typeof content !== "string" || !content.trim()) {
+        return res.status(400).json({ message: "Content is required" });
+      }
+      const message = await storage.sendChannelMessage({ channelId, content: content.trim(), fromUserId: req.user!.id });
+      res.json(message);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ─── Chat: DMs ────────────────────────────────────────────────────────────
+  app.get("/api/chat/dm/:userId/messages", requireAuth, async (req, res) => {
+    try {
+      const otherUserId = req.params.userId;
+      const before = req.query.before ? parseInt(req.query.before as string) : undefined;
+      const limit = req.query.limit ? Math.min(parseInt(req.query.limit as string), 100) : 50;
+      const messages = await storage.getDmMessages(req.user!.id, otherUserId, before, limit);
+      res.json(messages);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/chat/dm/:userId", requireAuth, async (req, res) => {
+    try {
+      const toUserId = req.params.userId;
+      const { content } = req.body;
+      if (!content || typeof content !== "string" || !content.trim()) {
+        return res.status(400).json({ message: "Content is required" });
+      }
+      const message = await storage.sendDmMessage(req.user!.id, toUserId, content.trim());
+      res.json(message);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/chat/dm-threads", requireAuth, async (req, res) => {
+    try {
+      const threads = await storage.getDmThreads(req.user!.id);
+      res.json(threads);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ─── Chat: Moderation log ─────────────────────────────────────────────────
+  app.get("/api/chat/log", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const channelId = req.query.channelId ? parseInt(req.query.channelId as string) : undefined;
+      const userId = req.query.userId as string | undefined;
+      const dateFrom = req.query.dateFrom ? new Date(req.query.dateFrom as string) : undefined;
+      const dateTo = req.query.dateTo ? new Date(req.query.dateTo as string) : undefined;
+      const messages = await storage.getAllChatMessages({ channelId, userId, dateFrom, dateTo });
+      res.json(messages);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/chat/messages/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const message = await storage.softDeleteChatMessage(id);
+      res.json(message);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

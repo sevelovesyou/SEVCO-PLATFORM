@@ -27,6 +27,8 @@ import {
   type SpotifyArtist, type InsertSpotifyArtist,
   type ContactSubmission, type InsertContactSubmission,
   type StaffOrgNode, type InsertStaffOrgNode,
+  type ChatChannel, type InsertChatChannel,
+  type ChatMessage, type InsertChatMessage,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
@@ -34,6 +36,7 @@ import {
   noteCollaborators, noteAttachments, platformSettings, brandAssets, resources, galleryImages, spotifyArtists,
   contactSubmissions,
   staffOrgNodes,
+  chatChannels, chatMessages,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or, inArray } from "drizzle-orm";
@@ -234,6 +237,19 @@ export interface IStorage {
   createStaffOrgNode(data: InsertStaffOrgNode): Promise<StaffOrgNode>;
   updateStaffOrgNode(id: number, data: Partial<InsertStaffOrgNode>): Promise<StaffOrgNode>;
   deleteStaffOrgNode(id: number): Promise<void>;
+
+  getChatChannels(): Promise<ChatChannel[]>;
+  getChatChannelById(id: number): Promise<ChatChannel | undefined>;
+  createChatChannel(data: InsertChatChannel & { createdBy: string }): Promise<ChatChannel>;
+  updateChatChannel(id: number, data: Partial<InsertChatChannel>): Promise<ChatChannel>;
+  deleteChatChannel(id: number): Promise<void>;
+  getChannelMessages(channelId: number, before?: number, limit?: number): Promise<ChatMessageWithUsers[]>;
+  sendChannelMessage(data: InsertChatMessage & { fromUserId: string }): Promise<ChatMessage>;
+  getDmMessages(userId1: string, userId2: string, before?: number, limit?: number): Promise<ChatMessageWithUsers[]>;
+  sendDmMessage(fromUserId: string, toUserId: string, content: string): Promise<ChatMessage>;
+  getAllChatMessages(filters?: { channelId?: number; userId?: string; dateFrom?: Date; dateTo?: Date }): Promise<ChatMessageWithUsers[]>;
+  softDeleteChatMessage(id: number): Promise<ChatMessage>;
+  getDmThreads(userId: string): Promise<DmThread[]>;
 }
 
 export type SearchResultItem = {
@@ -268,6 +284,18 @@ export type StaffUserWithNode = {
   avatarUrl: string | null;
   createdAt?: Date | null;
   orgNode: StaffOrgNode | null;
+};
+
+export type ChatUserInfo = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
+export type ChatMessageWithUsers = ChatMessage & {
+  fromUser: ChatUserInfo;
+  toUser: ChatUserInfo | null;
+  channel: { id: number; name: string } | null;
+};
+export type DmThread = {
+  otherUser: ChatUserInfo;
+  lastMessage: ChatMessage;
+  unreadCount: number;
 };
 
 export class DatabaseStorage implements IStorage {
@@ -1538,6 +1566,145 @@ export class DatabaseStorage implements IStorage {
 
   async deleteStaffOrgNode(id: number): Promise<void> {
     await db.delete(staffOrgNodes).where(eq(staffOrgNodes.id, id));
+  }
+
+  async getChatChannels(): Promise<ChatChannel[]> {
+    return db.select().from(chatChannels).orderBy(chatChannels.createdAt);
+  }
+
+  async getChatChannelById(id: number): Promise<ChatChannel | undefined> {
+    const [ch] = await db.select().from(chatChannels).where(eq(chatChannels.id, id));
+    return ch || undefined;
+  }
+
+  async createChatChannel(data: InsertChatChannel & { createdBy: string }): Promise<ChatChannel> {
+    const [created] = await db.insert(chatChannels).values(data).returning();
+    return created;
+  }
+
+  async updateChatChannel(id: number, data: Partial<InsertChatChannel>): Promise<ChatChannel> {
+    const [updated] = await db.update(chatChannels).set(data).where(eq(chatChannels.id, id)).returning();
+    return updated;
+  }
+
+  async deleteChatChannel(id: number): Promise<void> {
+    await db.delete(chatMessages).where(eq(chatMessages.channelId, id));
+    await db.delete(chatChannels).where(eq(chatChannels.id, id));
+  }
+
+  private async enrichMessages(rows: ChatMessage[]): Promise<ChatMessageWithUsers[]> {
+    if (rows.length === 0) return [];
+    const userIds = [...new Set([...rows.map((r) => r.fromUserId), ...rows.map((r) => r.toUserId).filter(Boolean) as string[]])];
+    const userRows = await db.select({
+      id: users.id,
+      username: users.username,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
+    }).from(users).where(inArray(users.id, userIds));
+    const userMap = new Map(userRows.map((u) => [u.id, u]));
+
+    const channelIds = [...new Set(rows.map((r) => r.channelId).filter(Boolean) as number[])];
+    let channelMap = new Map<number, { id: number; name: string }>();
+    if (channelIds.length > 0) {
+      const chRows = await db.select({ id: chatChannels.id, name: chatChannels.name }).from(chatChannels).where(inArray(chatChannels.id, channelIds));
+      channelMap = new Map(chRows.map((c) => [c.id, c]));
+    }
+
+    return rows.map((m) => ({
+      ...m,
+      fromUser: userMap.get(m.fromUserId) ?? { id: m.fromUserId, username: "unknown", displayName: null, avatarUrl: null },
+      toUser: m.toUserId ? (userMap.get(m.toUserId) ?? { id: m.toUserId, username: "unknown", displayName: null, avatarUrl: null }) : null,
+      channel: m.channelId ? (channelMap.get(m.channelId) ?? null) : null,
+    }));
+  }
+
+  async getChannelMessages(channelId: number, before?: number, limit = 50): Promise<ChatMessageWithUsers[]> {
+    let query = db.select().from(chatMessages)
+      .where(and(eq(chatMessages.channelId, channelId), ...(before ? [sql`${chatMessages.id} < ${before}`] : [])))
+      .orderBy(desc(chatMessages.createdAt))
+      .limit(limit);
+    const rows = await query;
+    const enriched = await this.enrichMessages(rows);
+    return enriched.reverse();
+  }
+
+  async sendChannelMessage(data: InsertChatMessage & { fromUserId: string }): Promise<ChatMessage> {
+    const [created] = await db.insert(chatMessages).values(data).returning();
+    return created;
+  }
+
+  async getDmMessages(userId1: string, userId2: string, before?: number, limit = 50): Promise<ChatMessageWithUsers[]> {
+    const conditions = [
+      sql`${chatMessages.channelId} IS NULL`,
+      or(
+        and(eq(chatMessages.fromUserId, userId1), eq(chatMessages.toUserId, userId2)),
+        and(eq(chatMessages.fromUserId, userId2), eq(chatMessages.toUserId, userId1)),
+      )!,
+      ...(before ? [sql`${chatMessages.id} < ${before}`] : []),
+    ];
+    const rows = await db.select().from(chatMessages)
+      .where(and(...conditions))
+      .orderBy(desc(chatMessages.createdAt))
+      .limit(limit);
+    const enriched = await this.enrichMessages(rows);
+    return enriched.reverse();
+  }
+
+  async sendDmMessage(fromUserId: string, toUserId: string, content: string): Promise<ChatMessage> {
+    const [created] = await db.insert(chatMessages).values({ fromUserId, toUserId, content }).returning();
+    return created;
+  }
+
+  async getAllChatMessages(filters?: { channelId?: number; userId?: string; dateFrom?: Date; dateTo?: Date }): Promise<ChatMessageWithUsers[]> {
+    const conditions = [];
+    if (filters?.channelId) conditions.push(eq(chatMessages.channelId, filters.channelId));
+    if (filters?.userId) {
+      conditions.push(or(
+        eq(chatMessages.fromUserId, filters.userId),
+        eq(chatMessages.toUserId, filters.userId),
+      )!);
+    }
+    if (filters?.dateFrom) conditions.push(sql`${chatMessages.createdAt} >= ${filters.dateFrom}`);
+    if (filters?.dateTo) conditions.push(sql`${chatMessages.createdAt} <= ${filters.dateTo}`);
+    const rows = await db.select().from(chatMessages)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(chatMessages.createdAt))
+      .limit(200);
+    return this.enrichMessages(rows);
+  }
+
+  async softDeleteChatMessage(id: number): Promise<ChatMessage> {
+    const [updated] = await db.update(chatMessages)
+      .set({ deletedAt: new Date() })
+      .where(eq(chatMessages.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getDmThreads(userId: string): Promise<DmThread[]> {
+    const rows = await db.select().from(chatMessages)
+      .where(and(
+        sql`${chatMessages.channelId} IS NULL`,
+        or(eq(chatMessages.fromUserId, userId), eq(chatMessages.toUserId, userId))!,
+      ))
+      .orderBy(desc(chatMessages.createdAt));
+
+    const seen = new Set<string>();
+    const threads: DmThread[] = [];
+    const enriched = await this.enrichMessages(rows);
+    for (const msg of enriched) {
+      const otherId = msg.fromUserId === userId ? msg.toUserId : msg.fromUserId;
+      if (!otherId || seen.has(otherId)) continue;
+      seen.add(otherId);
+      const otherUser = msg.fromUserId === userId ? msg.toUser : msg.fromUser;
+      if (!otherUser) continue;
+      threads.push({
+        otherUser,
+        lastMessage: msg,
+        unreadCount: 0,
+      });
+    }
+    return threads;
   }
 }
 

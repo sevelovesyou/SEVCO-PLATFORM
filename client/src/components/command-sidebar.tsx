@@ -72,6 +72,7 @@ export function CommandSidebar() {
     ...(isAdmin ? [{ title: "Staff", url: "/command/staff", icon: UsersRound }] : []),
     ...(isAdmin ? [{ title: "Hosting", url: "/command/hosting", icon: Server }] : []),
     ...(isAdmin ? [{ title: "Display", url: "/command/display", icon: MonitorCog }] : []),
+    ...(isAdmin ? [{ title: "Chat Log", url: "/command/chat-log", icon: MessageSquare }] : []),
   ];
 
   function isActive(url: string) {

@@ -631,3 +631,31 @@ export const staffOrgNodes = pgTable("staff_org_nodes", {
 export const insertStaffOrgNodeSchema = createInsertSchema(staffOrgNodes).omit({ id: true, createdAt: true });
 export type StaffOrgNode = typeof staffOrgNodes.$inferSelect;
 export type InsertStaffOrgNode = z.infer<typeof insertStaffOrgNodeSchema>;
+
+export const chatChannels = pgTable("chat_channels", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdBy: varchar("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  isPrivate: boolean("is_private").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const chatMessages = pgTable("chat_messages", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  channelId: integer("channel_id"),
+  fromUserId: varchar("from_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  toUserId: varchar("to_user_id"),
+  content: text("content").notNull(),
+  editedAt: timestamp("edited_at"),
+  deletedAt: timestamp("deleted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertChatChannelSchema = createInsertSchema(chatChannels).omit({ id: true, createdAt: true, createdBy: true });
+export type ChatChannel = typeof chatChannels.$inferSelect;
+export type InsertChatChannel = z.infer<typeof insertChatChannelSchema>;
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({ id: true, createdAt: true, fromUserId: true, editedAt: true, deletedAt: true });
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;

@@ -65,8 +65,10 @@ import {
   Wrench,
   Images,
   Pickaxe,
+  MessageCircle,
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
+import { ChatSheet } from "@/components/chat-sheet";
 import type { Project, Service } from "@shared/schema";
 
 function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
@@ -595,6 +597,7 @@ export function PlatformHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSection, setMobileSection] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const storeCategories = ["Apparel", "Games", "Grocery", "Health", "Music", "Books"];
   const musicItems = [
@@ -684,6 +687,19 @@ export function PlatformHeader() {
           >
             <Search className="h-4 w-4" />
           </Button>
+
+          {/* Chat button — logged-in only */}
+          {user && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setChatOpen(true)}
+              data-testid="button-open-chat"
+            >
+              <MessageCircle className="h-4 w-4" />
+            </Button>
+          )}
 
           {/* Cart button */}
           <Button
@@ -922,6 +938,7 @@ export function PlatformHeader() {
     </header>
 
     <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
+    <ChatSheet open={chatOpen} onClose={() => setChatOpen(false)} />
     </>
   );
 }

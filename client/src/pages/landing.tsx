@@ -375,21 +375,36 @@ export default function Landing() {
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Everything SEVCO, in one place.</h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {PLATFORM_SECTIONS.map((section) => (
-              <Link key={section.path} href={section.path}>
-                <div
-                  className={`group relative rounded-2xl border bg-gradient-to-br p-5 cursor-pointer hover:shadow-md hover:bg-white/[0.03] transition-all duration-200 ${section.accent}`}
-                  data-testid={`card-platform-${section.label.toLowerCase()}`}
-                >
-                  <div className={`h-10 w-10 rounded-xl ${section.iconBg} flex items-center justify-center mb-4`}>
-                    <section.icon className={`h-5 w-5 ${section.iconColor}`} />
+            {PLATFORM_SECTIONS.map((section) => {
+              const cardAccentHsl = settings["home.cardAccentColor"];
+              const accentStyle = cardAccentHsl ? {
+                borderColor: `hsl(${cardAccentHsl} / 0.25)`,
+                iconBg: `hsl(${cardAccentHsl} / 0.12)`,
+                iconColor: `hsl(${cardAccentHsl})`,
+              } : null;
+              return (
+                <Link key={section.path} href={section.path}>
+                  <div
+                    className={`group relative rounded-2xl border bg-gradient-to-br p-5 cursor-pointer hover:shadow-md hover:bg-white/[0.03] transition-all duration-200 ${section.accent}`}
+                    data-testid={`card-platform-${section.label.toLowerCase()}`}
+                    style={accentStyle ? { borderColor: accentStyle.borderColor } : undefined}
+                  >
+                    <div
+                      className={`h-10 w-10 rounded-xl flex items-center justify-center mb-4 ${accentStyle ? "" : section.iconBg}`}
+                      style={accentStyle ? { backgroundColor: accentStyle.iconBg } : undefined}
+                    >
+                      <section.icon
+                        className={`h-5 w-5 ${accentStyle ? "" : section.iconColor}`}
+                        style={accentStyle ? { color: accentStyle.iconColor } : undefined}
+                      />
+                    </div>
+                    <h3 className="text-sm font-bold text-foreground mb-1">{section.label}</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{section.description}</p>
+                    <ArrowRight className="absolute bottom-4 right-4 h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all" />
                   </div>
-                  <h3 className="text-sm font-bold text-foreground mb-1">{section.label}</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{section.description}</p>
-                  <ArrowRight className="absolute bottom-4 right-4 h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all" />
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}

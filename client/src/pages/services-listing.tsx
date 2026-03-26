@@ -34,6 +34,12 @@ export default function ServicesListingPage() {
     queryKey: ["/api/services"],
   });
 
+  const { data: platformSettings = {} } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
+  });
+
+  const servicesAccentHsl = platformSettings["services.accentColor"];
+
   const grouped = CATEGORY_ORDER.reduce<Record<string, Service[]>>((acc, cat) => {
     const items = (services ?? []).filter((s) => s.category === cat);
     if (items.length > 0) acc[cat] = items;
@@ -110,10 +116,16 @@ export default function ServicesListingPage() {
 
         {!isLoading && Object.entries(grouped).map(([category, items]) => {
           const styles = CATEGORY_STYLES[category] ?? CATEGORY_STYLES.Technology;
+          const accentStyle = servicesAccentHsl ? { color: `hsl(${servicesAccentHsl})` } : undefined;
           return (
             <div key={category} className="mb-10">
               <div className="flex items-center gap-3 mb-4">
-                <h2 className={`text-sm font-semibold uppercase tracking-wider ${styles.accent}`}>{category}</h2>
+                <h2
+                  className={`text-sm font-semibold uppercase tracking-wider ${accentStyle ? "" : styles.accent}`}
+                  style={accentStyle}
+                >
+                  {category}
+                </h2>
                 <div className="flex-1 h-px bg-border" />
               </div>
               <div className="grid md:grid-cols-3 gap-3">
@@ -125,7 +137,7 @@ export default function ServicesListingPage() {
                         data-testid={`card-service-${service.id}`}
                         className="group border rounded-xl p-4 hover:border-foreground/20 hover:shadow-sm transition-all cursor-pointer bg-background h-full"
                       >
-                        <div className={`mb-3 ${styles.accent}`}>
+                        <div className={`mb-3 ${accentStyle ? "" : styles.accent}`} style={accentStyle}>
                           <Icon className="h-5 w-5" />
                         </div>
                         <h3 className="font-semibold text-sm mb-1 group-hover:text-foreground transition-colors">

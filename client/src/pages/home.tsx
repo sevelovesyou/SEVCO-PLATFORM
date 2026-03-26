@@ -25,6 +25,12 @@ export default function Home() {
     queryKey: ["/api/categories"],
   });
 
+  const { data: platformSettings = {} } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
+  });
+
+  const wikiTagHsl = platformSettings["wiki.tagColor"];
+
   const { data: stats } = useQuery<{
     totalArticles: number;
     totalRevisions: number;
@@ -83,7 +89,16 @@ export default function Home() {
             )}
             <div className="flex items-center gap-2 mt-3">
               {featuredArticle.tags?.slice(0, 3).map((tag) => (
-                <Badge key={tag} variant="secondary" className="text-[10px]">
+                <Badge
+                  key={tag}
+                  variant="secondary"
+                  className="text-[10px]"
+                  style={wikiTagHsl ? {
+                    backgroundColor: `hsl(${wikiTagHsl} / 0.12)`,
+                    borderColor: `hsl(${wikiTagHsl} / 0.3)`,
+                    color: `hsl(${wikiTagHsl})`,
+                  } : undefined}
+                >
                   {tag}
                 </Badge>
               ))}

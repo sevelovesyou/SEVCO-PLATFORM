@@ -505,6 +505,13 @@ export default function CommandSettings() {
   const [brandHighlight, setBrandHighlight] = useState(DEFAULT_COLORS.brandHighlight);
   const [navActiveHighlight, setNavActiveHighlight] = useState(DEFAULT_COLORS.navActiveHighlight);
 
+  // ── Per-section color state ──
+  const [homeCardAccentColor, setHomeCardAccentColor] = useState("");
+  const [storeAccentColor, setStoreAccentColor] = useState("");
+  const [servicesAccentColor, setServicesAccentColor] = useState("");
+  const [musicAccentColor, setMusicAccentColor] = useState("");
+  const [wikiTagColor, setWikiTagColor] = useState("");
+
   // ── Icon pills state ──
   const [iconPills, setIconPills] = useState<IconPill[]>(DEFAULT_ICON_PILLS);
 
@@ -544,6 +551,12 @@ export default function CommandSettings() {
     setBrandAccent(settings["color.brand.accent"] || DEFAULT_COLORS.brandAccent);
     setBrandHighlight(settings["color.brand.highlight"] || DEFAULT_COLORS.brandHighlight);
     setNavActiveHighlight(settings["color.nav.activeHighlight"] || DEFAULT_COLORS.navActiveHighlight);
+
+    setHomeCardAccentColor(settings["home.cardAccentColor"] || "");
+    setStoreAccentColor(settings["store.accentColor"] || "");
+    setServicesAccentColor(settings["services.accentColor"] || "");
+    setMusicAccentColor(settings["music.accentColor"] || "");
+    setWikiTagColor(settings["wiki.tagColor"] || "");
 
     if (settings["home.iconPills"]) {
       try {
@@ -594,6 +607,16 @@ export default function CommandSettings() {
       "color.brand.accent": "",
       "color.brand.highlight": "",
       "color.nav.activeHighlight": "",
+    });
+  }
+
+  function savePerSectionColors() {
+    mutation.mutate({
+      "home.cardAccentColor": homeCardAccentColor,
+      "store.accentColor": storeAccentColor,
+      "services.accentColor": servicesAccentColor,
+      "music.accentColor": musicAccentColor,
+      "wiki.tagColor": wikiTagColor,
     });
   }
 
@@ -1200,6 +1223,187 @@ export default function CommandSettings() {
                 <Button onClick={saveColors} disabled={mutation.isPending} className="gap-2" data-testid="button-save-colors">
                   <Save className="h-3.5 w-3.5" />
                   Save Colors
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Per-Section Colors */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Palette className="h-4 w-4" />
+                    Per-Section Colors
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    Optional accent colors for individual platform sections. Leave empty to use global brand colors or Tailwind defaults.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="relative shrink-0">
+                    <div
+                      className="h-8 w-8 rounded-md border border-border"
+                      style={{ backgroundColor: homeCardAccentColor ? `hsl(${homeCardAccentColor})` : "transparent" }}
+                    />
+                    <input
+                      type="color"
+                      value={homeCardAccentColor ? hslToHex(homeCardAccentColor) : "#000000"}
+                      onChange={(e) => setHomeCardAccentColor(hexToHsl(e.target.value))}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-8 h-8"
+                      data-testid="color-picker-home-card-accent"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-foreground">Home Page Cards</p>
+                    <p className="text-[10px] text-muted-foreground font-mono truncate">{homeCardAccentColor || "— using defaults"}</p>
+                  </div>
+                  {homeCardAccentColor && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground shrink-0"
+                      onClick={() => setHomeCardAccentColor("")}
+                      data-testid="button-reset-home-card-accent"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="relative shrink-0">
+                    <div
+                      className="h-8 w-8 rounded-md border border-border"
+                      style={{ backgroundColor: storeAccentColor ? `hsl(${storeAccentColor})` : "transparent" }}
+                    />
+                    <input
+                      type="color"
+                      value={storeAccentColor ? hslToHex(storeAccentColor) : "#000000"}
+                      onChange={(e) => setStoreAccentColor(hexToHsl(e.target.value))}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-8 h-8"
+                      data-testid="color-picker-store-accent"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-foreground">Store Page</p>
+                    <p className="text-[10px] text-muted-foreground font-mono truncate">{storeAccentColor || "— using defaults"}</p>
+                  </div>
+                  {storeAccentColor && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground shrink-0"
+                      onClick={() => setStoreAccentColor("")}
+                      data-testid="button-reset-store-accent"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="relative shrink-0">
+                    <div
+                      className="h-8 w-8 rounded-md border border-border"
+                      style={{ backgroundColor: servicesAccentColor ? `hsl(${servicesAccentColor})` : "transparent" }}
+                    />
+                    <input
+                      type="color"
+                      value={servicesAccentColor ? hslToHex(servicesAccentColor) : "#000000"}
+                      onChange={(e) => setServicesAccentColor(hexToHsl(e.target.value))}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-8 h-8"
+                      data-testid="color-picker-services-accent"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-foreground">Services Page</p>
+                    <p className="text-[10px] text-muted-foreground font-mono truncate">{servicesAccentColor || "— using defaults"}</p>
+                  </div>
+                  {servicesAccentColor && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground shrink-0"
+                      onClick={() => setServicesAccentColor("")}
+                      data-testid="button-reset-services-accent"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="relative shrink-0">
+                    <div
+                      className="h-8 w-8 rounded-md border border-border"
+                      style={{ backgroundColor: musicAccentColor ? `hsl(${musicAccentColor})` : "transparent" }}
+                    />
+                    <input
+                      type="color"
+                      value={musicAccentColor ? hslToHex(musicAccentColor) : "#000000"}
+                      onChange={(e) => setMusicAccentColor(hexToHsl(e.target.value))}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-8 h-8"
+                      data-testid="color-picker-music-accent"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-foreground">Music Page (RECORDS section)</p>
+                    <p className="text-[10px] text-muted-foreground font-mono truncate">{musicAccentColor || "— using defaults"}</p>
+                  </div>
+                  {musicAccentColor && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground shrink-0"
+                      onClick={() => setMusicAccentColor("")}
+                      data-testid="button-reset-music-accent"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="relative shrink-0">
+                    <div
+                      className="h-8 w-8 rounded-md border border-border"
+                      style={{ backgroundColor: wikiTagColor ? `hsl(${wikiTagColor})` : "transparent" }}
+                    />
+                    <input
+                      type="color"
+                      value={wikiTagColor ? hslToHex(wikiTagColor) : "#000000"}
+                      onChange={(e) => setWikiTagColor(hexToHsl(e.target.value))}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-8 h-8"
+                      data-testid="color-picker-wiki-tag"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-foreground">Wiki Tags / Highlights</p>
+                    <p className="text-[10px] text-muted-foreground font-mono truncate">{wikiTagColor || "— using defaults"}</p>
+                  </div>
+                  {wikiTagColor && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground shrink-0"
+                      onClick={() => setWikiTagColor("")}
+                      data-testid="button-reset-wiki-tag"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-end pt-2">
+                <Button onClick={savePerSectionColors} disabled={mutation.isPending} className="gap-2" data-testid="button-save-per-section-colors">
+                  <Save className="h-3.5 w-3.5" />
+                  Save Section Colors
                 </Button>
               </div>
             </CardContent>

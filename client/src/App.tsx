@@ -379,6 +379,18 @@ function PlatformColorInjector() {
       }
     }
 
+    const homeCardAccent = toHsl(settings["home.cardAccentColor"] ?? "");
+    const storeAccent = toHsl(settings["store.accentColor"] ?? "");
+    const servicesAccent = toHsl(settings["services.accentColor"] ?? "");
+    const musicAccent = toHsl(settings["music.accentColor"] ?? "");
+    const wikiTagColor = toHsl(settings["wiki.tagColor"] ?? "");
+
+    if (homeCardAccent) lightRules.push(`  --home-card-accent: ${homeCardAccent};`);
+    if (storeAccent) lightRules.push(`  --store-accent: ${storeAccent};`);
+    if (servicesAccent) lightRules.push(`  --services-accent: ${servicesAccent};`);
+    if (musicAccent) lightRules.push(`  --music-accent: ${musicAccent};`);
+    if (wikiTagColor) lightRules.push(`  --wiki-tag-color: ${wikiTagColor};`);
+
     const darkRules: string[] = [];
 
     if (brandMain && !settings["color.dark.primary"]) {
@@ -411,6 +423,12 @@ function PlatformColorInjector() {
         darkRules.push(`  ${cssVar}: ${val};`);
       }
     }
+
+    if (homeCardAccent) darkRules.push(`  --home-card-accent: ${homeCardAccent};`);
+    if (storeAccent) darkRules.push(`  --store-accent: ${storeAccent};`);
+    if (servicesAccent) darkRules.push(`  --services-accent: ${servicesAccent};`);
+    if (musicAccent) darkRules.push(`  --music-accent: ${musicAccent};`);
+    if (wikiTagColor) darkRules.push(`  --wiki-tag-color: ${wikiTagColor};`)
 
     const hasOverrides = lightRules.length > 0 || darkRules.length > 0;
 

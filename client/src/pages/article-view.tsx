@@ -64,6 +64,12 @@ export default function ArticleView() {
     enabled: !!slug,
   });
 
+  const { data: platformSettings = {} } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
+  });
+
+  const wikiTagHsl = platformSettings["wiki.tagColor"];
+
   const approveMutation = useMutation({
     mutationFn: (revisionId: number) =>
       apiRequest("PATCH", `/api/revisions/${revisionId}`, { status: "approved" }),
@@ -302,7 +308,16 @@ export default function ArticleView() {
                 <div className="flex items-center gap-2 mt-6 pt-4 border-t flex-wrap">
                   <Tag className="h-3 w-3 text-muted-foreground" />
                   {article.tags.map((tag) => (
-                    <Badge key={tag} variant="outline" className="text-[10px]">
+                    <Badge
+                      key={tag}
+                      variant="outline"
+                      className="text-[10px]"
+                      style={wikiTagHsl ? {
+                        backgroundColor: `hsl(${wikiTagHsl} / 0.12)`,
+                        borderColor: `hsl(${wikiTagHsl} / 0.3)`,
+                        color: `hsl(${wikiTagHsl})`,
+                      } : undefined}
+                    >
                       {tag}
                     </Badge>
                   ))}

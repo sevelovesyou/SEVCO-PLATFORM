@@ -110,8 +110,9 @@ function ProductImageArea({ product, onAddToCart }: { product: Product; onAddToC
   );
 }
 
-function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart: () => void }) {
+function ProductCard({ product, onAddToCart, accentHsl }: { product: Product; onAddToCart: () => void; accentHsl?: string }) {
   const soldOut = product.stockStatus === "sold_out";
+  const accentColor = accentHsl ? `hsl(${accentHsl})` : undefined;
   return (
     <div
       data-testid={`card-product-${product.id}`}
@@ -120,7 +121,8 @@ function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart: 
       <ProductImageArea product={product} onAddToCart={onAddToCart} />
       <div className="pt-3 pb-1 px-0.5 flex flex-col gap-0.5">
         <h3
-          className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors"
+          className={`text-sm font-semibold leading-snug line-clamp-2 transition-colors ${accentColor ? "" : "group-hover:text-orange-600 dark:group-hover:text-orange-400"}`}
+          style={accentColor ? { "--product-accent": accentColor } as React.CSSProperties : undefined}
           data-testid={`text-name-${product.id}`}
         >
           {product.name}
@@ -132,7 +134,12 @@ function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart: 
           {soldOut ? (
             <span className="text-muted-foreground line-through">${product.price.toFixed(2)}</span>
           ) : (
-            <span className="text-orange-600 dark:text-orange-400">${product.price.toFixed(2)}</span>
+            <span
+              className={accentColor ? "" : "text-orange-600 dark:text-orange-400"}
+              style={accentColor ? { color: accentColor } : undefined}
+            >
+              ${product.price.toFixed(2)}
+            </span>
           )}
         </p>
       </div>
@@ -153,23 +160,35 @@ function ProductCardSkeleton() {
   );
 }
 
-function CategoryBanner({ name, count, active, onClick }: {
-  name: string; count: number; active: boolean; onClick: () => void;
+function CategoryBanner({ name, count, active, onClick, accentHsl }: {
+  name: string; count: number; active: boolean; onClick: () => void; accentHsl?: string;
 }) {
   const palette = getCategoryPalette(name);
+  const accentBg = accentHsl ? `hsl(${accentHsl} / 0.1)` : undefined;
+  const accentBorder = accentHsl ? `hsl(${accentHsl} / 0.3)` : undefined;
+  const accentText = accentHsl ? `hsl(${accentHsl})` : undefined;
   return (
     <button
       onClick={onClick}
       data-testid={`banner-category-${name.toLowerCase().replace(/\s+/g, "-")}`}
       className={`group relative rounded-xl overflow-hidden border transition-all duration-200 cursor-pointer text-left shrink-0 w-36 md:w-auto ${
         active
-          ? `${palette.bg} ${palette.border} border-2 shadow-sm`
+          ? accentHsl ? "border-2 shadow-sm" : `${palette.bg} ${palette.border} border-2 shadow-sm`
           : "border-border bg-white/[0.03] hover:bg-white/[0.06] hover:border-orange-300 dark:hover:border-orange-700"
       }`}
+      style={active && accentHsl ? { backgroundColor: accentBg, borderColor: accentBorder } : undefined}
     >
-      <div className={`h-20 w-full flex items-end p-3 ${active ? palette.bg : "bg-muted/30 group-hover:bg-muted/60 transition-colors"}`}>
+      <div
+        className={`h-20 w-full flex items-end p-3 ${active ? (accentHsl ? "" : palette.bg) : "bg-muted/30 group-hover:bg-muted/60 transition-colors"}`}
+        style={active && accentHsl ? { backgroundColor: accentBg } : undefined}
+      >
         <div>
-          <p className={`text-xs font-bold leading-tight ${active ? palette.text : "text-foreground"}`}>{name}</p>
+          <p
+            className={`text-xs font-bold leading-tight ${active ? (accentHsl ? "" : palette.text) : "text-foreground"}`}
+            style={active && accentHsl ? { color: accentText } : undefined}
+          >
+            {name}
+          </p>
           <p className="text-[10px] text-muted-foreground mt-0.5">{count} item{count !== 1 ? "s" : ""}</p>
         </div>
       </div>
@@ -177,20 +196,32 @@ function CategoryBanner({ name, count, active, onClick }: {
   );
 }
 
-function AllCategoryBanner({ active, count, onClick }: { active: boolean; count: number; onClick: () => void }) {
+function AllCategoryBanner({ active, count, onClick, accentHsl }: { active: boolean; count: number; onClick: () => void; accentHsl?: string }) {
+  const accentBg = accentHsl ? `hsl(${accentHsl} / 0.1)` : undefined;
+  const accentBorder = accentHsl ? `hsl(${accentHsl} / 0.3)` : undefined;
+  const accentText = accentHsl ? `hsl(${accentHsl})` : undefined;
   return (
     <button
       onClick={onClick}
       data-testid="banner-category-all"
       className={`group relative rounded-xl overflow-hidden border transition-all duration-200 cursor-pointer text-left shrink-0 w-36 md:w-auto ${
         active
-          ? "bg-orange-500/10 border-orange-500/30 border-2 shadow-sm"
+          ? accentHsl ? "border-2 shadow-sm" : "bg-orange-500/10 border-orange-500/30 border-2 shadow-sm"
           : "border-border bg-white/[0.03] hover:bg-white/[0.06] hover:border-orange-300 dark:hover:border-orange-700"
       }`}
+      style={active && accentHsl ? { backgroundColor: accentBg, borderColor: accentBorder } : undefined}
     >
-      <div className={`h-20 w-full flex items-end p-3 ${active ? "bg-orange-500/10" : "bg-muted/30 group-hover:bg-muted/60 transition-colors"}`}>
+      <div
+        className={`h-20 w-full flex items-end p-3 ${active ? (accentHsl ? "" : "bg-orange-500/10") : "bg-muted/30 group-hover:bg-muted/60 transition-colors"}`}
+        style={active && accentHsl ? { backgroundColor: accentBg } : undefined}
+      >
         <div>
-          <p className={`text-xs font-bold leading-tight ${active ? "text-orange-700 dark:text-orange-300" : "text-foreground"}`}>All Products</p>
+          <p
+            className={`text-xs font-bold leading-tight ${active ? (accentHsl ? "" : "text-orange-700 dark:text-orange-300") : "text-foreground"}`}
+            style={active && accentHsl ? { color: accentText } : undefined}
+          >
+            All Products
+          </p>
           <p className="text-[10px] text-muted-foreground mt-0.5">{count} item{count !== 1 ? "s" : ""}</p>
         </div>
       </div>
@@ -225,6 +256,12 @@ export default function StorePage() {
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["/api/store/products"],
   });
+
+  const { data: platformSettings = {} } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
+  });
+
+  const storeAccentHsl = platformSettings["store.accentColor"];
 
   const categoryMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -347,6 +384,7 @@ export default function StorePage() {
                     active={activeCategory === "all"}
                     count={products.length}
                     onClick={() => setActiveCategory("all")}
+                    accentHsl={storeAccentHsl}
                   />
                   {categories.map((cat) => (
                     <CategoryBanner
@@ -355,6 +393,7 @@ export default function StorePage() {
                       count={categoryMap.get(cat) ?? 0}
                       active={activeCategory === cat}
                       onClick={() => setActiveCategory(cat)}
+                      accentHsl={storeAccentHsl}
                     />
                   ))}
                 </>
@@ -415,7 +454,7 @@ export default function StorePage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8">
             {filtered.map((product) => (
-              <ProductCard key={product.id} product={product} onAddToCart={() => addItem(product)} />
+              <ProductCard key={product.id} product={product} onAddToCart={() => addItem(product)} accentHsl={storeAccentHsl} />
             ))}
           </div>
         )}

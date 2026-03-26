@@ -139,6 +139,12 @@ export default function MusicPage() {
   const canManage = CAN_MANAGE_MUSIC.includes(role ?? "");
   const { activePlaylist } = useSpotifyPlayer();
 
+  const { data: platformSettings = {} } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
+  });
+
+  const musicAccentHsl = platformSettings["music.accentColor"];
+
   const { data: artistsList, isLoading: artistsLoading } = useQuery<Artist[]>({
     queryKey: ["/api/music/artists"],
   });
@@ -162,7 +168,12 @@ export default function MusicPage() {
         style={{ paddingBottom: activePlaylist ? "260px" : undefined }}
       >
         {/* Hero */}
-        <div className="rounded-2xl bg-gradient-to-br from-violet-700 via-violet-800 to-purple-900 text-white p-8 md:p-12 relative overflow-hidden mb-12">
+        <div
+          className="rounded-2xl bg-gradient-to-br from-violet-700 via-violet-800 to-purple-900 text-white p-8 md:p-12 relative overflow-hidden mb-12"
+          style={musicAccentHsl ? {
+            background: `linear-gradient(135deg, hsl(${musicAccentHsl}), hsl(${musicAccentHsl} / 0.7))`,
+          } : undefined}
+        >
           <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
             <div className="absolute -top-8 -right-8 text-[200px] leading-none opacity-5 font-black">♪</div>
             <div className="absolute bottom-0 left-1/3 text-[120px] leading-none opacity-5 font-black">♫</div>

@@ -14,7 +14,7 @@ import {
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
-import { sendContactEmail } from "./emailClient";
+import { sendContactEmail, sendContactReplyEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
 import * as hostinger from "./hostinger";
 import { registerSpotifyRoutes } from "./spotify";
@@ -2235,14 +2235,68 @@ export async function registerRoutes(
 
       const { name, email, subject, message } = parsed.data;
 
+      await storage.createContactSubmission({ name, email, subject, message });
+
       try {
         await sendContactEmail(name, email, subject, message);
       } catch (emailErr: any) {
         console.error("[contact] Email send failed:", emailErr.message);
-        return res.status(502).json({ message: "Failed to send message. Please try again." });
       }
 
       res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  const CAN_VIEW_SUPPORT: Role[] = ["admin", "executive", "staff"];
+
+  app.get("/api/contact-submissions", requireAuth, requireRole(...CAN_VIEW_SUPPORT), async (req, res) => {
+    try {
+      const { subject, status } = req.query as { subject?: string; status?: string };
+      const submissions = await storage.getContactSubmissions({
+        subject: subject || undefined,
+        status: status || undefined,
+      });
+      res.json(submissions);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/contact-submissions/:id", requireAuth, requireRole(...CAN_VIEW_SUPPORT), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      const { z } = await import("zod");
+      const schema = z.object({
+        status: z.enum(["open", "in_progress", "resolved", "closed"]).optional(),
+        staffNote: z.string().optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid input" });
+      const updated = await storage.updateContactSubmission(id, parsed.data);
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/contact-submissions/:id/reply", requireAuth, requireRole(...CAN_VIEW_SUPPORT), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      const submission = await storage.getContactSubmissionById(id);
+      if (!submission) return res.status(404).json({ message: "Submission not found" });
+      const { z } = await import("zod");
+      const schema = z.object({
+        body: z.string().min(1, "Reply body is required"),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid input" });
+      await sendContactReplyEmail(submission.email, submission.name, submission.subject, parsed.data.body);
+      const updated = await storage.updateContactSubmission(id, { repliedAt: new Date() });
+      res.json(updated);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

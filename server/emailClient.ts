@@ -174,3 +174,47 @@ ${message}
 ---
 Reply directly to this email to respond to ${name}.`;
 }
+
+export async function sendContactReplyEmail(
+  toEmail: string,
+  toName: string,
+  subject: string,
+  replyBody: string
+) {
+  const resend = await getUncachableResendClient();
+  const safeBody = replyBody.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>");
+
+  await resend.emails.send({
+    from: `SEVCO <${FROM_EMAIL}>`,
+    to: toEmail,
+    subject: `Re: ${subject} — SEVCO`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
+    <tr><td align="center">
+      <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;padding:40px;">
+        <tr><td style="padding-bottom:24px;border-bottom:1px solid #e4e4e7;">
+          <span style="font-size:24px;">🪐</span>
+          <span style="font-size:18px;font-weight:600;color:#18181b;margin-left:8px;">SEVCO</span>
+          <p style="margin:4px 0 0;color:#71717a;font-size:13px;">Reply to your message</p>
+        </td></tr>
+        <tr><td style="padding:24px 0 16px;">
+          <p style="margin:0;color:#3f3f46;font-size:14px;line-height:1.7;">Hi ${toName},</p>
+        </td></tr>
+        <tr><td style="background:#f4f4f5;border-radius:6px;padding:16px;color:#3f3f46;font-size:14px;line-height:1.7;">
+          ${safeBody}
+        </td></tr>
+        <tr><td style="padding-top:24px;color:#71717a;font-size:12px;">
+          This is a reply to your message sent via the SEVCO contact form.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+    text: `Hi ${toName},\n\n${replyBody}\n\n---\nThis is a reply to your message sent via the SEVCO contact form.`,
+  });
+}

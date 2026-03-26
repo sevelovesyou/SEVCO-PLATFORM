@@ -25,11 +25,13 @@ import {
   type Resource, type InsertResource,
   type GalleryImage, type InsertGalleryImage,
   type SpotifyArtist, type InsertSpotifyArtist,
+  type ContactSubmission, type InsertContactSubmission,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
   posts, postLikes, postReplies, userFollows,
   noteCollaborators, noteAttachments, platformSettings, brandAssets, resources, galleryImages, spotifyArtists,
+  contactSubmissions,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or, inArray } from "drizzle-orm";
@@ -220,6 +222,11 @@ export interface IStorage {
   getSpotifyArtists(): Promise<SpotifyArtist[]>;
   addSpotifyArtist(data: InsertSpotifyArtist): Promise<SpotifyArtist>;
   removeSpotifyArtist(id: number): Promise<void>;
+
+  getContactSubmissions(filters?: { subject?: string; status?: string }): Promise<ContactSubmission[]>;
+  getContactSubmissionById(id: number): Promise<ContactSubmission | undefined>;
+  createContactSubmission(data: InsertContactSubmission): Promise<ContactSubmission>;
+  updateContactSubmission(id: number, data: { status?: string; staffNote?: string; repliedAt?: Date | null }): Promise<ContactSubmission>;
 }
 
 export type SearchResultItem = {
@@ -1454,6 +1461,32 @@ export class DatabaseStorage implements IStorage {
 
   async deleteGalleryImage(id: number): Promise<void> {
     await db.delete(galleryImages).where(eq(galleryImages.id, id));
+  }
+
+  async getContactSubmissions(filters?: { subject?: string; status?: string }): Promise<ContactSubmission[]> {
+    const conditions = [];
+    if (filters?.subject) conditions.push(eq(contactSubmissions.subject, filters.subject));
+    if (filters?.status) conditions.push(eq(contactSubmissions.status, filters.status));
+    const query = db.select().from(contactSubmissions);
+    const result = conditions.length > 0
+      ? await query.where(and(...conditions)).orderBy(desc(contactSubmissions.createdAt))
+      : await query.orderBy(desc(contactSubmissions.createdAt));
+    return result;
+  }
+
+  async getContactSubmissionById(id: number): Promise<ContactSubmission | undefined> {
+    const [row] = await db.select().from(contactSubmissions).where(eq(contactSubmissions.id, id));
+    return row || undefined;
+  }
+
+  async createContactSubmission(data: InsertContactSubmission): Promise<ContactSubmission> {
+    const [created] = await db.insert(contactSubmissions).values(data).returning();
+    return created;
+  }
+
+  async updateContactSubmission(id: number, data: { status?: string; staffNote?: string; repliedAt?: Date | null }): Promise<ContactSubmission> {
+    const [updated] = await db.update(contactSubmissions).set(data).where(eq(contactSubmissions.id, id)).returning();
+    return updated;
   }
 }
 

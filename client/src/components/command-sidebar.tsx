@@ -26,6 +26,7 @@ import {
   BookMarked,
   Images,
   FolderOpen,
+  MessageSquare,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -62,6 +63,7 @@ export function CommandSidebar() {
     ...(isAdmin || isExec ? [{ title: "Services", url: "/command/services", icon: Briefcase }] : []),
     ...(isAdmin ? [{ title: "Social Links", url: "/command/social-links", icon: Share2 }] : []),
     ...(isAdmin || isExec || isStaff ? [{ title: "Changelog", url: "/command/changelog", icon: ScrollText }] : []),
+    ...(isAdmin || isExec || isStaff ? [{ title: "Support", url: "/command/support", icon: MessageSquare }] : []),
   ];
 
   const systemItems: NavItem[] = [

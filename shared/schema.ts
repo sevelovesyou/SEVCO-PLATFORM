@@ -601,3 +601,19 @@ export const spotifyArtists = pgTable("spotify_artists", {
 export const insertSpotifyArtistSchema = createInsertSchema(spotifyArtists).omit({ id: true, createdAt: true });
 export type SpotifyArtist = typeof spotifyArtists.$inferSelect;
 export type InsertSpotifyArtist = z.infer<typeof insertSpotifyArtistSchema>;
+
+export const contactSubmissions = pgTable("contact_submissions", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  subject: text("subject").notNull(),
+  message: text("message").notNull(),
+  status: text("status").notNull().default("open"),
+  staffNote: text("staff_note"),
+  repliedAt: timestamp("replied_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertContactSubmissionSchema = createInsertSchema(contactSubmissions).omit({ id: true, createdAt: true, status: true, staffNote: true, repliedAt: true });
+export type ContactSubmission = typeof contactSubmissions.$inferSelect;
+export type InsertContactSubmission = z.infer<typeof insertContactSubmissionSchema>;

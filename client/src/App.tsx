@@ -76,6 +76,7 @@ import MinecraftPage from "@/pages/minecraft-page";
 import GalleryPage from "@/pages/gallery-page";
 import CommandGallery from "@/pages/command-gallery";
 import CommandMedia from "@/pages/command-media";
+import CommandSupport from "@/pages/command-support";
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
 const COMMAND_PREFIXES = ["/command"];
@@ -235,6 +236,13 @@ function Router() {
         <ProtectedRoute requiredRole="admin">
           <CommandPageLayout title="Media Library" subtitle="Browse and manage files across Supabase storage buckets">
             <CommandMedia />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/support" component={() => (
+        <ProtectedRoute>
+          <CommandPageLayout title="Support" subtitle="Manage contact form submissions">
+            <CommandSupport />
           </CommandPageLayout>
         </ProtectedRoute>
       )} />

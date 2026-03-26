@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   Upload, Copy, Trash2, FileImage, FileAudio, File, Check, Pencil, X, Plus,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type MediaFile = {
   name: string;
@@ -288,38 +289,50 @@ export default function CommandMedia() {
                   <FileIcon mimeType={file.mimeType} publicUrl={file.publicUrl} name={file.name} />
                   <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     {file.publicUrl && (
-                      <button
-                        type="button"
-                        className="h-6 w-6 rounded bg-background/90 flex items-center justify-center hover:bg-background shadow-sm"
-                        onClick={() => copyUrl(file.publicUrl!)}
-                        title="Copy URL"
-                        data-testid={`button-copy-url-${file.name}`}
-                      >
-                        {copiedUrl === file.publicUrl ? (
-                          <Check className="h-3 w-3 text-green-500" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                      </button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="h-6 w-6 rounded bg-background/90 flex items-center justify-center hover:bg-background shadow-sm"
+                            onClick={() => copyUrl(file.publicUrl!)}
+                            data-testid={`button-copy-url-${file.name}`}
+                          >
+                            {copiedUrl === file.publicUrl ? (
+                              <Check className="h-3 w-3 text-green-500" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Copy URL</TooltipContent>
+                      </Tooltip>
                     )}
-                    <button
-                      type="button"
-                      className="h-6 w-6 rounded bg-background/90 flex items-center justify-center hover:bg-background shadow-sm"
-                      onClick={() => startRename(file.name)}
-                      title="Rename"
-                      data-testid={`button-rename-${file.name}`}
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </button>
-                    <button
-                      type="button"
-                      className="h-6 w-6 rounded bg-background/90 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground shadow-sm"
-                      onClick={() => deleteFile.mutate(file.name)}
-                      title="Delete"
-                      data-testid={`button-delete-media-${file.name}`}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="h-6 w-6 rounded bg-background/90 flex items-center justify-center hover:bg-background shadow-sm"
+                          onClick={() => startRename(file.name)}
+                          data-testid={`button-rename-${file.name}`}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Rename</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="h-6 w-6 rounded bg-background/90 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground shadow-sm"
+                          onClick={() => deleteFile.mutate(file.name)}
+                          data-testid={`button-delete-media-${file.name}`}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Delete</TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
                 <div className="p-2 space-y-1">

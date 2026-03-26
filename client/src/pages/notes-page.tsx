@@ -41,6 +41,7 @@ import {
   FileText,
 } from "lucide-react";
 import { Link } from "wouter";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Note, NoteCollaborator } from "@shared/schema";
 
 const NOTE_COLORS: { value: string; label: string; bg: string; border: string; dot: string }[] = [
@@ -525,35 +526,48 @@ export default function NotesPage() {
               {/* Toolbar actions */}
               <div className="flex items-center gap-1">
                 {/* Pin toggle */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => updateMutation.mutate({ id: selectedNote.id, data: { pinned: !selectedNote.pinned } })}
-                  data-testid="button-toggle-pin"
-                  title={selectedNote.pinned ? "Unpin" : "Pin"}
-                >
-                  {selectedNote.pinned ? <PinOff className="h-3.5 w-3.5 text-primary" /> : <Pin className="h-3.5 w-3.5" />}
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => updateMutation.mutate({ id: selectedNote.id, data: { pinned: !selectedNote.pinned } })}
+                      data-testid="button-toggle-pin"
+                    >
+                      {selectedNote.pinned ? <PinOff className="h-3.5 w-3.5 text-primary" /> : <Pin className="h-3.5 w-3.5" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{selectedNote.pinned ? "Unpin" : "Pin"}</TooltipContent>
+                </Tooltip>
 
                 {/* Collaborators toggle */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`h-7 w-7 ${showCollabPanel ? "bg-muted" : ""}`}
-                  onClick={() => setShowCollabPanel((v) => !v)}
-                  data-testid="button-toggle-collaborators"
-                  title="Collaborators"
-                >
-                  <Users className={`h-3.5 w-3.5 ${selectedNote.isShared ? "text-blue-500" : ""}`} />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-7 w-7 ${showCollabPanel ? "bg-muted" : ""}`}
+                      onClick={() => setShowCollabPanel((v) => !v)}
+                      data-testid="button-toggle-collaborators"
+                    >
+                      <Users className={`h-3.5 w-3.5 ${selectedNote.isShared ? "text-blue-500" : ""}`} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Collaborators</TooltipContent>
+                </Tooltip>
 
                 {/* Share / Export */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" data-testid="button-share-export" title="Share / Export">
-                      <Share2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" data-testid="button-share-export">
+                          <Share2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Share / Export</TooltipContent>
+                    </Tooltip>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-52">
                     <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">Share / Export</DropdownMenuLabel>

@@ -82,6 +82,7 @@ export default function CommandDisplay() {
     },
   });
 
+  const [heroLogoUrl, setHeroLogoUrl] = useState("");
   const [heroBgUrl, setHeroBgUrl] = useState("");
   const [heroText, setHeroText] = useState("");
   const [heroOverlayOpacity, setHeroOverlayOpacity] = useState(70);
@@ -127,6 +128,7 @@ export default function CommandDisplay() {
 
   useEffect(() => {
     if (isLoading) return;
+    setHeroLogoUrl(settings["hero.logoUrl"] ?? settings["platform.logoUrl"] ?? "");
     setHeroBgUrl(settings["hero.backgroundImageUrl"] ?? "");
     setHeroText(settings["hero.text"] ?? "");
     setHeroOverlayOpacity(settings["hero.overlayOpacity"] ? parseInt(settings["hero.overlayOpacity"]) : 70);
@@ -195,7 +197,7 @@ export default function CommandDisplay() {
 
   function saveHero() {
     mutation.mutate({
-      "platform.logoUrl": platformLogoUrl,
+      "hero.logoUrl": heroLogoUrl,
       "hero.backgroundImageUrl": heroBgUrl,
       "hero.text": heroText,
       "hero.overlayOpacity": String(heroOverlayOpacity),
@@ -512,22 +514,22 @@ export default function CommandDisplay() {
           <div className="space-y-2">
             <Label className="flex items-center gap-1.5">
               <Link2 className="h-3.5 w-3.5" />
-              Platform Logo / Icon
+              Hero Logo / Icon
             </Label>
             <FileUploadWithFallback
               bucket="brand-assets"
-              path={`platform-logo/logo.{ext}`}
+              path={`hero-logo/logo.{ext}`}
               accept="image/*"
               maxSizeMb={2}
-              currentUrl={platformLogoUrl || null}
-              onUpload={(url) => setPlatformLogoUrl(url)}
-              onUrlChange={(url) => setPlatformLogoUrl(url)}
-              urlValue={platformLogoUrl}
-              label="Upload Logo"
+              currentUrl={heroLogoUrl || null}
+              onUpload={(url) => setHeroLogoUrl(url)}
+              onUrlChange={(url) => setHeroLogoUrl(url)}
+              urlValue={heroLogoUrl}
+              label="Upload Hero Logo"
               urlPlaceholder="https://example.com/logo.png"
-              urlTestId="input-hero-platform-logo-url"
+              urlTestId="input-hero-logo-url"
             />
-            <p className="text-xs text-muted-foreground">Displayed in the hero section and platform header. Leave empty to use the default SEVCO planet icon.</p>
+            <p className="text-xs text-muted-foreground">Displayed only in the landing page hero section. Leave empty to use the default SEVCO planet icon.</p>
           </div>
 
           <div className="space-y-2">

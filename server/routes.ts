@@ -328,6 +328,18 @@ async function seedChangelogV13() {
   }, new Date("2026-03-26"));
 }
 
+async function seedChangelogV181() {
+  const existing = await storage.getChangelog();
+  const alreadySeeded = existing.some((e) => e.version === "1.8.1");
+  if (alreadySeeded) return;
+  await storage.createChangelogEntryWithDate({
+    title: "Subscriptions Tab, Email Fixes & AI Chat Agents",
+    description: "CMD Finance now includes a full Subscriptions tab for managing recurring billing plans, subscriber records, and billing overrides. Fixed transactional email delivery for invoice, support, and notification emails via Resend. AI chat agents are now fully role-gated: admins can configure agent personas and system prompts per channel, and users interact with context-aware assistants in real time.",
+    category: "feature",
+    version: "1.8.1",
+  }, new Date("2026-03-26"));
+}
+
 async function seedJobs() {
   const existing = await storage.getJobs(true);
   if (existing.length > 0) return;
@@ -1058,6 +1070,7 @@ export async function registerRoutes(
   seedPolicyArticles().catch(console.error);
   seedChangelog()
     .then(() => seedChangelogV13())
+    .then(() => seedChangelogV181())
     .then(() => linkChangelogToWikiArticles())
     .catch(console.error);
   seedJobs().catch(console.error);

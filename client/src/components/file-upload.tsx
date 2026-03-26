@@ -187,9 +187,7 @@ export function FileUploadWithFallback({
       <FileUpload
         {...uploadProps}
         onUpload={(url, _path) => {
-          if (url) {
-            onUrlChange(url);
-          }
+          onUrlChange(url);
         }}
       />
       <button

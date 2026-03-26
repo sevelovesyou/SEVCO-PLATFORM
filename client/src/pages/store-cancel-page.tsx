@@ -11,7 +11,7 @@ export default function StoreCancelPage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold mb-2" data-testid="text-cancel-heading">
-            Payment Cancelled
+            Payment Canceled
           </h1>
           <p className="text-muted-foreground text-sm">
             No worries — your cart items are still waiting for you.

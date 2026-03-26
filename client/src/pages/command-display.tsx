@@ -679,7 +679,7 @@ export default function CommandDisplay() {
                 Brand Assets
               </CardTitle>
               <CardDescription className="mt-1">
-                Manage downloadable brand materials shown on the public About page. Logos, colour palettes, fonts, banners, and more.
+                Manage downloadable brand materials shown on the public About page. Logos, color palettes, fonts, banners, and more.
               </CardDescription>
             </div>
             <Button onClick={openAddDialog} size="sm" className="gap-2 shrink-0" data-testid="button-add-brand-asset">

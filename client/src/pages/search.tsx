@@ -83,7 +83,7 @@ export default function SearchPage() {
 
   const googleSearch = () => {
     if (query) {
-      window.open(`https://www.google.com/search?q=site:sevco.us+${encodeURIComponent(query)}`, "_blank");
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, "_blank");
     }
   };
 

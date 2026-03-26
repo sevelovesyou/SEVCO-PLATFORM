@@ -30,6 +30,12 @@ import { usePermission } from "@/hooks/use-permission";
 
 import planetBlack from "@assets/SEVCO_planet_icon_black_1774331331137.png";
 
+type NavItem = {
+  title: string;
+  url: string;
+  icon: React.ElementType;
+};
+
 export function CommandSidebar() {
   const [location] = useLocation();
   const { role } = usePermission();
@@ -38,80 +44,53 @@ export function CommandSidebar() {
   const isExec = role === "executive";
   const isStaff = role === "staff";
 
-  const navItems = [
-    {
-      title: "Overview",
-      url: "/command",
-      icon: LayoutDashboard,
-      show: true,
-    },
-    {
-      title: "Store",
-      url: "/command/store",
-      icon: ShoppingBag,
-      show: isAdmin || isExec,
-    },
-    {
-      title: "Users",
-      url: "/command/users",
-      icon: Users,
-      show: isAdmin,
-    },
-    {
-      title: "Changelog",
-      url: "/command/changelog",
-      icon: ScrollText,
-      show: isAdmin || isExec || isStaff,
-    },
-    {
-      title: "Services",
-      url: "/command/services",
-      icon: Briefcase,
-      show: isAdmin || isExec,
-    },
-    {
-      title: "Jobs",
-      url: "/command/jobs",
-      icon: ClipboardList,
-      show: isAdmin || isExec,
-    },
-    {
-      title: "Music",
-      url: "/command/music",
-      icon: Music,
-      show: isAdmin || isExec,
-    },
-    {
-      title: "Gallery",
-      url: "/command/gallery",
-      icon: Images,
-      show: isAdmin,
-    },
-    {
-      title: "Social Links",
-      url: "/command/social-links",
-      icon: Share2,
-      show: isAdmin,
-    },
-    {
-      title: "Resources",
-      url: "/command/resources",
-      icon: BookMarked,
-      show: isAdmin,
-    },
-    {
-      title: "Hosting",
-      url: "/command/hosting",
-      icon: Server,
-      show: isAdmin,
-    },
-    {
-      title: "Display",
-      url: "/command/display",
-      icon: MonitorCog,
-      show: isAdmin,
-    },
-  ].filter((item) => item.show);
+  const overviewItems: NavItem[] = [
+    { title: "Overview", url: "/command", icon: LayoutDashboard },
+  ];
+
+  const contentItems: NavItem[] = [
+    ...(isAdmin || isExec ? [{ title: "Store", url: "/command/store", icon: ShoppingBag }] : []),
+    ...(isAdmin || isExec ? [{ title: "Music", url: "/command/music", icon: Music }] : []),
+    ...(isAdmin ? [{ title: "Gallery", url: "/command/gallery", icon: Images }] : []),
+    ...(isAdmin ? [{ title: "Resources", url: "/command/resources", icon: BookMarked }] : []),
+  ];
+
+  const operationsItems: NavItem[] = [
+    ...(isAdmin || isExec ? [{ title: "Jobs", url: "/command/jobs", icon: ClipboardList }] : []),
+    ...(isAdmin || isExec ? [{ title: "Services", url: "/command/services", icon: Briefcase }] : []),
+    ...(isAdmin ? [{ title: "Social Links", url: "/command/social-links", icon: Share2 }] : []),
+    ...(isAdmin || isExec || isStaff ? [{ title: "Changelog", url: "/command/changelog", icon: ScrollText }] : []),
+  ];
+
+  const systemItems: NavItem[] = [
+    ...(isAdmin ? [{ title: "Users", url: "/command/users", icon: Users }] : []),
+    ...(isAdmin ? [{ title: "Hosting", url: "/command/hosting", icon: Server }] : []),
+    ...(isAdmin ? [{ title: "Display", url: "/command/display", icon: MonitorCog }] : []),
+  ];
+
+  function isActive(url: string) {
+    if (url === "/command") {
+      return location === "/command" || location === "/command/";
+    }
+    return location === url || location.startsWith(url + "/");
+  }
+
+  function renderItems(items: NavItem[]) {
+    return items.map((item) => (
+      <SidebarMenuItem key={item.title}>
+        <SidebarMenuButton
+          asChild
+          tooltip={item.title}
+          data-active={isActive(item.url)}
+        >
+          <Link href={item.url} data-testid={`link-command-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+            <item.icon className="h-4 w-4" />
+            <span>{item.title}</span>
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    ));
+  }
 
   return (
     <Sidebar collapsible="icon" className="top-12 h-[calc(100svh-3rem)]">
@@ -135,36 +114,49 @@ export function CommandSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => {
-                const isActive =
-                  item.url === "/command"
-                    ? location === "/command" || location === "/command/"
-                    : location === item.url || location.startsWith(item.url + "/");
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      tooltip={item.title}
-                      data-active={isActive}
-                    >
-                      <Link href={item.url} data-testid={`link-command-nav-${item.title.toLowerCase()}`}>
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              {renderItems(overviewItems)}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {contentItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Content</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {renderItems(contentItems)}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {operationsItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Operations</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {renderItems(operationsItems)}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {systemItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>System</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {renderItems(systemItems)}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="p-3">
-        <div className="text-[10px] text-muted-foreground text-center">
+        <div className="text-[10px] text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
           Command Center
         </div>
       </SidebarFooter>

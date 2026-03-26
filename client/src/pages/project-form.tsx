@@ -180,6 +180,7 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
     onSuccess: async (res) => {
       const created: Project = await res.json();
       await queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.setQueryData(["/api/projects", created.slug], created);
       toast({ title: "Project created" });
       setLocation(`/projects/${created.slug}`);
     },

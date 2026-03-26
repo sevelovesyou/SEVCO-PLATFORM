@@ -105,7 +105,7 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
 
   const googleSearch = useCallback(() => {
     if (query.trim()) {
-      window.open(`https://www.google.com/search?q=site:sevco.us+${encodeURIComponent(query.trim())}`, "_blank");
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(query.trim())}`, "_blank");
     }
   }, [query]);
 

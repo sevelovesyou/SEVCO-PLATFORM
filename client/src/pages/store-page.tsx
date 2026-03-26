@@ -112,12 +112,6 @@ function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart: 
     >
       <ProductImageArea product={product} onAddToCart={onAddToCart} />
       <div className="pt-3 pb-1 px-0.5 flex flex-col gap-0.5">
-        <p
-          className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium truncate"
-          data-testid={`text-category-${product.id}`}
-        >
-          {product.categoryName}
-        </p>
         <h3
           className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors"
           data-testid={`text-name-${product.id}`}

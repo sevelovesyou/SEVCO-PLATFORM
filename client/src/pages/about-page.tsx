@@ -200,7 +200,7 @@ export default function AboutPage() {
               <h2 className="text-2xl font-bold tracking-tight">Brand &amp; Assets</h2>
               <p className="text-muted-foreground max-w-2xl">
                 Official SEVCO brand materials for press, partners, and approved use. Please follow the guidelines below
-                when using SEVCO brand assets — do not alter the logo, use brand colours as specified, and always
+                when using SEVCO brand assets — do not alter the logo, use brand colors as specified, and always
                 attribute correctly.
               </p>
             </div>
@@ -210,7 +210,7 @@ export default function AboutPage() {
               <div className="grid sm:grid-cols-3 gap-3">
                 <div className="border border-border rounded-xl p-4 space-y-1.5">
                   <p className="text-xs font-semibold text-foreground">Logo usage</p>
-                  <p className="text-xs text-muted-foreground">Always use the approved logo files. Do not distort, recolour, or apply effects to the logo.</p>
+                  <p className="text-xs text-muted-foreground">Always use the approved logo files. Do not distort, recolor, or apply effects to the logo.</p>
                 </div>
                 <div className="border border-border rounded-xl p-4 space-y-1.5">
                   <p className="text-xs font-semibold text-foreground">Clear space</p>
@@ -223,7 +223,7 @@ export default function AboutPage() {
               </div>
 
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-foreground">Brand colours</p>
+                <p className="text-xs font-semibold text-foreground">Brand colors</p>
                 <div className="flex flex-wrap gap-3">
                   {PRIMARY_COLORS.map((color) => (
                     <div key={color.cssVar} className="flex items-center gap-2.5 border border-border rounded-lg px-3 py-2" data-testid={`swatch-${color.name.toLowerCase().replace(/\s+/g, "-")}`}>

@@ -356,7 +356,7 @@ function ServicesDropdown({ isActive }: { isActive: boolean }) {
                         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</p>
                       </div>
                       {items.length === 0 ? (
-                        <p className="text-[11px] text-muted-foreground/50 px-2 py-1 italic">No services yet</p>
+                        <p className="text-[11px] text-muted-foreground/50 px-2 py-1 italic">No services in this category yet</p>
                       ) : (
                         items.map((service) => {
                           const IconComp = resolveLucideIcon(service.iconName) ?? Briefcase;

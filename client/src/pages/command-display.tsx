@@ -341,6 +341,61 @@ export default function CommandDisplay() {
     );
   }
 
+  function BrandColorRow({
+    label,
+    hsl,
+    onChange,
+    testIdBase,
+    mapLabel,
+  }: {
+    label: string;
+    hsl: string;
+    onChange: (hsl: string) => void;
+    testIdBase: string;
+    mapLabel: string;
+  }) {
+    const hexVal = hsl ? hslToHex(hsl) : "#000000";
+    const hasColor = !!hsl;
+    return (
+      <div className="flex items-center gap-3">
+        <div className="relative shrink-0">
+          <div
+            className="h-8 w-8 rounded-md border border-border"
+            style={{ backgroundColor: hasColor ? `hsl(${hsl})` : "transparent" }}
+            data-testid={`swatch-${testIdBase}`}
+          />
+          <input
+            type="color"
+            value={hexVal}
+            onChange={(e) => onChange(hexToHsl(e.target.value))}
+            className="absolute inset-0 opacity-0 cursor-pointer w-8 h-8"
+            data-testid={`color-picker-${testIdBase}`}
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-xs font-medium text-foreground">{label}</p>
+            <span className="text-[10px] text-muted-foreground">{mapLabel}</span>
+          </div>
+          <p className="text-[10px] text-muted-foreground font-mono truncate">{hsl || "not set — using default"}</p>
+        </div>
+        {hasColor && (
+          <div className="shrink-0 flex items-center gap-1.5" data-testid={`preview-${testIdBase}`}>
+            <div
+              className="h-6 px-2 rounded text-[10px] font-medium flex items-center"
+              style={{
+                backgroundColor: `hsl(${hsl})`,
+                color: "#fff",
+              }}
+            >
+              Aa
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 max-w-3xl">
 
@@ -394,11 +449,38 @@ export default function CommandDisplay() {
 
           <div className="space-y-3">
             <p className="text-sm font-semibold text-foreground">Brand Colors</p>
-            <p className="text-xs text-muted-foreground">These apply globally across both modes and feed into the Brand &amp; Assets section of the About page.</p>
-            <ColorPickerRow label="Brand Main" hsl={brandMain} onChange={setBrandMain} testIdBase="brand-main" />
-            <ColorPickerRow label="Brand Secondary" hsl={brandSecondary} onChange={setBrandSecondary} testIdBase="brand-secondary" />
-            <ColorPickerRow label="Brand Accent" hsl={brandAccent} onChange={setBrandAccent} testIdBase="brand-accent" />
-            <ColorPickerRow label="Brand Highlight" hsl={brandHighlight} onChange={setBrandHighlight} testIdBase="brand-highlight" />
+            <p className="text-xs text-muted-foreground">These drive the platform's UI colors (buttons, links, highlights). Changes apply sitewide after saving. Manual overrides above take precedence if set.</p>
+
+            <div className="space-y-4">
+              <BrandColorRow
+                label="Brand Main"
+                hsl={brandMain}
+                onChange={setBrandMain}
+                testIdBase="brand-main"
+                mapLabel="→ Primary (buttons, links)"
+              />
+              <BrandColorRow
+                label="Brand Secondary"
+                hsl={brandSecondary}
+                onChange={setBrandSecondary}
+                testIdBase="brand-secondary"
+                mapLabel="→ Secondary color"
+              />
+              <BrandColorRow
+                label="Brand Accent"
+                hsl={brandAccent}
+                onChange={setBrandAccent}
+                testIdBase="brand-accent"
+                mapLabel="→ Accent / hover states"
+              />
+              <BrandColorRow
+                label="Brand Highlight"
+                hsl={brandHighlight}
+                onChange={setBrandHighlight}
+                testIdBase="brand-highlight"
+                mapLabel="→ Ring / focus indicator"
+              />
+            </div>
           </div>
 
           <div className="flex justify-end">

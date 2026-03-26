@@ -16,6 +16,7 @@ import { SpotifyPlayerProvider, useSpotifyPlayer } from "@/hooks/use-spotify-pla
 import { SpotifyPlayerBar } from "@/components/spotify-player-bar";
 import { CartDrawer } from "@/components/cart-drawer";
 import { useEffect, useRef } from "react";
+import { hexToHsl } from "@/lib/colorUtils";
 
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
@@ -330,6 +331,16 @@ const CSS_VAR_MAP_DARK: Record<string, string> = {
   "color.dark.accent": "--accent",
 };
 
+function toHsl(val: string): string | null {
+  if (!val) return null;
+  if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+    return hexToHsl(val);
+  }
+  const parts = val.trim().split(/\s+/);
+  if (parts.length === 3) return val;
+  return null;
+}
+
 function PlatformColorInjector() {
   const { data: settings } = useQuery<Record<string, string>>({
     queryKey: ["/api/platform-settings"],
@@ -339,7 +350,34 @@ function PlatformColorInjector() {
   useEffect(() => {
     if (!settings) return;
 
+    const brandMain = toHsl(settings["color.brand.main"] ?? "");
+    const brandSecondary = toHsl(settings["color.brand.secondary"] ?? "");
+    const brandAccent = toHsl(settings["color.brand.accent"] ?? "");
+    const brandHighlight = toHsl(settings["color.brand.highlight"] ?? "");
+
     const lightRules: string[] = [];
+
+    if (brandMain && !settings["color.light.primary"]) {
+      lightRules.push(`  --primary: ${brandMain};`);
+      lightRules.push(`  --ring: ${brandMain};`);
+      lightRules.push(`  --sidebar-primary: ${brandMain};`);
+      lightRules.push(`  --sidebar-ring: ${brandMain};`);
+    }
+    if (brandSecondary) {
+      lightRules.push(`  --secondary: ${brandSecondary};`);
+    }
+    if (brandAccent && !settings["color.light.accent"]) {
+      lightRules.push(`  --accent: ${brandAccent};`);
+    }
+    if (brandHighlight) {
+      lightRules.push(`  --ring: ${brandHighlight};`);
+    }
+
+    if (brandMain) lightRules.push(`  --brand-main: ${brandMain};`);
+    if (brandSecondary) lightRules.push(`  --brand-secondary: ${brandSecondary};`);
+    if (brandAccent) lightRules.push(`  --brand-accent: ${brandAccent};`);
+    if (brandHighlight) lightRules.push(`  --brand-highlight: ${brandHighlight};`);
+
     for (const key of COLOR_KEYS_LIGHT) {
       const val = settings[key];
       if (val) {
@@ -347,16 +385,30 @@ function PlatformColorInjector() {
         lightRules.push(`  ${cssVar}: ${val};`);
       }
     }
-    const brandMain = settings["color.brand.main"];
-    const brandSecondary = settings["color.brand.secondary"];
-    const brandAccent = settings["color.brand.accent"];
-    const brandHighlight = settings["color.brand.highlight"];
-    if (brandMain) lightRules.push(`  --brand-main: ${brandMain};`);
-    if (brandSecondary) lightRules.push(`  --brand-secondary: ${brandSecondary};`);
-    if (brandAccent) lightRules.push(`  --brand-accent: ${brandAccent};`);
-    if (brandHighlight) lightRules.push(`  --brand-highlight: ${brandHighlight};`);
 
     const darkRules: string[] = [];
+
+    if (brandMain && !settings["color.dark.primary"]) {
+      darkRules.push(`  --primary: ${brandMain};`);
+      darkRules.push(`  --ring: ${brandMain};`);
+      darkRules.push(`  --sidebar-primary: ${brandMain};`);
+      darkRules.push(`  --sidebar-ring: ${brandMain};`);
+    }
+    if (brandSecondary) {
+      darkRules.push(`  --secondary: ${brandSecondary};`);
+    }
+    if (brandAccent && !settings["color.dark.accent"]) {
+      darkRules.push(`  --accent: ${brandAccent};`);
+    }
+    if (brandHighlight) {
+      darkRules.push(`  --ring: ${brandHighlight};`);
+    }
+
+    if (brandMain) darkRules.push(`  --brand-main: ${brandMain};`);
+    if (brandSecondary) darkRules.push(`  --brand-secondary: ${brandSecondary};`);
+    if (brandAccent) darkRules.push(`  --brand-accent: ${brandAccent};`);
+    if (brandHighlight) darkRules.push(`  --brand-highlight: ${brandHighlight};`);
+
     for (const key of COLOR_KEYS_DARK) {
       const val = settings[key];
       if (val) {
@@ -364,10 +416,6 @@ function PlatformColorInjector() {
         darkRules.push(`  ${cssVar}: ${val};`);
       }
     }
-    if (brandMain) darkRules.push(`  --brand-main: ${brandMain};`);
-    if (brandSecondary) darkRules.push(`  --brand-secondary: ${brandSecondary};`);
-    if (brandAccent) darkRules.push(`  --brand-accent: ${brandAccent};`);
-    if (brandHighlight) darkRules.push(`  --brand-highlight: ${brandHighlight};`);
 
     const hasOverrides = lightRules.length > 0 || darkRules.length > 0;
 

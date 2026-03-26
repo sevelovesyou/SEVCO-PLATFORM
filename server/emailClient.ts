@@ -16,7 +16,7 @@ async function getCredentials() {
 
   if (hostname && xReplitToken) {
     try {
-      const connectionSettings = await fetch(
+      const res = await fetch(
         'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
         {
           headers: {
@@ -24,20 +24,30 @@ async function getCredentials() {
             'X-Replit-Token': xReplitToken
           }
         }
-      ).then(res => res.json()).then(data => data.items?.[0]);
-
-      if (connectionSettings?.settings?.api_key) {
-        return { apiKey: connectionSettings.settings.api_key };
+      );
+      if (!res.ok) {
+        console.error(`[emailClient] Resend connector HTTP ${res.status}: ${await res.text()}`);
+      } else {
+        const data = await res.json();
+        const connectionSettings = data.items?.[0];
+        if (connectionSettings?.settings?.api_key) {
+          return { apiKey: connectionSettings.settings.api_key };
+        } else {
+          console.error('[emailClient] Resend connector: no api_key in connection settings. data=', JSON.stringify(data).slice(0, 200));
+        }
       }
-    } catch {
+    } catch (connErr: any) {
+      console.error('[emailClient] Resend connector lookup error:', connErr?.message || connErr);
     }
+  } else {
+    console.warn('[emailClient] Resend connector skipped — REPLIT_CONNECTORS_HOSTNAME or auth token not available');
   }
 
   if (fallbackKey) {
     return { apiKey: fallbackKey };
   }
 
-  throw new Error('Resend API key not found. Connect the Resend integration or set RESEND_API_KEY.');
+  throw new Error('Resend API key not found — check the Resend integration or set RESEND_API_KEY.');
 }
 
 async function getUncachableResendClient() {
@@ -45,11 +55,19 @@ async function getUncachableResendClient() {
   return new Resend(apiKey);
 }
 
+async function resendSend(resend: Resend, payload: Parameters<Resend['emails']['send']>[0]) {
+  const { data, error } = await resend.emails.send(payload);
+  if (error) {
+    throw new Error(error.message || 'Resend email send failed');
+  }
+  return data;
+}
+
 export async function sendVerificationEmail(email: string, token: string) {
   const resend = await getUncachableResendClient();
   const verifyUrl = `${getBaseUrl()}/verify-email?token=${token}`;
 
-  await resend.emails.send({
+  await resendSend(resend, {
     from: `SEVCO <${FROM_EMAIL}>`,
     to: email,
     subject: "Verify your email — SEVCO",
@@ -120,7 +138,7 @@ export async function sendContactEmail(
 ) {
   const resend = await getUncachableResendClient();
 
-  await resend.emails.send({
+  await resendSend(resend, {
     from: `SEVCO <${FROM_EMAIL}>`,
     to: CONTACT_EMAIL,
     replyTo: email,
@@ -193,7 +211,7 @@ export async function sendContactReplyEmail(
   const resend = await getUncachableResendClient();
   const safeBody = replyBody.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>");
 
-  await resend.emails.send({
+  await resendSend(resend, {
     from: `SEVCO <${FROM_EMAIL}>`,
     to: toEmail,
     subject: `Re: ${subject} — SEVCO`,
@@ -281,7 +299,7 @@ export async function sendInvoiceEmail(invoice: FinanceInvoice) {
 </body>
 </html>`;
 
-  await resend.emails.send({
+  await resendSend(resend, {
     from: `SEVCO <${FROM_EMAIL}>`,
     to: invoice.clientEmail,
     subject: `Invoice ${invoice.invoiceNumber} from SEVCO`,

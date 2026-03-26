@@ -745,15 +745,20 @@ export function PlatformHeader() {
 
           {/* Mobile hamburger */}
           <div className="md:hidden">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => { setMobileOpen((o) => !o); setMobileSection(null); }}
-              data-testid="button-mobile-menu"
-            >
-              <Menu className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => { setMobileOpen((o) => !o); setMobileSection(null); }}
+                  data-testid="button-mobile-menu"
+                >
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Menu</TooltipContent>
+            </Tooltip>
           </div>
 
           {user ? (

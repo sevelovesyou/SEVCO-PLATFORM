@@ -3059,5 +3059,58 @@ export async function registerRoutes(
     }
   });
 
+  const MC_CACHE_MAX = 200;
+  const mcStatusCache = new Map<string, { data: unknown; expiresAt: number }>();
+
+  function mcCacheEvict() {
+    const now = Date.now();
+    for (const [key, entry] of mcStatusCache) {
+      if (now >= entry.expiresAt) mcStatusCache.delete(key);
+    }
+    if (mcStatusCache.size > MC_CACHE_MAX) {
+      const oldest = [...mcStatusCache.keys()].slice(0, mcStatusCache.size - MC_CACHE_MAX);
+      for (const key of oldest) mcStatusCache.delete(key);
+    }
+  }
+
+  app.get("/api/minecraft/status", async (req, res) => {
+    const host = req.query.host as string;
+    if (!host || typeof host !== "string") {
+      return res.status(400).json({ message: "host query param required" });
+    }
+
+    mcCacheEvict();
+
+    const cached = mcStatusCache.get(host);
+    if (cached && Date.now() < cached.expiresAt) {
+      return res.json(cached.data);
+    }
+
+    try {
+      const upstream = await fetch(`https://api.mcsrvstat.us/3/${encodeURIComponent(host)}`, {
+        headers: { "User-Agent": "SEVCO-Platform/1.0" },
+        signal: AbortSignal.timeout(8000),
+      });
+      const raw = await upstream.json() as Record<string, unknown>;
+
+      const playersRaw = raw.players as { online?: number; max?: number } | undefined;
+      const result = {
+        online: raw.online === true,
+        players: {
+          online: playersRaw?.online ?? 0,
+          max: playersRaw?.max ?? 0,
+        },
+        motd: (raw.motd as { clean?: string[] } | undefined)?.clean?.[0] ?? undefined,
+      };
+
+      mcStatusCache.set(host, { data: result, expiresAt: Date.now() + 60_000 });
+      return res.json(result);
+    } catch {
+      const fallback = { online: false, players: { online: 0, max: 0 } };
+      mcStatusCache.set(host, { data: fallback, expiresAt: Date.now() + 30_000 });
+      return res.json(fallback);
+    }
+  });
+
   return httpServer;
 }

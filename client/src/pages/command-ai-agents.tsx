@@ -33,6 +33,9 @@ const MODELS = [
   { value: "meta-llama/llama-3.1-8b-instruct:free", label: "Llama 3.1 8B (free)" },
 ];
 
+const CAPABILITIES = ["text", "image", "code"] as const;
+type Capability = typeof CAPABILITIES[number];
+
 type AgentForm = {
   name: string;
   slug: string;
@@ -41,6 +44,7 @@ type AgentForm = {
   modelSlug: string;
   avatarUrl: string;
   enabled: boolean;
+  capabilities: Capability[];
 };
 
 const DEFAULT_FORM: AgentForm = {
@@ -51,6 +55,7 @@ const DEFAULT_FORM: AgentForm = {
   modelSlug: "openai/gpt-4o-mini",
   avatarUrl: "",
   enabled: true,
+  capabilities: ["text"],
 };
 
 function slugify(str: string) {
@@ -75,6 +80,7 @@ function AgentDialog({
     modelSlug: agent.modelSlug,
     avatarUrl: agent.avatarUrl ?? "",
     enabled: agent.enabled,
+    capabilities: (agent.capabilities ?? ["text"]) as Capability[],
   } : { ...DEFAULT_FORM });
 
   useEffect(() => {
@@ -87,6 +93,7 @@ function AgentDialog({
         modelSlug: agent.modelSlug,
         avatarUrl: agent.avatarUrl ?? "",
         enabled: agent.enabled,
+        capabilities: (agent.capabilities ?? ["text"]) as Capability[],
       } : { ...DEFAULT_FORM });
     }
   }, [open, agent?.id]);
@@ -207,6 +214,30 @@ function AgentDialog({
               className="mt-1"
               data-testid="input-agent-avatar-url"
             />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Capabilities</label>
+            <div className="flex gap-3 mt-2">
+              {CAPABILITIES.map((cap) => (
+                <label key={cap} className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.capabilities.includes(cap)}
+                    onChange={(e) => {
+                      setForm((f) => ({
+                        ...f,
+                        capabilities: e.target.checked
+                          ? [...f.capabilities, cap]
+                          : f.capabilities.filter((c) => c !== cap),
+                      }));
+                    }}
+                    data-testid={`checkbox-capability-${cap}`}
+                  />
+                  <span className="text-sm capitalize">{cap}</span>
+                </label>
+              ))}
+            </div>
           </div>
 
           <label className="flex items-center gap-2 cursor-pointer">
@@ -340,6 +371,15 @@ export default function CommandAiAgentsPage() {
                   <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{agent.description}</p>
                 )}
                 <p className="text-[11px] text-muted-foreground/60 font-mono">{agent.modelSlug}</p>
+                {agent.capabilities && agent.capabilities.length > 0 && (
+                  <div className="flex gap-1 mt-2 flex-wrap">
+                    {agent.capabilities.map((cap) => (
+                      <Badge key={cap} variant="outline" className="text-[10px] px-1.5 py-0 h-4 capitalize">
+                        {cap}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center gap-1.5 mt-3">
                   <Button
                     size="sm"

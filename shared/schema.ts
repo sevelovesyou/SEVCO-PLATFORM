@@ -744,6 +744,7 @@ export const aiAgents = pgTable("ai_agents", {
   avatarUrl: text("avatar_url"),
   systemPrompt: text("system_prompt").notNull().default("You are a helpful AI assistant for SEVCO, a creative technology platform. Be concise and professional."),
   modelSlug: text("model_slug").notNull().default("openai/gpt-4o-mini"),
+  capabilities: text("capabilities").array().notNull().default(sql`ARRAY['text']::text[]`),
   description: text("description"),
   enabled: boolean("enabled").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),

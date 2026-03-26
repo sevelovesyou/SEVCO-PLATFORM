@@ -307,7 +307,7 @@ function ServicesDropdown({ isActive }: { isActive: boolean }) {
   });
 
   const byCategory = (cat: string) =>
-    (services ?? []).filter((s) => s.category === cat).slice(0, 2);
+    (services ?? []).filter((s) => s.category === cat).slice(0, 3);
 
   return (
     <div className="relative" ref={ref}>
@@ -889,6 +889,21 @@ export function PlatformHeader() {
                 <Link href="/domains" onClick={() => setMobileOpen(false)}>
                   <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-services-domains">Domains</div>
                 </Link>
+                <div className="border-t border-border/40 my-1" />
+                {SERVICE_COLUMN_GROUPS.flat().map((cat) => (
+                  <Link key={cat} href={`/services?category=${cat}`} onClick={() => setMobileOpen(false)}>
+                    <div
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                      data-testid={`mobile-nav-services-${cat.toLowerCase()}`}
+                    >
+                      {(() => {
+                        const Icon = SERVICE_ICON_MAP[cat];
+                        return Icon ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null;
+                      })()}
+                      {cat}
+                    </div>
+                  </Link>
+                ))}
               </div>
             </CollapsibleContent>
           </Collapsible>

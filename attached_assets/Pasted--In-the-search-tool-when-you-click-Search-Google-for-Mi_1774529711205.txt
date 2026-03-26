@@ -1,0 +1,16 @@
+- In the search tool, when you click Search Google for "Minecraft" for example it searches google actually for "site:sevco.us Minecraft" which returns nothing and needs to be fixed to search Google with only the users query
+- Please change any occurrences of "Colour" to Color or any such un-American spellings throughout the platform.
+- There should be 4 Brand Colors and should update on Brand section of the about page when you update them in CMD, Display.
+- We are using Supabase as our CDN, please anywhere it asks for a link, change to upload for images/videos/pfp etc..
+- Create a visual database for the CDN in a "Media" tab within CMD where I can add files in bulk, edit names and get links.
+- Fix: when you collapse the in page menus(like for wiki and CMD), the small text on the bottom of the menu does not properly collapse/disappear
+- Remove redundant category bubbles under the cards in Store
+- I like how the Hosting page is a nice marketing style landing page and it looks great. I would like to make some of the other landing pages look more like that. Such as: Home Page, Store and Projects, come up with a plan to make that happen.
+- Add a "Support" tab in CMD where staff can respond to messages submitted through Contact form if the submission is set to the Support category.
+- Fix: Creating a new project just shows "project not found" 
+- Add a members chat functionality and an icon in the nav bar if you are logged in. Users should be able to send and receive messages from other members, staff can create/edit channels(group chats) and create a "Log" tab in CMD where admins can see all chats in a log that come through for moderation.
+- Create a new "Minecraft" marketing page similar to the one for Hosting, this page will include buttons for users to copy the IP of their favorite SEVCO Minecraft server to clipboard, links to voting sites so, players can vote for SEVCO on those sites and should show server status on each server card.
+- Add a "Finance" tab to CMD where Admins can do some basic accounting and see an overview of SEVCO's finances (add expenses and income, create invoices, budget, calculator tool, create projects and budgets for each project, etc)
+- A new "Staff" tab in CMD that shows all Staff+ users in a list like the Users tab and a visually stunning org chart that Admins can add staff to organize them.
+- Suggest ideas for SEO, GEO updates.
+- Organize the CMD menu into basic categories like the wiki menu

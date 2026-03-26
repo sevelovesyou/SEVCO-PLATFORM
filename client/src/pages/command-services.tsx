@@ -35,12 +35,12 @@ function resolveLucideIcon(name: string | null | undefined): React.ElementType |
   return icons[name] ?? null;
 }
 
-const SERVICE_CATEGORIES = ["Engineering", "Design", "Marketing", "Operations", "Sales", "Support"];
+const SERVICE_CATEGORIES = ["Technology", "Creative", "Marketing", "Business", "Media", "Support"];
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   slug: z.string().min(1, "Slug is required").max(200).regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, and hyphens only"),
-  category: z.enum(["Engineering", "Design", "Marketing", "Operations", "Sales", "Support"]),
+  category: z.enum(["Technology", "Creative", "Marketing", "Business", "Media", "Support"]),
   tagline: z.string().max(300).optional(),
   description: z.string().max(5000).optional(),
   iconName: z.string().max(100).optional(),
@@ -55,12 +55,12 @@ function toSlug(str: string) {
 }
 
 const CATEGORY_BADGE: Record<string, string> = {
-  Engineering: "bg-blue-500/10 text-blue-700 border-blue-500/20",
-  Design:      "bg-purple-500/10 text-purple-700 border-purple-500/20",
-  Marketing:   "bg-orange-500/10 text-orange-700 border-orange-500/20",
-  Operations:  "bg-green-500/10 text-green-700 border-green-500/20",
-  Sales:       "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
-  Support:     "bg-pink-500/10 text-pink-700 border-pink-500/20",
+  Technology: "bg-blue-500/10 text-blue-700 border-blue-500/20",
+  Creative:   "bg-purple-500/10 text-purple-700 border-purple-500/20",
+  Marketing:  "bg-orange-500/10 text-orange-700 border-orange-500/20",
+  Business:   "bg-green-500/10 text-green-700 border-green-500/20",
+  Media:      "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
+  Support:    "bg-pink-500/10 text-pink-700 border-pink-500/20",
 };
 
 function ServiceForm({
@@ -80,7 +80,7 @@ function ServiceForm({
     defaultValues: {
       name: initialData?.name ?? "",
       slug: initialData?.slug ?? "",
-      category: (initialData?.category as FormValues["category"]) ?? "Engineering",
+      category: (initialData?.category as FormValues["category"]) ?? "Technology",
       tagline: initialData?.tagline ?? "",
       description: initialData?.description ?? "",
       iconName: initialData?.iconName ?? "",

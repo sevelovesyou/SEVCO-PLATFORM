@@ -97,13 +97,15 @@ export function setupAuth(app: Express) {
         emailVerificationExpires: expires,
       });
 
+      let emailSent = false;
       try {
         await sendVerificationEmail(parsed.data.email, token);
+        emailSent = true;
       } catch (emailErr) {
         console.error("Failed to send verification email:", emailErr);
       }
 
-      return res.status(200).json({ status: "pending_verification" });
+      return res.status(200).json({ status: "pending_verification", emailSent });
     } catch (err) {
       next(err);
     }
@@ -163,7 +165,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/resend-verification", async (req, res, next) => {
+  async function handleResendVerification(req: any, res: any, next: any) {
     try {
       const { email } = req.body;
       if (!email) {
@@ -172,11 +174,11 @@ export function setupAuth(app: Express) {
 
       const user = await storage.getUserByEmail(email);
       if (!user) {
-        return res.status(200).json({ message: "If that email exists, a verification link has been sent." });
+        return res.status(200).json({ message: "If that email exists, a verification link has been sent.", emailSent: true });
       }
 
       if (user.emailVerified) {
-        return res.status(200).json({ message: "Email is already verified." });
+        return res.status(200).json({ message: "Email is already verified.", emailSent: false });
       }
 
       if (user.emailVerificationExpires) {
@@ -194,17 +196,22 @@ export function setupAuth(app: Express) {
         emailVerificationExpires: expires,
       });
 
+      let emailSent = false;
       try {
         await sendVerificationEmail(email, token);
+        emailSent = true;
       } catch (emailErr) {
         console.error("Failed to resend verification email:", emailErr);
       }
 
-      return res.status(200).json({ message: "Verification email sent." });
+      return res.status(200).json({ message: emailSent ? "Verification email sent." : "Could not send verification email. Please contact support.", emailSent });
     } catch (err) {
       next(err);
     }
-  });
+  }
+
+  app.post("/api/resend-verification", handleResendVerification);
+  app.post("/api/auth/resend-verification", handleResendVerification);
 
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {

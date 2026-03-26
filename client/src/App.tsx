@@ -344,14 +344,17 @@ function PlatformColorInjector() {
     const brandSecondary = toHsl(settings["color.brand.secondary"] ?? "");
     const brandAccent = toHsl(settings["color.brand.accent"] ?? "");
     const brandHighlight = toHsl(settings["color.brand.highlight"] ?? "");
+    const navActiveHighlight = toHsl(settings["color.nav.activeHighlight"] ?? "");
 
     const lightRules: string[] = [];
 
     if (brandMain && !settings["color.light.primary"]) {
       lightRules.push(`  --primary: ${brandMain};`);
       lightRules.push(`  --ring: ${brandMain};`);
-      lightRules.push(`  --sidebar-primary: ${brandMain};`);
-      lightRules.push(`  --sidebar-ring: ${brandMain};`);
+    }
+    if (navActiveHighlight) {
+      lightRules.push(`  --sidebar-primary: ${navActiveHighlight};`);
+      lightRules.push(`  --sidebar-ring: ${navActiveHighlight};`);
     }
     if (brandSecondary) {
       lightRules.push(`  --secondary: ${brandSecondary};`);
@@ -381,8 +384,10 @@ function PlatformColorInjector() {
     if (brandMain && !settings["color.dark.primary"]) {
       darkRules.push(`  --primary: ${brandMain};`);
       darkRules.push(`  --ring: ${brandMain};`);
-      darkRules.push(`  --sidebar-primary: ${brandMain};`);
-      darkRules.push(`  --sidebar-ring: ${brandMain};`);
+    }
+    if (navActiveHighlight) {
+      darkRules.push(`  --sidebar-primary: ${navActiveHighlight};`);
+      darkRules.push(`  --sidebar-ring: ${navActiveHighlight};`);
     }
     if (brandSecondary) {
       darkRules.push(`  --secondary: ${brandSecondary};`);

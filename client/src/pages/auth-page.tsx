@@ -32,6 +32,7 @@ export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [pendingVerification, setPendingVerification] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
+  const [initialEmailSent, setInitialEmailSent] = useState(true);
   const [emailNotVerified, setEmailNotVerified] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
   const { login, user, isLoading } = useAuth();
@@ -82,6 +83,14 @@ export default function AuthPage() {
       if (result.status === "pending_verification") {
         setPendingVerification(true);
         setPendingEmail(data.email);
+        setInitialEmailSent(result.emailSent !== false);
+        if (!result.emailSent) {
+          toast({
+            title: "Verification email failed",
+            description: "We couldn't send your verification email. Use the resend link below or contact support.",
+            variant: "destructive",
+          });
+        }
       }
     } catch (err: any) {
       const errText = err.message || "Something went wrong";
@@ -101,11 +110,20 @@ export default function AuthPage() {
   const handleResendVerification = async (email: string) => {
     setResendingEmail(true);
     try {
-      await apiRequest("POST", "/api/resend-verification", { email });
-      toast({
-        title: "Verification email sent",
-        description: "Please check your inbox.",
-      });
+      const res = await apiRequest("POST", "/api/auth/resend-verification", { email });
+      const result = await res.json();
+      if (result.emailSent === false) {
+        toast({
+          title: "Verification email failed",
+          description: result.message || "We couldn't send your verification email. Please contact support.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Verification email sent",
+          description: "Please check your inbox.",
+        });
+      }
     } catch (err: any) {
       const errText = err.message || "";
       let description = "Could not resend. Please try again later.";
@@ -132,10 +150,15 @@ export default function AuthPage() {
               <div className="flex justify-center">
                 <Mail className="h-12 w-12 text-primary" />
               </div>
-              <h2 className="text-lg font-semibold">Check your email</h2>
+              <h2 className="text-lg font-semibold">
+                {initialEmailSent ? "Check your email" : "Email delivery failed"}
+              </h2>
               <p className="text-sm text-muted-foreground">
-                We sent a verification link to <strong>{pendingEmail}</strong>.
-                Click the link to verify your account and sign in.
+                {initialEmailSent ? (
+                  <>We sent a verification link to <strong>{pendingEmail}</strong>. Click the link to verify your account and sign in.</>
+                ) : (
+                  <>We couldn't send a verification email to <strong>{pendingEmail}</strong>. Use the resend link below or contact support.</>
+                )}
               </p>
               <div className="pt-2">
                 <button

@@ -488,6 +488,7 @@ export default function CommandSettings() {
     brandSecondary: "",
     brandAccent: "",
     brandHighlight: "",
+    navActiveHighlight: "",
   };
 
   const [lightPrimary, setLightPrimary] = useState(DEFAULT_COLORS.lightPrimary);
@@ -502,6 +503,7 @@ export default function CommandSettings() {
   const [brandSecondary, setBrandSecondary] = useState(DEFAULT_COLORS.brandSecondary);
   const [brandAccent, setBrandAccent] = useState(DEFAULT_COLORS.brandAccent);
   const [brandHighlight, setBrandHighlight] = useState(DEFAULT_COLORS.brandHighlight);
+  const [navActiveHighlight, setNavActiveHighlight] = useState(DEFAULT_COLORS.navActiveHighlight);
 
   // ── Icon pills state ──
   const [iconPills, setIconPills] = useState<IconPill[]>(DEFAULT_ICON_PILLS);
@@ -541,6 +543,7 @@ export default function CommandSettings() {
     setBrandSecondary(settings["color.brand.secondary"] || DEFAULT_COLORS.brandSecondary);
     setBrandAccent(settings["color.brand.accent"] || DEFAULT_COLORS.brandAccent);
     setBrandHighlight(settings["color.brand.highlight"] || DEFAULT_COLORS.brandHighlight);
+    setNavActiveHighlight(settings["color.nav.activeHighlight"] || DEFAULT_COLORS.navActiveHighlight);
 
     if (settings["home.iconPills"]) {
       try {
@@ -572,6 +575,7 @@ export default function CommandSettings() {
       "color.brand.secondary": brandSecondary,
       "color.brand.accent": brandAccent,
       "color.brand.highlight": brandHighlight,
+      "color.nav.activeHighlight": navActiveHighlight,
     });
   }
 
@@ -589,6 +593,7 @@ export default function CommandSettings() {
       "color.brand.secondary": "",
       "color.brand.accent": "",
       "color.brand.highlight": "",
+      "color.nav.activeHighlight": "",
     });
   }
 
@@ -1181,6 +1186,14 @@ export default function CommandSettings() {
                 <ColorPickerRow label="Brand Secondary" hsl={brandSecondary} onChange={setBrandSecondary} testIdBase="brand-secondary" />
                 <ColorPickerRow label="Brand Accent" hsl={brandAccent} onChange={setBrandAccent} testIdBase="brand-accent" />
                 <ColorPickerRow label="Brand Highlight" hsl={brandHighlight} onChange={setBrandHighlight} testIdBase="brand-highlight" />
+              </div>
+
+              <Separator />
+
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-foreground">Navigation</p>
+                <p className="text-xs text-muted-foreground">Controls the active item highlight and focus ring color in the sidebar. Leave blank to use the default sidebar accent.</p>
+                <ColorPickerRow label="Nav Active Highlight" hsl={navActiveHighlight} onChange={setNavActiveHighlight} testIdBase="nav-active-highlight" />
               </div>
 
               <div className="flex justify-end">

@@ -19,15 +19,15 @@ const ICON_MAP: Record<string, React.ElementType> = {
 };
 
 const CATEGORY_STYLES: Record<string, { accent: string; badge: string }> = {
-  Engineering: { accent: "text-blue-600 dark:text-blue-400",    badge: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20" },
-  Design:      { accent: "text-purple-600 dark:text-purple-400", badge: "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20" },
-  Marketing:   { accent: "text-orange-600 dark:text-orange-400", badge: "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20" },
-  Operations:  { accent: "text-green-600 dark:text-green-400",   badge: "bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/20" },
-  Sales:       { accent: "text-yellow-600 dark:text-yellow-500", badge: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 border-yellow-500/20" },
-  Support:     { accent: "text-pink-600 dark:text-pink-400",     badge: "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/20" },
+  Technology: { accent: "text-blue-600 dark:text-blue-400",    badge: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20" },
+  Creative:   { accent: "text-purple-600 dark:text-purple-400", badge: "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20" },
+  Marketing:  { accent: "text-orange-600 dark:text-orange-400", badge: "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20" },
+  Business:   { accent: "text-green-600 dark:text-green-400",   badge: "bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/20" },
+  Media:      { accent: "text-yellow-600 dark:text-yellow-500", badge: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 border-yellow-500/20" },
+  Support:    { accent: "text-pink-600 dark:text-pink-400",     badge: "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/20" },
 };
 
-const CATEGORY_ORDER = ["Engineering", "Design", "Marketing", "Operations", "Sales", "Support"];
+const CATEGORY_ORDER = ["Technology", "Creative", "Marketing", "Business", "Media", "Support"];
 
 export default function ServicesListingPage() {
   const { data: services, isLoading } = useQuery<Service[]>({
@@ -76,7 +76,7 @@ export default function ServicesListingPage() {
             <div className="grid md:grid-cols-2 gap-4">
               {featured.map((service) => {
                 const Icon = (service.iconName && ICON_MAP[service.iconName]) ? ICON_MAP[service.iconName] : Sparkles;
-                const styles = CATEGORY_STYLES[service.category] ?? CATEGORY_STYLES.Engineering;
+                const styles = CATEGORY_STYLES[service.category] ?? CATEGORY_STYLES.Technology;
                 return (
                   <Link href={`/services/${service.slug}`} key={service.id}>
                     <div
@@ -109,7 +109,7 @@ export default function ServicesListingPage() {
         )}
 
         {!isLoading && Object.entries(grouped).map(([category, items]) => {
-          const styles = CATEGORY_STYLES[category] ?? CATEGORY_STYLES.Engineering;
+          const styles = CATEGORY_STYLES[category] ?? CATEGORY_STYLES.Technology;
           return (
             <div key={category} className="mb-10">
               <div className="flex items-center gap-3 mb-4">

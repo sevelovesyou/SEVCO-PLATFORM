@@ -8,6 +8,7 @@ import * as LucideIcons from "lucide-react";
 import {
   BookOpen, ShoppingBag, Music, Folder, Briefcase,
   ArrowRight, Users, Star, ChevronRight, Pin,
+  Zap, Globe, Layers,
 } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
 import type { Article, Product, FeedPost } from "@shared/schema";
@@ -76,6 +77,16 @@ const PLATFORM_SECTIONS = [
   },
 ];
 
+const WHY_SEVCO_PILLS = [
+  { icon: Music, label: "Music" },
+  { icon: ShoppingBag, label: "Store" },
+  { icon: Folder, label: "Projects" },
+  { icon: Users, label: "Community" },
+  { icon: Zap, label: "Fast" },
+  { icon: Globe, label: "Global" },
+  { icon: Layers, label: "All-in-One" },
+];
+
 const DISCORD_INVITE = "https://discord.gg/sevco";
 
 const DEFAULT_HERO_TEXT = "One platform for all things SEVCO — music, merch, projects, and a community built to last.";
@@ -93,7 +104,7 @@ function ProductCard({ product }: { product: Product }) {
   return (
     <Link href={`/store/products/${product.slug}`}>
       <div
-        className="group rounded-xl border bg-card hover:border-foreground/20 transition-all duration-200 overflow-hidden cursor-pointer"
+        className="group rounded-xl border bg-white/[0.03] border-white/8 hover:bg-white/[0.06] hover:border-white/15 transition-all duration-200 overflow-hidden cursor-pointer"
         data-testid={`card-product-${product.id}`}
       >
         <div className="aspect-square bg-muted/40 overflow-hidden">
@@ -125,7 +136,7 @@ function ArticleCard({ article }: { article: Article }) {
   return (
     <Link href={`/wiki/${article.slug}`}>
       <div
-        className="group flex items-start gap-3 p-3 rounded-xl border bg-card hover:border-foreground/20 transition-all duration-200 cursor-pointer"
+        className="group flex items-start gap-3 p-3 rounded-xl border bg-white/[0.03] border-white/8 hover:bg-white/[0.06] hover:border-white/15 transition-all duration-200 cursor-pointer"
         data-testid={`card-article-${article.id}`}
       >
         <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
@@ -201,26 +212,50 @@ export default function Landing() {
     <div className="min-h-screen bg-background">
       {/* ── HERO ── */}
       <section
-        className="relative overflow-hidden bg-foreground text-background"
+        className="relative overflow-hidden bg-[#0a0a12] text-white"
         style={heroBgUrl ? {
           backgroundImage: `url(${heroBgUrl})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         } : undefined}
+        data-testid="section-hero"
       >
-        <div className="absolute inset-0 opacity-5 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent pointer-events-none" />
-        {heroBgUrl && <div className="absolute inset-0 bg-foreground pointer-events-none" style={{ opacity: heroOverlayOpacity }} />}
-        <div className="relative max-w-6xl mx-auto px-6 py-24 md:py-32 flex flex-col items-center text-center gap-6">
+        {/* Animated gradient blobs */}
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <div className="absolute -top-28 -left-36 w-[600px] h-[600px] rounded-full bg-orange-600/20 blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />
+          <div className="absolute -bottom-28 -right-36 w-[500px] h-[500px] rounded-full bg-green-600/15 blur-[120px] animate-[pulse_10s_ease-in-out_infinite_2s]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] rounded-full bg-amber-600/10 blur-[100px] animate-[pulse_12s_ease-in-out_infinite_4s]" />
+        </div>
+
+        {/* Subtle grid overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-[0.04]"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+          }}
+          aria-hidden="true"
+        />
+
+        {heroBgUrl && <div className="absolute inset-0 bg-[#0a0a12] pointer-events-none" style={{ opacity: heroOverlayOpacity }} />}
+
+        <div className="relative z-10 max-w-6xl mx-auto px-6 py-24 md:py-36 flex flex-col items-center text-center gap-6">
           <div className="flex items-center gap-4">
             <img
               src={planetIcon}
               alt="SEVCO Planet"
-              className="h-28 w-28 md:h-36 md:w-36 object-contain invert dark:invert-0"
+              className="h-28 w-28 md:h-36 md:w-36 object-contain dark:invert-0 invert"
               data-testid="img-planet-hero"
             />
           </div>
           <div>
-            <p className="text-background/60 text-base md:text-lg max-w-xl mx-auto leading-relaxed">
+            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-3 leading-tight">
+              <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-green-400 bg-clip-text text-transparent">
+                Everything SEVCO.
+              </span>
+            </h1>
+            <p className="text-white/60 text-base md:text-lg max-w-xl mx-auto leading-relaxed">
               {heroText}
             </p>
           </div>
@@ -228,8 +263,7 @@ export default function Landing() {
             <Link href={btn1Url}>
               <Button
                 size="lg"
-                variant="secondary"
-                className="bg-background text-foreground hover:bg-background/90 font-semibold gap-2 px-6"
+                className="bg-orange-500 hover:bg-orange-400 text-white font-semibold gap-2 px-6 shadow-lg"
                 data-testid="button-hero-primary"
               >
                 <Btn1Icon className="h-4 w-4" />
@@ -239,8 +273,8 @@ export default function Landing() {
             <Link href={btn2Url}>
               <Button
                 size="lg"
-                variant="outline"
-                className="border-background/30 text-background hover:bg-background/10 font-semibold gap-2 px-6"
+                variant="ghost"
+                className="text-white/70 hover:text-white hover:bg-white/10 border border-white/10 font-semibold gap-2 px-6"
                 data-testid="button-hero-secondary"
               >
                 <Btn2Icon className="h-4 w-4" />
@@ -248,6 +282,27 @@ export default function Landing() {
               </Button>
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* ── WHY SEVCO — FEATURE PILLS ── */}
+      <section
+        className="bg-[#0f0f1a] border-y border-white/5 px-4 py-5"
+        data-testid="section-feature-pills"
+      >
+        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-6 md:gap-10">
+          {WHY_SEVCO_PILLS.map((pill) => (
+            <div
+              key={pill.label}
+              className="flex items-center gap-2.5"
+              data-testid={`feature-pill-${pill.label.toLowerCase()}`}
+            >
+              <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-orange-500/15">
+                <pill.icon className="h-4 w-4 text-orange-400" />
+              </div>
+              <p className="text-xs font-semibold text-white/80">{pill.label}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -306,7 +361,7 @@ export default function Landing() {
             {PLATFORM_SECTIONS.map((section) => (
               <Link key={section.path} href={section.path}>
                 <div
-                  className={`group relative rounded-2xl border bg-gradient-to-br p-5 cursor-pointer hover:shadow-md transition-all duration-200 ${section.accent}`}
+                  className={`group relative rounded-2xl border bg-gradient-to-br p-5 cursor-pointer hover:shadow-md hover:bg-white/[0.03] transition-all duration-200 ${section.accent}`}
                   data-testid={`card-platform-${section.label.toLowerCase()}`}
                 >
                   <div className={`h-10 w-10 rounded-xl ${section.iconBg} flex items-center justify-center mb-4`}>
@@ -325,7 +380,10 @@ export default function Landing() {
       {/* ── SEVCO RECORDS SPOTLIGHT ── */}
       {showRecordsSpotlight && (
         <section className="relative overflow-hidden bg-gradient-to-br from-violet-950 via-violet-900 to-indigo-900">
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-violet-400 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+            <div className="absolute -bottom-16 -left-20 w-[400px] h-[400px] rounded-full bg-violet-500/15 blur-[100px] animate-[pulse_9s_ease-in-out_infinite]" />
+            <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-indigo-500/10 blur-[80px] animate-[pulse_11s_ease-in-out_infinite_3s]" />
+          </div>
           <div className="relative max-w-6xl mx-auto px-6 py-14 md:py-20 flex flex-col md:flex-row md:items-center gap-8">
             <div className="flex-1">
               <Badge className="mb-4 bg-violet-500/30 text-violet-200 border-violet-400/30 text-xs font-semibold uppercase tracking-wider">
@@ -361,7 +419,7 @@ export default function Landing() {
               </div>
             </div>
             <div className="hidden md:flex items-center justify-center">
-              <div className="h-40 w-40 rounded-3xl bg-gradient-to-br from-violet-500/30 to-indigo-600/30 border border-violet-400/20 flex items-center justify-center">
+              <div className="h-40 w-40 rounded-3xl bg-white/[0.03] border border-violet-400/20 flex items-center justify-center">
                 <Music className="h-20 w-20 text-violet-300/60" />
               </div>
             </div>
@@ -449,27 +507,33 @@ export default function Landing() {
 
       {/* ── COMMUNITY CTA ── */}
       {showCommunityCta && (
-        <section className="max-w-6xl mx-auto px-6 py-16 md:py-24">
-          <div className="rounded-3xl border bg-gradient-to-br from-indigo-500/10 via-background to-violet-500/5 border-indigo-500/20 p-8 md:p-12 flex flex-col md:flex-row md:items-center gap-8">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-10 w-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
-                  <SiDiscord className="h-5 w-5 text-indigo-500" />
-                </div>
-                <Badge className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20 text-xs font-semibold">
-                  Community
-                </Badge>
+        <section className="relative overflow-hidden bg-gradient-to-br from-indigo-900/60 via-background to-violet-900/30 border-t border-white/5 px-6 py-20 md:py-28 text-center">
+          <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+            <div className="absolute top-0 left-1/4 w-[400px] h-[400px] rounded-full bg-indigo-600/10 blur-[100px] animate-[pulse_10s_ease-in-out_infinite]" />
+            <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] rounded-full bg-violet-600/10 blur-[80px] animate-[pulse_8s_ease-in-out_infinite_3s]" />
+          </div>
+          <div className="relative z-10 max-w-xl mx-auto">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-xl bg-indigo-500/15 flex items-center justify-center">
+                <SiDiscord className="h-5 w-5 text-indigo-400" />
               </div>
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3">Join the SEVCO community.</h2>
-              <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
-                Connect with the team and community on Discord. Get updates, share feedback, and be part of what's next.
-              </p>
+              <Badge className="bg-indigo-500/15 text-indigo-400 border-indigo-500/20 text-xs font-semibold">
+                Community
+              </Badge>
             </div>
-            <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0">
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
+              <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400 bg-clip-text text-transparent">
+                Join the SEVCO community.
+              </span>
+            </h2>
+            <p className="text-muted-foreground text-sm leading-relaxed mb-8">
+              Connect with the team and community on Discord. Get updates, share feedback, and be part of what's next.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer">
                 <Button
                   size="lg"
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold gap-2 w-full sm:w-auto md:w-full"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold gap-2"
                   data-testid="button-join-discord"
                 >
                   <SiDiscord className="h-4 w-4" />
@@ -480,8 +544,8 @@ export default function Landing() {
                 <Link href="/auth">
                   <Button
                     size="lg"
-                    variant="outline"
-                    className="font-semibold gap-2 w-full sm:w-auto md:w-full"
+                    variant="ghost"
+                    className="text-white/70 hover:text-white hover:bg-white/10 border border-white/10 font-semibold gap-2"
                     data-testid="button-sign-up"
                   >
                     <Star className="h-4 w-4" />

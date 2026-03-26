@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useSearch } from "wouter";
 import {
   ShoppingBag, Plus, Package, ArrowUpDown, SlidersHorizontal,
-  AlertCircle, Eye, ShoppingCart,
+  AlertCircle, Eye, ShoppingCart, ShieldCheck, Truck, Star, ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +22,13 @@ const SORT_LABELS: Record<SortKey, string> = {
   "name-asc":   "Name: A–Z",
   "name-desc":  "Name: Z–A",
 };
+
+const STORE_PILLS = [
+  { icon: ShieldCheck, label: "Secure Checkout" },
+  { icon: Truck, label: "Fast Shipping" },
+  { icon: Star, label: "Quality Gear" },
+  { icon: ShoppingBag, label: "Exclusive Drops" },
+];
 
 const CATEGORY_PALETTES: Record<string, { bg: string; text: string; border: string; gradient: string }> = {
   apparel:      { bg: "bg-indigo-500/10",  text: "text-indigo-700 dark:text-indigo-300",  border: "border-indigo-500/20",  gradient: "from-indigo-400 to-indigo-600" },
@@ -157,7 +164,7 @@ function CategoryBanner({ name, count, active, onClick }: {
       className={`group relative rounded-xl overflow-hidden border transition-all duration-200 cursor-pointer text-left shrink-0 w-36 md:w-auto ${
         active
           ? `${palette.bg} ${palette.border} border-2 shadow-sm`
-          : "border-border bg-card hover:border-orange-300 dark:hover:border-orange-700"
+          : "border-border bg-white/[0.03] hover:bg-white/[0.06] hover:border-orange-300 dark:hover:border-orange-700"
       }`}
     >
       <div className={`h-20 w-full flex items-end p-3 ${active ? palette.bg : "bg-muted/30 group-hover:bg-muted/60 transition-colors"}`}>
@@ -178,7 +185,7 @@ function AllCategoryBanner({ active, count, onClick }: { active: boolean; count:
       className={`group relative rounded-xl overflow-hidden border transition-all duration-200 cursor-pointer text-left shrink-0 w-36 md:w-auto ${
         active
           ? "bg-orange-500/10 border-orange-500/30 border-2 shadow-sm"
-          : "border-border bg-card hover:border-orange-300 dark:hover:border-orange-700"
+          : "border-border bg-white/[0.03] hover:bg-white/[0.06] hover:border-orange-300 dark:hover:border-orange-700"
       }`}
     >
       <div className={`h-20 w-full flex items-end p-3 ${active ? "bg-orange-500/10" : "bg-muted/30 group-hover:bg-muted/60 transition-colors"}`}>
@@ -234,18 +241,40 @@ export default function StorePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="relative overflow-hidden bg-gradient-to-br from-orange-600 via-orange-500 to-amber-400 px-6 py-14 md:py-20">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
-        <div className="relative max-w-6xl mx-auto flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+      {/* ── HERO ── */}
+      <div
+        className="relative overflow-hidden bg-[#0a0a12] px-6 py-20 md:py-28"
+        data-testid="section-store-hero"
+      >
+        {/* Animated gradient blobs */}
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <div className="absolute -top-20 -left-28 w-[500px] h-[500px] rounded-full bg-orange-600/20 blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />
+          <div className="absolute -bottom-20 -right-28 w-[400px] h-[400px] rounded-full bg-amber-500/15 blur-[100px] animate-[pulse_10s_ease-in-out_infinite_2s]" />
+        </div>
+
+        {/* Subtle grid overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-[0.04]"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+          }}
+          aria-hidden="true"
+        />
+
+        <div className="relative z-10 max-w-6xl mx-auto flex flex-col md:flex-row md:items-end md:justify-between gap-6">
           <div>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
-                <ShoppingBag className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-white/80 text-sm font-medium tracking-widest uppercase">SEVCO Store</span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold text-orange-400 uppercase tracking-wider mb-5">
+              <ShoppingBag className="h-3.5 w-3.5" />
+              SEVCO Store
             </div>
-            <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">Shop</h1>
-            <p className="text-white/70 mt-2 max-w-md text-sm">
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight text-white">
+              <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-300 bg-clip-text text-transparent">
+                SEVCO Store
+              </span>
+            </h1>
+            <p className="text-white/60 mt-3 max-w-md text-sm">
               Merchandise, exclusive drops, and products from the SEVCO universe.
             </p>
           </div>
@@ -253,13 +282,13 @@ export default function StorePage() {
             <Button
               onClick={openCart}
               variant="secondary"
-              className="relative bg-white/20 hover:bg-white/30 text-white border-white/30 font-semibold"
+              className="relative bg-white/10 hover:bg-white/20 text-white border border-white/15 font-semibold"
               data-testid="button-open-cart"
             >
               <ShoppingCart className="h-4 w-4 mr-2" />
               Cart
               {itemCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-white text-orange-600 text-[10px] font-black rounded-full h-5 w-5 flex items-center justify-center" data-testid="cart-badge-count">
+                <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[10px] font-black rounded-full h-5 w-5 flex items-center justify-center" data-testid="cart-badge-count">
                   {itemCount}
                 </span>
               )}
@@ -268,7 +297,7 @@ export default function StorePage() {
               <Link href="/store/products/new">
                 <Button
                   data-testid="button-add-product"
-                  className="bg-white text-orange-600 hover:bg-white/90 font-semibold shadow-md"
+                  className="bg-orange-500 hover:bg-orange-400 text-white font-semibold shadow-md"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Product
@@ -278,6 +307,27 @@ export default function StorePage() {
           </div>
         </div>
       </div>
+
+      {/* ── FEATURE PILLS ── */}
+      <section
+        className="bg-[#0f0f1a] border-y border-white/5 px-4 py-5"
+        data-testid="section-store-pills"
+      >
+        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-8 md:gap-12">
+          {STORE_PILLS.map((pill) => (
+            <div
+              key={pill.label}
+              className="flex items-center gap-2.5"
+              data-testid={`store-pill-${pill.label.toLowerCase().replace(/\s+/g, "-")}`}
+            >
+              <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-orange-500/15">
+                <pill.icon className="h-4 w-4 text-orange-400" />
+              </div>
+              <p className="text-xs font-semibold text-white/80">{pill.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col gap-8">
         {(isLoading || categories.length > 0) && (
@@ -398,6 +448,35 @@ export default function StorePage() {
           </div>
         )}
       </div>
+
+      {/* ── BOTTOM CLOSER CTA ── */}
+      <section
+        className="relative overflow-hidden bg-gradient-to-br from-orange-900/40 via-background to-amber-900/20 border-t border-white/5 px-6 py-20 md:py-24 text-center mt-8"
+        data-testid="section-store-cta"
+      >
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <div className="absolute top-0 left-1/3 w-[400px] h-[300px] rounded-full bg-orange-600/10 blur-[100px] animate-[pulse_9s_ease-in-out_infinite]" />
+          <div className="absolute bottom-0 right-1/3 w-[300px] h-[200px] rounded-full bg-amber-500/10 blur-[80px] animate-[pulse_11s_ease-in-out_infinite_2s]" />
+        </div>
+        <div className="relative z-10 max-w-xl mx-auto">
+          <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight mb-3 text-foreground">
+            Can't find what you're looking for?
+          </h2>
+          <p className="text-muted-foreground text-sm leading-relaxed mb-6">
+            New drops land regularly. Follow us on Discord to get notified about exclusive releases and limited-edition gear.
+          </p>
+          <Link href="/contact">
+            <Button
+              size="lg"
+              className="bg-orange-500 hover:bg-orange-400 text-white font-semibold gap-2"
+              data-testid="button-store-contact"
+            >
+              Get in Touch
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

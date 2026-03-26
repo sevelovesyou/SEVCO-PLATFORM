@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Folder, Plus, Globe, AlertCircle, Building2 } from "lucide-react";
+import { Folder, Plus, Globe, AlertCircle, Building2, GitBranch, Users, Zap, ArrowRight } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,6 +10,13 @@ import { usePermission } from "@/hooks/use-permission";
 import type { Project } from "@shared/schema";
 
 const CAN_MANAGE_PROJECTS = ["admin", "executive", "staff"];
+
+const PROJECT_PILLS = [
+  { icon: GitBranch, label: "Open Source" },
+  { icon: Users, label: "Community Driven" },
+  { icon: Zap, label: "Live Updates" },
+  { icon: Folder, label: "Contribute" },
+];
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
@@ -66,7 +73,7 @@ function ProjectCard({ project }: { project: Project }) {
     <Link href={`/projects/${project.slug}`}>
       <div
         data-testid={`card-project-${project.id}`}
-        className="group border border-border rounded-xl bg-card hover:shadow-md transition-all duration-200 cursor-pointer p-5 flex flex-col gap-3"
+        className="group border border-white/8 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/15 hover:shadow-md transition-all duration-200 cursor-pointer p-5 flex flex-col gap-3"
       >
         <div className="flex items-start justify-between gap-2">
           <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
@@ -97,7 +104,7 @@ function ProjectCard({ project }: { project: Project }) {
 
 function ProjectCardSkeleton() {
   return (
-    <div className="border border-border rounded-xl bg-card p-5 flex flex-col gap-3">
+    <div className="border border-white/8 rounded-xl bg-white/[0.03] p-5 flex flex-col gap-3">
       <div className="flex items-start justify-between">
         <Skeleton className="h-10 w-10 rounded-lg" />
         <Skeleton className="h-5 w-20 rounded-full" />
@@ -144,18 +151,41 @@ export default function ProjectsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="relative overflow-hidden bg-gradient-to-br from-green-700 via-green-600 to-emerald-500 px-6 py-14 md:py-20">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
-        <div className="relative max-w-5xl mx-auto flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+      {/* ── HERO ── */}
+      <div
+        className="relative overflow-hidden bg-[#0a0a12] px-6 py-20 md:py-28"
+        data-testid="section-projects-hero"
+      >
+        {/* Animated gradient blobs */}
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <div className="absolute -top-20 -left-28 w-[500px] h-[500px] rounded-full bg-green-600/20 blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />
+          <div className="absolute -bottom-20 -right-28 w-[400px] h-[400px] rounded-full bg-emerald-500/15 blur-[100px] animate-[pulse_10s_ease-in-out_infinite_2s]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[200px] rounded-full bg-teal-600/8 blur-[80px] animate-[pulse_12s_ease-in-out_infinite_4s]" />
+        </div>
+
+        {/* Subtle grid overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-[0.04]"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+          }}
+          aria-hidden="true"
+        />
+
+        <div className="relative z-10 max-w-5xl mx-auto flex flex-col md:flex-row md:items-end md:justify-between gap-6">
           <div>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
-                <Folder className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-white/80 text-sm font-medium tracking-widest uppercase">SEVCO Ventures</span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold text-green-400 uppercase tracking-wider mb-5">
+              <Folder className="h-3.5 w-3.5" />
+              SEVCO Ventures
             </div>
-            <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">Projects</h1>
-            <p className="text-white/70 mt-2 max-w-md text-sm">
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight text-white">
+              <span className="bg-gradient-to-r from-green-400 via-emerald-300 to-teal-400 bg-clip-text text-transparent">
+                SEVCO Projects
+              </span>
+            </h1>
+            <p className="text-white/60 mt-3 max-w-md text-sm">
               Companies, brands, and initiatives across the SEVCO portfolio.
             </p>
           </div>
@@ -163,7 +193,7 @@ export default function ProjectsPage() {
             <Link href="/projects/new">
               <Button
                 data-testid="button-add-project"
-                className="bg-white text-green-700 hover:bg-white/90 font-semibold shadow-md"
+                className="bg-green-500 hover:bg-green-400 text-white font-semibold shadow-md"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Project
@@ -172,6 +202,27 @@ export default function ProjectsPage() {
           )}
         </div>
       </div>
+
+      {/* ── FEATURE PILLS ── */}
+      <section
+        className="bg-[#0f0f1a] border-y border-white/5 px-4 py-5"
+        data-testid="section-projects-pills"
+      >
+        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-8 md:gap-12">
+          {PROJECT_PILLS.map((pill) => (
+            <div
+              key={pill.label}
+              className="flex items-center gap-2.5"
+              data-testid={`project-pill-${pill.label.toLowerCase().replace(/\s+/g, "-")}`}
+            >
+              <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-green-500/15">
+                <pill.icon className="h-4 w-4 text-green-400" />
+              </div>
+              <p className="text-xs font-semibold text-white/80">{pill.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <div className="max-w-5xl mx-auto px-6 py-8">
         <Tabs value={statusFilter} onValueChange={setStatusFilter} className="mb-8">
@@ -225,6 +276,49 @@ export default function ProjectsPage() {
           </div>
         )}
       </div>
+
+      {/* ── BOTTOM CONTRIBUTE CTA ── */}
+      <section
+        className="relative overflow-hidden bg-gradient-to-br from-green-900/30 via-background to-emerald-900/20 border-t border-white/5 px-6 py-20 md:py-24 text-center mt-8"
+        data-testid="section-projects-cta"
+      >
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <div className="absolute top-0 left-1/3 w-[400px] h-[300px] rounded-full bg-green-600/10 blur-[100px] animate-[pulse_9s_ease-in-out_infinite]" />
+          <div className="absolute bottom-0 right-1/3 w-[300px] h-[200px] rounded-full bg-emerald-500/10 blur-[80px] animate-[pulse_11s_ease-in-out_infinite_2s]" />
+        </div>
+        <div className="relative z-10 max-w-xl mx-auto">
+          <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight mb-3">
+            <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+              Have a project idea?
+            </span>
+          </h2>
+          <p className="text-muted-foreground text-sm leading-relaxed mb-6">
+            SEVCO Ventures is always looking for bold ideas and passionate contributors. Pitch a project or reach out to learn how to get involved.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link href="/contact">
+              <Button
+                size="lg"
+                className="bg-green-600 hover:bg-green-500 text-white font-semibold gap-2"
+                data-testid="button-pitch-project"
+              >
+                Pitch a Project
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Link href="/contact">
+              <Button
+                size="lg"
+                variant="ghost"
+                className="text-foreground/70 hover:text-foreground border border-border font-semibold gap-2"
+                data-testid="button-learn-contribute"
+              >
+                Learn to Contribute
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

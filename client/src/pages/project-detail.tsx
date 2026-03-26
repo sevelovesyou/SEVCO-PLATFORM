@@ -1,5 +1,6 @@
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { PageHead } from "@/components/page-head";
 import { useEffect } from "react";
 import * as LucideIcons from "lucide-react";
 import {
@@ -156,6 +157,11 @@ export default function ProjectDetail() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageHead
+        title={`${project.name} — SEVCO Projects`}
+        description={project.description || `Learn about ${project.name}, a project in the SEVCO Ventures portfolio.`}
+        ogUrl={`https://sevco.us/projects/${project.slug}`}
+      />
       <div className="max-w-4xl mx-auto px-6 py-8">
 
         <div className="flex items-center justify-between mb-8">

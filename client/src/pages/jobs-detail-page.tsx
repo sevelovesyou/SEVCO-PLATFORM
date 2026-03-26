@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
+import { PageHead } from "@/components/page-head";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -140,6 +141,11 @@ export default function JobsDetailPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
+      <PageHead
+        title={`${job.title} at SEVCO — Careers`}
+        description={`${job.title} position at SEVCO${job.location ? ` — ${job.location}` : ""}. ${job.type ? `${job.type} role` : ""}. Apply now on SEVCO.`}
+        ogUrl={`https://sevco.us/jobs/${job.slug}`}
+      />
       {/* Back link */}
       <Link href="/jobs">
         <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-6" data-testid="link-back-jobs">

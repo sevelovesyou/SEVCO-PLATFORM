@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { PageHead } from "@/components/page-head";
 import { useQuery } from "@tanstack/react-query";
 import { usePermission } from "@/hooks/use-permission";
 import { Card } from "@/components/ui/card";
@@ -20,6 +21,11 @@ export default function MusicArtistsPage() {
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-6 flex flex-col gap-6">
+      <PageHead
+        title="Artists — SEVCO Records"
+        description="Discover the artists on SEVCO Records — musicians, bands, and performers in the SEVCO music roster."
+        ogUrl="https://sevco.us/music/artists"
+      />
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link href="/music">

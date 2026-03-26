@@ -134,6 +134,7 @@ function ChangeUsernameInline({
             <Button
               variant="ghost"
               size="icon"
+                aria-label="Edit"
               className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={() => { setValue(currentUsername); setEditing(true); }}
               data-testid={`button-edit-username-${userId}`}
@@ -164,6 +165,7 @@ function ChangeUsernameInline({
         <TooltipTrigger asChild>
           <Button
             size="icon"
+              aria-label="Confirm"
             variant="ghost"
             className="h-6 w-6 text-green-600"
             onClick={() => mutation.mutate(value)}
@@ -179,6 +181,7 @@ function ChangeUsernameInline({
         <TooltipTrigger asChild>
           <Button
             size="icon"
+              aria-label="Edit"
             variant="ghost"
             className="h-6 w-6"
             onClick={() => setEditing(false)}

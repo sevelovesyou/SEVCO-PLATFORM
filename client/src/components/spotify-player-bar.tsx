@@ -38,8 +38,9 @@ export function SpotifyPlayerBar() {
             className="h-7 w-7 shrink-0"
             onClick={stop}
             data-testid="button-close-player"
+            aria-label="Close player"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
         <iframe

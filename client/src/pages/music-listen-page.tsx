@@ -1,3 +1,4 @@
+import { PageHead } from "@/components/page-head";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,11 @@ export default function MusicListenPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-16">
+      <PageHead
+        title="Listen to SEVCO Records"
+        description="Stream SEVCO Records on Spotify, Apple Music, and all major platforms. Follow us for new music and playlist updates."
+        ogUrl="https://sevco.us/listen"
+      />
       <div className="w-full max-w-sm">
 
         {/* Logo */}

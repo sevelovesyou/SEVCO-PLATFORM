@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { PageHead } from "@/components/page-head";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,11 @@ export default function Home() {
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-6 flex flex-col gap-6">
+      <PageHead
+        title="SEVCO Wiki — Knowledge Base"
+        description="Explore the SEVCO knowledge base — articles, guides, and documentation across engineering, design, operations, and more."
+        ogUrl="https://sevco.us/wiki"
+      />
       <div className="space-y-1">
         <div className="flex items-center gap-2">
           <BookOpen className="h-6 w-6 text-primary" />

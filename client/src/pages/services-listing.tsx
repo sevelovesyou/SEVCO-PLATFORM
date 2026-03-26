@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { PageHead } from "@/components/page-head";
 import {
   ArrowRight,
   Code2, Plug, Lightbulb, Palette, MousePointer2, Sparkles,
@@ -50,6 +51,11 @@ export default function ServicesListingPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageHead
+        title="Services — Engineering, Design & Marketing | SEVCO"
+        description="SEVCO offers professional services across engineering, design, marketing, and operations. Partner with our team to build and grow."
+        ogUrl="https://sevco.us/services"
+      />
       <div className="max-w-5xl mx-auto px-4 md:px-8 py-12 md:py-16">
         <div className="mb-12">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">

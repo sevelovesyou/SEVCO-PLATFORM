@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { PageHead } from "@/components/page-head";
 import { usePermission } from "@/hooks/use-permission";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -84,7 +85,7 @@ function FeaturedPlaylistCard({ playlist }: { playlist: Playlist }) {
     >
       <div className="aspect-square bg-gradient-to-br from-violet-500/20 to-purple-500/10 flex items-center justify-center relative overflow-hidden">
         {playlist.coverImageUrl ? (
-          <img src={playlist.coverImageUrl} alt={playlist.title} className="w-full h-full object-cover" />
+          <img src={playlist.coverImageUrl} alt={playlist.title} className="w-full h-full object-cover" loading="lazy" />
         ) : (
           <ListMusic className="h-8 w-8 text-violet-400 opacity-50 group-hover:scale-110 transition-transform duration-300" />
         )}
@@ -135,6 +136,7 @@ function FeaturedPlaylistCard({ playlist }: { playlist: Playlist }) {
 }
 
 export default function MusicPage() {
+
   const { role } = usePermission();
   const canManage = CAN_MANAGE_MUSIC.includes(role ?? "");
   const { activePlaylist } = useSpotifyPlayer();
@@ -163,6 +165,11 @@ export default function MusicPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageHead
+        title="SEVCO Records — Independent Music Label"
+        description="SEVCO Records — discovering and developing artists across every genre. Browse artists, albums, and playlists from the SEVCO music label."
+        ogUrl="https://sevco.us/music"
+      />
       <div
         className="max-w-5xl mx-auto px-4 md:px-8 py-10 md:py-14"
         style={{ paddingBottom: activePlaylist ? "260px" : undefined }}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PageHead } from "@/components/page-head";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -252,8 +253,8 @@ function SocialPostCard({
             {canDelete && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 -mr-1" data-testid={`button-post-menu-${post.id}`}>
-                    <MoreVertical className="h-4 w-4" />
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 -mr-1" data-testid={`button-post-menu-${post.id}`} aria-label="Post actions">
+                    <MoreVertical className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -361,8 +362,8 @@ function AdminFeedCard({
             {canManage && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 -mr-1" data-testid={`button-feed-menu-${post.id}`}>
-                    <MoreVertical className="h-4 w-4" />
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 -mr-1" data-testid={`button-feed-menu-${post.id}`} aria-label="Post management actions">
+                    <MoreVertical className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -387,7 +388,7 @@ function AdminFeedCard({
           </p>
           {post.mediaUrl && (
             <div className="mt-2 mb-2 rounded-md overflow-hidden border">
-              <img src={post.mediaUrl} alt="Feed media" className="w-full max-h-72 object-cover" data-testid={`img-feed-media-${post.id}`} />
+              <img src={post.mediaUrl} alt="Feed media" className="w-full max-h-72 object-cover" loading="lazy" data-testid={`img-feed-media-${post.id}`} />
             </div>
           )}
           {post.linkUrl && (
@@ -490,6 +491,12 @@ export default function FeedPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
+      <PageHead
+        title="Feed — SEVCO Community"
+        description="Stay up to date with the latest posts and updates from the SEVCO community and official channels."
+        ogUrl="https://sevco.us/feed"
+        noIndex={true}
+      />
       <div className="mb-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">

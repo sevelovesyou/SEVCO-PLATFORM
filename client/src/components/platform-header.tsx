@@ -709,8 +709,9 @@ export function PlatformHeader() {
                 className="h-8 w-8"
                 onClick={() => setSearchOpen(true)}
                 data-testid="button-open-search"
+                aria-label="Open search"
               >
-                <Search className="h-4 w-4" />
+                <Search className="h-4 w-4" aria-hidden="true" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">Search</TooltipContent>
@@ -726,8 +727,9 @@ export function PlatformHeader() {
                   className="h-8 w-8"
                   onClick={() => setChatOpen(true)}
                   data-testid="button-open-chat"
+                  aria-label="Open chat"
                 >
-                  <MessageCircle className="h-4 w-4" />
+                  <MessageCircle className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Open Chat</TooltipContent>
@@ -743,8 +745,9 @@ export function PlatformHeader() {
                 className="relative h-8 w-8"
                 onClick={openCart}
                 data-testid="button-open-cart"
+                aria-label="Open cart"
               >
-                <ShoppingBag className="h-4 w-4" />
+                <ShoppingBag className="h-4 w-4" aria-hidden="true" />
                 {itemCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center" data-testid="cart-badge">
                     {itemCount > 9 ? "9+" : itemCount}
@@ -766,8 +769,10 @@ export function PlatformHeader() {
                   className="h-8 w-8"
                   onClick={() => { setMobileOpen((o) => !o); setMobileSection(null); }}
                   data-testid="button-mobile-menu"
+                  aria-label="Open menu"
+                  aria-expanded={mobileOpen}
                 >
-                  <Menu className="h-4 w-4" />
+                  <Menu className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Menu</TooltipContent>

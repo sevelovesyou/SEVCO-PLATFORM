@@ -1,5 +1,5 @@
-import { useEffect } from "react";
 import { Link } from "wouter";
+import { PageHead } from "@/components/page-head";
 import { Button } from "@/components/ui/button";
 import {
   Globe,
@@ -61,41 +61,17 @@ const features = [
 ];
 
 export default function HostingPage() {
-  useEffect(() => {
-    document.title = "SEVCO Hosting — Website, Game & VPS Hosting";
-    let desc = document.querySelector('meta[name="description"]');
-    if (!desc) {
-      desc = document.createElement("meta");
-      desc.setAttribute("name", "description");
-      document.head.appendChild(desc);
-    }
-    desc.setAttribute(
-      "content",
-      "SEVCO Hosting offers lightning-fast website hosting, Minecraft & game server hosting, VPS, and custom app hosting — all in one place."
-    );
-
-    const setMeta = (prop: string, val: string) => {
-      let el = document.querySelector(`meta[property="${prop}"]`) as HTMLMetaElement | null;
-      if (!el) {
-        el = document.createElement("meta");
-        el.setAttribute("property", prop);
-        document.head.appendChild(el);
-      }
-      el.setAttribute("content", val);
-    };
-    setMeta("og:title", "SEVCO Hosting — Website, Game & VPS Hosting");
-    setMeta(
-      "og:description",
-      "Lightning-Fast Hosting for Websites, Minecraft Servers & Everything In Between. Powered by SEVCO."
-    );
-  }, []);
-
   const scrollToServices = () => {
     document.getElementById("services")?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
     <div className="flex flex-col min-h-full">
+      <PageHead
+        title="SEVCO Hosting — Website, Game & VPS Hosting"
+        description="SEVCO Hosting offers lightning-fast website hosting, Minecraft & game server hosting, VPS, and custom app hosting — all in one place."
+        ogUrl="https://sevco.us/hosting"
+      />
       {/* Hero */}
       <section
         className="relative flex flex-col items-center justify-center text-center px-4 py-28 sm:py-36 overflow-hidden bg-[#0a0a12]"

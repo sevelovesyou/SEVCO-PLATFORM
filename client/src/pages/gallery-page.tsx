@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PageHead } from "@/components/page-head";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -71,6 +72,11 @@ export default function GalleryPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
+      <PageHead
+        title="Brand Gallery — SEVCO"
+        description="Browse SEVCO's brand assets — official images, logos, and visual resources."
+        ogUrl="https://sevco.us/gallery"
+      />
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-1" data-testid="heading-gallery">Gallery</h1>
         <p className="text-muted-foreground text-sm">

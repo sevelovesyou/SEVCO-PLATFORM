@@ -226,7 +226,7 @@ function PlaylistRow({ playlist, onEdit }: { playlist: Playlist; onEdit: (p: Pla
     <div className="flex items-center gap-4 p-4 border rounded-xl hover:bg-muted/30 transition-colors group" data-testid={`row-playlist-${playlist.id}`}>
       <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/10 flex items-center justify-center shrink-0 overflow-hidden">
         {playlist.coverImageUrl ? (
-          <img src={playlist.coverImageUrl} alt={playlist.title} className="h-full w-full object-cover rounded-lg" />
+          <img src={playlist.coverImageUrl} alt={playlist.title} className="h-full w-full object-cover rounded-lg" loading="lazy" />
         ) : (
           <ListMusic className="h-5 w-5 text-violet-400 opacity-50" />
         )}
@@ -253,7 +253,7 @@ function PlaylistRow({ playlist, onEdit }: { playlist: Playlist; onEdit: (p: Pla
         <Tooltip>
           <TooltipTrigger asChild>
             <a href={playlist.playlistUrl} target="_blank" rel="noopener noreferrer">
-              <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-open-playlist-${playlist.id}`}>
+              <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-open-playlist-${playlist.id}`} aria-label="Open link">
                 <ExternalLink className="h-3.5 w-3.5" />
               </Button>
             </a>
@@ -265,6 +265,7 @@ function PlaylistRow({ playlist, onEdit }: { playlist: Playlist; onEdit: (p: Pla
             <Button
               variant="ghost"
               size="icon"
+                aria-label="Edit"
               className="h-8 w-8"
               onClick={() => onEdit(playlist)}
               data-testid={`button-edit-playlist-${playlist.id}`}
@@ -279,6 +280,7 @@ function PlaylistRow({ playlist, onEdit }: { playlist: Playlist; onEdit: (p: Pla
             <Button
               variant="ghost"
               size="icon"
+                aria-label="Delete"
               className="h-8 w-8 text-destructive hover:text-destructive"
               onClick={() => deleteMutation.mutate()}
               disabled={deleteMutation.isPending}

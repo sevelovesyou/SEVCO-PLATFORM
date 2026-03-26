@@ -341,11 +341,12 @@ function ProductRow({ product }: { product: Product }) {
                 onClick={() => toggleMutation.mutate()}
                 disabled={toggleMutation.isPending || deleteMutation.isPending}
                 data-testid={`button-toggle-stock-${product.id}`}
+                aria-label={isAvailable ? "Mark unavailable" : "Mark available"}
               >
                 {isAvailable ? (
-                  <ToggleRight className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  <ToggleRight className="h-4 w-4 text-green-600 dark:text-green-400" aria-hidden="true" />
                 ) : (
-                  <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+                  <ToggleLeft className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 )}
               </Button>
             </TooltipTrigger>
@@ -364,8 +365,9 @@ function ProductRow({ product }: { product: Product }) {
                 }}
                 disabled={deleteMutation.isPending || toggleMutation.isPending}
                 data-testid={`button-delete-product-${product.id}`}
+                aria-label={`Delete ${product.name}`}
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Delete</TooltipContent>

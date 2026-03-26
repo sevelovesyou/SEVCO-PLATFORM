@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PageHead } from "@/components/page-head";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -122,6 +123,11 @@ export default function MusicSubmitPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageHead
+        title="Submit Music — SEVCO Records A&R"
+        description="Submit your music to SEVCO Records. We're always listening for artists who move people. Share your work and we'll be in touch."
+        ogUrl="https://sevco.us/music/submit"
+      />
       <div className="max-w-2xl mx-auto px-4 md:px-8 py-10 md:py-14">
 
         {/* Header */}

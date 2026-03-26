@@ -256,6 +256,7 @@ export default function CommandChatLog() {
                     <Button
                       variant="ghost"
                       size="icon"
+                        aria-label="Delete"
                       className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
                       onClick={() => setDeleteId(msg.id)}
                       data-testid={`button-delete-message-${msg.id}`}

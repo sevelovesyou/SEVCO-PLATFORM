@@ -327,6 +327,7 @@ function SocialLinkRow({ link, onEdit }: { link: PlatformSocialLink; onEdit: (l:
               <Button
                 variant="ghost"
                 size="icon"
+                  aria-label="Edit"
                 className="h-7 w-7"
                 onClick={() => onEdit(link)}
                 data-testid={`button-edit-social-${link.id}`}
@@ -341,6 +342,7 @@ function SocialLinkRow({ link, onEdit }: { link: PlatformSocialLink; onEdit: (l:
               <Button
                 variant="ghost"
                 size="icon"
+                  aria-label="Delete"
                 className="h-7 w-7 text-destructive hover:text-destructive"
                 onClick={() => {
                   if (window.confirm(`Remove "${link.platform}"?`)) deleteMutation.mutate();
@@ -1504,6 +1506,7 @@ export default function CommandSettings() {
                     <Button
                       variant="ghost"
                       size="icon"
+                        aria-label="Action"
                       className="h-7 w-7 text-muted-foreground shrink-0"
                       onClick={() => setHomeCardAccentColor("")}
                       data-testid="button-reset-home-card-accent"
@@ -1535,6 +1538,7 @@ export default function CommandSettings() {
                     <Button
                       variant="ghost"
                       size="icon"
+                        aria-label="Action"
                       className="h-7 w-7 text-muted-foreground shrink-0"
                       onClick={() => setStoreAccentColor("")}
                       data-testid="button-reset-store-accent"
@@ -1566,6 +1570,7 @@ export default function CommandSettings() {
                     <Button
                       variant="ghost"
                       size="icon"
+                        aria-label="Action"
                       className="h-7 w-7 text-muted-foreground shrink-0"
                       onClick={() => setServicesAccentColor("")}
                       data-testid="button-reset-services-accent"
@@ -1597,6 +1602,7 @@ export default function CommandSettings() {
                     <Button
                       variant="ghost"
                       size="icon"
+                        aria-label="Action"
                       className="h-7 w-7 text-muted-foreground shrink-0"
                       onClick={() => setMusicAccentColor("")}
                       data-testid="button-reset-music-accent"
@@ -1628,6 +1634,7 @@ export default function CommandSettings() {
                     <Button
                       variant="ghost"
                       size="icon"
+                        aria-label="Action"
                       className="h-7 w-7 text-muted-foreground shrink-0"
                       onClick={() => setWikiTagColor("")}
                       data-testid="button-reset-wiki-tag"
@@ -1710,7 +1717,7 @@ export default function CommandSettings() {
                       <div className="flex items-center gap-1 shrink-0">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditDialog(asset)} data-testid={`button-edit-brand-asset-${asset.id}`}>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditDialog(asset)} data-testid={`button-edit-brand-asset-${asset.id}`} aria-label="Edit">
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
                           </TooltipTrigger>
@@ -1718,7 +1725,7 @@ export default function CommandSettings() {
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => deleteBrandAsset.mutate(asset.id)} disabled={deleteBrandAsset.isPending} data-testid={`button-delete-brand-asset-${asset.id}`}>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => deleteBrandAsset.mutate(asset.id)} disabled={deleteBrandAsset.isPending} data-testid={`button-delete-brand-asset-${asset.id}`} aria-label="Delete">
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </TooltipTrigger>
@@ -1858,7 +1865,7 @@ export default function CommandSettings() {
                 <div className="flex flex-col gap-0.5 shrink-0">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => movePill(idx, -1)} disabled={idx === 0} data-testid={`button-pill-up-${idx}`}>
+                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => movePill(idx, -1)} disabled={idx === 0} data-testid={`button-pill-up-${idx}`} aria-label="Move up">
                         <ChevronUp className="h-3 w-3" />
                       </Button>
                     </TooltipTrigger>
@@ -1866,7 +1873,7 @@ export default function CommandSettings() {
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => movePill(idx, 1)} disabled={idx === iconPills.length - 1} data-testid={`button-pill-down-${idx}`}>
+                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => movePill(idx, 1)} disabled={idx === iconPills.length - 1} data-testid={`button-pill-down-${idx}`} aria-label="Move down">
                         <ChevronDown className="h-3 w-3" />
                       </Button>
                     </TooltipTrigger>
@@ -1937,6 +1944,7 @@ export default function CommandSettings() {
                     <Button
                       variant="ghost"
                       size="icon"
+                        aria-label="Delete"
                       className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
                       onClick={() => removePill(idx)}
                       data-testid={`button-remove-pill-${idx}`}
@@ -1998,7 +2006,7 @@ export default function CommandSettings() {
                   <div className="flex flex-col gap-0.5">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => moveColumn(ci, -1)} disabled={ci === 0} data-testid={`button-col-up-${ci}`}>
+                        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => moveColumn(ci, -1)} disabled={ci === 0} data-testid={`button-col-up-${ci}`} aria-label="Move up">
                           <ChevronUp className="h-3 w-3" />
                         </Button>
                       </TooltipTrigger>
@@ -2006,7 +2014,7 @@ export default function CommandSettings() {
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => moveColumn(ci, 1)} disabled={ci === sitemapColumns.length - 1} data-testid={`button-col-down-${ci}`}>
+                        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => moveColumn(ci, 1)} disabled={ci === sitemapColumns.length - 1} data-testid={`button-col-down-${ci}`} aria-label="Move down">
                           <ChevronDown className="h-3 w-3" />
                         </Button>
                       </TooltipTrigger>
@@ -2022,7 +2030,7 @@ export default function CommandSettings() {
                   />
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeColumn(ci)} data-testid={`button-remove-col-${ci}`}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeColumn(ci)} data-testid={`button-remove-col-${ci}`} aria-label="Delete">
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
@@ -2036,7 +2044,7 @@ export default function CommandSettings() {
                       <div className="flex flex-col gap-0.5">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => moveLink(ci, li, -1)} disabled={li === 0} data-testid={`button-link-up-${ci}-${li}`}>
+                            <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => moveLink(ci, li, -1)} disabled={li === 0} data-testid={`button-link-up-${ci}-${li}`} aria-label="Move up">
                               <ChevronUp className="h-2.5 w-2.5" />
                             </Button>
                           </TooltipTrigger>
@@ -2044,7 +2052,7 @@ export default function CommandSettings() {
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => moveLink(ci, li, 1)} disabled={li === col.links.length - 1} data-testid={`button-link-down-${ci}-${li}`}>
+                            <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => moveLink(ci, li, 1)} disabled={li === col.links.length - 1} data-testid={`button-link-down-${ci}-${li}`} aria-label="Move down">
                               <ChevronDown className="h-2.5 w-2.5" />
                             </Button>
                           </TooltipTrigger>
@@ -2083,7 +2091,7 @@ export default function CommandSettings() {
                       </div>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => removeLink(ci, li)} data-testid={`button-remove-link-${ci}-${li}`}>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => removeLink(ci, li)} data-testid={`button-remove-link-${ci}-${li}`} aria-label="Delete">
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         </TooltipTrigger>

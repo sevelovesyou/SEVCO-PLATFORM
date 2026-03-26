@@ -1,5 +1,6 @@
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { PageHead } from "@/components/page-head";
 import { ArrowLeft, Package, Tag, ShoppingBag, CircleCheck, CircleX, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +65,30 @@ export default function StoreProductDetail() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageHead
+        title={`${product.name} — SEVCO Store`}
+        description={product.description || `Buy ${product.name} from the SEVCO Store. ${product.categoryName} · $${product.price.toFixed(2)}`}
+        ogImage={product.imageUrl || undefined}
+        ogType="product"
+        ogUrl={`https://sevco.us/store/products/${product.slug}`}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Product",
+          "name": product.name,
+          "description": product.description || undefined,
+          "image": product.imageUrl || undefined,
+          "url": `https://sevco.us/store/products/${product.slug}`,
+          "offers": {
+            "@type": "Offer",
+            "price": product.price.toFixed(2),
+            "priceCurrency": "USD",
+            "availability": product.stockStatus === "available"
+              ? "https://schema.org/InStock"
+              : "https://schema.org/OutOfStock",
+            "seller": { "@type": "Organization", "name": "SEVCO" },
+          },
+        }}
+      />
       <div className="max-w-4xl mx-auto px-6 py-10">
         <div className="mb-8">
           <Link href="/store">

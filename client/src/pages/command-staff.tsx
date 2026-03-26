@@ -292,6 +292,7 @@ function OrgNodeCard({
             <Button
               variant="ghost"
               size="icon"
+                aria-label="Edit"
               className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={(e) => { e.stopPropagation(); onEdit(node); }}
               data-testid={`button-org-edit-${node.id}`}
@@ -305,7 +306,7 @@ function OrgNodeCard({
       <div className="flex gap-1 mt-1">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onMoveUp(node)} disabled={isFirst} data-testid={`button-org-up-${node.id}`}>
+            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onMoveUp(node)} disabled={isFirst} data-testid={`button-org-up-${node.id}`} aria-label="Move up">
               <ChevronUp className="h-3 w-3" />
             </Button>
           </TooltipTrigger>
@@ -313,7 +314,7 @@ function OrgNodeCard({
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onMoveDown(node)} disabled={isLast} data-testid={`button-org-down-${node.id}`}>
+            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onMoveDown(node)} disabled={isLast} data-testid={`button-org-down-${node.id}`} aria-label="Move down">
               <ChevronDown className="h-3 w-3" />
             </Button>
           </TooltipTrigger>

@@ -404,6 +404,7 @@ export default function CommandGallery() {
                           <Button
                             variant="ghost"
                             size="icon"
+                              aria-label="Edit"
                             className="h-7 w-7"
                             onClick={() => setEditImage(image)}
                             data-testid={`button-edit-gallery-${image.id}`}
@@ -418,6 +419,7 @@ export default function CommandGallery() {
                           <Button
                             variant="ghost"
                             size="icon"
+                              aria-label="Delete"
                             className="h-7 w-7 text-destructive hover:text-destructive"
                             onClick={() => setDeleteId(image.id)}
                             data-testid={`button-delete-gallery-${image.id}`}

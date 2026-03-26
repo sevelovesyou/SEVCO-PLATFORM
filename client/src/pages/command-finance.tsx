@@ -411,6 +411,7 @@ function TransactionsTab() {
                         <Button
                           variant="ghost"
                           size="icon"
+                            aria-label="Delete"
                           className="h-7 w-7 text-muted-foreground hover:text-destructive"
                           onClick={() => deleteMutation.mutate(tx.id)}
                           data-testid={`button-delete-transaction-${tx.id}`}
@@ -558,7 +559,7 @@ function InvoiceForm({ invoice, onSuccess }: { invoice?: FinanceInvoice; onSucce
                 )} />
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-9 w-8 mt-0 text-muted-foreground hover:text-destructive" onClick={() => remove(index)} data-testid={`button-remove-line-${index}`}>
+                    <Button type="button" variant="ghost" size="icon" className="h-9 w-8 mt-0 text-muted-foreground hover:text-destructive" onClick={() => remove(index)} data-testid={`button-remove-line-${index}`} aria-label="Delete">
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </TooltipTrigger>
@@ -683,6 +684,7 @@ function InvoicesTab() {
                           <Button
                             variant="ghost"
                             size="icon"
+                              aria-label="Edit"
                             className="h-7 w-7 text-muted-foreground hover:text-foreground"
                             onClick={() => setEditInvoice(inv)}
                             data-testid={`button-edit-invoice-${inv.id}`}
@@ -698,6 +700,7 @@ function InvoicesTab() {
                             <Button
                               variant="ghost"
                               size="icon"
+                                aria-label="Send"
                               className="h-7 w-7 text-muted-foreground hover:text-blue-600"
                               onClick={() => sendMutation.mutate(inv.id)}
                               disabled={sendMutation.isPending}
@@ -715,6 +718,7 @@ function InvoicesTab() {
                             <Button
                               variant="ghost"
                               size="icon"
+                                aria-label="Action"
                               className="h-7 w-7 text-muted-foreground hover:text-green-600"
                               onClick={() => paidMutation.mutate(inv.id)}
                               disabled={paidMutation.isPending}
@@ -731,6 +735,7 @@ function InvoicesTab() {
                           <Button
                             variant="ghost"
                             size="icon"
+                              aria-label="Delete"
                             className="h-7 w-7 text-muted-foreground hover:text-destructive"
                             onClick={() => deleteMutation.mutate(inv.id)}
                             data-testid={`button-delete-invoice-${inv.id}`}
@@ -999,7 +1004,7 @@ function ProjectsTab() {
                       </Badge>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => setEditProject(project)} data-testid={`button-edit-project-${project.id}`}>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => setEditProject(project)} data-testid={`button-edit-project-${project.id}`} aria-label="Edit">
                             <Pencil className="h-3 w-3" />
                           </Button>
                         </TooltipTrigger>
@@ -1007,7 +1012,7 @@ function ProjectsTab() {
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => deleteMutation.mutate(project.id)} data-testid={`button-delete-project-${project.id}`}>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => deleteMutation.mutate(project.id)} data-testid={`button-delete-project-${project.id}`} aria-label="Delete">
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         </TooltipTrigger>
@@ -1384,7 +1389,7 @@ function SubscriptionsTab() {
                   <div className="flex items-center gap-1">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(sub)} data-testid={`button-edit-subscription-${sub.id}`}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(sub)} data-testid={`button-edit-subscription-${sub.id}`} aria-label="Edit">
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger>
@@ -1392,7 +1397,7 @@ function SubscriptionsTab() {
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => deleteMutation.mutate(sub.id)} data-testid={`button-delete-subscription-${sub.id}`}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => deleteMutation.mutate(sub.id)} data-testid={`button-delete-subscription-${sub.id}`} aria-label="Delete">
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger>

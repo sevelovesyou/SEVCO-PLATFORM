@@ -1094,6 +1094,83 @@ export async function registerRoutes(
   // Initialize Supabase storage buckets
   import("./supabase").then(({ ensureBucketsExist }) => ensureBucketsExist().catch(console.error));
 
+  // robots.txt — allow all crawlers
+  app.get("/robots.txt", (_req, res) => {
+    res.type("text/plain").send(
+      "User-agent: *\nAllow: /\nDisallow: /command\nDisallow: /account\nDisallow: /edit/\nDisallow: /new\nDisallow: /review\n\nSitemap: https://sevco.us/sitemap.xml\n"
+    );
+  });
+
+  // sitemap.xml — dynamic sitemap listing all public pages
+  app.get("/sitemap.xml", async (_req, res) => {
+    try {
+      const BASE_URL = "https://sevco.us";
+      const now = new Date().toISOString().split("T")[0];
+
+      const staticPages = [
+        { url: "/", priority: "1.0", changefreq: "weekly" },
+        { url: "/wiki", priority: "0.9", changefreq: "daily" },
+        { url: "/store", priority: "0.8", changefreq: "weekly" },
+        { url: "/music", priority: "0.8", changefreq: "weekly" },
+        { url: "/music/artists", priority: "0.7", changefreq: "weekly" },
+        { url: "/music/playlists", priority: "0.6", changefreq: "weekly" },
+        { url: "/listen", priority: "0.6", changefreq: "weekly" },
+        { url: "/projects", priority: "0.7", changefreq: "weekly" },
+        { url: "/services", priority: "0.7", changefreq: "weekly" },
+        { url: "/about", priority: "0.6", changefreq: "monthly" },
+        { url: "/contact", priority: "0.5", changefreq: "monthly" },
+        { url: "/changelog", priority: "0.5", changefreq: "weekly" },
+        { url: "/jobs", priority: "0.6", changefreq: "weekly" },
+        { url: "/gallery", priority: "0.5", changefreq: "weekly" },
+        { url: "/hosting", priority: "0.5", changefreq: "monthly" },
+        { url: "/minecraft", priority: "0.5", changefreq: "monthly" },
+      ];
+
+      const urlEntries: string[] = staticPages.map(
+        (p) =>
+          `  <url>\n    <loc>${BASE_URL}${p.url}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>`
+      );
+
+      try {
+        const articles = await storage.getArticles();
+        const publishedArticles = articles.filter((a) => a.status === "published");
+        for (const a of publishedArticles) {
+          const lastmod = a.updatedAt ? new Date(a.updatedAt).toISOString().split("T")[0] : now;
+          urlEntries.push(`  <url>\n    <loc>${BASE_URL}/wiki/${a.slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>`);
+        }
+      } catch {}
+
+      try {
+        const products = await storage.getProducts();
+        for (const p of products) {
+          const lastmod = p.createdAt ? new Date(p.createdAt).toISOString().split("T")[0] : now;
+          urlEntries.push(`  <url>\n    <loc>${BASE_URL}/store/products/${p.slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>`);
+        }
+      } catch {}
+
+      try {
+        const services = await storage.getServices();
+        for (const s of services) {
+          const lastmod = s.createdAt ? new Date(s.createdAt).toISOString().split("T")[0] : now;
+          urlEntries.push(`  <url>\n    <loc>${BASE_URL}/services/${s.slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>`);
+        }
+      } catch {}
+
+      try {
+        const projects = await storage.getProjects();
+        for (const proj of projects.filter((pr) => pr.status !== "archived")) {
+          const lastmod = proj.createdAt ? new Date(proj.createdAt).toISOString().split("T")[0] : now;
+          urlEntries.push(`  <url>\n    <loc>${BASE_URL}/projects/${proj.slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>`);
+        }
+      } catch {}
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urlEntries.join("\n")}\n</urlset>`;
+      res.type("application/xml").send(xml);
+    } catch (err: any) {
+      res.status(500).send("<?xml version=\"1.0\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"></urlset>");
+    }
+  });
+
   // Public Supabase config endpoint — anon key is safe to expose
   app.get("/api/config/supabase", async (_req, res) => {
     try {

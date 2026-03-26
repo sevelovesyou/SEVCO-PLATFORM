@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
+import { PageHead } from "@/components/page-head";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollText, Zap, Wrench, TrendingUp, MoreHorizontal, ArrowRight, ChevronLeft } from "lucide-react";
 import { Link } from "wouter";
@@ -34,6 +35,11 @@ export default function ChangelogPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+      <PageHead
+        title="Changelog — Platform Updates | SEVCO"
+        description="A running log of features, fixes, and improvements to the SEVCO Platform."
+        ogUrl="https://sevco.us/changelog"
+      />
       <div className="mb-10">
         <Link
           href="/wiki"

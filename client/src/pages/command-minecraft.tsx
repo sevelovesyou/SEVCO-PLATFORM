@@ -201,6 +201,7 @@ export default function CommandMinecraft() {
                           <Button
                             variant="ghost"
                             size="icon"
+                              aria-label="Edit"
                             className="h-7 w-7"
                             onClick={() => openEdit(server)}
                             data-testid={`button-edit-server-${server.id}`}
@@ -215,6 +216,7 @@ export default function CommandMinecraft() {
                           <Button
                             variant="ghost"
                             size="icon"
+                              aria-label="Delete"
                             className="h-7 w-7 text-destructive"
                             onClick={() => deleteMutation.mutate(server.id)}
                             disabled={deleteMutation.isPending}
@@ -344,6 +346,7 @@ export default function CommandMinecraft() {
                       <Button
                         variant="ghost"
                         size="icon"
+                          aria-label="Delete"
                         className="h-6 w-6 text-destructive"
                         onClick={() => removeVoteLink(idx)}
                       >

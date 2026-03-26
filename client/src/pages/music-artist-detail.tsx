@@ -1,4 +1,5 @@
 import { Link, useRoute } from "wouter";
+import { PageHead } from "@/components/page-head";
 import { useQuery } from "@tanstack/react-query";
 import { usePermission } from "@/hooks/use-permission";
 import { Card } from "@/components/ui/card";
@@ -71,6 +72,13 @@ export default function MusicArtistDetail() {
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6 flex flex-col gap-6">
+      <PageHead
+        title={`${artist.name} — SEVCO Records`}
+        description={artist.bio || `Listen to ${artist.name} on SEVCO Records — music, albums, and more.`}
+        ogImage={artist.imageUrl || undefined}
+        ogType="profile"
+        ogUrl={`https://sevco.us/music/artists/${artist.slug}`}
+      />
       <div className="flex items-center gap-2">
         <Link href="/music/artists">
           <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">

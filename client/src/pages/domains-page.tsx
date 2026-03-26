@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { PageHead } from "@/components/page-head";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -203,6 +204,11 @@ export default function DomainsPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageHead
+        title="Domain Search — SEVCO"
+        description="Search for available domain names and register them instantly. Find .com, .net, .io, .app, and more with SEVCO."
+        ogUrl="https://sevco.us/domains"
+      />
       <div className="max-w-3xl mx-auto px-4 py-12">
         <div className="text-center mb-10">
           <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 mb-4">

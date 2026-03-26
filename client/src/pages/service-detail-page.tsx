@@ -1,5 +1,6 @@
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { PageHead } from "@/components/page-head";
 import {
   ArrowLeft, ArrowRight, CircleX, ExternalLink, Mail,
   Code2, Plug, Lightbulb, Palette, MousePointer2, Sparkles,
@@ -106,6 +107,11 @@ export default function ServiceDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageHead
+        title={`${service.name} — SEVCO Services`}
+        description={service.tagline || service.description?.slice(0, 155) || `Learn about ${service.name}, a SEVCO service in the ${service.category} category.`}
+        ogUrl={`https://sevco.us/services/${service.slug}`}
+      />
       <div className="max-w-4xl mx-auto px-6 py-8">
 
         <div className="flex items-center justify-between mb-8">

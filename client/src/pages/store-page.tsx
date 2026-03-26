@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { PageHead } from "@/components/page-head";
 import { Link, useSearch } from "wouter";
 import {
   ShoppingBag, Plus, Package, ArrowUpDown, SlidersHorizontal,
@@ -278,6 +279,11 @@ export default function StorePage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageHead
+        title="SEVCO Store — Merchandise & Exclusive Drops"
+        description="Shop merchandise, exclusive drops, and products from the SEVCO universe. Apparel, accessories, music, and more."
+        ogUrl="https://sevco.us/store"
+      />
       {/* ── HERO ── */}
       <div
         className="relative overflow-hidden bg-[#0a0a12] px-6 py-20 md:py-28"

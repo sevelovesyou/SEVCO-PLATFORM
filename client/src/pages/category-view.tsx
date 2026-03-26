@@ -1,4 +1,5 @@
 import { useRoute, Link } from "wouter";
+import { PageHead } from "@/components/page-head";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +59,11 @@ export default function CategoryView() {
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
+      <PageHead
+        title={`${category.name} — SEVCO Wiki`}
+        description={category.description || `Browse all articles in the ${category.name} category on the SEVCO knowledge base.`}
+        ogUrl={`https://sevco.us/category/${category.slug}`}
+      />
       <div className="flex items-center gap-2 mb-2">
         <Link href="/wiki">
           <Button variant="ghost" size="sm" data-testid="button-back">

@@ -447,7 +447,7 @@ function PlaylistRow({ playlist, onEdit }: { playlist: Playlist; onEdit: (p: Pla
     <div className="flex items-center gap-4 p-4 border rounded-xl hover:bg-muted/30 transition-colors group" data-testid={`row-playlist-${playlist.id}`}>
       <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/10 flex items-center justify-center shrink-0 overflow-hidden">
         {playlist.coverImageUrl ? (
-          <img src={playlist.coverImageUrl} alt={playlist.title} className="h-full w-full object-cover rounded-lg" />
+          <img src={playlist.coverImageUrl} alt={playlist.title} className="h-full w-full object-cover rounded-lg" loading="lazy" />
         ) : (
           <ListMusic className="h-5 w-5 text-violet-400 opacity-50" />
         )}
@@ -474,7 +474,7 @@ function PlaylistRow({ playlist, onEdit }: { playlist: Playlist; onEdit: (p: Pla
         <Tooltip>
           <TooltipTrigger asChild>
             <a href={playlist.playlistUrl} target="_blank" rel="noopener noreferrer">
-              <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-open-playlist-${playlist.id}`}>
+              <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-open-playlist-${playlist.id}`} aria-label="Open link">
                 <ExternalLink className="h-3.5 w-3.5" />
               </Button>
             </a>
@@ -483,7 +483,7 @@ function PlaylistRow({ playlist, onEdit }: { playlist: Playlist; onEdit: (p: Pla
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(playlist)} data-testid={`button-edit-playlist-${playlist.id}`}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(playlist)} data-testid={`button-edit-playlist-${playlist.id}`} aria-label="Edit">
               <Pencil className="h-3.5 w-3.5" />
             </Button>
           </TooltipTrigger>
@@ -493,6 +493,7 @@ function PlaylistRow({ playlist, onEdit }: { playlist: Playlist; onEdit: (p: Pla
           <TooltipTrigger asChild>
             <Button
               variant="ghost" size="icon"
+                aria-label="Delete"
               className="h-8 w-8 text-destructive hover:text-destructive"
               onClick={() => deleteMutation.mutate()}
               disabled={deleteMutation.isPending}
@@ -724,7 +725,7 @@ function ArtistCard({ artist }: { artist: SpotifyArtist }) {
                 rel="noopener noreferrer"
                 data-testid={`link-spotify-artist-${artist.id}`}
               >
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-[#1DB954]">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-[#1DB954]" aria-label="Open in Spotify">
                   <SiSpotify className="h-4 w-4" />
                 </Button>
               </a>
@@ -736,6 +737,7 @@ function ArtistCard({ artist }: { artist: SpotifyArtist }) {
               <Button
                 variant="ghost"
                 size="icon"
+                  aria-label="Remove"
                 className="h-8 w-8 text-destructive hover:text-destructive"
                 onClick={() => removeMutation.mutate()}
                 disabled={removeMutation.isPending}
@@ -957,7 +959,7 @@ function SpotifyPlaylistRow({ playlist }: { playlist: SpotifyPlaylist }) {
                 onClick={(e) => e.stopPropagation()}
                 data-testid={`link-open-spotify-playlist-${playlist.id}`}
               >
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-[#1DB954]" onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-[#1DB954]" onClick={(e) => e.stopPropagation()} aria-label="Open link">
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Button>
               </a>
@@ -995,6 +997,7 @@ function SpotifyPlaylistRow({ playlist }: { playlist: SpotifyPlaylist }) {
                       <Button
                         variant="ghost"
                         size="icon"
+                          aria-label="Remove"
                         className="h-7 w-7 text-destructive opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                         onClick={() => removeTrackMutation.mutate(item.track.uri)}
                         disabled={removeTrackMutation.isPending}

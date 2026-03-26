@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRoute, Link, useLocation } from "wouter";
+import { PageHead } from "@/components/page-head";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -186,6 +187,25 @@ export default function ArticleView() {
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6">
+      <PageHead
+        title={article.title}
+        description={article.summary || `Read the article "${article.title}" on the SEVCO Wiki.`}
+        ogType="article"
+        ogUrl={`https://sevco.us/wiki/${article.slug}`}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Article",
+          "headline": article.title,
+          "description": article.summary || undefined,
+          "url": `https://sevco.us/wiki/${article.slug}`,
+          "dateModified": article.updatedAt,
+          "publisher": {
+            "@type": "Organization",
+            "name": "SEVCO",
+            "url": "https://sevco.us",
+          },
+        }}
+      />
       <div className="flex items-center gap-2 mb-4">
         <Link href="/wiki">
           <Button variant="ghost" size="sm" data-testid="button-back">

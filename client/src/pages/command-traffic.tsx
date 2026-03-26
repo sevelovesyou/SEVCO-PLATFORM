@@ -673,6 +673,7 @@ export default function CommandTraffic() {
                       <Button
                         variant="ghost"
                         size="icon"
+                          aria-label="View"
                         className="h-8 w-8"
                         onClick={() => setViewingEmbed({ name: site.name, embedUrl: site.embedUrl! })}
                         data-testid={`button-view-site-embed-${site.id}`}
@@ -684,6 +685,7 @@ export default function CommandTraffic() {
                     <Button
                       variant="ghost"
                       size="icon"
+                        aria-label="Edit"
                       className="h-8 w-8"
                       onClick={() => openEditSite(site)}
                       data-testid={`button-edit-site-${site.id}`}
@@ -694,6 +696,7 @@ export default function CommandTraffic() {
                     <Button
                       variant="ghost"
                       size="icon"
+                        aria-label="Remove"
                       className="h-8 w-8 text-destructive hover:text-destructive"
                       onClick={() => handleRemoveSite(site.id)}
                       data-testid={`button-remove-site-${site.id}`}
@@ -775,6 +778,7 @@ export default function CommandTraffic() {
             <Button
               variant="ghost"
               size="icon"
+                aria-label="View"
               className="h-7 w-7"
               onClick={() => setViewingEmbed(null)}
               data-testid="button-close-embed-viewer"

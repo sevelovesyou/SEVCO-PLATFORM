@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import type { MinecraftServer } from "@shared/schema";
+import { PageHead } from "@/components/page-head";
 import {
   Copy,
   Check,
@@ -132,34 +133,13 @@ export default function MinecraftPage() {
     staleTime: 300000,
   });
 
-  useEffect(() => {
-    document.title = "SEVCO Minecraft — Join Our Servers";
-    let desc = document.querySelector('meta[name="description"]');
-    if (!desc) {
-      desc = document.createElement("meta");
-      desc.setAttribute("name", "description");
-      document.head.appendChild(desc);
-    }
-    desc.setAttribute(
-      "content",
-      "Join SEVCO's Minecraft servers — survival, creative, mini-games, and an active community. Copy server IPs, vote, and see live status."
-    );
-
-    const setMeta = (prop: string, val: string) => {
-      let el = document.querySelector(`meta[property="${prop}"]`) as HTMLMetaElement | null;
-      if (!el) {
-        el = document.createElement("meta");
-        el.setAttribute("property", prop);
-        document.head.appendChild(el);
-      }
-      el.setAttribute("content", val);
-    };
-    setMeta("og:title", "SEVCO Minecraft — Join Our Servers");
-    setMeta("og:description", "Survival, creative, and mini-game servers powered by SEVCO. Copy the IP and join now.");
-  }, []);
-
   return (
     <div className="flex flex-col min-h-full">
+      <PageHead
+        title="SEVCO Minecraft — Join Our Servers"
+        description="Join SEVCO's Minecraft servers — survival, creative, mini-games, and an active community. Copy server IPs, vote, and see live status."
+        ogUrl="https://sevco.us/minecraft"
+      />
       {/* Hero */}
       <section
         className="relative flex flex-col items-center justify-center text-center px-4 py-28 sm:py-36 overflow-hidden bg-[#070d09]"

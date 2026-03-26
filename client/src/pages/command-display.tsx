@@ -898,6 +898,7 @@ export default function CommandDisplay() {
                       <TooltipTrigger asChild>
                         <Button
                           size="icon"
+                            aria-label="Edit"
                           variant="ghost"
                           className="h-7 w-7"
                           onClick={() => openEditDialog(asset)}
@@ -912,6 +913,7 @@ export default function CommandDisplay() {
                       <TooltipTrigger asChild>
                         <Button
                           size="icon"
+                            aria-label="Delete"
                           variant="ghost"
                           className="h-7 w-7 text-destructive hover:text-destructive"
                           onClick={() => deleteBrandAsset.mutate(asset.id)}

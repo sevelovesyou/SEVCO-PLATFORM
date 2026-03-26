@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { ArrowRight, Building2, Globe, Music, Layers, Zap, Users, Package, FileImage, Type, Image, Download, ExternalLink } from "lucide-react";
+import { PageHead } from "@/components/page-head";
 import { SiInstagram, SiX, SiYoutube, SiDiscord, SiGithub } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -96,6 +97,11 @@ export default function AboutPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageHead
+        title="About SEVCO — Music, Merch, Projects & Community"
+        description="SEVCO is a creative platform built for music, commerce, and community. Learn about SEVCO Records, Services, Ventures, and the team behind it all."
+        ogUrl="https://sevco.us/about"
+      />
       <div className="max-w-4xl mx-auto px-6 py-16 space-y-20">
 
         <section className="space-y-6">

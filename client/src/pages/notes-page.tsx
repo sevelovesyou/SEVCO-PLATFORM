@@ -111,7 +111,7 @@ function CollaboratorPanel({ note, isOwner, onClose }: { note: Note; isOwner: bo
         </p>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose} aria-label="Remove">
               <X className="h-3.5 w-3.5" />
             </Button>
           </TooltipTrigger>
@@ -142,6 +142,7 @@ function CollaboratorPanel({ note, isOwner, onClose }: { note: Note; isOwner: bo
                     <Button
                       variant="ghost"
                       size="icon"
+                        aria-label="Remove"
                       className="h-5 w-5 text-muted-foreground hover:text-destructive shrink-0"
                       onClick={() => removeMutation.mutate(c.userId)}
                       disabled={removeMutation.isPending}
@@ -174,6 +175,7 @@ function CollaboratorPanel({ note, isOwner, onClose }: { note: Note; isOwner: bo
               <TooltipTrigger asChild>
                 <Button
                   size="icon"
+                    aria-label="Add"
                   className="h-7 w-7 shrink-0"
                   onClick={() => username.trim() && addMutation.mutate()}
                   disabled={addMutation.isPending || !username.trim()}
@@ -189,6 +191,7 @@ function CollaboratorPanel({ note, isOwner, onClose }: { note: Note; isOwner: bo
                 <Button
                   variant="ghost"
                   size="icon"
+                    aria-label="Add"
                   className="h-7 w-7 shrink-0"
                   onClick={() => { setAdding(false); setUsername(""); }}
                 >
@@ -420,6 +423,7 @@ export default function NotesPage() {
               <TooltipTrigger asChild>
                 <Button
                   size="icon"
+                    aria-label="Add"
                   variant="ghost"
                   className="h-7 w-7"
                   onClick={() => createMutation.mutate()}
@@ -526,6 +530,7 @@ export default function NotesPage() {
                   <Button
                     variant="ghost"
                     size="icon"
+                      aria-label="Action"
                     className="md:hidden h-7 w-7 mr-1"
                     onClick={() => setMobileShowEditor(false)}
                     data-testid="button-back-to-list"
@@ -564,6 +569,7 @@ export default function NotesPage() {
                     <Button
                       variant="ghost"
                       size="icon"
+                        aria-label="Toggle"
                       className="h-7 w-7"
                       onClick={() => updateMutation.mutate({ id: selectedNote.id, data: { pinned: !selectedNote.pinned } })}
                       data-testid="button-toggle-pin"
@@ -580,6 +586,7 @@ export default function NotesPage() {
                     <Button
                       variant="ghost"
                       size="icon"
+                        aria-label="Toggle"
                       className={`h-7 w-7 ${showCollabPanel ? "bg-muted" : ""}`}
                       onClick={() => setShowCollabPanel((v) => !v)}
                       data-testid="button-toggle-collaborators"
@@ -595,7 +602,7 @@ export default function NotesPage() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" data-testid="button-share-export">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" data-testid="button-share-export" aria-label="Share">
                           <Share2 className="h-3.5 w-3.5" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -675,7 +682,7 @@ export default function NotesPage() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" data-testid="button-note-menu">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" data-testid="button-note-menu" aria-label="More options">
                           <MoreHorizontal className="h-3.5 w-3.5" />
                         </Button>
                       </DropdownMenuTrigger>

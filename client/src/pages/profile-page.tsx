@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "wouter";
+import { PageHead } from "@/components/page-head";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -406,8 +407,8 @@ function PostCard({ post, currentUserId, canDelete, onDelete }: {
             {canDelete && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 -mr-1 -mt-1">
-                    <MoreVertical className="h-3.5 w-3.5" />
+                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 -mr-1 -mt-1" aria-label="Post actions">
+                    <MoreVertical className="h-3.5 w-3.5" aria-hidden="true" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -421,7 +422,7 @@ function PostCard({ post, currentUserId, canDelete, onDelete }: {
           <p className="text-sm leading-relaxed whitespace-pre-wrap mb-2">{post.content}</p>
           {post.imageUrl && (
             <div className="mb-2 rounded-xl overflow-hidden border">
-              <img src={post.imageUrl} alt="Post" className="w-full max-h-48 object-cover" />
+              <img src={post.imageUrl} alt="Post" className="w-full max-h-48 object-cover" loading="lazy" />
             </div>
           )}
           <div className="flex items-center gap-4">
@@ -869,8 +870,17 @@ export default function ProfilePage() {
       }
     : profile;
 
+  const displayName = profile.displayName || profile.username;
+
   return (
     <>
+      <PageHead
+        title={`${displayName} (@${profile.username}) — SEVCO`}
+        description={profile.bio || `View ${displayName}'s profile on SEVCO.`}
+        ogImage={profile.avatarUrl || undefined}
+        ogType="profile"
+        ogUrl={`https://sevco.us/profile/${profile.username}`}
+      />
       <Sheet open={editOpen} onOpenChange={setEditOpen}>
         <SheetContent className="w-full sm:max-w-md overflow-y-auto" side="right">
           <SheetHeader className="mb-4">

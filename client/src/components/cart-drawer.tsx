@@ -58,8 +58,9 @@ export function CartDrawer() {
             onClick={closeCart}
             className="h-8 w-8"
             data-testid="button-close-cart"
+            aria-label="Close cart"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
 
@@ -114,8 +115,9 @@ export function CartDrawer() {
                         className="h-6 w-6"
                         onClick={() => updateQuantity(item.productId, item.quantity - 1)}
                         data-testid={`button-decrease-${item.productId}`}
+                        aria-label={`Decrease quantity of ${item.name}`}
                       >
-                        <Minus className="h-3 w-3" />
+                        <Minus className="h-3 w-3" aria-hidden="true" />
                       </Button>
                       <span className="text-xs font-semibold w-6 text-center" data-testid={`cart-item-qty-${item.productId}`}>
                         {item.quantity}
@@ -126,8 +128,9 @@ export function CartDrawer() {
                         className="h-6 w-6"
                         onClick={() => updateQuantity(item.productId, item.quantity + 1)}
                         data-testid={`button-increase-${item.productId}`}
+                        aria-label={`Increase quantity of ${item.name}`}
                       >
-                        <Plus className="h-3 w-3" />
+                        <Plus className="h-3 w-3" aria-hidden="true" />
                       </Button>
                     </div>
                   </div>
@@ -138,8 +141,9 @@ export function CartDrawer() {
                     className="h-7 w-7 text-muted-foreground hover:text-destructive flex-shrink-0"
                     onClick={() => removeItem(item.productId)}
                     data-testid={`button-remove-${item.productId}`}
+                    aria-label={`Remove ${item.name} from cart`}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                   </Button>
                 </div>
               ))}

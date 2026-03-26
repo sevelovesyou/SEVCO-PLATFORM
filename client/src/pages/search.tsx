@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageHead } from "@/components/page-head";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -92,6 +93,12 @@ export default function SearchPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-6">
+      <PageHead
+        title={query ? `Search: "${query}" — SEVCO` : "Search — SEVCO"}
+        description={query ? `Search results for "${query}" across SEVCO wiki, store, projects, services, and more.` : "Search across SEVCO — wiki articles, store products, projects, services, music, and jobs."}
+        ogUrl="https://sevco.us/search"
+        noIndex={true}
+      />
       <div>
         <h1 className="text-2xl font-bold mb-1">Search</h1>
         <p className="text-sm text-muted-foreground">Search across wiki, projects, store, music, jobs & services</p>

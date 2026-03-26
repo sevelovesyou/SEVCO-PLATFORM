@@ -156,8 +156,9 @@ function MessageComposer({ onSend, disabled }: { onSend: (content: string) => vo
         onClick={handleSend}
         disabled={disabled || !value.trim()}
         data-testid="button-send-message"
+        aria-label="Send message"
       >
-        <Send className="h-4 w-4" />
+        <Send className="h-4 w-4" aria-hidden="true" />
       </Button>
     </div>
   );
@@ -194,8 +195,8 @@ function ChannelView({
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 p-3 border-b bg-background shrink-0">
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack} data-testid="button-chat-back">
-          <ChevronLeft className="h-4 w-4" />
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack} data-testid="button-chat-back" aria-label="Back to channels">
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
         <Hash className="h-4 w-4 text-muted-foreground shrink-0" />
         <div className="min-w-0">
@@ -262,8 +263,8 @@ function DmView({
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 p-3 border-b bg-background shrink-0">
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack} data-testid="button-dm-back">
-          <ChevronLeft className="h-4 w-4" />
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack} data-testid="button-dm-back" aria-label="Back to conversations">
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
         <Avatar user={otherUser} size={6} />
         <div className="min-w-0">
@@ -462,8 +463,8 @@ function AiAgentView({ agent, onBack }: { agent: AiAgent; onBack: () => void }) 
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 p-3 border-b bg-background shrink-0">
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack} data-testid="button-ai-back">
-          <ChevronLeft className="h-4 w-4" />
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack} data-testid="button-ai-back" aria-label="Back to AI agents">
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
         {agent.avatarUrl ? (
           <img src={agent.avatarUrl} alt={agent.name} className="w-6 h-6 rounded-full object-cover shrink-0" />
@@ -484,8 +485,9 @@ function AiAgentView({ agent, onBack }: { agent: AiAgent; onBack: () => void }) 
             if (confirm("Clear conversation history?")) clearMutation.mutate();
           }}
           data-testid="button-ai-clear"
+          aria-label="Clear conversation"
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
         </Button>
       </div>
 
@@ -603,8 +605,8 @@ export function ChatSheet({ open, onClose }: { open: boolean; onClose: () => voi
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Channels</p>
                     {canManageChannels && (
-                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setCreateChannelOpen(true)} data-testid="button-new-channel">
-                        <Plus className="h-3 w-3" />
+                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setCreateChannelOpen(true)} data-testid="button-new-channel" aria-label="Create new channel">
+                        <Plus className="h-3 w-3" aria-hidden="true" />
                       </Button>
                     )}
                   </div>
@@ -629,8 +631,8 @@ export function ChatSheet({ open, onClose }: { open: boolean; onClose: () => voi
                 <div className="px-3 pt-4">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Direct Messages</p>
-                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setNewDmOpen(true)} data-testid="button-new-dm">
-                      <Plus className="h-3 w-3" />
+                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setNewDmOpen(true)} data-testid="button-new-dm" aria-label="New direct message">
+                      <Plus className="h-3 w-3" aria-hidden="true" />
                     </Button>
                   </div>
                   {dmThreads.length === 0 && (

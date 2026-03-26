@@ -697,7 +697,7 @@ export default function CommandJobs() {
                   </Select>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" asChild data-testid={`button-view-job-${job.slug}`}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" asChild data-testid={`button-view-job-${job.slug}`} aria-label="View">
                         <Link href={`/jobs/${job.slug}`}>
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Link>
@@ -710,6 +710,7 @@ export default function CommandJobs() {
                       <Button
                         variant="ghost"
                         size="icon"
+                          aria-label="Edit"
                         className="h-7 w-7"
                         onClick={() => { setEditJob(job); setFormOpen(true); }}
                         data-testid={`button-edit-job-${job.slug}`}
@@ -724,6 +725,7 @@ export default function CommandJobs() {
                       <Button
                         variant="ghost"
                         size="icon"
+                          aria-label="Delete"
                         className="h-7 w-7 text-destructive hover:text-destructive"
                         onClick={() => setDeleteJob(job)}
                         data-testid={`button-delete-job-${job.slug}`}

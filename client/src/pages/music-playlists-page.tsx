@@ -1,3 +1,4 @@
+import { PageHead } from "@/components/page-head";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { useForm } from "react-hook-form";
@@ -305,6 +306,11 @@ export default function MusicPlaylistsPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageHead
+        title="Playlists — SEVCO Records"
+        description="Stream curated playlists from SEVCO Records — hand-picked collections of music from SEVCO artists and beyond."
+        ogUrl="https://sevco.us/music/playlists"
+      />
       <div
         className="max-w-5xl mx-auto px-4 md:px-8 py-10 md:py-14"
         style={{ paddingBottom: activePlaylist ? "260px" : undefined }}

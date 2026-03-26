@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { PageHead } from "@/components/page-head";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -227,6 +228,20 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageHead
+        title="SEVCO — Music, Merch, Projects & Community"
+        description={heroText}
+        ogType="website"
+        ogUrl="https://sevco.us"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "SEVCO",
+          "url": "https://sevco.us",
+          "logo": "https://sevco.us/favicon.jpg",
+          "sameAs": [],
+        }}
+      />
       {/* ── HERO ── */}
       <section
         className="relative overflow-hidden bg-[#0a0a12] text-white"

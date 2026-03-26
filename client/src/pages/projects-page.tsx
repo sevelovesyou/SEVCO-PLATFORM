@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { PageHead } from "@/components/page-head";
 import { Link } from "wouter";
 import { Folder, Plus, Globe, AlertCircle, Building2, GitBranch, Users, Zap, ArrowRight } from "lucide-react";
 import * as LucideIcons from "lucide-react";
@@ -151,6 +152,11 @@ export default function ProjectsPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageHead
+        title="Projects — SEVCO Ventures Portfolio"
+        description="Explore SEVCO Ventures — active companies, platforms, apps, and initiatives built under the SEVCO umbrella."
+        ogUrl="https://sevco.us/projects"
+      />
       {/* ── HERO ── */}
       <div
         className="relative overflow-hidden bg-[#0a0a12] px-6 py-20 md:py-28"

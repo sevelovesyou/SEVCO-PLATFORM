@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { PageHead } from "@/components/page-head";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -108,6 +109,11 @@ export default function JobsPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
+      <PageHead
+        title="Careers — Join SEVCO"
+        description="Explore job opportunities at SEVCO — open positions across engineering, creative, operations, and more."
+        ogUrl="https://sevco.us/jobs"
+      />
       {/* Header */}
       <div className="mb-10">
         <div className="flex items-center gap-2 text-muted-foreground mb-3 text-xs font-semibold uppercase tracking-widest">

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { PageHead } from "@/components/page-head";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -101,6 +102,11 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageHead
+        title="Contact SEVCO — Get in Touch"
+        description="Have a question, partnership idea, or want to say hello? Reach out to the SEVCO team through the contact form or social media."
+        ogUrl="https://sevco.us/contact"
+      />
       {/* Header */}
       <div className="border-b bg-muted/30">
         <div className="max-w-5xl mx-auto px-6 py-12 md:py-16">

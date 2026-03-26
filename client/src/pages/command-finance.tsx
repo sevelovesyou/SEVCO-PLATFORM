@@ -45,6 +45,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import type { FinanceTransaction, FinanceProject, FinanceInvoice, Subscription } from "@shared/schema";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const TRANSACTION_CATEGORIES = [
   "Server Costs",
@@ -405,15 +406,20 @@ function TransactionsTab() {
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                      onClick={() => deleteMutation.mutate(tx.id)}
-                      data-testid={`button-delete-transaction-${tx.id}`}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => deleteMutation.mutate(tx.id)}
+                          data-testid={`button-delete-transaction-${tx.id}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Delete</TooltipContent>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}
@@ -550,9 +556,14 @@ function InvoiceForm({ invoice, onSuccess }: { invoice?: FinanceInvoice; onSucce
                     <FormMessage />
                   </FormItem>
                 )} />
-                <Button type="button" variant="ghost" size="icon" className="h-9 w-8 mt-0 text-muted-foreground hover:text-destructive" onClick={() => remove(index)} data-testid={`button-remove-line-${index}`}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button type="button" variant="ghost" size="icon" className="h-9 w-8 mt-0 text-muted-foreground hover:text-destructive" onClick={() => remove(index)} data-testid={`button-remove-line-${index}`}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Remove line</TooltipContent>
+                </Tooltip>
               </div>
             ))}
           </div>
@@ -667,50 +678,68 @@ function InvoicesTab() {
                   <TableCell className="text-sm text-muted-foreground">{inv.dueDate ? formatDate(inv.dueDate) : "-"}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                        onClick={() => setEditInvoice(inv)}
-                        data-testid={`button-edit-invoice-${inv.id}`}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                            onClick={() => setEditInvoice(inv)}
+                            data-testid={`button-edit-invoice-${inv.id}`}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit</TooltipContent>
+                      </Tooltip>
                       {inv.status !== "paid" && inv.clientEmail && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-blue-600"
-                          onClick={() => sendMutation.mutate(inv.id)}
-                          disabled={sendMutation.isPending}
-                          title="Send invoice email"
-                          data-testid={`button-send-invoice-${inv.id}`}
-                        >
-                          <Send className="h-3.5 w-3.5" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-blue-600"
+                              onClick={() => sendMutation.mutate(inv.id)}
+                              disabled={sendMutation.isPending}
+                              data-testid={`button-send-invoice-${inv.id}`}
+                            >
+                              <Send className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Send email</TooltipContent>
+                        </Tooltip>
                       )}
                       {inv.status !== "paid" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-green-600"
-                          onClick={() => paidMutation.mutate(inv.id)}
-                          disabled={paidMutation.isPending}
-                          title="Mark as paid"
-                          data-testid={`button-paid-invoice-${inv.id}`}
-                        >
-                          <CheckCircle className="h-3.5 w-3.5" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-green-600"
+                              onClick={() => paidMutation.mutate(inv.id)}
+                              disabled={paidMutation.isPending}
+                              data-testid={`button-paid-invoice-${inv.id}`}
+                            >
+                              <CheckCircle className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Mark as paid</TooltipContent>
+                        </Tooltip>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                        onClick={() => deleteMutation.mutate(inv.id)}
-                        data-testid={`button-delete-invoice-${inv.id}`}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => deleteMutation.mutate(inv.id)}
+                            data-testid={`button-delete-invoice-${inv.id}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete</TooltipContent>
+                      </Tooltip>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -968,12 +997,22 @@ function ProjectsTab() {
                       <Badge variant="outline" className={`text-xs ${PROJECT_STATUS_COLORS[project.status] || ""}`}>
                         {project.status.replace("_", " ")}
                       </Badge>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => setEditProject(project)} data-testid={`button-edit-project-${project.id}`}>
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => deleteMutation.mutate(project.id)} data-testid={`button-delete-project-${project.id}`}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => setEditProject(project)} data-testid={`button-edit-project-${project.id}`}>
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => deleteMutation.mutate(project.id)} data-testid={`button-delete-project-${project.id}`}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete</TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
 
@@ -1299,12 +1338,22 @@ function SubscriptionsTab() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(sub)} data-testid={`button-edit-subscription-${sub.id}`}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => deleteMutation.mutate(sub.id)} data-testid={`button-delete-subscription-${sub.id}`}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(sub)} data-testid={`button-edit-subscription-${sub.id}`}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Edit</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => deleteMutation.mutate(sub.id)} data-testid={`button-delete-subscription-${sub.id}`}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Delete</TooltipContent>
+                    </Tooltip>
                   </div>
                 </TableCell>
               </TableRow>

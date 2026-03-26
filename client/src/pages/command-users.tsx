@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Shield, Pencil, Check, X } from "lucide-react";
 import type { Role } from "@shared/schema";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const ROLES: Role[] = ["admin", "executive", "staff", "partner", "client", "user"];
 
@@ -128,15 +129,20 @@ function ChangeUsernameInline({
     return (
       <div className="flex items-center gap-1 group">
         <span className="font-medium text-xs">{currentUsername}</span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={() => { setValue(currentUsername); setEditing(true); }}
-          data-testid={`button-edit-username-${userId}`}
-        >
-          <Pencil className="h-3 w-3" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => { setValue(currentUsername); setEditing(true); }}
+              data-testid={`button-edit-username-${userId}`}
+            >
+              <Pencil className="h-3 w-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Edit username</TooltipContent>
+        </Tooltip>
       </div>
     );
   }
@@ -154,25 +160,35 @@ function ChangeUsernameInline({
           if (e.key === "Escape") setEditing(false);
         }}
       />
-      <Button
-        size="icon"
-        variant="ghost"
-        className="h-6 w-6 text-green-600"
-        onClick={() => mutation.mutate(value)}
-        disabled={mutation.isPending}
-        data-testid={`button-confirm-username-${userId}`}
-      >
-        <Check className="h-3 w-3" />
-      </Button>
-      <Button
-        size="icon"
-        variant="ghost"
-        className="h-6 w-6"
-        onClick={() => setEditing(false)}
-        data-testid={`button-cancel-username-${userId}`}
-      >
-        <X className="h-3 w-3" />
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6 text-green-600"
+            onClick={() => mutation.mutate(value)}
+            disabled={mutation.isPending}
+            data-testid={`button-confirm-username-${userId}`}
+          >
+            <Check className="h-3 w-3" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Save</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            onClick={() => setEditing(false)}
+            data-testid={`button-cancel-username-${userId}`}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Cancel</TooltipContent>
+      </Tooltip>
     </div>
   );
 }

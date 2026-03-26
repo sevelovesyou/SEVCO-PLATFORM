@@ -27,6 +27,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserPlus, Plus, Pencil, Trash2, ChevronUp, ChevronDown, User } from "lucide-react";
 import { Link } from "wouter";
 import type { Role } from "@shared/schema";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type StaffUserWithNode = {
   id: string;
@@ -286,23 +287,38 @@ function OrgNodeCard({
             {node.department}
           </Badge>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={(e) => { e.stopPropagation(); onEdit(node); }}
-          data-testid={`button-org-edit-${node.id}`}
-        >
-          <Pencil className="h-3 w-3" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => { e.stopPropagation(); onEdit(node); }}
+              data-testid={`button-org-edit-${node.id}`}
+            >
+              <Pencil className="h-3 w-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Edit</TooltipContent>
+        </Tooltip>
       </Card>
       <div className="flex gap-1 mt-1">
-        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onMoveUp(node)} disabled={isFirst} data-testid={`button-org-up-${node.id}`}>
-          <ChevronUp className="h-3 w-3" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onMoveDown(node)} disabled={isLast} data-testid={`button-org-down-${node.id}`}>
-          <ChevronDown className="h-3 w-3" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onMoveUp(node)} disabled={isFirst} data-testid={`button-org-up-${node.id}`}>
+              <ChevronUp className="h-3 w-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Move up</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onMoveDown(node)} disabled={isLast} data-testid={`button-org-down-${node.id}`}>
+              <ChevronDown className="h-3 w-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Move down</TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );

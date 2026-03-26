@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { SiSpotify, SiApplemusic, SiYoutubemusic, SiSoundcloud } from "react-icons/si";
 import type { MusicSubmission, Playlist, SpotifyArtist } from "@shared/schema";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 /* ─── Submissions tab ──────────────────────────────────────────────────── */
 
@@ -470,23 +471,38 @@ function PlaylistRow({ playlist, onEdit }: { playlist: Playlist; onEdit: (p: Pla
         <p className="text-[10px] text-muted-foreground/60 mt-0.5 font-mono truncate">{playlist.slug}</p>
       </div>
       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-        <a href={playlist.playlistUrl} target="_blank" rel="noopener noreferrer">
-          <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-open-playlist-${playlist.id}`}>
-            <ExternalLink className="h-3.5 w-3.5" />
-          </Button>
-        </a>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(playlist)} data-testid={`button-edit-playlist-${playlist.id}`}>
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          variant="ghost" size="icon"
-          className="h-8 w-8 text-destructive hover:text-destructive"
-          onClick={() => deleteMutation.mutate()}
-          disabled={deleteMutation.isPending}
-          data-testid={`button-delete-playlist-${playlist.id}`}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <a href={playlist.playlistUrl} target="_blank" rel="noopener noreferrer">
+              <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-open-playlist-${playlist.id}`}>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
+            </a>
+          </TooltipTrigger>
+          <TooltipContent>Open playlist</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(playlist)} data-testid={`button-edit-playlist-${playlist.id}`}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Edit</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost" size="icon"
+              className="h-8 w-8 text-destructive hover:text-destructive"
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+              data-testid={`button-delete-playlist-${playlist.id}`}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Delete</TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );
@@ -700,26 +716,36 @@ function ArtistCard({ artist }: { artist: SpotifyArtist }) {
           ) : null}
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <a
-            href={`https://open.spotify.com/artist/${artist.spotifyArtistId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-testid={`link-spotify-artist-${artist.id}`}
-          >
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#1DB954]">
-              <SiSpotify className="h-4 w-4" />
-            </Button>
-          </a>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-destructive hover:text-destructive"
-            onClick={() => removeMutation.mutate()}
-            disabled={removeMutation.isPending}
-            data-testid={`button-remove-artist-${artist.id}`}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <a
+                href={`https://open.spotify.com/artist/${artist.spotifyArtistId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid={`link-spotify-artist-${artist.id}`}
+              >
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-[#1DB954]">
+                  <SiSpotify className="h-4 w-4" />
+                </Button>
+              </a>
+            </TooltipTrigger>
+            <TooltipContent>Open on Spotify</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive hover:text-destructive"
+                onClick={() => removeMutation.mutate()}
+                disabled={removeMutation.isPending}
+                data-testid={`button-remove-artist-${artist.id}`}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Remove artist</TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -922,17 +948,22 @@ function SpotifyPlaylistRow({ playlist }: { playlist: SpotifyPlaylist }) {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <a
-            href={`https://open.spotify.com/playlist/${playlist.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            data-testid={`link-open-spotify-playlist-${playlist.id}`}
-          >
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#1DB954]" onClick={(e) => e.stopPropagation()}>
-              <ExternalLink className="h-3.5 w-3.5" />
-            </Button>
-          </a>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <a
+                href={`https://open.spotify.com/playlist/${playlist.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                data-testid={`link-open-spotify-playlist-${playlist.id}`}
+              >
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-[#1DB954]" onClick={(e) => e.stopPropagation()}>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Button>
+              </a>
+            </TooltipTrigger>
+            <TooltipContent>Open on Spotify</TooltipContent>
+          </Tooltip>
           {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
         </div>
       </button>
@@ -959,16 +990,21 @@ function SpotifyPlaylistRow({ playlist }: { playlist: SpotifyPlaylist }) {
                     <p className="text-xs text-muted-foreground truncate">{item.track.artists.map((a) => a.name).join(", ")}</p>
                   </div>
                   <span className="text-xs text-muted-foreground shrink-0">{formatDuration(item.track.duration_ms)}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-destructive opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                    onClick={() => removeTrackMutation.mutate(item.track.uri)}
-                    disabled={removeTrackMutation.isPending}
-                    data-testid={`button-remove-track-${item.track.id}`}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                        onClick={() => removeTrackMutation.mutate(item.track.uri)}
+                        disabled={removeTrackMutation.isPending}
+                        data-testid={`button-remove-track-${item.track.id}`}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Remove track</TooltipContent>
+                  </Tooltip>
                 </div>
               ))}
             </div>

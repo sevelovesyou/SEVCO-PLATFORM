@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { ChatChannel, User } from "@shared/schema";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type ChatUserInfo = {
   id: string;
@@ -250,15 +251,20 @@ export default function CommandChatLog() {
                 </p>
               </div>
               {!msg.deletedAt && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                  onClick={() => setDeleteId(msg.id)}
-                  data-testid={`button-delete-message-${msg.id}`}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => setDeleteId(msg.id)}
+                      data-testid={`button-delete-message-${msg.id}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete message</TooltipContent>
+                </Tooltip>
               )}
             </div>
           ))}

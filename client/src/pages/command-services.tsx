@@ -27,6 +27,7 @@ import {
 import { Plus, Pencil, Trash2, ExternalLink, Briefcase } from "lucide-react";
 import { Link } from "wouter";
 import type { Service } from "@shared/schema";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
   if (!name) return null;
@@ -350,29 +351,44 @@ export default function CommandServices() {
                       )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <Link href={`/services/${service.slug}`}>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`button-view-service-${service.slug}`}>
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </Button>
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => { setEditService(service); setFormOpen(true); }}
-                        data-testid={`button-edit-service-${service.slug}`}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteService(service)}
-                        data-testid={`button-delete-service-${service.slug}`}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link href={`/services/${service.slug}`}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`button-view-service-${service.slug}`}>
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </Button>
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent>View</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => { setEditService(service); setFormOpen(true); }}
+                            data-testid={`button-edit-service-${service.slug}`}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteService(service)}
+                            data-testid={`button-delete-service-${service.slug}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete</TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
                 ))}

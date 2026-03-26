@@ -44,10 +44,11 @@ import {
   Bar,
   XAxis,
   YAxis,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ShoppingBag,
   Shield,
@@ -331,35 +332,44 @@ function ProductRow({ product }: { product: Product }) {
       </td>
       <td className="p-3">
         <div className="flex items-center gap-1.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => toggleMutation.mutate()}
-            disabled={toggleMutation.isPending || deleteMutation.isPending}
-            title={isAvailable ? "Mark unavailable" : "Mark available"}
-            data-testid={`button-toggle-stock-${product.id}`}
-          >
-            {isAvailable ? (
-              <ToggleRight className="h-4 w-4 text-green-600 dark:text-green-400" />
-            ) : (
-              <ToggleLeft className="h-4 w-4 text-muted-foreground" />
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-destructive hover:text-destructive"
-            onClick={() => {
-              if (window.confirm(`Delete "${product.name}"? This cannot be undone.`)) {
-                deleteMutation.mutate();
-              }
-            }}
-            disabled={deleteMutation.isPending || toggleMutation.isPending}
-            data-testid={`button-delete-product-${product.id}`}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => toggleMutation.mutate()}
+                disabled={toggleMutation.isPending || deleteMutation.isPending}
+                data-testid={`button-toggle-stock-${product.id}`}
+              >
+                {isAvailable ? (
+                  <ToggleRight className="h-4 w-4 text-green-600 dark:text-green-400" />
+                ) : (
+                  <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isAvailable ? "Mark unavailable" : "Mark available"}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-destructive hover:text-destructive"
+                onClick={() => {
+                  if (window.confirm(`Delete "${product.name}"? This cannot be undone.`)) {
+                    deleteMutation.mutate();
+                  }
+                }}
+                disabled={deleteMutation.isPending || toggleMutation.isPending}
+                data-testid={`button-delete-product-${product.id}`}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Delete</TooltipContent>
+          </Tooltip>
         </div>
       </td>
     </tr>
@@ -461,7 +471,7 @@ function StoreAnalyticsTab() {
                       />
                     ))}
                   </Pie>
-                  <Tooltip
+                  <RechartsTooltip
                     contentStyle={{
                       backgroundColor: "hsl(var(--card))",
                       border: "1px solid hsl(var(--border))",
@@ -489,7 +499,7 @@ function StoreAnalyticsTab() {
                 <BarChart data={stats?.byPriceRange ?? []} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
                   <XAxis dataKey="range" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} width={30} />
-                  <Tooltip
+                  <RechartsTooltip
                     contentStyle={{
                       backgroundColor: "hsl(var(--card))",
                       border: "1px solid hsl(var(--border))",
@@ -523,7 +533,7 @@ function StoreAnalyticsTab() {
               <BarChart data={stats?.byCategory} margin={{ top: 4, right: 8, bottom: 24, left: 0 }}>
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-20} textAnchor="end" interval={0} />
                 <YAxis tick={{ fontSize: 11 }} allowDecimals={false} width={30} />
-                <Tooltip
+                <RechartsTooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border))",

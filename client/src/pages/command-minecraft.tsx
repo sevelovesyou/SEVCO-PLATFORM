@@ -26,6 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Server, ExternalLink } from "lucide-react";
 import type { MinecraftServer } from "@shared/schema";
 import { CommandPageLayout } from "./command-page";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const COLOR_THEMES = ["emerald", "green", "blue", "violet", "orange", "red", "cyan"];
 
@@ -195,25 +196,35 @@ export default function CommandMinecraft() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => openEdit(server)}
-                        data-testid={`button-edit-server-${server.id}`}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive"
-                        onClick={() => deleteMutation.mutate(server.id)}
-                        disabled={deleteMutation.isPending}
-                        data-testid={`button-delete-server-${server.id}`}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => openEdit(server)}
+                            data-testid={`button-edit-server-${server.id}`}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive"
+                            onClick={() => deleteMutation.mutate(server.id)}
+                            disabled={deleteMutation.isPending}
+                            data-testid={`button-delete-server-${server.id}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete</TooltipContent>
+                      </Tooltip>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -328,14 +339,19 @@ export default function CommandMinecraft() {
                 <div key={idx} className="flex items-center gap-2 text-sm bg-muted/50 rounded-md px-3 py-1.5">
                   <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   <span className="flex-1 truncate">{link.name} — {link.url}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-destructive"
-                    onClick={() => removeVoteLink(idx)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-destructive"
+                        onClick={() => removeVoteLink(idx)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Remove</TooltipContent>
+                  </Tooltip>
                 </div>
               ))}
               <div className="flex gap-2">

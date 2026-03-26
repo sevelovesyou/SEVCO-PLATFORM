@@ -28,6 +28,7 @@ import { Plus, Pencil, Trash2, ExternalLink, Mail, FileText, Users } from "lucid
 import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Job, JobApplication } from "@shared/schema";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const DEPARTMENTS = ["Engineering", "Design", "Operations", "Music", "Marketing", "Sales"];
 const JOB_TYPES = ["full-time", "part-time", "contract", "freelance", "internship"];
@@ -694,29 +695,44 @@ export default function CommandJobs() {
                       <SelectItem value="draft">Draft</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Link href={`/jobs/${job.slug}`}>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`button-view-job-${job.slug}`}>
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </Button>
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => { setEditJob(job); setFormOpen(true); }}
-                    data-testid={`button-edit-job-${job.slug}`}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-destructive hover:text-destructive"
-                    onClick={() => setDeleteJob(job)}
-                    data-testid={`button-delete-job-${job.slug}`}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link href={`/jobs/${job.slug}`}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`button-view-job-${job.slug}`}>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent>View</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => { setEditJob(job); setFormOpen(true); }}
+                        data-testid={`button-edit-job-${job.slug}`}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Edit</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => setDeleteJob(job)}
+                        data-testid={`button-delete-job-${job.slug}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Delete</TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
             );

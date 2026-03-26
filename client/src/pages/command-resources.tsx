@@ -31,6 +31,7 @@ import {
 import { Shield, Plus, Trash2, Pencil, ExternalLink } from "lucide-react";
 import { FileUploadWithFallback } from "@/components/file-upload";
 import type { Resource } from "@shared/schema";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const resourceSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -244,27 +245,37 @@ function ResourceRow({
       </td>
       <td className="p-3">
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => onEdit(resource)}
-            data-testid={`button-edit-resource-${resource.id}`}
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-destructive hover:text-destructive"
-            onClick={() => {
-              if (window.confirm(`Remove "${resource.title}"?`)) deleteMutation.mutate();
-            }}
-            disabled={deleteMutation.isPending}
-            data-testid={`button-delete-resource-${resource.id}`}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => onEdit(resource)}
+                data-testid={`button-edit-resource-${resource.id}`}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Edit</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-destructive hover:text-destructive"
+                onClick={() => {
+                  if (window.confirm(`Remove "${resource.title}"?`)) deleteMutation.mutate();
+                }}
+                disabled={deleteMutation.isPending}
+                data-testid={`button-delete-resource-${resource.id}`}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Delete</TooltipContent>
+          </Tooltip>
         </div>
       </td>
     </tr>

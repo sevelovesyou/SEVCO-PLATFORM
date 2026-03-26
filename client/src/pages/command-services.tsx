@@ -24,7 +24,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, ExternalLink, Briefcase } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Pencil, Trash2, ExternalLink, Briefcase, Tag } from "lucide-react";
 import { Link } from "wouter";
 import type { Service } from "@shared/schema";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -35,12 +36,10 @@ function resolveLucideIcon(name: string | null | undefined): React.ElementType |
   return icons[name] ?? null;
 }
 
-const SERVICE_CATEGORIES = ["Technology", "Creative", "Marketing", "Business", "Media", "Support"];
-
 const formSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   slug: z.string().min(1, "Slug is required").max(200).regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, and hyphens only"),
-  category: z.enum(["Technology", "Creative", "Marketing", "Business", "Media", "Support"]),
+  category: z.string().min(1, "Category is required"),
   tagline: z.string().max(300).optional(),
   description: z.string().max(5000).optional(),
   iconName: z.string().max(100).optional(),
@@ -54,33 +53,43 @@ function toSlug(str: string) {
   return str.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 }
 
-const CATEGORY_BADGE: Record<string, string> = {
-  Technology: "bg-blue-500/10 text-blue-700 border-blue-500/20",
-  Creative:   "bg-purple-500/10 text-purple-700 border-purple-500/20",
-  Marketing:  "bg-orange-500/10 text-orange-700 border-orange-500/20",
-  Business:   "bg-green-500/10 text-green-700 border-green-500/20",
-  Media:      "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
-  Support:    "bg-pink-500/10 text-pink-700 border-pink-500/20",
-};
+const CATEGORY_BADGE_CLASSES = [
+  "bg-blue-500/10 text-blue-700 border-blue-500/20",
+  "bg-purple-500/10 text-purple-700 border-purple-500/20",
+  "bg-orange-500/10 text-orange-700 border-orange-500/20",
+  "bg-green-500/10 text-green-700 border-green-500/20",
+  "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
+  "bg-pink-500/10 text-pink-700 border-pink-500/20",
+  "bg-sky-500/10 text-sky-700 border-sky-500/20",
+  "bg-teal-500/10 text-teal-700 border-teal-500/20",
+];
+
+function getCategoryBadge(cat: string, categories: string[]): string {
+  const idx = categories.indexOf(cat);
+  return CATEGORY_BADGE_CLASSES[idx % CATEGORY_BADGE_CLASSES.length] ?? CATEGORY_BADGE_CLASSES[0];
+}
 
 function ServiceForm({
   initialData,
+  categories,
   onSuccess,
   onCancel,
 }: {
   initialData?: Service;
+  categories: string[];
   onSuccess: () => void;
   onCancel: () => void;
 }) {
   const { toast } = useToast();
   const isEdit = !!initialData;
+  const defaultCategory = categories[0] ?? "";
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initialData?.name ?? "",
       slug: initialData?.slug ?? "",
-      category: (initialData?.category as FormValues["category"]) ?? "Technology",
+      category: (initialData?.category) ?? defaultCategory,
       tagline: initialData?.tagline ?? "",
       description: initialData?.description ?? "",
       iconName: initialData?.iconName ?? "",
@@ -98,6 +107,7 @@ function ServiceForm({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/services", "all"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/services/categories"] });
       toast({ title: isEdit ? "Service updated" : "Service created" });
       onSuccess();
     },
@@ -105,8 +115,6 @@ function ServiceForm({
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
-
-  const watchName = form.watch("name");
 
   return (
     <Form {...form}>
@@ -151,7 +159,7 @@ function ServiceForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {SERVICE_CATEGORIES.map((cat) => (
+                  {categories.map((cat) => (
                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
                 </SelectContent>
@@ -254,6 +262,164 @@ function ServiceForm({
   );
 }
 
+function CategoriesTab({ categories }: { categories: string[] }) {
+  const { toast } = useToast();
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [renameTarget, setRenameTarget] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+
+  const addCategoryMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const res = await apiRequest("PUT", "/api/platform-settings", {
+        "services.categories": JSON.stringify([...categories, name]),
+      });
+      if (!res.ok) throw new Error((await res.json()).message);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/services/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/platform-settings"] });
+      toast({ title: "Category added" });
+      setNewCategoryName("");
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const renameMutation = useMutation({
+    mutationFn: async ({ oldName, newName }: { oldName: string; newName: string }) => {
+      const res = await apiRequest("PATCH", "/api/services/categories/rename", { oldName, newName });
+      if (!res.ok) throw new Error((await res.json()).message);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/services/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/services", "all"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/platform-settings"] });
+      toast({ title: "Category renamed" });
+      setRenameTarget(null);
+      setRenameValue("");
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  function handleAdd() {
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) return;
+    if (categories.includes(trimmed)) {
+      toast({ title: "Category already exists", variant: "destructive" });
+      return;
+    }
+    addCategoryMutation.mutate(trimmed);
+  }
+
+  function startRename(cat: string) {
+    setRenameTarget(cat);
+    setRenameValue(cat);
+  }
+
+  function handleRename() {
+    const trimmed = renameValue.trim();
+    if (!trimmed || !renameTarget) return;
+    if (trimmed === renameTarget) {
+      setRenameTarget(null);
+      return;
+    }
+    if (categories.includes(trimmed)) {
+      toast({ title: "That category name already exists", variant: "destructive" });
+      return;
+    }
+    renameMutation.mutate({ oldName: renameTarget, newName: trimmed });
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Manage the categories used to group services. Renaming a category updates all services in that category.
+        </p>
+
+        {categories.length === 0 ? (
+          <div className="text-center py-10 text-muted-foreground text-sm">No categories yet. Add one below.</div>
+        ) : (
+          <div className="border border-border rounded-xl divide-y divide-border overflow-hidden">
+            {categories.map((cat) => (
+              <div key={cat} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors" data-testid={`category-row-${cat}`}>
+                <Tag className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                {renameTarget === cat ? (
+                  <div className="flex items-center gap-2 flex-1">
+                    <Input
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      className="h-7 text-sm flex-1"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleRename();
+                        if (e.key === "Escape") setRenameTarget(null);
+                      }}
+                      data-testid={`input-rename-category-${cat}`}
+                    />
+                    <Button size="sm" className="h-7 text-xs" onClick={handleRename} disabled={renameMutation.isPending} data-testid={`button-confirm-rename-${cat}`}>
+                      Save
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setRenameTarget(null)} data-testid={`button-cancel-rename-${cat}`}>
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <span className="flex-1 text-sm font-medium">{cat}</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => startRename(cat)}
+                          data-testid={`button-rename-category-${cat}`}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Rename</TooltipContent>
+                    </Tooltip>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-sm font-medium">Add New Category</p>
+        <div className="flex gap-2">
+          <Input
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
+            placeholder="e.g. Analytics"
+            onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+            data-testid="input-new-category"
+          />
+          <Button
+            onClick={handleAdd}
+            disabled={addCategoryMutation.isPending || !newCategoryName.trim()}
+            className="gap-1.5 shrink-0"
+            data-testid="button-add-category"
+          >
+            <Plus className="h-4 w-4" />
+            Add
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">New categories will appear in the service create/edit form and the services mega-menu.</p>
+      </div>
+    </div>
+  );
+}
+
 export default function CommandServices() {
   const { toast } = useToast();
   const [formOpen, setFormOpen] = useState(false);
@@ -265,10 +431,15 @@ export default function CommandServices() {
     queryFn: () => fetch("/api/services?all=true").then((r) => r.json()),
   });
 
+  const { data: categories = [] } = useQuery<string[]>({
+    queryKey: ["/api/services/categories"],
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: number) => apiRequest("DELETE", `/api/services/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/services", "all"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/services/categories"] });
       toast({ title: "Service deleted" });
       setDeleteService(null);
     },
@@ -283,120 +454,135 @@ export default function CommandServices() {
     return acc;
   }, {});
 
+  const allCategories = categories.length > 0 ? categories : [...new Set((services ?? []).map((s) => s.category))].sort();
+
   const total = services?.length ?? 0;
   const active = services?.filter((s) => s.status === "active").length ?? 0;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex gap-4 text-sm text-muted-foreground">
-          <span>{total} total</span>
-          <span>{active} active</span>
+      <Tabs defaultValue="services">
+        <div className="flex items-center justify-between mb-4">
+          <TabsList>
+            <TabsTrigger value="services" data-testid="tab-services">Services</TabsTrigger>
+            <TabsTrigger value="categories" data-testid="tab-categories">Categories</TabsTrigger>
+          </TabsList>
+          <Button
+            size="sm"
+            className="gap-1.5"
+            onClick={() => { setEditService(null); setFormOpen(true); }}
+            data-testid="button-add-service"
+          >
+            <Plus className="h-4 w-4" />
+            Add Service
+          </Button>
         </div>
-        <Button
-          size="sm"
-          className="gap-1.5"
-          onClick={() => { setEditService(null); setFormOpen(true); }}
-          data-testid="button-add-service"
-        >
-          <Plus className="h-4 w-4" />
-          Add Service
-        </Button>
-      </div>
 
-      {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />
-          ))}
-        </div>
-      ) : total === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <p className="font-medium">No services yet</p>
-          <p className="text-sm mt-1">Add your first service to get started</p>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {SERVICE_CATEGORIES.filter((cat) => grouped[cat]?.length > 0).map((cat) => (
-            <div key={cat}>
-              <div className="flex items-center gap-2 mb-3">
-                <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${CATEGORY_BADGE[cat]}`}>
-                  {cat}
-                </span>
-                <span className="text-xs text-muted-foreground">{grouped[cat].length}</span>
-              </div>
-              <div className="border border-border rounded-xl divide-y divide-border overflow-hidden">
-                {grouped[cat].map((service) => (
-                  <div
-                    key={service.id}
-                    className="flex items-center gap-4 px-4 py-3 hover:bg-muted/30 transition-colors"
-                    data-testid={`service-row-${service.slug}`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">{service.name}</span>
-                        {service.featured && (
-                          <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
-                            Featured
-                          </span>
-                        )}
-                        {service.status === "archived" && (
-                          <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                            Archived
-                          </span>
-                        )}
-                      </div>
-                      {service.tagline && (
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{service.tagline}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" asChild data-testid={`button-view-service-${service.slug}`}>
-                            <Link href={`/services/${service.slug}`}>
-                              <ExternalLink className="h-3.5 w-3.5" />
-                            </Link>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>View</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => { setEditService(service); setFormOpen(true); }}
-                            data-testid={`button-edit-service-${service.slug}`}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Edit</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => setDeleteService(service)}
-                            data-testid={`button-delete-service-${service.slug}`}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Delete</TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        <TabsContent value="services" className="mt-0">
+          <div className="flex gap-4 text-sm text-muted-foreground mb-4">
+            <span>{total} total</span>
+            <span>{active} active</span>
+          </div>
+
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          ) : total === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <p className="font-medium">No services yet</p>
+              <p className="text-sm mt-1">Add your first service to get started</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {allCategories.filter((cat) => grouped[cat]?.length > 0).map((cat) => (
+                <div key={cat}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${getCategoryBadge(cat, allCategories)}`}>
+                      {cat}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{grouped[cat].length}</span>
+                  </div>
+                  <div className="border border-border rounded-xl divide-y divide-border overflow-hidden">
+                    {grouped[cat].map((service) => (
+                      <div
+                        key={service.id}
+                        className="flex items-center gap-4 px-4 py-3 hover:bg-muted/30 transition-colors"
+                        data-testid={`service-row-${service.slug}`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm">{service.name}</span>
+                            {service.featured && (
+                              <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
+                                Featured
+                              </span>
+                            )}
+                            {service.status === "archived" && (
+                              <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+                                Archived
+                              </span>
+                            )}
+                          </div>
+                          {service.tagline && (
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">{service.tagline}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" asChild data-testid={`button-view-service-${service.slug}`}>
+                                <Link href={`/services/${service.slug}`}>
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </Link>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>View</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => { setEditService(service); setFormOpen(true); }}
+                                data-testid={`button-edit-service-${service.slug}`}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-destructive hover:text-destructive"
+                                onClick={() => setDeleteService(service)}
+                                data-testid={`button-delete-service-${service.slug}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="categories" className="mt-0">
+          <CategoriesTab categories={allCategories} />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={formOpen} onOpenChange={(o) => { if (!o) { setFormOpen(false); setEditService(null); } }}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
@@ -405,6 +591,7 @@ export default function CommandServices() {
           </DialogHeader>
           <ServiceForm
             initialData={editService ?? undefined}
+            categories={allCategories.length > 0 ? allCategories : ["Technology"]}
             onSuccess={() => { setFormOpen(false); setEditService(null); }}
             onCancel={() => { setFormOpen(false); setEditService(null); }}
           />

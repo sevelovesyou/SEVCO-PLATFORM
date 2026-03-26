@@ -1885,6 +1885,53 @@ export async function registerRoutes(
 
   const CAN_MANAGE_SERVICES: Role[] = ["admin", "executive"];
 
+  app.get("/api/services/categories", async (req, res) => {
+    try {
+      const allServices = await storage.getServices();
+      const fromServices = [...new Set(allServices.map((s) => s.category).filter(Boolean))];
+      const platformSettings = await storage.getPlatformSettings();
+      let storedCategories: string[] = [];
+      if (platformSettings["services.categories"]) {
+        try {
+          const parsed = JSON.parse(platformSettings["services.categories"]);
+          if (Array.isArray(parsed)) storedCategories = parsed;
+        } catch {}
+      }
+      const merged = [...new Set([...fromServices, ...storedCategories])].sort();
+      res.json(merged);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/services/categories/rename", requireAuth, requireRole(...CAN_MANAGE_SERVICES), async (req, res) => {
+    try {
+      const { oldName, newName } = req.body;
+      if (!oldName || !newName || typeof oldName !== "string" || typeof newName !== "string") {
+        return res.status(400).json({ message: "oldName and newName are required strings" });
+      }
+      const allServices = await storage.getServices();
+      const toUpdate = allServices.filter((s) => s.category === oldName);
+      for (const s of toUpdate) {
+        await storage.updateService(s.id, { category: newName });
+      }
+      const platformSettings = await storage.getPlatformSettings();
+      let storedCategories: string[] = [];
+      if (platformSettings["services.categories"]) {
+        try {
+          const parsed = JSON.parse(platformSettings["services.categories"]);
+          if (Array.isArray(parsed)) storedCategories = parsed;
+        } catch {}
+      }
+      const updated = storedCategories.map((c) => (c === oldName ? newName : c));
+      if (!updated.includes(newName) && !updated.includes(oldName)) updated.push(newName);
+      await storage.setPlatformSettings({ "services.categories": JSON.stringify(updated) });
+      res.json({ success: true, updated: toUpdate.length });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/services", async (req, res) => {
     try {
       const all = await storage.getServices();

@@ -382,6 +382,20 @@ const DEFAULT_ICON_PILLS = [
 type IconPill = { icon: string; label: string; href: string; color: string };
 
 // ─────────────────────────────────────────────────────────
+// Platform Section Cards types
+// ─────────────────────────────────────────────────────────
+type PlatformSection = { label: string; description: string; path: string; iconName: string };
+
+const DEFAULT_PLATFORM_SECTIONS: PlatformSection[] = [
+  { label: "Wiki", description: "The internal knowledge base — docs, guides, and company knowledge all in one place.", path: "/wiki", iconName: "BookOpen" },
+  { label: "Store", description: "Merchandise, exclusive drops, and products from the SEVCO universe.", path: "/store", iconName: "ShoppingBag" },
+  { label: "Music", description: "SEVCO RECORDS — releases, artists, and a catalog built for independent creators.", path: "/music", iconName: "Music" },
+  { label: "Projects", description: "SEVCO Ventures — active companies, initiatives, and what's next.", path: "/projects", iconName: "Folder" },
+  { label: "Services", description: "Engineering, design, marketing, and more — what we build for partners.", path: "/services", iconName: "Briefcase" },
+  { label: "Community", description: "Join the Discord, follow along, and be part of everything SEVCO.", path: "/contact", iconName: "Users" },
+];
+
+// ─────────────────────────────────────────────────────────
 // Footer Sitemap types
 // ─────────────────────────────────────────────────────────
 type SitemapLink = { label: string; path: string; external?: boolean };
@@ -515,6 +529,9 @@ export default function CommandSettings() {
   // ── Icon pills state ──
   const [iconPills, setIconPills] = useState<IconPill[]>(DEFAULT_ICON_PILLS);
 
+  // ── Platform sections state ──
+  const [platformSections, setPlatformSections] = useState<PlatformSection[]>(DEFAULT_PLATFORM_SECTIONS);
+
   // ── Footer sitemap state ──
   const [sitemapColumns, setSitemapColumns] = useState<SitemapColumn[]>(DEFAULT_SITEMAP);
 
@@ -562,6 +579,13 @@ export default function CommandSettings() {
       try {
         const parsed = JSON.parse(settings["home.iconPills"]);
         if (Array.isArray(parsed)) setIconPills(parsed);
+      } catch {}
+    }
+
+    if (settings["home.platformSections"]) {
+      try {
+        const parsed = JSON.parse(settings["home.platformSections"]);
+        if (Array.isArray(parsed) && parsed.length > 0) setPlatformSections(parsed);
       } catch {}
     }
 
@@ -654,6 +678,19 @@ export default function CommandSettings() {
 
   function saveIconPills() {
     mutation.mutate({ "home.iconPills": JSON.stringify(iconPills) });
+  }
+
+  function savePlatformSections() {
+    mutation.mutate({ "home.platformSections": JSON.stringify(platformSections) });
+  }
+
+  function updatePlatformSection(idx: number, field: keyof PlatformSection, value: string) {
+    setPlatformSections((prev) => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s));
+  }
+
+  function resetPlatformSections() {
+    setPlatformSections(DEFAULT_PLATFORM_SECTIONS);
+    mutation.mutate({ "home.platformSections": "" });
   }
 
   function saveFooterSitemap() {
@@ -1060,6 +1097,91 @@ export default function CommandSettings() {
                 <Button onClick={saveSections} disabled={mutation.isPending} className="gap-2" data-testid="button-save-sections">
                   <Save className="h-3.5 w-3.5" />
                   Save Visibility
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Platform Section Cards */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Layers className="h-4 w-4" />
+                    Platform Section Cards
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    Edit the 6 cards shown in the "THE PLATFORM" grid on the home page. Each card has a label, description, link path, and Lucide icon name.
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 text-muted-foreground shrink-0"
+                  onClick={resetPlatformSections}
+                  disabled={mutation.isPending}
+                  data-testid="button-reset-platform-sections"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Reset
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {platformSections.map((section, idx) => (
+                <div key={idx} className="border border-border/60 rounded-xl p-4 space-y-3 bg-muted/10">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Card {idx + 1}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Label</Label>
+                      <Input
+                        value={section.label}
+                        onChange={(e) => updatePlatformSection(idx, "label", e.target.value)}
+                        placeholder="Wiki"
+                        data-testid={`input-platform-section-label-${idx}`}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Icon Name (Lucide)</Label>
+                      <Input
+                        value={section.iconName}
+                        onChange={(e) => updatePlatformSection(idx, "iconName", e.target.value)}
+                        placeholder="BookOpen"
+                        list={`icon-options-${idx}`}
+                        data-testid={`input-platform-section-icon-${idx}`}
+                      />
+                      <datalist id={`icon-options-${idx}`}>
+                        {LUCIDE_ICON_OPTIONS.map((i) => <option key={i} value={i} />)}
+                      </datalist>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Link Path</Label>
+                    <Input
+                      value={section.path}
+                      onChange={(e) => updatePlatformSection(idx, "path", e.target.value)}
+                      placeholder="/wiki"
+                      data-testid={`input-platform-section-path-${idx}`}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Description</Label>
+                    <Input
+                      value={section.description}
+                      onChange={(e) => updatePlatformSection(idx, "description", e.target.value)}
+                      placeholder="Short description shown on the card"
+                      data-testid={`input-platform-section-description-${idx}`}
+                    />
+                  </div>
+                </div>
+              ))}
+              <div className="flex justify-end pt-2">
+                <Button onClick={savePlatformSections} disabled={mutation.isPending} className="gap-2" data-testid="button-save-platform-sections">
+                  <Save className="h-3.5 w-3.5" />
+                  Save Section Cards
                 </Button>
               </div>
             </CardContent>

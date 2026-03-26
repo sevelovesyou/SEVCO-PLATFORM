@@ -118,11 +118,14 @@ const SERVICE_ICON_MAP: Record<string, React.ElementType> = {
   Business: Briefcase, Media: Music, Support: HeadphonesIcon,
 };
 
-const SERVICE_COLUMN_GROUPS = [
-  ["Creative", "Technology"],
-  ["Marketing", "Business"],
-  ["Media", "Support"],
-] as const;
+function buildServiceColumnGroups(services: Service[]): string[][] {
+  const cats = [...new Set(services.map((s) => s.category).filter(Boolean))].sort();
+  const groups: string[][] = [];
+  for (let i = 0; i < cats.length; i += 2) {
+    groups.push(cats.slice(i, i + 2));
+  }
+  return groups;
+}
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
 
@@ -306,6 +309,8 @@ function ServicesDropdown({ isActive }: { isActive: boolean }) {
     queryKey: ["/api/services"],
   });
 
+  const serviceColumnGroups = buildServiceColumnGroups(services ?? []);
+
   const byCategory = (cat: string) =>
     (services ?? []).filter((s) => s.category === cat).slice(0, 3);
 
@@ -344,7 +349,7 @@ function ServicesDropdown({ isActive }: { isActive: boolean }) {
 
           {/* Professional services by category */}
           <div className="p-3 grid grid-cols-3 gap-2">
-            {SERVICE_COLUMN_GROUPS.map((pair) => (
+            {serviceColumnGroups.map((pair) => (
               <div key={pair.join("-")} className="space-y-3">
                 {pair.map((cat) => {
                   const items = byCategory(cat);
@@ -609,6 +614,12 @@ export function PlatformHeader() {
   const [mobileSection, setMobileSection] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+
+  const { data: allServices = [] } = useQuery<Service[]>({
+    queryKey: ["/api/services"],
+    staleTime: 60000,
+  });
+  const mobileServiceCategories = [...new Set(allServices.map((s) => s.category).filter(Boolean))].sort();
 
   const storeCategories = ["Apparel", "Games", "Grocery", "Health", "Music", "Books"];
   const musicItems = [
@@ -890,7 +901,7 @@ export function PlatformHeader() {
                   <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-services-domains">Domains</div>
                 </Link>
                 <div className="border-t border-border/40 my-1" />
-                {SERVICE_COLUMN_GROUPS.flat().map((cat) => (
+                {mobileServiceCategories.map((cat) => (
                   <Link key={cat} href={`/services?category=${cat}`} onClick={() => setMobileOpen(false)}>
                     <div
                       className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"

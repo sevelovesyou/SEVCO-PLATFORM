@@ -70,7 +70,6 @@ import {
   HardDrive,
   Wrench,
   Images,
-  Pickaxe,
   MessageCircle,
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
@@ -328,15 +327,6 @@ function ServicesDropdown({ isActive }: { isActive: boolean }) {
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-foreground leading-none">Hosting</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">Websites, game servers, VPS & more</p>
-                </div>
-              </div>
-            </Link>
-            <Link href="/minecraft" onClick={() => setOpen(false)}>
-              <div className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/70 transition-colors cursor-pointer group" data-testid="dropdown-services-minecraft">
-                <Pickaxe className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-foreground leading-none">Minecraft</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">Join SEVCO's community servers</p>
                 </div>
               </div>
             </Link>
@@ -888,9 +878,6 @@ export function PlatformHeader() {
                 </Link>
                 <Link href="/hosting" onClick={() => setMobileOpen(false)}>
                   <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-services-hosting">Hosting</div>
-                </Link>
-                <Link href="/minecraft" onClick={() => setMobileOpen(false)}>
-                  <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-services-minecraft">Minecraft</div>
                 </Link>
                 <Link href="/domains" onClick={() => setMobileOpen(false)}>
                   <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-services-domains">Domains</div>

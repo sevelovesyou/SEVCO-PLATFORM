@@ -59,6 +59,7 @@ export function CommandSidebar() {
     ...(isAdmin ? [{ title: "Gallery", url: "/command/gallery", icon: Images }] : []),
     ...(isAdmin ? [{ title: "Media", url: "/command/media", icon: FolderOpen }] : []),
     ...(isAdmin ? [{ title: "Resources", url: "/command/resources", icon: BookMarked }] : []),
+    ...(isAdmin ? [{ title: "Minecraft", url: "/command/minecraft", icon: Gamepad2 }] : []),
   ];
 
   const operationsItems: NavItem[] = [
@@ -74,7 +75,6 @@ export function CommandSidebar() {
     ...(isAdmin ? [{ title: "Users", url: "/command/users", icon: Users }] : []),
     ...(isAdmin ? [{ title: "Staff", url: "/command/staff", icon: UsersRound }] : []),
     ...(isAdmin ? [{ title: "Hosting", url: "/command/hosting", icon: Server }] : []),
-    ...(isAdmin ? [{ title: "Minecraft", url: "/command/minecraft", icon: Gamepad2 }] : []),
     ...(isAdmin ? [{ title: "Display", url: "/command/display", icon: MonitorCog }] : []),
     ...(isAdmin ? [{ title: "Chat Log", url: "/command/chat-log", icon: MessageSquare }] : []),
   ];

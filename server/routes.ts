@@ -282,8 +282,9 @@ async function seedMinecraftServers() {
 async function seedMinecraftProject() {
   const existing = await storage.getProjectBySlug("minecraft");
   if (existing) {
-    if (existing.type !== "Game Server" || existing.websiteUrl !== "/minecraft") {
+    if (existing.type !== "Game Server" || existing.websiteUrl !== "/minecraft" || existing.name !== "Minecraft") {
       await storage.updateProject(existing.id, {
+        name: "Minecraft",
         type: "Game Server",
         websiteUrl: "/minecraft",
         menuIcon: existing.menuIcon || "Server",
@@ -292,7 +293,7 @@ async function seedMinecraftProject() {
     return;
   }
   await storage.createProject({
-    name: "SEVCO Minecraft",
+    name: "Minecraft",
     slug: "minecraft",
     description: "Play on the official SEVCO Minecraft servers — survival, creative, and more. Join the community and start building.",
     longDescription: "SEVCO hosts community Minecraft servers for players of all styles. Join the SMP for a classic survival experience or hop on the Creative server to build without limits. Both servers are community-managed with active staff and regular events.",

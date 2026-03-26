@@ -79,6 +79,7 @@ import CommandMedia from "@/pages/command-media";
 import CommandSupport from "@/pages/command-support";
 import CommandStaff from "@/pages/command-staff";
 import CommandChatLog from "@/pages/command-chat-log";
+import CommandFinance from "@/pages/command-finance";
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
 const COMMAND_PREFIXES = ["/command"];
@@ -259,6 +260,13 @@ function Router() {
         <ProtectedRoute requiredRole="admin">
           <CommandPageLayout title="Chat Log" subtitle="Full moderation log of all messages across channels and DMs">
             <CommandChatLog />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/finance" component={() => (
+        <ProtectedRoute>
+          <CommandPageLayout title="Finance" subtitle="Accounting, invoices, budgets, and calculator">
+            <CommandFinance />
           </CommandPageLayout>
         </ProtectedRoute>
       )} />

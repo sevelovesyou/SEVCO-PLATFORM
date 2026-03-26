@@ -13,8 +13,9 @@ import {
 } from "./middleware/permissions";
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
-import { sendContactEmail, sendContactReplyEmail } from "./emailClient";
+import { sendContactEmail, sendContactReplyEmail, sendInvoiceEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
 import * as hostinger from "./hostinger";
 import { registerSpotifyRoutes } from "./spotify";
@@ -3254,10 +3255,32 @@ export async function registerRoutes(
     }
   });
 
+  const CAN_MANAGE_FINANCE: Role[] = ["admin", "executive"];
+
+  app.get("/api/finance/summary", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
+    try {
+      const summary = await storage.getFinanceSummary();
+      res.json(summary);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/staff/org", requireAuth, requireRole("admin", "executive", "staff", "partner"), async (req, res) => {
     try {
       const nodes = await storage.getStaffOrgNodes();
       res.json(nodes);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/finance/transactions", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
+    try {
+      const type = req.query.type as string | undefined;
+      const projectId = req.query.projectId ? parseInt(req.query.projectId as string) : undefined;
+      const transactions = await storage.getFinanceTransactions({ type, projectId });
+      res.json(transactions);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -3274,11 +3297,32 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/finance/transactions", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
+    try {
+      const parsed = insertFinanceTransactionSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.message });
+      const tx = await storage.createFinanceTransaction(parsed.data);
+      res.status(201).json(tx);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.patch("/api/staff/org/:id", requireAuth, requireRole("admin"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const node = await storage.updateStaffOrgNode(id, req.body);
       res.json(node);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/finance/transactions/:id", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const tx = await storage.updateFinanceTransaction(id, req.body);
+      res.json(tx);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -3340,6 +3384,41 @@ export async function registerRoutes(
       const id = parseInt(req.params.id);
       await storage.deleteChatChannel(id);
       res.json({ success: true });
+  app.delete("/api/finance/transactions/:id", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteFinanceTransaction(id);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/finance/projects", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
+    try {
+      const projects = await storage.getFinanceProjects();
+      res.json(projects);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/finance/projects", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
+    try {
+      const parsed = insertFinanceProjectSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.message });
+      const project = await storage.createFinanceProject(parsed.data);
+      res.status(201).json(project);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/finance/projects/:id", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const project = await storage.updateFinanceProject(id, req.body);
+      res.json(project);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -3427,6 +3506,77 @@ export async function registerRoutes(
       const id = parseInt(req.params.id);
       const message = await storage.softDeleteChatMessage(id);
       res.json(message);
+  app.delete("/api/finance/projects/:id", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteFinanceProject(id);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/finance/invoices", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
+    try {
+      const invoices = await storage.getFinanceInvoices();
+      res.json(invoices);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/finance/invoices", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
+    try {
+      const invoiceNumber = await storage.getNextInvoiceNumber();
+      const body = { ...req.body, invoiceNumber };
+      const parsed = insertFinanceInvoiceSchema.safeParse(body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.message });
+      const invoice = await storage.createFinanceInvoice(parsed.data);
+      res.status(201).json(invoice);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/finance/invoices/:id", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const invoice = await storage.updateFinanceInvoice(id, req.body);
+      res.json(invoice);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/finance/invoices/:id", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteFinanceInvoice(id);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/finance/invoices/:id/send", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const invoice = await storage.getFinanceInvoiceById(id);
+      if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+      if (!invoice.clientEmail) return res.status(400).json({ message: "Invoice has no client email" });
+      await sendInvoiceEmail(invoice);
+      const updated = await storage.updateFinanceInvoice(id, { status: "sent" });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/finance/invoices/:id/mark-paid", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateFinanceInvoice(id, { status: "paid" });
+      res.json(updated);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

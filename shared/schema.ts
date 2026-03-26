@@ -659,3 +659,47 @@ export type InsertChatChannel = z.infer<typeof insertChatChannelSchema>;
 export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({ id: true, createdAt: true, fromUserId: true, editedAt: true, deletedAt: true });
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+
+export const financeProjects = pgTable("finance_projects", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  description: text("description"),
+  budget: real("budget").notNull(),
+  status: text("status").notNull().default("active"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const financeTransactions = pgTable("finance_transactions", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  type: text("type").notNull(),
+  category: text("category").notNull(),
+  description: text("description").notNull(),
+  amount: real("amount").notNull(),
+  date: text("date").notNull(),
+  projectId: integer("project_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const financeInvoices = pgTable("finance_invoices", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  invoiceNumber: text("invoice_number").notNull(),
+  clientName: text("client_name").notNull(),
+  clientEmail: text("client_email"),
+  lineItems: jsonb("line_items").notNull().default([]),
+  totalAmount: real("total_amount").notNull(),
+  status: text("status").notNull().default("draft"),
+  dueDate: text("due_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertFinanceProjectSchema = createInsertSchema(financeProjects).omit({ id: true, createdAt: true });
+export type FinanceProject = typeof financeProjects.$inferSelect;
+export type InsertFinanceProject = z.infer<typeof insertFinanceProjectSchema>;
+
+export const insertFinanceTransactionSchema = createInsertSchema(financeTransactions).omit({ id: true, createdAt: true });
+export type FinanceTransaction = typeof financeTransactions.$inferSelect;
+export type InsertFinanceTransaction = z.infer<typeof insertFinanceTransactionSchema>;
+
+export const insertFinanceInvoiceSchema = createInsertSchema(financeInvoices).omit({ id: true, createdAt: true });
+export type FinanceInvoice = typeof financeInvoices.$inferSelect;
+export type InsertFinanceInvoice = z.infer<typeof insertFinanceInvoiceSchema>;

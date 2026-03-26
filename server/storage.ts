@@ -29,6 +29,9 @@ import {
   type StaffOrgNode, type InsertStaffOrgNode,
   type ChatChannel, type InsertChatChannel,
   type ChatMessage, type InsertChatMessage,
+  type FinanceProject, type InsertFinanceProject,
+  type FinanceTransaction, type InsertFinanceTransaction,
+  type FinanceInvoice, type InsertFinanceInvoice,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
@@ -37,6 +40,7 @@ import {
   contactSubmissions,
   staffOrgNodes,
   chatChannels, chatMessages,
+  financeProjects, financeTransactions, financeInvoices,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or, inArray } from "drizzle-orm";
@@ -250,6 +254,26 @@ export interface IStorage {
   getAllChatMessages(filters?: { channelId?: number; userId?: string; dateFrom?: Date; dateTo?: Date }): Promise<ChatMessageWithUsers[]>;
   softDeleteChatMessage(id: number): Promise<ChatMessage>;
   getDmThreads(userId: string): Promise<DmThread[]>;
+
+  getFinanceProjects(): Promise<FinanceProject[]>;
+  getFinanceProjectById(id: number): Promise<FinanceProject | undefined>;
+  createFinanceProject(data: InsertFinanceProject): Promise<FinanceProject>;
+  updateFinanceProject(id: number, data: Partial<InsertFinanceProject>): Promise<FinanceProject>;
+  deleteFinanceProject(id: number): Promise<void>;
+
+  getFinanceTransactions(filters?: { type?: string; projectId?: number }): Promise<FinanceTransaction[]>;
+  getFinanceTransactionById(id: number): Promise<FinanceTransaction | undefined>;
+  createFinanceTransaction(data: InsertFinanceTransaction): Promise<FinanceTransaction>;
+  updateFinanceTransaction(id: number, data: Partial<InsertFinanceTransaction>): Promise<FinanceTransaction>;
+  deleteFinanceTransaction(id: number): Promise<void>;
+
+  getFinanceInvoices(): Promise<FinanceInvoice[]>;
+  getFinanceInvoiceById(id: number): Promise<FinanceInvoice | undefined>;
+  createFinanceInvoice(data: InsertFinanceInvoice): Promise<FinanceInvoice>;
+  updateFinanceInvoice(id: number, data: Partial<InsertFinanceInvoice>): Promise<FinanceInvoice>;
+  deleteFinanceInvoice(id: number): Promise<void>;
+  getNextInvoiceNumber(): Promise<string>;
+  getFinanceSummary(): Promise<{ totalIncomeMonth: number; totalExpensesMonth: number; netBalance: number; outstandingInvoices: number; monthlyData: Array<{ month: string; income: number; expenses: number }> }>;
 }
 
 export type SearchResultItem = {
@@ -1705,6 +1729,135 @@ export class DatabaseStorage implements IStorage {
       });
     }
     return threads;
+  async getFinanceProjects(): Promise<FinanceProject[]> {
+    return db.select().from(financeProjects).orderBy(desc(financeProjects.createdAt));
+  }
+
+  async getFinanceProjectById(id: number): Promise<FinanceProject | undefined> {
+    const [project] = await db.select().from(financeProjects).where(eq(financeProjects.id, id));
+    return project || undefined;
+  }
+
+  async createFinanceProject(data: InsertFinanceProject): Promise<FinanceProject> {
+    const [created] = await db.insert(financeProjects).values(data).returning();
+    return created;
+  }
+
+  async updateFinanceProject(id: number, data: Partial<InsertFinanceProject>): Promise<FinanceProject> {
+    const [updated] = await db.update(financeProjects).set(data).where(eq(financeProjects.id, id)).returning();
+    return updated;
+  }
+
+  async deleteFinanceProject(id: number): Promise<void> {
+    await db.delete(financeTransactions).where(eq(financeTransactions.projectId, id));
+    await db.delete(financeProjects).where(eq(financeProjects.id, id));
+  }
+
+  async getFinanceTransactions(filters?: { type?: string; projectId?: number }): Promise<FinanceTransaction[]> {
+    const conditions = [];
+    if (filters?.type) conditions.push(eq(financeTransactions.type, filters.type));
+    if (filters?.projectId !== undefined) conditions.push(eq(financeTransactions.projectId, filters.projectId));
+    const query = db.select().from(financeTransactions);
+    const result = conditions.length > 0
+      ? await query.where(and(...conditions)).orderBy(desc(financeTransactions.date), desc(financeTransactions.createdAt))
+      : await query.orderBy(desc(financeTransactions.date), desc(financeTransactions.createdAt));
+    return result;
+  }
+
+  async getFinanceTransactionById(id: number): Promise<FinanceTransaction | undefined> {
+    const [tx] = await db.select().from(financeTransactions).where(eq(financeTransactions.id, id));
+    return tx || undefined;
+  }
+
+  async createFinanceTransaction(data: InsertFinanceTransaction): Promise<FinanceTransaction> {
+    const [created] = await db.insert(financeTransactions).values(data).returning();
+    return created;
+  }
+
+  async updateFinanceTransaction(id: number, data: Partial<InsertFinanceTransaction>): Promise<FinanceTransaction> {
+    const [updated] = await db.update(financeTransactions).set(data).where(eq(financeTransactions.id, id)).returning();
+    return updated;
+  }
+
+  async deleteFinanceTransaction(id: number): Promise<void> {
+    await db.delete(financeTransactions).where(eq(financeTransactions.id, id));
+  }
+
+  async getFinanceInvoices(): Promise<FinanceInvoice[]> {
+    return db.select().from(financeInvoices).orderBy(desc(financeInvoices.createdAt));
+  }
+
+  async getFinanceInvoiceById(id: number): Promise<FinanceInvoice | undefined> {
+    const [inv] = await db.select().from(financeInvoices).where(eq(financeInvoices.id, id));
+    return inv || undefined;
+  }
+
+  async createFinanceInvoice(data: InsertFinanceInvoice): Promise<FinanceInvoice> {
+    const [created] = await db.insert(financeInvoices).values(data).returning();
+    return created;
+  }
+
+  async updateFinanceInvoice(id: number, data: Partial<InsertFinanceInvoice>): Promise<FinanceInvoice> {
+    const [updated] = await db.update(financeInvoices).set(data).where(eq(financeInvoices.id, id)).returning();
+    return updated;
+  }
+
+  async deleteFinanceInvoice(id: number): Promise<void> {
+    await db.delete(financeInvoices).where(eq(financeInvoices.id, id));
+  }
+
+  async getNextInvoiceNumber(): Promise<string> {
+    const year = new Date().getFullYear();
+    const [result] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(financeInvoices)
+      .where(sql`extract(year from created_at) = ${year}`);
+    const count = (result?.count || 0) + 1;
+    return `INV-${year}-${String(count).padStart(4, "0")}`;
+  }
+
+  async getFinanceSummary(): Promise<{ totalIncomeMonth: number; totalExpensesMonth: number; netBalance: number; outstandingInvoices: number; monthlyData: Array<{ month: string; income: number; expenses: number }> }> {
+    const now = new Date();
+    const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+    const allTx = await db.select().from(financeTransactions).orderBy(financeTransactions.date);
+
+    let totalIncomeMonth = 0;
+    let totalExpensesMonth = 0;
+    const monthlyMap: Record<string, { income: number; expenses: number }> = {};
+
+    for (const tx of allTx) {
+      const txMonth = tx.date.substring(0, 7);
+      if (!monthlyMap[txMonth]) monthlyMap[txMonth] = { income: 0, expenses: 0 };
+      if (tx.type === "income") {
+        monthlyMap[txMonth].income += tx.amount;
+        if (txMonth === yearMonth) totalIncomeMonth += tx.amount;
+      } else {
+        monthlyMap[txMonth].expenses += tx.amount;
+        if (txMonth === yearMonth) totalExpensesMonth += tx.amount;
+      }
+    }
+
+    const totalIncome = allTx.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
+    const totalExpenses = allTx.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+    const netBalance = totalIncome - totalExpenses;
+
+    const [outstandingResult] = await db
+      .select({ total: sql<number>`coalesce(sum(total_amount), 0)::float` })
+      .from(financeInvoices)
+      .where(or(eq(financeInvoices.status, "sent"), eq(financeInvoices.status, "overdue")));
+    const outstandingInvoices = outstandingResult?.total || 0;
+
+    const months = Object.keys(monthlyMap).sort().slice(-6);
+    const monthlyData = months.map(m => ({
+      month: m,
+      income: monthlyMap[m].income,
+      expenses: monthlyMap[m].expenses,
+    }));
+
+    return { totalIncomeMonth, totalExpensesMonth, netBalance, outstandingInvoices, monthlyData };
+  }
+
   }
 }
 

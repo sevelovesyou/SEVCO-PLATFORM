@@ -28,6 +28,7 @@ import {
   FolderOpen,
   MessageSquare,
   UsersRound,
+  DollarSign,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -65,6 +66,7 @@ export function CommandSidebar() {
     ...(isAdmin ? [{ title: "Social Links", url: "/command/social-links", icon: Share2 }] : []),
     ...(isAdmin || isExec || isStaff ? [{ title: "Changelog", url: "/command/changelog", icon: ScrollText }] : []),
     ...(isAdmin || isExec || isStaff ? [{ title: "Support", url: "/command/support", icon: MessageSquare }] : []),
+    ...(isAdmin || isExec ? [{ title: "Finance", url: "/command/finance", icon: DollarSign }] : []),
   ];
 
   const systemItems: NavItem[] = [

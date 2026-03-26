@@ -27,6 +27,7 @@ import {
   Images,
   FolderOpen,
   MessageSquare,
+  UsersRound,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -68,6 +69,7 @@ export function CommandSidebar() {
 
   const systemItems: NavItem[] = [
     ...(isAdmin ? [{ title: "Users", url: "/command/users", icon: Users }] : []),
+    ...(isAdmin ? [{ title: "Staff", url: "/command/staff", icon: UsersRound }] : []),
     ...(isAdmin ? [{ title: "Hosting", url: "/command/hosting", icon: Server }] : []),
     ...(isAdmin ? [{ title: "Display", url: "/command/display", icon: MonitorCog }] : []),
   ];

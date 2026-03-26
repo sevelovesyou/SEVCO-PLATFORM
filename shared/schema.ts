@@ -617,3 +617,17 @@ export const contactSubmissions = pgTable("contact_submissions", {
 export const insertContactSubmissionSchema = createInsertSchema(contactSubmissions).omit({ id: true, createdAt: true, status: true, staffNote: true, repliedAt: true });
 export type ContactSubmission = typeof contactSubmissions.$inferSelect;
 export type InsertContactSubmission = z.infer<typeof insertContactSubmissionSchema>;
+
+export const staffOrgNodes = pgTable("staff_org_nodes", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
+  title: text("title").notNull(),
+  department: text("department").notNull(),
+  parentId: integer("parent_id"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertStaffOrgNodeSchema = createInsertSchema(staffOrgNodes).omit({ id: true, createdAt: true });
+export type StaffOrgNode = typeof staffOrgNodes.$inferSelect;
+export type InsertStaffOrgNode = z.infer<typeof insertStaffOrgNodeSchema>;

@@ -26,12 +26,14 @@ import {
   type GalleryImage, type InsertGalleryImage,
   type SpotifyArtist, type InsertSpotifyArtist,
   type ContactSubmission, type InsertContactSubmission,
+  type StaffOrgNode, type InsertStaffOrgNode,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
   posts, postLikes, postReplies, userFollows,
   noteCollaborators, noteAttachments, platformSettings, brandAssets, resources, galleryImages, spotifyArtists,
   contactSubmissions,
+  staffOrgNodes,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or, inArray } from "drizzle-orm";
@@ -227,6 +229,11 @@ export interface IStorage {
   getContactSubmissionById(id: number): Promise<ContactSubmission | undefined>;
   createContactSubmission(data: InsertContactSubmission): Promise<ContactSubmission>;
   updateContactSubmission(id: number, data: { status?: string; staffNote?: string; repliedAt?: Date | null }): Promise<ContactSubmission>;
+  getStaffUsers(): Promise<StaffUserWithNode[]>;
+  getStaffOrgNodes(): Promise<StaffOrgNode[]>;
+  createStaffOrgNode(data: InsertStaffOrgNode): Promise<StaffOrgNode>;
+  updateStaffOrgNode(id: number, data: Partial<InsertStaffOrgNode>): Promise<StaffOrgNode>;
+  deleteStaffOrgNode(id: number): Promise<void>;
 }
 
 export type SearchResultItem = {
@@ -251,6 +258,17 @@ export type PostAuthor = { id: string; username: string; displayName: string | n
 export type PostWithMeta = Post & { author: PostAuthor; likeCount: number; replyCount: number; likedByCurrentUser: boolean };
 export type ReplyWithAuthor = PostReply & { author: PostAuthor };
 export type FollowUser = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
+
+export type StaffUserWithNode = {
+  id: string;
+  username: string;
+  displayName: string | null;
+  email: string | null;
+  role: Role;
+  avatarUrl: string | null;
+  createdAt?: Date | null;
+  orgNode: StaffOrgNode | null;
+};
 
 export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
@@ -1487,6 +1505,39 @@ export class DatabaseStorage implements IStorage {
   async updateContactSubmission(id: number, data: { status?: string; staffNote?: string; repliedAt?: Date | null }): Promise<ContactSubmission> {
     const [updated] = await db.update(contactSubmissions).set(data).where(eq(contactSubmissions.id, id)).returning();
     return updated;
+  }
+
+  async getStaffUsers(): Promise<StaffUserWithNode[]> {
+    const staffRoles: Role[] = ["staff", "partner", "executive", "admin"];
+    const allUsers = await db.select().from(users).where(inArray(users.role, staffRoles)).orderBy(users.role, users.username);
+    const nodes = await db.select().from(staffOrgNodes);
+    return allUsers.map((u) => ({
+      id: u.id,
+      username: u.username,
+      displayName: u.displayName,
+      email: u.email,
+      role: u.role,
+      avatarUrl: u.avatarUrl,
+      orgNode: nodes.find((n) => n.userId === u.id) ?? null,
+    }));
+  }
+
+  async getStaffOrgNodes(): Promise<StaffOrgNode[]> {
+    return db.select().from(staffOrgNodes).orderBy(staffOrgNodes.sortOrder, staffOrgNodes.id);
+  }
+
+  async createStaffOrgNode(data: InsertStaffOrgNode): Promise<StaffOrgNode> {
+    const [created] = await db.insert(staffOrgNodes).values(data).returning();
+    return created;
+  }
+
+  async updateStaffOrgNode(id: number, data: Partial<InsertStaffOrgNode>): Promise<StaffOrgNode> {
+    const [updated] = await db.update(staffOrgNodes).set(data).where(eq(staffOrgNodes.id, id)).returning();
+    return updated;
+  }
+
+  async deleteStaffOrgNode(id: number): Promise<void> {
+    await db.delete(staffOrgNodes).where(eq(staffOrgNodes.id, id));
   }
 }
 

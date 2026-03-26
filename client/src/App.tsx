@@ -77,6 +77,7 @@ import GalleryPage from "@/pages/gallery-page";
 import CommandGallery from "@/pages/command-gallery";
 import CommandMedia from "@/pages/command-media";
 import CommandSupport from "@/pages/command-support";
+import CommandStaff from "@/pages/command-staff";
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
 const COMMAND_PREFIXES = ["/command"];
@@ -243,6 +244,13 @@ function Router() {
         <ProtectedRoute>
           <CommandPageLayout title="Support" subtitle="Manage contact form submissions">
             <CommandSupport />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/staff" component={() => (
+        <ProtectedRoute requiredRole="admin">
+          <CommandPageLayout title="Staff" subtitle="Staff directory and org chart">
+            <CommandStaff />
           </CommandPageLayout>
         </ProtectedRoute>
       )} />

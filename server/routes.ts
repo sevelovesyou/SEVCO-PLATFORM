@@ -12,7 +12,7 @@ import {
   CAN_ACCESS_ARCHIVE,
 } from "./middleware/permissions";
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail, sendContactReplyEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
@@ -3242,6 +3242,55 @@ export async function registerRoutes(
       const fallback = { online: false, players: { online: 0, max: 0 } };
       mcStatusCache.set(host, { data: fallback, expiresAt: Date.now() + 30_000 });
       return res.json(fallback);
+    }
+  });
+
+  app.get("/api/staff", requireAuth, requireRole("admin", "executive", "staff", "partner"), async (req, res) => {
+    try {
+      const staffUsers = await storage.getStaffUsers();
+      res.json(staffUsers);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/staff/org", requireAuth, requireRole("admin", "executive", "staff", "partner"), async (req, res) => {
+    try {
+      const nodes = await storage.getStaffOrgNodes();
+      res.json(nodes);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/staff/org", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const parsed = insertStaffOrgNodeSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.message });
+      const node = await storage.createStaffOrgNode(parsed.data);
+      res.status(201).json(node);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/staff/org/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const node = await storage.updateStaffOrgNode(id, req.body);
+      res.json(node);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/staff/org/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteStaffOrgNode(id);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
     }
   });
 

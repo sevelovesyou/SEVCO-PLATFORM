@@ -106,6 +106,8 @@ export default function CommandDisplay() {
     darkAccent: "222 14% 16%",
     brandMain: "",
     brandSecondary: "",
+    brandAccent: "",
+    brandHighlight: "",
   };
 
   const [lightPrimary, setLightPrimary] = useState(DEFAULT_COLORS.lightPrimary);
@@ -118,6 +120,8 @@ export default function CommandDisplay() {
   const [darkAccent, setDarkAccent] = useState(DEFAULT_COLORS.darkAccent);
   const [brandMain, setBrandMain] = useState(DEFAULT_COLORS.brandMain);
   const [brandSecondary, setBrandSecondary] = useState(DEFAULT_COLORS.brandSecondary);
+  const [brandAccent, setBrandAccent] = useState(DEFAULT_COLORS.brandAccent);
+  const [brandHighlight, setBrandHighlight] = useState(DEFAULT_COLORS.brandHighlight);
 
   useEffect(() => {
     if (isLoading) return;
@@ -148,6 +152,8 @@ export default function CommandDisplay() {
     setDarkAccent(settings["color.dark.accent"] || DEFAULT_COLORS.darkAccent);
     setBrandMain(settings["color.brand.main"] || DEFAULT_COLORS.brandMain);
     setBrandSecondary(settings["color.brand.secondary"] || DEFAULT_COLORS.brandSecondary);
+    setBrandAccent(settings["color.brand.accent"] || DEFAULT_COLORS.brandAccent);
+    setBrandHighlight(settings["color.brand.highlight"] || DEFAULT_COLORS.brandHighlight);
   }, [settings, isLoading]);
 
   function saveColors() {
@@ -162,6 +168,8 @@ export default function CommandDisplay() {
       "color.dark.accent": darkAccent,
       "color.brand.main": brandMain,
       "color.brand.secondary": brandSecondary,
+      "color.brand.accent": brandAccent,
+      "color.brand.highlight": brandHighlight,
     });
   }
 
@@ -177,6 +185,8 @@ export default function CommandDisplay() {
       "color.dark.accent": "",
       "color.brand.main": "",
       "color.brand.secondary": "",
+      "color.brand.accent": "",
+      "color.brand.highlight": "",
     });
   }
 
@@ -382,6 +392,8 @@ export default function CommandDisplay() {
             <p className="text-xs text-muted-foreground">These apply globally across both modes and feed into the Brand &amp; Assets section of the About page.</p>
             <ColorPickerRow label="Brand Main" hsl={brandMain} onChange={setBrandMain} testIdBase="brand-main" />
             <ColorPickerRow label="Brand Secondary" hsl={brandSecondary} onChange={setBrandSecondary} testIdBase="brand-secondary" />
+            <ColorPickerRow label="Brand Accent" hsl={brandAccent} onChange={setBrandAccent} testIdBase="brand-accent" />
+            <ColorPickerRow label="Brand Highlight" hsl={brandHighlight} onChange={setBrandHighlight} testIdBase="brand-highlight" />
           </div>
 
           <div className="flex justify-end">
@@ -626,31 +638,43 @@ export default function CommandDisplay() {
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="favicon-url" className="flex items-center gap-1.5">
+            <Label className="flex items-center gap-1.5">
               <Link2 className="h-3.5 w-3.5" />
-              Favicon URL
+              Favicon
             </Label>
-            <Input
-              id="favicon-url"
-              placeholder="https://example.com/favicon.ico"
-              value={faviconUrl}
-              onChange={(e) => setFaviconUrl(e.target.value)}
-              data-testid="input-favicon-url"
+            <FileUploadWithFallback
+              bucket="brand-assets"
+              path={`favicon/favicon.{ext}`}
+              accept="image/*"
+              maxSizeMb={2}
+              currentUrl={faviconUrl || null}
+              onUpload={(url) => setFaviconUrl(url)}
+              onUrlChange={(url) => setFaviconUrl(url)}
+              urlValue={faviconUrl}
+              label="Upload Favicon"
+              urlPlaceholder="https://example.com/favicon.ico"
+              urlTestId="input-favicon-url"
             />
             <p className="text-xs text-muted-foreground">Supports .ico, .png, .svg. Leave empty to use the default favicon.</p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="og-image-url" className="flex items-center gap-1.5">
+            <Label className="flex items-center gap-1.5">
               <Link2 className="h-3.5 w-3.5" />
-              Social image (OG) URL
+              Social image (OG)
             </Label>
-            <Input
-              id="og-image-url"
-              placeholder="https://example.com/og-image.jpg"
-              value={ogImageUrl}
-              onChange={(e) => setOgImageUrl(e.target.value)}
-              data-testid="input-og-image-url"
+            <FileUploadWithFallback
+              bucket="brand-assets"
+              path={`og/og-image.{ext}`}
+              accept="image/*"
+              maxSizeMb={5}
+              currentUrl={ogImageUrl || null}
+              onUpload={(url) => setOgImageUrl(url)}
+              onUrlChange={(url) => setOgImageUrl(url)}
+              urlValue={ogImageUrl}
+              label="Upload OG Image"
+              urlPlaceholder="https://example.com/og-image.jpg"
+              urlTestId="input-og-image-url"
             />
             <p className="text-xs text-muted-foreground">Recommended size: 1200×630px. Used when the site is shared on social media.</p>
           </div>
@@ -823,23 +847,35 @@ export default function CommandDisplay() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="asset-download-url">Download URL <span className="text-destructive">*</span></Label>
-              <Input
-                id="asset-download-url"
-                placeholder="https://cdn.sevco.com/logo-black.png"
-                value={assetForm.downloadUrl}
-                onChange={(e) => setAssetForm((f) => ({ ...f, downloadUrl: e.target.value }))}
-                data-testid="input-asset-download-url"
+              <Label>Download / Asset File <span className="text-destructive">*</span></Label>
+              <FileUploadWithFallback
+                bucket="brand-assets"
+                path={`assets/${assetForm.name.replace(/\s+/g, "-").toLowerCase() || "file"}.{ext}`}
+                accept="image/*,.pdf,.svg,.zip,.ai,.eps"
+                maxSizeMb={25}
+                currentUrl={assetForm.downloadUrl || null}
+                onUpload={(url) => setAssetForm((f) => ({ ...f, downloadUrl: url }))}
+                onUrlChange={(url) => setAssetForm((f) => ({ ...f, downloadUrl: url }))}
+                urlValue={assetForm.downloadUrl}
+                label="Upload Asset"
+                urlPlaceholder="https://cdn.sevco.com/logo-black.png"
+                urlTestId="input-asset-download-url"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="asset-preview-url">Preview URL <span className="text-muted-foreground text-xs">(optional)</span></Label>
-              <Input
-                id="asset-preview-url"
-                placeholder="https://cdn.sevco.com/logo-black-thumb.png"
-                value={assetForm.previewUrl ?? ""}
-                onChange={(e) => setAssetForm((f) => ({ ...f, previewUrl: e.target.value }))}
-                data-testid="input-asset-preview-url"
+              <Label>Preview Image <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <FileUploadWithFallback
+                bucket="brand-assets"
+                path={`previews/${assetForm.name.replace(/\s+/g, "-").toLowerCase() || "preview"}-thumb.{ext}`}
+                accept="image/*"
+                maxSizeMb={5}
+                currentUrl={assetForm.previewUrl || null}
+                onUpload={(url) => setAssetForm((f) => ({ ...f, previewUrl: url }))}
+                onUrlChange={(url) => setAssetForm((f) => ({ ...f, previewUrl: url }))}
+                urlValue={assetForm.previewUrl ?? ""}
+                label="Upload Preview"
+                urlPlaceholder="https://cdn.sevco.com/logo-black-thumb.png"
+                urlTestId="input-asset-preview-url"
               />
             </div>
             <div className="grid grid-cols-2 gap-3 items-end">

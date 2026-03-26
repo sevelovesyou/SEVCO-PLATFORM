@@ -25,6 +25,7 @@ import {
   MonitorCog,
   BookMarked,
   Images,
+  FolderOpen,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -52,6 +53,7 @@ export function CommandSidebar() {
     ...(isAdmin || isExec ? [{ title: "Store", url: "/command/store", icon: ShoppingBag }] : []),
     ...(isAdmin || isExec ? [{ title: "Music", url: "/command/music", icon: Music }] : []),
     ...(isAdmin ? [{ title: "Gallery", url: "/command/gallery", icon: Images }] : []),
+    ...(isAdmin ? [{ title: "Media", url: "/command/media", icon: FolderOpen }] : []),
     ...(isAdmin ? [{ title: "Resources", url: "/command/resources", icon: BookMarked }] : []),
   ];
 

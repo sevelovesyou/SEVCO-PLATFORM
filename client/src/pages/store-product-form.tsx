@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ShoppingBag, ShieldOff } from "lucide-react";
+import { FileUploadWithFallback } from "@/components/file-upload";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
@@ -261,25 +262,23 @@ export default function StoreProductForm() {
               name="imageUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Image URL <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
+                  <FormLabel>Product Image <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="https://example.com/image.jpg"
-                      data-testid="input-product-image-url"
-                      {...field}
+                    <FileUploadWithFallback
+                      bucket="gallery"
+                      path={`products/${form.watch("slug") || "product"}.{ext}`}
+                      accept="image/*"
+                      maxSizeMb={10}
+                      currentUrl={field.value || null}
+                      onUpload={(url) => field.onChange(url)}
+                      onUrlChange={(url) => field.onChange(url)}
+                      urlValue={field.value ?? ""}
+                      label="Upload Product Image"
+                      urlPlaceholder="https://example.com/image.jpg"
+                      urlTestId="input-product-image-url"
                     />
                   </FormControl>
                   <FormMessage />
-                  {field.value && (
-                    <div className="mt-2 rounded-lg overflow-hidden border border-border bg-muted/30 h-32 flex items-center justify-center">
-                      <img
-                        src={field.value}
-                        alt="Preview"
-                        className="h-full w-full object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                      />
-                    </div>
-                  )}
                 </FormItem>
               )}
             />

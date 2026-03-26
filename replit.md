@@ -65,6 +65,8 @@ A multi-app platform for sevco.us (SEVE / SEVCO Records). Built as a platform sh
 | `/command/jobs` | Command — Jobs & Applications (admin/exec) | Command sidebar |
 | `/command/social-links` | Command — Social Links admin (admin) | Command sidebar |
 | `/command/hosting` | Command — Hostinger VPS Hosting Management (admin) | Command sidebar |
+| `/command/gallery` | Command — Gallery image management (admin) | Command sidebar |
+| `/command/media` | Command — Media Library, Supabase storage browser (admin) | Command sidebar |
 | `/domains` | Public Domains search & registration page (powered by Hostinger) | None |
 | `/feed` | SEVCO Feed (public, manage if admin/exec) | None |
 | `/changelog` | Public Platform Changelog | None |

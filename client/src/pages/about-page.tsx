@@ -67,6 +67,8 @@ function assetTypeIcon(type: string) {
 const PRIMARY_COLORS = [
   { name: "Brand Main", cssVar: "--brand-main", fallback: "hsl(225 60% 48%)", usage: "Primary brand color" },
   { name: "Brand Secondary", cssVar: "--brand-secondary", fallback: "hsl(225 65% 58%)", usage: "Secondary brand color" },
+  { name: "Brand Accent", cssVar: "--brand-accent", fallback: "hsl(220 14% 93%)", usage: "Accent brand color" },
+  { name: "Brand Highlight", cssVar: "--brand-highlight", fallback: "hsl(45 90% 60%)", usage: "Highlight brand color" },
 ];
 
 export default function AboutPage() {

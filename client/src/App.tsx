@@ -75,6 +75,7 @@ import HostingPage from "@/pages/hosting-page";
 import MinecraftPage from "@/pages/minecraft-page";
 import GalleryPage from "@/pages/gallery-page";
 import CommandGallery from "@/pages/command-gallery";
+import CommandMedia from "@/pages/command-media";
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
 const COMMAND_PREFIXES = ["/command"];
@@ -230,6 +231,13 @@ function Router() {
           </CommandPageLayout>
         </ProtectedRoute>
       )} />
+      <Route path="/command/media" component={() => (
+        <ProtectedRoute requiredRole="admin">
+          <CommandPageLayout title="Media Library" subtitle="Browse and manage files across Supabase storage buckets">
+            <CommandMedia />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -289,8 +297,12 @@ function PlatformColorInjector() {
     }
     const brandMain = settings["color.brand.main"];
     const brandSecondary = settings["color.brand.secondary"];
+    const brandAccent = settings["color.brand.accent"];
+    const brandHighlight = settings["color.brand.highlight"];
     if (brandMain) lightRules.push(`  --brand-main: ${brandMain};`);
     if (brandSecondary) lightRules.push(`  --brand-secondary: ${brandSecondary};`);
+    if (brandAccent) lightRules.push(`  --brand-accent: ${brandAccent};`);
+    if (brandHighlight) lightRules.push(`  --brand-highlight: ${brandHighlight};`);
 
     const darkRules: string[] = [];
     for (const key of COLOR_KEYS_DARK) {
@@ -302,6 +314,8 @@ function PlatformColorInjector() {
     }
     if (brandMain) darkRules.push(`  --brand-main: ${brandMain};`);
     if (brandSecondary) darkRules.push(`  --brand-secondary: ${brandSecondary};`);
+    if (brandAccent) darkRules.push(`  --brand-accent: ${brandAccent};`);
+    if (brandHighlight) darkRules.push(`  --brand-highlight: ${brandHighlight};`);
 
     const hasOverrides = lightRules.length > 0 || darkRules.length > 0;
 

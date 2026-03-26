@@ -2895,6 +2895,85 @@ export async function registerRoutes(
     }
   });
 
+  // Media library endpoints
+  app.get("/api/media", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const { supabase: supabaseAdmin } = await import("./supabase");
+      if (!supabaseAdmin) {
+        return res.status(503).json({ message: "Storage service not configured" });
+      }
+      const bucket = (req.query.bucket as string) || "";
+      if (!bucket) {
+        return res.status(400).json({ message: "bucket query param is required" });
+      }
+      const { data, error } = await supabaseAdmin.storage.from(bucket).list("", {
+        limit: 500,
+        offset: 0,
+        sortBy: { column: "updated_at", order: "desc" },
+      });
+      if (error) {
+        return res.status(500).json({ message: error.message });
+      }
+      const files = (data || [])
+        .filter((f) => f.name !== ".emptyFolderPlaceholder")
+        .map((f) => {
+          const { data: urlData } = supabaseAdmin.storage.from(bucket).getPublicUrl(f.name);
+          return {
+            name: f.name,
+            size: f.metadata?.size ?? 0,
+            updatedAt: f.updated_at,
+            publicUrl: urlData?.publicUrl ?? null,
+            mimeType: f.metadata?.mimetype ?? null,
+          };
+        });
+      res.json(files);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/media", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const { supabase: supabaseAdmin } = await import("./supabase");
+      if (!supabaseAdmin) {
+        return res.status(503).json({ message: "Storage service not configured" });
+      }
+      const bucket = (req.query.bucket as string) || "";
+      const path = (req.query.path as string) || "";
+      if (!bucket || !path) {
+        return res.status(400).json({ message: "bucket and path query params are required" });
+      }
+      const { error } = await supabaseAdmin.storage.from(bucket).remove([path]);
+      if (error) {
+        return res.status(500).json({ message: error.message });
+      }
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/media/rename", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const { supabase: supabaseAdmin } = await import("./supabase");
+      if (!supabaseAdmin) {
+        return res.status(503).json({ message: "Storage service not configured" });
+      }
+      const { bucket, fromPath, toPath } = req.body as { bucket: string; fromPath: string; toPath: string };
+      if (!bucket || !fromPath || !toPath) {
+        return res.status(400).json({ message: "bucket, fromPath, and toPath are required" });
+      }
+      const { error: moveError } = await supabaseAdmin.storage.from(bucket).move(fromPath, toPath);
+      if (moveError) {
+        return res.status(500).json({ message: moveError.message });
+      }
+      const { data: urlData } = supabaseAdmin.storage.from(bucket).getPublicUrl(toPath);
+      res.json({ name: toPath, publicUrl: urlData?.publicUrl ?? null });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // Server-side file upload — bypasses Supabase RLS by using service_role key
   app.post(
     "/api/upload",

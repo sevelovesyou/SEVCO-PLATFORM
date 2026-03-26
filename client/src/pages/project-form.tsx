@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChevronLeft, Folder, ShieldOff, Share2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { Project } from "@shared/schema";
+import { FileUploadWithFallback } from "@/components/file-upload";
 
 function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
   if (!name) return null;
@@ -527,9 +528,21 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
                   name="heroImageUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Hero Image URL</FormLabel>
+                      <FormLabel>Hero Image</FormLabel>
                       <FormControl>
-                        <Input placeholder="https://... (full-width banner image)" data-testid="input-project-hero" {...field} />
+                        <FileUploadWithFallback
+                          bucket="banners"
+                          path={`projects/${form.watch("slug") || "project"}-hero.{ext}`}
+                          accept="image/*"
+                          maxSizeMb={5}
+                          currentUrl={field.value || null}
+                          onUpload={(url) => field.onChange(url)}
+                          onUrlChange={(url) => field.onChange(url)}
+                          urlValue={field.value ?? ""}
+                          label="Upload Hero Image"
+                          urlPlaceholder="https://... (full-width banner image)"
+                          urlTestId="input-project-hero"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -541,9 +554,21 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
                   name="logoUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Logo URL</FormLabel>
+                      <FormLabel>Logo</FormLabel>
                       <FormControl>
-                        <Input placeholder="https://... (project logo or icon)" data-testid="input-project-logo" {...field} />
+                        <FileUploadWithFallback
+                          bucket="brand-assets"
+                          path={`projects/${form.watch("slug") || "project"}-logo.{ext}`}
+                          accept="image/*"
+                          maxSizeMb={5}
+                          currentUrl={field.value || null}
+                          onUpload={(url) => field.onChange(url)}
+                          onUrlChange={(url) => field.onChange(url)}
+                          urlValue={field.value ?? ""}
+                          label="Upload Logo"
+                          urlPlaceholder="https://... (project logo or icon)"
+                          urlTestId="input-project-logo"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -556,22 +581,21 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
                     name="appIcon"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>App Icon URL</FormLabel>
+                        <FormLabel>App Icon</FormLabel>
                         <FormControl>
-                          <div className="space-y-2">
-                            <Input placeholder="https://... (square app icon shown in project header)" data-testid="input-project-app-icon" {...field} />
-                            {field.value && (
-                              <div className="flex items-center gap-2">
-                                <img
-                                  src={field.value}
-                                  alt="App icon preview"
-                                  className="h-10 w-10 rounded-lg object-cover border border-border"
-                                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                                />
-                                <span className="text-xs text-muted-foreground">Preview</span>
-                              </div>
-                            )}
-                          </div>
+                          <FileUploadWithFallback
+                            bucket="brand-assets"
+                            path={`projects/${form.watch("slug") || "project"}-icon.{ext}`}
+                            accept="image/*"
+                            maxSizeMb={2}
+                            currentUrl={field.value || null}
+                            onUpload={(url) => field.onChange(url)}
+                            onUrlChange={(url) => field.onChange(url)}
+                            urlValue={field.value ?? ""}
+                            label="Upload App Icon"
+                            urlPlaceholder="https://... (square app icon shown in project header)"
+                            urlTestId="input-project-app-icon"
+                          />
                         </FormControl>
                         <FormDescription className="text-xs">Square image shown alongside the project name in the header.</FormDescription>
                         <FormMessage />

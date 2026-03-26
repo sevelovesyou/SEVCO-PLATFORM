@@ -3808,7 +3808,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/ai/chat/:agentId", requireAuth, async (req, res) => {
+  app.get("/api/ai/chat/:agentId", requireAuth, requireRole("admin", "executive"), async (req, res) => {
     try {
       const agentId = parseInt(req.params.agentId);
       const user = req.user as any;

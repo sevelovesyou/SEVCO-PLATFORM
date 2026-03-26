@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -67,19 +67,29 @@ function AgentDialog({
   onClose: () => void;
 }) {
   const { toast } = useToast();
-  const [form, setForm] = useState<AgentForm>(
-    agent
-      ? {
-          name: agent.name,
-          slug: agent.slug,
-          description: agent.description ?? "",
-          systemPrompt: agent.systemPrompt,
-          modelSlug: agent.modelSlug,
-          avatarUrl: agent.avatarUrl ?? "",
-          enabled: agent.enabled,
-        }
-      : { ...DEFAULT_FORM }
-  );
+  const [form, setForm] = useState<AgentForm>(agent ? {
+    name: agent.name,
+    slug: agent.slug,
+    description: agent.description ?? "",
+    systemPrompt: agent.systemPrompt,
+    modelSlug: agent.modelSlug,
+    avatarUrl: agent.avatarUrl ?? "",
+    enabled: agent.enabled,
+  } : { ...DEFAULT_FORM });
+
+  useEffect(() => {
+    if (open) {
+      setForm(agent ? {
+        name: agent.name,
+        slug: agent.slug,
+        description: agent.description ?? "",
+        systemPrompt: agent.systemPrompt,
+        modelSlug: agent.modelSlug,
+        avatarUrl: agent.avatarUrl ?? "",
+        enabled: agent.enabled,
+      } : { ...DEFAULT_FORM });
+    }
+  }, [open, agent?.id]);
 
   const createMutation = useMutation({
     mutationFn: (data: AgentForm) => apiRequest("POST", "/api/ai-agents", data),

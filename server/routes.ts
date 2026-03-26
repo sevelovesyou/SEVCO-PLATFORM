@@ -282,11 +282,19 @@ async function seedMinecraftServers() {
 async function seedMinecraftProject() {
   const existing = await storage.getProjectBySlug("minecraft");
   if (existing) {
-    if (existing.type !== "Game Server" || existing.websiteUrl !== "/minecraft" || existing.name !== "Minecraft") {
+    const needsUpdate =
+      existing.type !== "Game Server" ||
+      existing.websiteUrl !== "/minecraft" ||
+      existing.name !== "Minecraft" ||
+      existing.status !== "active" ||
+      existing.featured !== true;
+    if (needsUpdate) {
       await storage.updateProject(existing.id, {
         name: "Minecraft",
         type: "Game Server",
         websiteUrl: "/minecraft",
+        status: "active",
+        featured: true,
         menuIcon: existing.menuIcon || "Server",
       });
     }

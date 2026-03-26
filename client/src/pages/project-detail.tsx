@@ -105,7 +105,7 @@ export default function ProjectDetail() {
 
   useEffect(() => {
     if (project?.type === "Game Server" && project.websiteUrl?.startsWith("/")) {
-      navigate(project.websiteUrl);
+      navigate(project.websiteUrl, { replace: true });
     }
   }, [project, navigate]);
 

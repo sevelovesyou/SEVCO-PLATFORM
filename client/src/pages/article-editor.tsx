@@ -42,6 +42,7 @@ import {
 import type { Article, Category, Citation } from "@shared/schema";
 import { usePermission } from "@/hooks/use-permission";
 import { Lock } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const articleFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -456,15 +457,20 @@ export default function ArticleEditor() {
                     }}
                     data-testid={`input-infobox-value-${i}`}
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeInfoboxField(i)}
-                    data-testid={`button-remove-infobox-${i}`}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeInfoboxField(i)}
+                        data-testid={`button-remove-infobox-${i}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Remove field</TooltipContent>
+                  </Tooltip>
                 </div>
               ))}
               <Button type="button" variant="outline" size="sm" onClick={addInfoboxField} data-testid="button-add-infobox-field">
@@ -536,15 +542,20 @@ export default function ArticleEditor() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeCitation(i)}
-                      data-testid={`button-remove-citation-${i}`}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeCitation(i)}
+                          data-testid={`button-remove-citation-${i}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Remove citation</TooltipContent>
+                    </Tooltip>
                   </div>
                 </Card>
               ))}

@@ -109,9 +109,14 @@ function CollaboratorPanel({ note, isOwner, onClose }: { note: Note; isOwner: bo
           <Users className="h-3.5 w-3.5" />
           Collaborators
         </p>
-        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
-          <X className="h-3.5 w-3.5" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Close</TooltipContent>
+        </Tooltip>
       </div>
 
       {isLoading ? (
@@ -132,16 +137,21 @@ function CollaboratorPanel({ note, isOwner, onClose }: { note: Note; isOwner: bo
                 <span className="text-xs truncate">{c.user.displayName ?? c.user.username}</span>
               </div>
               {isOwner && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-5 w-5 text-muted-foreground hover:text-destructive shrink-0"
-                  onClick={() => removeMutation.mutate(c.userId)}
-                  disabled={removeMutation.isPending}
-                  data-testid={`button-remove-collaborator-${c.userId}`}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 text-muted-foreground hover:text-destructive shrink-0"
+                      onClick={() => removeMutation.mutate(c.userId)}
+                      disabled={removeMutation.isPending}
+                      data-testid={`button-remove-collaborator-${c.userId}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Remove</TooltipContent>
+                </Tooltip>
               )}
             </li>
           ))}
@@ -160,23 +170,33 @@ function CollaboratorPanel({ note, isOwner, onClose }: { note: Note; isOwner: bo
               data-testid="input-collaborator-username"
               autoFocus
             />
-            <Button
-              size="icon"
-              className="h-7 w-7 shrink-0"
-              onClick={() => username.trim() && addMutation.mutate()}
-              disabled={addMutation.isPending || !username.trim()}
-              data-testid="button-confirm-add-collaborator"
-            >
-              <Check className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 shrink-0"
-              onClick={() => { setAdding(false); setUsername(""); }}
-            >
-              <X className="h-3.5 w-3.5" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  onClick={() => username.trim() && addMutation.mutate()}
+                  disabled={addMutation.isPending || !username.trim()}
+                  data-testid="button-confirm-add-collaborator"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Add</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  onClick={() => { setAdding(false); setUsername(""); }}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Cancel</TooltipContent>
+            </Tooltip>
           </div>
         ) : (
           <Button
@@ -396,16 +416,21 @@ export default function NotesPage() {
               <StickyNote className="h-4 w-4 text-primary" />
               Notes
             </h1>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7"
-              onClick={() => createMutation.mutate()}
-              disabled={createMutation.isPending}
-              data-testid="button-new-note"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  onClick={() => createMutation.mutate()}
+                  disabled={createMutation.isPending}
+                  data-testid="button-new-note"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>New note</TooltipContent>
+            </Tooltip>
           </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
@@ -496,28 +521,36 @@ export default function NotesPage() {
             {/* Editor toolbar */}
             <div className={`flex items-center gap-2 px-4 py-2 border-b border-border shrink-0 ${color.bg}`}>
               {/* Mobile back */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden h-7 w-7 mr-1"
-                onClick={() => setMobileShowEditor(false)}
-                data-testid="button-back-to-list"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="md:hidden h-7 w-7 mr-1"
+                    onClick={() => setMobileShowEditor(false)}
+                    data-testid="button-back-to-list"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Back</TooltipContent>
+              </Tooltip>
 
               {/* Color picker */}
               <div className="flex items-center gap-1">
                 {NOTE_COLORS.map((c) => (
-                  <button
-                    key={c.value}
-                    onClick={() => updateMutation.mutate({ id: selectedNote.id, data: { color: c.value } })}
-                    title={c.label}
-                    data-testid={`button-color-${c.value}`}
-                    className={`h-4 w-4 rounded-full ${c.dot} border-2 transition-all ${
-                      selectedNote.color === c.value ? "border-foreground scale-110" : "border-transparent hover:border-muted-foreground/50"
-                    }`}
-                  />
+                  <Tooltip key={c.value}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => updateMutation.mutate({ id: selectedNote.id, data: { color: c.value } })}
+                        data-testid={`button-color-${c.value}`}
+                        className={`h-4 w-4 rounded-full ${c.dot} border-2 transition-all ${
+                          selectedNote.color === c.value ? "border-foreground scale-110" : "border-transparent hover:border-muted-foreground/50"
+                        }`}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>{c.label}</TooltipContent>
+                  </Tooltip>
                 ))}
               </div>
 
@@ -639,11 +672,16 @@ export default function NotesPage() {
 
                 {/* More actions */}
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" data-testid="button-note-menu">
-                      <MoreHorizontal className="h-3.5 w-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" data-testid="button-note-menu">
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>More actions</TooltipContent>
+                  </Tooltip>
                   <DropdownMenuContent align="end" className="w-40">
                     <DropdownMenuItem
                       onClick={() => updateMutation.mutate({ id: selectedNote.id, data: { pinned: !selectedNote.pinned } })}

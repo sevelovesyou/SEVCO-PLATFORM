@@ -1265,6 +1265,24 @@ function SubscriptionsTab() {
     }
   }
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  function daysUntil(dateStr: string | null | undefined): number | null {
+    if (!dateStr) return null;
+    const d = new Date(dateStr + "T00:00:00");
+    return Math.round((d.getTime() - today.getTime()) / 86400000);
+  }
+
+  function relativeDueDate(dateStr: string | null | undefined): React.ReactNode {
+    const days = daysUntil(dateStr);
+    if (days === null) return <span className="text-muted-foreground">—</span>;
+    if (days < 0) return <span className="text-red-600 dark:text-red-400 font-medium">{Math.abs(days)}d overdue</span>;
+    if (days === 0) return <span className="text-amber-600 dark:text-amber-400 font-medium">Today</span>;
+    if (days <= 7) return <span className="text-amber-600 dark:text-amber-400 font-medium">In {days}d</span>;
+    return <span className="text-muted-foreground">In {days}d</span>;
+  }
+
   const totalMonthly = subs
     .filter((s) => s.status === "active")
     .reduce((sum, s) => {
@@ -1275,6 +1293,9 @@ function SubscriptionsTab() {
       return sum + amt;
     }, 0);
 
+  const activeSubs = subs.filter((s) => s.status === "active").length;
+  const overdueSubs = subs.filter((s) => s.status === "active" && (daysUntil(s.nextBillingDate) ?? 1) < 0).length;
+
   const statusColor: Record<string, string> = {
     active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
     paused: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
@@ -1283,13 +1304,33 @@ function SubscriptionsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">{subs.filter((s) => s.status === "active").length}</span> active subscription{subs.filter((s) => s.status === "active").length !== 1 ? "s" : ""}{" "}
-            · <span className="font-semibold text-foreground">${totalMonthly.toFixed(2)}</span>/mo est.
-          </p>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <Card className="col-span-2 md:col-span-1">
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total Monthly Cost</p>
+                <p className="text-2xl font-bold mt-1" data-testid="text-subscription-monthly-total">{formatCurrency(totalMonthly)}</p>
+              </div>
+              <CreditCard className="h-5 w-5 text-muted-foreground mt-0.5" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Active</p>
+            <p className="text-2xl font-bold mt-1" data-testid="text-subscription-active-count">{activeSubs}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Overdue</p>
+            <p className={`text-2xl font-bold mt-1 ${overdueSubs > 0 ? "text-red-600 dark:text-red-400" : ""}`} data-testid="text-subscription-overdue-count">{overdueSubs}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex items-center justify-end">
         <Button size="sm" className="gap-1.5" onClick={openAdd} data-testid="button-add-subscription">
           <Plus className="h-3.5 w-3.5" /> Add Subscription
         </Button>
@@ -1315,8 +1356,11 @@ function SubscriptionsTab() {
             {!isLoading && subs.length === 0 && (
               <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground text-sm py-8">No subscriptions yet. Click "Add Subscription" to get started.</TableCell></TableRow>
             )}
-            {subs.map((sub) => (
-              <TableRow key={sub.id} data-testid={`row-subscription-${sub.id}`}>
+            {subs.map((sub) => {
+              const days = daysUntil(sub.nextBillingDate);
+              const isOverdue = sub.status === "active" && days !== null && days < 0;
+              return (
+              <TableRow key={sub.id} data-testid={`row-subscription-${sub.id}`} className={isOverdue ? "bg-red-50/50 dark:bg-red-950/20" : ""}>
                 <TableCell>
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm font-medium">{sub.name}</span>
@@ -1330,7 +1374,7 @@ function SubscriptionsTab() {
                 <TableCell className="capitalize text-sm text-muted-foreground">{sub.category}</TableCell>
                 <TableCell className="text-sm font-mono">${(sub.amount ?? 0).toFixed(2)}</TableCell>
                 <TableCell className="capitalize text-sm text-muted-foreground">{sub.billingCycle}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{sub.nextBillingDate || "—"}</TableCell>
+                <TableCell className="text-sm">{relativeDueDate(sub.nextBillingDate)}</TableCell>
                 <TableCell>
                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${statusColor[sub.status] ?? statusColor.paused}`}>
                     {sub.status}
@@ -1357,7 +1401,8 @@ function SubscriptionsTab() {
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </Card>

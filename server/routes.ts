@@ -3384,6 +3384,11 @@ export async function registerRoutes(
       const id = parseInt(req.params.id);
       await storage.deleteChatChannel(id);
       res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.delete("/api/finance/transactions/:id", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -3506,6 +3511,11 @@ export async function registerRoutes(
       const id = parseInt(req.params.id);
       const message = await storage.softDeleteChatMessage(id);
       res.json(message);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.delete("/api/finance/projects/:id", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
     try {
       const id = parseInt(req.params.id);

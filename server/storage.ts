@@ -1729,6 +1729,8 @@ export class DatabaseStorage implements IStorage {
       });
     }
     return threads;
+  }
+
   async getFinanceProjects(): Promise<FinanceProject[]> {
     return db.select().from(financeProjects).orderBy(desc(financeProjects.createdAt));
   }
@@ -1856,8 +1858,6 @@ export class DatabaseStorage implements IStorage {
     }));
 
     return { totalIncomeMonth, totalExpensesMonth, netBalance, outstandingInvoices, monthlyData };
-  }
-
   }
 }
 

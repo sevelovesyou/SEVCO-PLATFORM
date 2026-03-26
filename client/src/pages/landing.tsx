@@ -77,14 +77,14 @@ const PLATFORM_SECTIONS = [
   },
 ];
 
-const WHY_SEVCO_PILLS = [
-  { icon: Music, label: "Music" },
-  { icon: ShoppingBag, label: "Store" },
-  { icon: Folder, label: "Projects" },
-  { icon: Users, label: "Community" },
-  { icon: Zap, label: "Fast" },
-  { icon: Globe, label: "Global" },
-  { icon: Layers, label: "All-in-One" },
+const DEFAULT_WHY_SEVCO_PILLS = [
+  { icon: "Music", label: "Music", href: "/music", color: "#f97316" },
+  { icon: "ShoppingBag", label: "Store", href: "/store", color: "#f97316" },
+  { icon: "Folder", label: "Projects", href: "/projects", color: "#f97316" },
+  { icon: "Users", label: "Community", href: "/contact", color: "#f97316" },
+  { icon: "Zap", label: "Fast", href: "/", color: "#f97316" },
+  { icon: "Globe", label: "Global", href: "/", color: "#f97316" },
+  { icon: "Layers", label: "All-in-One", href: "/", color: "#f97316" },
 ];
 
 const DISCORD_INVITE = "https://discord.gg/sevco";
@@ -198,6 +198,14 @@ export default function Landing() {
   const btn2IconName = settings["hero.button2.icon"];
   const heroOverlayOpacity = settings["hero.overlayOpacity"] ? parseInt(settings["hero.overlayOpacity"]) / 100 : 0.7;
 
+  let whySevcoPills = DEFAULT_WHY_SEVCO_PILLS;
+  if (settings["home.iconPills"]) {
+    try {
+      const parsed = JSON.parse(settings["home.iconPills"]);
+      if (Array.isArray(parsed) && parsed.length > 0) whySevcoPills = parsed;
+    } catch {}
+  }
+
   const Btn1Icon = getLucideIcon(btn1IconName) || BookOpen;
   const Btn2Icon = getLucideIcon(btn2IconName) || ShoppingBag;
 
@@ -291,18 +299,27 @@ export default function Landing() {
         data-testid="section-feature-pills"
       >
         <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-6 md:gap-10">
-          {WHY_SEVCO_PILLS.map((pill) => (
-            <div
-              key={pill.label}
-              className="flex items-center gap-2.5"
-              data-testid={`feature-pill-${pill.label.toLowerCase()}`}
-            >
-              <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-orange-500/15">
-                <pill.icon className="h-4 w-4 text-orange-400" />
+          {whySevcoPills.map((pill) => {
+            const PillIcon = getLucideIcon(pill.icon);
+            const accentColor = pill.color || "#f97316";
+            const inner = (
+              <div
+                className="flex items-center gap-2.5 cursor-pointer"
+                data-testid={`feature-pill-${pill.label.toLowerCase()}`}
+              >
+                <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg" style={{ backgroundColor: `${accentColor}26` }}>
+                  {PillIcon ? <PillIcon className="h-4 w-4" style={{ color: accentColor }} /> : null}
+                </div>
+                <p className="text-xs font-semibold text-white/80">{pill.label}</p>
               </div>
-              <p className="text-xs font-semibold text-white/80">{pill.label}</p>
-            </div>
-          ))}
+            );
+            const href = pill.href || "/";
+            return href && href !== "/" ? (
+              <a key={pill.label} href={href}>{inner}</a>
+            ) : (
+              <div key={pill.label}>{inner}</div>
+            );
+          })}
         </div>
       </section>
 

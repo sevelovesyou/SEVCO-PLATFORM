@@ -20,9 +20,7 @@ import {
   Briefcase,
   ClipboardList,
   Music,
-  Share2,
-  Server,
-  MonitorCog,
+  Settings2,
   BookMarked,
   Images,
   FolderOpen,
@@ -67,7 +65,6 @@ export function CommandSidebar() {
   const operationsItems: NavItem[] = [
     ...(isAdmin || isExec ? [{ title: "Jobs", url: "/command/jobs", icon: ClipboardList }] : []),
     ...(isAdmin || isExec ? [{ title: "Services", url: "/command/services", icon: Briefcase }] : []),
-    ...(isAdmin ? [{ title: "Social Links", url: "/command/social-links", icon: Share2 }] : []),
     ...(isAdmin || isExec || isStaff ? [{ title: "Changelog", url: "/command/changelog", icon: ScrollText }] : []),
     ...(isAdmin || isExec || isStaff ? [{ title: "Support", url: "/command/support", icon: MessageSquare }] : []),
     ...(isAdmin || isExec ? [{ title: "Finance", url: "/command/finance", icon: DollarSign }] : []),
@@ -76,11 +73,10 @@ export function CommandSidebar() {
   const systemItems: NavItem[] = [
     ...(isAdmin ? [{ title: "Users", url: "/command/users", icon: Users }] : []),
     ...(isAdmin ? [{ title: "Staff", url: "/command/staff", icon: UsersRound }] : []),
-    ...(isAdmin ? [{ title: "Hosting", url: "/command/hosting", icon: Server }] : []),
-    ...(isAdmin ? [{ title: "Display", url: "/command/display", icon: MonitorCog }] : []),
     ...(isAdmin ? [{ title: "Chat Log", url: "/command/chat-log", icon: MessageSquare }] : []),
     ...(isAdmin ? [{ title: "AI Agents", url: "/command/ai-agents", icon: Bot }] : []),
     ...(isAdmin ? [{ title: "Traffic", url: "/command/traffic", icon: BarChart2 }] : []),
+    ...(isAdmin ? [{ title: "Settings", url: "/command/settings", icon: Settings2 }] : []),
   ];
 
   function isActive(url: string) {

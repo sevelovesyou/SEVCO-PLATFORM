@@ -118,7 +118,7 @@ export function PlatformFooter() {
     ...(user ? [{ label: "Profile", path: `/profile/${user.username}` }] : []),
   ];
 
-  const SITEMAP_COLUMNS: SitemapColumn[] = [
+  const STATIC_SITEMAP_COLUMNS: SitemapColumn[] = [
     {
       heading: "Platform",
       links: [
@@ -160,6 +160,16 @@ export function PlatformFooter() {
       ],
     },
   ];
+
+  let SITEMAP_COLUMNS: SitemapColumn[] = STATIC_SITEMAP_COLUMNS;
+  if (settings["footer.sitemap"]) {
+    try {
+      const parsed = JSON.parse(settings["footer.sitemap"]);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        SITEMAP_COLUMNS = parsed;
+      }
+    } catch {}
+  }
 
   return (
     <footer

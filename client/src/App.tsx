@@ -64,6 +64,7 @@ import CommandSocialLinks from "@/pages/command-social-links";
 import CommandResources from "@/pages/command-resources";
 import CommandHosting from "@/pages/command-hosting";
 import CommandDisplay from "@/pages/command-display";
+import CommandSettings from "@/pages/command-settings";
 import DomainsPage from "@/pages/domains-page";
 import NotesPage from "@/pages/notes-page";
 import FeedPage from "@/pages/feed-page";
@@ -201,13 +202,9 @@ function Router() {
         </ProtectedRoute>
       )} />
       <Route path="/command/playlists" component={() => <Redirect to="/command/music" />} />
-      <Route path="/command/social-links" component={() => (
-        <ProtectedRoute>
-          <CommandPageLayout title="Social Links" subtitle="Manage platform social media presence">
-            <CommandSocialLinks />
-          </CommandPageLayout>
-        </ProtectedRoute>
-      )} />
+      <Route path="/command/social-links" component={() => <Redirect to="/command/settings" />} />
+      <Route path="/command/hosting" component={() => <Redirect to="/command/settings" />} />
+      <Route path="/command/display" component={() => <Redirect to="/command/settings" />} />
       <Route path="/command/resources" component={() => (
         <ProtectedRoute requiredRole="admin">
           <CommandPageLayout title="Resources" subtitle="Manage quick links and platform resources">
@@ -215,17 +212,10 @@ function Router() {
           </CommandPageLayout>
         </ProtectedRoute>
       )} />
-      <Route path="/command/hosting" component={() => (
-        <ProtectedRoute>
-          <CommandPageLayout title="Hosting" subtitle="Hostinger VPS management">
-            <CommandHosting />
-          </CommandPageLayout>
-        </ProtectedRoute>
-      )} />
-      <Route path="/command/display" component={() => (
+      <Route path="/command/settings" component={() => (
         <ProtectedRoute requiredRole="admin">
-          <CommandPageLayout title="Display" subtitle="Control the visual presentation of the platform">
-            <CommandDisplay />
+          <CommandPageLayout title="Settings" subtitle="Platform configuration — display, colors, social links, hosting, icons, and footer">
+            <CommandSettings />
           </CommandPageLayout>
         </ProtectedRoute>
       )} />

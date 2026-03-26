@@ -82,6 +82,7 @@ import CommandChatLog from "@/pages/command-chat-log";
 import CommandFinance from "@/pages/command-finance";
 import CommandMinecraft from "@/pages/command-minecraft";
 import CommandAiAgents from "@/pages/command-ai-agents";
+import CommandTraffic from "@/pages/command-traffic";
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
 const COMMAND_PREFIXES = ["/command"];
@@ -279,6 +280,13 @@ function Router() {
         <ProtectedRoute>
           <CommandPageLayout title="Finance" subtitle="Accounting, invoices, budgets, and calculator">
             <CommandFinance />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/traffic" component={() => (
+        <ProtectedRoute requiredRole="admin">
+          <CommandPageLayout title="Traffic" subtitle="Monitor platform and website analytics">
+            <CommandTraffic />
           </CommandPageLayout>
         </ProtectedRoute>
       )} />

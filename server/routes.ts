@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { readFileSync } from "fs";
+import { z } from "zod";
 import { storage } from "./storage";
 import {
   requireAuth,
@@ -3177,6 +3178,57 @@ export async function registerRoutes(
       await storage.setPlatformSettings(stringEntries);
       const updated = await storage.getPlatformSettings();
       res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  function parseWatchedSites(raw: string | undefined): unknown[] {
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  app.get("/api/traffic-settings", requireAuth, requireRole("admin"), async (_req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      const embedUrl = settings["traffic.embedUrl"] || "";
+      const watchedSites = parseWatchedSites(settings["traffic.watchedSites"]);
+      res.json({ embedUrl, watchedSites });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  const watchedSiteSchema = z.object({
+    id: z.string(),
+    name: z.string().min(1),
+    url: z.string().url(),
+    embedUrl: z.string().optional(),
+  });
+
+  const trafficSettingsSchema = z.object({
+    embedUrl: z.string().optional(),
+    watchedSites: z.array(watchedSiteSchema).optional(),
+  });
+
+  app.post("/api/traffic-settings", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const parsed = trafficSettingsSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid traffic settings", errors: parsed.error.flatten() });
+      }
+      const { embedUrl, watchedSites } = parsed.data;
+      const entries: Record<string, string> = {};
+      if (embedUrl !== undefined) entries["traffic.embedUrl"] = embedUrl;
+      if (watchedSites !== undefined) entries["traffic.watchedSites"] = JSON.stringify(watchedSites);
+      await storage.setPlatformSettings(entries);
+      const settings = await storage.getPlatformSettings();
+      res.json({ embedUrl: settings["traffic.embedUrl"] || "", watchedSites: parseWatchedSites(settings["traffic.watchedSites"]) });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

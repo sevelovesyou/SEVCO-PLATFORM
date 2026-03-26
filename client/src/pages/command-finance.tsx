@@ -1277,10 +1277,10 @@ function SubscriptionsTab() {
   function relativeDueDate(dateStr: string | null | undefined): React.ReactNode {
     const days = daysUntil(dateStr);
     if (days === null) return <span className="text-muted-foreground">—</span>;
-    if (days < 0) return <span className="text-red-600 dark:text-red-400 font-medium">{Math.abs(days)}d overdue</span>;
+    if (days < 0) return <span className="text-red-600 dark:text-red-400 font-medium">{Math.abs(days)} {Math.abs(days) === 1 ? "day" : "days"} overdue</span>;
     if (days === 0) return <span className="text-amber-600 dark:text-amber-400 font-medium">Today</span>;
-    if (days <= 7) return <span className="text-amber-600 dark:text-amber-400 font-medium">In {days}d</span>;
-    return <span className="text-muted-foreground">In {days}d</span>;
+    if (days <= 7) return <span className="text-amber-600 dark:text-amber-400 font-medium">In {days} {days === 1 ? "day" : "days"}</span>;
+    return <span className="text-muted-foreground">In {days} days</span>;
   }
 
   const totalMonthly = subs

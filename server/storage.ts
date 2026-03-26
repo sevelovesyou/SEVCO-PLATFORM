@@ -1911,7 +1911,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSubscriptions(): Promise<Subscription[]> {
-    return db.select().from(subscriptions).orderBy(subscriptions.nextBillingDate, desc(subscriptions.createdAt));
+    return db.select().from(subscriptions).orderBy(sql`${subscriptions.nextBillingDate} ASC NULLS LAST`, desc(subscriptions.createdAt));
   }
 
   async createSubscription(data: InsertSubscription): Promise<Subscription> {

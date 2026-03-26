@@ -265,7 +265,7 @@ function Router() {
         </ProtectedRoute>
       )} />
       <Route path="/command/minecraft" component={() => (
-        <ProtectedRoute allowedRoles={["admin"]}>
+        <ProtectedRoute requiredRole="admin">
           <CommandMinecraft />
         </ProtectedRoute>
       )} />

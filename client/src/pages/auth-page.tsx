@@ -185,7 +185,7 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex">
       <div className="flex-1 flex items-center justify-center p-8">
-        <Card className="w-full max-w-sm">
+        <Card className="w-full max-w-sm relative z-10 pointer-events-auto">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-3">
               <img src={planetBlack} alt="SEVCO" className="h-12 w-12 object-contain dark:invert" />
@@ -197,7 +197,7 @@ export default function AuthPage() {
               Sign in or register for access
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent key={mode}>
             {mode === "login" ? (
               <>
                 <Form {...loginForm}>

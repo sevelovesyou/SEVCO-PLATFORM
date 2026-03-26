@@ -12,8 +12,7 @@ import {
   CAN_ACCESS_ARCHIVE,
 } from "./middleware/permissions";
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail, sendContactReplyEmail, sendInvoiceEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
@@ -3273,8 +3272,9 @@ export async function registerRoutes(
 
   app.post("/api/minecraft/servers", requireAuth, requireRole("admin"), async (req, res) => {
     try {
-      const data = req.body;
-      const server = await storage.createMinecraftServer(data);
+      const parsed = insertMinecraftServerSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+      const server = await storage.createMinecraftServer(parsed.data);
       res.status(201).json(server);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -3284,7 +3284,9 @@ export async function registerRoutes(
   app.patch("/api/minecraft/servers/:id", requireAuth, requireRole("admin"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const server = await storage.updateMinecraftServer(id, req.body);
+      const parsed = insertMinecraftServerSchema.partial().safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+      const server = await storage.updateMinecraftServer(id, parsed.data);
       res.json(server);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -3351,7 +3353,9 @@ export async function registerRoutes(
 
   app.post("/api/subscriptions", requireAuth, requireRole("admin", "executive"), async (req, res) => {
     try {
-      const created = await storage.createSubscription(req.body);
+      const parsed = insertSubscriptionSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+      const created = await storage.createSubscription(parsed.data);
       res.status(201).json(created);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -3360,7 +3364,9 @@ export async function registerRoutes(
 
   app.patch("/api/subscriptions/:id", requireAuth, requireRole("admin", "executive"), async (req, res) => {
     try {
-      const updated = await storage.updateSubscription(parseInt(req.params.id), req.body);
+      const parsed = insertSubscriptionSchema.partial().safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+      const updated = await storage.updateSubscription(parseInt(req.params.id), parsed.data);
       res.json(updated);
     } catch (err: any) {
       res.status(500).json({ message: err.message });

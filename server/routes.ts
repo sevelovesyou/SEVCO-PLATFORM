@@ -2381,7 +2381,8 @@ export async function registerRoutes(
       const updated = await storage.updateContactSubmission(id, { repliedAt: new Date() });
       res.json(updated);
     } catch (err: any) {
-      res.status(500).json({ message: err.message });
+      const isConfigError = err.message?.includes('API key not found') || err.message?.includes('not configured');
+      res.status(isConfigError ? 503 : 500).json({ message: err.message });
     }
   });
 
@@ -3751,7 +3752,8 @@ export async function registerRoutes(
       const updated = await storage.updateFinanceInvoice(id, { status: "sent" });
       res.json(updated);
     } catch (err: any) {
-      res.status(500).json({ message: err.message });
+      const isConfigError = err.message?.includes('API key not found') || err.message?.includes('not configured');
+      res.status(isConfigError ? 503 : 500).json({ message: err.message });
     }
   });
 

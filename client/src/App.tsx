@@ -81,6 +81,7 @@ import CommandStaff from "@/pages/command-staff";
 import CommandChatLog from "@/pages/command-chat-log";
 import CommandFinance from "@/pages/command-finance";
 import CommandMinecraft from "@/pages/command-minecraft";
+import CommandAiAgents from "@/pages/command-ai-agents";
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
 const COMMAND_PREFIXES = ["/command"];
@@ -267,6 +268,11 @@ function Router() {
       <Route path="/command/minecraft" component={() => (
         <ProtectedRoute requiredRole="admin">
           <CommandMinecraft />
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/ai-agents" component={() => (
+        <ProtectedRoute requiredRole="admin">
+          <CommandAiAgents />
         </ProtectedRoute>
       )} />
       <Route path="/command/finance" component={() => (

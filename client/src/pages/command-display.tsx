@@ -195,6 +195,7 @@ export default function CommandDisplay() {
 
   function saveHero() {
     mutation.mutate({
+      "platform.logoUrl": platformLogoUrl,
       "hero.backgroundImageUrl": heroBgUrl,
       "hero.text": heroText,
       "hero.overlayOpacity": String(heroOverlayOpacity),
@@ -426,6 +427,27 @@ export default function CommandDisplay() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <Link2 className="h-3.5 w-3.5" />
+              Platform Logo / Icon
+            </Label>
+            <FileUploadWithFallback
+              bucket="brand-assets"
+              path={`platform-logo/logo.{ext}`}
+              accept="image/*"
+              maxSizeMb={2}
+              currentUrl={platformLogoUrl || null}
+              onUpload={(url) => setPlatformLogoUrl(url)}
+              onUrlChange={(url) => setPlatformLogoUrl(url)}
+              urlValue={platformLogoUrl}
+              label="Upload Logo"
+              urlPlaceholder="https://example.com/logo.png"
+              urlTestId="input-hero-platform-logo-url"
+            />
+            <p className="text-xs text-muted-foreground">Displayed in the hero section and platform header. Leave empty to use the default SEVCO planet icon.</p>
+          </div>
+
           <div className="space-y-2">
             <Label>Hero background image</Label>
             <FileUploadWithFallback
@@ -757,9 +779,9 @@ export default function CommandDisplay() {
                   className="flex items-center gap-3 p-3 border border-border rounded-lg"
                   data-testid={`row-brand-asset-${asset.id}`}
                 >
-                  {asset.previewUrl ? (
+                  {(asset.previewUrl || (asset.assetType === "logo" && asset.downloadUrl)) ? (
                     <img
-                      src={asset.previewUrl}
+                      src={asset.previewUrl || asset.downloadUrl}
                       alt={asset.name}
                       className="h-10 w-10 object-contain rounded border border-border shrink-0 bg-muted/30"
                     />

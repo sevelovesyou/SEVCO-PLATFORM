@@ -30,6 +30,7 @@ import {
   UsersRound,
   DollarSign,
   Gamepad2,
+  Bot,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -77,6 +78,7 @@ export function CommandSidebar() {
     ...(isAdmin ? [{ title: "Hosting", url: "/command/hosting", icon: Server }] : []),
     ...(isAdmin ? [{ title: "Display", url: "/command/display", icon: MonitorCog }] : []),
     ...(isAdmin ? [{ title: "Chat Log", url: "/command/chat-log", icon: MessageSquare }] : []),
+    ...(isAdmin ? [{ title: "AI Agents", url: "/command/ai-agents", icon: Bot }] : []),
   ];
 
   function isActive(url: string) {

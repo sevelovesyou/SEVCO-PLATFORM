@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermission } from "@/hooks/use-permission";
@@ -28,8 +29,10 @@ import {
   Users,
   ChevronLeft,
   Lock,
+  Bot,
+  Trash2,
 } from "lucide-react";
-import type { ChatChannel, User } from "@shared/schema";
+import type { ChatChannel, User, AiAgent, AiMessage } from "@shared/schema";
 
 type ChatUserInfo = {
   id: string;
@@ -427,10 +430,125 @@ function CreateChannelDialog({
   );
 }
 
+function AiAgentView({ agent, onBack }: { agent: AiAgent; onBack: () => void }) {
+  const { toast } = useToast();
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const { data: messages = [], isLoading } = useQuery<AiMessage[]>({
+    queryKey: ["/api/ai/chat", agent.id],
+    queryFn: () => fetch(`/api/ai/chat/${agent.id}`).then((r) => r.json()),
+  });
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  const sendMutation = useMutation({
+    mutationFn: (message: string) =>
+      apiRequest("POST", `/api/ai/chat/${agent.id}`, { message }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/ai/chat", agent.id] });
+    },
+    onError: (e: any) => {
+      toast({ title: "AI Error", description: e.message, variant: "destructive" });
+    },
+  });
+
+  const clearMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", `/api/ai/chat/${agent.id}/clear`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/ai/chat", agent.id] }),
+  });
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center gap-2 p-3 border-b bg-background shrink-0">
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack} data-testid="button-ai-back">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        {agent.avatarUrl ? (
+          <img src={agent.avatarUrl} alt={agent.name} className="w-6 h-6 rounded-full object-cover shrink-0" />
+        ) : (
+          <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+            <Bot className="h-3 w-3 text-primary" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold truncate">{agent.name}</p>
+          <p className="text-[11px] text-muted-foreground">{agent.modelSlug}</p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+          onClick={() => {
+            if (confirm("Clear conversation history?")) clearMutation.mutate();
+          }}
+          data-testid="button-ai-clear"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0" data-testid="ai-messages">
+        {isLoading && (
+          <div className="flex items-center justify-center h-20 text-muted-foreground text-sm">Loading…</div>
+        )}
+        {!isLoading && messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-20 text-muted-foreground text-sm gap-1">
+            <Bot className="h-6 w-6 opacity-40" />
+            <p>Start a conversation with {agent.name}</p>
+            {agent.description && <p className="text-[11px] text-center px-4 text-muted-foreground/70">{agent.description}</p>}
+          </div>
+        )}
+        {messages.map((msg) => {
+          const isUser = msg.role === "user";
+          return (
+            <div key={msg.id} className={`flex gap-2 ${isUser ? "flex-row-reverse" : "flex-row"}`} data-testid={`ai-message-${msg.id}`}>
+              {!isUser && (
+                agent.avatarUrl ? (
+                  <img src={agent.avatarUrl} alt={agent.name} className="w-6 h-6 rounded-full object-cover shrink-0 mt-1" />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-1">
+                    <Bot className="h-3 w-3 text-primary" />
+                  </div>
+                )
+              )}
+              <div className={`flex flex-col max-w-[80%] ${isUser ? "items-end" : "items-start"}`}>
+                <div className={`rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap break-words ${isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+                  {msg.content}
+                </div>
+                <span className="text-[10px] text-muted-foreground mt-0.5 px-1">
+                  {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+        {sendMutation.isPending && (
+          <div className="flex gap-2 flex-row">
+            {agent.avatarUrl ? (
+              <img src={agent.avatarUrl} alt={agent.name} className="w-6 h-6 rounded-full object-cover shrink-0 mt-1" />
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-1">
+                <Bot className="h-3 w-3 text-primary" />
+              </div>
+            )}
+            <div className="bg-muted rounded-2xl px-3 py-2 text-sm text-muted-foreground italic">Thinking…</div>
+          </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      <MessageComposer onSend={(c) => sendMutation.mutate(c)} disabled={sendMutation.isPending} />
+    </div>
+  );
+}
+
 type View =
   | { type: "list" }
   | { type: "channel"; channel: ChatChannel }
-  | { type: "dm"; otherUser: ChatUserInfo };
+  | { type: "dm"; otherUser: ChatUserInfo }
+  | { type: "aiAgent"; agent: AiAgent };
 
 export function ChatSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user } = useAuth();
@@ -451,6 +569,12 @@ export function ChatSheet({ open, onClose }: { open: boolean; onClose: () => voi
     queryKey: ["/api/chat/dm-threads"],
     enabled: open,
     refetchInterval: open ? 5000 : false,
+  });
+
+  const canUseAi = role === "admin" || role === "executive";
+  const { data: aiAgentsList = [] } = useQuery<AiAgent[]>({
+    queryKey: ["/api/ai-agents"],
+    enabled: open && canUseAi,
   });
 
   function handleClose() {
@@ -534,6 +658,38 @@ export function ChatSheet({ open, onClose }: { open: boolean; onClose: () => voi
                     </button>
                   ))}
                 </div>
+
+                {/* AI Agents section (admin/executive only) */}
+                {canUseAi && aiAgentsList.length > 0 && (
+                  <div className="px-3 pt-4 pb-3">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">AI Agents</p>
+                    {aiAgentsList.map((agent) => (
+                      <button
+                        key={agent.id}
+                        className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-muted/70 transition-colors text-left group"
+                        onClick={() => setView({ type: "aiAgent", agent })}
+                        data-testid={`ai-agent-item-${agent.id}`}
+                      >
+                        {agent.avatarUrl ? (
+                          <img src={agent.avatarUrl} alt={agent.name} className="w-6 h-6 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                            <Bot className="h-3 w-3 text-primary" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{agent.name}</p>
+                          {agent.description && (
+                            <p className="text-[11px] text-muted-foreground truncate">{agent.description}</p>
+                          )}
+                        </div>
+                        {!agent.enabled && (
+                          <Badge variant="secondary" className="shrink-0 text-[10px]">Off</Badge>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -548,6 +704,13 @@ export function ChatSheet({ open, onClose }: { open: boolean; onClose: () => voi
           {view.type === "dm" && (
             <DmView
               otherUser={view.otherUser}
+              onBack={() => setView({ type: "list" })}
+            />
+          )}
+
+          {view.type === "aiAgent" && (
+            <AiAgentView
+              agent={view.agent}
               onBack={() => setView({ type: "list" })}
             />
           )}

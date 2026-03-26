@@ -34,6 +34,8 @@ import {
   type FinanceInvoice, type InsertFinanceInvoice,
   type MinecraftServer, type InsertMinecraftServer,
   type Subscription, type InsertSubscription,
+  type AiAgent, type InsertAiAgent,
+  type AiMessage, type InsertAiMessage,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
@@ -45,6 +47,7 @@ import {
   financeProjects, financeTransactions, financeInvoices,
   minecraftServers,
   subscriptions,
+  aiAgents, aiMessages,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or, inArray } from "drizzle-orm";
@@ -289,6 +292,16 @@ export interface IStorage {
   createSubscription(data: InsertSubscription): Promise<Subscription>;
   updateSubscription(id: number, data: Partial<InsertSubscription>): Promise<Subscription>;
   deleteSubscription(id: number): Promise<void>;
+
+  getAiAgents(enabledOnly?: boolean): Promise<AiAgent[]>;
+  getAiAgentById(id: number): Promise<AiAgent | undefined>;
+  createAiAgent(data: InsertAiAgent): Promise<AiAgent>;
+  updateAiAgent(id: number, data: Partial<InsertAiAgent>): Promise<AiAgent>;
+  deleteAiAgent(id: number): Promise<void>;
+
+  getAiMessages(agentId: number, userId: string): Promise<AiMessage[]>;
+  createAiMessage(data: InsertAiMessage): Promise<AiMessage>;
+  clearAiConversation(agentId: number, userId: string): Promise<void>;
 }
 
 export type SearchResultItem = {
@@ -1913,6 +1926,47 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSubscription(id: number): Promise<void> {
     await db.delete(subscriptions).where(eq(subscriptions.id, id));
+  }
+
+  async getAiAgents(enabledOnly = false): Promise<AiAgent[]> {
+    if (enabledOnly) {
+      return db.select().from(aiAgents).where(eq(aiAgents.enabled, true)).orderBy(aiAgents.name);
+    }
+    return db.select().from(aiAgents).orderBy(aiAgents.name);
+  }
+
+  async getAiAgentById(id: number): Promise<AiAgent | undefined> {
+    const [agent] = await db.select().from(aiAgents).where(eq(aiAgents.id, id));
+    return agent || undefined;
+  }
+
+  async createAiAgent(data: InsertAiAgent): Promise<AiAgent> {
+    const [created] = await db.insert(aiAgents).values(data).returning();
+    return created;
+  }
+
+  async updateAiAgent(id: number, data: Partial<InsertAiAgent>): Promise<AiAgent> {
+    const [updated] = await db.update(aiAgents).set(data).where(eq(aiAgents.id, id)).returning();
+    return updated;
+  }
+
+  async deleteAiAgent(id: number): Promise<void> {
+    await db.delete(aiAgents).where(eq(aiAgents.id, id));
+  }
+
+  async getAiMessages(agentId: number, userId: string): Promise<AiMessage[]> {
+    return db.select().from(aiMessages)
+      .where(and(eq(aiMessages.agentId, agentId), eq(aiMessages.userId, userId)))
+      .orderBy(aiMessages.createdAt);
+  }
+
+  async createAiMessage(data: InsertAiMessage): Promise<AiMessage> {
+    const [created] = await db.insert(aiMessages).values(data).returning();
+    return created;
+  }
+
+  async clearAiConversation(agentId: number, userId: string): Promise<void> {
+    await db.delete(aiMessages).where(and(eq(aiMessages.agentId, agentId), eq(aiMessages.userId, userId)));
   }
 }
 

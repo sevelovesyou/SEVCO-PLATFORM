@@ -12,7 +12,7 @@ import {
   CAN_ACCESS_ARCHIVE,
 } from "./middleware/permissions";
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail, sendContactReplyEmail, sendInvoiceEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
@@ -3760,6 +3760,132 @@ export async function registerRoutes(
       const id = parseInt(req.params.id);
       const updated = await storage.updateFinanceInvoice(id, { status: "paid" });
       res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ── AI Agents ──────────────────────────────────────────────────────────────────
+
+  app.get("/api/ai-agents", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const isPrivileged = ["admin", "executive"].includes(user?.role);
+      const agents = await storage.getAiAgents(isPrivileged ? false : true);
+      res.json(agents);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/ai-agents", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const data = insertAiAgentSchema.parse(req.body);
+      const agent = await storage.createAiAgent(data);
+      res.status(201).json(agent);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/ai-agents/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const agent = await storage.updateAiAgent(id, req.body);
+      res.json(agent);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/ai-agents/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteAiAgent(id);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/ai/chat/:agentId", requireAuth, async (req, res) => {
+    try {
+      const agentId = parseInt(req.params.agentId);
+      const user = req.user as any;
+      const messages = await storage.getAiMessages(agentId, user.id);
+      res.json(messages);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/ai/chat/:agentId", requireAuth, requireRole("admin", "executive"), async (req, res) => {
+    try {
+      const agentId = parseInt(req.params.agentId);
+      const user = req.user as any;
+      const { message } = req.body;
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ message: "message is required" });
+      }
+
+      const agent = await storage.getAiAgentById(agentId);
+      if (!agent) return res.status(404).json({ message: "Agent not found" });
+      if (!agent.enabled) return res.status(403).json({ message: "Agent is disabled" });
+
+      const apiKey = process.env.OPENROUTER_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({ message: "AI service not configured. Set OPENROUTER_API_KEY." });
+      }
+
+      // Store user message
+      await storage.createAiMessage({ agentId, userId: user.id, role: "user", content: message });
+
+      // Build history for context (last 20 messages)
+      const history = await storage.getAiMessages(agentId, user.id);
+      const contextMessages = history.slice(-20).map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
+      // Call OpenRouter
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://sevco.us",
+          "X-Title": "SEVCO Platform",
+        },
+        body: JSON.stringify({
+          model: agent.modelSlug,
+          messages: [
+            { role: "system", content: agent.systemPrompt },
+            ...contextMessages,
+          ],
+          max_tokens: 1024,
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        return res.status(502).json({ message: `OpenRouter error: ${errText}` });
+      }
+
+      const data = await response.json() as any;
+      const assistantContent = data.choices?.[0]?.message?.content ?? "I couldn't generate a response.";
+
+      // Store assistant message
+      const assistantMsg = await storage.createAiMessage({ agentId, userId: user.id, role: "assistant", content: assistantContent });
+
+      res.json({ message: assistantMsg });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/ai/chat/:agentId/clear", requireAuth, requireRole("admin", "executive"), async (req, res) => {
+    try {
+      const agentId = parseInt(req.params.agentId);
+      const user = req.user as any;
+      await storage.clearAiConversation(agentId, user.id);
+      res.status(204).end();
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

@@ -71,6 +71,7 @@ import {
   Wrench,
   Images,
   MessageCircle,
+  Megaphone,
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { ChatSheet } from "@/components/chat-sheet";
@@ -113,14 +114,14 @@ const SERVICE_ICON_MAP: Record<string, React.ElementType> = {
   Code2, Plug, Lightbulb, Palette, MousePointer2, Sparkles,
   FileText, Share2, TrendingUp, ClipboardList, Settings2,
   Handshake, Target, HeadphonesIcon, BookOpen, Briefcase,
-  Engineering: Code2, Design: Palette, Marketing: TrendingUp,
-  Operations: Settings2, Sales: Handshake, Support: HeadphonesIcon,
+  Creative: Sparkles, Technology: Code2, Marketing: Megaphone,
+  Business: Briefcase, Media: Music, Support: HeadphonesIcon,
 };
 
 const SERVICE_COLUMN_GROUPS = [
-  ["Engineering", "Design"],
-  ["Marketing", "Operations"],
-  ["Sales", "Support"],
+  ["Creative", "Technology"],
+  ["Marketing", "Business"],
+  ["Media", "Support"],
 ] as const;
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
@@ -342,21 +343,22 @@ function ServicesDropdown({ isActive }: { isActive: boolean }) {
           </div>
 
           {/* Professional services by category */}
-          {(services ?? []).length > 0 && (
-            <div className="p-3 grid grid-cols-3 gap-2">
-              {SERVICE_COLUMN_GROUPS.map((pair) => (
-                <div key={pair.join("-")} className="space-y-3">
-                  {pair.map((cat) => {
-                    const items = byCategory(cat);
-                    if (items.length === 0) return null;
-                    const CatIcon = SERVICE_ICON_MAP[cat] ?? Briefcase;
-                    return (
-                      <div key={cat}>
-                        <div className="flex items-center gap-1.5 px-2 mb-1">
-                          <CatIcon className="h-3 w-3 text-muted-foreground/60" />
-                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</p>
-                        </div>
-                        {items.map((service) => {
+          <div className="p-3 grid grid-cols-3 gap-2">
+            {SERVICE_COLUMN_GROUPS.map((pair) => (
+              <div key={pair.join("-")} className="space-y-3">
+                {pair.map((cat) => {
+                  const items = byCategory(cat);
+                  const CatIcon = SERVICE_ICON_MAP[cat] ?? Briefcase;
+                  return (
+                    <div key={cat}>
+                      <div className="flex items-center gap-1.5 px-2 mb-1">
+                        <CatIcon className="h-3 w-3 text-muted-foreground/60" />
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</p>
+                      </div>
+                      {items.length === 0 ? (
+                        <p className="text-[11px] text-muted-foreground/50 px-2 py-1 italic">No services yet</p>
+                      ) : (
+                        items.map((service) => {
                           const IconComp = resolveLucideIcon(service.iconName) ?? Briefcase;
                           return (
                             <Link key={service.id} href={`/services/${service.slug}`} onClick={() => setOpen(false)}>
@@ -374,14 +376,14 @@ function ServicesDropdown({ isActive }: { isActive: boolean }) {
                               </div>
                             </Link>
                           );
-                        })}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          )}
+                        })
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
 
           <div className="border-t border-border/60 px-4 py-2.5">
             <Link href="/services" onClick={() => setOpen(false)}>

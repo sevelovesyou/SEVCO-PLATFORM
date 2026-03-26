@@ -1,5 +1,6 @@
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useEffect } from "react";
 import * as LucideIcons from "lucide-react";
 import {
   ArrowLeft, Globe, User, BookOpen, CircleX, Pencil, Tag,
@@ -101,6 +102,12 @@ export default function ProjectDetail() {
   const { data: allProjects } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
   });
+
+  useEffect(() => {
+    if (project?.type === "Game Server" && project.websiteUrl?.startsWith("/")) {
+      navigate(project.websiteUrl);
+    }
+  }, [project, navigate]);
 
   const relatedProjects = (allProjects ?? [])
     .filter((p) => p.slug !== slug && p.featured && p.status !== "archived")

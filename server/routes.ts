@@ -279,6 +279,33 @@ async function seedMinecraftServers() {
   });
 }
 
+async function seedMinecraftProject() {
+  const existing = await storage.getProjectBySlug("minecraft");
+  if (existing) {
+    if (existing.type !== "Game Server" || existing.websiteUrl !== "/minecraft") {
+      await storage.updateProject(existing.id, {
+        type: "Game Server",
+        websiteUrl: "/minecraft",
+        menuIcon: existing.menuIcon || "Server",
+      });
+    }
+    return;
+  }
+  await storage.createProject({
+    name: "SEVCO Minecraft",
+    slug: "minecraft",
+    description: "Play on the official SEVCO Minecraft servers — survival, creative, and more. Join the community and start building.",
+    longDescription: "SEVCO hosts community Minecraft servers for players of all styles. Join the SMP for a classic survival experience or hop on the Creative server to build without limits. Both servers are community-managed with active staff and regular events.",
+    status: "active",
+    type: "Game Server",
+    category: "Gaming",
+    websiteUrl: "/minecraft",
+    featured: true,
+    tags: ["minecraft", "gaming", "community", "multiplayer"],
+    menuIcon: "Server",
+  });
+}
+
 async function seedChangelogV13() {
   const existing = await storage.getChangelog();
   const alreadySeeded = existing.some((e) => e.version === "1.3.0");
@@ -1029,6 +1056,7 @@ export async function registerRoutes(
     .catch(console.error);
   seedTaskChangelogEntries().catch(console.error);
   seedMinecraftServers().catch(console.error);
+  seedMinecraftProject().catch(console.error);
 
   // Initialize Supabase storage buckets
   import("./supabase").then(({ ensureBucketsExist }) => ensureBucketsExist().catch(console.error));

@@ -19,6 +19,16 @@ import { sendContactEmail, sendContactReplyEmail, sendInvoiceEmail } from "./ema
 import bcrypt from "bcryptjs";
 import * as hostinger from "./hostinger";
 import { registerSpotifyRoutes } from "./spotify";
+import {
+  getGA4Status,
+  getRealtimeActiveUsers,
+  getSummary,
+  getSessionsOverTime,
+  getTopPages,
+  getTrafficSources,
+  getCountryBreakdown,
+  getDeviceSplit,
+} from "./analytics";
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive"];
 const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
@@ -4000,6 +4010,109 @@ export async function registerRoutes(
       const user = req.user as any;
       await storage.clearAiConversation(agentId, user.id);
       res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ─── GA4 Analytics Routes ───────────────────────────────
+  app.get("/api/analytics/ga4/status", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      const propertyId = settings["analytics.ga4PropertyId"];
+      const measurementId = settings["analytics.ga4MeasurementId"];
+      const status = await getGA4Status(propertyId, measurementId);
+      res.json(status);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/analytics/ga4/summary", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      const propertyId = settings["analytics.ga4PropertyId"];
+      if (!propertyId) return res.status(400).json({ message: "GA4 Property ID not configured" });
+      const range = (req.query.range as string) || "28d";
+      const data = await getSummary(propertyId, range);
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/analytics/ga4/sessions", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      const propertyId = settings["analytics.ga4PropertyId"];
+      if (!propertyId) return res.status(400).json({ message: "GA4 Property ID not configured" });
+      const range = (req.query.range as string) || "28d";
+      const data = await getSessionsOverTime(propertyId, range);
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/analytics/ga4/pages", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      const propertyId = settings["analytics.ga4PropertyId"];
+      if (!propertyId) return res.status(400).json({ message: "GA4 Property ID not configured" });
+      const range = (req.query.range as string) || "28d";
+      const data = await getTopPages(propertyId, range);
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/analytics/ga4/sources", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      const propertyId = settings["analytics.ga4PropertyId"];
+      if (!propertyId) return res.status(400).json({ message: "GA4 Property ID not configured" });
+      const range = (req.query.range as string) || "28d";
+      const data = await getTrafficSources(propertyId, range);
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/analytics/ga4/countries", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      const propertyId = settings["analytics.ga4PropertyId"];
+      if (!propertyId) return res.status(400).json({ message: "GA4 Property ID not configured" });
+      const range = (req.query.range as string) || "28d";
+      const data = await getCountryBreakdown(propertyId, range);
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/analytics/ga4/devices", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      const propertyId = settings["analytics.ga4PropertyId"];
+      if (!propertyId) return res.status(400).json({ message: "GA4 Property ID not configured" });
+      const range = (req.query.range as string) || "28d";
+      const data = await getDeviceSplit(propertyId, range);
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/analytics/ga4/realtime", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      const propertyId = settings["analytics.ga4PropertyId"];
+      if (!propertyId) return res.status(400).json({ message: "GA4 Property ID not configured" });
+      const activeUsers = await getRealtimeActiveUsers(propertyId);
+      res.json({ activeUsers });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

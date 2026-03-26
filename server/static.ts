@@ -1,6 +1,17 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
+import { storage } from "./storage";
+
+function sanitizeMeasurementId(id: string): string {
+  return id.replace(/[^A-Za-z0-9\-_]/g, "");
+}
+
+export function buildGtagSnippet(measurementId: string): string {
+  const safe = sanitizeMeasurementId(measurementId);
+  if (!safe) return "";
+  return `\n    <!-- Google Analytics 4 -->\n    <script async src="https://www.googletagmanager.com/gtag/js?id=${safe}"></script>\n    <script>\n      window.dataLayer = window.dataLayer || [];\n      function gtag(){dataLayer.push(arguments);}\n      gtag('js', new Date());\n      gtag('config', '${safe}');\n    </script>`;
+}
 
 export function serveStatic(app: Express) {
   const distPath = path.resolve(__dirname, "public");
@@ -10,10 +21,28 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, { index: false }));
 
-  // fall through to index.html if the file doesn't exist
-  app.use("/{*path}", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  const indexPath = path.resolve(distPath, "index.html");
+
+  app.use("/{*path}", async (_req, res) => {
+    try {
+      let html = await fs.promises.readFile(indexPath, "utf-8");
+      try {
+        const platformSettings = await storage.getPlatformSettings();
+        const measurementId = platformSettings["analytics.ga4MeasurementId"];
+        if (measurementId && measurementId.trim()) {
+          const snippet = buildGtagSnippet(measurementId.trim());
+          if (snippet) {
+            html = html.replace("</head>", `${snippet}\n  </head>`);
+          }
+        }
+      } catch {
+        // Don't block page render if analytics settings fail to load
+      }
+      res.set("Content-Type", "text/html").send(html);
+    } catch {
+      res.sendFile(indexPath);
+    }
   });
 }

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { BrandAsset } from "@shared/schema";
 
 const SOCIAL_LINKS = [
@@ -78,6 +79,10 @@ export default function AboutPage() {
 
   const { data: brandAssets = [], isLoading: assetsLoading } = useQuery<BrandAsset[]>({
     queryKey: ["/api/brand-assets"],
+  });
+
+  const { data: platformSettings, isLoading: settingsLoading } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
   });
 
   const grouped = ASSET_TYPE_ORDER.reduce<Record<string, BrandAsset[]>>((acc, type) => {
@@ -226,20 +231,32 @@ export default function AboutPage() {
 
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-foreground">Brand colors</p>
-                <div className="flex flex-wrap gap-3">
-                  {PRIMARY_COLORS.map((color) => (
-                    <div key={color.cssVar} className="flex items-center gap-2.5 border border-border rounded-lg px-3 py-2" data-testid={`swatch-${color.name.toLowerCase().replace(/\s+/g, "-")}`}>
-                      <div
-                        className="h-5 w-5 rounded-md border border-border/50 shrink-0"
-                        style={{ backgroundColor: `hsl(var(${color.cssVar}, ${color.fallback}))` }}
-                      />
-                      <div>
-                        <p className="text-xs font-medium text-foreground">{color.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{color.usage}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {settingsLoading ? (
+                  <div className="flex flex-wrap gap-3">
+                    {PRIMARY_COLORS.map((color) => (
+                      <Skeleton key={color.cssVar} className="h-10 w-48 rounded-lg" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-3">
+                    {PRIMARY_COLORS.map((color) => {
+                      const settingKey = color.cssVar.replace("--brand-", "color.brand.");
+                      const hsl = platformSettings?.[settingKey] || color.fallback;
+                      return (
+                        <div key={color.cssVar} className="flex items-center gap-2.5 border border-border rounded-lg px-3 py-2" data-testid={`swatch-${color.name.toLowerCase().replace(/\s+/g, "-")}`}>
+                          <div
+                            className="h-5 w-5 rounded-md border border-border/50 shrink-0"
+                            style={{ backgroundColor: `hsl(${hsl})` }}
+                          />
+                          <div>
+                            <p className="text-xs font-medium text-foreground">{color.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{color.usage}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -272,9 +289,9 @@ export default function AboutPage() {
                           data-testid={`card-brand-asset-${asset.id}`}
                         >
                           <div className="h-28 bg-muted/30 flex items-center justify-center border-b border-border">
-                            {asset.previewUrl ? (
+                            {(asset.previewUrl || (asset.assetType === "logo" && asset.downloadUrl)) ? (
                               <img
-                                src={asset.previewUrl}
+                                src={asset.previewUrl || asset.downloadUrl}
                                 alt={asset.name}
                                 className="max-h-24 max-w-full object-contain p-2"
                               />

@@ -243,8 +243,8 @@ export default function Landing() {
         <div className="relative z-10 max-w-6xl mx-auto px-6 py-24 md:py-36 flex flex-col items-center text-center gap-6">
           <div className="flex items-center gap-4">
             <img
-              src={planetIcon}
-              alt="SEVCO Planet"
+              src={settings["platform.logoUrl"] || planetIcon}
+              alt="SEVCO"
               className="h-28 w-28 md:h-36 md:w-36 object-contain dark:invert-0 invert"
               data-testid="img-planet-hero"
             />

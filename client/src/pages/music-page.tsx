@@ -164,7 +164,7 @@ export default function MusicPage() {
   const featuredPlaylists = playlistsList?.slice(0, 4) || [];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" data-page="music">
       <PageHead
         title="SEVCO Records — Independent Music Label"
         description="SEVCO Records — discovering and developing artists across every genre. Browse artists, albums, and playlists from the SEVCO music label."

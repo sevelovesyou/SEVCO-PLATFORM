@@ -228,7 +228,7 @@ export default function NewsPage() {
   const bentoArticles = primaryArticles?.slice(1, 9) ?? [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-10" data-testid="news-page">
+    <div className="max-w-7xl mx-auto px-4 py-8 space-y-10" data-testid="news-page" data-page="news">
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

@@ -68,6 +68,9 @@
 
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --nav-sub-accent: 0 0% 93%;
+  --nav-sub-accent-foreground: 224 71% 4%;
+
   --sidebar-accent-border: hsl(var(--sidebar-accent));
   --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --primary-border: hsl(var(--primary));
@@ -83,6 +86,9 @@
 }
 
 .dark {
+  --nav-sub-accent: 0 0% 15%;
+  --nav-sub-accent-foreground: 0 0% 95%;
+
   --button-outline: rgba(255,255,255, .10);
   --badge-outline: rgba(255,255,255, .05);
 
@@ -248,3 +254,12 @@
     @apply text-primary underline decoration-primary/30 hover:decoration-primary/60 transition-colors;
   }
 }
+
+/* ── Wiki sidebar: use sub-menu colors for hover/active ── */
+/* When --nav-sub-accent is set (overriding the default muted value), apply it
+   as the sidebar accent so SidebarMenuButton picks up the sub-menu color. */
+.wiki-sidebar {
+  --sidebar-accent: var(--nav-sub-accent);
+  --sidebar-accent-foreground: var(--nav-sub-accent-foreground);
+}
+

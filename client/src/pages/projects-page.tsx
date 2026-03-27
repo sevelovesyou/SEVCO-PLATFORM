@@ -167,7 +167,7 @@ export default function ProjectsPage() {
   }), [allProjects]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" data-page="projects">
       <PageHead
         title="Projects — SEVCO Ventures Portfolio"
         description="Explore SEVCO Ventures — active companies, platforms, apps, and initiatives built under the SEVCO umbrella."

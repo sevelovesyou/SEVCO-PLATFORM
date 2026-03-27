@@ -106,7 +106,7 @@ export function AppSidebar() {
   ].filter((item) => item.show);
 
   return (
-    <Sidebar collapsible="icon" className="top-12 h-[calc(100svh-3rem)]">
+    <Sidebar collapsible="icon" className="top-12 h-[calc(100svh-3rem)] wiki-sidebar">
       <SidebarHeader className="p-3">
         <div className="flex items-center gap-2">
           <SidebarTrigger data-testid="button-sidebar-toggle" className="-ml-0.5 shrink-0" />
@@ -233,7 +233,7 @@ export function AppSidebar() {
               <SidebarMenu>
                 {archivedArticles.map((article) => (
                   <SidebarMenuItem key={article.id}>
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-md text-muted-foreground w-full group hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-md text-muted-foreground w-full group hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors">
                       <FileText className="h-3.5 w-3.5 shrink-0" />
                       <Link
                         href={`/wiki/${article.slug}`}

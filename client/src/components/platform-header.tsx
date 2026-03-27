@@ -229,7 +229,7 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
             {items.map((item) => (
               <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
                 <div
-                  className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer group"
+                  className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
                   data-testid={`dropdown-home-${item.label.toLowerCase()}`}
                 >
                   <item.icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
@@ -273,7 +273,7 @@ function StoreDropdown({ isActive }: { isActive: boolean }) {
           <div className="p-2">
             <Link href="/store" onClick={() => setOpen(false)}>
               <div
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer"
                 data-testid="dropdown-store-all"
               >
                 <ShoppingBag className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -287,7 +287,7 @@ function StoreDropdown({ isActive }: { isActive: boolean }) {
               {categories.map((cat) => (
                 <Link key={cat.value} href={`/store?category=${cat.value}`} onClick={() => setOpen(false)}>
                   <div
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer"
                     data-testid={`dropdown-store-${cat.label.toLowerCase()}`}
                   >
                     <Tag className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -329,7 +329,7 @@ function ServicesDropdown({ isActive }: { isActive: boolean }) {
           {/* Featured platform offerings */}
           <div className="p-3 grid grid-cols-3 gap-2 border-b border-border/60">
             <Link href="/hosting" onClick={() => setOpen(false)}>
-              <div className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/70 transition-colors cursor-pointer group" data-testid="dropdown-services-hosting">
+              <div className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group" data-testid="dropdown-services-hosting">
                 <HardDrive className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-foreground leading-none">Hosting</p>
@@ -338,7 +338,7 @@ function ServicesDropdown({ isActive }: { isActive: boolean }) {
               </div>
             </Link>
             <Link href="/domains" onClick={() => setOpen(false)}>
-              <div className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/70 transition-colors cursor-pointer group" data-testid="dropdown-services-domains">
+              <div className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group" data-testid="dropdown-services-domains">
                 <Globe className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-foreground leading-none">Domains</p>
@@ -369,7 +369,7 @@ function ServicesDropdown({ isActive }: { isActive: boolean }) {
                           return (
                             <Link key={service.id} href={`/services/${service.slug}`} onClick={() => setOpen(false)}>
                               <div
-                                className="flex items-start gap-2.5 px-2 py-2 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer group"
+                                className="flex items-start gap-2.5 px-2 py-2 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
                                 data-testid={`dropdown-service-${service.slug}`}
                               >
                                 <IconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
@@ -431,7 +431,7 @@ function MusicDropdown({ isActive }: { isActive: boolean }) {
             {items.map((item) => (
               <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
                 <div
-                  className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer"
+                  className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer"
                   data-testid={`dropdown-music-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
                 >
                   <item.icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
@@ -487,7 +487,7 @@ function ProjectsDropdown({ isActive }: { isActive: boolean }) {
                       return (
                         <Link key={project.id} href={`/projects/${project.slug}`} onClick={() => setOpen(false)}>
                           <div
-                            className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer group"
+                            className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
                             data-testid={`dropdown-project-${project.slug}`}
                           >
                             <MenuIconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
@@ -512,7 +512,7 @@ function ProjectsDropdown({ isActive }: { isActive: boolean }) {
                       return (
                         <Link key={project.id} href={`/projects/${project.slug}`} onClick={() => setOpen(false)}>
                           <div
-                            className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer group"
+                            className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
                             data-testid={`dropdown-project-${project.slug}`}
                           >
                             <MenuIconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
@@ -576,7 +576,7 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
             {items.map((item) => (
               <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
                 <div
-                  className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer"
+                  className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer"
                   data-testid={`dropdown-tools-${item.label.toLowerCase()}`}
                 >
                   <item.icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
@@ -849,7 +849,7 @@ export function PlatformHeader() {
           {/* Home section */}
           <Collapsible open={mobileSection === "home"} onOpenChange={(o) => setMobileSection(o ? "home" : null)}>
             <CollapsibleTrigger asChild>
-              <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors" data-testid="mobile-nav-home">
+              <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors" data-testid="mobile-nav-home">
                 SEVCO
                 <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${mobileSection === "home" ? "rotate-180" : ""}`} />
               </button>
@@ -870,7 +870,7 @@ export function PlatformHeader() {
           {/* Store section */}
           <Collapsible open={mobileSection === "store"} onOpenChange={(o) => setMobileSection(o ? "store" : null)}>
             <CollapsibleTrigger asChild>
-              <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors" data-testid="mobile-nav-store">
+              <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors" data-testid="mobile-nav-store">
                 Store
                 <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${mobileSection === "store" ? "rotate-180" : ""}`} />
               </button>
@@ -892,7 +892,7 @@ export function PlatformHeader() {
           {/* Services */}
           <Collapsible open={mobileSection === "services"} onOpenChange={(o) => setMobileSection(o ? "services" : null)}>
             <CollapsibleTrigger asChild>
-              <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors" data-testid="mobile-nav-services">
+              <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors" data-testid="mobile-nav-services">
                 Services
                 <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${mobileSection === "services" ? "rotate-180" : ""}`} />
               </button>
@@ -930,7 +930,7 @@ export function PlatformHeader() {
           {/* Music section */}
           <Collapsible open={mobileSection === "music"} onOpenChange={(o) => setMobileSection(o ? "music" : null)}>
             <CollapsibleTrigger asChild>
-              <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors" data-testid="mobile-nav-music">
+              <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors" data-testid="mobile-nav-music">
                 Music
                 <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${mobileSection === "music" ? "rotate-180" : ""}`} />
               </button>
@@ -950,14 +950,14 @@ export function PlatformHeader() {
 
           {/* Projects */}
           <Link href="/projects" onClick={() => setMobileOpen(false)}>
-            <div className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors cursor-pointer" data-testid="mobile-nav-projects">
+            <div className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer" data-testid="mobile-nav-projects">
               Projects
             </div>
           </Link>
 
           <Collapsible open={mobileSection === "tools"} onOpenChange={(o) => setMobileSection(o ? "tools" : null)}>
             <CollapsibleTrigger asChild>
-              <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors" data-testid="mobile-nav-tools">
+              <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors" data-testid="mobile-nav-tools">
                 Tools
                 <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${mobileSection === "tools" ? "rotate-180" : ""}`} />
               </button>
@@ -989,7 +989,7 @@ export function PlatformHeader() {
 
           {canAccessCMD && (
             <Link href="/command" onClick={() => setMobileOpen(false)}>
-              <div className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors cursor-pointer" data-testid="mobile-nav-cmd">
+              <div className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer" data-testid="mobile-nav-cmd">
                 CMD
               </div>
             </Link>

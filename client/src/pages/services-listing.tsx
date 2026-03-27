@@ -50,7 +50,7 @@ export default function ServicesListingPage() {
   const featured = (services ?? []).filter((s) => s.featured);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" data-page="services">
       <PageHead
         title="Services — Engineering, Design & Marketing | SEVCO"
         description="SEVCO offers professional services across engineering, design, marketing, and operations. Partner with our team to build and grow."

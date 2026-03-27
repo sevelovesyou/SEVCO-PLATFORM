@@ -278,7 +278,7 @@ export default function StorePage() {
   }, [products, activeCategory, sort]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" data-page="store">
       <PageHead
         title="SEVCO Store — Merchandise & Exclusive Drops"
         description="Shop merchandise, exclusive drops, and products from the SEVCO universe. Apparel, accessories, music, and more."

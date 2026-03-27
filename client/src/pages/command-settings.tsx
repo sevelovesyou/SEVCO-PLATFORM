@@ -627,6 +627,30 @@ export default function CommandSettings() {
   const [brandHighlight, setBrandHighlight] = useState(DEFAULT_COLORS.brandHighlight);
   const [navActiveHighlight, setNavActiveHighlight] = useState(DEFAULT_COLORS.navActiveHighlight);
 
+  const [navMainBg, setNavMainBg] = useState("");
+  const [navMainText, setNavMainText] = useState("");
+  const [navSubBg, setNavSubBg] = useState("");
+  const [navSubText, setNavSubText] = useState("");
+
+  const PAGE_LABELS: Record<string, string> = {
+    landing: "Home",
+    store: "Store",
+    services: "Services",
+    projects: "Projects",
+    music: "Music",
+    news: "News",
+  };
+  const PAGE_KEYS = ["landing", "store", "services", "projects", "music", "news"] as const;
+  type PageKey = typeof PAGE_KEYS[number];
+  type PageBtnColors = { primaryBtn: string; primaryBtnText: string; secondaryBtn: string; secondaryBtnText: string };
+  const [pageBtnColors, setPageBtnColors] = useState<Record<PageKey, PageBtnColors>>(() => {
+    const init: Record<string, PageBtnColors> = {};
+    for (const p of PAGE_KEYS) {
+      init[p] = { primaryBtn: "", primaryBtnText: "", secondaryBtn: "", secondaryBtnText: "" };
+    }
+    return init as Record<PageKey, PageBtnColors>;
+  });
+
   // ── Per-section color state ──
   const [homeCardAccentColor, setHomeCardAccentColor] = useState("");
   const [storeAccentColor, setStoreAccentColor] = useState("");
@@ -676,6 +700,49 @@ export default function CommandSettings() {
     setBrandAccent(settings["color.brand.accent"] || DEFAULT_COLORS.brandAccent);
     setBrandHighlight(settings["color.brand.highlight"] || DEFAULT_COLORS.brandHighlight);
     setNavActiveHighlight(settings["color.nav.activeHighlight"] || DEFAULT_COLORS.navActiveHighlight);
+    setNavMainBg(settings["color.nav.main.bg"] || settings["color.nav.activeHighlight"] || "");
+    setNavMainText(settings["color.nav.main.text"] || "");
+    setNavSubBg(settings["color.nav.sub.bg"] || "");
+    setNavSubText(settings["color.nav.sub.text"] || "");
+
+    setPageBtnColors({
+      landing: {
+        primaryBtn: settings["color.landing.primaryBtn"] || "",
+        primaryBtnText: settings["color.landing.primaryBtnText"] || "",
+        secondaryBtn: settings["color.landing.secondaryBtn"] || "",
+        secondaryBtnText: settings["color.landing.secondaryBtnText"] || "",
+      },
+      store: {
+        primaryBtn: settings["color.store.primaryBtn"] || "",
+        primaryBtnText: settings["color.store.primaryBtnText"] || "",
+        secondaryBtn: settings["color.store.secondaryBtn"] || "",
+        secondaryBtnText: settings["color.store.secondaryBtnText"] || "",
+      },
+      services: {
+        primaryBtn: settings["color.services.primaryBtn"] || "",
+        primaryBtnText: settings["color.services.primaryBtnText"] || "",
+        secondaryBtn: settings["color.services.secondaryBtn"] || "",
+        secondaryBtnText: settings["color.services.secondaryBtnText"] || "",
+      },
+      projects: {
+        primaryBtn: settings["color.projects.primaryBtn"] || "",
+        primaryBtnText: settings["color.projects.primaryBtnText"] || "",
+        secondaryBtn: settings["color.projects.secondaryBtn"] || "",
+        secondaryBtnText: settings["color.projects.secondaryBtnText"] || "",
+      },
+      music: {
+        primaryBtn: settings["color.music.primaryBtn"] || "",
+        primaryBtnText: settings["color.music.primaryBtnText"] || "",
+        secondaryBtn: settings["color.music.secondaryBtn"] || "",
+        secondaryBtnText: settings["color.music.secondaryBtnText"] || "",
+      },
+      news: {
+        primaryBtn: settings["color.news.primaryBtn"] || "",
+        primaryBtnText: settings["color.news.primaryBtnText"] || "",
+        secondaryBtn: settings["color.news.secondaryBtn"] || "",
+        secondaryBtnText: settings["color.news.secondaryBtnText"] || "",
+      },
+    });
 
     setHomeCardAccentColor(settings["home.cardAccentColor"] || "");
     setStoreAccentColor(settings["store.accentColor"] || "");
@@ -722,7 +789,11 @@ export default function CommandSettings() {
       "color.brand.secondary": brandSecondary,
       "color.brand.accent": brandAccent,
       "color.brand.highlight": brandHighlight,
-      "color.nav.activeHighlight": navActiveHighlight,
+      "color.nav.main.bg": navMainBg,
+      "color.nav.main.text": navMainText,
+      "color.nav.sub.bg": navSubBg,
+      "color.nav.sub.text": navSubText,
+      "color.nav.activeHighlight": "",
     });
   }
 
@@ -740,8 +811,40 @@ export default function CommandSettings() {
       "color.brand.secondary": "",
       "color.brand.accent": "",
       "color.brand.highlight": "",
+      "color.nav.main.bg": "",
+      "color.nav.main.text": "",
+      "color.nav.sub.bg": "",
+      "color.nav.sub.text": "",
       "color.nav.activeHighlight": "",
     });
+  }
+
+  function savePageBtnColors() {
+    const entries: Record<string, string> = {};
+    for (const p of PAGE_KEYS) {
+      entries[`color.${p}.primaryBtn`] = pageBtnColors[p].primaryBtn;
+      entries[`color.${p}.primaryBtnText`] = pageBtnColors[p].primaryBtnText;
+      entries[`color.${p}.secondaryBtn`] = pageBtnColors[p].secondaryBtn;
+      entries[`color.${p}.secondaryBtnText`] = pageBtnColors[p].secondaryBtnText;
+    }
+    mutation.mutate(entries);
+  }
+
+  function resetPageBtnColors(page: PageKey) {
+    mutation.mutate({
+      [`color.${page}.primaryBtn`]: "",
+      [`color.${page}.primaryBtnText`]: "",
+      [`color.${page}.secondaryBtn`]: "",
+      [`color.${page}.secondaryBtnText`]: "",
+    });
+    setPageBtnColors((prev) => ({
+      ...prev,
+      [page]: { primaryBtn: "", primaryBtnText: "", secondaryBtn: "", secondaryBtnText: "" },
+    }));
+  }
+
+  function setPageColor(page: PageKey, field: keyof PageBtnColors, val: string) {
+    setPageBtnColors((prev) => ({ ...prev, [page]: { ...prev[page], [field]: val } }));
   }
 
   function savePerSectionColors() {
@@ -1452,10 +1555,67 @@ export default function CommandSettings() {
 
               <Separator />
 
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-foreground">Navigation</p>
-                <p className="text-xs text-muted-foreground">Controls the active item highlight and focus ring color in the sidebar. Leave blank to use the default sidebar accent.</p>
-                <ColorPickerRow label="Nav Active Highlight" hsl={navActiveHighlight} onChange={setNavActiveHighlight} testIdBase="nav-active-highlight" />
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Navigation Colors</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Controls active and hover colors in the sidebar and dropdown menus. Leave blank to use defaults.</p>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sidebar Navigation</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-foreground">Active background</p>
+                      <div className="flex items-center gap-2">
+                        <div className="relative shrink-0">
+                          <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navMainBg ? `hsl(${navMainBg})` : "transparent" }} />
+                          <input type="color" value={navMainBg ? hslToHex(navMainBg) : "#000000"} onChange={(e) => setNavMainBg(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-main-bg" />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navMainBg || "— default"}</p>
+                        {navMainBg && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavMainBg("")} data-testid="button-reset-nav-main-bg"><RotateCcw className="h-3 w-3" /></Button>}
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-foreground">Active text color</p>
+                      <div className="flex items-center gap-2">
+                        <div className="relative shrink-0">
+                          <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navMainText ? `hsl(${navMainText})` : "transparent" }} />
+                          <input type="color" value={navMainText ? hslToHex(navMainText) : "#000000"} onChange={(e) => setNavMainText(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-main-text" />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navMainText || "— auto-contrast"}</p>
+                        {navMainText && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavMainText("")} data-testid="button-reset-nav-main-text"><RotateCcw className="h-3 w-3" /></Button>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Menus &amp; Dropdowns</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-foreground">Hover background</p>
+                      <div className="flex items-center gap-2">
+                        <div className="relative shrink-0">
+                          <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navSubBg ? `hsl(${navSubBg})` : "transparent" }} />
+                          <input type="color" value={navSubBg ? hslToHex(navSubBg) : "#000000"} onChange={(e) => setNavSubBg(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-sub-bg" />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navSubBg || "— default"}</p>
+                        {navSubBg && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavSubBg("")} data-testid="button-reset-nav-sub-bg"><RotateCcw className="h-3 w-3" /></Button>}
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-foreground">Hover text color</p>
+                      <div className="flex items-center gap-2">
+                        <div className="relative shrink-0">
+                          <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navSubText ? `hsl(${navSubText})` : "transparent" }} />
+                          <input type="color" value={navSubText ? hslToHex(navSubText) : "#000000"} onChange={(e) => setNavSubText(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-sub-text" />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navSubText || "— default"}</p>
+                        {navSubText && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavSubText("")} data-testid="button-reset-nav-sub-text"><RotateCcw className="h-3 w-3" /></Button>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end">
@@ -1648,6 +1808,87 @@ export default function CommandSettings() {
                 <Button onClick={savePerSectionColors} disabled={mutation.isPending} className="gap-2" data-testid="button-save-per-section-colors">
                   <Save className="h-3.5 w-3.5" />
                   Save Section Colors
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Per-Page Button Colors */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-4 w-4" />
+                Page Button Colors
+              </CardTitle>
+              <CardDescription>
+                Override primary and secondary button colors for individual landing pages. Leave blank to use global theme colors.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {PAGE_KEYS.map((page) => (
+                <div key={page} className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-foreground">{PAGE_LABELS[page]}</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-muted-foreground gap-1"
+                      onClick={() => resetPageBtnColors(page)}
+                      disabled={mutation.isPending}
+                      data-testid={`button-reset-page-btns-${page}`}
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      Reset
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {(["primaryBtn", "primaryBtnText", "secondaryBtn", "secondaryBtnText"] as const).map((field) => {
+                      const labels: Record<string, string> = {
+                        primaryBtn: "Primary button background",
+                        primaryBtnText: "Primary button text",
+                        secondaryBtn: "Secondary button background",
+                        secondaryBtnText: "Secondary button text",
+                      };
+                      const val = pageBtnColors[page][field];
+                      return (
+                        <div key={field} className="space-y-1.5">
+                          <p className="text-xs font-medium text-foreground">{labels[field]}</p>
+                          <div className="flex items-center gap-2">
+                            <div className="relative shrink-0">
+                              <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: val ? `hsl(${val})` : "transparent" }} />
+                              <input
+                                type="color"
+                                value={val ? hslToHex(val) : "#000000"}
+                                onChange={(e) => setPageColor(page, field, hexToHsl(e.target.value))}
+                                className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7"
+                                data-testid={`color-picker-${page}-${field}`}
+                              />
+                            </div>
+                            <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{val || "— default"}</p>
+                            {val && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label="Clear"
+                                className="h-6 w-6 text-muted-foreground shrink-0"
+                                onClick={() => setPageColor(page, field, "")}
+                                data-testid={`button-clear-${page}-${field}`}
+                              >
+                                <RotateCcw className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {page !== PAGE_KEYS[PAGE_KEYS.length - 1] && <Separator />}
+                </div>
+              ))}
+              <div className="flex justify-end pt-2">
+                <Button onClick={savePageBtnColors} disabled={mutation.isPending} className="gap-2" data-testid="button-save-page-btn-colors">
+                  <Save className="h-3.5 w-3.5" />
+                  Save Button Colors
                 </Button>
               </div>
             </CardContent>

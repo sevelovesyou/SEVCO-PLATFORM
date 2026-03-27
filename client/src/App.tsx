@@ -331,6 +331,7 @@ const CSS_VAR_MAP_DARK: Record<string, string> = {
   "color.dark.accent": "--accent",
 };
 
+
 function toHsl(val: string): string | null {
   if (!val) return null;
   if (/^#[0-9a-fA-F]{6}$/.test(val)) {
@@ -354,7 +355,11 @@ function PlatformColorInjector() {
     const brandSecondary = toHsl(settings["color.brand.secondary"] ?? "");
     const brandAccent = toHsl(settings["color.brand.accent"] ?? "");
     const brandHighlight = toHsl(settings["color.brand.highlight"] ?? "");
-    const navActiveHighlight = toHsl(settings["color.nav.activeHighlight"] ?? "");
+
+    const navMainBg = toHsl(settings["color.nav.main.bg"] ?? settings["color.nav.activeHighlight"] ?? "");
+    const navMainText = toHsl(settings["color.nav.main.text"] ?? "");
+    const navSubBg = toHsl(settings["color.nav.sub.bg"] ?? "");
+    const navSubText = toHsl(settings["color.nav.sub.text"] ?? "");
 
     const lightRules: string[] = [];
 
@@ -362,14 +367,22 @@ function PlatformColorInjector() {
       lightRules.push(`  --primary: ${brandMain};`);
       lightRules.push(`  --ring: ${brandMain};`);
     }
-    if (navActiveHighlight) {
-      lightRules.push(`  --sidebar-primary: ${navActiveHighlight};`);
-      lightRules.push(`  --sidebar-accent: ${navActiveHighlight};`);
-      lightRules.push(`  --sidebar-ring: ${navActiveHighlight};`);
-      const parts = navActiveHighlight.trim().split(/\s+/);
+    if (navMainBg) {
+      lightRules.push(`  --sidebar-primary: ${navMainBg};`);
+      lightRules.push(`  --sidebar-accent: ${navMainBg};`);
+      lightRules.push(`  --sidebar-ring: ${navMainBg};`);
+      const parts = navMainBg.trim().split(/\s+/);
       const l = parts.length === 3 ? parseFloat(parts[2]) : 50;
-      const fg = l < 50 ? "0 0% 100%" : "224 71% 4%";
+      const fg = navMainText ?? (l < 50 ? "0 0% 100%" : "224 71% 4%");
       lightRules.push(`  --sidebar-accent-foreground: ${fg};`);
+    } else if (navMainText) {
+      lightRules.push(`  --sidebar-accent-foreground: ${navMainText};`);
+    }
+    if (navSubBg) {
+      lightRules.push(`  --nav-sub-accent: ${navSubBg};`);
+    }
+    if (navSubText) {
+      lightRules.push(`  --nav-sub-accent-foreground: ${navSubText};`);
     }
     if (brandSecondary) {
       lightRules.push(`  --secondary: ${brandSecondary};`);
@@ -406,20 +419,45 @@ function PlatformColorInjector() {
     if (musicAccent) lightRules.push(`  --music-accent: ${musicAccent};`);
     if (wikiTagColor) lightRules.push(`  --wiki-tag-color: ${wikiTagColor};`);
 
+    const PAGE_SCOPES = ["landing", "store", "services", "projects", "music", "news"] as const;
+    const pageScopeRules: string[] = [];
+    for (const p of PAGE_SCOPES) {
+      const pb = toHsl(settings[`color.${p}.primaryBtn`] ?? "");
+      const pbt = toHsl(settings[`color.${p}.primaryBtnText`] ?? "");
+      const sb = toHsl(settings[`color.${p}.secondaryBtn`] ?? "");
+      const sbt = toHsl(settings[`color.${p}.secondaryBtnText`] ?? "");
+      if (pb || pbt || sb || sbt) {
+        pageScopeRules.push(`[data-page="${p}"] {`);
+        if (pb) { pageScopeRules.push(`  --primary: ${pb};`); pageScopeRules.push(`  --ring: ${pb};`); }
+        if (pbt) pageScopeRules.push(`  --primary-foreground: ${pbt};`);
+        if (sb) pageScopeRules.push(`  --secondary: ${sb};`);
+        if (sbt) pageScopeRules.push(`  --secondary-foreground: ${sbt};`);
+        pageScopeRules.push(`}`);
+      }
+    }
+
     const darkRules: string[] = [];
 
     if (brandMain && !settings["color.dark.primary"]) {
       darkRules.push(`  --primary: ${brandMain};`);
       darkRules.push(`  --ring: ${brandMain};`);
     }
-    if (navActiveHighlight) {
-      darkRules.push(`  --sidebar-primary: ${navActiveHighlight};`);
-      darkRules.push(`  --sidebar-accent: ${navActiveHighlight};`);
-      darkRules.push(`  --sidebar-ring: ${navActiveHighlight};`);
-      const parts = navActiveHighlight.trim().split(/\s+/);
+    if (navMainBg) {
+      darkRules.push(`  --sidebar-primary: ${navMainBg};`);
+      darkRules.push(`  --sidebar-accent: ${navMainBg};`);
+      darkRules.push(`  --sidebar-ring: ${navMainBg};`);
+      const parts = navMainBg.trim().split(/\s+/);
       const l = parts.length === 3 ? parseFloat(parts[2]) : 50;
-      const fg = l < 50 ? "0 0% 100%" : "224 71% 4%";
+      const fg = navMainText ?? (l < 50 ? "0 0% 100%" : "224 71% 4%");
       darkRules.push(`  --sidebar-accent-foreground: ${fg};`);
+    } else if (navMainText) {
+      darkRules.push(`  --sidebar-accent-foreground: ${navMainText};`);
+    }
+    if (navSubBg) {
+      darkRules.push(`  --nav-sub-accent: ${navSubBg};`);
+    }
+    if (navSubText) {
+      darkRules.push(`  --nav-sub-accent-foreground: ${navSubText};`);
     }
     if (brandSecondary) {
       darkRules.push(`  --secondary: ${brandSecondary};`);
@@ -450,7 +488,7 @@ function PlatformColorInjector() {
     if (musicAccent) darkRules.push(`  --music-accent: ${musicAccent};`);
     if (wikiTagColor) darkRules.push(`  --wiki-tag-color: ${wikiTagColor};`)
 
-    const hasOverrides = lightRules.length > 0 || darkRules.length > 0;
+    const hasOverrides = lightRules.length > 0 || darkRules.length > 0 || pageScopeRules.length > 0;
 
     if (!hasOverrides) {
       if (styleRef.current) {
@@ -463,6 +501,7 @@ function PlatformColorInjector() {
     let css = "";
     if (lightRules.length > 0) css += `:root {\n${lightRules.join("\n")}\n}\n`;
     if (darkRules.length > 0) css += `.dark {\n${darkRules.join("\n")}\n}\n`;
+    if (pageScopeRules.length > 0) css += pageScopeRules.join("\n") + "\n";
 
     if (!styleRef.current) {
       const style = document.createElement("style");

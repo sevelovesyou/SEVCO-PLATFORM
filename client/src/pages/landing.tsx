@@ -228,7 +228,7 @@ export default function Landing() {
   const showBulletin = toBool(settings["section.bulletin.visible"]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" data-page="landing">
       <PageHead
         title="SEVCO — Music, Merch, Projects & Community"
         description={heroText}

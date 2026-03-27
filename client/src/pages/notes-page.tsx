@@ -46,12 +46,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import type { Note, NoteCollaborator } from "@shared/schema";
 
 const NOTE_COLORS: { value: string; label: string; bg: string; border: string; dot: string }[] = [
-  { value: "default", label: "Default", bg: "bg-card",                                 border: "border-border",                                   dot: "bg-muted-foreground" },
-  { value: "yellow",  label: "Yellow",  bg: "bg-yellow-50 dark:bg-yellow-950/30",      border: "border-yellow-200 dark:border-yellow-800",        dot: "bg-yellow-400" },
-  { value: "blue",    label: "Blue",    bg: "bg-blue-50 dark:bg-blue-950/30",          border: "border-blue-200 dark:border-blue-800",            dot: "bg-blue-400" },
-  { value: "green",   label: "Green",   bg: "bg-green-50 dark:bg-green-950/30",        border: "border-green-200 dark:border-green-800",          dot: "bg-green-400" },
-  { value: "pink",    label: "Pink",    bg: "bg-pink-50 dark:bg-pink-950/30",          border: "border-pink-200 dark:border-pink-800",            dot: "bg-pink-400" },
-  { value: "purple",  label: "Purple",  bg: "bg-purple-50 dark:bg-purple-950/30",      border: "border-purple-200 dark:border-purple-800",        dot: "bg-purple-400" },
+  { value: "default", label: "Default", bg: "bg-card",                                   border: "border-border",             dot: "bg-muted-foreground" },
+  { value: "blue",    label: "Blue",    bg: "bg-blue-50 dark:bg-[#0037ff]/10",            border: "border-[#0037ff]/30",        dot: "bg-[#0037ff]" },
+  { value: "red",     label: "Red",     bg: "bg-red-50 dark:bg-[#bd0000]/10",             border: "border-[#bd0000]/30",        dot: "bg-[#bd0000]" },
+  { value: "yellow",  label: "Yellow",  bg: "bg-yellow-50 dark:bg-[#fbc318]/10",          border: "border-[#fbc318]/40",        dot: "bg-[#fbc318]" },
+  { value: "green",   label: "Green",   bg: "bg-green-50 dark:bg-[#00a811]/10",           border: "border-[#00a811]/30",        dot: "bg-[#00a811]" },
+  { value: "dark",    label: "Dark",    bg: "bg-gray-900 dark:bg-black",                  border: "border-gray-700",            dot: "bg-gray-400" },
 ];
 
 function getNoteColor(color: string) {
@@ -234,6 +234,15 @@ function NoteListItem({
   const isOwner = note.authorId === currentUserId;
   const preview = note.content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 80) || "No additional text";
 
+  const hoverBorderClass = selected ? "" : (
+    note.color === "blue"    ? "hover:border-[#0037ff]/50" :
+    note.color === "red"     ? "hover:border-[#bd0000]/50" :
+    note.color === "yellow"  ? "hover:border-[#fbc318]/60" :
+    note.color === "green"   ? "hover:border-[#00a811]/50" :
+    note.color === "dark"    ? "hover:border-gray-500" :
+    "hover:border-primary/20"
+  );
+
   return (
     <button
       onClick={onSelect}
@@ -241,13 +250,18 @@ function NoteListItem({
       className={`w-full text-left px-3 py-2.5 rounded-lg transition-all group border ${
         selected
           ? "bg-primary/10 border-primary/30"
-          : `${color.bg} ${color.border} hover:border-primary/20`
+          : `${color.bg} ${color.border} ${hoverBorderClass}`
       }`}
     >
       <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-            {note.pinned && <Pin className="h-2.5 w-2.5 text-primary shrink-0" />}
+            {note.color !== "default" && (
+              <span className={`inline-block h-2 w-2 rounded-full shrink-0 ${color.dot}`} />
+            )}
+            {note.pinned && (
+              <span className="text-[10px] leading-none shrink-0" aria-label="Pinned">📌</span>
+            )}
             {note.isShared && (
               <Badge variant="outline" className="text-[9px] h-3.5 px-1 border-blue-300 text-blue-600 dark:text-blue-400">
                 Shared
@@ -263,9 +277,9 @@ function NoteListItem({
           <p className="text-xs font-semibold truncate leading-tight">
             {note.title || "Untitled"}
           </p>
-          <p className="text-[11px] text-muted-foreground mt-0.5 flex gap-2">
+          <p className="text-[11px] text-muted-foreground mt-0.5 flex gap-2 font-mono">
             <span className="shrink-0">{formatDate(note.updatedAt)}</span>
-            <span className="truncate opacity-70">{preview}</span>
+            <span className="truncate opacity-70 font-sans">{preview}</span>
           </p>
         </div>
       </div>

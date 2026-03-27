@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation, Link } from "wouter";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -21,9 +21,15 @@ import {
 } from "lucide-react";
 import { EmailComposeModal } from "@/components/email-compose-modal";
 import { EmailReadView } from "@/components/email-read-view";
-import type { Email, ChatChannel } from "@shared/schema";
+import type { Email, ChatChannel, ChatMessage } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 import { isClientPlus } from "@/lib/permissions";
+
+type ChatMessageWithUser = ChatMessage & {
+  fromUser: { id: string; username: string; displayName: string | null; avatarUrl: string | null };
+  toUser: { id: string; username: string; displayName: string | null; avatarUrl: string | null } | null;
+  channel: { id: number; name: string } | null;
+};
 
 type Folder = "inbox" | "sent" | "drafts" | "trash" | "starred";
 
@@ -113,9 +119,9 @@ function EmailListItem({
 
 export default function MessagesPage() {
   const { user } = useAuth();
-  const [, navigate] = useLocation();
   const [activeFolder, setActiveFolder] = useState<Folder>("inbox");
   const [selectedEmailId, setSelectedEmailId] = useState<number | null>(null);
+  const [selectedChannel, setSelectedChannel] = useState<ChatChannel | null>(null);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);
@@ -159,6 +165,16 @@ export default function MessagesPage() {
     queryKey: ["/api/chat/channels"],
   });
 
+  const { data: channelMessages = [], isLoading: channelMessagesLoading } = useQuery<ChatMessageWithUser[]>({
+    queryKey: ["/api/chat/channels", selectedChannel?.id, "messages"],
+    queryFn: async () => {
+      const res = await fetch(`/api/chat/channels/${selectedChannel!.id}/messages?limit=50`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch messages");
+      return res.json();
+    },
+    enabled: !!selectedChannel,
+  });
+
   const selectedEmail = emails.find((e) => e.id === selectedEmailId) ?? null;
   const fromAddress = addressData?.address ?? `${user.username}@sevco.us`;
   const unreadCount = folderCounts?.unreadInbox ?? 0;
@@ -181,6 +197,7 @@ export default function MessagesPage() {
 
   function handleSelectEmail(email: Email) {
     setSelectedEmailId(email.id);
+    setSelectedChannel(null);
     setMobileView("read");
     if (!email.isRead) {
       markReadMutation.mutate(email.id);
@@ -195,9 +212,16 @@ export default function MessagesPage() {
   function handleFolderChange(folder: Folder) {
     setActiveFolder(folder);
     setSelectedEmailId(null);
+    setSelectedChannel(null);
     setSearch("");
     setSearchInput("");
     setMobileView("list");
+  }
+
+  function handleSelectChannel(ch: ChatChannel) {
+    setSelectedChannel(ch);
+    setSelectedEmailId(null);
+    setMobileView("read");
   }
 
   return (
@@ -260,15 +284,17 @@ export default function MessagesPage() {
               Chat
             </p>
             {channels.slice(0, 5).map((ch) => (
-              <Link key={ch.id} href={`/chat?channel=${ch.id}`}>
-                <div
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors cursor-pointer"
-                  data-testid={`chat-channel-${ch.id}`}
-                >
-                  <Hash className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <span className="truncate">{ch.name}</span>
-                </div>
-              </Link>
+              <div
+                key={ch.id}
+                className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors cursor-pointer ${
+                  selectedChannel?.id === ch.id ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"
+                }`}
+                onClick={() => handleSelectChannel(ch)}
+                data-testid={`chat-channel-${ch.id}`}
+              >
+                <Hash className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                <span className="truncate">{ch.name}</span>
+              </div>
             ))}
             <div
               className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors cursor-pointer"
@@ -359,7 +385,7 @@ export default function MessagesPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => { setMobileView("list"); setSelectedEmailId(null); }}
+              onClick={() => { setMobileView("list"); setSelectedEmailId(null); setSelectedChannel(null); }}
               data-testid="button-back-to-list"
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
@@ -368,7 +394,57 @@ export default function MessagesPage() {
           </div>
         )}
 
-        {selectedEmail ? (
+        {selectedChannel ? (
+          <div className="flex flex-col h-full" data-testid="channel-thread-view">
+            <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0">
+              <Hash className="h-4 w-4 text-muted-foreground" />
+              <span className="font-semibold text-sm">{selectedChannel.name}</span>
+              {selectedChannel.description && (
+                <span className="text-xs text-muted-foreground truncate">— {selectedChannel.description}</span>
+              )}
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {channelMessagesLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+                      <div className="space-y-1.5 flex-1">
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-3 w-3/4" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : channelMessages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center gap-3 text-muted-foreground" data-testid="empty-channel-messages">
+                  <Hash className="h-10 w-10 opacity-20" />
+                  <p className="text-sm">No messages in #{selectedChannel.name} yet.</p>
+                </div>
+              ) : (
+                [...channelMessages].reverse().map((msg) => {
+                  const senderName = msg.fromUser?.displayName ?? msg.fromUser?.username ?? "Unknown";
+                  let timeStr = "";
+                  try { timeStr = formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true }); } catch {}
+                  return (
+                    <div key={msg.id} className="flex items-start gap-3" data-testid={`channel-msg-${msg.id}`}>
+                      <div className="h-8 w-8 rounded-full bg-primary/10 text-primary font-semibold flex items-center justify-center shrink-0 text-xs">
+                        {senderName[0]?.toUpperCase() ?? "?"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-sm font-semibold">{senderName}</span>
+                          <span className="text-[11px] text-muted-foreground">{timeStr}</span>
+                        </div>
+                        <p className="text-sm text-foreground/90 mt-0.5 break-words">{msg.content}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        ) : selectedEmail ? (
           <EmailReadView
             email={selectedEmail}
             fromAddress={fromAddress}

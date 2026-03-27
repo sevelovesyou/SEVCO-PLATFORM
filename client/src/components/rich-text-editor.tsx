@@ -64,6 +64,7 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const lastExternalValueRef = useRef<string>(value);
 
   const insertImageUrl = useCallback((url: string, editorInstance: ReturnType<typeof useEditor>) => {
     editorInstance?.chain().focus().setImage({ src: url }).run();
@@ -101,11 +102,16 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
     ],
     content: value,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      const html = editor.getHTML();
+      lastExternalValueRef.current = html;
+      onChange(html);
     },
     editorProps: {
       attributes: {
         class: "min-h-[280px] p-4 prose prose-sm dark:prose-invert max-w-none focus:outline-none",
+        spellcheck: "false",
+        autocorrect: "off",
+        autocapitalize: "off",
       },
       handlePaste(view, event) {
         const items = event.clipboardData?.items;
@@ -138,9 +144,10 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
   });
 
   useEffect(() => {
-    if (editor && value !== editor.getHTML()) {
-      editor.commands.setContent(value, false);
-    }
+    if (!editor) return;
+    if (value === lastExternalValueRef.current) return;
+    lastExternalValueRef.current = value;
+    editor.commands.setContent(value, false);
   }, [value, editor]);
 
   if (!editor) return null;

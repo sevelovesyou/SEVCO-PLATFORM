@@ -5,9 +5,15 @@ import { eq, sql } from "drizzle-orm";
 
 export async function promoteFounderToAdmin() {
   const founder = await storage.getUserByUsername("severin@sevelovesyou.com");
-  if (founder && founder.role === "user") {
-    await storage.updateUserRole(founder.id, "admin");
-    console.log("Promoted severin@sevelovesyou.com to admin.");
+  if (founder) {
+    if (founder.role === "user") {
+      await storage.updateUserRole(founder.id, "admin");
+      console.log("Promoted severin@sevelovesyou.com to admin.");
+    }
+    if (founder.username === "severin@sevelovesyou.com") {
+      await db.update(users).set({ username: "seve" }).where(eq(users.id, founder.id));
+      console.log("Updated admin username from severin@sevelovesyou.com to seve.");
+    }
   }
 }
 

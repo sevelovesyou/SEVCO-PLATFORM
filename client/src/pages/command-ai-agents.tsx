@@ -17,7 +17,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -25,12 +27,28 @@ import { Bot, Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Sparkles } from "lu
 import type { AiAgent } from "@shared/schema";
 
 const MODELS = [
-  { value: "openai/gpt-4o-mini", label: "GPT-4o Mini (fast, cheap)" },
-  { value: "openai/gpt-4o", label: "GPT-4o (powerful)" },
-  { value: "anthropic/claude-3-haiku", label: "Claude 3 Haiku (fast)" },
-  { value: "anthropic/claude-3.5-sonnet", label: "Claude 3.5 Sonnet (smart)" },
-  { value: "google/gemini-flash-1.5", label: "Gemini Flash 1.5 (fast)" },
-  { value: "meta-llama/llama-3.1-8b-instruct:free", label: "Llama 3.1 8B (free)" },
+  // OpenAI
+  { value: "openai/gpt-4o-mini",                         label: "GPT-4o Mini",         group: "OpenAI" },
+  { value: "openai/gpt-4o",                              label: "GPT-4o",              group: "OpenAI" },
+
+  // Anthropic
+  { value: "anthropic/claude-3-haiku",                   label: "Claude 3 Haiku",      group: "Anthropic" },
+  { value: "anthropic/claude-3.5-sonnet",                label: "Claude 3.5 Sonnet",   group: "Anthropic" },
+
+  // Google
+  { value: "google/gemini-flash-1.5",                    label: "Gemini Flash 1.5",    group: "Google" },
+
+  // Meta
+  { value: "meta-llama/llama-3.1-8b-instruct:free",      label: "Llama 3.1 8B (free)", group: "Meta" },
+
+  // Grok (x.ai direct API — requires XAI_API_KEY from https://console.x.ai/)
+  { value: "xai/grok-3",                                 label: "Grok 3",              group: "Grok" },
+  { value: "xai/grok-3-fast",                            label: "Grok 3 Fast",         group: "Grok" },
+  { value: "xai/grok-3-mini",                            label: "Grok 3 Mini",         group: "Grok" },
+  { value: "xai/grok-3-mini-fast",                       label: "Grok 3 Mini Fast",    group: "Grok" },
+  { value: "xai/grok-2-1212",                            label: "Grok 2",              group: "Grok" },
+  { value: "xai/grok-2-vision-1212",                     label: "Grok 2 Vision",       group: "Grok" },
+  { value: "xai/grok-beta",                              label: "Grok Beta",           group: "Grok" },
 ];
 
 const CAPABILITIES = ["text", "image", "code"] as const;
@@ -184,10 +202,15 @@ function AgentDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {MODELS.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>
-                    {m.label}
-                  </SelectItem>
+                {(["OpenAI", "Anthropic", "Google", "Meta", "Grok"] as const).map((group) => (
+                  <SelectGroup key={group}>
+                    <SelectLabel>{group}</SelectLabel>
+                    {MODELS.filter((m) => m.group === group).map((m) => (
+                      <SelectItem key={m.value} value={m.value}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 ))}
               </SelectContent>
             </Select>
@@ -370,7 +393,14 @@ export default function CommandAiAgentsPage() {
                 {agent.description && (
                   <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{agent.description}</p>
                 )}
-                <p className="text-[11px] text-muted-foreground/60 font-mono">{agent.modelSlug}</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <p className="text-[11px] text-muted-foreground/60 font-mono">{agent.modelSlug}</p>
+                  {agent.modelSlug.startsWith("xai/") ? (
+                    <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 border-blue-400/50 text-blue-500">x.ai</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 text-muted-foreground/50">OpenRouter</Badge>
+                  )}
+                </div>
                 {agent.capabilities && agent.capabilities.length > 0 && (
                   <div className="flex gap-1 mt-2 flex-wrap">
                     {agent.capabilities.map((cap) => (
@@ -420,9 +450,11 @@ export default function CommandAiAgentsPage() {
       <Card className="bg-muted/30">
         <CardContent className="p-4">
           <p className="text-xs text-muted-foreground">
-            <span className="font-semibold">Setup:</span> Add your{" "}
-            <code className="bg-muted px-1 rounded">OPENROUTER_API_KEY</code> environment variable to enable AI responses.
-            Agents without the key will return a service unavailable message. Chat with agents via the Chat icon in the header.
+            <span className="font-semibold">Setup:</span> Add{" "}
+            <code className="bg-muted px-1 rounded">OPENROUTER_API_KEY</code> for OpenAI, Anthropic, Google, and Meta models.
+            For Grok models, add <code className="bg-muted px-1 rounded">XAI_API_KEY</code> (get it at{" "}
+            <a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer" className="underline">console.x.ai</a>).
+            Chat with agents via the Chat icon in the header.
           </p>
         </CardContent>
       </Card>

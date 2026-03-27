@@ -19,7 +19,7 @@ import {
   Save, Image, Type, Eye, EyeOff, Globe, Link2, Package, Pencil, Trash2, Plus,
   Palette, RotateCcw, AlignLeft, Layers, Share2, Server, GripVertical, ExternalLink,
   ChevronUp, ChevronDown, Settings2, Layout, Star, BarChart2, CheckCircle2, AlertCircle,
-  Mail, Send, Search, X,
+  Mail, Send, Search, X, Sparkles,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { FileUploadWithFallback } from "@/components/file-upload";
@@ -2671,6 +2671,9 @@ export default function CommandSettings() {
               <div data-search-label="hosting domain VPS Hostinger server" className={cardVisible("hosting domain VPS Hostinger server") ? "" : "hidden"}>
                 <HostingSection />
               </div>
+
+              {/* x.ai API Key */}
+              <XaiApiKeyStatus />
             </TabsContent>
 
           {/* ════════════ ADVANCED ════════════ */}
@@ -3343,6 +3346,57 @@ function VpsCard({ vm }: { vm: VirtualMachine }) {
             subValue={`of ${(vm.bandwidth.total / 1024 / 1024 / 1024).toFixed(0)} GB`}
           />
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function XaiApiKeyStatus() {
+  const { data, isLoading } = useQuery<{ configured: boolean }>({
+    queryKey: ["/api/ai/xai/status"],
+    staleTime: 60_000,
+  });
+
+  return (
+    <Card data-search-label="x.ai xai Grok API key AI model">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5" />
+          x.ai API Key
+        </CardTitle>
+        <CardDescription>
+          Required for Grok 3, Grok 3 Mini, Grok 2, and Grok 2 Vision models used by AI agents.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            {isLoading ? (
+              <Skeleton className="h-5 w-32" />
+            ) : data?.configured ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <span className="text-sm text-green-600 dark:text-green-400 font-medium">Configured</span>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="h-4 w-4 text-amber-500" />
+                <span className="text-sm text-amber-600 dark:text-amber-400 font-medium">Not set</span>
+                <span className="text-xs text-muted-foreground">— Add <code className="bg-muted px-1 rounded">XAI_API_KEY</code> to Replit Secrets</span>
+              </>
+            )}
+          </div>
+          <a
+            href="https://console.x.ai/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 shrink-0"
+            data-testid="link-xai-docs"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Get API key
+          </a>
+        </div>
       </CardContent>
     </Card>
   );

@@ -4036,6 +4036,11 @@ export async function registerRoutes(
     }
   });
 
+  // x.ai API key status — GET /api/ai/xai/status
+  app.get("/api/ai/xai/status", requireAuth, requireRole("admin", "executive"), async (_req, res) => {
+    res.json({ configured: !!process.env.XAI_API_KEY });
+  });
+
   app.get("/api/ai/chat/:agentId", requireAuth, requireRole("admin", "executive"), async (req, res) => {
     try {
       const agentId = parseInt(req.params.agentId);
@@ -4060,9 +4065,30 @@ export async function registerRoutes(
       if (!agent) return res.status(404).json({ message: "Agent not found" });
       if (!agent.enabled) return res.status(403).json({ message: "Agent is disabled" });
 
-      const apiKey = process.env.OPENROUTER_API_KEY;
-      if (!apiKey) {
-        return res.status(503).json({ message: "AI service not configured. Set OPENROUTER_API_KEY." });
+      // Determine API provider based on model slug prefix
+      // "xai/..." → x.ai direct API (OpenAI-compatible) — requires XAI_API_KEY from https://console.x.ai/
+      // everything else → OpenRouter
+      const modelSlug = agent.modelSlug;
+      let apiUrl: string;
+      let apiKey: string;
+      let modelName: string;
+      let extraHeaders: Record<string, string> = {};
+
+      if (modelSlug.startsWith("xai/")) {
+        apiUrl = "https://api.x.ai/v1/chat/completions";
+        apiKey = process.env.XAI_API_KEY ?? "";
+        modelName = modelSlug.replace("xai/", ""); // e.g. "grok-3"
+        if (!apiKey) {
+          return res.status(500).json({ message: "XAI_API_KEY is not configured. Add it in Replit Secrets (get your key at https://console.x.ai/)." });
+        }
+      } else {
+        apiUrl = "https://openrouter.ai/api/v1/chat/completions";
+        apiKey = process.env.OPENROUTER_API_KEY ?? "";
+        modelName = modelSlug;
+        extraHeaders = { "HTTP-Referer": "https://sevco.us", "X-Title": "SEVCO Platform" };
+        if (!apiKey) {
+          return res.status(503).json({ message: "AI service not configured. Set OPENROUTER_API_KEY." });
+        }
       }
 
       // Store user message
@@ -4072,17 +4098,15 @@ export async function registerRoutes(
       const history = await storage.getAiMessages(agentId, user.id);
       const contextMessages = history.slice(-20).map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
-      // Call OpenRouter
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${apiKey}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://sevco.us",
-          "X-Title": "SEVCO Platform",
+          ...extraHeaders,
         },
         body: JSON.stringify({
-          model: agent.modelSlug,
+          model: modelName,
           messages: [
             { role: "system", content: agent.systemPrompt },
             ...contextMessages,
@@ -4093,7 +4117,8 @@ export async function registerRoutes(
 
       if (!response.ok) {
         const errText = await response.text();
-        return res.status(502).json({ message: `OpenRouter error: ${errText}` });
+        const provider = modelSlug.startsWith("xai/") ? "x.ai" : "OpenRouter";
+        return res.status(502).json({ message: `${provider} error: ${errText}` });
       }
 
       const data = await response.json() as any;

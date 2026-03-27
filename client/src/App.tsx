@@ -347,13 +347,30 @@ function DynamicHead() {
   return null;
 }
 
-const COLOR_KEYS_LIGHT = ["color.light.primary", "color.light.background", "color.light.foreground", "color.light.accent"];
-const COLOR_KEYS_DARK = ["color.dark.primary", "color.dark.background", "color.dark.foreground", "color.dark.accent"];
+const COLOR_KEYS_LIGHT = [
+  "color.light.primary", "color.light.background", "color.light.foreground", "color.light.accent",
+  "color.light.primaryFg", "color.light.accentFg", "color.light.secondary", "color.light.secondaryFg",
+  "color.light.card", "color.light.cardFg", "color.light.muted", "color.light.mutedFg",
+  "color.light.border", "color.light.destructive",
+];
+const COLOR_KEYS_DARK = [
+  "color.dark.primary", "color.dark.background", "color.dark.foreground", "color.dark.accent",
+];
 const CSS_VAR_MAP_LIGHT: Record<string, string> = {
   "color.light.primary": "--primary",
   "color.light.background": "--background",
   "color.light.foreground": "--foreground",
   "color.light.accent": "--accent",
+  "color.light.primaryFg": "--primary-foreground",
+  "color.light.accentFg": "--accent-foreground",
+  "color.light.secondary": "--secondary",
+  "color.light.secondaryFg": "--secondary-foreground",
+  "color.light.card": "--card",
+  "color.light.cardFg": "--card-foreground",
+  "color.light.muted": "--muted",
+  "color.light.mutedFg": "--muted-foreground",
+  "color.light.border": "--border",
+  "color.light.destructive": "--destructive",
 };
 const CSS_VAR_MAP_DARK: Record<string, string> = {
   "color.dark.primary": "--primary",
@@ -519,6 +536,53 @@ function PlatformColorInjector() {
     if (musicAccent) darkRules.push(`  --music-accent: ${musicAccent};`);
     if (wikiTagColor) darkRules.push(`  --wiki-tag-color: ${wikiTagColor};`)
 
+    // theme.cssVars is a JSON object { "--var": "value", ... } — injected into both :root AND .dark
+    let cssVarsEntries: [string, string][] = [];
+    const rawCssVarsJson = settings["theme.cssVars"];
+    if (rawCssVarsJson) {
+      try {
+        const parsed = JSON.parse(rawCssVarsJson);
+        if (parsed && typeof parsed === "object") {
+          cssVarsEntries = Object.entries(parsed) as [string, string][];
+        }
+      } catch {
+        // Legacy fallback: plain CSS text from theme.customCssVars
+      }
+    }
+    if (cssVarsEntries.length === 0) {
+      const legacyText = settings["theme.customCssVars"] ?? "";
+      legacyText.split(/\n|;/).map(l => l.trim()).filter(l => l.startsWith("--")).forEach(l => {
+        const colonIdx = l.indexOf(":");
+        if (colonIdx !== -1) {
+          const k = l.slice(0, colonIdx).trim();
+          const v = l.slice(colonIdx + 1).replace(/;$/, "").trim();
+          if (k && v) cssVarsEntries.push([k, v]);
+        }
+      });
+    }
+    // Inject into both light and dark
+    for (const [k, v] of cssVarsEntries) {
+      lightRules.push(`  ${k}: ${v};`);
+      darkRules.push(`  ${k}: ${v};`);
+    }
+
+    // Typography font injection
+    const headingFont = settings["theme.font.heading"];
+    const bodyFont = settings["theme.font.body"];
+    const baseFontSize = settings["theme.font.baseSize"];
+    if (headingFont && headingFont !== "Inter" && headingFont !== "System UI") {
+      lightRules.push(`  --font-heading: '${headingFont}', sans-serif;`);
+      darkRules.push(`  --font-heading: '${headingFont}', sans-serif;`);
+    }
+    if (bodyFont && bodyFont !== "Inter" && bodyFont !== "System UI") {
+      lightRules.push(`  --font-sans: '${bodyFont}', sans-serif;`);
+      darkRules.push(`  --font-sans: '${bodyFont}', sans-serif;`);
+    }
+    if (baseFontSize) {
+      lightRules.push(`  --font-size-base: ${baseFontSize}px;`);
+      darkRules.push(`  --font-size-base: ${baseFontSize}px;`);
+    }
+
     const hasOverrides = lightRules.length > 0 || darkRules.length > 0 || pageScopeRules.length > 0;
 
     if (!hasOverrides) {
@@ -541,6 +605,23 @@ function PlatformColorInjector() {
       styleRef.current = style;
     }
     styleRef.current.textContent = css;
+
+    // Inject Google Font link tag if a URL is set
+    const googleFontUrl = settings["theme.font.googleUrl"];
+    const existingLink = document.getElementById("platform-google-font") as HTMLLinkElement | null;
+    if (googleFontUrl) {
+      if (existingLink) {
+        existingLink.href = googleFontUrl;
+      } else {
+        const link = document.createElement("link");
+        link.id = "platform-google-font";
+        link.rel = "stylesheet";
+        link.href = googleFontUrl;
+        document.head.appendChild(link);
+      }
+    } else if (existingLink) {
+      existingLink.remove();
+    }
   }, [settings]);
 
   return null;

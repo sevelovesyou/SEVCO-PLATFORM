@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,13 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Save, Image, Type, Eye, EyeOff, Globe, Link2, Package, Pencil, Trash2, Plus,
   Palette, RotateCcw, AlignLeft, Layers, Share2, Server, GripVertical, ExternalLink,
   ChevronUp, ChevronDown, Settings2, Layout, Star, BarChart2, CheckCircle2, AlertCircle,
-  Mail, Send,
+  Mail, Send, Search, X,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { FileUploadWithFallback } from "@/components/file-upload";
@@ -71,7 +72,7 @@ function toBool(val: string | undefined): boolean {
   return val !== "false";
 }
 
-const EMPTY_ASSET: Omit<InsertBrandAsset, "id"> = {
+const EMPTY_ASSET: InsertBrandAsset = {
   name: "",
   description: "",
   assetType: "logo",
@@ -83,7 +84,15 @@ const EMPTY_ASSET: Omit<InsertBrandAsset, "id"> = {
 };
 
 // ─────────────────────────────────────────────────────────
-// Social Link parts (copied from command-social-links)
+// Default color swatches
+// ─────────────────────────────────────────────────────────
+const SWATCH_PALETTE = [
+  "#FFFFFF", "#000000", "#0037ff", "#bd0000", "#fbc318", "#00a811",
+  "#1a1a2e", "#f5f5f5", "#6b7280", "#7c3aed", "#0891b2",
+];
+
+// ─────────────────────────────────────────────────────────
+// Social Link parts
 // ─────────────────────────────────────────────────────────
 const ICON_SUGGESTIONS = [
   "SiFacebook", "SiInstagram", "SiYoutube", "SiTiktok", "SiX", "SiThreads",
@@ -327,7 +336,7 @@ function SocialLinkRow({ link, onEdit }: { link: PlatformSocialLink; onEdit: (l:
               <Button
                 variant="ghost"
                 size="icon"
-                  aria-label="Edit"
+                aria-label="Edit"
                 className="h-7 w-7"
                 onClick={() => onEdit(link)}
                 data-testid={`button-edit-social-${link.id}`}
@@ -342,7 +351,7 @@ function SocialLinkRow({ link, onEdit }: { link: PlatformSocialLink; onEdit: (l:
               <Button
                 variant="ghost"
                 size="icon"
-                  aria-label="Delete"
+                aria-label="Delete"
                 className="h-7 w-7 text-destructive hover:text-destructive"
                 onClick={() => {
                   if (window.confirm(`Remove "${link.platform}"?`)) deleteMutation.mutate();
@@ -542,6 +551,166 @@ function EmailDiagnosticsPanel() {
 }
 
 // ─────────────────────────────────────────────────────────
+// Color Picker Row (reusable)
+// ─────────────────────────────────────────────────────────
+function ColorPickerRow({
+  label,
+  hsl,
+  onChange,
+  testIdBase,
+  showSwatches = false,
+}: {
+  label: string;
+  hsl: string;
+  onChange: (hsl: string) => void;
+  testIdBase: string;
+  showSwatches?: boolean;
+}) {
+  const hexVal = hsl ? hslToHex(hsl) : "#000000";
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-3">
+        <div className="relative shrink-0">
+          <div
+            className="h-8 w-8 rounded-md border border-border"
+            style={{ backgroundColor: hsl ? `hsl(${hsl})` : "transparent" }}
+          />
+          <input
+            type="color"
+            value={hexVal}
+            onChange={(e) => onChange(hexToHsl(e.target.value))}
+            className="absolute inset-0 opacity-0 cursor-pointer w-8 h-8"
+            data-testid={`color-picker-${testIdBase}`}
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-foreground">{label}</p>
+          <p className="text-[10px] text-muted-foreground font-mono truncate">{hsl || "—"}</p>
+        </div>
+        {hsl && (
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Clear"
+            className="h-6 w-6 text-muted-foreground shrink-0"
+            onClick={() => onChange("")}
+            data-testid={`button-clear-${testIdBase}`}
+          >
+            <RotateCcw className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
+      {showSwatches && (
+        <div className="flex flex-wrap gap-1.5 pl-11">
+          {SWATCH_PALETTE.map((hex) => (
+            <button
+              key={hex}
+              type="button"
+              title={hex}
+              className="h-5 w-5 rounded border border-border/60 hover:scale-110 transition-transform"
+              style={{ backgroundColor: hex }}
+              onClick={() => onChange(hexToHsl(hex))}
+              data-testid={`swatch-${testIdBase}-${hex.replace("#", "")}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// Live Preview Panel (Theme tab)
+// ─────────────────────────────────────────────────────────
+function LivePreviewPanel({
+  primary,
+  primaryFg,
+  secondary,
+  secondaryFg,
+  background,
+  foreground,
+  card,
+  cardFg,
+  sidebarAccent,
+  sidebarAccentFg,
+}: {
+  primary: string;
+  primaryFg: string;
+  secondary: string;
+  secondaryFg: string;
+  background: string;
+  foreground: string;
+  card: string;
+  cardFg: string;
+  sidebarAccent: string;
+  sidebarAccentFg: string;
+}) {
+  const toHexOrDefault = (hsl: string, fallback: string) => hsl ? hslToHex(hsl) : fallback;
+
+  const bgColor = toHexOrDefault(background, "#f8f8fa");
+  const fgColor = toHexOrDefault(foreground, "#111827");
+  const cardColor = toHexOrDefault(card, "#ffffff");
+  const cardFgColor = toHexOrDefault(cardFg, "#111827");
+  const primaryColor = toHexOrDefault(primary, "#3557ff");
+  const primaryFgColor = toHexOrDefault(primaryFg, "#ffffff");
+  const secondaryColor = toHexOrDefault(secondary, "#e5e7eb");
+  const secondaryFgColor = toHexOrDefault(secondaryFg, "#374151");
+  const sidebarColor = toHexOrDefault(sidebarAccent, "#e8eaf0");
+  const sidebarFgColor = toHexOrDefault(sidebarAccentFg, "#1f2937");
+
+  return (
+    <div className="rounded-lg border border-border overflow-hidden text-[10px]" style={{ backgroundColor: bgColor, color: fgColor }}>
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ backgroundColor: primaryColor, color: primaryFgColor }}>
+        <div className="w-4 h-4 rounded-full border border-current/40 flex items-center justify-center text-[8px] font-bold">S</div>
+        <span className="font-semibold text-[10px]">SEVCO</span>
+        <div className="ml-auto flex gap-1.5">
+          <div className="h-3 px-1.5 rounded text-[8px] flex items-center" style={{ backgroundColor: `${primaryFgColor}22` }}>Nav</div>
+          <div className="h-3 px-1.5 rounded text-[8px] flex items-center" style={{ backgroundColor: `${primaryFgColor}22` }}>Store</div>
+        </div>
+      </div>
+      {/* Body */}
+      <div className="flex">
+        {/* Sidebar */}
+        <div className="w-16 p-2 border-r space-y-1" style={{ backgroundColor: bgColor }}>
+          <div className="h-5 px-2 rounded flex items-center gap-1" style={{ backgroundColor: sidebarColor, color: sidebarFgColor }}>
+            <div className="w-2 h-2 rounded-full bg-current opacity-60" />
+            <span className="text-[8px]">Home</span>
+          </div>
+          <div className="h-5 px-2 rounded flex items-center gap-1 opacity-50">
+            <div className="w-2 h-2 rounded-full border border-current/40" />
+            <span className="text-[8px]">Wiki</span>
+          </div>
+          <div className="h-5 px-2 rounded flex items-center gap-1 opacity-50">
+            <div className="w-2 h-2 rounded-full border border-current/40" />
+            <span className="text-[8px]">Store</span>
+          </div>
+        </div>
+        {/* Content */}
+        <div className="flex-1 p-2 space-y-2">
+          <div className="rounded border p-2 space-y-1.5" style={{ backgroundColor: cardColor, color: cardFgColor }}>
+            <p className="font-semibold text-[10px]">Platform Card</p>
+            <p className="text-[8px] opacity-60">Body text in card foreground color</p>
+            <div className="flex gap-1.5 mt-1">
+              <div className="h-5 px-2 rounded text-[8px] flex items-center font-medium" style={{ backgroundColor: primaryColor, color: primaryFgColor }}>
+                Primary
+              </div>
+              <div className="h-5 px-2 rounded text-[8px] flex items-center font-medium border" style={{ backgroundColor: secondaryColor, color: secondaryFgColor }}>
+                Secondary
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-1.5">
+            <div className="h-4 flex-1 rounded" style={{ backgroundColor: `${fgColor}10` }} />
+            <div className="h-4 w-8 rounded" style={{ backgroundColor: `${fgColor}10` }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
 // Main Settings Page
 // ─────────────────────────────────────────────────────────
 export default function CommandSettings() {
@@ -576,6 +745,9 @@ export default function CommandSettings() {
     },
   });
 
+  // ── Search state ──
+  const [searchQuery, setSearchQuery] = useState("");
+
   // ── Display state ──
   const [heroBgUrl, setHeroBgUrl] = useState("");
   const [heroText, setHeroText] = useState("");
@@ -597,27 +769,37 @@ export default function CommandSettings() {
   const [ga4MeasurementId, setGa4MeasurementId] = useState("");
   const [ga4PropertyId, setGa4PropertyId] = useState("");
 
-  // ── Color state ──
+  // ── Theme color state ──
+  // Defaults aligned to: #0037ff, #bd0000, #fbc318, #00a811 palette
   const DEFAULT_COLORS = {
-    lightPrimary: "225 60% 48%",
-    lightBackground: "210 20% 98%",
-    lightForeground: "220 20% 12%",
-    lightAccent: "220 14% 93%",
-    darkPrimary: "225 65% 58%",
-    darkBackground: "222 20% 8%",
-    darkForeground: "210 20% 92%",
+    lightPrimary: "225 100% 50%",
+    lightBackground: "0 0% 100%",
+    lightForeground: "224 71% 4%",
+    lightAccent: "210 40% 96%",
+    darkPrimary: "225 100% 65%",
+    darkBackground: "222 47% 11%",
+    darkForeground: "210 40% 98%",
     darkAccent: "222 14% 16%",
     brandMain: "",
     brandSecondary: "",
     brandAccent: "",
     brandHighlight: "",
-    navActiveHighlight: "",
   };
 
   const [lightPrimary, setLightPrimary] = useState(DEFAULT_COLORS.lightPrimary);
+  const [lightPrimaryFg, setLightPrimaryFg] = useState("0 0% 100%");
   const [lightBackground, setLightBackground] = useState(DEFAULT_COLORS.lightBackground);
   const [lightForeground, setLightForeground] = useState(DEFAULT_COLORS.lightForeground);
   const [lightAccent, setLightAccent] = useState(DEFAULT_COLORS.lightAccent);
+  const [lightAccentFg, setLightAccentFg] = useState("224 71% 4%");
+  const [lightSecondary, setLightSecondary] = useState("0 100% 37%");
+  const [lightSecondaryFg, setLightSecondaryFg] = useState("0 0% 100%");
+  const [lightCard, setLightCard] = useState("0 0% 100%");
+  const [lightCardFg, setLightCardFg] = useState("224 71% 4%");
+  const [lightMuted, setLightMuted] = useState("210 40% 96%");
+  const [lightMutedFg, setLightMutedFg] = useState("215 16% 47%");
+  const [lightBorder, setLightBorder] = useState("214 32% 91%");
+  const [lightDestructive, setLightDestructive] = useState("0 72% 37%");
   const [darkPrimary, setDarkPrimary] = useState(DEFAULT_COLORS.darkPrimary);
   const [darkBackground, setDarkBackground] = useState(DEFAULT_COLORS.darkBackground);
   const [darkForeground, setDarkForeground] = useState(DEFAULT_COLORS.darkForeground);
@@ -626,13 +808,14 @@ export default function CommandSettings() {
   const [brandSecondary, setBrandSecondary] = useState(DEFAULT_COLORS.brandSecondary);
   const [brandAccent, setBrandAccent] = useState(DEFAULT_COLORS.brandAccent);
   const [brandHighlight, setBrandHighlight] = useState(DEFAULT_COLORS.brandHighlight);
-  const [navActiveHighlight, setNavActiveHighlight] = useState(DEFAULT_COLORS.navActiveHighlight);
 
+  // ── Nav color state ──
   const [navMainBg, setNavMainBg] = useState("");
   const [navMainText, setNavMainText] = useState("");
   const [navSubBg, setNavSubBg] = useState("");
   const [navSubText, setNavSubText] = useState("");
 
+  // ── Page button colors ──
   const PAGE_LABELS: Record<string, string> = {
     landing: "Home",
     store: "Store",
@@ -658,6 +841,26 @@ export default function CommandSettings() {
   const [servicesAccentColor, setServicesAccentColor] = useState("");
   const [musicAccentColor, setMusicAccentColor] = useState("");
   const [wikiTagColor, setWikiTagColor] = useState("");
+
+  // ── Typography state ──
+  const FONT_OPTIONS = [
+    "Inter", "System UI", "Roboto", "Open Sans", "Lato", "Poppins", "Montserrat",
+    "Nunito", "Raleway", "Source Sans Pro", "Playfair Display", "Merriweather",
+    "Georgia", "serif", "monospace",
+  ];
+  const [headingFont, setHeadingFont] = useState("Inter");
+  const [bodyFont, setBodyFont] = useState("Inter");
+  const [baseFontSize, setBaseFontSize] = useState("16");
+  const [headingScale, setHeadingScale] = useState("1.25");
+  const [googleFontUrl, setGoogleFontUrl] = useState("");
+
+  // ── Advanced CSS vars state (theme.cssVars JSON object) ──
+  // Stored as JSON { "--radius": "0.5rem", ... } at platformSettings["theme.cssVars"]
+  const DEFAULT_CSS_VARS: Record<string, string> = {
+    "--radius": "0.5rem",
+  };
+  const [cssVarsJson, setCssVarsJson] = useState<Record<string, string>>(DEFAULT_CSS_VARS);
+  const [cssVarsText, setCssVarsText] = useState("--radius: 0.5rem;");
 
   // ── Icon pills state ──
   const [iconPills, setIconPills] = useState<IconPill[]>(DEFAULT_ICON_PILLS);
@@ -689,10 +892,21 @@ export default function CommandSettings() {
       vis[s.key] = toBool(settings[s.key]);
     }
     setSectionVisibility(vis);
+
     setLightPrimary(settings["color.light.primary"] || DEFAULT_COLORS.lightPrimary);
+    setLightPrimaryFg(settings["color.light.primaryFg"] || "0 0% 100%");
     setLightBackground(settings["color.light.background"] || DEFAULT_COLORS.lightBackground);
     setLightForeground(settings["color.light.foreground"] || DEFAULT_COLORS.lightForeground);
     setLightAccent(settings["color.light.accent"] || DEFAULT_COLORS.lightAccent);
+    setLightAccentFg(settings["color.light.accentFg"] || "224 71% 4%");
+    setLightSecondary(settings["color.light.secondary"] || "0 100% 37%");
+    setLightSecondaryFg(settings["color.light.secondaryFg"] || "0 0% 100%");
+    setLightCard(settings["color.light.card"] || "0 0% 100%");
+    setLightCardFg(settings["color.light.cardFg"] || "224 71% 4%");
+    setLightMuted(settings["color.light.muted"] || "210 40% 96%");
+    setLightMutedFg(settings["color.light.mutedFg"] || "215 16% 47%");
+    setLightBorder(settings["color.light.border"] || "214 32% 91%");
+    setLightDestructive(settings["color.light.destructive"] || "0 100% 37%");
     setDarkPrimary(settings["color.dark.primary"] || DEFAULT_COLORS.darkPrimary);
     setDarkBackground(settings["color.dark.background"] || DEFAULT_COLORS.darkBackground);
     setDarkForeground(settings["color.dark.foreground"] || DEFAULT_COLORS.darkForeground);
@@ -701,7 +915,6 @@ export default function CommandSettings() {
     setBrandSecondary(settings["color.brand.secondary"] || DEFAULT_COLORS.brandSecondary);
     setBrandAccent(settings["color.brand.accent"] || DEFAULT_COLORS.brandAccent);
     setBrandHighlight(settings["color.brand.highlight"] || DEFAULT_COLORS.brandHighlight);
-    setNavActiveHighlight(settings["color.nav.activeHighlight"] || DEFAULT_COLORS.navActiveHighlight);
     setNavMainBg(settings["color.nav.main.bg"] || settings["color.nav.activeHighlight"] || "");
     setNavMainText(settings["color.nav.main.text"] || "");
     setNavSubBg(settings["color.nav.sub.bg"] || "");
@@ -754,6 +967,29 @@ export default function CommandSettings() {
     setGa4MeasurementId(settings["analytics.ga4MeasurementId"] || "");
     setGa4PropertyId(settings["analytics.ga4PropertyId"] || "");
 
+    // Typography
+    setHeadingFont(settings["theme.font.heading"] || "Inter");
+    setBodyFont(settings["theme.font.body"] || "Inter");
+    setBaseFontSize(settings["theme.font.baseSize"] || "16");
+    setHeadingScale(settings["theme.font.headingScale"] || "1.25");
+    setGoogleFontUrl(settings["theme.font.googleUrl"] || "");
+
+    // theme.cssVars stored as JSON { "--var": "value", ... }
+    if (settings["theme.cssVars"]) {
+      try {
+        const parsed = JSON.parse(settings["theme.cssVars"]);
+        if (parsed && typeof parsed === "object") {
+          setCssVarsJson(parsed);
+          setCssVarsText(Object.entries(parsed).map(([k, v]) => `${k}: ${v};`).join("\n"));
+        }
+      } catch {
+        const fallback = settings["theme.cssVars"];
+        setCssVarsText(fallback);
+      }
+    } else if (settings["theme.customCssVars"]) {
+      setCssVarsText(settings["theme.customCssVars"]);
+    }
+
     if (settings["home.iconPills"]) {
       try {
         const parsed = JSON.parse(settings["home.iconPills"]);
@@ -776,35 +1012,101 @@ export default function CommandSettings() {
     }
   }, [settings, isLoading]);
 
-  // ── Display save fns ──
-  function saveColors() {
+  // ── Save functions ──
+  function saveThemePrimaryPalette() {
     mutation.mutate({
       "color.light.primary": lightPrimary,
-      "color.light.background": lightBackground,
-      "color.light.foreground": lightForeground,
-      "color.light.accent": lightAccent,
+      "color.light.primaryFg": lightPrimaryFg,
       "color.dark.primary": darkPrimary,
-      "color.dark.background": darkBackground,
-      "color.dark.foreground": darkForeground,
-      "color.dark.accent": darkAccent,
+    });
+  }
+
+  function saveThemeSecondaryAccent() {
+    mutation.mutate({
+      "color.light.secondary": lightSecondary,
+      "color.light.secondaryFg": lightSecondaryFg,
+      "color.light.accent": lightAccent,
+      "color.light.accentFg": lightAccentFg,
+    });
+  }
+
+  function saveThemeBrandColors() {
+    mutation.mutate({
       "color.brand.main": brandMain,
       "color.brand.secondary": brandSecondary,
       "color.brand.accent": brandAccent,
       "color.brand.highlight": brandHighlight,
-      "color.nav.main.bg": navMainBg,
-      "color.nav.main.text": navMainText,
-      "color.nav.sub.bg": navSubBg,
-      "color.nav.sub.text": navSubText,
-      "color.nav.activeHighlight": "",
     });
   }
 
-  function resetColors() {
+  function saveThemeNeutrals() {
+    mutation.mutate({
+      "color.light.background": lightBackground,
+      "color.light.foreground": lightForeground,
+      "color.light.card": lightCard,
+      "color.light.cardFg": lightCardFg,
+      "color.light.muted": lightMuted,
+      "color.light.mutedFg": lightMutedFg,
+      "color.light.border": lightBorder,
+      "color.dark.background": darkBackground,
+      "color.dark.foreground": darkForeground,
+      "color.dark.accent": darkAccent,
+    });
+  }
+
+  function saveThemeStatusColors() {
+    mutation.mutate({
+      "color.light.destructive": lightDestructive,
+    });
+  }
+
+  function parseCssVarsText(text: string): Record<string, string> {
+    const result: Record<string, string> = {};
+    const lines = text.split(/\n|;/).map(l => l.trim()).filter(l => l.startsWith("--"));
+    for (const line of lines) {
+      const colonIdx = line.indexOf(":");
+      if (colonIdx === -1) continue;
+      const key = line.slice(0, colonIdx).trim();
+      const val = line.slice(colonIdx + 1).replace(/;$/, "").trim();
+      if (key && val) result[key] = val;
+    }
+    return result;
+  }
+
+  function saveCustomCssVars() {
+    const parsed = parseCssVarsText(cssVarsText);
+    setCssVarsJson(parsed);
+    mutation.mutate({ "theme.cssVars": JSON.stringify(parsed) });
+  }
+
+  function saveTypography() {
+    mutation.mutate({
+      "theme.font.heading": headingFont,
+      "theme.font.body": bodyFont,
+      "theme.font.baseSize": baseFontSize,
+      "theme.font.headingScale": headingScale,
+      "theme.font.googleUrl": googleFontUrl,
+    });
+  }
+
+  function resetAllTheme() {
+    setCssVarsText("--radius: 0.5rem;");
+    setCssVarsJson({ "--radius": "0.5rem" });
     mutation.mutate({
       "color.light.primary": "",
+      "color.light.primaryFg": "",
       "color.light.background": "",
       "color.light.foreground": "",
       "color.light.accent": "",
+      "color.light.accentFg": "",
+      "color.light.secondary": "",
+      "color.light.secondaryFg": "",
+      "color.light.card": "",
+      "color.light.cardFg": "",
+      "color.light.muted": "",
+      "color.light.mutedFg": "",
+      "color.light.border": "",
+      "color.light.destructive": "",
       "color.dark.primary": "",
       "color.dark.background": "",
       "color.dark.foreground": "",
@@ -813,10 +1115,17 @@ export default function CommandSettings() {
       "color.brand.secondary": "",
       "color.brand.accent": "",
       "color.brand.highlight": "",
-      "color.nav.main.bg": "",
-      "color.nav.main.text": "",
-      "color.nav.sub.bg": "",
-      "color.nav.sub.text": "",
+      "theme.cssVars": JSON.stringify({ "--radius": "0.5rem" }),
+      "theme.customCssVars": "",
+    });
+  }
+
+  function saveNavColors() {
+    mutation.mutate({
+      "color.nav.main.bg": navMainBg,
+      "color.nav.main.text": navMainText,
+      "color.nav.sub.bg": navSubBg,
+      "color.nav.sub.text": navSubText,
       "color.nav.activeHighlight": "",
     });
   }
@@ -1089,1444 +1398,1574 @@ export default function CommandSettings() {
     }));
   }
 
-  // ── Color Picker Row ──
-  function ColorPickerRow({
-    label,
-    hsl,
-    onChange,
-    testIdBase,
-  }: {
-    label: string;
-    hsl: string;
-    onChange: (hsl: string) => void;
-    testIdBase: string;
-  }) {
-    const hexVal = hsl ? hslToHex(hsl) : "#000000";
+  // ─────────────────────────────────────────────────────────
+  // Search filtering logic — hides non-matching Cards within tabs
+  // ─────────────────────────────────────────────────────────
+  const q = searchQuery.toLowerCase().trim();
+
+  function highlight(text: string): React.ReactNode {
+    if (!q) return text;
+    const idx = text.toLowerCase().indexOf(q);
+    if (idx === -1) return text;
     return (
-      <div className="flex items-center gap-3">
-        <div className="relative shrink-0">
-          <div
-            className="h-8 w-8 rounded-md border border-border"
-            style={{ backgroundColor: hsl ? `hsl(${hsl})` : "transparent" }}
-          />
-          <input
-            type="color"
-            value={hexVal}
-            onChange={(e) => onChange(hexToHsl(e.target.value))}
-            className="absolute inset-0 opacity-0 cursor-pointer w-8 h-8"
-            data-testid={`color-picker-${testIdBase}`}
-          />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-foreground">{label}</p>
-          <p className="text-[10px] text-muted-foreground font-mono truncate">{hsl || "—"}</p>
-        </div>
+      <>
+        {text.slice(0, idx)}
+        <mark className="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5">{text.slice(idx, idx + q.length)}</mark>
+        {text.slice(idx + q.length)}
+      </>
+    );
+  }
+
+  /**
+   * Returns true when the card's search label or any text matches the query.
+   * Pass the `data-search-label` value of the card as well as any extra text terms.
+   */
+  function cardVisible(labelAttr: string, ...extras: string[]): boolean {
+    if (!q) return true;
+    const combined = [labelAttr, ...extras].join(" ").toLowerCase();
+    return combined.includes(q);
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4 max-w-4xl">
+        {[1, 2, 3].map((i) => <Skeleton key={i} className="h-32 w-full" />)}
       </div>
     );
   }
 
   return (
-    <div className="space-y-10 max-w-3xl">
+    <div className="space-y-5 max-w-5xl">
+      {/* ── Search Bar ── */}
+      <div className="relative" data-search-label="settings-search">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Input
+          placeholder="Search settings…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9 pr-9"
+          data-testid="input-settings-search"
+        />
+        {searchQuery && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+            onClick={() => setSearchQuery("")}
+            data-testid="button-clear-search"
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
 
-      {/* ── DISPLAY ── */}
-      <section>
-        <div className="mb-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-            <Layout className="h-3.5 w-3.5" />
-            Display
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Hero editor, section visibility, and platform assets</p>
-        </div>
+      <Tabs defaultValue="display">
+          <TabsList className="flex flex-wrap gap-1 h-auto mb-6" data-testid="tabs-settings-main">
+            <TabsTrigger value="display" data-testid="tab-display">Display</TabsTrigger>
+            <TabsTrigger value="theme" data-testid="tab-theme">Theme</TabsTrigger>
+            <TabsTrigger value="navigation" data-testid="tab-navigation">Navigation</TabsTrigger>
+            <TabsTrigger value="analytics" data-testid="tab-analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="integrations" data-testid="tab-integrations">Integrations</TabsTrigger>
+            <TabsTrigger value="advanced" data-testid="tab-advanced">Advanced</TabsTrigger>
+          </TabsList>
 
-        <div className="space-y-6">
-          {/* Hero Editor */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Image className="h-4 w-4" />
-                Hero Editor
-              </CardTitle>
-              <CardDescription>
-                Customize the landing page hero section. Leave the background image URL empty to keep the default gradient.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1.5">
-                  <Link2 className="h-3.5 w-3.5" />
-                  Platform Logo / Icon
-                </Label>
-                <FileUploadWithFallback
-                  bucket="brand-assets"
-                  path={`platform-logo/logo.{ext}`}
-                  accept="image/*"
-                  maxSizeMb={2}
-                  currentUrl={platformLogoUrl || null}
-                  onUpload={(url) => setPlatformLogoUrl(url)}
-                  onUrlChange={(url) => setPlatformLogoUrl(url)}
-                  urlValue={platformLogoUrl}
-                  label="Upload Logo"
-                  urlPlaceholder="https://example.com/logo.png"
-                  urlTestId="input-hero-platform-logo-url"
-                />
-                <p className="text-xs text-muted-foreground">Displayed in the hero and header. Leave empty for the default SEVCO planet icon.</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Hero background image</Label>
-                <FileUploadWithFallback
-                  bucket="gallery"
-                  path={`hero/background.{ext}`}
-                  accept="image/*"
-                  maxSizeMb={10}
-                  currentUrl={heroBgUrl || null}
-                  onUpload={(url) => setHeroBgUrl(url)}
-                  onUrlChange={(url) => setHeroBgUrl(url)}
-                  urlValue={heroBgUrl}
-                  label="Upload Background"
-                  urlPlaceholder="https://example.com/image.jpg (leave empty for gradient)"
-                  urlTestId="input-hero-bg-url"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1.5">
-                  <Layers className="h-3.5 w-3.5" />
-                  Overlay Opacity
-                  <span className="text-muted-foreground text-xs ml-auto">{heroOverlayOpacity}%</span>
-                </Label>
-                <Slider
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={[heroOverlayOpacity]}
-                  onValueChange={([v]) => setHeroOverlayOpacity(v)}
-                  data-testid="slider-overlay-opacity"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="hero-text">Hero text (tagline)</Label>
-                <Textarea
-                  id="hero-text"
-                  placeholder="One platform for all things SEVCO..."
-                  value={heroText}
-                  onChange={(e) => setHeroText(e.target.value)}
-                  rows={3}
-                  data-testid="input-hero-text"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="footer-tagline" className="flex items-center gap-1.5">
-                  <AlignLeft className="h-3.5 w-3.5" />
-                  Footer Tagline
-                </Label>
-                <Input
-                  id="footer-tagline"
-                  placeholder="The creative platform for the SEVCO universe."
-                  value={footerTagline}
-                  onChange={(e) => setFooterTagline(e.target.value)}
-                  data-testid="input-footer-tagline"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="footer-version" className="flex items-center gap-1.5">
-                  <AlignLeft className="h-3.5 w-3.5" />
-                  Footer Version
-                </Label>
-                <Input
-                  id="footer-version"
-                  placeholder="e.g. 2.4.1 (leave blank to use latest changelog version)"
-                  value={footerVersion}
-                  onChange={(e) => setFooterVersion(e.target.value)}
-                  data-testid="input-footer-version"
-                />
-                <p className="text-xs text-muted-foreground">Override the version string shown in the footer. If blank, falls back to the latest changelog entry's version.</p>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <Type className="h-3.5 w-3.5" />
-                  Button 1 (Primary)
-                </p>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="btn1-label" className="text-xs">Label</Label>
-                    <Input id="btn1-label" placeholder="Explore the Wiki" value={btn1Label} onChange={(e) => setBtn1Label(e.target.value)} data-testid="input-btn1-label" />
+          {/* ════════════ DISPLAY ════════════ */}
+          <TabsContent value="display" className="space-y-6">
+              {/* Hero Editor */}
+              <Card data-search-label="hero editor logo background overlay tagline buttons footer version" className={cardVisible("hero editor logo background overlay tagline buttons footer version") ? "" : "hidden"}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Image className="h-4 w-4" />
+                    {highlight("Hero Editor")}
+                  </CardTitle>
+                  <CardDescription>
+                    {highlight("Customize the landing page hero section. Leave the background image URL empty to keep the default gradient.")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
+                      <Link2 className="h-3.5 w-3.5" />
+                      {highlight("Platform Logo / Icon")}
+                    </Label>
+                    <FileUploadWithFallback
+                      bucket="brand-assets"
+                      path={`platform-logo/logo.{ext}`}
+                      accept="image/*"
+                      maxSizeMb={2}
+                      currentUrl={platformLogoUrl || null}
+                      onUpload={(url) => setPlatformLogoUrl(url)}
+                      onUrlChange={(url) => setPlatformLogoUrl(url)}
+                      urlValue={platformLogoUrl}
+                      label="Upload Logo"
+                      urlPlaceholder="https://example.com/logo.png"
+                      urlTestId="input-hero-platform-logo-url"
+                    />
+                    <p className="text-xs text-muted-foreground">Displayed in the hero and header. Leave empty for the default SEVCO planet icon.</p>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="btn1-url" className="text-xs">URL</Label>
-                    <Input id="btn1-url" placeholder="/wiki" value={btn1Url} onChange={(e) => setBtn1Url(e.target.value)} data-testid="input-btn1-url" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="btn1-icon" className="text-xs">Icon name (lucide)</Label>
-                    <Input id="btn1-icon" placeholder="BookOpen" value={btn1Icon} onChange={(e) => setBtn1Icon(e.target.value)} data-testid="input-btn1-icon" />
-                  </div>
-                </div>
-              </div>
 
-              <div className="space-y-4">
-                <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <Type className="h-3.5 w-3.5" />
-                  Button 2 (Secondary)
-                </p>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="btn2-label" className="text-xs">Label</Label>
-                    <Input id="btn2-label" placeholder="Shop the Store" value={btn2Label} onChange={(e) => setBtn2Label(e.target.value)} data-testid="input-btn2-label" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="btn2-url" className="text-xs">URL</Label>
-                    <Input id="btn2-url" placeholder="/store" value={btn2Url} onChange={(e) => setBtn2Url(e.target.value)} data-testid="input-btn2-url" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="btn2-icon" className="text-xs">Icon name (lucide)</Label>
-                    <Input id="btn2-icon" placeholder="ShoppingBag" value={btn2Icon} onChange={(e) => setBtn2Icon(e.target.value)} data-testid="input-btn2-icon" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button onClick={saveHero} disabled={mutation.isPending} className="gap-2" data-testid="button-save-hero">
-                  <Save className="h-3.5 w-3.5" />
-                  Save Hero
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section Visibility */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Eye className="h-4 w-4" />
-                Section Visibility
-              </CardTitle>
-              <CardDescription>Toggle which sections appear on the public landing page.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {SECTION_KEYS.map((section) => (
-                <div key={section.key} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{section.label}</p>
-                    <p className="text-xs text-muted-foreground">{section.description}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {sectionVisibility[section.key] !== false ? (
-                      <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                    ) : (
-                      <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
-                    )}
-                    <Switch
-                      checked={sectionVisibility[section.key] !== false}
-                      onCheckedChange={(checked) =>
-                        setSectionVisibility((prev) => ({ ...prev, [section.key]: checked }))
-                      }
-                      data-testid={`switch-section-${section.key}`}
+                  <div className="space-y-2">
+                    <Label>{highlight("Hero background image")}</Label>
+                    <FileUploadWithFallback
+                      bucket="gallery"
+                      path={`hero/background.{ext}`}
+                      accept="image/*"
+                      maxSizeMb={10}
+                      currentUrl={heroBgUrl || null}
+                      onUpload={(url) => setHeroBgUrl(url)}
+                      onUrlChange={(url) => setHeroBgUrl(url)}
+                      urlValue={heroBgUrl}
+                      label="Upload Background"
+                      urlPlaceholder="https://example.com/image.jpg (leave empty for gradient)"
+                      urlTestId="input-hero-bg-url"
                     />
                   </div>
-                </div>
-              ))}
-              <div className="flex justify-end pt-2">
-                <Button onClick={saveSections} disabled={mutation.isPending} className="gap-2" data-testid="button-save-sections">
-                  <Save className="h-3.5 w-3.5" />
-                  Save Visibility
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Platform Section Cards */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Layers className="h-4 w-4" />
-                    Platform Section Cards
-                  </CardTitle>
-                  <CardDescription className="mt-1">
-                    Edit the 6 cards shown in the "THE PLATFORM" grid on the home page. Each card has a label, description, link path, and Lucide icon name.
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-2 text-muted-foreground shrink-0"
-                  onClick={resetPlatformSections}
-                  disabled={mutation.isPending}
-                  data-testid="button-reset-platform-sections"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  Reset
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {platformSections.map((section, idx) => (
-                <div key={idx} className="border border-border/60 rounded-xl p-4 space-y-3 bg-muted/10">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Card {idx + 1}</span>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
+                      <Layers className="h-3.5 w-3.5" />
+                      {highlight("Overlay Opacity")}
+                      <span className="text-muted-foreground text-xs ml-auto">{heroOverlayOpacity}%</span>
+                    </Label>
+                    <Slider
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={[heroOverlayOpacity]}
+                      onValueChange={([v]) => setHeroOverlayOpacity(v)}
+                      data-testid="slider-overlay-opacity"
+                    />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Label</Label>
-                      <Input
-                        value={section.label}
-                        onChange={(e) => updatePlatformSection(idx, "label", e.target.value)}
-                        placeholder="Wiki"
-                        data-testid={`input-platform-section-label-${idx}`}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Icon Name (Lucide)</Label>
-                      <Input
-                        value={section.iconName}
-                        onChange={(e) => updatePlatformSection(idx, "iconName", e.target.value)}
-                        placeholder="BookOpen"
-                        list={`icon-options-${idx}`}
-                        data-testid={`input-platform-section-icon-${idx}`}
-                      />
-                      <datalist id={`icon-options-${idx}`}>
-                        {LUCIDE_ICON_OPTIONS.map((i) => <option key={i} value={i} />)}
-                      </datalist>
-                    </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="hero-text">{highlight("Hero text (tagline)")}</Label>
+                    <Textarea
+                      id="hero-text"
+                      placeholder="One platform for all things SEVCO..."
+                      value={heroText}
+                      onChange={(e) => setHeroText(e.target.value)}
+                      rows={3}
+                      data-testid="input-hero-text"
+                    />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Link Path</Label>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="footer-tagline" className="flex items-center gap-1.5">
+                      <AlignLeft className="h-3.5 w-3.5" />
+                      {highlight("Footer Tagline")}
+                    </Label>
                     <Input
-                      value={section.path}
-                      onChange={(e) => updatePlatformSection(idx, "path", e.target.value)}
-                      placeholder="/wiki"
-                      data-testid={`input-platform-section-path-${idx}`}
+                      id="footer-tagline"
+                      placeholder="The creative platform for the SEVCO universe."
+                      value={footerTagline}
+                      onChange={(e) => setFooterTagline(e.target.value)}
+                      data-testid="input-footer-tagline"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Description</Label>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="footer-version" className="flex items-center gap-1.5">
+                      <AlignLeft className="h-3.5 w-3.5" />
+                      {highlight("Footer Version")}
+                    </Label>
                     <Input
-                      value={section.description}
-                      onChange={(e) => updatePlatformSection(idx, "description", e.target.value)}
-                      placeholder="Short description shown on the card"
-                      data-testid={`input-platform-section-description-${idx}`}
+                      id="footer-version"
+                      placeholder="e.g. 2.4.1 (leave blank to use latest changelog version)"
+                      value={footerVersion}
+                      onChange={(e) => setFooterVersion(e.target.value)}
+                      data-testid="input-footer-version"
                     />
+                    <p className="text-xs text-muted-foreground">Override the version string shown in the footer. If blank, falls back to the latest changelog entry's version.</p>
                   </div>
-                </div>
-              ))}
-              <div className="flex justify-end pt-2">
-                <Button onClick={savePlatformSections} disabled={mutation.isPending} className="gap-2" data-testid="button-save-platform-sections">
-                  <Save className="h-3.5 w-3.5" />
-                  Save Section Cards
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Platform Assets */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                Platform Assets
-              </CardTitle>
-              <CardDescription>Update the site favicon and social sharing image.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1.5">
-                  <Link2 className="h-3.5 w-3.5" />
-                  Platform Wordmark / Logo
-                </Label>
-                <FileUploadWithFallback
-                  bucket="brand-assets"
-                  path={`platform/logo.{ext}`}
-                  accept="image/*"
-                  maxSizeMb={2}
-                  currentUrl={platformLogoUrl || null}
-                  onUpload={(url) => setPlatformLogoUrl(url)}
-                  onUrlChange={(url) => setPlatformLogoUrl(url)}
-                  urlValue={platformLogoUrl}
-                  label="Upload Logo"
-                  urlPlaceholder="https://example.com/logo.png"
-                  urlTestId="input-platform-logo-url"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1.5">
-                  <Link2 className="h-3.5 w-3.5" />
-                  Favicon
-                </Label>
-                <FileUploadWithFallback
-                  bucket="brand-assets"
-                  path={`favicon/favicon.{ext}`}
-                  accept="image/*"
-                  maxSizeMb={2}
-                  currentUrl={faviconUrl || null}
-                  onUpload={(url) => setFaviconUrl(url)}
-                  onUrlChange={(url) => setFaviconUrl(url)}
-                  urlValue={faviconUrl}
-                  label="Upload Favicon"
-                  urlPlaceholder="https://example.com/favicon.ico"
-                  urlTestId="input-favicon-url"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1.5">
-                  <Link2 className="h-3.5 w-3.5" />
-                  Social image (OG)
-                </Label>
-                <FileUploadWithFallback
-                  bucket="brand-assets"
-                  path={`og/og-image.{ext}`}
-                  accept="image/*"
-                  maxSizeMb={5}
-                  currentUrl={ogImageUrl || null}
-                  onUpload={(url) => setOgImageUrl(url)}
-                  onUrlChange={(url) => setOgImageUrl(url)}
-                  urlValue={ogImageUrl}
-                  label="Upload OG Image"
-                  urlPlaceholder="https://example.com/og-image.jpg"
-                  urlTestId="input-og-image-url"
-                />
-              </div>
-              <div className="flex justify-end">
-                <Button onClick={saveAssets} disabled={mutation.isPending} className="gap-2" data-testid="button-save-assets">
-                  <Save className="h-3.5 w-3.5" />
-                  Save Assets
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+                  <Separator />
 
-      {/* ── BRAND & COLORS ── */}
-      <section>
-        <div className="mb-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-            <Palette className="h-3.5 w-3.5" />
-            Brand & Colors
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Brand colors, CSS overrides, and downloadable brand assets</p>
-        </div>
+                  <div className="space-y-4">
+                    <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <Type className="h-3.5 w-3.5" />
+                      {highlight("Button 1 (Primary)")}
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="btn1-label" className="text-xs">Label</Label>
+                        <Input id="btn1-label" placeholder="Explore the Wiki" value={btn1Label} onChange={(e) => setBtn1Label(e.target.value)} data-testid="input-btn1-label" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="btn1-url" className="text-xs">URL</Label>
+                        <Input id="btn1-url" placeholder="/wiki" value={btn1Url} onChange={(e) => setBtn1Url(e.target.value)} data-testid="input-btn1-url" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="btn1-icon" className="text-xs">Icon name (lucide)</Label>
+                        <Input id="btn1-icon" placeholder="BookOpen" value={btn1Icon} onChange={(e) => setBtn1Icon(e.target.value)} data-testid="input-btn1-icon" />
+                      </div>
+                    </div>
+                  </div>
 
-        <div className="space-y-6">
-          {/* Platform Colors */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
+                  <div className="space-y-4">
+                    <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <Type className="h-3.5 w-3.5" />
+                      {highlight("Button 2 (Secondary)")}
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="btn2-label" className="text-xs">Label</Label>
+                        <Input id="btn2-label" placeholder="Shop the Store" value={btn2Label} onChange={(e) => setBtn2Label(e.target.value)} data-testid="input-btn2-label" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="btn2-url" className="text-xs">URL</Label>
+                        <Input id="btn2-url" placeholder="/store" value={btn2Url} onChange={(e) => setBtn2Url(e.target.value)} data-testid="input-btn2-url" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="btn2-icon" className="text-xs">Icon name (lucide)</Label>
+                        <Input id="btn2-icon" placeholder="ShoppingBag" value={btn2Icon} onChange={(e) => setBtn2Icon(e.target.value)} data-testid="input-btn2-icon" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button onClick={saveHero} disabled={mutation.isPending} className="gap-2" data-testid="button-save-hero">
+                      <Save className="h-3.5 w-3.5" />
+                      Save Hero
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Section Visibility */}
+              <Card data-search-label="section visibility platform grid records spotlight store preview wiki community" className={cardVisible("section visibility platform grid records spotlight store preview wiki community") ? "" : "hidden"}>
+                <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Palette className="h-4 w-4" />
-                    Platform Colors
+                    <Eye className="h-4 w-4" />
+                    {highlight("Section Visibility")}
                   </CardTitle>
-                  <CardDescription className="mt-1">
-                    Customize the color scheme across the platform. Changes take effect immediately after saving.
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-2 text-muted-foreground shrink-0"
-                  onClick={resetColors}
-                  disabled={mutation.isPending}
-                  data-testid="button-reset-colors"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  Reset to defaults
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <Tabs defaultValue="light">
-                <TabsList className="mb-4" data-testid="tabs-color-mode">
-                  <TabsTrigger value="light" data-testid="tab-light-mode">Light Mode</TabsTrigger>
-                  <TabsTrigger value="dark" data-testid="tab-dark-mode">Dark Mode</TabsTrigger>
-                </TabsList>
-                <TabsContent value="light" className="space-y-4">
-                  <ColorPickerRow label="Primary" hsl={lightPrimary} onChange={setLightPrimary} testIdBase="light-primary" />
-                  <ColorPickerRow label="Background" hsl={lightBackground} onChange={setLightBackground} testIdBase="light-background" />
-                  <ColorPickerRow label="Foreground" hsl={lightForeground} onChange={setLightForeground} testIdBase="light-foreground" />
-                  <ColorPickerRow label="Accent" hsl={lightAccent} onChange={setLightAccent} testIdBase="light-accent" />
-                </TabsContent>
-                <TabsContent value="dark" className="space-y-4">
-                  <ColorPickerRow label="Primary" hsl={darkPrimary} onChange={setDarkPrimary} testIdBase="dark-primary" />
-                  <ColorPickerRow label="Background" hsl={darkBackground} onChange={setDarkBackground} testIdBase="dark-background" />
-                  <ColorPickerRow label="Foreground" hsl={darkForeground} onChange={setDarkForeground} testIdBase="dark-foreground" />
-                  <ColorPickerRow label="Accent" hsl={darkAccent} onChange={setDarkAccent} testIdBase="dark-accent" />
-                </TabsContent>
-              </Tabs>
-
-              <Separator />
-
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-foreground">Brand Colors</p>
-                <p className="text-xs text-muted-foreground">Apply globally across both modes and shown on the About page.</p>
-                <ColorPickerRow label="Brand Main" hsl={brandMain} onChange={setBrandMain} testIdBase="brand-main" />
-                <ColorPickerRow label="Brand Secondary" hsl={brandSecondary} onChange={setBrandSecondary} testIdBase="brand-secondary" />
-                <ColorPickerRow label="Brand Accent" hsl={brandAccent} onChange={setBrandAccent} testIdBase="brand-accent" />
-                <ColorPickerRow label="Brand Highlight" hsl={brandHighlight} onChange={setBrandHighlight} testIdBase="brand-highlight" />
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Navigation Colors</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Controls active and hover colors in the sidebar and dropdown menus. Leave blank to use defaults.</p>
-                </div>
-
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sidebar Navigation</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <p className="text-xs font-medium text-foreground">Active background</p>
-                      <div className="flex items-center gap-2">
-                        <div className="relative shrink-0">
-                          <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navMainBg ? `hsl(${navMainBg})` : "transparent" }} />
-                          <input type="color" value={navMainBg ? hslToHex(navMainBg) : "#000000"} onChange={(e) => setNavMainBg(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-main-bg" />
-                        </div>
-                        <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navMainBg || "— default"}</p>
-                        {navMainBg && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavMainBg("")} data-testid="button-reset-nav-main-bg"><RotateCcw className="h-3 w-3" /></Button>}
+                  <CardDescription>{highlight("Toggle which sections appear on the public landing page.")}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {SECTION_KEYS.map((section) => (
+                    <div key={section.key} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{highlight(section.label)}</p>
+                        <p className="text-xs text-muted-foreground">{highlight(section.description)}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {sectionVisibility[section.key] !== false ? (
+                          <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                        ) : (
+                          <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                        )}
+                        <Switch
+                          checked={sectionVisibility[section.key] !== false}
+                          onCheckedChange={(checked) =>
+                            setSectionVisibility((prev) => ({ ...prev, [section.key]: checked }))
+                          }
+                          data-testid={`switch-section-${section.key}`}
+                        />
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <p className="text-xs font-medium text-foreground">Active text color</p>
-                      <div className="flex items-center gap-2">
-                        <div className="relative shrink-0">
-                          <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navMainText ? `hsl(${navMainText})` : "transparent" }} />
-                          <input type="color" value={navMainText ? hslToHex(navMainText) : "#000000"} onChange={(e) => setNavMainText(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-main-text" />
-                        </div>
-                        <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navMainText || "— auto-contrast"}</p>
-                        {navMainText && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavMainText("")} data-testid="button-reset-nav-main-text"><RotateCcw className="h-3 w-3" /></Button>}
-                      </div>
-                    </div>
+                  ))}
+                  <div className="flex justify-end pt-2">
+                    <Button onClick={saveSections} disabled={mutation.isPending} className="gap-2" data-testid="button-save-sections">
+                      <Save className="h-3.5 w-3.5" />
+                      Save Visibility
+                    </Button>
                   </div>
-                </div>
+                </CardContent>
+              </Card>
 
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Menus &amp; Dropdowns</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <p className="text-xs font-medium text-foreground">Hover background</p>
-                      <div className="flex items-center gap-2">
-                        <div className="relative shrink-0">
-                          <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navSubBg ? `hsl(${navSubBg})` : "transparent" }} />
-                          <input type="color" value={navSubBg ? hslToHex(navSubBg) : "#000000"} onChange={(e) => setNavSubBg(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-sub-bg" />
-                        </div>
-                        <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navSubBg || "— default"}</p>
-                        {navSubBg && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavSubBg("")} data-testid="button-reset-nav-sub-bg"><RotateCcw className="h-3 w-3" /></Button>}
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <p className="text-xs font-medium text-foreground">Hover text color</p>
-                      <div className="flex items-center gap-2">
-                        <div className="relative shrink-0">
-                          <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navSubText ? `hsl(${navSubText})` : "transparent" }} />
-                          <input type="color" value={navSubText ? hslToHex(navSubText) : "#000000"} onChange={(e) => setNavSubText(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-sub-text" />
-                        </div>
-                        <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navSubText || "— default"}</p>
-                        {navSubText && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavSubText("")} data-testid="button-reset-nav-sub-text"><RotateCcw className="h-3 w-3" /></Button>}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button onClick={saveColors} disabled={mutation.isPending} className="gap-2" data-testid="button-save-colors">
-                  <Save className="h-3.5 w-3.5" />
-                  Save Colors
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Per-Section Colors */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
+              {/* Platform Assets */}
+              <Card data-search-label="platform assets favicon social image OG logo wordmark" className={cardVisible("platform assets favicon social image OG logo wordmark") ? "" : "hidden"}>
+                <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Palette className="h-4 w-4" />
-                    Per-Section Colors
+                    <Globe className="h-4 w-4" />
+                    {highlight("Platform Assets")}
                   </CardTitle>
-                  <CardDescription className="mt-1">
-                    Optional accent colors for individual platform sections. Leave empty to use global brand colors or Tailwind defaults.
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="relative shrink-0">
-                    <div
-                      className="h-8 w-8 rounded-md border border-border"
-                      style={{ backgroundColor: homeCardAccentColor ? `hsl(${homeCardAccentColor})` : "transparent" }}
-                    />
-                    <input
-                      type="color"
-                      value={homeCardAccentColor ? hslToHex(homeCardAccentColor) : "#000000"}
-                      onChange={(e) => setHomeCardAccentColor(hexToHsl(e.target.value))}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-8 h-8"
-                      data-testid="color-picker-home-card-accent"
+                  <CardDescription>{highlight("Update the site favicon and social sharing image.")}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
+                      <Link2 className="h-3.5 w-3.5" />
+                      {highlight("Platform Wordmark / Logo")}
+                    </Label>
+                    <FileUploadWithFallback
+                      bucket="brand-assets"
+                      path={`platform/logo.{ext}`}
+                      accept="image/*"
+                      maxSizeMb={2}
+                      currentUrl={platformLogoUrl || null}
+                      onUpload={(url) => setPlatformLogoUrl(url)}
+                      onUrlChange={(url) => setPlatformLogoUrl(url)}
+                      urlValue={platformLogoUrl}
+                      label="Upload Logo"
+                      urlPlaceholder="https://example.com/logo.png"
+                      urlTestId="input-platform-logo-url"
                     />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground">Home Page Cards</p>
-                    <p className="text-[10px] text-muted-foreground font-mono truncate">{homeCardAccentColor || "— using defaults"}</p>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
+                      <Link2 className="h-3.5 w-3.5" />
+                      {highlight("Favicon")}
+                    </Label>
+                    <FileUploadWithFallback
+                      bucket="brand-assets"
+                      path={`favicon/favicon.{ext}`}
+                      accept="image/*"
+                      maxSizeMb={2}
+                      currentUrl={faviconUrl || null}
+                      onUpload={(url) => setFaviconUrl(url)}
+                      onUrlChange={(url) => setFaviconUrl(url)}
+                      urlValue={faviconUrl}
+                      label="Upload Favicon"
+                      urlPlaceholder="https://example.com/favicon.ico"
+                      urlTestId="input-favicon-url"
+                    />
                   </div>
-                  {homeCardAccentColor && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                        aria-label="Action"
-                      className="h-7 w-7 text-muted-foreground shrink-0"
-                      onClick={() => setHomeCardAccentColor("")}
-                      data-testid="button-reset-home-card-accent"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5" />
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
+                      <Link2 className="h-3.5 w-3.5" />
+                      {highlight("Social image (OG)")}
+                    </Label>
+                    <FileUploadWithFallback
+                      bucket="brand-assets"
+                      path={`og/og-image.{ext}`}
+                      accept="image/*"
+                      maxSizeMb={5}
+                      currentUrl={ogImageUrl || null}
+                      onUpload={(url) => setOgImageUrl(url)}
+                      onUrlChange={(url) => setOgImageUrl(url)}
+                      urlValue={ogImageUrl}
+                      label="Upload OG Image"
+                      urlPlaceholder="https://example.com/og-image.jpg"
+                      urlTestId="input-og-image-url"
+                    />
+                  </div>
+                  <div className="flex justify-end">
+                    <Button onClick={saveAssets} disabled={mutation.isPending} className="gap-2" data-testid="button-save-assets">
+                      <Save className="h-3.5 w-3.5" />
+                      Save Assets
                     </Button>
-                  )}
-                </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                <div className="flex items-center gap-3">
-                  <div className="relative shrink-0">
-                    <div
-                      className="h-8 w-8 rounded-md border border-border"
-                      style={{ backgroundColor: storeAccentColor ? `hsl(${storeAccentColor})` : "transparent" }}
-                    />
-                    <input
-                      type="color"
-                      value={storeAccentColor ? hslToHex(storeAccentColor) : "#000000"}
-                      onChange={(e) => setStoreAccentColor(hexToHsl(e.target.value))}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-8 h-8"
-                      data-testid="color-picker-store-accent"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground">Store Page</p>
-                    <p className="text-[10px] text-muted-foreground font-mono truncate">{storeAccentColor || "— using defaults"}</p>
-                  </div>
-                  {storeAccentColor && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                        aria-label="Action"
-                      className="h-7 w-7 text-muted-foreground shrink-0"
-                      onClick={() => setStoreAccentColor("")}
-                      data-testid="button-reset-store-accent"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="relative shrink-0">
-                    <div
-                      className="h-8 w-8 rounded-md border border-border"
-                      style={{ backgroundColor: servicesAccentColor ? `hsl(${servicesAccentColor})` : "transparent" }}
-                    />
-                    <input
-                      type="color"
-                      value={servicesAccentColor ? hslToHex(servicesAccentColor) : "#000000"}
-                      onChange={(e) => setServicesAccentColor(hexToHsl(e.target.value))}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-8 h-8"
-                      data-testid="color-picker-services-accent"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground">Services Page</p>
-                    <p className="text-[10px] text-muted-foreground font-mono truncate">{servicesAccentColor || "— using defaults"}</p>
-                  </div>
-                  {servicesAccentColor && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                        aria-label="Action"
-                      className="h-7 w-7 text-muted-foreground shrink-0"
-                      onClick={() => setServicesAccentColor("")}
-                      data-testid="button-reset-services-accent"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="relative shrink-0">
-                    <div
-                      className="h-8 w-8 rounded-md border border-border"
-                      style={{ backgroundColor: musicAccentColor ? `hsl(${musicAccentColor})` : "transparent" }}
-                    />
-                    <input
-                      type="color"
-                      value={musicAccentColor ? hslToHex(musicAccentColor) : "#000000"}
-                      onChange={(e) => setMusicAccentColor(hexToHsl(e.target.value))}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-8 h-8"
-                      data-testid="color-picker-music-accent"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground">Music Page (RECORDS section)</p>
-                    <p className="text-[10px] text-muted-foreground font-mono truncate">{musicAccentColor || "— using defaults"}</p>
-                  </div>
-                  {musicAccentColor && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                        aria-label="Action"
-                      className="h-7 w-7 text-muted-foreground shrink-0"
-                      onClick={() => setMusicAccentColor("")}
-                      data-testid="button-reset-music-accent"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="relative shrink-0">
-                    <div
-                      className="h-8 w-8 rounded-md border border-border"
-                      style={{ backgroundColor: wikiTagColor ? `hsl(${wikiTagColor})` : "transparent" }}
-                    />
-                    <input
-                      type="color"
-                      value={wikiTagColor ? hslToHex(wikiTagColor) : "#000000"}
-                      onChange={(e) => setWikiTagColor(hexToHsl(e.target.value))}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-8 h-8"
-                      data-testid="color-picker-wiki-tag"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground">Wiki Tags / Highlights</p>
-                    <p className="text-[10px] text-muted-foreground font-mono truncate">{wikiTagColor || "— using defaults"}</p>
-                  </div>
-                  {wikiTagColor && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                        aria-label="Action"
-                      className="h-7 w-7 text-muted-foreground shrink-0"
-                      onClick={() => setWikiTagColor("")}
-                      data-testid="button-reset-wiki-tag"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-              <div className="flex justify-end pt-2">
-                <Button onClick={savePerSectionColors} disabled={mutation.isPending} className="gap-2" data-testid="button-save-per-section-colors">
-                  <Save className="h-3.5 w-3.5" />
-                  Save Section Colors
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Per-Page Button Colors */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-4 w-4" />
-                Page Button Colors
-              </CardTitle>
-              <CardDescription>
-                Override primary and secondary button colors for individual landing pages. Leave blank to use global theme colors.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {PAGE_KEYS.map((page) => (
-                <div key={page} className="space-y-3">
+          {/* ════════════ THEME ════════════ */}
+          <TabsContent value="theme">
+              <div className="flex gap-6">
+                {/* Main column */}
+                <div className="flex-1 min-w-0 space-y-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-foreground">{PAGE_LABELS[page]}</p>
+                    <div>
+                      <h2 className="text-sm font-semibold text-foreground">{highlight("Theme Editor")}</h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">All color and visual settings. Preview updates instantly.</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 text-muted-foreground"
+                      onClick={resetAllTheme}
+                      disabled={mutation.isPending}
+                      data-testid="button-reset-all-theme"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Reset all to defaults
+                    </Button>
+                  </div>
+
+                  <Accordion type="multiple" defaultValue={["group-primary"]} className="space-y-2">
+
+                    {/* Group 1: Primary Palette */}
+                    <AccordionItem value="group-primary" className="border rounded-lg px-4" data-search-label="primary palette primary foreground blue">
+                      <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: lightPrimary ? `hsl(${lightPrimary})` : "#3557ff" }} />
+                          {highlight("Primary Palette")}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4 space-y-4">
+                        <p className="text-xs text-muted-foreground">Main brand color used for buttons, links, and key UI elements.</p>
+                        <div className="space-y-3">
+                          <ColorPickerRow label="Primary (light mode)" hsl={lightPrimary} onChange={setLightPrimary} testIdBase="primary-light" showSwatches />
+                          <ColorPickerRow label="Primary foreground (text on primary)" hsl={lightPrimaryFg} onChange={setLightPrimaryFg} testIdBase="primary-light-fg" />
+                          <ColorPickerRow label="Primary (dark mode)" hsl={darkPrimary} onChange={setDarkPrimary} testIdBase="primary-dark" />
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <div className="flex gap-2">
+                            <div className="h-8 px-3 rounded-md flex items-center text-xs font-medium" style={{ backgroundColor: lightPrimary ? `hsl(${lightPrimary})` : "#3557ff", color: lightPrimaryFg ? `hsl(${lightPrimaryFg})` : "#fff" }}>
+                              Primary Button
+                            </div>
+                            <div className="h-8 px-3 rounded-md border flex items-center text-xs font-medium" style={{ borderColor: lightPrimary ? `hsl(${lightPrimary})` : "#3557ff", color: lightPrimary ? `hsl(${lightPrimary})` : "#3557ff" }}>
+                              Outlined
+                            </div>
+                          </div>
+                          <Button size="sm" onClick={saveThemePrimaryPalette} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-primary-palette">
+                            <Save className="h-3 w-3" />
+                            Save
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Group 2: Secondary / Accent */}
+                    <AccordionItem value="group-secondary" className="border rounded-lg px-4" data-search-label="secondary accent palette foreground red yellow">
+                      <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: lightSecondary ? `hsl(${lightSecondary})` : "#e5e7eb" }} />
+                          {highlight("Secondary / Accent Palette")}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4 space-y-4">
+                        <p className="text-xs text-muted-foreground">Secondary and accent colors for badges, highlights, and alternate UI elements.</p>
+                        <div className="space-y-3">
+                          <ColorPickerRow label="Secondary background" hsl={lightSecondary} onChange={setLightSecondary} testIdBase="secondary-light" showSwatches />
+                          <ColorPickerRow label="Secondary foreground" hsl={lightSecondaryFg} onChange={setLightSecondaryFg} testIdBase="secondary-light-fg" />
+                          <Separator />
+                          <ColorPickerRow label="Accent background" hsl={lightAccent} onChange={setLightAccent} testIdBase="accent-light" showSwatches />
+                          <ColorPickerRow label="Accent foreground" hsl={lightAccentFg} onChange={setLightAccentFg} testIdBase="accent-light-fg" />
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <div className="flex gap-2 flex-wrap">
+                            <span className="inline-flex items-center px-2 h-6 rounded-full text-[10px] font-medium" style={{ backgroundColor: lightAccent ? `hsl(${lightAccent})` : "#e5e7eb", color: lightAccentFg ? `hsl(${lightAccentFg})` : "#374151" }}>
+                              Accent Badge
+                            </span>
+                            <span className="inline-flex items-center px-2 h-6 rounded-full text-[10px] font-medium" style={{ backgroundColor: lightSecondary ? `hsl(${lightSecondary})` : "#e5e7eb", color: lightSecondaryFg ? `hsl(${lightSecondaryFg})` : "#374151" }}>
+                              Secondary Badge
+                            </span>
+                          </div>
+                          <Button size="sm" onClick={saveThemeSecondaryAccent} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-secondary-accent">
+                            <Save className="h-3 w-3" />
+                            Save
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Group 3: Brand Colors */}
+                    <AccordionItem value="group-brand" className="border rounded-lg px-4" data-search-label="brand colors main secondary tertiary quaternary highlight">
+                      <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-0.5">
+                            {[brandMain, brandSecondary, brandAccent, brandHighlight].map((c, i) => (
+                              <div key={i} className="h-3 w-3 rounded-full border border-border/40" style={{ backgroundColor: c ? `hsl(${c})` : "#9ca3af" }} />
+                            ))}
+                          </div>
+                          {highlight("Brand Colors")}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4 space-y-4">
+                        <p className="text-xs text-muted-foreground">Core brand palette that maps to primary, secondary, and accent when not overridden above.</p>
+                        <div className="space-y-3">
+                          <ColorPickerRow label="Brand Main" hsl={brandMain} onChange={setBrandMain} testIdBase="brand-main" showSwatches />
+                          <ColorPickerRow label="Brand Secondary" hsl={brandSecondary} onChange={setBrandSecondary} testIdBase="brand-secondary" showSwatches />
+                          <ColorPickerRow label="Brand Accent" hsl={brandAccent} onChange={setBrandAccent} testIdBase="brand-accent" showSwatches />
+                          <ColorPickerRow label="Brand Highlight / Ring" hsl={brandHighlight} onChange={setBrandHighlight} testIdBase="brand-highlight" showSwatches />
+                        </div>
+                        <div className="flex justify-end pt-2 border-t">
+                          <Button size="sm" onClick={saveThemeBrandColors} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-brand-colors">
+                            <Save className="h-3 w-3" />
+                            Save
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Group 4: Neutral / Background */}
+                    <AccordionItem value="group-neutral" className="border rounded-lg px-4" data-search-label="neutral background foreground card muted border white gray black">
+                      <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-3 rounded-full border border-border" style={{ backgroundColor: lightBackground ? `hsl(${lightBackground})` : "#f8f9fa" }} />
+                          {highlight("Neutral / Background Colors")}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4 space-y-4">
+                        <p className="text-xs text-muted-foreground">Background, card, muted, and border colors for the overall page and component surfaces.</p>
+                        <Tabs defaultValue="light">
+                          <TabsList className="mb-3">
+                            <TabsTrigger value="light">Light Mode</TabsTrigger>
+                            <TabsTrigger value="dark">Dark Mode</TabsTrigger>
+                          </TabsList>
+                          <TabsContent value="light" className="space-y-3">
+                            <ColorPickerRow label="Background" hsl={lightBackground} onChange={setLightBackground} testIdBase="bg-light" />
+                            <ColorPickerRow label="Foreground (text)" hsl={lightForeground} onChange={setLightForeground} testIdBase="fg-light" />
+                            <ColorPickerRow label="Card" hsl={lightCard} onChange={setLightCard} testIdBase="card-light" />
+                            <ColorPickerRow label="Card foreground" hsl={lightCardFg} onChange={setLightCardFg} testIdBase="card-fg-light" />
+                            <ColorPickerRow label="Muted" hsl={lightMuted} onChange={setLightMuted} testIdBase="muted-light" />
+                            <ColorPickerRow label="Muted foreground" hsl={lightMutedFg} onChange={setLightMutedFg} testIdBase="muted-fg-light" />
+                            <ColorPickerRow label="Border" hsl={lightBorder} onChange={setLightBorder} testIdBase="border-light" />
+                          </TabsContent>
+                          <TabsContent value="dark" className="space-y-3">
+                            <ColorPickerRow label="Background" hsl={darkBackground} onChange={setDarkBackground} testIdBase="bg-dark" />
+                            <ColorPickerRow label="Foreground (text)" hsl={darkForeground} onChange={setDarkForeground} testIdBase="fg-dark" />
+                            <ColorPickerRow label="Accent" hsl={darkAccent} onChange={setDarkAccent} testIdBase="accent-dark" />
+                          </TabsContent>
+                        </Tabs>
+                        <div className="flex justify-end pt-2 border-t">
+                          <Button size="sm" onClick={saveThemeNeutrals} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-neutrals">
+                            <Save className="h-3 w-3" />
+                            Save
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Group 5: Status / Semantic Colors */}
+                    <AccordionItem value="group-status" className="border rounded-lg px-4" data-search-label="status semantic success warning error destructive info green red yellow blue">
+                      <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-0.5">
+                            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: "#00a811" }} />
+                            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: "#fbc318" }} />
+                            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: lightDestructive ? `hsl(${lightDestructive})` : "#bd0000" }} />
+                            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: "#0037ff" }} />
+                          </div>
+                          {highlight("Status / Semantic Colors")}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4 space-y-4">
+                        <p className="text-xs text-muted-foreground">Colors for success, warning, error, and destructive actions.</p>
+                        <div className="space-y-3">
+                          <ColorPickerRow label="Destructive / Error" hsl={lightDestructive} onChange={setLightDestructive} testIdBase="destructive" showSwatches />
+                        </div>
+                        <div className="flex gap-2 flex-wrap pt-1">
+                          <span className="inline-flex items-center px-2 h-6 rounded text-[10px] font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">Success</span>
+                          <span className="inline-flex items-center px-2 h-6 rounded text-[10px] font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300">Warning</span>
+                          <span className="inline-flex items-center px-2 h-6 rounded text-[10px] font-medium" style={{ backgroundColor: lightDestructive ? `hsl(${lightDestructive}30)` : "#fde8e8", color: lightDestructive ? `hsl(${lightDestructive})` : "#bd0000" }}>Error</span>
+                          <span className="inline-flex items-center px-2 h-6 rounded text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">Info</span>
+                        </div>
+                        <div className="flex justify-end pt-2 border-t">
+                          <Button size="sm" onClick={saveThemeStatusColors} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-status-colors">
+                            <Save className="h-3 w-3" />
+                            Save
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Group 6: Per-Section Accent Colors */}
+                    <AccordionItem value="group-section-accents" className="border rounded-lg px-4" data-search-label="per section accent home store services music wiki tag colors">
+                      <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
+                        {highlight("Per-Section Accent Colors")}
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4 space-y-4">
+                        <p className="text-xs text-muted-foreground">Optional accent colors for individual platform sections. Leave empty to use global brand colors.</p>
+                        <div className="space-y-3">
+                          <ColorPickerRow label="Home Page Cards" hsl={homeCardAccentColor} onChange={setHomeCardAccentColor} testIdBase="home-card-accent" showSwatches />
+                          <ColorPickerRow label="Store Page" hsl={storeAccentColor} onChange={setStoreAccentColor} testIdBase="store-accent" showSwatches />
+                          <ColorPickerRow label="Services Page" hsl={servicesAccentColor} onChange={setServicesAccentColor} testIdBase="services-accent" showSwatches />
+                          <ColorPickerRow label="Music Page (RECORDS section)" hsl={musicAccentColor} onChange={setMusicAccentColor} testIdBase="music-accent" showSwatches />
+                          <ColorPickerRow label="Wiki Tags / Highlights" hsl={wikiTagColor} onChange={setWikiTagColor} testIdBase="wiki-tag" showSwatches />
+                        </div>
+                        <div className="flex justify-end pt-2 border-t">
+                          <Button size="sm" onClick={savePerSectionColors} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-per-section-colors">
+                            <Save className="h-3 w-3" />
+                            Save
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Group 7: Page Button Color Overrides */}
+                    <AccordionItem value="group-page-buttons" className="border rounded-lg px-4" data-search-label="page button color overrides landing store services projects music news primary secondary">
+                      <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
+                        {highlight("Page Button Color Overrides")}
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4 space-y-4">
+                        <p className="text-xs text-muted-foreground">Override primary and secondary button colors for individual landing pages. Leave blank to use global theme colors.</p>
+                        {PAGE_KEYS.map((page) => (
+                          <div key={page} className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-semibold text-foreground">{PAGE_LABELS[page]}</p>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-xs text-muted-foreground gap-1"
+                                onClick={() => resetPageBtnColors(page)}
+                                disabled={mutation.isPending}
+                                data-testid={`button-reset-page-btns-${page}`}
+                              >
+                                <RotateCcw className="h-3 w-3" />
+                                Reset
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {(["primaryBtn", "primaryBtnText", "secondaryBtn", "secondaryBtnText"] as const).map((field) => {
+                                const labels: Record<string, string> = {
+                                  primaryBtn: "Primary button background",
+                                  primaryBtnText: "Primary button text",
+                                  secondaryBtn: "Secondary button background",
+                                  secondaryBtnText: "Secondary button text",
+                                };
+                                const val = pageBtnColors[page][field];
+                                return (
+                                  <div key={field} className="space-y-1.5">
+                                    <p className="text-xs font-medium text-foreground">{labels[field]}</p>
+                                    <div className="flex items-center gap-2">
+                                      <div className="relative shrink-0">
+                                        <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: val ? `hsl(${val})` : "transparent" }} />
+                                        <input
+                                          type="color"
+                                          value={val ? hslToHex(val) : "#000000"}
+                                          onChange={(e) => setPageColor(page, field, hexToHsl(e.target.value))}
+                                          className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7"
+                                          data-testid={`color-picker-${page}-${field}`}
+                                        />
+                                      </div>
+                                      <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{val || "— default"}</p>
+                                      {val && (
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          aria-label="Clear"
+                                          className="h-6 w-6 text-muted-foreground shrink-0"
+                                          onClick={() => setPageColor(page, field, "")}
+                                          data-testid={`button-clear-${page}-${field}`}
+                                        >
+                                          <RotateCcw className="h-3 w-3" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {page !== PAGE_KEYS[PAGE_KEYS.length - 1] && <Separator />}
+                          </div>
+                        ))}
+                        <div className="flex justify-end pt-2 border-t">
+                          <Button size="sm" onClick={savePageBtnColors} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-page-btn-colors">
+                            <Save className="h-3 w-3" />
+                            Save Button Colors
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Group 8: Typography */}
+                    <AccordionItem value="group-typography" className="border rounded-lg px-4" data-search-label="typography font family heading body base size scale google fonts Inter Roboto Poppins Montserrat">
+                      <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
+                        <div className="flex items-center gap-2">
+                          <Type className="h-3.5 w-3.5 text-muted-foreground" />
+                          {highlight("Typography")}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4 space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs" htmlFor="select-heading-font">Heading Font</Label>
+                            <Select value={headingFont} onValueChange={(v) => {
+                              setHeadingFont(v);
+                              if (!["Inter","System UI","Georgia","serif","monospace"].includes(v)) {
+                                setGoogleFontUrl(`https://fonts.googleapis.com/css2?family=${encodeURIComponent(v)}:wght@400;600;700&display=swap`);
+                              }
+                            }}>
+                              <SelectTrigger id="select-heading-font" data-testid="select-heading-font">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {FONT_OPTIONS.map((f) => (
+                                  <SelectItem key={f} value={f}>{f}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs" htmlFor="select-body-font">Body Font</Label>
+                            <Select value={bodyFont} onValueChange={(v) => {
+                              setBodyFont(v);
+                              if (!["Inter","System UI","Georgia","serif","monospace"].includes(v) && v !== headingFont) {
+                                setGoogleFontUrl((prev) => prev ? prev : `https://fonts.googleapis.com/css2?family=${encodeURIComponent(v)}:wght@400;600;700&display=swap`);
+                              }
+                            }}>
+                              <SelectTrigger id="select-body-font" data-testid="select-body-font">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {FONT_OPTIONS.map((f) => (
+                                  <SelectItem key={f} value={f}>{f}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs" htmlFor="input-base-font-size">Base Font Size (px)</Label>
+                            <Input
+                              id="input-base-font-size"
+                              data-testid="input-base-font-size"
+                              type="number"
+                              min={12}
+                              max={24}
+                              value={baseFontSize}
+                              onChange={(e) => setBaseFontSize(e.target.value)}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs" htmlFor="select-heading-scale">Heading Scale</Label>
+                            <Select value={headingScale} onValueChange={setHeadingScale}>
+                              <SelectTrigger id="select-heading-scale" data-testid="select-heading-scale">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1.125">Small (1.125)</SelectItem>
+                                <SelectItem value="1.25">Medium (1.25)</SelectItem>
+                                <SelectItem value="1.414">Large (√2)</SelectItem>
+                                <SelectItem value="1.5">XL (1.5)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        {/* Live typography preview */}
+                        <div className="rounded-lg border bg-muted/30 p-4 space-y-2" data-testid="typography-preview">
+                          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mb-3">Live Preview</p>
+                          <div style={{ fontFamily: headingFont !== "System UI" ? `'${headingFont}', sans-serif` : "system-ui, sans-serif", fontSize: `${parseFloat(baseFontSize) * Math.pow(parseFloat(headingScale), 3)}px`, fontWeight: 700, lineHeight: 1.15 }}>
+                            Heading H1
+                          </div>
+                          <div style={{ fontFamily: headingFont !== "System UI" ? `'${headingFont}', sans-serif` : "system-ui, sans-serif", fontSize: `${parseFloat(baseFontSize) * Math.pow(parseFloat(headingScale), 2)}px`, fontWeight: 600, lineHeight: 1.2 }}>
+                            Heading H2
+                          </div>
+                          <p style={{ fontFamily: bodyFont !== "System UI" ? `'${bodyFont}', sans-serif` : "system-ui, sans-serif", fontSize: `${parseFloat(baseFontSize)}px`, lineHeight: 1.6, color: "inherit" }}>
+                            The quick brown fox jumps over the lazy dog. Body text uses the selected base size and line height for comfortable reading.
+                          </p>
+                        </div>
+
+                        {googleFontUrl && (
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Google Fonts URL (auto-generated)</Label>
+                            <Input
+                              data-testid="input-google-font-url"
+                              value={googleFontUrl}
+                              onChange={(e) => setGoogleFontUrl(e.target.value)}
+                              className="font-mono text-xs h-7"
+                              placeholder="https://fonts.googleapis.com/css2?family=..."
+                            />
+                            <p className="text-[10px] text-muted-foreground">This link tag will be injected into the page &lt;head&gt; to load the font.</p>
+                          </div>
+                        )}
+
+                        <div className="flex justify-end pt-2 border-t">
+                          <Button size="sm" onClick={saveTypography} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-typography">
+                            <Save className="h-3 w-3" />
+                            Save Typography
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Group 9: Advanced / Custom CSS Variables */}
+                    <AccordionItem value="group-css-vars" className="border rounded-lg px-4" data-search-label="advanced custom CSS variables radius border-radius font size spacing raw override">
+                      <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
+                        <div className="flex items-center gap-2">
+                          <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
+                          {highlight("Advanced / Custom CSS Variables")}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4 space-y-4">
+                        <p className="text-xs text-muted-foreground">Raw CSS variable overrides injected after all other color rules. Use for radius, spacing, and any custom variables.</p>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="custom-css-vars" className="text-xs">CSS Variables (one per line)</Label>
+                          <Textarea
+                            id="custom-css-vars"
+                            data-testid="textarea-custom-css-vars"
+                            value={cssVarsText}
+                            onChange={(e) => setCssVarsText(e.target.value)}
+                            rows={6}
+                            className="font-mono text-xs"
+                            placeholder="--radius: 0.5rem;
+--spacing: 0.25rem;"
+                          />
+                          <p className="text-[10px] text-muted-foreground">Example: <code className="bg-muted px-1 rounded">--radius: 0.25rem;</code> or <code className="bg-muted px-1 rounded">--font-sans: 'Inter', sans-serif;</code></p>
+                        </div>
+                        <div className="flex justify-end pt-2 border-t">
+                          <Button size="sm" onClick={saveCustomCssVars} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-custom-css-vars">
+                            <Save className="h-3 w-3" />
+                            Save CSS Variables
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                  </Accordion>
+                </div>
+
+                {/* Live Preview Panel — sticky on xl screens */}
+                <div className="hidden xl:block w-72 shrink-0">
+                  <div className="sticky top-6 space-y-3">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Live Preview</p>
+                    <LivePreviewPanel
+                      primary={lightPrimary}
+                      primaryFg={lightPrimaryFg}
+                      secondary={lightSecondary}
+                      secondaryFg={lightSecondaryFg}
+                      background={lightBackground}
+                      foreground={lightForeground}
+                      card={lightCard}
+                      cardFg={lightCardFg}
+                      sidebarAccent={navMainBg || lightSecondary}
+                      sidebarAccentFg={navMainText || lightSecondaryFg}
+                    />
+                    <p className="text-[10px] text-muted-foreground text-center">Updates as you change colors</p>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+          {/* ════════════ NAVIGATION ════════════ */}
+          <TabsContent value="navigation" className="space-y-6">
+              {/* Sidebar Nav Colors */}
+              <Card data-search-label="navigation sidebar nav colors active highlight hover menu dropdown" className={cardVisible("navigation sidebar nav colors active highlight hover menu dropdown") ? "" : "hidden"}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Layers className="h-4 w-4" />
+                        {highlight("Sidebar & Navigation Colors")}
+                      </CardTitle>
+                      <CardDescription className="mt-1">
+                        {highlight("Customize the active item highlight and hover colors in the sidebar and dropdown menus.")}
+                      </CardDescription>
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 text-xs text-muted-foreground gap-1"
-                      onClick={() => resetPageBtnColors(page)}
+                      className="gap-2 text-muted-foreground shrink-0"
+                      onClick={() => {
+                        setNavMainBg(""); setNavMainText(""); setNavSubBg(""); setNavSubText("");
+                        mutation.mutate({ "color.nav.main.bg": "", "color.nav.main.text": "", "color.nav.sub.bg": "", "color.nav.sub.text": "", "color.nav.activeHighlight": "" });
+                      }}
                       disabled={mutation.isPending}
-                      data-testid={`button-reset-page-btns-${page}`}
+                      data-testid="button-reset-nav-colors"
                     >
-                      <RotateCcw className="h-3 w-3" />
+                      <RotateCcw className="h-3.5 w-3.5" />
                       Reset
                     </Button>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {(["primaryBtn", "primaryBtnText", "secondaryBtn", "secondaryBtnText"] as const).map((field) => {
-                      const labels: Record<string, string> = {
-                        primaryBtn: "Primary button background",
-                        primaryBtnText: "Primary button text",
-                        secondaryBtn: "Secondary button background",
-                        secondaryBtnText: "Secondary button text",
-                      };
-                      const val = pageBtnColors[page][field];
-                      return (
-                        <div key={field} className="space-y-1.5">
-                          <p className="text-xs font-medium text-foreground">{labels[field]}</p>
-                          <div className="flex items-center gap-2">
-                            <div className="relative shrink-0">
-                              <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: val ? `hsl(${val})` : "transparent" }} />
-                              <input
-                                type="color"
-                                value={val ? hslToHex(val) : "#000000"}
-                                onChange={(e) => setPageColor(page, field, hexToHsl(e.target.value))}
-                                className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7"
-                                data-testid={`color-picker-${page}-${field}`}
-                              />
-                            </div>
-                            <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{val || "— default"}</p>
-                            {val && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label="Clear"
-                                className="h-6 w-6 text-muted-foreground shrink-0"
-                                onClick={() => setPageColor(page, field, "")}
-                                data-testid={`button-clear-${page}-${field}`}
-                              >
-                                <RotateCcw className="h-3 w-3" />
-                              </Button>
-                            )}
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Active / Selected Item</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-medium text-foreground">Active background</p>
+                        <div className="flex items-center gap-2">
+                          <div className="relative shrink-0">
+                            <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navMainBg ? `hsl(${navMainBg})` : "transparent" }} />
+                            <input type="color" value={navMainBg ? hslToHex(navMainBg) : "#000000"} onChange={(e) => setNavMainBg(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-main-bg" />
                           </div>
+                          <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navMainBg || "— default"}</p>
+                          {navMainBg && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavMainBg("")} data-testid="button-reset-nav-main-bg"><RotateCcw className="h-3 w-3" /></Button>}
                         </div>
-                      );
-                    })}
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-medium text-foreground">Active text color</p>
+                        <div className="flex items-center gap-2">
+                          <div className="relative shrink-0">
+                            <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navMainText ? `hsl(${navMainText})` : "transparent" }} />
+                            <input type="color" value={navMainText ? hslToHex(navMainText) : "#000000"} onChange={(e) => setNavMainText(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-main-text" />
+                          </div>
+                          <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navMainText || "— default"}</p>
+                          {navMainText && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavMainText("")} data-testid="button-reset-nav-main-text"><RotateCcw className="h-3 w-3" /></Button>}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  {page !== PAGE_KEYS[PAGE_KEYS.length - 1] && <Separator />}
-                </div>
-              ))}
-              <div className="flex justify-end pt-2">
-                <Button onClick={savePageBtnColors} disabled={mutation.isPending} className="gap-2" data-testid="button-save-page-btn-colors">
-                  <Save className="h-3.5 w-3.5" />
-                  Save Button Colors
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Brand Assets */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Hover / Submenu</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-medium text-foreground">Hover background</p>
+                        <div className="flex items-center gap-2">
+                          <div className="relative shrink-0">
+                            <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navSubBg ? `hsl(${navSubBg})` : "transparent" }} />
+                            <input type="color" value={navSubBg ? hslToHex(navSubBg) : "#000000"} onChange={(e) => setNavSubBg(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-sub-bg" />
+                          </div>
+                          <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navSubBg || "— default"}</p>
+                          {navSubBg && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavSubBg("")} data-testid="button-reset-nav-sub-bg"><RotateCcw className="h-3 w-3" /></Button>}
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-medium text-foreground">Hover text color</p>
+                        <div className="flex items-center gap-2">
+                          <div className="relative shrink-0">
+                            <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navSubText ? `hsl(${navSubText})` : "transparent" }} />
+                            <input type="color" value={navSubText ? hslToHex(navSubText) : "#000000"} onChange={(e) => setNavSubText(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-sub-text" />
+                          </div>
+                          <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navSubText || "— default"}</p>
+                          {navSubText && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavSubText("")} data-testid="button-reset-nav-sub-text"><RotateCcw className="h-3 w-3" /></Button>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button onClick={saveNavColors} disabled={mutation.isPending} className="gap-2" data-testid="button-save-nav-colors">
+                      <Save className="h-3.5 w-3.5" />
+                      Save Navigation Colors
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+          {/* ════════════ ANALYTICS ════════════ */}
+          <TabsContent value="analytics" className="space-y-6">
+              <Card data-search-label="Google Analytics GA4 measurement ID property ID service account tracking" className={cardVisible("Google Analytics GA4 measurement ID property ID service account tracking") ? "" : "hidden"}>
+                <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Package className="h-4 w-4" />
-                    Brand Assets
+                    <BarChart2 className="h-4 w-4" />
+                    {highlight("Google Analytics 4")}
                   </CardTitle>
-                  <CardDescription className="mt-1">
-                    Downloadable brand materials shown on the public About page.
+                  <CardDescription>
+                    {highlight("Connect GA4 to inject the tracking script on every page and power the native analytics dashboard in CMD → Traffic.")}
                   </CardDescription>
-                </div>
-                <Button onClick={openAddDialog} size="sm" className="gap-2 shrink-0" data-testid="button-add-brand-asset">
-                  <Plus className="h-3.5 w-3.5" />
-                  Add Asset
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {brandLoading ? (
-                <div className="space-y-2">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-12 bg-muted animate-pulse rounded-lg" />
-                  ))}
-                </div>
-              ) : brandAssets.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground" data-testid="text-brand-assets-empty-cmd">
-                  <Package className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                  <p className="text-sm">No brand assets yet. Add your first one above.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {brandAssets.map((asset) => (
-                    <div
-                      key={asset.id}
-                      className="flex items-center gap-3 p-3 border border-border rounded-lg"
-                      data-testid={`row-brand-asset-${asset.id}`}
-                    >
-                      {(asset.previewUrl || (asset.assetType === "logo" && asset.downloadUrl)) ? (
-                        <img
-                          src={asset.previewUrl || asset.downloadUrl}
-                          alt={asset.name}
-                          className="h-10 w-10 object-contain rounded border border-border shrink-0 bg-muted/30"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded border border-border bg-muted/30 flex items-center justify-center shrink-0">
-                          <Package className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  <div className={`flex items-start gap-3 p-3 rounded-lg border ${ga4Status?.configured ? "bg-green-500/10 border-green-500/20" : ga4Status?.measurementId || ga4Status?.propertyId ? "bg-amber-500/10 border-amber-500/20" : "bg-muted/40"}`}>
+                    {ga4Status?.configured ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">GA4 fully configured</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Measurement ID, Property ID, and service account are all set. The Data API and tracking script are active.</p>
                         </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-medium text-foreground truncate">{asset.name}</p>
-                          <Badge variant="secondary" className="text-[10px]" data-testid={`badge-type-${asset.id}`}>
-                            {ASSET_TYPE_LABELS[asset.assetType] ?? asset.assetType}
-                          </Badge>
-                          {!asset.isPublic && (
-                            <Badge variant="outline" className="text-[10px] text-muted-foreground">Private</Badge>
-                          )}
+                      </>
+                    ) : ga4Status?.measurementId || ga4Status?.propertyId ? (
+                      <>
+                        <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">GA4 partially configured</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {ga4Status?.measurementId && ga4Status?.propertyId
+                              ? "Measurement ID and Property ID are saved. Add the GOOGLE_SERVICE_ACCOUNT_JSON secret to enable the Data API."
+                              : "Enter both Measurement ID and Property ID, then add the GOOGLE_SERVICE_ACCOUNT_JSON secret to enable analytics."}
+                          </p>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditDialog(asset)} data-testid={`button-edit-brand-asset-${asset.id}`} aria-label="Edit">
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Edit</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => deleteBrandAsset.mutate(asset.id)} disabled={deleteBrandAsset.isPending} data-testid={`button-delete-brand-asset-${asset.id}`} aria-label="Delete">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Delete</TooltipContent>
-                        </Tooltip>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* ── SOCIAL LINKS ── */}
-      <section>
-        <div className="mb-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-            <Share2 className="h-3.5 w-3.5" />
-            Social Links
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Manage platform social media presence across footer, contact, and listen pages</p>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-2">
-            {socialLinks && (
-              <span className="text-xs text-muted-foreground">{socialLinks.length} link{socialLinks.length !== 1 ? "s" : ""}</span>
-            )}
-            <Button
-              size="sm"
-              className="ml-auto h-7 text-xs gap-1"
-              onClick={() => { setEditingLink(undefined); setShowSocialDialog(true); }}
-              data-testid="button-add-social"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add Link
-            </Button>
-          </div>
-
-          <Card className="overflow-hidden" data-testid="table-social-links">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="border-b bg-muted/50">
-                  <tr>
-                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">Platform</th>
-                    <th className="text-left p-3 text-xs font-medium text-muted-foreground hidden md:table-cell">URL</th>
-                    <th className="text-center p-3 text-xs font-medium text-muted-foreground">Footer</th>
-                    <th className="text-center p-3 text-xs font-medium text-muted-foreground">Contact</th>
-                    <th className="text-center p-3 text-xs font-medium text-muted-foreground">Listen</th>
-                    <th className="text-left p-3 text-xs font-medium text-muted-foreground"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {socialLoading ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                      <tr key={i} className="border-b last:border-0">
-                        <td className="p-3"><Skeleton className="h-4 w-24" /></td>
-                        <td className="p-3 hidden md:table-cell"><Skeleton className="h-4 w-40" /></td>
-                        <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
-                        <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
-                        <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
-                        <td className="p-3"><Skeleton className="h-4 w-12" /></td>
-                      </tr>
-                    ))
-                  ) : socialLinks && socialLinks.length > 0 ? (
-                    socialLinks.map((link) => <SocialLinkRow key={link.id} link={link} onEdit={(l) => { setEditingLink(l); setShowSocialDialog(true); }} />)
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="p-6 text-center text-sm text-muted-foreground">
-                        No social links configured.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-
-          <SocialLinkDialog
-            open={showSocialDialog}
-            onClose={() => { setShowSocialDialog(false); setEditingLink(undefined); }}
-            existing={editingLink}
-            nextOrder={socialLinks?.length ?? 0}
-          />
-        </div>
-      </section>
-
-      {/* ── HOSTING ── */}
-      <section>
-        <div className="mb-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-            <Server className="h-3.5 w-3.5" />
-            Hosting
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Domain and VPS management via Hostinger</p>
-        </div>
-        <HostingSection />
-      </section>
-
-      {/* ── HOME PAGE ICONS ── */}
-      <section>
-        <div className="mb-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-            <Star className="h-3.5 w-3.5" />
-            Home Page Icons
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Edit the "Why SEVCO" feature pills shown in the hero bar</p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Star className="h-4 w-4" />
-                  Icon Pills Editor
-                </CardTitle>
-                <CardDescription className="mt-1">
-                  Change the icon, label, link, and accent color for each feature pill. Stored in platform settings.
-                </CardDescription>
-              </div>
-              <Button size="sm" className="gap-1.5 shrink-0" onClick={addPill} data-testid="button-add-icon-pill">
-                <Plus className="h-3.5 w-3.5" />
-                Add Pill
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {iconPills.map((pill, idx) => (
-              <div
-                key={idx}
-                className="flex items-center gap-2 p-3 border border-border rounded-lg bg-muted/20"
-                data-testid={`row-icon-pill-${idx}`}
-              >
-                <div className="flex flex-col gap-0.5 shrink-0">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => movePill(idx, -1)} disabled={idx === 0} data-testid={`button-pill-up-${idx}`} aria-label="Move up">
-                        <ChevronUp className="h-3 w-3" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Move up</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => movePill(idx, 1)} disabled={idx === iconPills.length - 1} data-testid={`button-pill-down-${idx}`} aria-label="Move down">
-                        <ChevronDown className="h-3 w-3" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Move down</TooltipContent>
-                  </Tooltip>
-                </div>
-
-                <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">Icon</Label>
-                    <Select value={pill.icon} onValueChange={(v) => updatePill(idx, "icon", v)}>
-                      <SelectTrigger className="h-7 text-xs" data-testid={`select-pill-icon-${idx}`}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LUCIDE_ICON_OPTIONS.map((ic) => (
-                          <SelectItem key={ic} value={ic}>{ic}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">GA4 not configured</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Enter your Measurement ID and Property ID below, then add the GOOGLE_SERVICE_ACCOUNT_JSON secret to enable analytics.</p>
+                        </div>
+                      </>
+                    )}
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">Label</Label>
-                    <Input
-                      className="h-7 text-xs"
-                      value={pill.label}
-                      onChange={(e) => updatePill(idx, "label", e.target.value)}
-                      placeholder="Label"
-                      data-testid={`input-pill-label-${idx}`}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">Link URL</Label>
-                    <Input
-                      className="h-7 text-xs"
-                      value={pill.href}
-                      onChange={(e) => updatePill(idx, "href", e.target.value)}
-                      placeholder="/page"
-                      data-testid={`input-pill-href-${idx}`}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">Accent Color</Label>
-                    <div className="flex items-center gap-1.5">
-                      <div className="relative shrink-0">
-                        <div className="h-7 w-7 rounded-md border border-border" style={{ backgroundColor: pill.color }} />
-                        <input
-                          type="color"
-                          value={pill.color}
-                          onChange={(e) => updatePill(idx, "color", e.target.value)}
-                          className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7"
-                          data-testid={`color-pill-${idx}`}
-                        />
-                      </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="input-ga4-measurement-id">
+                      {highlight("Measurement ID")}
+                      <span className="text-muted-foreground text-xs ml-2">(controls gtag.js injection)</span>
+                    </Label>
+                    <div className="flex gap-2">
                       <Input
-                        className="h-7 text-xs font-mono"
-                        value={pill.color}
-                        onChange={(e) => updatePill(idx, "color", e.target.value)}
-                        placeholder="#f97316"
-                        data-testid={`input-pill-color-${idx}`}
+                        id="input-ga4-measurement-id"
+                        data-testid="input-ga4-measurement-id"
+                        placeholder="G-XXXXXXXXXX"
+                        value={ga4MeasurementId}
+                        onChange={(e) => setGa4MeasurementId(e.target.value)}
+                        className="font-mono"
                       />
+                      <Button size="sm" onClick={saveAnalytics} disabled={mutation.isPending} data-testid="button-save-ga4-measurement-id">
+                        <Save className="h-4 w-4 mr-1" />
+                        Save
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Found in GA4 Admin → Data Streams → your web stream. Starts with G-.</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="input-ga4-property-id">
+                      {highlight("Property ID")}
+                      <span className="text-muted-foreground text-xs ml-2">(controls Data API connection)</span>
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="input-ga4-property-id"
+                        data-testid="input-ga4-property-id"
+                        placeholder="123456789"
+                        value={ga4PropertyId}
+                        onChange={(e) => setGa4PropertyId(e.target.value)}
+                        className="font-mono"
+                      />
+                      <Button size="sm" onClick={saveAnalytics} disabled={mutation.isPending} data-testid="button-save-ga4-property-id">
+                        <Save className="h-4 w-4 mr-1" />
+                        Save
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Found in GA4 Admin → Property Settings. Numeric ID only (no "properties/" prefix).</p>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      {highlight("Service Account JSON Key")}
+                      <span className="text-xs text-muted-foreground">(required for Data API)</span>
+                    </Label>
+                    <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
+                      <p className="text-xs text-muted-foreground">
+                        Add the <span className="font-mono bg-muted px-1 rounded">GOOGLE_SERVICE_ACCOUNT_JSON</span> environment secret with the contents of your downloaded service account key JSON file.
+                      </p>
+                      <ol className="list-decimal list-inside space-y-1">
+                        <li className="text-xs text-muted-foreground">Go to <a href="https://console.cloud.google.com/iam-admin/serviceaccounts" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google Cloud Console → Service Accounts</a></li>
+                        <li className="text-xs text-muted-foreground">Create a service account and download a JSON key</li>
+                        <li className="text-xs text-muted-foreground">In GA4 Admin → Property Access Management, add the service account email as a Viewer</li>
+                        <li className="text-xs text-muted-foreground">Add the JSON key contents as the <span className="font-mono bg-muted px-1 rounded">GOOGLE_SERVICE_ACCOUNT_JSON</span> secret in Replit Secrets</li>
+                      </ol>
                     </div>
                   </div>
-                </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
+          {/* ════════════ INTEGRATIONS ════════════ */}
+          <TabsContent value="integrations" className="space-y-6">
+              {/* Email Diagnostics */}
+              <Card data-search-label="email diagnostics Resend test email integration" className={cardVisible("email diagnostics Resend test email integration") ? "" : "hidden"}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5" />
+                    {highlight("Email Diagnostics")}
+                  </CardTitle>
+                  <CardDescription>
+                    {highlight("Send a test email to verify the Resend integration is working end-to-end.")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <EmailDiagnosticsPanel />
+                </CardContent>
+              </Card>
+
+              {/* Social Links */}
+              <Card data-search-label="social links footer contact listen Instagram Twitter TikTok platform" className={`overflow-hidden${cardVisible("social links footer contact listen Instagram Twitter TikTok platform") ? "" : " hidden"}`}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Share2 className="h-4 w-4" />
+                        {highlight("Social Links")}
+                      </CardTitle>
+                      <CardDescription className="mt-1">
+                        {highlight("Manage platform social media presence across footer, contact, and listen pages.")}
+                        {socialLinks && <span className="ml-1 text-xs text-muted-foreground">{socialLinks.length} link{socialLinks.length !== 1 ? "s" : ""}</span>}
+                      </CardDescription>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="ml-auto h-7 text-xs gap-1 shrink-0"
+                      onClick={() => { setEditingLink(undefined); setShowSocialDialog(true); }}
+                      data-testid="button-add-social"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add Link
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto" data-testid="table-social-links">
+                    <table className="w-full text-sm">
+                      <thead className="border-b bg-muted/50">
+                        <tr>
+                          <th className="text-left p-3 text-xs font-medium text-muted-foreground">Platform</th>
+                          <th className="text-left p-3 text-xs font-medium text-muted-foreground hidden md:table-cell">URL</th>
+                          <th className="text-center p-3 text-xs font-medium text-muted-foreground">Footer</th>
+                          <th className="text-center p-3 text-xs font-medium text-muted-foreground">Contact</th>
+                          <th className="text-center p-3 text-xs font-medium text-muted-foreground">Listen</th>
+                          <th className="text-left p-3 text-xs font-medium text-muted-foreground"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {socialLoading ? (
+                          Array.from({ length: 5 }).map((_, i) => (
+                            <tr key={i} className="border-b last:border-0">
+                              <td className="p-3"><Skeleton className="h-4 w-24" /></td>
+                              <td className="p-3 hidden md:table-cell"><Skeleton className="h-4 w-40" /></td>
+                              <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
+                              <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
+                              <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
+                              <td className="p-3"><Skeleton className="h-4 w-12" /></td>
+                            </tr>
+                          ))
+                        ) : socialLinks && socialLinks.length > 0 ? (
+                          socialLinks.map((link) => <SocialLinkRow key={link.id} link={link} onEdit={(l) => { setEditingLink(l); setShowSocialDialog(true); }} />)
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="p-6 text-center text-sm text-muted-foreground">
+                              No social links configured.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Hosting */}
+              <div data-search-label="hosting domain VPS Hostinger server" className={cardVisible("hosting domain VPS Hostinger server") ? "" : "hidden"}>
+                <HostingSection />
+              </div>
+            </TabsContent>
+
+          {/* ════════════ ADVANCED ════════════ */}
+          <TabsContent value="advanced" className="space-y-6">
+              {/* Platform Section Cards */}
+              <Card data-search-label="platform section cards wiki store music projects services community description icon path" className={cardVisible("platform section cards wiki store music projects services community description icon path") ? "" : "hidden"}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Layers className="h-4 w-4" />
+                        {highlight("Platform Section Cards")}
+                      </CardTitle>
+                      <CardDescription className="mt-1">
+                        {highlight("Edit the 6 cards shown in the \"THE PLATFORM\" grid on the home page.")}
+                      </CardDescription>
+                    </div>
                     <Button
                       variant="ghost"
-                      size="icon"
-                        aria-label="Delete"
-                      className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
-                      onClick={() => removePill(idx)}
-                      data-testid={`button-remove-pill-${idx}`}
+                      size="sm"
+                      className="gap-2 text-muted-foreground shrink-0"
+                      onClick={resetPlatformSections}
+                      disabled={mutation.isPending}
+                      data-testid="button-reset-platform-sections"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Reset
                     </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Remove</TooltipContent>
-                </Tooltip>
-              </div>
-            ))}
-
-            {iconPills.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-6">No icon pills. Add one above.</p>
-            )}
-
-            <div className="flex justify-end pt-2">
-              <Button onClick={saveIconPills} disabled={mutation.isPending} className="gap-2" data-testid="button-save-icon-pills">
-                <Save className="h-3.5 w-3.5" />
-                Save Icon Pills
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* ── FOOTER SITEMAP ── */}
-      <section>
-        <div className="mb-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-            <Layout className="h-3.5 w-3.5" />
-            Footer Sitemap
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Edit the footer navigation columns and links</p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Layout className="h-4 w-4" />
-                  Footer Editor
-                </CardTitle>
-                <CardDescription className="mt-1">
-                  Add, remove, and reorder footer columns and their links. Stored in platform settings.
-                </CardDescription>
-              </div>
-              <Button size="sm" className="gap-1.5 shrink-0" onClick={addColumn} data-testid="button-add-footer-column">
-                <Plus className="h-3.5 w-3.5" />
-                Add Column
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {sitemapColumns.map((col, ci) => (
-              <div key={ci} className="border border-border rounded-lg p-4 space-y-3" data-testid={`footer-column-${ci}`}>
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-col gap-0.5">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => moveColumn(ci, -1)} disabled={ci === 0} data-testid={`button-col-up-${ci}`} aria-label="Move up">
-                          <ChevronUp className="h-3 w-3" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Move up</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => moveColumn(ci, 1)} disabled={ci === sitemapColumns.length - 1} data-testid={`button-col-down-${ci}`} aria-label="Move down">
-                          <ChevronDown className="h-3 w-3" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Move down</TooltipContent>
-                    </Tooltip>
                   </div>
-                  <Input
-                    className="h-8 text-sm font-semibold flex-1"
-                    value={col.heading}
-                    onChange={(e) => updateColumnHeading(ci, e.target.value)}
-                    placeholder="Column Heading"
-                    data-testid={`input-col-heading-${ci}`}
-                  />
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeColumn(ci)} data-testid={`button-remove-col-${ci}`} aria-label="Delete">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Remove column</TooltipContent>
-                  </Tooltip>
-                </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {platformSections.map((section, idx) => (
+                    <div key={idx} className="border border-border/60 rounded-xl p-4 space-y-3 bg-muted/10">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Card {idx + 1}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Label</Label>
+                          <Input
+                            value={section.label}
+                            onChange={(e) => updatePlatformSection(idx, "label", e.target.value)}
+                            placeholder="Wiki"
+                            data-testid={`input-platform-section-label-${idx}`}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Icon Name (Lucide)</Label>
+                          <Input
+                            value={section.iconName}
+                            onChange={(e) => updatePlatformSection(idx, "iconName", e.target.value)}
+                            placeholder="BookOpen"
+                            list={`icon-options-${idx}`}
+                            data-testid={`input-platform-section-icon-${idx}`}
+                          />
+                          <datalist id={`icon-options-${idx}`}>
+                            {LUCIDE_ICON_OPTIONS.map((i) => <option key={i} value={i} />)}
+                          </datalist>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Link Path</Label>
+                        <Input
+                          value={section.path}
+                          onChange={(e) => updatePlatformSection(idx, "path", e.target.value)}
+                          placeholder="/wiki"
+                          data-testid={`input-platform-section-path-${idx}`}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Description</Label>
+                        <Input
+                          value={section.description}
+                          onChange={(e) => updatePlatformSection(idx, "description", e.target.value)}
+                          placeholder="Short description shown on the card"
+                          data-testid={`input-platform-section-description-${idx}`}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex justify-end pt-2">
+                    <Button onClick={savePlatformSections} disabled={mutation.isPending} className="gap-2" data-testid="button-save-platform-sections">
+                      <Save className="h-3.5 w-3.5" />
+                      Save Section Cards
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
 
-                <div className="space-y-2 pl-8">
-                  {col.links.map((lnk, li) => (
-                    <div key={li} className="flex items-center gap-2" data-testid={`footer-link-${ci}-${li}`}>
-                      <div className="flex flex-col gap-0.5">
+              {/* Icon Pills */}
+              <Card data-search-label="icon pills home page icons why feature label link color" className={cardVisible("icon pills home page icons why feature label link color") ? "" : "hidden"}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Star className="h-4 w-4" />
+                        {highlight("Icon Pills Editor")}
+                      </CardTitle>
+                      <CardDescription className="mt-1">
+                        {highlight("Change the icon, label, link, and accent color for each feature pill.")}
+                      </CardDescription>
+                    </div>
+                    <Button size="sm" className="gap-1.5 shrink-0" onClick={addPill} data-testid="button-add-icon-pill">
+                      <Plus className="h-3.5 w-3.5" />
+                      Add Pill
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {iconPills.map((pill, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-2 p-3 border border-border rounded-lg bg-muted/20"
+                      data-testid={`row-icon-pill-${idx}`}
+                    >
+                      <div className="flex flex-col gap-0.5 shrink-0">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => moveLink(ci, li, -1)} disabled={li === 0} data-testid={`button-link-up-${ci}-${li}`} aria-label="Move up">
-                              <ChevronUp className="h-2.5 w-2.5" />
+                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => movePill(idx, -1)} disabled={idx === 0} data-testid={`button-pill-up-${idx}`} aria-label="Move up">
+                              <ChevronUp className="h-3 w-3" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Move up</TooltipContent>
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => moveLink(ci, li, 1)} disabled={li === col.links.length - 1} data-testid={`button-link-down-${ci}-${li}`} aria-label="Move down">
-                              <ChevronDown className="h-2.5 w-2.5" />
+                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => movePill(idx, 1)} disabled={idx === iconPills.length - 1} data-testid={`button-pill-down-${idx}`} aria-label="Move down">
+                              <ChevronDown className="h-3 w-3" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Move down</TooltipContent>
                         </Tooltip>
                       </div>
-                      <Input
-                        className="h-7 text-xs flex-1"
-                        value={lnk.label}
-                        onChange={(e) => updateLink(ci, li, "label", e.target.value)}
-                        placeholder="Label"
-                        data-testid={`input-link-label-${ci}-${li}`}
-                      />
-                      <Input
-                        className="h-7 text-xs flex-1"
-                        value={lnk.path}
-                        onChange={(e) => updateLink(ci, li, "path", e.target.value)}
-                        placeholder="/path or https://..."
-                        data-testid={`input-link-path-${ci}-${li}`}
-                      />
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex items-center gap-1">
-                              <Switch
-                                checked={!!lnk.external}
-                                onCheckedChange={(v) => updateLink(ci, li, "external", v)}
-                                className="scale-75"
-                                data-testid={`switch-link-external-${ci}-${li}`}
+
+                      <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground">Icon</Label>
+                          <Select value={pill.icon} onValueChange={(v) => updatePill(idx, "icon", v)}>
+                            <SelectTrigger className="h-7 text-xs" data-testid={`select-pill-icon-${idx}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {LUCIDE_ICON_OPTIONS.map((ic) => (
+                                <SelectItem key={ic} value={ic}>{ic}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground">Label</Label>
+                          <Input
+                            className="h-7 text-xs"
+                            value={pill.label}
+                            onChange={(e) => updatePill(idx, "label", e.target.value)}
+                            placeholder="Label"
+                            data-testid={`input-pill-label-${idx}`}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground">Link URL</Label>
+                          <Input
+                            className="h-7 text-xs"
+                            value={pill.href}
+                            onChange={(e) => updatePill(idx, "href", e.target.value)}
+                            placeholder="/page"
+                            data-testid={`input-pill-href-${idx}`}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground">Accent Color</Label>
+                          <div className="flex items-center gap-1.5">
+                            <div className="relative shrink-0">
+                              <div className="h-7 w-7 rounded-md border border-border" style={{ backgroundColor: pill.color }} />
+                              <input
+                                type="color"
+                                value={pill.color}
+                                onChange={(e) => updatePill(idx, "color", e.target.value)}
+                                className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7"
+                                data-testid={`color-pill-${idx}`}
                               />
-                              <span className="text-[10px] text-muted-foreground">Ext</span>
                             </div>
-                          </TooltipTrigger>
-                          <TooltipContent>Open in new tab</TooltipContent>
-                        </Tooltip>
+                            <Input
+                              className="h-7 text-xs font-mono"
+                              value={pill.color}
+                              onChange={(e) => updatePill(idx, "color", e.target.value)}
+                              placeholder="#f97316"
+                              data-testid={`input-pill-color-${idx}`}
+                            />
+                          </div>
+                        </div>
                       </div>
+
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => removeLink(ci, li)} data-testid={`button-remove-link-${ci}-${li}`} aria-label="Delete">
-                            <Trash2 className="h-3 w-3" />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Delete"
+                            className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
+                            onClick={() => removePill(idx)}
+                            data-testid={`button-remove-pill-${idx}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Remove link</TooltipContent>
+                        <TooltipContent>Remove</TooltipContent>
                       </Tooltip>
                     </div>
                   ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs gap-1.5 mt-1"
-                    onClick={() => addLink(ci)}
-                    data-testid={`button-add-link-${ci}`}
-                  >
-                    <Plus className="h-3 w-3" />
-                    Add Link
-                  </Button>
-                </div>
-              </div>
-            ))}
 
-            {sitemapColumns.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-6">No footer columns. Add one above.</p>
-            )}
+                  {iconPills.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-6">No icon pills. Add one above.</p>
+                  )}
 
-            <div className="flex justify-end pt-2">
-              <Button onClick={saveFooterSitemap} disabled={mutation.isPending} className="gap-2" data-testid="button-save-footer-sitemap">
-                <Save className="h-3.5 w-3.5" />
-                Save Footer
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* ── ANALYTICS ── */}
-      <section>
-        <div className="mb-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-            <BarChart2 className="h-3.5 w-3.5" />
-            Analytics
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Google Analytics 4 integration for platform tracking and reporting</p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart2 className="h-4 w-4" />
-              Google Analytics 4
-            </CardTitle>
-            <CardDescription>
-              Connect GA4 to inject the tracking script on every page and power the native analytics dashboard in CMD → Traffic.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            {/* Status */}
-            <div className={`flex items-start gap-3 p-3 rounded-lg border ${ga4Status?.configured ? "bg-green-500/10 border-green-500/20" : ga4Status?.measurementId || ga4Status?.propertyId ? "bg-amber-500/10 border-amber-500/20" : "bg-muted/40"}`}>
-              {ga4Status?.configured ? (
-                <>
-                  <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium">GA4 fully configured</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Measurement ID, Property ID, and service account are all set. The Data API and tracking script are active.</p>
+                  <div className="flex justify-end pt-2">
+                    <Button onClick={saveIconPills} disabled={mutation.isPending} className="gap-2" data-testid="button-save-icon-pills">
+                      <Save className="h-3.5 w-3.5" />
+                      Save Icon Pills
+                    </Button>
                   </div>
-                </>
-              ) : ga4Status?.measurementId || ga4Status?.propertyId ? (
-                <>
-                  <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium">GA4 partially configured</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {ga4Status?.measurementId && ga4Status?.propertyId
-                        ? "Measurement ID and Property ID are saved. Add the GOOGLE_SERVICE_ACCOUNT_JSON secret to enable the Data API."
-                        : "Enter both Measurement ID and Property ID, then add the GOOGLE_SERVICE_ACCOUNT_JSON secret to enable analytics."}
-                    </p>
+                </CardContent>
+              </Card>
+
+              {/* Footer Sitemap */}
+              <Card data-search-label="footer sitemap editor columns links navigation external" className={cardVisible("footer sitemap editor columns links navigation external") ? "" : "hidden"}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Layout className="h-4 w-4" />
+                        {highlight("Footer Sitemap Editor")}
+                      </CardTitle>
+                      <CardDescription className="mt-1">
+                        {highlight("Add, remove, and reorder footer columns and their links.")}
+                      </CardDescription>
+                    </div>
+                    <Button size="sm" className="gap-1.5 shrink-0" onClick={addColumn} data-testid="button-add-footer-column">
+                      <Plus className="h-3.5 w-3.5" />
+                      Add Column
+                    </Button>
                   </div>
-                </>
-              ) : (
-                <>
-                  <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium">GA4 not configured</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Enter your Measurement ID and Property ID below, then add the GOOGLE_SERVICE_ACCOUNT_JSON secret to enable analytics.</p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {sitemapColumns.map((col, ci) => (
+                    <div key={ci} className="border border-border rounded-lg p-4 space-y-3" data-testid={`footer-column-${ci}`}>
+                      <div className="flex items-center gap-2">
+                        <div className="flex flex-col gap-0.5">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => moveColumn(ci, -1)} disabled={ci === 0} data-testid={`button-col-up-${ci}`} aria-label="Move up">
+                                <ChevronUp className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Move up</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => moveColumn(ci, 1)} disabled={ci === sitemapColumns.length - 1} data-testid={`button-col-down-${ci}`} aria-label="Move down">
+                                <ChevronDown className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Move down</TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <Input
+                          className="h-8 text-sm font-semibold flex-1"
+                          value={col.heading}
+                          onChange={(e) => updateColumnHeading(ci, e.target.value)}
+                          placeholder="Column Heading"
+                          data-testid={`input-col-heading-${ci}`}
+                        />
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeColumn(ci)} data-testid={`button-remove-col-${ci}`} aria-label="Delete">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Remove column</TooltipContent>
+                        </Tooltip>
+                      </div>
+
+                      <div className="space-y-2 pl-8">
+                        {col.links.map((lnk, li) => (
+                          <div key={li} className="flex items-center gap-2" data-testid={`footer-link-${ci}-${li}`}>
+                            <div className="flex flex-col gap-0.5">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => moveLink(ci, li, -1)} disabled={li === 0} data-testid={`button-link-up-${ci}-${li}`} aria-label="Move up">
+                                    <ChevronUp className="h-2.5 w-2.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Move up</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => moveLink(ci, li, 1)} disabled={li === col.links.length - 1} data-testid={`button-link-down-${ci}-${li}`} aria-label="Move down">
+                                    <ChevronDown className="h-2.5 w-2.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Move down</TooltipContent>
+                              </Tooltip>
+                            </div>
+                            <Input
+                              className="h-7 text-xs flex-1"
+                              value={lnk.label}
+                              onChange={(e) => updateLink(ci, li, "label", e.target.value)}
+                              placeholder="Label"
+                              data-testid={`input-link-label-${ci}-${li}`}
+                            />
+                            <Input
+                              className="h-7 text-xs flex-1"
+                              value={lnk.path}
+                              onChange={(e) => updateLink(ci, li, "path", e.target.value)}
+                              placeholder="/path or https://..."
+                              data-testid={`input-link-path-${ci}-${li}`}
+                            />
+                            <div className="flex items-center gap-1 shrink-0">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center gap-1">
+                                    <Switch
+                                      checked={!!lnk.external}
+                                      onCheckedChange={(v) => updateLink(ci, li, "external", v)}
+                                      className="scale-75"
+                                      data-testid={`switch-link-external-${ci}-${li}`}
+                                    />
+                                    <span className="text-[10px] text-muted-foreground">Ext</span>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>Open in new tab</TooltipContent>
+                              </Tooltip>
+                            </div>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => removeLink(ci, li)} data-testid={`button-remove-link-${ci}-${li}`} aria-label="Delete">
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Remove link</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        ))}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs gap-1.5 mt-1"
+                          onClick={() => addLink(ci)}
+                          data-testid={`button-add-link-${ci}`}
+                        >
+                          <Plus className="h-3 w-3" />
+                          Add Link
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {sitemapColumns.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-6">No footer columns. Add one above.</p>
+                  )}
+
+                  <div className="flex justify-end pt-2">
+                    <Button onClick={saveFooterSitemap} disabled={mutation.isPending} className="gap-2" data-testid="button-save-footer-sitemap">
+                      <Save className="h-3.5 w-3.5" />
+                      Save Footer
+                    </Button>
                   </div>
-                </>
-              )}
-            </div>
+                </CardContent>
+              </Card>
 
-            {/* Measurement ID */}
-            <div className="space-y-1.5">
-              <Label htmlFor="input-ga4-measurement-id">
-                Measurement ID
-                <span className="text-muted-foreground text-xs ml-2">(controls gtag.js injection)</span>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  id="input-ga4-measurement-id"
-                  data-testid="input-ga4-measurement-id"
-                  placeholder="G-XXXXXXXXXX"
-                  value={ga4MeasurementId}
-                  onChange={(e) => setGa4MeasurementId(e.target.value)}
-                  className="font-mono"
-                />
-                <Button size="sm" onClick={saveAnalytics} disabled={mutation.isPending} data-testid="button-save-ga4-measurement-id">
-                  <Save className="h-4 w-4 mr-1" />
-                  Save
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">Found in GA4 Admin → Data Streams → your web stream. Starts with G-.</p>
-            </div>
+              {/* Brand Assets */}
+              <Card data-search-label="brand assets downloadable materials about page logo color palette font banner" className={cardVisible("brand assets downloadable materials about page logo color palette font banner") ? "" : "hidden"}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Package className="h-4 w-4" />
+                        {highlight("Brand Assets")}
+                      </CardTitle>
+                      <CardDescription className="mt-1">
+                        {highlight("Downloadable brand materials shown on the public About page.")}
+                      </CardDescription>
+                    </div>
+                    <Button onClick={openAddDialog} size="sm" className="gap-2 shrink-0" data-testid="button-add-brand-asset">
+                      <Plus className="h-3.5 w-3.5" />
+                      Add Asset
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {brandLoading ? (
+                    <div className="space-y-2">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="h-12 bg-muted animate-pulse rounded-lg" />
+                      ))}
+                    </div>
+                  ) : brandAssets.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground" data-testid="text-brand-assets-empty-cmd">
+                      <Package className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                      <p className="text-sm">No brand assets yet. Add your first one above.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {brandAssets.map((asset) => (
+                        <div
+                          key={asset.id}
+                          className="flex items-center gap-3 p-3 border border-border rounded-lg"
+                          data-testid={`row-brand-asset-${asset.id}`}
+                        >
+                          {(asset.previewUrl || (asset.assetType === "logo" && asset.downloadUrl)) ? (
+                            <img
+                              src={asset.previewUrl || asset.downloadUrl}
+                              alt={asset.name}
+                              className="h-10 w-10 object-contain rounded border border-border shrink-0 bg-muted/30"
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded border border-border bg-muted/30 flex items-center justify-center shrink-0">
+                              <Package className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-medium text-foreground truncate">{asset.name}</p>
+                              <Badge variant="secondary" className="text-[10px]" data-testid={`badge-type-${asset.id}`}>
+                                {ASSET_TYPE_LABELS[asset.assetType] ?? asset.assetType}
+                              </Badge>
+                              {!asset.isPublic && (
+                                <Badge variant="outline" className="text-[10px] text-muted-foreground">Private</Badge>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditDialog(asset)} data-testid={`button-edit-brand-asset-${asset.id}`} aria-label="Edit">
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Edit</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => deleteBrandAsset.mutate(asset.id)} disabled={deleteBrandAsset.isPending} data-testid={`button-delete-brand-asset-${asset.id}`} aria-label="Delete">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Delete</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-            {/* Property ID */}
-            <div className="space-y-1.5">
-              <Label htmlFor="input-ga4-property-id">
-                Property ID
-                <span className="text-muted-foreground text-xs ml-2">(controls Data API connection)</span>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  id="input-ga4-property-id"
-                  data-testid="input-ga4-property-id"
-                  placeholder="123456789"
-                  value={ga4PropertyId}
-                  onChange={(e) => setGa4PropertyId(e.target.value)}
-                  className="font-mono"
-                />
-                <Button size="sm" onClick={saveAnalytics} disabled={mutation.isPending} data-testid="button-save-ga4-property-id">
-                  <Save className="h-4 w-4 mr-1" />
-                  Save
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">Found in GA4 Admin → Property Settings. Numeric ID only (no "properties/" prefix).</p>
-            </div>
-
-            <Separator />
-
-            {/* Service Account */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                Service Account JSON Key
-                <span className="text-xs text-muted-foreground">(required for Data API)</span>
-              </Label>
-              <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
-                <p className="text-xs text-muted-foreground">
-                  Add the <span className="font-mono bg-muted px-1 rounded">GOOGLE_SERVICE_ACCOUNT_JSON</span> environment secret with the contents of your downloaded service account key JSON file.
-                </p>
-                <ol className="list-decimal list-inside space-y-1">
-                  <li className="text-xs text-muted-foreground">Go to <a href="https://console.cloud.google.com/iam-admin/serviceaccounts" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google Cloud Console → Service Accounts</a></li>
-                  <li className="text-xs text-muted-foreground">Create a service account and download a JSON key</li>
-                  <li className="text-xs text-muted-foreground">In GA4 Admin → Property Access Management, add the service account email as a Viewer</li>
-                  <li className="text-xs text-muted-foreground">Add the JSON key contents as the <span className="font-mono bg-muted px-1 rounded">GOOGLE_SERVICE_ACCOUNT_JSON</span> secret in Replit Secrets</li>
-                </ol>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Email Diagnostics */}
-      <section id="email-diagnostics">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Email Diagnostics
-            </CardTitle>
-            <CardDescription>
-              Send a test email to verify the Resend integration is working end-to-end.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <EmailDiagnosticsPanel />
-          </CardContent>
-        </Card>
-      </section>
+        </Tabs>
 
       {/* Add/Edit Brand Asset Dialog */}
       <Dialog open={brandDialogOpen} onOpenChange={setBrandDialogOpen}>
@@ -2613,6 +3052,13 @@ export default function CommandSettings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SocialLinkDialog
+        open={showSocialDialog}
+        onClose={() => { setShowSocialDialog(false); setEditingLink(undefined); }}
+        existing={editingLink}
+        nextOrder={socialLinks?.length ?? 0}
+      />
     </div>
   );
 }
@@ -2700,148 +3146,103 @@ function VpsCard({ vm }: { vm: VirtualMachine }) {
     const d = Math.floor(secs / 86400);
     const h = Math.floor((secs % 86400) / 3600);
     const m = Math.floor((secs % 3600) / 60);
-    const parts = [];
-    if (d) parts.push(`${d}d`);
-    if (h) parts.push(`${h}h`);
-    if (m) parts.push(`${m}m`);
-    return parts.join(" ") || "< 1m";
+    if (d > 0) return `${d}d ${h}h`;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
   }
 
+  const uptime = formatUptime(vm.uptime);
+
   return (
-    <Card className="overflow-visible" data-testid={`card-vps-${vm.id}`}>
-      <div className="p-4 border-b border-border/60">
+    <Card className="overflow-hidden" data-testid={`vps-card-${vm.id}`}>
+      <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Server className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold" data-testid="vps-hostname">{vm.hostname}</p>
-              <p className="text-xs text-muted-foreground">ID: {vm.id}</p>
-            </div>
+          <div className="min-w-0">
+            <CardTitle className="text-base font-semibold truncate" data-testid={`vps-hostname-${vm.id}`}>{vm.hostname}</CardTitle>
+            {vm.template?.name && (
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">{vm.template.name}</p>
+            )}
           </div>
           <StatusBadge state={vm.state} />
         </div>
-      </div>
-      <div className="p-4 space-y-0">
-        {primaryIp !== "N/A" && <MetricRow icon={Network} label="IP Address" value={primaryIp} />}
-        {location !== "Unknown" && <MetricRow icon={MapPinIcon} label="Datacenter" value={location} />}
-        {vm.cpus && <MetricRow icon={Cpu} label="vCPUs" value={`${vm.cpus} core${vm.cpus !== 1 ? "s" : ""}`} />}
-        {memoryGb && <MetricRow icon={MemoryStick} label="RAM" value={`${memoryGb} GB`} />}
-        {diskGb && <MetricRow icon={HardDrive} label="Disk" value={`${diskGb} GB`} />}
+      </CardHeader>
+      <CardContent className="pt-0">
+        <MetricRow icon={Network} label="IP Address" value={primaryIp} />
+        {vm.cpus && <MetricRow icon={Cpu} label="vCPUs" value={`${vm.cpus} core${vm.cpus > 1 ? "s" : ""}`} />}
+        {memoryGb && <MetricRow icon={MemoryStick} label="Memory" value={`${memoryGb} GB RAM`} />}
+        {diskGb && <MetricRow icon={HardDrive} label="Storage" value={`${diskGb} GB`} />}
+        {vm.datacenter && <MetricRow icon={MapPinIcon} label="Location" value={location} />}
+        {uptime && <MetricRow icon={Clock} label="Uptime" value={uptime} />}
         {vm.bandwidth && (
           <MetricRow
-            icon={Globe}
+            icon={Network}
             label="Bandwidth"
-            value={`${((vm.bandwidth.used ?? 0) / 1024).toFixed(1)} GB used`}
-            subValue={`of ${((vm.bandwidth.total ?? 0) / 1024).toFixed(0)} GB`}
+            value={`${(vm.bandwidth.used / 1024 / 1024 / 1024).toFixed(1)} GB used`}
+            subValue={`of ${(vm.bandwidth.total / 1024 / 1024 / 1024).toFixed(0)} GB`}
           />
         )}
-        {vm.template?.name && <MetricRow icon={Server} label="OS" value={vm.template.name} />}
-        {vm.uptime !== undefined && <MetricRow icon={Clock} label="Uptime" value={formatUptime(vm.uptime) ?? "N/A"} />}
-      </div>
-      <div className="p-3 border-t border-border/60 flex items-center justify-end gap-2">
-        <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" asChild>
-          <a href="https://hpanel.hostinger.com/vps" target="_blank" rel="noopener noreferrer" data-testid="link-vps-hpanel">
-            <ExternalLink className="h-3 w-3" />
-            Manage in hPanel
-          </a>
-        </Button>
-      </div>
+      </CardContent>
     </Card>
   );
 }
 
 function HostingSection() {
-  const { data, isLoading, isError, error, refetch, isFetching } = useQuery<VpsListResponse>({
-    queryKey: ["/api/hostinger/vps"],
-    retry: 1,
+  const { data: vpsData, isLoading, refetch, isFetching } = useQuery<VpsListResponse>({
+    queryKey: ["/api/hosting/vps-list"],
+    staleTime: 60_000,
+    gcTime: 120_000,
   });
 
-  const vms: VirtualMachine[] = Array.isArray(data) ? data : (data?.data ?? []);
+  const vms = vpsData?.data ?? [];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs text-muted-foreground">Live status from Hostinger API</p>
-        </div>
-        <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={() => refetch()} disabled={isFetching} data-testid="button-vps-refresh">
-          <RefreshCw className={`h-3 w-3 ${isFetching ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
-      </div>
-
-      {isLoading ? (
-        <div className="flex flex-col gap-4">
-          {[0, 1].map((i) => (
-            <Card key={i} className="p-4 overflow-visible">
-              <div className="flex items-center gap-3 mb-4">
-                <Skeleton className="h-9 w-9 rounded-lg" />
-                <div>
-                  <Skeleton className="h-4 w-32 mb-1" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              </div>
-              {Array.from({ length: 4 }).map((_, j) => (
-                <div key={j} className="flex items-center gap-3 py-2.5 border-b border-border/40 last:border-0">
-                  <Skeleton className="h-7 w-7 rounded-md" />
-                  <div className="flex-1">
-                    <Skeleton className="h-3 w-16 mb-1" />
-                    <Skeleton className="h-4 w-24" />
-                  </div>
-                </div>
-              ))}
-            </Card>
-          ))}
-        </div>
-      ) : isError ? (
-        <Card className="p-6 overflow-visible text-center">
-          <AlertCircle className="h-8 w-8 mx-auto mb-2 text-destructive opacity-60" />
-          <p className="text-sm font-medium mb-1">Failed to load VPS data</p>
-          <p className="text-xs text-muted-foreground mb-3" data-testid="text-vps-error">
-            {(error as Error)?.message || "Unable to connect to Hostinger API."}
-          </p>
-          <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => refetch()}>
-            <RefreshCw className="h-3 w-3" />
-            Try again
-          </Button>
-        </Card>
-      ) : vms.length === 0 ? (
-        <Card className="p-10 text-center overflow-visible">
-          <Server className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-30" />
-          <p className="text-sm font-medium mb-1">No VPS found</p>
-          <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-            No virtual machines are linked to this Hostinger API key.
-          </p>
-          <Button variant="outline" size="sm" className="mt-4 gap-1.5 text-xs" asChild>
-            <a href="https://www.hostinger.com/vps-hosting" target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-3 w-3" />
-              Browse VPS Plans
-            </a>
-          </Button>
-        </Card>
-      ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {vms.map((vm) => (
-            <VpsCard key={vm.id} vm={vm} />
-          ))}
-        </div>
-      )}
-
-      <div className="border-t border-border/60 pt-4">
+    <Card data-search-label="hosting VPS domain Hostinger server">
+      <CardHeader>
         <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            Domain portfolio and DNS settings are managed through Hostinger hPanel.
-          </p>
-          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" asChild>
-            <a href="https://hpanel.hostinger.com" target="_blank" rel="noopener noreferrer" data-testid="link-hpanel">
-              <ExternalLink className="h-3 w-3" />
-              Open hPanel
-            </a>
-          </Button>
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Server className="h-4 w-4" />
+              Hosting / VPS
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Live server status from Hostinger. Requires <code className="bg-muted px-1 rounded text-[11px]">HOSTINGER_API_KEY</code> to be configured.
+            </CardDescription>
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                data-testid="button-refresh-vps"
+                aria-label="Refresh"
+              >
+                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Refresh</TooltipContent>
+          </Tooltip>
         </div>
-      </div>
-    </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[1, 2].map((i) => <Skeleton key={i} className="h-48 w-full rounded-lg" />)}
+          </div>
+        ) : vms.length === 0 ? (
+          <div className="text-center py-10 text-muted-foreground" data-testid="text-vps-empty">
+            <Server className="h-8 w-8 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">No VPS instances found.</p>
+            <p className="text-xs mt-1">Check that your Hostinger API key is configured correctly.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {vms.map((vm) => <VpsCard key={vm.id} vm={vm} />)}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

@@ -259,7 +259,7 @@ export default function Landing() {
   const xEnabled = settings["social.x.enabled"] !== "false";
 
   return (
-    <div className="min-h-screen bg-background" data-page="landing">
+    <div className="min-h-screen bg-background overflow-x-hidden" data-page="landing">
       <PageHead
         title="SEVCO — Music, Merch, Projects & Community"
         description={heroText}

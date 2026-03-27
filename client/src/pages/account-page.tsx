@@ -9,11 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { User, Loader2, ExternalLink } from "lucide-react";
+import { SiX } from "react-icons/si";
 import { Link } from "wouter";
 
 const profileSchema = z.object({
@@ -28,21 +30,49 @@ export default function AccountPage() {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("linked") === "1") {
+      toast({ title: "X account connected successfully" });
+      window.history.replaceState({}, "", "/account");
+    } else if (params.get("error") === "already_linked") {
+      toast({
+        title: "That X account is already connected to another SEVCO account",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, "", "/account");
+    }
+  }, []);
+
+  const disconnectMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/auth/twitter/disconnect");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({ title: "X account disconnected" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Failed to disconnect X account", description: err.message, variant: "destructive" });
+    },
+  });
+
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      displayName: (user as any)?.displayName || "",
-      bio: (user as any)?.bio || "",
-      email: (user as any)?.email || "",
+      displayName: user?.displayName || "",
+      bio: user?.bio || "",
+      email: user?.email || "",
     },
   });
 
   useEffect(() => {
     if (user) {
       form.reset({
-        displayName: (user as any).displayName || "",
-        bio: (user as any).bio || "",
-        email: (user as any).email || "",
+        displayName: user.displayName || "",
+        bio: user.bio || "",
+        email: user.email || "",
       });
     }
   }, [user, form]);
@@ -95,8 +125,8 @@ export default function AccountPage() {
             <div>
               <CardTitle data-testid="text-account-username">{user?.username}</CardTitle>
               <CardDescription>
-                {(user as any)?.displayName
-                  ? (user as any).displayName
+                {user?.displayName
+                  ? user.displayName
                   : "No display name set"}
               </CardDescription>
             </div>
@@ -200,6 +230,57 @@ export default function AccountPage() {
           <div className="flex justify-between">
             <span className="text-muted-foreground">Account ID</span>
             <span className="font-mono text-xs text-muted-foreground" data-testid="text-account-id">{user?.id}</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Connected Accounts</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <SiX className="h-5 w-5 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-sm">X / Twitter</div>
+              {user?.xId ? (
+                <div className="mt-0.5 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40" data-testid="status-x-connected">
+                      Connected
+                    </Badge>
+                    <span className="text-xs text-muted-foreground font-mono" data-testid="text-x-id">{user.xId}</span>
+                  </div>
+                  {!user?.hasPassword && (
+                    <p className="text-xs text-muted-foreground">Signed in via X — your X account is your login.</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-0.5" data-testid="status-x-not-connected">Not connected</p>
+              )}
+            </div>
+            {user?.xId ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => disconnectMutation.mutate()}
+                disabled={disconnectMutation.isPending || !user?.hasPassword}
+                title={!user?.hasPassword ? "Cannot disconnect — this is your only login method" : undefined}
+                data-testid="button-disconnect-x"
+              >
+                {disconnectMutation.isPending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                Disconnect
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { window.location.href = "/api/auth/twitter/link"; }}
+                data-testid="button-connect-x"
+              >
+                Connect X
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

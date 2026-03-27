@@ -9,7 +9,8 @@ declare global {
       displayName: string | null;
       bio: string | null;
       email: string | null;
-      password: string;
+      password: string | null;
+      xId: string | null;
     }
   }
 }

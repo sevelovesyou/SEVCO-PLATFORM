@@ -1,7 +1,7 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import OAuth2Strategy from "passport-oauth2";
-import { type Express } from "express";
+import { type Express, type Request, type Response, type NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcryptjs";
@@ -13,6 +13,11 @@ import { pool } from "./db";
 import { sendVerificationEmail } from "./emailClient";
 
 const PgSession = connectPgSimple(session);
+
+function toSafeUser<T extends { password?: string | null }>(user: T): Omit<T, "password"> & { hasPassword: boolean } {
+  const { password, ...rest } = user;
+  return { ...rest, hasPassword: !!password } as Omit<T, "password"> & { hasPassword: boolean };
+}
 
 export function setupAuth(app: Express) {
   app.use(
@@ -156,6 +161,98 @@ export function setupAuth(app: Express) {
         res.redirect("/");
       }
     );
+
+    passport.use(
+      "twitter-link",
+      new OAuth2Strategy(
+        {
+          authorizationURL: "https://twitter.com/i/oauth2/authorize",
+          tokenURL: "https://api.twitter.com/2/oauth2/token",
+          clientID: twitterClientId,
+          clientSecret: twitterClientSecret,
+          callbackURL: `${BASE_URL}/api/auth/twitter/link/callback`,
+          scope: ["tweet.read", "users.read", "offline.access"],
+          customHeaders: {
+            Authorization: `Basic ${Buffer.from(`${twitterClientId}:${twitterClientSecret}`).toString("base64")}`,
+          },
+          pkce: true,
+          state: true,
+          passReqToCallback: true,
+        } as OAuth2Strategy.StrategyOptionsWithRequest,
+        async (req: Express.Request, accessToken: string, _refreshToken: string, _results: object, _profile: object, done: OAuth2Strategy.VerifyCallback) => {
+          try {
+            const resp = await fetch("https://api.twitter.com/2/users/me?user.fields=name,profile_image_url,username", {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (!resp.ok) {
+              return done(new Error("Failed to fetch X user info"));
+            }
+            const json = (await resp.json()) as TwitterUserApiResponse;
+            const xUser = json.data;
+
+            const session = req.session as typeof req.session & { linkUserId?: string };
+            const userId: string | undefined = session.linkUserId || req.user?.id;
+            if (!userId) {
+              return done(new Error("No user session found"));
+            }
+
+            try {
+              const updatedUser = await storage.linkUserXAccount(userId, xUser.id);
+              return done(null, updatedUser);
+            } catch (err) {
+              if (err instanceof Error && err.message === "already_linked") {
+                return done(new Error("already_linked"));
+              }
+              throw err;
+            }
+          } catch (err) {
+            return done(err instanceof Error ? err : new Error(String(err)));
+          }
+        }
+      )
+    );
+
+    app.get(
+      "/api/auth/twitter/link",
+      (req: Request, res: Response, next: NextFunction) => {
+        if (!req.isAuthenticated() || !req.user) {
+          return res.status(401).json({ message: "Not authenticated" });
+        }
+        const typedSession = req.session as typeof req.session & { linkUserId?: string };
+        typedSession.linkUserId = req.user.id;
+        req.session.save((err) => {
+          if (err) return next(err);
+          passport.authenticate("twitter-link")(req, res, next);
+        });
+      }
+    );
+
+    app.get(
+      "/api/auth/twitter/link/callback",
+      (req: Request, res: Response, next: NextFunction) => {
+        if (!req.isAuthenticated() || !req.user) {
+          return res.redirect("/account?error=oauth_failed");
+        }
+        passport.authenticate("twitter-link", (err: Error | null, user: Express.User | false) => {
+          const typedSession = req.session as typeof req.session & { linkUserId?: string };
+          delete typedSession.linkUserId;
+          if (err) {
+            if (err.message === "already_linked") {
+              return res.redirect("/account?error=already_linked");
+            }
+            return res.redirect("/account?error=oauth_failed");
+          }
+          if (!user) {
+            return res.redirect("/account?error=oauth_failed");
+          }
+          req.login(user, (loginErr) => {
+            if (loginErr) return next(loginErr);
+            res.redirect("/account?linked=1");
+          });
+        })(req, res, next);
+      }
+    );
+
   } else {
     app.get("/api/auth/twitter", (_req, res) => {
       res.status(503).json({ message: "X OAuth is not configured. Set TWITTER_CLIENT_ID and TWITTER_CLIENT_SECRET." });
@@ -163,7 +260,37 @@ export function setupAuth(app: Express) {
     app.get("/api/auth/twitter/callback", (_req, res) => {
       res.redirect("/auth?error=oauth_not_configured");
     });
+    app.get("/api/auth/twitter/link", (_req, res) => {
+      res.status(503).json({ message: "X OAuth is not configured. Set TWITTER_CLIENT_ID and TWITTER_CLIENT_SECRET." });
+    });
+    app.get("/api/auth/twitter/link/callback", (_req, res) => {
+      res.redirect("/account?error=oauth_not_configured");
+    });
   }
+
+  app.post(
+    "/api/auth/twitter/disconnect",
+    (req: Request, res: Response, next: NextFunction) => {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      if (!req.user.password) {
+        return res.status(400).json({ message: "Cannot disconnect X — it is your only login method" });
+      }
+      next();
+    },
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const updated = await storage.unlinkUserXAccount(req.user!.id);
+        req.login(updated, (err) => {
+          if (err) return next(err);
+          res.json({ success: true });
+        });
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
 
   app.post("/api/register", async (req, res, next) => {
     try {
@@ -229,8 +356,7 @@ export function setupAuth(app: Express) {
       }
       req.login(user, (err) => {
         if (err) return next(err);
-        const { password: _, ...safeUser } = user;
-        return res.json(safeUser);
+        return res.json(toSafeUser(user));
       });
     })(req, res, next);
   });
@@ -264,8 +390,7 @@ export function setupAuth(app: Express) {
 
       req.login(freshUser, (err) => {
         if (err) return next(err);
-        const { password: _, ...safeUser } = freshUser;
-        return res.json(safeUser);
+        return res.json(toSafeUser(freshUser));
       });
     } catch (err) {
       next(err);
@@ -337,8 +462,7 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Not authenticated" });
     }
-    const { password: _, ...safeUser } = req.user;
-    res.json(safeUser);
+    res.json(toSafeUser(req.user));
   });
 
   app.patch("/api/user", async (req, res, next) => {
@@ -354,8 +478,7 @@ export function setupAuth(app: Express) {
       const updated = await storage.updateUser(userId, parsed.data);
       req.login(updated, (err) => {
         if (err) return next(err);
-        const { password: _, ...safeUser } = updated;
-        return res.json(safeUser);
+        return res.json(toSafeUser(updated));
       });
     } catch (err) {
       next(err);

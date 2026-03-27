@@ -69,6 +69,8 @@ export interface IStorage {
   updateUserProfile(id: string, data: UpdateProfile): Promise<User>;
   updateUserRole(id: string, role: Role): Promise<User | undefined>;
   updateEmailVerification(id: string, data: { emailVerified?: boolean; emailVerificationToken?: string | null; emailVerificationExpires?: Date | null }): Promise<User>;
+  linkUserXAccount(userId: string, xId: string): Promise<User>;
+  unlinkUserXAccount(userId: string): Promise<User>;
 
   getCategories(): Promise<Category[]>;
   getCategoryBySlug(slug: string): Promise<Category | undefined>;
@@ -468,6 +470,35 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set(data)
       .where(eq(users.id, id))
+      .returning();
+    return updated;
+  }
+
+  async linkUserXAccount(userId: string, xId: string): Promise<User> {
+    const existing = await this.getUserByXId(xId);
+    if (existing && existing.id !== userId) {
+      throw new Error("already_linked");
+    }
+    try {
+      const [updated] = await db
+        .update(users)
+        .set({ xId })
+        .where(eq(users.id, userId))
+        .returning();
+      return updated;
+    } catch (err) {
+      if (err instanceof Error && err.message.includes("unique")) {
+        throw new Error("already_linked");
+      }
+      throw err;
+    }
+  }
+
+  async unlinkUserXAccount(userId: string): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({ xId: null })
+      .where(eq(users.id, userId))
       .returning();
     return updated;
   }

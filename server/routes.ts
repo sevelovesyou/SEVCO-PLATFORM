@@ -4219,6 +4219,17 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/admin/run-wiki-seed", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const { runWikiSeed } = await import("./wikiSeed");
+      await runWikiSeed();
+      res.json({ success: true, message: "Wiki seed completed" });
+    } catch (err: any) {
+      console.error("[routes] Wiki seed failed:", err?.message ?? err);
+      res.status(500).json({ success: false, message: err?.message ?? "Wiki seed failed" });
+    }
+  });
+
   app.post("/api/admin/send-test-email", requireAuth, requireRole("admin"), async (req, res) => {
     try {
       const { email } = req.body;

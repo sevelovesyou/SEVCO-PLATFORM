@@ -49,6 +49,14 @@ const MODELS = [
   { value: "xai/grok-2-1212",                            label: "Grok 2",              group: "Grok" },
   { value: "xai/grok-2-vision-1212",                     label: "Grok 2 Vision",       group: "Grok" },
   { value: "xai/grok-beta",                              label: "Grok Beta",           group: "Grok" },
+  { value: "xai/grok-2-image-1212",                      label: "Grok Imagine",        group: "Grok" },
+
+  // Grok via OpenRouter (no x.ai credits needed — uses OPENROUTER_API_KEY)
+  { value: "x-ai/grok-3",                                label: "Grok 3 (OpenRouter)",           group: "Grok (via OpenRouter)" },
+  { value: "x-ai/grok-3-fast",                           label: "Grok 3 Fast (OpenRouter)",      group: "Grok (via OpenRouter)" },
+  { value: "x-ai/grok-3-mini",                           label: "Grok 3 Mini (OpenRouter)",      group: "Grok (via OpenRouter)" },
+  { value: "x-ai/grok-3-mini-fast",                      label: "Grok 3 Mini Fast (OpenRouter)", group: "Grok (via OpenRouter)" },
+  { value: "x-ai/grok-2-1212",                           label: "Grok 2 (OpenRouter)",           group: "Grok (via OpenRouter)" },
 ];
 
 const CAPABILITIES = ["text", "image", "code"] as const;
@@ -202,7 +210,7 @@ function AgentDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(["OpenAI", "Anthropic", "Google", "Meta", "Grok"] as const).map((group) => (
+                {Array.from(new Set(MODELS.map((m) => m.group))).map((group) => (
                   <SelectGroup key={group}>
                     <SelectLabel>{group}</SelectLabel>
                     {MODELS.filter((m) => m.group === group).map((m) => (
@@ -397,6 +405,8 @@ export default function CommandAiAgentsPage() {
                   <p className="text-[11px] text-muted-foreground/60 font-mono">{agent.modelSlug}</p>
                   {agent.modelSlug.startsWith("xai/") ? (
                     <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 border-blue-400/50 text-blue-500">x.ai</Badge>
+                  ) : agent.modelSlug.startsWith("x-ai/") ? (
+                    <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 border-blue-400/30 text-blue-400/70">Grok↗</Badge>
                   ) : (
                     <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 text-muted-foreground/50">OpenRouter</Badge>
                   )}

@@ -516,9 +516,26 @@ function AiAgentView({ agent, onBack }: { agent: AiAgent; onBack: () => void }) 
                 )
               )}
               <div className={`flex flex-col max-w-[80%] ${isUser ? "items-end" : "items-start"}`}>
-                <div className={`rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap break-words ${isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
-                  {msg.content}
-                </div>
+                {(() => {
+                  const imgMatch = !isUser && msg.content.startsWith("![") && msg.content.match(/!\[.*?\]\((https?:\/\/[^)]+)\)/);
+                  if (imgMatch) {
+                    return (
+                      <div className="rounded-2xl overflow-hidden bg-muted p-1">
+                        <img
+                          src={imgMatch[1]}
+                          alt="Grok generated image"
+                          className="rounded-lg max-w-sm w-full object-cover"
+                          data-testid={`img-grok-generated-${msg.id}`}
+                        />
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className={`rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap break-words ${isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+                      {msg.content}
+                    </div>
+                  );
+                })()}
                 <span className="text-[10px] text-muted-foreground mt-0.5 px-1">
                   {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </span>

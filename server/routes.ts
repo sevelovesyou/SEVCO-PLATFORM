@@ -4133,6 +4133,41 @@ export async function registerRoutes(
         }
       }
 
+      // Image generation branch for xAI image models
+      const IMAGE_MODELS = ["grok-2-image-1212"];
+      if (modelSlug.startsWith("xai/") && IMAGE_MODELS.includes(modelName)) {
+        if (!process.env.XAI_API_KEY) {
+          return res.status(500).json({ message: "XAI_API_KEY is required for Grok Imagine." });
+        }
+        const imgRes = await fetch("https://api.x.ai/v1/images/generations", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${process.env.XAI_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: modelName,
+            prompt: message,
+            n: 1,
+            response_format: "url",
+          }),
+        });
+        if (!imgRes.ok) {
+          const errText = await imgRes.text();
+          return res.status(502).json({ message: `x.ai image error: ${errText}` });
+        }
+        const imgData = await imgRes.json() as any;
+        const imageUrl = imgData?.data?.[0]?.url;
+        if (!imageUrl) return res.status(502).json({ message: "No image URL returned from x.ai." });
+
+        await storage.createAiMessage({ agentId, userId: user.id, role: "user", content: message });
+        const assistantContent = `![Generated image](${imageUrl})`;
+        const assistantMsg = await storage.createAiMessage({
+          agentId, userId: user.id, role: "assistant", content: assistantContent,
+        });
+        return res.json({ message: assistantMsg });
+      }
+
       // Store user message
       await storage.createAiMessage({ agentId, userId: user.id, role: "user", content: message });
 
@@ -4159,7 +4194,57 @@ export async function registerRoutes(
 
       if (!response.ok) {
         const errText = await response.text();
-        const provider = modelSlug.startsWith("xai/") ? "x.ai" : "OpenRouter";
+
+        // For xai/ models, check for credits/permission errors and retry via OpenRouter
+        if (modelSlug.startsWith("xai/")) {
+          let errObj: any = {};
+          try { errObj = JSON.parse(errText); } catch {}
+          const errMsg = (errObj?.error ?? "").toLowerCase();
+          const errCode = (errObj?.code ?? "").toLowerCase();
+          const isCreditsError =
+            errMsg.includes("credits") ||
+            errMsg.includes("licenses") ||
+            errCode.includes("permission");
+
+          if (isCreditsError && process.env.OPENROUTER_API_KEY) {
+            const fallbackRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://sevco.us",
+                "X-Title": "SEVCO Platform",
+              },
+              body: JSON.stringify({
+                model: `x-ai/${modelName}`,
+                messages: [
+                  { role: "system", content: agent.systemPrompt },
+                  ...contextMessages,
+                ],
+                max_tokens: 1024,
+              }),
+            });
+            if (fallbackRes.ok) {
+              const fallbackData = await fallbackRes.json() as any;
+              const assistantContent = fallbackData.choices?.[0]?.message?.content ?? "No response.";
+              const assistantMsg = await storage.createAiMessage({
+                agentId, userId: user.id, role: "assistant", content: assistantContent,
+              });
+              return res.json({ message: assistantMsg });
+            }
+          }
+
+          // Still failing: return improved error with guidance
+          const teamUrl = errObj?.error?.match(/https:\/\/console\.x\.ai\/team\/[^\s"]+/)?.[0];
+          const purchaseLink = teamUrl
+            ? ` Purchase credits: ${teamUrl}`
+            : " Visit https://console.x.ai to add credits.";
+          return res.status(502).json({
+            message: `x.ai error: ${errObj?.error ?? errText}${purchaseLink} Or switch your agent to an OpenRouter Grok model (e.g. "Grok 3 (OpenRouter)").`,
+          });
+        }
+
+        const provider = "OpenRouter";
         return res.status(502).json({ message: `${provider} error: ${errText}` });
       }
 

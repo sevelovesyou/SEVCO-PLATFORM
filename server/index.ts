@@ -11,6 +11,14 @@ import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
 import { checkEmailCredentials } from "./emailClient";
+import { pool } from "./db";
+
+async function runStartupMigrations() {
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS x_id TEXT;`);
+  await pool.query(`ALTER TABLE users ALTER COLUMN password DROP NOT NULL;`);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS users_x_id_unique ON users(x_id) WHERE x_id IS NOT NULL;`);
+  console.log("[startup] migrations applied");
+}
 
 const app = express();
 app.set('trust proxy', 1);
@@ -115,6 +123,7 @@ async function initStripe() {
 }
 
 (async () => {
+  await runStartupMigrations().catch((err) => console.error("Startup migration error:", err));
   await initStripe().catch((err) => console.error("Stripe init error:", err));
   await seedDatabase().catch((err) => console.error("Seed error:", err));
   await promoteFounderToAdmin().catch((err) => console.error("Promotion error:", err));

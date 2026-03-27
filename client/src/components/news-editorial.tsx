@@ -80,7 +80,7 @@ function BreakingTicker({ articles }: { articles: EditorialArticle[] }) {
         <Zap className="h-3.5 w-3.5" />
         <span className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap">Breaking</span>
       </div>
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden relative">
         <div
           ref={tickerRef}
           className="flex gap-10 whitespace-nowrap animate-marquee"
@@ -398,7 +398,7 @@ export function NewsEditorial({
 
   return (
     <div
-      className="bg-[#08080f] text-white border-y border-white/[0.06]"
+      className="bg-[#08080f] text-white border-y border-white/[0.06] overflow-x-hidden"
       data-testid="section-news-editorial"
     >
       {/* Breaking ticker */}

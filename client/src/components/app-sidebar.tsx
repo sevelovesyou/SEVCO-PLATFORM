@@ -107,10 +107,10 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="top-12 h-[calc(100svh-3rem)] wiki-sidebar">
-      <SidebarHeader className="p-3">
+      <SidebarHeader className="p-3 pt-4">
         <div className="flex items-center gap-2">
           <SidebarTrigger data-testid="button-sidebar-toggle" className="-ml-0.5 shrink-0" />
-          <Link href="/wiki" className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
+          <Link href="/wiki" className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden overflow-hidden">
             <div className="flex items-center gap-2 cursor-pointer" data-testid="link-home-logo">
               <div className="h-7 w-7 flex items-center justify-center shrink-0">
                 <img src={planetBlack} alt="SEVCO Planet" className="h-full w-full object-contain dark:invert" />

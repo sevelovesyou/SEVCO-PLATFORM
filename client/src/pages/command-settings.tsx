@@ -581,6 +581,7 @@ export default function CommandSettings() {
   const [heroText, setHeroText] = useState("");
   const [heroOverlayOpacity, setHeroOverlayOpacity] = useState(70);
   const [footerTagline, setFooterTagline] = useState("");
+  const [footerVersion, setFooterVersion] = useState("");
   const [btn1Label, setBtn1Label] = useState("");
   const [btn1Url, setBtn1Url] = useState("");
   const [btn1Icon, setBtn1Icon] = useState("");
@@ -673,6 +674,7 @@ export default function CommandSettings() {
     setHeroText(settings["hero.text"] ?? "");
     setHeroOverlayOpacity(settings["hero.overlayOpacity"] ? parseInt(settings["hero.overlayOpacity"]) : 70);
     setFooterTagline(settings["footer.tagline"] ?? "");
+    setFooterVersion(settings["footer.version"] ?? "");
     setBtn1Label(settings["hero.button1.label"] ?? "");
     setBtn1Url(settings["hero.button1.url"] ?? "");
     setBtn1Icon(settings["hero.button1.icon"] ?? "");
@@ -864,6 +866,7 @@ export default function CommandSettings() {
       "hero.text": heroText,
       "hero.overlayOpacity": String(heroOverlayOpacity),
       "footer.tagline": footerTagline,
+      "footer.version": footerVersion,
       "hero.button1.label": btn1Label,
       "hero.button1.url": btn1Url,
       "hero.button1.icon": btn1Icon,
@@ -1226,6 +1229,21 @@ export default function CommandSettings() {
                   onChange={(e) => setFooterTagline(e.target.value)}
                   data-testid="input-footer-tagline"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="footer-version" className="flex items-center gap-1.5">
+                  <AlignLeft className="h-3.5 w-3.5" />
+                  Footer Version
+                </Label>
+                <Input
+                  id="footer-version"
+                  placeholder="e.g. 2.4.1 (leave blank to use latest changelog version)"
+                  value={footerVersion}
+                  onChange={(e) => setFooterVersion(e.target.value)}
+                  data-testid="input-footer-version"
+                />
+                <p className="text-xs text-muted-foreground">Override the version string shown in the footer. If blank, falls back to the latest changelog entry's version.</p>
               </div>
 
               <Separator />

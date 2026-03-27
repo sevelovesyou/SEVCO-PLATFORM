@@ -68,7 +68,7 @@ interface CategorySwimLaneProps {
 
 function CategorySwimLane({ category }: CategorySwimLaneProps) {
   const [expanded, setExpanded] = useState(false);
-  const limit = expanded ? 12 : 6;
+  const limit = expanded ? 20 : 10;
 
   const { data: articles, isLoading, isFetching } = useQuery<NewsArticle[]>({
     queryKey: ["/api/news/feed", category.query, limit],
@@ -217,15 +217,15 @@ export default function NewsPage() {
   const otherCategories = categories?.slice(1) ?? [];
 
   const { data: primaryArticles, isLoading: primaryLoading, refetch: refetchPrimary } = useQuery<NewsArticle[]>({
-    queryKey: ["/api/news/feed", primaryCategory?.query, 10],
+    queryKey: ["/api/news/feed", primaryCategory?.query, 11],
     queryFn: () =>
-      fetch(`/api/news/feed?query=${encodeURIComponent(primaryCategory!.query)}&limit=10`).then((r) => r.json()),
+      fetch(`/api/news/feed?query=${encodeURIComponent(primaryCategory!.query)}&limit=11`).then((r) => r.json()),
     enabled: !!primaryCategory,
     staleTime: 15 * 60 * 1000,
   });
 
   const heroArticle = primaryArticles?.[0];
-  const bentoArticles = primaryArticles?.slice(1, 9) ?? [];
+  const bentoArticles = primaryArticles?.slice(1, 11) ?? [];
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-10" data-testid="news-page" data-page="news">

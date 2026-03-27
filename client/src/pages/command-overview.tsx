@@ -37,6 +37,7 @@ import {
   BookMarked,
   StickyNote,
   ExternalLink,
+  RefreshCw,
 } from "lucide-react";
 import type { Role, Resource, Note } from "@shared/schema";
 
@@ -428,7 +429,7 @@ function ContributionsList({ items, isLoading }: { items?: DashboardContribution
   );
 }
 
-function LatestChangelogCard({ entry, isLoading }: { entry: ChangelogEntry | null | undefined; isLoading: boolean }) {
+function LatestChangelogCard({ entry, isLoading, onRefresh }: { entry: ChangelogEntry | null | undefined; isLoading: boolean; onRefresh?: () => void }) {
   const CATEGORY_COLORS: Record<string, string> = {
     feature:     "bg-primary/10 text-primary border-primary/20",
     fix:         "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
@@ -438,9 +439,24 @@ function LatestChangelogCard({ entry, isLoading }: { entry: ChangelogEntry | nul
 
   return (
     <div>
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-        Latest Release
-      </h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Latest Release
+        </h2>
+        {onRefresh && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-xs gap-1 text-muted-foreground"
+            onClick={onRefresh}
+            disabled={isLoading}
+            data-testid="button-refresh-changelog"
+          >
+            <RefreshCw className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        )}
+      </div>
       <Link href="/command/changelog">
         <Card className="p-4 hover-elevate active-elevate-2 cursor-pointer overflow-visible group" data-testid="card-latest-changelog">
           {isLoading ? (
@@ -728,10 +744,10 @@ function RecentNotesWidget({ userId }: { userId: string }) {
   );
 }
 
-function AdminOverview({ data, summary, summaryLoading, userId }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean; userId: string }) {
+function AdminOverview({ data, summary, summaryLoading, userId, onRefreshSummary }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean; userId: string; onRefreshSummary?: () => void }) {
   return (
     <div className="flex flex-col gap-6">
-      <LatestChangelogCard entry={summary?.latestChangelog} isLoading={summaryLoading} />
+      <LatestChangelogCard entry={summary?.latestChangelog} isLoading={summaryLoading} onRefresh={onRefreshSummary} />
 
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
@@ -814,10 +830,10 @@ function AdminOverview({ data, summary, summaryLoading, userId }: { data: Dashbo
   );
 }
 
-function ExecutiveOverview({ data, summary, summaryLoading, userId }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean; userId: string }) {
+function ExecutiveOverview({ data, summary, summaryLoading, userId, onRefreshSummary }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean; userId: string; onRefreshSummary?: () => void }) {
   return (
     <div className="flex flex-col gap-6">
-      <LatestChangelogCard entry={summary?.latestChangelog} isLoading={summaryLoading} />
+      <LatestChangelogCard entry={summary?.latestChangelog} isLoading={summaryLoading} onRefresh={onRefreshSummary} />
 
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
@@ -854,7 +870,7 @@ function ExecutiveOverview({ data, summary, summaryLoading, userId }: { data: Da
   );
 }
 
-function StaffOverview({ data, summary, summaryLoading }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean }) {
+function StaffOverview({ data, summary, summaryLoading, onRefreshSummary }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean; onRefreshSummary?: () => void }) {
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -871,7 +887,7 @@ function StaffOverview({ data, summary, summaryLoading }: { data: DashboardData;
         <StoreStatsPreview />
       </div>
 
-      <LatestChangelogCard entry={summary?.latestChangelog} isLoading={summaryLoading} />
+      <LatestChangelogCard entry={summary?.latestChangelog} isLoading={summaryLoading} onRefresh={onRefreshSummary} />
 
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
@@ -940,9 +956,10 @@ export default function CommandOverview() {
 
   const isStaffOrAbove = role === "admin" || role === "executive" || role === "staff";
 
-  const { data: summary, isLoading: summaryLoading } = useQuery<DashboardSummary>({
+  const { data: summary, isLoading: summaryLoading, refetch: refetchSummary } = useQuery<DashboardSummary>({
     queryKey: ["/api/dashboard/summary"],
     enabled: isStaffOrAbove,
+    staleTime: 30 * 1000,
   });
 
   const isClientOrUser = role === "client" || role === "user";
@@ -966,9 +983,9 @@ export default function CommandOverview() {
 
   return (
     <>
-      {role === "admin" && <AdminOverview data={data} summary={summary} summaryLoading={summaryLoading} userId={user?.id ?? ""} />}
-      {role === "executive" && <ExecutiveOverview data={data} summary={summary} summaryLoading={summaryLoading} userId={user?.id ?? ""} />}
-      {role === "staff" && <StaffOverview data={data} summary={summary} summaryLoading={summaryLoading} />}
+      {role === "admin" && <AdminOverview data={data} summary={summary} summaryLoading={summaryLoading} userId={user?.id ?? ""} onRefreshSummary={() => refetchSummary()} />}
+      {role === "executive" && <ExecutiveOverview data={data} summary={summary} summaryLoading={summaryLoading} userId={user?.id ?? ""} onRefreshSummary={() => refetchSummary()} />}
+      {role === "staff" && <StaffOverview data={data} summary={summary} summaryLoading={summaryLoading} onRefreshSummary={() => refetchSummary()} />}
       {isClientOrUser && <ClientOverview user={{ username: user?.username ?? "", displayName: user?.displayName }} />}
     </>
   );

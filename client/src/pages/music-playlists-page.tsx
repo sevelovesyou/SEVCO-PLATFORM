@@ -53,21 +53,76 @@ function PlaylistCard({ playlist }: { playlist: Playlist }) {
   const PlatformIcon = playlist.platform ? PLATFORM_ICONS[playlist.platform] : undefined;
   const platformColor = playlist.platform ? PLATFORM_COLORS[playlist.platform] : "";
 
+  if (!playlist.coverImageUrl) {
+    return (
+      <Card
+        className={`overflow-hidden group transition-all flex flex-col ${isActive ? "ring-2 ring-[#1DB954]" : "hover-elevate"}`}
+        data-testid={`card-playlist-${playlist.id}`}
+      >
+        <div className="flex-1 bg-gradient-to-br from-violet-600/20 via-purple-500/15 to-indigo-600/20 p-4 flex flex-col gap-3 min-h-[140px]">
+          <div className="flex items-start justify-between gap-2">
+            <div className="h-8 w-8 rounded-lg bg-violet-500/20 flex items-center justify-center shrink-0">
+              <ListMusic className="h-4 w-4 text-violet-400" />
+            </div>
+            {isActive && (
+              <Badge className="bg-[#1DB954] text-black text-[10px] px-1.5 py-0 font-semibold shrink-0">Playing</Badge>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm leading-tight line-clamp-2 mb-1">{playlist.title}</h3>
+            {playlist.description && (
+              <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">{playlist.description}</p>
+            )}
+          </div>
+        </div>
+        <div className="p-3 border-t border-border/50 flex items-center justify-between gap-2">
+          <div className="flex flex-col gap-1 min-w-0">
+            {playlist.platform && (
+              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 flex items-center gap-1 w-fit ${platformColor}`}>
+                {PlatformIcon && <PlatformIcon className="h-2.5 w-2.5" />}
+                {playlist.platform}
+              </Badge>
+            )}
+          </div>
+          {spotify ? (
+            <Button
+              size="sm"
+              className={`gap-1.5 font-semibold shrink-0 ${isActive ? "bg-white text-black hover:bg-white/90" : "bg-[#1DB954] hover:bg-[#1DB954]/90 text-black"}`}
+              onClick={() => toggle(playlist)}
+              data-testid={`button-play-playlist-${playlist.id}`}
+            >
+              {isActive ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+              {isActive ? "Stop" : "Play"}
+            </Button>
+          ) : (
+            <a href={playlist.playlistUrl} target="_blank" rel="noopener noreferrer">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="gap-1.5 shrink-0"
+                data-testid={`button-open-playlist-${playlist.id}`}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Open
+              </Button>
+            </a>
+          )}
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card
       className={`overflow-hidden group transition-all ${isActive ? "ring-2 ring-[#1DB954]" : "hover-elevate"}`}
       data-testid={`card-playlist-${playlist.id}`}
     >
       <div className="aspect-square bg-gradient-to-br from-violet-500/20 to-purple-500/10 flex items-center justify-center relative overflow-hidden">
-        {playlist.coverImageUrl ? (
-          <img
-            src={playlist.coverImageUrl}
-            alt={playlist.title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <ListMusic className="h-10 w-10 text-violet-400 opacity-50 group-hover:scale-110 transition-transform duration-300" />
-        )}
+        <img
+          src={playlist.coverImageUrl}
+          alt={playlist.title}
+          className="w-full h-full object-cover"
+        />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
         <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           {spotify ? (

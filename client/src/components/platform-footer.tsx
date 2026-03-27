@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useState, useEffect } from "react";
 import type { Changelog } from "@shared/schema";
 import {
   SiFacebook,
@@ -94,6 +95,20 @@ type SitemapColumn = { heading: string; links: SitemapLink[] };
 export function PlatformFooter() {
   const { user } = useAuth();
 
+  const [liveDateTime, setLiveDateTime] = useState(() => {
+    const now = new Date();
+    return `${now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · ${now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+  });
+
+  useEffect(() => {
+    function update() {
+      const now = new Date();
+      setLiveDateTime(`${now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · ${now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`);
+    }
+    const id = setInterval(update, 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+
   const { data: socialLinks } = useQuery<PlatformSocialLink[]>({
     queryKey: ["/api/social-links"],
   });
@@ -107,6 +122,7 @@ export function PlatformFooter() {
   });
 
   const footerTagline = settings["footer.tagline"] || "The creative platform for the SEVCO universe.";
+  const footerVersion = settings["footer.version"] || latestChangelog?.version || null;
 
   const footerSocials = socialLinks
     ? socialLinks.filter((l) => l.showInFooter)
@@ -254,13 +270,13 @@ export function PlatformFooter() {
             <p className="text-xs text-muted-foreground" data-testid="text-footer-copyright">
               &copy; 2026 SEVCO. All rights reserved.
             </p>
-            {latestChangelog && (
+            {footerVersion && (
               <Link
                 href="/changelog"
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 data-testid="text-footer-version"
               >
-                v{latestChangelog.version ?? "—"} &mdash; {new Date(latestChangelog.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                v{footerVersion} &mdash; {liveDateTime}
               </Link>
             )}
           </div>

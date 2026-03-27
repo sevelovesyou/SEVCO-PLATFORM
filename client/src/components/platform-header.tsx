@@ -206,6 +206,7 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
     { label: "Home",       href: "/",        icon: Home,        desc: "Go to landing page",             authRequired: false },
     { label: "About",      href: "/about",   icon: BookOpen,    desc: "Learn about SEVCO",              authRequired: false },
     { label: "Wiki",       href: "/wiki",    icon: BookOpen,    desc: "Internal knowledge base",        authRequired: false },
+    { label: "News",       href: "/news",    icon: Rss,         desc: "Curated headlines from the web", authRequired: false },
     ...(user ? [
       { label: "Feed",     href: "/feed",    icon: Rss,         desc: "Posts from people you follow",   authRequired: true },
     ] : []),
@@ -554,7 +555,6 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
   const { user } = useAuth();
 
   const items = [
-    { label: "News",    href: "/news",    icon: Rss,        desc: "Curated headlines from the web" },
     ...(user ? [
       { label: "Notes",   href: "/notes",   icon: StickyNote, desc: "Personal & shared notes" },
       { label: "Gallery", href: "/gallery", icon: Images,     desc: "Quick-copy images for your profile" },
@@ -638,6 +638,7 @@ export function PlatformHeader() {
     { label: "Home",      href: "/" },
     { label: "About",     href: "/about" },
     { label: "Wiki",      href: "/wiki" },
+    { label: "News",      href: "/news" },
     ...(user ? [{ label: "Feed", href: "/feed" }, { label: "Notes", href: "/notes" }] : []),
     { label: "Contact",   href: "/contact" },
     { label: "Jobs",      href: "/jobs" },
@@ -677,7 +678,7 @@ export function PlatformHeader() {
           <ServicesDropdown isActive={activeApp === "/services"} />
           <MusicDropdown isActive={activeApp === "/music"} />
           <ProjectsDropdown isActive={activeApp === "/projects"} />
-          <ToolsDropdown isActive={activeApp === "/notes" || activeApp === "/gallery" || activeApp === "/news"} />
+          <ToolsDropdown isActive={activeApp === "/notes" || activeApp === "/gallery"} />
 
           {canAccessCMD && (
             <Link href="/command">
@@ -964,11 +965,6 @@ export function PlatformHeader() {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="pl-4 space-y-0.5 py-1">
-                <Link href="/news" onClick={() => setMobileOpen(false)}>
-                  <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-tools-news">
-                    News
-                  </div>
-                </Link>
                 {user && (
                   <>
                     <Link href="/notes" onClick={() => setMobileOpen(false)}>

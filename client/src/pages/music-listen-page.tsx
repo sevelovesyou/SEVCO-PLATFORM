@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Send, Music, ExternalLink } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
-import planetIcon from "@assets/SEVCO_planet_icon_black_1774331331137.png";
+import { SevcoLogo } from "@/components/sevco-logo";
 import * as SI from "react-icons/si";
 import type { PlatformSocialLink } from "@shared/schema";
 
@@ -48,8 +48,8 @@ export default function MusicListenPage() {
 
         {/* Logo */}
         <div className="flex flex-col items-center mb-10">
-          <div className="h-20 w-20 rounded-full bg-violet-500/10 flex items-center justify-center mb-5">
-            <img src={planetIcon} alt="SEVCO Planet" className="h-12 w-12 object-contain dark:invert" />
+          <div className="h-20 w-20 rounded-full bg-violet-500/10 flex items-center justify-center mb-5 overflow-visible">
+            <SevcoLogo size={48} />
           </div>
           <img src={wordmarkBlack} alt="SEVCO" className="h-7 object-contain dark:invert mb-2" />
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">RECORDS</p>

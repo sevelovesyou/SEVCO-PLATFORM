@@ -24,7 +24,7 @@ import {
   SiTwitch,
 } from "react-icons/si";
 import type { PlatformSocialLink } from "@shared/schema";
-import planetIcon from "@assets/SEVCO_planet_icon_black_1774331331137.png";
+import { SevcoLogo } from "@/components/sevco-logo";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 
 type IconComponent = React.ComponentType<{ className?: string }>;
@@ -196,12 +196,9 @@ export function PlatformFooter() {
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-10">
           <div className="md:col-span-1 flex flex-col gap-3" data-testid="footer-brand">
             <div className="flex items-center gap-2">
-              <img
-                src={planetIcon}
-                alt="SEVCO Planet"
-                className="h-8 w-8 object-contain dark:invert"
-                data-testid="img-footer-planet"
-              />
+              <div data-testid="img-footer-planet">
+                <SevcoLogo size={32} />
+              </div>
               <img
                 src={wordmarkBlack}
                 alt="SEVCO"

@@ -418,12 +418,18 @@ export default function Landing() {
 
         <div className="relative z-10 max-w-6xl mx-auto px-6 py-24 md:py-36 flex flex-col items-center text-center gap-6">
           <div className="flex items-center gap-4">
-            <img
-              src={settings["hero.logoUrl"] || settings["platform.logoUrl"] || planetIconWhite}
-              alt="SEVCO"
-              className="h-28 w-28 md:h-36 md:w-36 object-contain"
-              data-testid="img-planet-hero"
-            />
+            {/*
+             * Protective container for the hero logo — overflow-visible and p-1 prevent clipping.
+             * DO NOT add overflow-hidden here or reduce the padding.
+             */}
+            <div className="overflow-visible p-1 shrink-0">
+              <img
+                src={settings["hero.logoUrl"] || settings["platform.logoUrl"] || planetIconWhite}
+                alt="SEVCO"
+                className="h-28 w-28 md:h-36 md:w-36 object-contain"
+                data-testid="img-planet-hero"
+              />
+            </div>
           </div>
           <div>
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-3 leading-tight">

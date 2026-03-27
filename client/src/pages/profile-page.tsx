@@ -57,7 +57,7 @@ import {
   Star,
 } from "lucide-react";
 import { SiDiscord, SiInstagram, SiX, SiTiktok } from "react-icons/si";
-import planetIcon from "@assets/SEVCO_planet_icon_black_1774331331137.png";
+import { SevcoLogo } from "@/components/sevco-logo";
 
 const ROLE_BADGE: Record<string, { label: string; color: string }> = {
   admin:     { label: "Admin",     color: "#ef4444" },
@@ -1047,7 +1047,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
                       style={{ borderColor: accentColor || "var(--background)", background: accentColor ? `${accentColor}22` : "var(--muted)" }}
                       data-testid="img-avatar-fallback"
                     >
-                      <img src={planetIcon} alt="SEVCO" className="h-8 w-8 object-contain opacity-60" />
+                      <SevcoLogo size={32} className="opacity-60" invert="none" />
                     </div>
                   )}
                 </div>
@@ -1103,7 +1103,12 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
                       style={{ borderColor: accentColor || "var(--background)", background: accentColor ? `${accentColor}22` : "var(--muted)" }}
                       data-testid="img-avatar-fallback"
                     >
-                      <img src={planetIcon} alt="SEVCO" className="h-10 w-10 object-contain opacity-60" style={accentColor ? { filter: `drop-shadow(0 0 4px ${accentColor})` } : {}} />
+                      <SevcoLogo
+                        size={40}
+                        className="opacity-60"
+                        invert="none"
+                        imgStyle={accentColor ? { filter: `drop-shadow(0 0 4px ${accentColor})` } : undefined}
+                      />
                     </div>
                   )}
                 </div>
@@ -1392,7 +1397,9 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center max-w-sm px-4">
-          <img src={planetIcon} alt="SEVCO" className="h-14 w-14 object-contain mx-auto mb-4 opacity-40 dark:invert" />
+          <div className="flex justify-center mb-4">
+            <SevcoLogo size={56} className="opacity-40" />
+          </div>
           <h2 className="text-lg font-bold mb-2">Sign in to view your profile</h2>
           <p className="text-sm text-muted-foreground mb-5">Create an account or sign in to customize your SEVCO profile.</p>
           <a href="/auth" className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-5 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity" data-testid="link-sign-in">

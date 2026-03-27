@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
-import planetBlack from "@assets/SEVCO_planet_icon_black_1774331331137.png";
+import { SevcoLogo } from "@/components/sevco-logo";
 import { queryClient } from "@/lib/queryClient";
 
 type VerifyState = "loading" | "success" | "error";
@@ -46,7 +46,7 @@ export default function VerifyEmailPage() {
       <Card className="w-full max-w-sm" data-testid="card-verify-email">
         <CardContent className="pt-6 text-center space-y-4">
           <div className="flex justify-center mb-2">
-            <img src={planetBlack} alt="SEVCO" className="h-12 w-12 object-contain dark:invert" />
+            <SevcoLogo size={48} />
           </div>
 
           {state === "loading" && (

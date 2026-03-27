@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 
-import planetBlack from "@assets/SEVCO_planet_icon_black_1774331331137.png";
+import { SevcoLogo } from "@/components/sevco-logo";
 
 type NavItem = {
   title: string;
@@ -112,9 +112,7 @@ export function CommandSidebar() {
           <SidebarTrigger data-testid="button-command-sidebar-toggle" className="-ml-0.5 shrink-0" />
           <Link href="/command" className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
             <div className="flex items-center gap-2 cursor-pointer" data-testid="link-command-home-logo">
-              <div className="h-7 w-7 flex items-center justify-center shrink-0">
-                <img src={planetBlack} alt="SEVCO Planet" className="h-full w-full object-contain dark:invert" />
-              </div>
+              <SevcoLogo size={28} />
               <div className="min-w-0">
                 <h1 className="text-sm font-bold leading-tight truncate">
                   SEVCO CMD

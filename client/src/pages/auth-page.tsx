@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail } from "lucide-react";
 import { SiX } from "react-icons/si";
 import { apiRequest } from "@/lib/queryClient";
-import planetBlack from "@assets/SEVCO_planet_icon_black_1774331331137.png";
+import { SevcoLogo } from "@/components/sevco-logo";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 
 const loginSchema = z.object({
@@ -207,7 +207,9 @@ export default function AuthPage() {
         </div>
         <div className="hidden lg:flex flex-1 items-center justify-center bg-muted p-8">
           <div className="max-w-md text-center space-y-6">
-            <img src={planetBlack} alt="SEVCO" className="h-24 w-24 object-contain mx-auto dark:invert" />
+            <div className="flex justify-center">
+              <SevcoLogo size={96} />
+            </div>
             <img src={wordmarkBlack} alt="SEVCO" className="h-10 w-auto object-contain mx-auto dark:invert" />
             <p className="text-muted-foreground text-lg">
               A collaborative knowledge base for your organization. Create, edit, and review articles
@@ -228,7 +230,7 @@ export default function AuthPage() {
         <Card className="w-full max-w-sm relative z-10 pointer-events-auto">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-3">
-              <img src={planetBlack} alt="SEVCO" className="h-12 w-12 object-contain dark:invert" />
+              <SevcoLogo size={48} />
             </div>
             <div className="flex justify-center mb-2">
               <img src={wordmarkBlack} alt="SEVCO" className="h-6 w-auto object-contain dark:invert" />
@@ -455,7 +457,9 @@ export default function AuthPage() {
       </div>
       <div className="hidden lg:flex flex-1 items-center justify-center bg-muted p-8">
         <div className="max-w-md text-center space-y-6">
-          <img src={planetBlack} alt="SEVCO" className="h-24 w-24 object-contain mx-auto dark:invert" />
+          <div className="flex justify-center">
+            <SevcoLogo size={96} />
+          </div>
           <img src={wordmarkBlack} alt="SEVCO" className="h-10 w-auto object-contain mx-auto dark:invert" />
           <p className="text-muted-foreground text-lg">
             A collaborative knowledge base for your organization. Create, edit, and review articles

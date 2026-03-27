@@ -32,7 +32,7 @@ export function isXConfigured(): boolean {
   return !!process.env.X_BEARER_TOKEN;
 }
 
-export async function fetchUserTweets(handle: string, limit: number = 6): Promise<Tweet[]> {
+export async function fetchUserTweets(handle: string, limit: number = 10): Promise<Tweet[]> {
   const bearerToken = process.env.X_BEARER_TOKEN;
   if (!bearerToken) {
     console.error("[x-api] X_BEARER_TOKEN is not set. Cannot fetch tweets.");

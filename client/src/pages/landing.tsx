@@ -307,8 +307,17 @@ export default function Landing() {
     likeCount: number; retweetCount: number; createdAt: string; url: string;
   }
 
+  const xHandles = (settings["social.x.handles"] || "sevco,sevelovesyou")
+    .split(",").map((h: string) => h.trim()).filter(Boolean);
+  const xMaxTweets = parseInt(settings["social.x.maxTweets"] ?? "12") || 12;
+
   const { data: tweets = [], isLoading: tweetsLoading } = useQuery<Tweet[]>({
-    queryKey: ["/api/social/x/feed"],
+    queryKey: ["/api/social/x/feed", { limit: xMaxTweets }],
+    queryFn: async () => {
+      const res = await fetch(`/api/social/x/feed?limit=${xMaxTweets}`);
+      if (!res.ok) throw new Error("Failed to fetch tweets");
+      return res.json();
+    },
     enabled: xStatus?.configured === true,
   });
 
@@ -757,73 +766,114 @@ export default function Landing() {
                 <h2 className="text-2xl md:text-3xl font-bold tracking-tight">{xLabel}</h2>
               </div>
             </div>
+            <div className="hidden sm:flex items-center gap-2">
+              {xHandles.map((handle) => (
+                <span
+                  key={handle}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-foreground/8 border border-border/50 text-muted-foreground"
+                  data-testid={`badge-x-handle-${handle}`}
+                >
+                  <SiX className="h-3 w-3" />
+                  @{handle}
+                </span>
+              ))}
+            </div>
           </div>
           {tweetsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="rounded-xl border p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Skeleton className="h-10 w-10 rounded-full" />
-                    <div>
-                      <Skeleton className="h-3 w-24 mb-1" />
-                      <Skeleton className="h-2.5 w-16" />
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {Array.from({ length: 2 }).map((_, col) => (
+                <div key={col} className="space-y-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Skeleton className="h-4 w-4 rounded" />
+                    <Skeleton className="h-4 w-24" />
                   </div>
-                  <Skeleton className="h-3 w-full mb-1.5" />
-                  <Skeleton className="h-3 w-4/5 mb-1.5" />
-                  <Skeleton className="h-3 w-3/5" />
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="rounded-xl border p-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div>
+                          <Skeleton className="h-3 w-24 mb-1" />
+                          <Skeleton className="h-2.5 w-16" />
+                        </div>
+                      </div>
+                      <Skeleton className="h-3 w-full mb-1.5" />
+                      <Skeleton className="h-3 w-4/5 mb-1.5" />
+                      <Skeleton className="h-3 w-3/5" />
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {tweets.slice(0, 6).map((tweet) => {
-                let relativeTime = "";
-                try {
-                  relativeTime = formatDistanceToNow(new Date(tweet.createdAt), { addSuffix: true });
-                } catch {}
-                return (
-                  <a
-                    key={tweet.id}
-                    href={tweet.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group block rounded-xl border bg-white/[0.02] border-border/60 p-4 hover:bg-white/[0.04] hover:border-border transition-colors"
-                    data-testid={`card-tweet-${tweet.id}`}
-                  >
-                    <div className="flex items-start gap-3 mb-3">
-                      <Avatar className="h-10 w-10 shrink-0">
-                        {tweet.authorAvatarUrl && <AvatarImage src={tweet.authorAvatarUrl} />}
-                        <AvatarFallback className="text-xs font-bold">
-                          {tweet.authorName.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">{tweet.authorName}</p>
-                        <p className="text-xs text-muted-foreground truncate">{tweet.authorHandle}</p>
-                      </div>
-                      <SiX className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                    </div>
-                    <p className="text-sm text-foreground/80 leading-relaxed line-clamp-5 mb-3">
-                      {tweet.text.length > 280 ? tweet.text.slice(0, 280) + "…" : tweet.text}
-                    </p>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <div className="flex items-center gap-3">
-                        <span className="flex items-center gap-1">
-                          <Heart className="h-3 w-3" />
-                          {tweet.likeCount.toLocaleString()}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Repeat2 className="h-3 w-3" />
-                          {tweet.retweetCount.toLocaleString()}
-                        </span>
-                      </div>
-                      {relativeTime && <span>{relativeTime}</span>}
-                    </div>
-                  </a>
+            (() => {
+              const tweetsByHandle: Record<string, Tweet[]> = {};
+              for (const handle of xHandles) {
+                tweetsByHandle[handle] = tweets.filter(
+                  (t) => t.authorHandle?.toLowerCase().replace(/^@/, "") === handle.toLowerCase()
                 );
-              })}
-            </div>
+              }
+              const perColumnMax = xMaxTweets;
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {xHandles.map((handle) => (
+                    <div key={handle} data-testid={`column-x-${handle}`}>
+                      <div className="flex items-center gap-2 mb-4">
+                        <SiX className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-semibold text-sm text-foreground">@{handle}</span>
+                      </div>
+                      <div className="space-y-3">
+                        {(tweetsByHandle[handle] ?? []).slice(0, perColumnMax).map((tweet) => {
+                          let relativeTime = "";
+                          try {
+                            relativeTime = formatDistanceToNow(new Date(tweet.createdAt), { addSuffix: true });
+                          } catch {}
+                          return (
+                            <a
+                              key={tweet.id}
+                              href={tweet.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="group block rounded-xl border bg-white/[0.02] border-border/60 p-4 hover:bg-white/[0.04] hover:border-border transition-colors"
+                              data-testid={`card-tweet-${tweet.id}`}
+                            >
+                              <div className="flex items-start gap-3 mb-3">
+                                <Avatar className="h-10 w-10 shrink-0">
+                                  {tweet.authorAvatarUrl && <AvatarImage src={tweet.authorAvatarUrl} />}
+                                  <AvatarFallback className="text-xs font-bold">
+                                    {tweet.authorName.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-foreground truncate">{tweet.authorName}</p>
+                                  <p className="text-xs text-muted-foreground truncate">{tweet.authorHandle}</p>
+                                </div>
+                                <SiX className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                              </div>
+                              <p className="text-sm text-foreground/80 leading-relaxed line-clamp-5 mb-3">
+                                {tweet.text.length > 280 ? tweet.text.slice(0, 280) + "…" : tweet.text}
+                              </p>
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <div className="flex items-center gap-3">
+                                  <span className="flex items-center gap-1">
+                                    <Heart className="h-3 w-3" />
+                                    {tweet.likeCount.toLocaleString()}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Repeat2 className="h-3 w-3" />
+                                    {tweet.retweetCount.toLocaleString()}
+                                  </span>
+                                </div>
+                                {relativeTime && <span>{relativeTime}</span>}
+                              </div>
+                            </a>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()
           )}
         </section>
       )}

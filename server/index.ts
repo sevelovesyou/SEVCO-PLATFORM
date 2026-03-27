@@ -137,6 +137,28 @@ async function initStripe() {
   await storage.migrateSocialLinksShowOnListen().catch((err) => console.error("Social links listen migration error:", err));
   await checkEmailCredentials().catch((err) => console.warn("[email] Startup credential check failed:", err?.message ?? err));
   runWikiSeed().catch((err) => console.error("Wiki seed error:", err));
+  // Seed default X (Twitter) handles for SEVCO social feed
+  await (async () => {
+    try {
+      const currentSettings = await storage.getPlatformSettings();
+      const toSeed: Record<string, string> = {};
+      if (!currentSettings["social.x.handles"]) {
+        toSeed["social.x.handles"] = "sevco,sevelovesyou";
+      }
+      if (!currentSettings["social.x.enabled"]) {
+        toSeed["social.x.enabled"] = "true";
+      }
+      if (!currentSettings["social.x.maxTweets"]) {
+        toSeed["social.x.maxTweets"] = "12";
+      }
+      if (Object.keys(toSeed).length > 0) {
+        await storage.setPlatformSettings(toSeed);
+      }
+    } catch (err: any) {
+      console.warn("[x-seed] Failed to seed X handles:", err?.message ?? err);
+    }
+  })();
+
   await storage.getPlatformSettings().then((settings) => {
     const key = settings["news.gNewsApiKey"];
     if (key) setGNewsApiKeyFromDb(key);

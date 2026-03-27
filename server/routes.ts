@@ -4667,16 +4667,12 @@ export async function registerRoutes(
       }
 
       const handles = rawHandles.split(",").map((h: string) => h.trim()).filter(Boolean);
-      const perHandle = Math.max(1, Math.ceil(limitParam / handles.length));
 
       const tweetArrays = await Promise.all(
-        handles.map((handle: string) => fetchUserTweets(handle, perHandle))
+        handles.map((handle: string) => fetchUserTweets(handle, limitParam))
       );
 
-      const tweets = tweetArrays
-        .flat()
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, limitParam);
+      const tweets = tweetArrays.flat();
 
       res.json(tweets);
     } catch (err: any) {

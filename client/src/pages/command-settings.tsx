@@ -568,7 +568,7 @@ function XTwitterSettingsCard() {
           <Input
             value={handles}
             onChange={(e) => setHandles(e.target.value)}
-            placeholder="sevelovesyou,sevelovesu"
+            placeholder="e.g. sevco,sevelovesyou"
             data-testid="input-x-handles"
           />
           <p className="text-xs text-muted-foreground">Comma-separated @handles (without the @)</p>

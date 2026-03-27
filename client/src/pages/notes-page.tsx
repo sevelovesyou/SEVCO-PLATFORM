@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { SiX } from "react-icons/si";
 import type { Note, NoteCollaborator } from "@shared/schema";
 
 const NOTE_COLORS: { value: string; label: string; bg: string; border: string; dot: string }[] = [
@@ -289,6 +290,13 @@ function NoteListItem({
   );
 }
 
+function noteToXText(title: string, htmlContent: string): string {
+  const plain = htmlContent.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const full = `${title}\n\n${plain}`;
+  if (full.length <= 270) return full;
+  return full.slice(0, 267) + "…";
+}
+
 function toMarkdown(title: string, content: string) {
   return `# ${title}\n\n${content}`;
 }
@@ -326,6 +334,8 @@ export default function NotesPage() {
   const contentRef = useRef<string>("");
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef<{ title: string; content: string }>({ title: "", content: "" });
+  const selectedIdRef = useRef<number | null>(null);
+  useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
 
   const { data: notes = [], isLoading } = useQuery<Note[]>({
     queryKey: ["/api/notes"],
@@ -389,7 +399,7 @@ export default function NotesPage() {
         lastSavedRef.current = { title, content };
         updateMutation.mutate({ id, data: { title, content } });
       }
-    }, 800);
+    }, 400);
   }, []);
 
   useEffect(() => {
@@ -405,6 +415,49 @@ export default function NotesPage() {
     return () => {
       if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
     };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+      const id = selectedIdRef.current;
+      const title = titleRef.current?.value ?? "";
+      const content = contentRef.current;
+      if (
+        id !== null &&
+        (title !== lastSavedRef.current.title || content !== lastSavedRef.current.content)
+      ) {
+        fetch(`/api/notes/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          keepalive: true,
+          body: JSON.stringify({ title, content }),
+        });
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const flush = () => {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current);
+        const id = selectedIdRef.current;
+        const title = titleRef.current?.value ?? "";
+        const content = contentRef.current;
+        if (id !== null && (title !== lastSavedRef.current.title || content !== lastSavedRef.current.content)) {
+          fetch(`/api/notes/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            keepalive: true,
+            body: JSON.stringify({ title, content }),
+          });
+        }
+      }
+    };
+    window.addEventListener("beforeunload", flush);
+    return () => window.removeEventListener("beforeunload", flush);
   }, []);
 
   const filteredNotes = notes.filter((n) => {
@@ -714,16 +767,17 @@ export default function NotesPage() {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      data-testid="menu-open-in-bear"
+                      data-testid="menu-post-to-x"
                       onClick={() => {
                         const title = titleRef.current?.value ?? selectedNote.title;
                         const content = contentRef.current || selectedNote.content;
-                        const url = `bear://x-callback-url/create?title=${encodeURIComponent(title)}&text=${encodeURIComponent(content)}`;
-                        window.open(url, "_blank");
+                        const text = noteToXText(title, content);
+                        const url = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`;
+                        window.open(url, "_blank", "noopener,noreferrer");
                       }}
                     >
-                      <Share2 className="h-3.5 w-3.5 mr-2" />
-                      Open in Bear
+                      <SiX className="h-3.5 w-3.5 mr-2" />
+                      Post to X
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

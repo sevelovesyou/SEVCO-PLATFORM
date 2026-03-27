@@ -6,6 +6,7 @@ import { seedDatabase, promoteFounderToAdmin, markExistingUsersVerified, seedPro
 import { runWikiSeed } from "./wikiSeed";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
+import { setGNewsApiKeyFromDb } from "./news";
 import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
@@ -127,6 +128,10 @@ async function initStripe() {
   await storage.migrateSocialLinksShowOnListen().catch((err) => console.error("Social links listen migration error:", err));
   await checkEmailCredentials().catch((err) => console.warn("[email] Startup credential check failed:", err?.message ?? err));
   runWikiSeed().catch((err) => console.error("Wiki seed error:", err));
+  await storage.getPlatformSettings().then((settings) => {
+    const key = settings["news.gNewsApiKey"];
+    if (key) setGNewsApiKeyFromDb(key);
+  }).catch((err) => console.warn("[news] Failed to load GNews API key:", err?.message ?? err));
   setupAuth(app);
   await registerRoutes(httpServer, app);
 

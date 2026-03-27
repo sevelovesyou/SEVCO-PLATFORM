@@ -14,7 +14,7 @@ import {
 } from "./middleware/permissions";
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema } from "@shared/schema";
-import { fetchGoogleNewsRSS } from "./news";
+import { fetchNewsArticles, fetchGoogleNewsRSS, setGNewsApiKeyFromDb } from "./news";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail, sendContactReplyEmail, sendInvoiceEmail, sendTestEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
@@ -4299,8 +4299,36 @@ export async function registerRoutes(
       const query = String(req.query.query ?? "");
       const limit = Math.min(parseInt(String(req.query.limit ?? "10")), 20);
       if (!query) return res.status(400).json({ message: "query param required" });
-      const articles = await fetchGoogleNewsRSS(query, limit);
+      const articles = await fetchNewsArticles(query, limit);
       res.json(articles);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/news/api-status", requireAuth, requireRole("admin"), async (_req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      const dbKey = settings["news.gNewsApiKey"] || null;
+      if (dbKey) setGNewsApiKeyFromDb(dbKey);
+      const hasEnvKey = !!process.env.GNEWS_API_KEY;
+      const hasDbKey = !!dbKey;
+      res.json({
+        usingGNews: hasEnvKey || hasDbKey,
+        source: hasEnvKey ? "env" : hasDbKey ? "db" : "none",
+        hasKey: hasEnvKey || hasDbKey,
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put("/api/news/api-key", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const { gNewsApiKey } = req.body as { gNewsApiKey?: string };
+      await storage.setPlatformSettings({ "news.gNewsApiKey": gNewsApiKey ?? "" });
+      setGNewsApiKeyFromDb(gNewsApiKey || null);
+      res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -4310,7 +4338,7 @@ export async function registerRoutes(
     try {
       const cats = await storage.getNewsCategories(true);
       if (cats.length === 0) return res.json([]);
-      const results = await Promise.all(cats.map((c) => fetchGoogleNewsRSS(c.query, 8)));
+      const results = await Promise.all(cats.map((c) => fetchNewsArticles(c.query, 8)));
       const interleaved: unknown[] = [];
       const maxLen = Math.max(...results.map((r) => r.length));
       for (let i = 0; i < maxLen; i++) {

@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, Newspaper, RefreshCw } from "lucide-react";
+import { ExternalLink, Newspaper, RefreshCw, ChevronRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NewsBentoGrid } from "@/components/news-bento-grid";
 import { NewsArticleCard, type NewsArticle } from "@/components/news-article-card";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { NewsCategory } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
+import { Link, useLocation } from "wouter";
 
 function ArticleSkeleton() {
   return <Skeleton className="w-full h-48 rounded-xl" />;
@@ -37,7 +38,7 @@ function HeroSection({ article }: { article: NewsArticle }) {
               {article.source}
             </span>
           )}
-          <h1 className="text-xl md:text-3xl font-bold text-white leading-tight line-clamp-3 mb-2">
+          <h1 className="text-xl md:text-3xl font-serif font-bold text-white leading-tight line-clamp-3 mb-2">
             {article.title}
           </h1>
           {article.description && (
@@ -66,47 +67,141 @@ interface CategorySwimLaneProps {
 }
 
 function CategorySwimLane({ category }: CategorySwimLaneProps) {
-  const { data: articles, isLoading } = useQuery<NewsArticle[]>({
-    queryKey: ["/api/news/feed", category.query],
+  const [expanded, setExpanded] = useState(false);
+  const limit = expanded ? 12 : 6;
+
+  const { data: articles, isLoading, isFetching } = useQuery<NewsArticle[]>({
+    queryKey: ["/api/news/feed", category.query, limit],
     queryFn: () =>
-      fetch(`/api/news/feed?query=${encodeURIComponent(category.query)}&limit=5`).then((r) => r.json()),
+      fetch(`/api/news/feed?query=${encodeURIComponent(category.query)}&limit=${limit}`).then((r) => r.json()),
     staleTime: 15 * 60 * 1000,
   });
 
   return (
     <section data-testid={`swimlane-${category.id}`}>
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center gap-3 mb-4 border-t pt-6">
         <span
           className="w-3 h-3 rounded-full shrink-0"
           style={{ backgroundColor: category.accentColor || "#6b7280" }}
         />
         <h2 className="text-base font-bold text-foreground">{category.name}</h2>
         <div className="flex-1 h-px bg-border" />
+        <Link href={`/news?category=${category.id}`}>
+          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground" data-testid={`link-viewall-${category.id}`}>
+            View all <ChevronRight className="h-3.5 w-3.5" />
+          </Button>
+        </Link>
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map((i) => <ArticleSkeleton key={i} />)}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => <ArticleSkeleton key={i} />)}
         </div>
       ) : !articles?.length ? (
         <p className="text-sm text-muted-foreground py-4">No articles available right now.</p>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {articles.slice(0, 4).map((article) => (
-            <NewsArticleCard
-              key={article.link}
-              article={article}
-              variant="compact"
-              accentColor={category.accentColor || undefined}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {articles.slice(0, limit).map((article) => (
+              <NewsArticleCard
+                key={article.link}
+                article={article}
+                variant="compact"
+                accentColor={category.accentColor || undefined}
+                categoryLabel={category.name}
+              />
+            ))}
+          </div>
+          {!expanded && (
+            <div className="mt-4 flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs"
+                onClick={() => setExpanded(true)}
+                disabled={isFetching}
+                data-testid={`button-loadmore-${category.id}`}
+              >
+                {isFetching ? "Loading…" : "Load more"}
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </section>
   );
 }
 
+function CategoryFilteredView({ categoryId, categories }: { categoryId: string; categories: NewsCategory[] }) {
+  const category = categories.find((c) => String(c.id) === categoryId);
+
+  const { data: articles, isLoading } = useQuery<NewsArticle[]>({
+    queryKey: ["/api/news/feed", category?.query, 20],
+    queryFn: () =>
+      fetch(`/api/news/feed?query=${encodeURIComponent(category!.query)}&limit=20`).then((r) => r.json()),
+    enabled: !!category,
+    staleTime: 15 * 60 * 1000,
+  });
+
+  if (!category) {
+    return (
+      <div className="text-center py-16 text-muted-foreground">
+        <p className="text-sm">Category not found.</p>
+      </div>
+    );
+  }
+
+  const heroArticle = articles?.[0];
+  const restArticles = articles?.slice(1) ?? [];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Link href="/news">
+          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" data-testid="link-back-to-news">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            All News
+          </Button>
+        </Link>
+        <span className="text-muted-foreground">/</span>
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: category.accentColor || "#6b7280" }} />
+          <span className="font-semibold text-sm">{category.name}</span>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <Skeleton className="w-full h-72 rounded-2xl" />
+      ) : heroArticle ? (
+        <HeroSection article={heroArticle} />
+      ) : null}
+
+      {isLoading ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <ArticleSkeleton key={i} />)}
+        </div>
+      ) : restArticles.length > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {restArticles.map((article) => (
+            <NewsArticleCard
+              key={article.link}
+              article={article}
+              variant="medium"
+              accentColor={category.accentColor || undefined}
+              categoryLabel={category.name}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function NewsPage() {
+  const [location] = useLocation();
+  const searchParams = new URLSearchParams(location.includes("?") ? location.split("?")[1] : "");
+  const categoryParam = searchParams.get("category");
+
   useEffect(() => {
     document.title = "News — SEVCO";
     const desc = document.querySelector("meta[name='description']");
@@ -122,7 +217,7 @@ export default function NewsPage() {
   const otherCategories = categories?.slice(1) ?? [];
 
   const { data: primaryArticles, isLoading: primaryLoading, refetch: refetchPrimary } = useQuery<NewsArticle[]>({
-    queryKey: ["/api/news/feed", primaryCategory?.query],
+    queryKey: ["/api/news/feed", primaryCategory?.query, 10],
     queryFn: () =>
       fetch(`/api/news/feed?query=${encodeURIComponent(primaryCategory!.query)}&limit=10`).then((r) => r.json()),
     enabled: !!primaryCategory,
@@ -130,7 +225,7 @@ export default function NewsPage() {
   });
 
   const heroArticle = primaryArticles?.[0];
-  const bentoArticles = primaryArticles?.slice(1, 8) ?? [];
+  const bentoArticles = primaryArticles?.slice(1, 9) ?? [];
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-10" data-testid="news-page">
@@ -143,59 +238,77 @@ export default function NewsPage() {
             <p className="text-sm text-muted-foreground">Curated headlines from across the web</p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => refetchPrimary()}
-          data-testid="button-refresh-news"
-          className="gap-1.5 text-muted-foreground"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh
-        </Button>
+        {!categoryParam && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => refetchPrimary()}
+            data-testid="button-refresh-news"
+            className="gap-1.5 text-muted-foreground"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh
+          </Button>
+        )}
       </div>
 
-      {/* Hero */}
-      {catsLoading || primaryLoading ? (
-        <Skeleton className="w-full h-72 rounded-2xl" />
-      ) : heroArticle ? (
-        <HeroSection article={heroArticle} />
+      {/* Category filtered view */}
+      {categoryParam && categories && !catsLoading ? (
+        <CategoryFilteredView categoryId={categoryParam} categories={categories} />
       ) : (
-        <div className="rounded-2xl border bg-muted/30 flex items-center justify-center h-48">
-          <p className="text-sm text-muted-foreground">No headlines available right now. Check back soon.</p>
-        </div>
-      )}
-
-      {/* Bento Grid */}
-      {primaryCategory && (
-        <section>
-          <div className="flex items-center gap-3 mb-4">
-            {primaryCategory.accentColor && (
-              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: primaryCategory.accentColor }} />
-            )}
-            <h2 className="text-base font-bold text-foreground">{primaryCategory.name}</h2>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-          {primaryLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {[1, 2, 3, 4, 5].map((i) => <ArticleSkeleton key={i} />)}
-            </div>
+        <>
+          {/* Hero */}
+          {catsLoading || primaryLoading ? (
+            <Skeleton className="w-full h-72 rounded-2xl" />
+          ) : heroArticle ? (
+            <HeroSection article={heroArticle} />
           ) : (
-            <NewsBentoGrid articles={bentoArticles} accentColor={primaryCategory.accentColor || undefined} />
+            <div className="rounded-2xl border bg-muted/30 flex items-center justify-center h-48">
+              <p className="text-sm text-muted-foreground">No headlines available right now. Check back soon.</p>
+            </div>
           )}
-        </section>
-      )}
 
-      {/* Category swimlanes */}
-      {otherCategories.map((cat) => (
-        <CategorySwimLane key={cat.id} category={cat} />
-      ))}
+          {/* Bento Grid */}
+          {primaryCategory && (
+            <section>
+              <div className="flex items-center gap-3 mb-4 border-t pt-6">
+                {primaryCategory.accentColor && (
+                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: primaryCategory.accentColor }} />
+                )}
+                <h2 className="text-base font-bold text-foreground">{primaryCategory.name}</h2>
+                <div className="flex-1 h-px bg-border" />
+                <Link href={`/news?category=${primaryCategory.id}`}>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground" data-testid={`link-viewall-${primaryCategory.id}`}>
+                    View all <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </Link>
+              </div>
+              {primaryLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <ArticleSkeleton key={i} />)}
+                </div>
+              ) : (
+                <NewsBentoGrid
+                  articles={bentoArticles}
+                  accentColor={primaryCategory.accentColor || undefined}
+                  categoryLabel={primaryCategory.name}
+                />
+              )}
+            </section>
+          )}
 
-      {!catsLoading && !categories?.length && (
-        <div className="text-center py-16 text-muted-foreground">
-          <Newspaper className="h-12 w-12 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No news categories configured yet.</p>
-        </div>
+          {/* Category swimlanes */}
+          {otherCategories.map((cat) => (
+            <CategorySwimLane key={cat.id} category={cat} />
+          ))}
+
+          {!catsLoading && !categories?.length && (
+            <div className="text-center py-16 text-muted-foreground">
+              <Newspaper className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">No news categories configured yet.</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

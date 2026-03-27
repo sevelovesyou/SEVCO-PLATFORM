@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Pencil, Trash2, Loader2, Newspaper, Eye, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Newspaper, Eye, RefreshCw, Key, CheckCircle2, XCircle, ExternalLink } from "lucide-react";
 import type { NewsCategory } from "@shared/schema";
 import type { NewsArticle } from "@/components/news-article-card";
 
@@ -204,6 +205,113 @@ function PreviewDialog({ open, onClose, category }: PreviewDialogProps) {
   );
 }
 
+const apiKeySchema = z.object({
+  gNewsApiKey: z.string(),
+});
+type ApiKeyForm = z.infer<typeof apiKeySchema>;
+
+function ApiSettingsCard() {
+  const { toast } = useToast();
+  const [showKey, setShowKey] = useState(false);
+
+  const { data: apiStatus, isLoading: statusLoading, refetch: refetchStatus } = useQuery<{ usingGNews: boolean; source: string; hasKey: boolean }>({
+    queryKey: ["/api/news/api-status"],
+    staleTime: 30000,
+  });
+
+  const form = useForm<ApiKeyForm>({
+    resolver: zodResolver(apiKeySchema),
+    defaultValues: { gNewsApiKey: "" },
+  });
+
+  const saveKeyMutation = useMutation({
+    mutationFn: (data: ApiKeyForm) =>
+      apiRequest("PUT", "/api/news/api-key", { gNewsApiKey: data.gNewsApiKey }).then((r) => r.json()),
+    onSuccess: () => {
+      toast({ title: "API key saved" });
+      form.reset({ gNewsApiKey: "" });
+      refetchStatus();
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <Card className="p-4 space-y-4" data-testid="card-api-settings">
+      <div className="flex items-center gap-2">
+        <Key className="h-4 w-4 text-primary" />
+        <h3 className="text-sm font-semibold">API Settings</h3>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {statusLoading ? (
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Checking status…
+          </span>
+        ) : apiStatus?.hasKey ? (
+          <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Using GNews API — images included
+          </span>
+        ) : (
+          <span className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
+            <XCircle className="h-3.5 w-3.5" />
+            Using Google News RSS — no images
+          </span>
+        )}
+      </div>
+
+      <form onSubmit={form.handleSubmit((d) => saveKeyMutation.mutate(d))} className="space-y-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs">GNews API Key</Label>
+          <div className="flex gap-2">
+            <Input
+              type={showKey ? "text" : "password"}
+              placeholder="Enter your GNews API key…"
+              className="text-sm flex-1"
+              data-testid="input-gnews-api-key"
+              {...form.register("gNewsApiKey")}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0 text-xs"
+              onClick={() => setShowKey((v) => !v)}
+              data-testid="button-toggle-key-visibility"
+            >
+              {showKey ? "Hide" : "Show"}
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              className="shrink-0 text-xs"
+              disabled={saveKeyMutation.isPending}
+              data-testid="button-save-api-key"
+            >
+              {saveKeyMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Get a free key at{" "}
+            <a
+              href="https://gnews.io"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline inline-flex items-center gap-0.5"
+              data-testid="link-gnews"
+            >
+              gnews.io <ExternalLink className="h-2.5 w-2.5" />
+            </a>{" "}
+            (100 req/day free tier). When set, articles will include real images.
+          </p>
+        </div>
+      </form>
+    </Card>
+  );
+}
+
 export default function CommandNews() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -242,6 +350,8 @@ export default function CommandNews() {
 
   return (
     <div className="space-y-6" data-testid="command-news">
+      <ApiSettingsCard />
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Newspaper className="h-5 w-5 text-primary" />

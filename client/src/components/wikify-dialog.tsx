@@ -30,22 +30,40 @@ const WIKI_CATEGORIES = [
   { label: "Business", slug: "business" },
 ];
 
-interface WikifyDialogProps {
+interface WikifyDialogBaseProps {
   open: boolean;
   onClose: () => void;
-  article: NewsArticle;
 }
 
-export function WikifyDialog({ open, onClose, article }: WikifyDialogProps) {
+interface WikifyDialogArticleProps extends WikifyDialogBaseProps {
+  article: NewsArticle;
+  postTitle?: never;
+  postContent?: never;
+  postContext?: never;
+}
+
+interface WikifyDialogPostProps extends WikifyDialogBaseProps {
+  article?: never;
+  postTitle: string;
+  postContent: string;
+  postContext?: string;
+}
+
+type WikifyDialogProps = WikifyDialogArticleProps | WikifyDialogPostProps;
+
+export function WikifyDialog({ open, onClose, article, postTitle, postContent, postContext }: WikifyDialogProps) {
   const { toast } = useToast();
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
 
-  const defaultContent = `${article.description ? article.description + "\n\n" : ""}*Source: [${article.source || article.link}](${article.link})*`;
+  const defaultTitle = article ? article.title : (postTitle ?? "");
+  const defaultContent = article
+    ? `${article.description ? article.description + "\n\n" : ""}*Source: [${article.source || article.link}](${article.link})*`
+    : `${postContent ?? ""}${postContext ? `\n\n*Context: ${postContext}*` : ""}`;
 
   const form = useForm<WikifyForm>({
     resolver: zodResolver(wikifySchema),
     defaultValues: {
-      title: article.title,
+      title: defaultTitle,
       categorySlug: "general",
       content: defaultContent,
     },
@@ -65,7 +83,7 @@ export function WikifyDialog({ open, onClose, article }: WikifyDialogProps) {
         title: data.title,
         slug: slug + "-" + Date.now().toString(36),
         content: data.content,
-        summary: article.description?.slice(0, 200) || "",
+        summary: (article?.description ?? postContent ?? "").slice(0, 200),
         categoryId: cat?.id ?? null,
         status: "draft",
       });

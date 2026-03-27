@@ -62,10 +62,13 @@ import {
   MessageCircle,
   Send,
   Lock,
+  BookOpen,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { insertFeedPostSchema, insertPostSchema } from "@shared/schema";
 import type { FeedPost, FeedPostType } from "@shared/schema";
 import { Link } from "wouter";
+import { WikifyDialog } from "@/components/wikify-dialog";
 
 type FeedPostWithAuthor = FeedPost & {
   author: { username: string; displayName: string | null; avatarUrl: string | null } | null;
@@ -210,15 +213,18 @@ function SocialPostCard({
   post,
   currentUserId,
   isAdmin,
+  isStaffPlus,
   onDelete,
 }: {
   post: PostWithMeta;
   currentUserId?: string;
   isAdmin?: boolean;
+  isStaffPlus?: boolean;
   onDelete: (id: number) => void;
 }) {
   const { toast } = useToast();
   const [repliesOpen, setRepliesOpen] = useState(false);
+  const [wikifyOpen, setWikifyOpen] = useState(false);
   const isOwner = currentUserId === post.authorId;
   const canDelete = isOwner || isAdmin;
   const authorName = post.author.displayName || post.author.username;
@@ -233,6 +239,7 @@ function SocialPostCard({
   });
 
   return (
+    <>
     <Card className="p-4 overflow-visible transition-shadow hover:shadow-sm" data-testid={`card-post-${post.id}`}>
       <div className="flex gap-3">
         <Link href={`/profile/${post.author.username}`}>
@@ -309,6 +316,25 @@ function SocialPostCard({
               <MessageCircle className="h-4 w-4" />
               <span data-testid={`text-reply-count-${post.id}`}>{post.replyCount}</span>
             </button>
+
+            {isStaffPlus && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                      onClick={() => setWikifyOpen(true)}
+                      data-testid={`button-wikify-post-${post.id}`}
+                    >
+                      <BookOpen className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Wikify 💫</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
 
           {repliesOpen && (
@@ -317,6 +343,14 @@ function SocialPostCard({
         </div>
       </div>
     </Card>
+    <WikifyDialog
+      open={wikifyOpen}
+      onClose={() => setWikifyOpen(false)}
+      postTitle={`Post by ${authorName}`}
+      postContent={post.content}
+      postContext={`${authorName} · ${formatRelativeTime(post.createdAt)}`}
+    />
+    </>
   );
 }
 
@@ -408,9 +442,10 @@ function AdminFeedCard({
 
 export default function FeedPage() {
   const { user } = useAuth();
-  const { isAdmin, isExecutive } = usePermission();
+  const { isAdmin, isExecutive, role } = usePermission();
   const { toast } = useToast();
   const canManageFeed = isAdmin || isExecutive;
+  const isStaffPlus = role === "admin" || role === "executive" || role === "staff";
   const [adminComposerOpen, setAdminComposerOpen] = useState(false);
   const [postComposerOpen, setPostComposerOpen] = useState(false);
   const [deleteFeedId, setDeleteFeedId] = useState<number | null>(null);
@@ -654,6 +689,7 @@ export default function FeedPage() {
                   post={post}
                   currentUserId={user?.id}
                   isAdmin={canManageFeed}
+                  isStaffPlus={isStaffPlus}
                   onDelete={(id) => setDeletePostId(id)}
                 />
               ))}

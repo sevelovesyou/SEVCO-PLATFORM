@@ -11,14 +11,12 @@ import * as LucideIcons from "lucide-react";
 import {
   BookOpen, ShoppingBag, Music, Folder, Briefcase,
   ArrowRight, Users, Star, ChevronRight, Pin,
-  Zap, Globe, Layers, Heart, Repeat2,
+  Zap, Globe, Layers,
 } from "lucide-react";
-import { SiDiscord, SiX } from "react-icons/si";
+import { SiDiscord } from "react-icons/si";
 import type { Article, Product, FeedPost } from "@shared/schema";
-import type { NewsArticle } from "@/components/news-article-card";
-import { NewsBentoGrid } from "@/components/news-bento-grid";
-import { NewsArticleCard } from "@/components/news-article-card";
 import type { NewsCategory } from "@shared/schema";
+import { NewsEditorial } from "@/components/news-editorial";
 import { formatDistanceToNow } from "date-fns";
 import planetIconWhite from "@assets/sevco-planet-white.png";
 
@@ -162,99 +160,6 @@ function ArticleCard({ article }: { article: Article }) {
   );
 }
 
-function HomePrimaryNewsSection({ category }: { category: NewsCategory }) {
-  const { data: articles = [], isLoading } = useQuery<NewsArticle[]>({
-    queryKey: ["/api/news/feed", category.query, 10],
-    queryFn: () =>
-      fetch(`/api/news/feed?query=${encodeURIComponent(category.query)}&limit=10`).then((r) => r.json()),
-    staleTime: 15 * 60 * 1000,
-  });
-
-  return (
-    <section className="mb-10">
-      <div className="flex items-center gap-3 mb-4 border-t pt-6">
-        {category.accentColor && (
-          <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: category.accentColor }} />
-        )}
-        <h3 className="text-base font-bold text-foreground">{category.name}</h3>
-        <div className="flex-1 h-px bg-border" />
-      </div>
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="w-full h-48 rounded-xl" />
-          ))}
-        </div>
-      ) : (
-        <NewsBentoGrid
-          articles={articles}
-          accentColor={category.accentColor || undefined}
-          categoryLabel={category.name}
-        />
-      )}
-    </section>
-  );
-}
-
-function HomeNewsSwimlane({ category }: { category: NewsCategory }) {
-  const [expanded, setExpanded] = useState(false);
-  const limit = expanded ? 20 : 10;
-
-  const { data: articles = [], isLoading, isFetching } = useQuery<NewsArticle[]>({
-    queryKey: ["/api/news/feed", category.query, limit],
-    queryFn: () =>
-      fetch(`/api/news/feed?query=${encodeURIComponent(category.query)}&limit=${limit}`).then((r) => r.json()),
-    staleTime: 15 * 60 * 1000,
-  });
-
-  return (
-    <section className="mb-8" data-testid={`home-swimlane-${category.id}`}>
-      <div className="flex items-center gap-3 mb-4 border-t pt-6">
-        <span
-          className="w-3 h-3 rounded-full shrink-0"
-          style={{ backgroundColor: category.accentColor || "#6b7280" }}
-        />
-        <h3 className="text-base font-bold text-foreground">{category.name}</h3>
-        <div className="flex-1 h-px bg-border" />
-      </div>
-      {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="w-full h-48 rounded-xl" />)}
-        </div>
-      ) : !articles.length ? (
-        <p className="text-sm text-muted-foreground py-4">No articles available right now.</p>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            {articles.slice(0, limit).map((article) => (
-              <NewsArticleCard
-                key={article.link}
-                article={article}
-                variant="compact"
-                accentColor={category.accentColor || undefined}
-                categoryLabel={category.name}
-              />
-            ))}
-          </div>
-          {!expanded && (
-            <div className="mt-4 flex justify-center">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs"
-                onClick={() => setExpanded(true)}
-                disabled={isFetching}
-                data-testid={`button-loadmore-home-${category.id}`}
-              >
-                {isFetching ? "Loading…" : "Load more"}
-              </Button>
-            </div>
-          )}
-        </>
-      )}
-    </section>
-  );
-}
 
 export default function Landing() {
   const { user } = useAuth();
@@ -301,25 +206,9 @@ export default function Landing() {
     queryKey: ["/api/social/x/status"],
   });
 
-  interface Tweet {
-    id: string; text: string; authorId: string; authorName: string;
-    authorHandle: string; authorAvatarUrl: string | null;
-    likeCount: number; retweetCount: number; createdAt: string; url: string;
-  }
-
   const xHandles = (settings["social.x.handles"] || "sevco,sevelovesyou")
     .split(",").map((h: string) => h.trim()).filter(Boolean);
   const xMaxTweets = parseInt(settings["social.x.maxTweets"] ?? "12") || 12;
-
-  const { data: tweets = [], isLoading: tweetsLoading } = useQuery<Tweet[]>({
-    queryKey: ["/api/social/x/feed", { limit: xMaxTweets }],
-    queryFn: async () => {
-      const res = await fetch(`/api/social/x/feed?limit=${xMaxTweets}`);
-      if (!res.ok) throw new Error("Failed to fetch tweets");
-      return res.json();
-    },
-    enabled: xStatus?.configured === true,
-  });
 
   const pinnedPost = pinnedFeedPosts[0] ?? null;
 
@@ -366,9 +255,6 @@ export default function Landing() {
   const showNewsSection = toBool(settings["section.news.visible"]);
   const showXFeedSection = settings["section.xFeed.visible"] !== "false";
   const xEnabled = settings["social.x.enabled"] !== "false";
-  const xLabel = settings["social.x.label"] || "On X";
-  const primaryNewsCategory = newsCategories[0];
-  const otherNewsCategories = newsCategories.slice(1, 5);
 
   return (
     <div className="min-h-screen bg-background" data-page="landing">
@@ -682,32 +568,14 @@ export default function Landing() {
         </section>
       )}
 
-      {/* ── NEWS — TOP STORIES ── */}
-      {showNewsSection && (
-        <section className="max-w-6xl mx-auto px-6 py-16 md:py-20" data-testid="section-news">
-          <div className="flex items-end justify-between mb-8">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Headlines</p>
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Top Stories.</h2>
-            </div>
-          </div>
-
-          {/* Primary category bento grid */}
-          {primaryNewsCategory && (
-            <HomePrimaryNewsSection category={primaryNewsCategory} />
-          )}
-
-          {/* Category swimlanes */}
-          {otherNewsCategories.map((cat) => (
-            <HomeNewsSwimlane key={cat.id} category={cat} />
-          ))}
-
-          {newsCategories.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              <p className="text-sm">No news categories configured yet.</p>
-            </div>
-          )}
-        </section>
+      {/* ── NEWS & NOW — unified editorial hub ── */}
+      {(showNewsSection || showXFeedSection) && newsCategories.length > 0 && (
+        <NewsEditorial
+          newsCategories={newsCategories}
+          xHandles={xHandles}
+          xMaxTweets={xMaxTweets}
+          xEnabled={xEnabled && xStatus?.configured === true}
+        />
       )}
 
       {/* ── SEVCO RECORDS SPOTLIGHT ── */}
@@ -760,129 +628,6 @@ export default function Landing() {
         </section>
       )}
 
-      {/* ── X (TWITTER) FEED ── */}
-      {showXFeedSection && xEnabled && xStatus?.configured && (tweets.length > 0 || tweetsLoading) && (
-        <section className="max-w-6xl mx-auto px-6 py-16 md:py-20" data-testid="section-x-feed">
-          <div className="flex items-end justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-lg bg-foreground/10 flex items-center justify-center">
-                <SiX className="h-4 w-4 text-foreground" />
-              </div>
-              <div>
-                <h2 className="text-2xl md:text-3xl font-bold tracking-tight">{xLabel}</h2>
-              </div>
-            </div>
-            <div className="hidden sm:flex items-center gap-2">
-              {xHandles.map((handle) => (
-                <span
-                  key={handle}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-foreground/8 border border-border/50 text-muted-foreground"
-                  data-testid={`badge-x-handle-${handle}`}
-                >
-                  <SiX className="h-3 w-3" />
-                  @{handle}
-                </span>
-              ))}
-            </div>
-          </div>
-          {tweetsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {Array.from({ length: 2 }).map((_, col) => (
-                <div key={col} className="space-y-3">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Skeleton className="h-4 w-4 rounded" />
-                    <Skeleton className="h-4 w-24" />
-                  </div>
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="rounded-xl border p-4">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div>
-                          <Skeleton className="h-3 w-24 mb-1" />
-                          <Skeleton className="h-2.5 w-16" />
-                        </div>
-                      </div>
-                      <Skeleton className="h-3 w-full mb-1.5" />
-                      <Skeleton className="h-3 w-4/5 mb-1.5" />
-                      <Skeleton className="h-3 w-3/5" />
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          ) : (
-            (() => {
-              const tweetsByHandle: Record<string, Tweet[]> = {};
-              for (const handle of xHandles) {
-                tweetsByHandle[handle] = tweets.filter(
-                  (t) => t.authorHandle?.toLowerCase().replace(/^@/, "") === handle.toLowerCase()
-                );
-              }
-              const perColumnMax = xMaxTweets;
-              return (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {xHandles.map((handle) => (
-                    <div key={handle} data-testid={`column-x-${handle}`}>
-                      <div className="flex items-center gap-2 mb-4">
-                        <SiX className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-semibold text-sm text-foreground">@{handle}</span>
-                      </div>
-                      <div className="space-y-3">
-                        {(tweetsByHandle[handle] ?? []).slice(0, perColumnMax).map((tweet) => {
-                          let relativeTime = "";
-                          try {
-                            relativeTime = formatDistanceToNow(new Date(tweet.createdAt), { addSuffix: true });
-                          } catch {}
-                          return (
-                            <a
-                              key={tweet.id}
-                              href={tweet.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="group block rounded-xl border bg-white/[0.02] border-border/60 p-4 hover:bg-white/[0.04] hover:border-border transition-colors"
-                              data-testid={`card-tweet-${tweet.id}`}
-                            >
-                              <div className="flex items-start gap-3 mb-3">
-                                <Avatar className="h-10 w-10 shrink-0">
-                                  {tweet.authorAvatarUrl && <AvatarImage src={tweet.authorAvatarUrl} />}
-                                  <AvatarFallback className="text-xs font-bold">
-                                    {tweet.authorName.charAt(0).toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-semibold text-foreground truncate">{tweet.authorName}</p>
-                                  <p className="text-xs text-muted-foreground truncate">{tweet.authorHandle}</p>
-                                </div>
-                                <SiX className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                              </div>
-                              <p className="text-sm text-foreground/80 leading-relaxed line-clamp-5 mb-3">
-                                {tweet.text.length > 280 ? tweet.text.slice(0, 280) + "…" : tweet.text}
-                              </p>
-                              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <div className="flex items-center gap-3">
-                                  <span className="flex items-center gap-1">
-                                    <Heart className="h-3 w-3" />
-                                    {tweet.likeCount.toLocaleString()}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <Repeat2 className="h-3 w-3" />
-                                    {tweet.retweetCount.toLocaleString()}
-                                  </span>
-                                </div>
-                                {relativeTime && <span>{relativeTime}</span>}
-                              </div>
-                            </a>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()
-          )}
-        </section>
-      )}
 
       {/* ── STORE PREVIEW ── */}
       {showStorePreview && (

@@ -15,7 +15,7 @@ import {
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema } from "@shared/schema";
 import { fetchNewsArticles, fetchGoogleNewsRSS, setGNewsApiKeyFromDb } from "./news";
-import { fetchUserTweets, searchTweets, isXConfigured } from "./x-api";
+import { fetchUserTweets, searchTweets, isXConfigured, fetchCategoryNewsFromX } from "./x-api";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail, sendContactReplyEmail, sendInvoiceEmail, sendTestEmail } from "./emailClient";
 import { getEmailAddress, isClientPlus, sendEmail, processInboundEmail, verifyResendWebhookSignature, type ResendSendFn } from "./email";
@@ -4502,6 +4502,52 @@ export async function registerRoutes(
         }
       }
       res.json(interleaved.slice(0, 20));
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/news/x-feed", async (req, res) => {
+    try {
+      const categoryName = String(req.query.category ?? "");
+      const limit = Math.min(parseInt(String(req.query.limit ?? "10")), 20);
+
+      if (!categoryName) {
+        return res.status(400).json({ message: "category param required" });
+      }
+
+      const cats = await storage.getNewsCategories(true);
+      const cat = cats.find((c) => c.name.toLowerCase() === categoryName.toLowerCase()) ?? cats[0];
+
+      const xConfigured = isXConfigured();
+      let xArticles: Array<{
+        title: string; link: string; description: string;
+        pubDate: string; source: string; imageUrl: string | null; sourceType: "x";
+        authorHandle?: string; likeCount?: number; retweetCount?: number;
+      }> = [];
+
+      if (xConfigured && cat) {
+        const tweets = await fetchCategoryNewsFromX(categoryName, cat?.query ?? categoryName, limit);
+        xArticles = tweets.map((t) => ({
+          title: t.text.slice(0, 140),
+          link: t.url,
+          description: t.text,
+          pubDate: t.createdAt,
+          source: t.authorName,
+          imageUrl: t.authorAvatarUrl,
+          sourceType: "x" as const,
+          authorHandle: t.authorHandle,
+          likeCount: t.likeCount,
+          retweetCount: t.retweetCount,
+        }));
+      }
+
+      const query = cat?.query ?? categoryName;
+      const rssArticles = await fetchNewsArticles(query, limit);
+      const rssTagged = rssArticles.map((a) => ({ ...a, sourceType: "rss" as const }));
+
+      const merged = [...xArticles, ...rssTagged].slice(0, limit + 5);
+      res.json(merged);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

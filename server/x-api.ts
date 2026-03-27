@@ -11,6 +11,31 @@ export interface Tweet {
   url: string;
 }
 
+const CATEGORY_QUERIES: Record<string, string> = {
+  technology: "(#tech OR #AI OR #software OR from:verge OR from:wired OR from:techcrunch) -is:retweet lang:en has:links",
+  music: "(#music OR #newmusic OR #hiphop OR from:billboard OR from:pitchfork) -is:retweet lang:en has:links",
+  gaming: "(#gaming OR #videogames OR #esports OR from:IGN OR from:kotaku) -is:retweet lang:en has:links",
+  sports: "(#sports OR #NBA OR #NFL OR #soccer OR from:espn OR from:bleacherreport) -is:retweet lang:en has:links",
+  entertainment: "(#entertainment OR #movies OR #TV OR from:variety OR from:deadline) -is:retweet lang:en has:links",
+  business: "(#business OR #finance OR #economy OR from:wsj OR from:bloomberg) -is:retweet lang:en has:links",
+  science: "(#science OR #space OR #research OR from:sciencealert OR from:nasa) -is:retweet lang:en has:links",
+  politics: "(#politics OR #news OR #government OR from:reuters OR from:apnews) -is:retweet lang:en has:links",
+};
+
+export function getCategoryXQuery(categoryName: string, fallbackQuery?: string): string {
+  const key = categoryName.toLowerCase();
+  return CATEGORY_QUERIES[key] || fallbackQuery || `(${categoryName}) -is:retweet lang:en`;
+}
+
+export async function fetchCategoryNewsFromX(
+  category: string,
+  query: string,
+  limit: number = 10
+): Promise<Tweet[]> {
+  const xQuery = getCategoryXQuery(category, query);
+  return searchTweets(xQuery, limit);
+}
+
 const tweetCache = new Map<string, { tweets: Tweet[]; fetchedAt: number }>();
 const CACHE_TTL_MS = 15 * 60 * 1000;
 

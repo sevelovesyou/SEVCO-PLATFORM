@@ -17,6 +17,8 @@ import { SpotifyPlayerBar } from "@/components/spotify-player-bar";
 import { CartDrawer } from "@/components/cart-drawer";
 import { useEffect, useRef } from "react";
 import { hexToHsl } from "@/lib/colorUtils";
+import { isClientPlus } from "@/lib/permissions";
+import { useToast } from "@/hooks/use-toast";
 
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
@@ -87,6 +89,7 @@ import CommandAiAgents from "@/pages/command-ai-agents";
 import CommandTraffic from "@/pages/command-traffic";
 import NewsPage from "@/pages/news-page";
 import CommandNews from "@/pages/command-news";
+import MessagesPage from "@/pages/messages-page";
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new/", "/search", "/review", "/category/"];
 const COMMAND_PREFIXES = ["/command"];
@@ -101,6 +104,33 @@ function isCommandRoute(location: string): boolean {
   return COMMAND_PREFIXES.some(
     (prefix) => location === prefix || location.startsWith(prefix + "/")
   );
+}
+
+function ClientPlusRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!isLoading && user && !isClientPlus(user.role)) {
+      toast({ title: "Access denied", description: "Email is available for Client and above.", variant: "destructive" });
+      setLocation("/");
+    } else if (!isLoading && !user) {
+      setLocation("/auth");
+    }
+  }, [isLoading, user]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[200px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (!user || !isClientPlus(user.role)) return null;
+
+  return <>{children}</>;
 }
 
 function Router() {
@@ -140,6 +170,7 @@ function Router() {
       <Route path="/jobs/:slug" component={JobsDetailPage} />
       <Route path="/news" component={NewsPage} />
       <Route path="/profile/:username" component={ProfilePage} />
+      <Route path="/messages" component={() => <ClientPlusRoute><MessagesPage /></ClientPlusRoute>} />
 
       {/* Protected write/manage routes */}
       <Route path="/profile" component={ProfilePage} />

@@ -17,6 +17,8 @@ import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProje
 import { fetchNewsArticles, fetchGoogleNewsRSS, setGNewsApiKeyFromDb } from "./news";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail, sendContactReplyEmail, sendInvoiceEmail, sendTestEmail } from "./emailClient";
+import { getEmailAddress, isClientPlus, sendEmail, processInboundEmail, verifyResendWebhookSignature, type ResendSendFn } from "./email";
+import { Resend } from "resend";
 import bcrypt from "bcryptjs";
 import * as hostinger from "./hostinger";
 import { registerSpotifyRoutes } from "./spotify";
@@ -4348,6 +4350,267 @@ export async function registerRoutes(
       }
       res.json(interleaved.slice(0, 20));
     } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  const CLIENT_PLUS_ROLES: Role[] = ["client", "partner", "staff", "executive", "admin"];
+
+  app.get("/api/email/address", requireAuth, (req, res) => {
+    const user = req.user as any;
+    if (!isClientPlus(user.role)) return res.status(403).json({ message: "Email is available for Client and above" });
+    res.json({ address: getEmailAddress(user.username) });
+  });
+
+  app.get("/api/email/folders", requireAuth, requireRole(...CLIENT_PLUS_ROLES), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const counts = await storage.getEmailFolderCounts(user.id);
+      res.json(counts);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/email/messages", requireAuth, requireRole(...CLIENT_PLUS_ROLES), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const folder = String(req.query.folder || "inbox");
+      const limit = Math.min(parseInt(String(req.query.limit || "50")), 100);
+      const offset = parseInt(String(req.query.offset || "0"));
+      const search = req.query.search ? String(req.query.search) : undefined;
+      const msgs = await storage.getEmails(user.id, folder, limit, offset, search);
+      res.json(msgs);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/email/messages/:id", requireAuth, requireRole(...CLIENT_PLUS_ROLES), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const id = parseInt(req.params.id);
+      const email = await storage.getEmail(id, user.id);
+      if (!email) return res.status(404).json({ message: "Email not found" });
+      if (!email.isRead) {
+        await storage.updateEmail(id, user.id, { isRead: true });
+      }
+      res.json({ ...email, isRead: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/email/messages/:id", requireAuth, requireRole(...CLIENT_PLUS_ROLES), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const id = parseInt(req.params.id);
+      const { isRead, isStarred, folder } = req.body as { isRead?: boolean; isStarred?: boolean; folder?: string };
+      const updates: Partial<{ isRead: boolean; isStarred: boolean; folder: string }> = {};
+      if (isRead !== undefined) updates.isRead = isRead;
+      if (isStarred !== undefined) updates.isStarred = isStarred;
+      if (folder !== undefined) updates.folder = folder;
+      const updated = await storage.updateEmail(id, user.id, updates);
+      if (!updated) return res.status(404).json({ message: "Email not found" });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/email/send", requireAuth, requireRole(...CLIENT_PLUS_ROLES), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { to, cc, bcc, subject, html, text, replyTo } = req.body as {
+        to: string[];
+        cc?: string[];
+        bcc?: string[];
+        subject: string;
+        html?: string;
+        text?: string;
+        replyTo?: string;
+      };
+
+      if (!to || !Array.isArray(to) || to.length === 0) {
+        return res.status(400).json({ message: "At least one recipient is required" });
+      }
+
+      const resendApiKey = process.env.RESEND_API_KEY;
+      let resendClient: Resend | null = null;
+
+      try {
+        const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
+        const xReplitToken = process.env.REPL_IDENTITY
+          ? "repl " + process.env.REPL_IDENTITY
+          : process.env.WEB_REPL_RENEWAL
+          ? "depl " + process.env.WEB_REPL_RENEWAL
+          : null;
+        if (hostname && xReplitToken) {
+          const connRes = await fetch(`https://${hostname}/api/v2/connection?include_secrets=true&connector_names=resend`, {
+            headers: { Accept: "application/json", "X-Replit-Token": xReplitToken },
+          });
+          if (connRes.ok) {
+            const data = await connRes.json();
+            const items: any[] = data.items ?? [];
+            const apiKey = items[0]?.settings?.api_key;
+            if (apiKey) resendClient = new Resend(apiKey);
+          }
+        }
+      } catch {}
+
+      if (!resendClient && resendApiKey) resendClient = new Resend(resendApiKey);
+
+      const resendSend: ResendSendFn = async (payload) => {
+        if (!resendClient) throw new Error("Resend API key not configured");
+        const sendPayload = {
+          from: payload.from,
+          to: payload.to,
+          subject: payload.subject,
+          ...(payload.cc && payload.cc.length > 0 ? { cc: payload.cc } : {}),
+          ...(payload.bcc && payload.bcc.length > 0 ? { bcc: payload.bcc } : {}),
+          ...(payload.reply_to ? { reply_to: payload.reply_to } : {}),
+          ...(payload.html ? { html: payload.html } : {}),
+          ...(payload.text ? { text: payload.text } : {}),
+        };
+        const { data, error } = await resendClient.emails.send(sendPayload);
+        if (error) throw new Error(error.message);
+        return { id: data?.id ?? null };
+      };
+
+      const fullUser = await storage.getUser(user.id);
+      if (!fullUser) return res.status(404).json({ message: "User not found" });
+
+      const resendEmailId = await sendEmail({
+        fromUser: fullUser,
+        to,
+        cc,
+        bcc,
+        subject,
+        html,
+        text,
+        replyTo,
+      }, resendSend);
+
+      res.json({ success: true, resendEmailId });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/email/drafts", requireAuth, requireRole(...CLIENT_PLUS_ROLES), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { to = [], cc = [], bcc = [], subject = "", html = "", text = "" } = req.body;
+      const fullUser = await storage.getUser(user.id);
+      if (!fullUser) return res.status(404).json({ message: "User not found" });
+
+      const draft = await storage.createEmail({
+        userId: user.id,
+        resendEmailId: null,
+        direction: "outbound",
+        fromAddress: getEmailAddress(fullUser.username),
+        toAddresses: to,
+        ccAddresses: cc,
+        bccAddresses: bcc,
+        replyTo: null,
+        subject,
+        bodyHtml: html,
+        bodyText: text,
+        folder: "drafts",
+        isRead: true,
+        isStarred: false,
+        attachments: [],
+        threadId: null,
+      });
+
+      res.json(draft);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put("/api/email/drafts/:id", requireAuth, requireRole(...CLIENT_PLUS_ROLES), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const id = parseInt(req.params.id);
+      const { to, cc, bcc, subject, html, text } = req.body;
+      const updates: Record<string, any> = {};
+      if (to !== undefined) updates.toAddresses = to;
+      if (cc !== undefined) updates.ccAddresses = cc;
+      if (bcc !== undefined) updates.bccAddresses = bcc;
+      if (subject !== undefined) updates.subject = subject;
+      if (html !== undefined) updates.bodyHtml = html;
+      if (text !== undefined) updates.bodyText = text;
+      const updated = await storage.updateEmail(id, user.id, updates);
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/email/messages/:id/star", requireAuth, requireRole(...CLIENT_PLUS_ROLES), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const id = parseInt(req.params.id);
+      const email = await storage.getEmail(id, user.id);
+      if (!email) return res.status(404).json({ message: "Email not found" });
+      const updated = await storage.updateEmail(id, user.id, { isStarred: !email.isStarred });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/email/messages/:id/move", requireAuth, requireRole(...CLIENT_PLUS_ROLES), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const id = parseInt(req.params.id);
+      const { folder } = req.body as { folder: string };
+      const validFolders = ["inbox", "sent", "drafts", "trash", "starred"];
+      if (!folder || !validFolders.includes(folder)) return res.status(400).json({ message: "Invalid folder" });
+      const updated = await storage.updateEmail(id, user.id, { folder });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/email/messages/:id", requireAuth, requireRole(...CLIENT_PLUS_ROLES), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const id = parseInt(req.params.id);
+      await storage.deleteEmail(id, user.id);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/email/messages/:id/permanent", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.hardDeleteEmail(id);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/email/inbound", async (req, res) => {
+    try {
+      const signature = req.headers["resend-signature"] as string | undefined;
+      const rawBody: Buffer = (req as any).rawBody ?? Buffer.from(JSON.stringify(req.body));
+
+      if (!verifyResendWebhookSignature(rawBody, signature)) {
+        console.warn("[email/inbound] Invalid webhook signature");
+        return res.status(401).json({ message: "Invalid signature" });
+      }
+
+      const payload = req.body;
+      await processInboundEmail(payload);
+      res.status(200).json({ received: true });
+    } catch (err: any) {
+      console.error("[email/inbound] Error processing inbound email:", err);
       res.status(500).json({ message: err.message });
     }
   });

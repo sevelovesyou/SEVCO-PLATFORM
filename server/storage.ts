@@ -37,6 +37,7 @@ import {
   type AiAgent, type InsertAiAgent,
   type AiMessage, type InsertAiMessage,
   type NewsCategory, type InsertNewsCategory,
+  type Email, type InsertEmail,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
@@ -50,6 +51,7 @@ import {
   subscriptions,
   aiAgents, aiMessages,
   newsCategories,
+  emails,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or, inArray } from "drizzle-orm";
@@ -311,6 +313,15 @@ export interface IStorage {
   updateNewsCategory(id: number, data: Partial<InsertNewsCategory>): Promise<NewsCategory>;
   deleteNewsCategory(id: number): Promise<void>;
   seedNewsCategoriesIfEmpty(): Promise<void>;
+
+  createEmail(data: InsertEmail): Promise<Email>;
+  getEmails(userId: string, folder: string, limit: number, offset: number, search?: string): Promise<Email[]>;
+  getEmail(id: number, userId: string): Promise<Email | undefined>;
+  updateEmail(id: number, userId: string, updates: Partial<Email>): Promise<Email>;
+  deleteEmail(id: number, userId: string): Promise<void>;
+  hardDeleteEmail(id: number): Promise<void>;
+  getEmailFolderCounts(userId: string): Promise<Record<string, number>>;
+  getEmailByResendIdForUser(userId: string, resendEmailId: string): Promise<Email | undefined>;
 }
 
 export type SearchResultItem = {
@@ -1996,6 +2007,88 @@ export class DatabaseStorage implements IStorage {
       { name: "Technology", query: "technology startup AI", accentColor: "#3b82f6", displayOrder: 1, enabled: true },
       { name: "Business", query: "business entrepreneurship startup", accentColor: "#10b981", displayOrder: 2, enabled: true },
     ]);
+  }
+
+  async createEmail(data: InsertEmail): Promise<Email> {
+    const [created] = await db.insert(emails).values(data).returning();
+    return created;
+  }
+
+  async getEmails(userId: string, folder: string, limit: number, offset: number, search?: string): Promise<Email[]> {
+    const conditions = [eq(emails.userId, userId)];
+
+    if (folder === "all") {
+    } else if (folder === "starred") {
+      conditions.push(eq(emails.isStarred, true));
+    } else {
+      conditions.push(eq(emails.folder, folder));
+    }
+
+    if (search) {
+      const pattern = `%${search}%`;
+      conditions.push(
+        or(
+          ilike(emails.subject, pattern),
+          ilike(emails.fromAddress, pattern),
+          ilike(emails.bodyText, pattern),
+        )!
+      );
+    }
+
+    return db.select().from(emails)
+      .where(and(...conditions))
+      .orderBy(desc(emails.createdAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getEmail(id: number, userId: string): Promise<Email | undefined> {
+    const [email] = await db.select().from(emails).where(and(eq(emails.id, id), eq(emails.userId, userId)));
+    return email || undefined;
+  }
+
+  async updateEmail(id: number, userId: string, updates: Partial<Email>): Promise<Email> {
+    const [updated] = await db.update(emails).set(updates).where(and(eq(emails.id, id), eq(emails.userId, userId))).returning();
+    return updated;
+  }
+
+  async deleteEmail(id: number, userId: string): Promise<void> {
+    await db.update(emails).set({ folder: "trash" }).where(and(eq(emails.id, id), eq(emails.userId, userId)));
+  }
+
+  async hardDeleteEmail(id: number): Promise<void> {
+    await db.delete(emails).where(eq(emails.id, id));
+  }
+
+  async getEmailFolderCounts(userId: string): Promise<Record<string, number>> {
+    const rows = await db.select({
+      folder: emails.folder,
+      count: sql<number>`count(*)::int`,
+    }).from(emails).where(eq(emails.userId, userId)).groupBy(emails.folder);
+
+    const counts: Record<string, number> = { inbox: 0, sent: 0, drafts: 0, trash: 0, starred: 0 };
+    for (const row of rows) {
+      counts[row.folder] = row.count;
+    }
+
+    const starredCount = await db.select({ count: sql<number>`count(*)::int` })
+      .from(emails)
+      .where(and(eq(emails.userId, userId), eq(emails.isStarred, true)));
+    counts.starred = starredCount[0]?.count ?? 0;
+
+    const unreadInbox = await db.select({ count: sql<number>`count(*)::int` })
+      .from(emails)
+      .where(and(eq(emails.userId, userId), eq(emails.folder, "inbox"), eq(emails.isRead, false)));
+    counts.unreadInbox = unreadInbox[0]?.count ?? 0;
+
+    return counts;
+  }
+
+  async getEmailByResendIdForUser(userId: string, resendEmailId: string): Promise<Email | undefined> {
+    const [email] = await db.select().from(emails).where(
+      and(eq(emails.userId, userId), eq(emails.resendEmailId, resendEmailId))
+    );
+    return email || undefined;
   }
 }
 

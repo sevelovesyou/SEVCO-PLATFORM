@@ -781,3 +781,28 @@ export const newsCategories = pgTable("news_categories", {
 export const insertNewsCategorySchema = createInsertSchema(newsCategories).omit({ id: true, createdAt: true });
 export type NewsCategory = typeof newsCategories.$inferSelect;
 export type InsertNewsCategory = z.infer<typeof insertNewsCategorySchema>;
+
+export const emails = pgTable("emails", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  resendEmailId: text("resend_email_id"),
+  direction: text("direction").notNull(),
+  fromAddress: text("from_address").notNull(),
+  toAddresses: text("to_addresses").array().notNull(),
+  ccAddresses: text("cc_addresses").array().default(sql`'{}'::text[]`),
+  bccAddresses: text("bcc_addresses").array().default(sql`'{}'::text[]`),
+  replyTo: text("reply_to"),
+  subject: text("subject").notNull().default(""),
+  bodyHtml: text("body_html").default(""),
+  bodyText: text("body_text").default(""),
+  folder: text("folder").notNull().default("inbox"),
+  isRead: boolean("is_read").default(false),
+  isStarred: boolean("is_starred").default(false),
+  attachments: jsonb("attachments").default(sql`'[]'::jsonb`),
+  threadId: text("thread_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertEmailSchema = createInsertSchema(emails).omit({ id: true, createdAt: true });
+export type Email = typeof emails.$inferSelect;
+export type InsertEmail = z.infer<typeof insertEmailSchema>;

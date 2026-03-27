@@ -30,6 +30,7 @@ import {
   Gamepad2,
   Bot,
   BarChart2,
+  Newspaper,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -56,6 +57,7 @@ export function CommandSidebar() {
   const contentItems: NavItem[] = [
     ...(isAdmin || isExec ? [{ title: "Store", url: "/command/store", icon: ShoppingBag }] : []),
     ...(isAdmin || isExec ? [{ title: "Music", url: "/command/music", icon: Music }] : []),
+    ...(isAdmin ? [{ title: "News", url: "/command/news", icon: Newspaper }] : []),
     ...(isAdmin ? [{ title: "Gallery", url: "/command/gallery", icon: Images }] : []),
     ...(isAdmin ? [{ title: "Media", url: "/command/media", icon: FolderOpen }] : []),
     ...(isAdmin ? [{ title: "Resources", url: "/command/resources", icon: BookMarked }] : []),

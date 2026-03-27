@@ -85,6 +85,8 @@ import CommandFinance from "@/pages/command-finance";
 import CommandMinecraft from "@/pages/command-minecraft";
 import CommandAiAgents from "@/pages/command-ai-agents";
 import CommandTraffic from "@/pages/command-traffic";
+import NewsPage from "@/pages/news-page";
+import CommandNews from "@/pages/command-news";
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
 const COMMAND_PREFIXES = ["/command"];
@@ -136,6 +138,7 @@ function Router() {
       <Route path="/changelog" component={ChangelogPage} />
       <Route path="/jobs" component={JobsPage} />
       <Route path="/jobs/:slug" component={JobsDetailPage} />
+      <Route path="/news" component={NewsPage} />
       <Route path="/profile/:username" component={ProfilePage} />
 
       {/* Protected write/manage routes */}
@@ -278,6 +281,13 @@ function Router() {
         <ProtectedRoute requiredRole="admin">
           <CommandPageLayout title="Traffic" subtitle="Monitor platform and website analytics">
             <CommandTraffic />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/news" component={() => (
+        <ProtectedRoute requiredRole="admin">
+          <CommandPageLayout title="News" subtitle="Manage news feed categories and RSS queries">
+            <CommandNews />
           </CommandPageLayout>
         </ProtectedRoute>
       )} />

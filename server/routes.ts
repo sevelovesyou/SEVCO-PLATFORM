@@ -13,7 +13,8 @@ import {
   CAN_ACCESS_ARCHIVE,
 } from "./middleware/permissions";
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema } from "@shared/schema";
+import { fetchGoogleNewsRSS } from "./news";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail, sendContactReplyEmail, sendInvoiceEmail, sendTestEmail } from "./emailClient";
 import bcrypt from "bcryptjs";
@@ -1112,6 +1113,7 @@ export async function registerRoutes(
   seedMinecraftServers().catch(console.error);
   seedMinecraftProject().catch(console.error);
   seedRecordsProject().catch(console.error);
+  storage.seedNewsCategoriesIfEmpty().catch(console.error);
 
   // Initialize Supabase storage buckets
   import("./supabase").then(({ ensureBucketsExist }) => ensureBucketsExist().catch(console.error));
@@ -4228,6 +4230,86 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("[routes] Admin test email failed:", err?.message ?? err);
       res.status(500).json({ success: false, message: err?.message ?? "Failed to send test email" });
+    }
+  });
+
+  // ── News Categories ──────────────────────────────────────────────────
+  app.get("/api/news", async (_req, res) => {
+    try {
+      const cats = await storage.getNewsCategories(true);
+      res.json(cats);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/news/categories", requireAuth, requireRole("admin"), async (_req, res) => {
+    try {
+      const cats = await storage.getNewsCategories();
+      res.json(cats);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/news/categories", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const data = insertNewsCategorySchema.parse(req.body);
+      const created = await storage.createNewsCategory(data);
+      res.status(201).json(created);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/news/categories/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = insertNewsCategorySchema.partial().parse(req.body);
+      const updated = await storage.updateNewsCategory(id, data);
+      res.json(updated);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/news/categories/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteNewsCategory(id);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/news/feed", async (req, res) => {
+    try {
+      const query = String(req.query.query ?? "");
+      const limit = Math.min(parseInt(String(req.query.limit ?? "10")), 20);
+      if (!query) return res.status(400).json({ message: "query param required" });
+      const articles = await fetchGoogleNewsRSS(query, limit);
+      res.json(articles);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/news/feed/all", async (_req, res) => {
+    try {
+      const cats = await storage.getNewsCategories(true);
+      if (cats.length === 0) return res.json([]);
+      const results = await Promise.all(cats.map((c) => fetchGoogleNewsRSS(c.query, 8)));
+      const interleaved: unknown[] = [];
+      const maxLen = Math.max(...results.map((r) => r.length));
+      for (let i = 0; i < maxLen; i++) {
+        for (const arr of results) {
+          if (arr[i]) interleaved.push(arr[i]);
+        }
+      }
+      res.json(interleaved.slice(0, 20));
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
     }
   });
 

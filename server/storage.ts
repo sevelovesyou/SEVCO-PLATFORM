@@ -36,6 +36,7 @@ import {
   type Subscription, type InsertSubscription,
   type AiAgent, type InsertAiAgent,
   type AiMessage, type InsertAiMessage,
+  type NewsCategory, type InsertNewsCategory,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
@@ -48,6 +49,7 @@ import {
   minecraftServers,
   subscriptions,
   aiAgents, aiMessages,
+  newsCategories,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or, inArray } from "drizzle-orm";
@@ -302,6 +304,13 @@ export interface IStorage {
   getAiMessages(agentId: number, userId: string): Promise<AiMessage[]>;
   createAiMessage(data: InsertAiMessage): Promise<AiMessage>;
   clearAiConversation(agentId: number, userId: string): Promise<void>;
+
+  getNewsCategories(enabledOnly?: boolean): Promise<NewsCategory[]>;
+  getNewsCategoryById(id: number): Promise<NewsCategory | undefined>;
+  createNewsCategory(data: InsertNewsCategory): Promise<NewsCategory>;
+  updateNewsCategory(id: number, data: Partial<InsertNewsCategory>): Promise<NewsCategory>;
+  deleteNewsCategory(id: number): Promise<void>;
+  seedNewsCategoriesIfEmpty(): Promise<void>;
 }
 
 export type SearchResultItem = {
@@ -1951,6 +1960,42 @@ export class DatabaseStorage implements IStorage {
 
   async clearAiConversation(agentId: number, userId: string): Promise<void> {
     await db.delete(aiMessages).where(and(eq(aiMessages.agentId, agentId), eq(aiMessages.userId, userId)));
+  }
+
+  async getNewsCategories(enabledOnly = false): Promise<NewsCategory[]> {
+    if (enabledOnly) {
+      return db.select().from(newsCategories).where(eq(newsCategories.enabled, true)).orderBy(newsCategories.displayOrder, newsCategories.name);
+    }
+    return db.select().from(newsCategories).orderBy(newsCategories.displayOrder, newsCategories.name);
+  }
+
+  async getNewsCategoryById(id: number): Promise<NewsCategory | undefined> {
+    const [cat] = await db.select().from(newsCategories).where(eq(newsCategories.id, id));
+    return cat || undefined;
+  }
+
+  async createNewsCategory(data: InsertNewsCategory): Promise<NewsCategory> {
+    const [created] = await db.insert(newsCategories).values(data).returning();
+    return created;
+  }
+
+  async updateNewsCategory(id: number, data: Partial<InsertNewsCategory>): Promise<NewsCategory> {
+    const [updated] = await db.update(newsCategories).set(data).where(eq(newsCategories.id, id)).returning();
+    return updated;
+  }
+
+  async deleteNewsCategory(id: number): Promise<void> {
+    await db.delete(newsCategories).where(eq(newsCategories.id, id));
+  }
+
+  async seedNewsCategoriesIfEmpty(): Promise<void> {
+    const existing = await db.select().from(newsCategories);
+    if (existing.length > 0) return;
+    await db.insert(newsCategories).values([
+      { name: "Music & Entertainment", query: "SEVCO music OR music industry", accentColor: "#8b5cf6", displayOrder: 0, enabled: true },
+      { name: "Technology", query: "technology startup AI", accentColor: "#3b82f6", displayOrder: 1, enabled: true },
+      { name: "Business", query: "business entrepreneurship startup", accentColor: "#10b981", displayOrder: 2, enabled: true },
+    ]);
   }
 }
 

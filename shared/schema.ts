@@ -767,3 +767,17 @@ export type InsertAiAgent = z.infer<typeof insertAiAgentSchema>;
 export const insertAiMessageSchema = createInsertSchema(aiMessages).omit({ id: true, createdAt: true });
 export type AiMessage = typeof aiMessages.$inferSelect;
 export type InsertAiMessage = z.infer<typeof insertAiMessageSchema>;
+
+export const newsCategories = pgTable("news_categories", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  query: text("query").notNull(),
+  accentColor: text("accent_color"),
+  displayOrder: integer("display_order").notNull().default(0),
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertNewsCategorySchema = createInsertSchema(newsCategories).omit({ id: true, createdAt: true });
+export type NewsCategory = typeof newsCategories.$inferSelect;
+export type InsertNewsCategory = z.infer<typeof insertNewsCategorySchema>;

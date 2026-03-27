@@ -142,6 +142,7 @@ function getActiveApp(location: string): string {
   if (location.startsWith("/command")) return "/command";
   if (location.startsWith("/notes")) return "/notes";
   if (location.startsWith("/gallery")) return "/gallery";
+  if (location.startsWith("/news")) return "/news";
   return "";
 }
 
@@ -550,10 +551,14 @@ function ProjectsDropdown({ isActive }: { isActive: boolean }) {
 
 function ToolsDropdown({ isActive }: { isActive: boolean }) {
   const { open, setOpen, ref } = useDropdown();
+  const { user } = useAuth();
 
   const items = [
-    { label: "Notes",   href: "/notes",   icon: StickyNote, desc: "Personal & shared notes" },
-    { label: "Gallery", href: "/gallery", icon: Images,     desc: "Quick-copy images for your profile" },
+    { label: "News",    href: "/news",    icon: Rss,        desc: "Curated headlines from the web" },
+    ...(user ? [
+      { label: "Notes",   href: "/notes",   icon: StickyNote, desc: "Personal & shared notes" },
+      { label: "Gallery", href: "/gallery", icon: Images,     desc: "Quick-copy images for your profile" },
+    ] : []),
   ];
 
   return (
@@ -672,9 +677,7 @@ export function PlatformHeader() {
           <ServicesDropdown isActive={activeApp === "/services"} />
           <MusicDropdown isActive={activeApp === "/music"} />
           <ProjectsDropdown isActive={activeApp === "/projects"} />
-          {user && (
-            <ToolsDropdown isActive={activeApp === "/notes" || activeApp === "/gallery"} />
-          )}
+          <ToolsDropdown isActive={activeApp === "/notes" || activeApp === "/gallery" || activeApp === "/news"} />
 
           {canAccessCMD && (
             <Link href="/command">
@@ -952,30 +955,37 @@ export function PlatformHeader() {
             </div>
           </Link>
 
-          {user && (
-            <Collapsible open={mobileSection === "tools"} onOpenChange={(o) => setMobileSection(o ? "tools" : null)}>
-              <CollapsibleTrigger asChild>
-                <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors" data-testid="mobile-nav-tools">
-                  Tools
-                  <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${mobileSection === "tools" ? "rotate-180" : ""}`} />
-                </button>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="pl-4 space-y-0.5 py-1">
-                  <Link href="/notes" onClick={() => setMobileOpen(false)}>
-                    <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-tools-notes">
-                      Notes
-                    </div>
-                  </Link>
-                  <Link href="/gallery" onClick={() => setMobileOpen(false)}>
-                    <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-tools-gallery">
-                      Gallery
-                    </div>
-                  </Link>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
+          <Collapsible open={mobileSection === "tools"} onOpenChange={(o) => setMobileSection(o ? "tools" : null)}>
+            <CollapsibleTrigger asChild>
+              <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted/70 transition-colors" data-testid="mobile-nav-tools">
+                Tools
+                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${mobileSection === "tools" ? "rotate-180" : ""}`} />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="pl-4 space-y-0.5 py-1">
+                <Link href="/news" onClick={() => setMobileOpen(false)}>
+                  <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-tools-news">
+                    News
+                  </div>
+                </Link>
+                {user && (
+                  <>
+                    <Link href="/notes" onClick={() => setMobileOpen(false)}>
+                      <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-tools-notes">
+                        Notes
+                      </div>
+                    </Link>
+                    <Link href="/gallery" onClick={() => setMobileOpen(false)}>
+                      <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-tools-gallery">
+                        Gallery
+                      </div>
+                    </Link>
+                  </>
+                )}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           {canAccessCMD && (
             <Link href="/command" onClick={() => setMobileOpen(false)}>

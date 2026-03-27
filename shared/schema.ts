@@ -25,6 +25,16 @@ export const users = pgTable("users", {
   profileAccentColor: text("profile_accent_color"),
   profileBgImageUrl: text("profile_bg_image_url"),
   socialLinks: jsonb("social_links"),
+  bannerUrl: text("banner_url"),
+  profileBgOpacity: integer("profile_bg_opacity").default(20),
+  profileStatus: text("profile_status"),
+  profileFeaturedType: text("profile_featured_type"),
+  profileFeaturedId: text("profile_featured_id"),
+  profileLayout: text("profile_layout").default("default"),
+  profileFont: text("profile_font").default("default"),
+  profilePronouns: text("profile_pronouns"),
+  profileAccentGradient: boolean("profile_accent_gradient").default(false),
+  profileShowFollowers: boolean("profile_show_followers").default(true),
 });
 
 export const categories = pgTable("categories", {
@@ -353,6 +363,16 @@ export const updateProfileSchema = z.object({
     discord: z.string().optional().or(z.null()),
     website: z.string().optional().or(z.null()),
   }).optional().or(z.null()),
+  bannerUrl: optionalUrl,
+  profileBgOpacity: z.number().int().min(0).max(100).optional().nullable(),
+  profileStatus: z.string().max(60).optional().nullable(),
+  profileFeaturedType: z.enum(["project", "product", "wiki", "post", "playlist"]).optional().nullable(),
+  profileFeaturedId: z.string().optional().nullable(),
+  profileLayout: z.enum(["default", "compact", "wide"]).optional().nullable(),
+  profileFont: z.enum(["default", "serif", "mono", "handwritten"]).optional().nullable(),
+  profilePronouns: z.string().max(20).optional().nullable(),
+  profileAccentGradient: z.boolean().optional().nullable(),
+  profileShowFollowers: z.boolean().optional().nullable(),
 });
 
 export type UpdateProfile = z.infer<typeof updateProfileSchema>;

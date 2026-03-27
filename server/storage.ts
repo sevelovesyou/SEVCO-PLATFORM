@@ -420,6 +420,16 @@ export class DatabaseStorage implements IStorage {
       const sl: unknown = data.socialLinks;
       updateObj.socialLinks = sl;
     }
+    if (data.bannerUrl !== undefined) updateObj.bannerUrl = data.bannerUrl;
+    if (data.profileBgOpacity !== undefined) updateObj.profileBgOpacity = data.profileBgOpacity;
+    if (data.profileStatus !== undefined) updateObj.profileStatus = data.profileStatus;
+    if (data.profileFeaturedType !== undefined) updateObj.profileFeaturedType = data.profileFeaturedType;
+    if (data.profileFeaturedId !== undefined) updateObj.profileFeaturedId = data.profileFeaturedId;
+    if (data.profileLayout !== undefined) updateObj.profileLayout = data.profileLayout;
+    if (data.profileFont !== undefined) updateObj.profileFont = data.profileFont;
+    if (data.profilePronouns !== undefined) updateObj.profilePronouns = data.profilePronouns;
+    if (data.profileAccentGradient !== undefined) updateObj.profileAccentGradient = data.profileAccentGradient;
+    if (data.profileShowFollowers !== undefined) updateObj.profileShowFollowers = data.profileShowFollowers;
     const [updated] = await db.update(users).set(updateObj).where(eq(users.id, id)).returning();
     return updated;
   }

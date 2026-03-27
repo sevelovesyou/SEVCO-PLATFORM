@@ -1593,20 +1593,21 @@ export default function CommandSettings() {
   return (
     <div className="space-y-5 max-w-5xl">
       {/* ── Search Bar ── */}
-      <div className="relative" data-search-label="settings-search">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+      <div className="relative flex items-center" data-search-label="settings-search">
+        <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
         <Input
+          type="text"
           placeholder="Search settings…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 pr-9"
+          className="pl-9 pr-9 focus-visible:ring-1 focus-visible:ring-offset-0 focus:outline-none"
           data-testid="input-settings-search"
         />
         {searchQuery && (
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+            className="absolute right-1 h-7 w-7 text-muted-foreground hover:text-foreground"
             onClick={() => setSearchQuery("")}
             data-testid="button-clear-search"
           >

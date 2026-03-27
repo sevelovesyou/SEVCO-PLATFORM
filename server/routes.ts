@@ -2194,6 +2194,16 @@ export async function registerRoutes(
         profileBgImageUrl: user.profileBgImageUrl,
         socialLinks: user.socialLinks,
         emailVerified: user.emailVerified,
+        bannerUrl: user.bannerUrl,
+        profileBgOpacity: user.profileBgOpacity,
+        profileStatus: user.profileStatus,
+        profileFeaturedType: user.profileFeaturedType,
+        profileFeaturedId: user.profileFeaturedId,
+        profileLayout: user.profileLayout,
+        profileFont: user.profileFont,
+        profilePronouns: user.profilePronouns,
+        profileAccentGradient: user.profileAccentGradient,
+        profileShowFollowers: user.profileShowFollowers,
       };
       res.json(publicProfile);
     } catch (err: any) {
@@ -2220,6 +2230,16 @@ export async function registerRoutes(
         profileBgImageUrl: updated.profileBgImageUrl,
         socialLinks: updated.socialLinks,
         emailVerified: updated.emailVerified,
+        bannerUrl: updated.bannerUrl,
+        profileBgOpacity: updated.profileBgOpacity,
+        profileStatus: updated.profileStatus,
+        profileFeaturedType: updated.profileFeaturedType,
+        profileFeaturedId: updated.profileFeaturedId,
+        profileLayout: updated.profileLayout,
+        profileFont: updated.profileFont,
+        profilePronouns: updated.profilePronouns,
+        profileAccentGradient: updated.profileAccentGradient,
+        profileShowFollowers: updated.profileShowFollowers,
       };
       res.json(publicProfile);
     } catch (err: any) {
@@ -2912,6 +2932,18 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/posts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      const post = await storage.getPostById(id);
+      if (!post) return res.status(404).json({ message: "Post not found" });
+      res.json(post);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.delete("/api/posts/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -2999,6 +3031,16 @@ export async function registerRoutes(
         followerCount,
         followingCount,
         isFollowing,
+        bannerUrl: profile.bannerUrl,
+        profileBgOpacity: profile.profileBgOpacity,
+        profileStatus: profile.profileStatus,
+        profileFeaturedType: profile.profileFeaturedType,
+        profileFeaturedId: profile.profileFeaturedId,
+        profileLayout: profile.profileLayout,
+        profileFont: profile.profileFont,
+        profilePronouns: profile.profilePronouns,
+        profileAccentGradient: profile.profileAccentGradient,
+        profileShowFollowers: profile.profileShowFollowers,
       });
     } catch (err: any) {
       res.status(500).json({ message: err.message });

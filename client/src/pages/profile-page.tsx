@@ -32,6 +32,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import {
   Pencil,
   Globe,
   AlertCircle,
@@ -44,6 +53,8 @@ import {
   UserPlus,
   UserCheck,
   Settings,
+  Lock,
+  Star,
 } from "lucide-react";
 import { SiDiscord, SiInstagram, SiX, SiTiktok } from "react-icons/si";
 import planetIcon from "@assets/SEVCO_planet_icon_black_1774331331137.png";
@@ -65,6 +76,10 @@ type SocialLinks = {
   website?: string | null;
 };
 
+type FeaturedType = "project" | "product" | "wiki" | "post" | "playlist";
+type LayoutType = "default" | "compact" | "wide";
+type FontType = "default" | "serif" | "mono" | "handwritten";
+
 type ProfileFormState = {
   displayName: string;
   bio: string;
@@ -72,11 +87,21 @@ type ProfileFormState = {
   profileBgColor: string;
   profileAccentColor: string;
   profileBgImageUrl: string;
+  bannerUrl: string;
+  profileBgOpacity: number;
   instagram: string;
   twitter: string;
   tiktok: string;
   discord: string;
   website: string;
+  profileStatus: string;
+  profileFeaturedType: FeaturedType | "";
+  profileFeaturedId: string;
+  profileLayout: LayoutType;
+  profileFont: FontType;
+  profilePronouns: string;
+  profileAccentGradient: boolean;
+  profileShowFollowers: boolean;
 };
 
 type PublicUser = {
@@ -94,6 +119,16 @@ type PublicUser = {
   followerCount?: number;
   followingCount?: number;
   isFollowing?: boolean;
+  bannerUrl?: string | null;
+  profileBgOpacity?: number | null;
+  profileStatus?: string | null;
+  profileFeaturedType?: string | null;
+  profileFeaturedId?: string | null;
+  profileLayout?: string | null;
+  profileFont?: string | null;
+  profilePronouns?: string | null;
+  profileAccentGradient?: boolean | null;
+  profileShowFollowers?: boolean | null;
 };
 
 type PostAuthor = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
@@ -105,6 +140,32 @@ type FollowUser = { id: string; username: string; displayName: string | null; av
 
 function hexWithFallback(hex: string | null | undefined): string | undefined {
   return hex && /^#[0-9a-fA-F]{3,8}$/.test(hex) ? hex : undefined;
+}
+
+function hexToHsl(hex: string): [number, number, number] | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return null;
+  const r = parseInt(result[1], 16) / 255;
+  const g = parseInt(result[2], 16) / 255;
+  const b = parseInt(result[3], 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h = 0;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (max === g) h = ((b - r) / d + 2) / 6;
+  else h = ((r - g) / d + 4) / 6;
+  return [h * 360, s * 100, l * 100];
+}
+
+function buildAccentGradient(hex: string): string {
+  const hsl = hexToHsl(hex);
+  if (!hsl) return `linear-gradient(135deg, ${hex}, ${hex}88)`;
+  const [h, s, l] = hsl;
+  const h2 = (h + 60) % 360;
+  return `linear-gradient(135deg, hsl(${h}deg ${s.toFixed(1)}% ${l.toFixed(1)}%), hsl(${h2}deg ${s.toFixed(1)}% ${Math.min(l + 10, 90).toFixed(1)}%))`;
 }
 
 function formatRelativeTime(dateStr: string | Date) {
@@ -187,6 +248,101 @@ function FollowListDialog({ username, type, open, onClose }: { username: string;
   );
 }
 
+type ItemOption = { id: string; label: string; thumbnail?: string | null };
+
+function FeaturedItemSelector({ type, value, onChange, username }: {
+  type: FeaturedType;
+  value: string;
+  onChange: (id: string) => void;
+  username: string;
+}) {
+  const [search, setSearch] = useState("");
+
+  const apiEndpoints: Record<FeaturedType, string> = {
+    project: "/api/projects",
+    product: "/api/store/products",
+    wiki: "/api/articles/recent",
+    post: `/api/users/${username}/posts`,
+    playlist: "/api/music/playlists",
+  };
+
+  const { data: rawItems = [], isLoading } = useQuery<Array<Record<string, unknown>>>({
+    queryKey: ["/api/featured-selector", type, username],
+    queryFn: async () => {
+      const res = await fetch(apiEndpoints[type]);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 30_000,
+  });
+
+  const items: ItemOption[] = rawItems.map((item) => ({
+    id: String(
+      (item.slug as string) ??
+      (item.id as string | number) ??
+      ""
+    ),
+    label:
+      (item.title as string) ||
+      (item.name as string) ||
+      (item.displayName as string) ||
+      (item.content as string)?.slice(0, 60) ||
+      String(item.id ?? ""),
+    thumbnail:
+      (item.coverImageUrl as string) ??
+      (item.imageUrl as string) ??
+      (item.thumbnailUrl as string) ??
+      null,
+  })).filter((it) => it.id);
+
+  const filtered = search
+    ? items.filter((it) => it.label.toLowerCase().includes(search.toLowerCase()))
+    : items;
+
+  const selectedItem = items.find((it) => it.id === value);
+
+  return (
+    <div className="space-y-2">
+      <Label>Featured Item</Label>
+      <Input
+        placeholder="Search..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="mt-1"
+        data-testid="input-featured-search"
+      />
+      {isLoading && <p className="text-xs text-muted-foreground py-1">Loading items…</p>}
+      {!isLoading && filtered.length === 0 && (
+        <p className="text-xs text-muted-foreground py-1">No items found.</p>
+      )}
+      <div className="max-h-44 overflow-y-auto rounded-lg border divide-y" data-testid="list-featured-items">
+        {filtered.slice(0, 20).map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onChange(item.id)}
+            className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-muted ${value === item.id ? "bg-primary/10 font-semibold" : ""}`}
+            data-testid={`option-featured-item-${item.id}`}
+          >
+            {item.thumbnail ? (
+              <img src={item.thumbnail} alt="" className="h-6 w-6 rounded object-cover flex-shrink-0" />
+            ) : (
+              <Star className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+            )}
+            <span className="truncate">{item.label}</span>
+            {value === item.id && <span className="ml-auto text-primary text-xs">Selected</span>}
+          </button>
+        ))}
+      </div>
+      {selectedItem && (
+        <p className="text-xs text-muted-foreground" data-testid="text-featured-selected">
+          Selected: <span className="font-medium">{selectedItem.label}</span>
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ProfileEditPanel({
   user,
   onSaved,
@@ -206,22 +362,34 @@ function ProfileEditPanel({
     profileBgColor: user.profileBgColor ?? "#ffffff",
     profileAccentColor: user.profileAccentColor ?? "#000000",
     profileBgImageUrl: user.profileBgImageUrl ?? "",
+    bannerUrl: user.bannerUrl ?? "",
+    profileBgOpacity: user.profileBgOpacity ?? 20,
     instagram: user.socialLinks?.instagram ?? "",
     twitter: user.socialLinks?.twitter ?? "",
     tiktok: user.socialLinks?.tiktok ?? "",
     discord: user.socialLinks?.discord ?? "",
     website: user.socialLinks?.website ?? "",
+    profileStatus: user.profileStatus ?? "",
+    profileFeaturedType: (user.profileFeaturedType as FeaturedType | "") ?? "",
+    profileFeaturedId: user.profileFeaturedId ?? "",
+    profileLayout: (user.profileLayout as LayoutType) ?? "default",
+    profileFont: (user.profileFont as FontType) ?? "default",
+    profilePronouns: user.profilePronouns ?? "",
+    profileAccentGradient: user.profileAccentGradient ?? false,
+    profileShowFollowers: user.profileShowFollowers ?? true,
   });
 
-  const mutation = useMutation({
-    mutationFn: () =>
-      apiRequest("PATCH", "/api/profile", {
+  const mutation = useMutation<PublicUser, Error>({
+    mutationFn: async () => {
+      const res = await apiRequest("PATCH", "/api/profile", {
         displayName: form.displayName || null,
         bio: form.bio || null,
         avatarUrl: form.avatarUrl || null,
         profileBgColor: form.profileBgColor || null,
         profileAccentColor: form.profileAccentColor || null,
         profileBgImageUrl: form.profileBgImageUrl || null,
+        bannerUrl: form.bannerUrl || null,
+        profileBgOpacity: form.profileBgOpacity,
         socialLinks: {
           instagram: form.instagram || null,
           twitter: form.twitter || null,
@@ -229,7 +397,17 @@ function ProfileEditPanel({
           discord: form.discord || null,
           website: form.website || null,
         },
-      }),
+        profileStatus: form.profileStatus || null,
+        profileFeaturedType: form.profileFeaturedType || null,
+        profileFeaturedId: form.profileFeaturedId || null,
+        profileLayout: form.profileLayout || "default",
+        profileFont: form.profileFont || "default",
+        profilePronouns: form.profilePronouns || null,
+        profileAccentGradient: form.profileAccentGradient,
+        profileShowFollowers: form.profileShowFollowers,
+      });
+      return res.json() as Promise<PublicUser>;
+    },
     onSuccess: (updated: PublicUser) => {
       toast({ title: "Profile saved!" });
       qc.invalidateQueries({ queryKey: ["/api/user"] });
@@ -241,7 +419,7 @@ function ProfileEditPanel({
     },
   });
 
-  function set(key: keyof ProfileFormState, val: string) {
+  function set<K extends keyof ProfileFormState>(key: K, val: ProfileFormState[K]) {
     setForm((f) => {
       const updated = { ...f, [key]: val };
       onFormChange(updated);
@@ -330,23 +508,173 @@ function ProfileEditPanel({
           </div>
         </div>
         <div>
-          <Label>Background Image</Label>
-          <div className="mt-1">
-            <FileUploadWithFallback
-              bucket="banners"
-              path={`${user.id}/banner.{ext}`}
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              maxSizeMb={5}
-              currentUrl={form.profileBgImageUrl}
-              onUpload={(url) => set("profileBgImageUrl", url)}
-              label="Upload Banner"
-              urlValue={form.profileBgImageUrl}
-              onUrlChange={(url) => set("profileBgImageUrl", url)}
-              urlPlaceholder="https://example.com/bg.jpg (optional)"
-              urlTestId="input-bg-image-url"
-            />
-          </div>
+          <Label>Profile Banner</Label>
+          <p className="text-xs text-muted-foreground mb-1">1200×400px recommended</p>
+          <FileUploadWithFallback
+            bucket="banners"
+            path={`${user.id}/banner.{ext}`}
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            maxSizeMb={5}
+            currentUrl={form.bannerUrl}
+            onUpload={(url) => set("bannerUrl", url)}
+            label="Upload Banner"
+            urlValue={form.bannerUrl}
+            onUrlChange={(url) => set("bannerUrl", url)}
+            urlPlaceholder="https://example.com/banner.jpg (optional)"
+            urlTestId="input-banner-url"
+          />
         </div>
+        <div>
+          <Label>Background Image</Label>
+          <p className="text-xs text-muted-foreground mb-1">Shows faintly behind your entire profile page</p>
+          <FileUploadWithFallback
+            bucket="banners"
+            path={`${user.id}/bg.{ext}`}
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            maxSizeMb={5}
+            currentUrl={form.profileBgImageUrl}
+            onUpload={(url) => set("profileBgImageUrl", url)}
+            label="Upload Background"
+            urlValue={form.profileBgImageUrl}
+            onUrlChange={(url) => set("profileBgImageUrl", url)}
+            urlPlaceholder="https://example.com/bg.jpg (optional)"
+            urlTestId="input-bg-image-url"
+          />
+        </div>
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <Label>Background Opacity</Label>
+            <span className="text-xs text-muted-foreground font-mono">{form.profileBgOpacity}%</span>
+          </div>
+          <Slider
+            min={0}
+            max={100}
+            step={5}
+            value={[form.profileBgOpacity]}
+            onValueChange={([v]) => {
+              setForm((f) => {
+                const updated = { ...f, profileBgOpacity: v };
+                onFormChange(updated);
+                return updated;
+              });
+            }}
+            data-testid="slider-bg-opacity"
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <Label>Accent Gradient</Label>
+            <p className="text-xs text-muted-foreground">Gradient on banner & avatar border</p>
+          </div>
+          <Switch
+            checked={form.profileAccentGradient}
+            onCheckedChange={(v) => {
+              setForm((f) => {
+                const updated = { ...f, profileAccentGradient: v };
+                onFormChange(updated);
+                return updated;
+              });
+            }}
+            data-testid="switch-accent-gradient"
+          />
+        </div>
+      </div>
+
+      <div className="border-t pt-4 space-y-4">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Appearance</p>
+        <div>
+          <Label htmlFor="profileLayout">Layout</Label>
+          <Select value={form.profileLayout} onValueChange={(v) => set("profileLayout", v as LayoutType)}>
+            <SelectTrigger className="mt-1" id="profileLayout" data-testid="select-profile-layout">
+              <SelectValue placeholder="Choose layout" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">Default</SelectItem>
+              <SelectItem value="compact">Compact</SelectItem>
+              <SelectItem value="wide">Wide</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="profileFont">Display Font</Label>
+          <Select value={form.profileFont} onValueChange={(v) => set("profileFont", v as FontType)}>
+            <SelectTrigger className="mt-1" id="profileFont" data-testid="select-profile-font">
+              <SelectValue placeholder="Choose font" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">Default (System)</SelectItem>
+              <SelectItem value="serif">Serif (Georgia)</SelectItem>
+              <SelectItem value="mono">Monospace</SelectItem>
+              <SelectItem value="handwritten">Handwritten (Caveat)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="border-t pt-4 space-y-4">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Profile Info</p>
+        <div>
+          <Label htmlFor="profilePronouns">Pronouns</Label>
+          <Input id="profilePronouns" value={form.profilePronouns} onChange={(e) => set("profilePronouns", e.target.value)}
+            placeholder="e.g. they/them" className="mt-1" maxLength={20} data-testid="input-pronouns" />
+        </div>
+        <div>
+          <Label htmlFor="profileStatus">Status</Label>
+          <Input id="profileStatus" value={form.profileStatus} onChange={(e) => set("profileStatus", e.target.value)}
+            placeholder="🎵 Working on something new..." className="mt-1" maxLength={60} data-testid="input-profile-status" />
+          <p className="text-xs text-muted-foreground mt-1">{form.profileStatus.length}/60</p>
+        </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <Label>Show Follower Counts</Label>
+            <p className="text-xs text-muted-foreground">Display follower/following numbers publicly</p>
+          </div>
+          <Switch
+            checked={form.profileShowFollowers}
+            onCheckedChange={(v) => {
+              setForm((f) => {
+                const updated = { ...f, profileShowFollowers: v };
+                onFormChange(updated);
+                return updated;
+              });
+            }}
+            data-testid="switch-show-followers"
+          />
+        </div>
+      </div>
+
+      <div className="border-t pt-4 space-y-4">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Featured Item</p>
+        <div>
+          <Label htmlFor="featuredType">Featured Type</Label>
+          <Select
+            value={form.profileFeaturedType || "none"}
+            onValueChange={(v) => {
+              set("profileFeaturedType", v === "none" ? "" : v as FeaturedType);
+              set("profileFeaturedId", "");
+            }}
+          >
+            <SelectTrigger className="mt-1" id="featuredType" data-testid="select-featured-type">
+              <SelectValue placeholder="None" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              <SelectItem value="project">Project</SelectItem>
+              <SelectItem value="product">Product</SelectItem>
+              <SelectItem value="wiki">Wiki Article</SelectItem>
+              <SelectItem value="post">Post</SelectItem>
+              <SelectItem value="playlist">Playlist</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {form.profileFeaturedType && (
+          <FeaturedItemSelector
+            type={form.profileFeaturedType}
+            value={form.profileFeaturedId}
+            onChange={(id) => set("profileFeaturedId", id)}
+            username={user.username}
+          />
+        )}
       </div>
 
       <div className="border-t pt-4 space-y-3">
@@ -457,6 +785,132 @@ function PostCard({ post, currentUserId, canDelete, onDelete }: {
   );
 }
 
+type FeaturedItemMeta = {
+  title: string;
+  thumbnail?: string | null;
+  href: string;
+};
+
+function useFeaturedItemMeta(type: string, itemId: string): { data?: FeaturedItemMeta; isLoading: boolean } {
+  const apiPathMap: Record<string, string> = {
+    project: `/api/projects/${itemId}`,
+    product: `/api/store/products/${itemId}`,
+    wiki: `/api/articles/${itemId}`,
+    post: `/api/posts/${itemId}`,
+    playlist: `/api/music/playlists`,
+  };
+
+  const hrefMap: Record<string, string> = {
+    project: `/projects/${itemId}`,
+    product: `/store/${itemId}`,
+    wiki: `/wiki/${itemId}`,
+    post: `/`,
+    playlist: `/music/playlists`,
+  };
+
+  const { data: raw, isLoading } = useQuery<Record<string, unknown>>({
+    queryKey: [`/api/featured-item`, type, itemId],
+    queryFn: async () => {
+      const path = apiPathMap[type];
+      if (!path) return {};
+      const res = await fetch(path);
+      if (!res.ok) return {};
+      if (type === "playlist") {
+        const list = await res.json() as Array<Record<string, unknown>>;
+        const match = list.find((p) => String(p.id) === itemId || String(p.slug) === itemId);
+        return match ?? {};
+      }
+      return res.json();
+    },
+    enabled: Boolean(type && itemId),
+    staleTime: 60_000,
+  });
+
+  if (!raw || isLoading) return { isLoading };
+
+  const title =
+    (raw.title as string) ||
+    (raw.name as string) ||
+    (raw.displayName as string) ||
+    (raw.content as string)?.slice(0, 60) ||
+    itemId;
+  const thumbnail =
+    (raw.coverImageUrl as string) ??
+    (raw.imageUrl as string) ??
+    (raw.thumbnailUrl as string) ??
+    (raw.coverImage as string) ??
+    null;
+
+  return {
+    data: { title, thumbnail, href: hrefMap[type] || "/" },
+    isLoading: false,
+  };
+}
+
+function FeaturedItemCard({ type, itemId, accentColor, bgColor }: {
+  type: string;
+  itemId: string;
+  accentColor?: string;
+  bgColor?: string;
+}) {
+  const { data: meta, isLoading } = useFeaturedItemMeta(type, itemId);
+
+  const labelMap: Record<string, string> = {
+    project: "Project",
+    product: "Product",
+    wiki: "Wiki Article",
+    post: "Post",
+    playlist: "Playlist",
+  };
+
+  return (
+    <a
+      href={meta?.href || "/"}
+      className="flex items-center gap-3 px-4 py-3 rounded-xl border mb-3 transition-opacity hover:opacity-80 overflow-hidden"
+      style={{
+        background: bgColor ? `${bgColor}33` : "var(--muted)",
+        borderColor: accentColor ? `${accentColor}33` : "var(--border)",
+      }}
+      data-testid="link-featured-item"
+    >
+      {isLoading ? (
+        <Skeleton className="h-9 w-9 rounded-md flex-shrink-0" />
+      ) : meta?.thumbnail ? (
+        <img
+          src={meta.thumbnail}
+          alt=""
+          className="h-9 w-9 rounded-md object-cover flex-shrink-0"
+        />
+      ) : (
+        <div
+          className="h-9 w-9 rounded-md flex-shrink-0 flex items-center justify-center"
+          style={{ background: accentColor ? `${accentColor}22` : "var(--border)" }}
+        >
+          <Star className="h-4 w-4" style={{ color: accentColor || "var(--muted-foreground)" }} />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold uppercase tracking-wider mb-0.5" style={{ color: accentColor ? `${accentColor}88` : "var(--muted-foreground)" }}>
+          <span
+            className="inline-block rounded px-1 py-0.5 mr-1 text-[10px] font-bold"
+            style={{ background: accentColor ? `${accentColor}22` : "var(--muted)", color: accentColor || "var(--muted-foreground)" }}
+          >
+            {labelMap[type] || type}
+          </span>
+          Featured
+        </p>
+        {isLoading ? (
+          <Skeleton className="h-4 w-28 mt-1" />
+        ) : (
+          <p className="text-sm font-medium truncate" style={{ color: accentColor || "var(--foreground)" }}>
+            {meta?.title || itemId}
+          </p>
+        )}
+      </div>
+    </a>
+  );
+}
+
 function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
   profile: PublicUser;
   isOwnProfile: boolean;
@@ -466,6 +920,25 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
   const bgColor = hexWithFallback(profile.profileBgColor);
   const accentColor = hexWithFallback(profile.profileAccentColor);
   const bgImage = profile.profileBgImageUrl;
+  const bannerImage = profile.bannerUrl || bgImage;
+  const bgOpacity = (profile.profileBgOpacity ?? 20) / 100;
+  const layout = profile.profileLayout ?? "default";
+  const profileFont = profile.profileFont ?? "default";
+  const showFollowers = profile.profileShowFollowers !== false;
+  const useGradient = profile.profileAccentGradient === true;
+
+  const fontStyle: React.CSSProperties = (() => {
+    if (profileFont === "serif") return { fontFamily: "Georgia, serif" };
+    if (profileFont === "mono") return { fontFamily: "monospace" };
+    if (profileFont === "handwritten") return { fontFamily: "'Caveat', cursive" };
+    return {};
+  })();
+
+  const gradientStyle = useGradient && accentColor
+    ? buildAccentGradient(accentColor)
+    : accentColor
+      ? `linear-gradient(135deg, ${accentColor}66, ${accentColor}22)`
+      : "linear-gradient(135deg, hsl(var(--primary)/0.3), hsl(var(--primary)/0.1))";
   const { toast } = useToast();
   const qc = useQueryClient();
   const [followersOpen, setFollowersOpen] = useState(false);
@@ -524,123 +997,208 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
   if (sl?.discord)   socials.push({ icon: SiDiscord,    href: sl.discord,                                                                                              label: "Discord" });
   if (sl?.website)   socials.push({ icon: Globe,        href: sl.website.includes("http") ? sl.website : `https://${sl.website}`,                                     label: "Website" });
 
+  const isCompact = layout === "compact";
+  const isWide = layout === "wide";
+
   return (
     <div className="min-h-screen relative" style={bgColor ? { backgroundColor: bgColor } : {}}>
       {bgImage && (
-        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20" style={{ backgroundImage: `url(${bgImage})` }} />
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${bgImage})`, opacity: bgOpacity }} />
+      )}
+      {profileFont === "handwritten" && (
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap" />
       )}
 
       <div className="relative z-10 max-w-3xl mx-auto px-4 py-10">
         <div
-          className="rounded-2xl border shadow-lg overflow-hidden"
+          className={`rounded-2xl border shadow-lg overflow-hidden ${isWide ? "max-w-5xl" : ""}`}
           style={{
             background: bgColor ? `${bgColor}cc` : "var(--background)",
             borderColor: accentColor ? `${accentColor}44` : "var(--border)",
           }}
           data-testid="profile-card"
         >
-          <div
-            className="h-24 md:h-32 w-full relative overflow-hidden"
-            style={bgImage ? {
-              backgroundImage: `url(${bgImage})`, backgroundSize: "cover", backgroundPosition: "center",
-            } : {
-              background: accentColor
-                ? `linear-gradient(135deg, ${accentColor}66, ${accentColor}22)`
-                : "linear-gradient(135deg, hsl(var(--primary)/0.3), hsl(var(--primary)/0.1))",
-            }}
-          />
+          {/* Banner — only shown in default and wide layouts */}
+          {!isCompact && (
+            <div
+              className={`${isWide ? "h-48" : "h-24 md:h-32"} w-full relative overflow-hidden`}
+              style={bannerImage ? {
+                backgroundImage: `url(${bannerImage})`, backgroundSize: "cover", backgroundPosition: "center",
+              } : { background: gradientStyle }}
+            />
+          )}
 
-          <div className="px-6 pb-6">
-            <div className="flex items-end justify-between -mt-10 mb-4">
-              <div>
-                {profile.avatarUrl ? (
-                  <img src={profile.avatarUrl} alt={displayName}
-                    className="h-20 w-20 md:h-24 md:w-24 rounded-2xl object-cover border-4 shadow-lg"
-                    style={{ borderColor: accentColor || "var(--background)" }}
-                    data-testid="img-avatar"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                  />
-                ) : (
-                  <div
-                    className="h-20 w-20 md:h-24 md:w-24 rounded-2xl border-4 shadow-lg flex items-center justify-center"
-                    style={{ borderColor: accentColor || "var(--background)", background: accentColor ? `${accentColor}22` : "var(--muted)" }}
-                    data-testid="img-avatar-fallback"
-                  >
-                    <img src={planetIcon} alt="SEVCO" className="h-10 w-10 object-contain opacity-60" style={accentColor ? { filter: `drop-shadow(0 0 4px ${accentColor})` } : {}} />
+          <div className={`px-6 pb-6 ${isCompact ? "pt-4" : ""}`}>
+            {/* Header row — avatar + action buttons */}
+            {isCompact ? (
+              /* Compact header: small inline avatar + name + buttons in one row */
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex-shrink-0">
+                  {profile.avatarUrl ? (
+                    <img src={profile.avatarUrl} alt={displayName}
+                      className="h-14 w-14 rounded-full object-cover border-2 shadow"
+                      style={{ borderColor: useGradient && accentColor ? "transparent" : (accentColor || "var(--background)") }}
+                      data-testid="img-avatar"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  ) : (
+                    <div
+                      className="h-14 w-14 rounded-full border-2 shadow flex items-center justify-center"
+                      style={{ borderColor: accentColor || "var(--background)", background: accentColor ? `${accentColor}22` : "var(--muted)" }}
+                      data-testid="img-avatar-fallback"
+                    >
+                      <img src={planetIcon} alt="SEVCO" className="h-8 w-8 object-contain opacity-60" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-lg font-bold" style={{ ...fontStyle, ...(accentColor ? { color: accentColor } : {}) }} data-testid="text-display-name">
+                      {displayName}
+                    </h1>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${roleBadge.color}22`, color: roleBadge.color }} data-testid="badge-role">
+                      {roleBadge.label}
+                    </span>
                   </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {!isOwnProfile && currentUserId && (
-                  <Button
-                    size="sm"
-                    variant={profile.isFollowing ? "outline" : "default"}
-                    className="gap-1.5 text-xs"
-                    onClick={() => followMutation.mutate()}
-                    disabled={followMutation.isPending}
-                    data-testid="button-follow"
-                  >
-                    {profile.isFollowing ? (
-                      <><UserCheck className="h-3.5 w-3.5" /> Following</>
-                    ) : (
-                      <><UserPlus className="h-3.5 w-3.5" /> Follow</>
-                    )}
-                  </Button>
-                )}
-                {!isOwnProfile && !currentUserId && (
-                  <Link href="/auth">
-                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" data-testid="button-follow-signin">
-                      <UserPlus className="h-3.5 w-3.5" /> Follow
-                    </Button>
-                  </Link>
-                )}
-                {isOwnProfile && (
                   <div className="flex items-center gap-2">
-                    <Link href="/account">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="gap-1.5 text-xs"
-                        style={accentColor ? { color: accentColor, opacity: 0.7 } : {}}
-                        data-testid="link-account-settings"
-                      >
-                        <Settings className="h-3 w-3" />
-                        Account
+                    <p className="text-xs opacity-60" style={accentColor ? { color: accentColor } : {}} data-testid="text-username">
+                      @{profile.username}
+                    </p>
+                    {profile.profilePronouns && (
+                      <span className="text-xs opacity-50" style={accentColor ? { color: accentColor } : {}} data-testid="text-pronouns">
+                        · {profile.profilePronouns}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {!isOwnProfile && currentUserId && (
+                    <Button size="sm" variant={profile.isFollowing ? "outline" : "default"} className="gap-1.5 text-xs"
+                      onClick={() => followMutation.mutate()} disabled={followMutation.isPending} data-testid="button-follow">
+                      {profile.isFollowing ? <><UserCheck className="h-3.5 w-3.5" /> Following</> : <><UserPlus className="h-3.5 w-3.5" /> Follow</>}
+                    </Button>
+                  )}
+                  {isOwnProfile && (
+                    <Button variant="outline" size="sm" onClick={onEdit} className="gap-1.5 text-xs"
+                      style={accentColor ? { borderColor: `${accentColor}66`, color: accentColor } : {}} data-testid="button-edit-profile">
+                      <Pencil className="h-3 w-3" /> Edit
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* Default/wide header: large avatar overlapping banner */
+              <div className="flex items-end justify-between -mt-10 mb-4 relative z-10">
+                <div>
+                  {profile.avatarUrl ? (
+                    <img src={profile.avatarUrl} alt={displayName}
+                      className={`${isWide ? "h-28 w-28" : "h-20 w-20 md:h-24 md:w-24"} rounded-2xl object-cover border-4 shadow-lg`}
+                      style={{ borderColor: useGradient && accentColor ? "transparent" : (accentColor || "var(--background)"), outline: useGradient && accentColor ? `3px solid ${accentColor}` : undefined }}
+                      data-testid="img-avatar"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  ) : (
+                    <div
+                      className={`${isWide ? "h-28 w-28" : "h-20 w-20 md:h-24 md:w-24"} rounded-2xl border-4 shadow-lg flex items-center justify-center`}
+                      style={{ borderColor: accentColor || "var(--background)", background: accentColor ? `${accentColor}22` : "var(--muted)" }}
+                      data-testid="img-avatar-fallback"
+                    >
+                      <img src={planetIcon} alt="SEVCO" className="h-10 w-10 object-contain opacity-60" style={accentColor ? { filter: `drop-shadow(0 0 4px ${accentColor})` } : {}} />
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {!isOwnProfile && currentUserId && (
+                    <Button
+                      size="sm"
+                      variant={profile.isFollowing ? "outline" : "default"}
+                      className="gap-1.5 text-xs"
+                      onClick={() => followMutation.mutate()}
+                      disabled={followMutation.isPending}
+                      data-testid="button-follow"
+                    >
+                      {profile.isFollowing ? (
+                        <><UserCheck className="h-3.5 w-3.5" /> Following</>
+                      ) : (
+                        <><UserPlus className="h-3.5 w-3.5" /> Follow</>
+                      )}
+                    </Button>
+                  )}
+                  {!isOwnProfile && !currentUserId && (
+                    <Link href="/auth">
+                      <Button size="sm" variant="outline" className="gap-1.5 text-xs" data-testid="button-follow-signin">
+                        <UserPlus className="h-3.5 w-3.5" /> Follow
                       </Button>
                     </Link>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={onEdit}
-                      className="gap-1.5 text-xs"
-                      style={accentColor ? { borderColor: `${accentColor}66`, color: accentColor } : {}}
-                      data-testid="button-edit-profile"
-                    >
-                      <Pencil className="h-3 w-3" />
-                      Edit Profile
-                    </Button>
-                  </div>
-                )}
+                  )}
+                  {isOwnProfile && (
+                    <div className="flex items-center gap-2">
+                      <Link href="/account">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1.5 text-xs"
+                          style={accentColor ? { color: accentColor, opacity: 0.7 } : {}}
+                          data-testid="link-account-settings"
+                        >
+                          <Settings className="h-3 w-3" />
+                          Account
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={onEdit}
+                        className="gap-1.5 text-xs"
+                        style={accentColor ? { borderColor: `${accentColor}66`, color: accentColor } : {}}
+                        data-testid="button-edit-profile"
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Edit Profile
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="mb-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl md:text-2xl font-bold" style={accentColor ? { color: accentColor } : {}} data-testid="text-display-name">
-                  {displayName}
-                </h1>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${roleBadge.color}22`, color: roleBadge.color }} data-testid="badge-role">
-                  {roleBadge.label}
-                </span>
+            {/* Name + username row — only shown in default/wide layouts (compact shows it in header row above) */}
+            {!isCompact && (
+              <div className="mb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className={`${isWide ? "text-2xl md:text-3xl" : "text-xl md:text-2xl"} font-bold`} style={{ ...fontStyle, ...(accentColor ? { color: accentColor } : {}) }} data-testid="text-display-name">
+                    {displayName}
+                  </h1>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${roleBadge.color}22`, color: roleBadge.color }} data-testid="badge-role">
+                    {roleBadge.label}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm opacity-60 mt-0.5" style={accentColor ? { color: accentColor } : {}} data-testid="text-username">
+                    @{profile.username}
+                  </p>
+                  {profile.profilePronouns && (
+                    <span className="text-xs opacity-50 mt-0.5" style={accentColor ? { color: accentColor } : {}} data-testid="text-pronouns">
+                      · {profile.profilePronouns}
+                    </span>
+                  )}
+                </div>
               </div>
-              <p className="text-sm opacity-60 mt-0.5" style={accentColor ? { color: accentColor } : {}} data-testid="text-username">
-                @{profile.username}
-              </p>
-            </div>
+            )}
+
+            {/* Status, bio, followers, featured item, socials — shared across all layouts */}
+            {profile.profileStatus && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs mb-3"
+                style={{ background: accentColor ? `${accentColor}18` : "var(--muted)", color: accentColor || "var(--muted-foreground)", border: `1px solid ${accentColor ? `${accentColor}33` : "var(--border)"}` }}
+                data-testid="text-profile-status"
+              >
+                {profile.profileStatus}
+              </div>
+            )}
 
             {profile.bio && (
               <p className="text-sm leading-relaxed mb-4 max-w-lg"
-                style={accentColor ? { color: accentColor, opacity: 0.85 } : { color: "var(--foreground)" }}
+                style={{ ...fontStyle, ...(accentColor ? { color: accentColor, opacity: 0.85 } : { color: "var(--foreground)" }) }}
                 data-testid="text-bio"
               >
                 {profile.bio}
@@ -649,25 +1207,42 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
 
             {/* Follower / following counts */}
             <div className="flex items-center gap-4 mt-2 mb-3">
-              <button
-                className="flex items-center gap-1.5 text-sm hover:opacity-70 transition-opacity cursor-pointer"
-                style={accentColor ? { color: accentColor } : {}}
-                onClick={() => setFollowersOpen(true)}
-                data-testid="button-followers"
-              >
-                <span className="font-bold">{profile.followerCount ?? 0}</span>
-                <span className="opacity-60 text-xs">Followers</span>
-              </button>
-              <button
-                className="flex items-center gap-1.5 text-sm hover:opacity-70 transition-opacity cursor-pointer"
-                style={accentColor ? { color: accentColor } : {}}
-                onClick={() => setFollowingOpen(true)}
-                data-testid="button-following"
-              >
-                <span className="font-bold">{profile.followingCount ?? 0}</span>
-                <span className="opacity-60 text-xs">Following</span>
-              </button>
+              {showFollowers ? (
+                <>
+                  <button
+                    className="flex items-center gap-1.5 text-sm hover:opacity-70 transition-opacity cursor-pointer"
+                    style={accentColor ? { color: accentColor } : {}}
+                    onClick={() => setFollowersOpen(true)}
+                    data-testid="button-followers"
+                  >
+                    <span className="font-bold">{profile.followerCount ?? 0}</span>
+                    <span className="opacity-60 text-xs">Followers</span>
+                  </button>
+                  <button
+                    className="flex items-center gap-1.5 text-sm hover:opacity-70 transition-opacity cursor-pointer"
+                    style={accentColor ? { color: accentColor } : {}}
+                    onClick={() => setFollowingOpen(true)}
+                    data-testid="button-following"
+                  >
+                    <span className="font-bold">{profile.followingCount ?? 0}</span>
+                    <span className="opacity-60 text-xs">Following</span>
+                  </button>
+                </>
+              ) : (
+                <span className="flex items-center gap-1.5 text-xs opacity-50" style={accentColor ? { color: accentColor } : {}} data-testid="text-followers-hidden">
+                  <Lock className="h-3 w-3" /> Follower counts hidden
+                </span>
+              )}
             </div>
+
+            {profile.profileFeaturedType && profile.profileFeaturedId && (
+              <FeaturedItemCard
+                type={profile.profileFeaturedType}
+                itemId={profile.profileFeaturedId}
+                accentColor={accentColor}
+                bgColor={bgColor}
+              />
+            )}
 
             {socials.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3" data-testid="social-links">
@@ -860,6 +1435,16 @@ export default function ProfilePage() {
         profileBgColor: liveForm.profileBgColor || null,
         profileAccentColor: liveForm.profileAccentColor || null,
         profileBgImageUrl: liveForm.profileBgImageUrl || null,
+        bannerUrl: liveForm.bannerUrl || null,
+        profileBgOpacity: liveForm.profileBgOpacity,
+        profileStatus: liveForm.profileStatus || null,
+        profileFeaturedType: liveForm.profileFeaturedType || null,
+        profileFeaturedId: liveForm.profileFeaturedId || null,
+        profileLayout: liveForm.profileLayout || "default",
+        profileFont: liveForm.profileFont || "default",
+        profilePronouns: liveForm.profilePronouns || null,
+        profileAccentGradient: liveForm.profileAccentGradient,
+        profileShowFollowers: liveForm.profileShowFollowers,
         socialLinks: {
           instagram: liveForm.instagram || null,
           twitter: liveForm.twitter || null,

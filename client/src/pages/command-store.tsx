@@ -422,8 +422,8 @@ function StoreAnalyticsTab() {
           { label: "Total Products", value: stats?.totalProducts, icon: ShoppingBag, color: "text-primary", testId: "stat-total-products" },
           { label: "In Stock", value: stats?.inStock, icon: CheckCircle, color: "text-green-600 dark:text-green-400", testId: "stat-in-stock" },
           { label: "Sold Out", value: stats?.outOfStock, icon: XCircle, color: "text-red-600 dark:text-red-400", testId: "stat-out-of-stock" },
-          { label: "Catalog Value", value: stats?.catalogValue, icon: DollarSign, color: "text-violet-600 dark:text-violet-400", testId: "stat-catalog-value", formatter: (v: number) => `$${v.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` },
-          { label: "Avg Price", value: stats?.avgPrice, icon: TrendingUp, color: "text-orange-600 dark:text-orange-400", testId: "stat-avg-price", formatter: (v: number) => `$${v.toFixed(2)}` },
+          { label: "Catalog Value", value: stats?.catalogValue, icon: DollarSign, color: "text-blue-700 dark:text-blue-400", testId: "stat-catalog-value", formatter: (v: number) => `$${v.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` },
+          { label: "Avg Price", value: stats?.avgPrice, icon: TrendingUp, color: "text-red-700 dark:text-red-500", testId: "stat-avg-price", formatter: (v: number) => `$${v.toFixed(2)}` },
         ].map(({ label, value, icon: Icon, color, testId, formatter }) => (
           <Card key={label} className="p-4 overflow-visible">
             <div className="flex items-center gap-2 mb-1.5">
@@ -564,7 +564,7 @@ function StoreAnalyticsTab() {
                   <span className="text-xs font-bold text-muted-foreground w-4 text-right shrink-0">{idx + 1}</span>
                   <span className="flex-1 text-sm font-medium">{cat.name}</span>
                   <span className="text-xs text-muted-foreground">{cat.count} products</span>
-                  <span className="text-sm font-bold text-violet-600 dark:text-violet-400">
+                  <span className="text-sm font-bold text-blue-700 dark:text-blue-400">
                     ${cat.value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>

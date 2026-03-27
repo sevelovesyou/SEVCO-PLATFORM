@@ -85,19 +85,19 @@ function resolveLucideIcon(name: string | null | undefined): React.ElementType |
 
 const ROLE_BADGE_VARIANTS: Record<string, string> = {
   admin:     "bg-primary text-primary-foreground",
-  executive: "bg-violet-600 text-white dark:bg-violet-500",
+  executive: "bg-blue-600 text-white dark:bg-blue-600",
   staff:     "bg-green-600 text-white dark:bg-green-500",
-  partner:   "bg-orange-500 text-white",
+  partner:   "bg-red-700 text-white",
   client:    "bg-yellow-500 text-white dark:bg-yellow-400 dark:text-black",
   user:      "bg-muted text-muted-foreground",
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
   Platform: "text-blue-500",
-  App:      "text-purple-500",
+  App:      "text-blue-600",
   Game:     "text-green-500",
   Label:    "text-pink-500",
-  Media:    "text-orange-500",
+  Media:    "text-red-600",
   Other:    "text-muted-foreground",
 };
 
@@ -812,7 +812,7 @@ export function PlatformHeader() {
               >
                 <ShoppingBag className="h-4 w-4" aria-hidden="true" />
                 {itemCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center" data-testid="cart-badge">
+                  <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-red-700 text-white text-[10px] font-bold flex items-center justify-center" data-testid="cart-badge">
                     {itemCount > 9 ? "9+" : itemCount}
                   </span>
                 )}

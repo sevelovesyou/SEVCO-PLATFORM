@@ -73,10 +73,10 @@ function BreakingTicker({ articles }: { articles: EditorialArticle[] }) {
   if (items.length === 0) return null;
   return (
     <div
-      className="relative flex items-center overflow-hidden bg-orange-500/90 text-white h-9"
+      className="relative flex items-center overflow-hidden bg-red-700/90 text-white h-9"
       data-testid="news-breaking-ticker"
     >
-      <div className="shrink-0 flex items-center gap-1.5 px-3 py-1 bg-orange-600 h-full z-10 border-r border-orange-400/50">
+      <div className="shrink-0 flex items-center gap-1.5 px-3 py-1 bg-red-800 h-full z-10 border-r border-red-500/50">
         <Zap className="h-3.5 w-3.5" />
         <span className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap">Breaking</span>
       </div>
@@ -92,10 +92,10 @@ function BreakingTicker({ articles }: { articles: EditorialArticle[] }) {
               href={article.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-[12px] font-medium hover:text-orange-100 transition-colors"
+              className="inline-flex items-center gap-2 text-[12px] font-medium hover:text-red-100 transition-colors"
               data-testid={`ticker-item-${i}`}
             >
-              <span className="text-orange-200/70">•</span>
+              <span className="text-red-300/70">•</span>
               {article.title.length > 90 ? article.title.slice(0, 90) + "…" : article.title}
             </a>
           ))}
@@ -131,7 +131,7 @@ function HeroCard({ article, accentColor }: { article: EditorialArticle; accentC
             <span className="text-[10px] text-white/50 font-mono">{article.authorHandle}</span>
           )}
         </div>
-        <h2 className="text-lg md:text-2xl font-black text-white leading-tight group-hover:text-orange-300 transition-colors line-clamp-3 mb-3">
+        <h2 className="text-lg md:text-2xl font-black text-white leading-tight group-hover:text-red-300 transition-colors line-clamp-3 mb-3">
           {article.title}
         </h2>
         {article.description && article.sourceType !== "x" && (
@@ -182,7 +182,7 @@ function SecondaryCard({ article, accentColor }: { article: EditorialArticle; ac
         />
       </div>
       <div className="flex-1 min-w-0 flex flex-col justify-between">
-        <p className="text-xs font-semibold text-white/90 line-clamp-3 leading-snug group-hover:text-orange-300 transition-colors">
+        <p className="text-xs font-semibold text-white/90 line-clamp-3 leading-snug group-hover:text-red-300 transition-colors">
           {article.title}
         </p>
         <div className="flex items-center gap-2 mt-1.5">
@@ -216,7 +216,7 @@ function GridCard({ article, accentColor }: { article: EditorialArticle; accentC
         </div>
       </div>
       <div className="p-3">
-        <p className="text-xs font-semibold text-white/90 line-clamp-2 leading-snug group-hover:text-orange-300 transition-colors mb-1.5">
+        <p className="text-xs font-semibold text-white/90 line-clamp-2 leading-snug group-hover:text-red-300 transition-colors mb-1.5">
           {article.title}
         </p>
         <div className="flex items-center justify-between">
@@ -305,7 +305,7 @@ function CategoryTabBar({
                 ? {
                     backgroundColor: cat.accentColor ? `${cat.accentColor}22` : "rgba(249,115,22,0.15)",
                     borderColor: cat.accentColor ? `${cat.accentColor}55` : "rgba(249,115,22,0.4)",
-                    color: cat.accentColor || "#f97316",
+                    color: cat.accentColor || "#BE0000",
                   }
                 : {
                     backgroundColor: "transparent",
@@ -409,8 +409,8 @@ export function NewsEditorial({
         <div className="flex items-end justify-between mb-4 flex-wrap gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="h-4 w-4 text-orange-400" />
-              <span className="text-[11px] font-black uppercase tracking-widest text-orange-400">News & Now</span>
+              <TrendingUp className="h-4 w-4 text-red-500" />
+              <span className="text-[11px] font-black uppercase tracking-widest text-red-500">News & Now</span>
             </div>
             <h2 className="text-2xl md:text-3xl font-black tracking-tight text-white leading-tight">
               What's happening.

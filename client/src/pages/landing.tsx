@@ -41,18 +41,18 @@ const PLATFORM_SECTIONS = [
     description: "Merchandise, exclusive drops, and products from the SEVCO universe.",
     path: "/store",
     icon: ShoppingBag,
-    accent: "from-orange-500/20 to-orange-600/5 border-orange-500/20",
-    iconColor: "text-orange-500",
-    iconBg: "bg-orange-500/10",
+    accent: "from-red-700/20 to-red-800/5 border-red-700/20",
+    iconColor: "text-red-700",
+    iconBg: "bg-red-700/10",
   },
   {
     label: "Music",
     description: "SEVCO RECORDS — releases, artists, and a catalog built for independent creators.",
     path: "/music",
     icon: Music,
-    accent: "from-violet-500/20 to-violet-600/5 border-violet-500/20",
-    iconColor: "text-violet-500",
-    iconBg: "bg-violet-500/10",
+    accent: "from-blue-600/20 to-blue-700/5 border-blue-600/20",
+    iconColor: "text-blue-600",
+    iconBg: "bg-blue-600/10",
   },
   {
     label: "Projects",
@@ -84,13 +84,13 @@ const PLATFORM_SECTIONS = [
 ];
 
 const DEFAULT_WHY_SEVCO_PILLS = [
-  { icon: "Music", label: "Music", href: "/music", color: "#f97316" },
-  { icon: "ShoppingBag", label: "Store", href: "/store", color: "#f97316" },
-  { icon: "Folder", label: "Projects", href: "/projects", color: "#f97316" },
-  { icon: "Users", label: "Community", href: "/contact", color: "#f97316" },
-  { icon: "Zap", label: "Fast", href: "/", color: "#f97316" },
-  { icon: "Globe", label: "Global", href: "/", color: "#f97316" },
-  { icon: "Layers", label: "All-in-One", href: "/", color: "#f97316" },
+  { icon: "Music", label: "Music", href: "/music", color: "#BE0000" },
+  { icon: "ShoppingBag", label: "Store", href: "/store", color: "#BE0000" },
+  { icon: "Folder", label: "Projects", href: "/projects", color: "#BE0000" },
+  { icon: "Users", label: "Community", href: "/contact", color: "#BE0000" },
+  { icon: "Zap", label: "Fast", href: "/", color: "#BE0000" },
+  { icon: "Globe", label: "Global", href: "/", color: "#BE0000" },
+  { icon: "Layers", label: "All-in-One", href: "/", color: "#BE0000" },
 ];
 
 const DISCORD_INVITE = "https://discord.gg/sevco";
@@ -286,7 +286,7 @@ export default function Landing() {
       >
         {/* Animated gradient blobs */}
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute -top-28 -left-36 w-[600px] h-[600px] rounded-full bg-orange-600/20 blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />
+          <div className="absolute -top-28 -left-36 w-[600px] h-[600px] rounded-full bg-red-800/20 blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />
           <div className="absolute -bottom-28 -right-36 w-[500px] h-[500px] rounded-full bg-green-600/15 blur-[120px] animate-[pulse_10s_ease-in-out_infinite_2s]" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] rounded-full bg-amber-600/10 blur-[100px] animate-[pulse_12s_ease-in-out_infinite_4s]" />
         </div>
@@ -321,7 +321,7 @@ export default function Landing() {
           </div>
           <div>
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-3 leading-tight">
-              <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-green-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-red-600 via-red-400 to-green-400 bg-clip-text text-transparent">
                 Everything SEVCO.
               </span>
             </h1>
@@ -333,7 +333,7 @@ export default function Landing() {
             <Link href={btn1Url}>
               <Button
                 size="lg"
-                className={btn1Color ? "hover:opacity-90 text-white font-semibold gap-2 px-6 shadow-lg" : "bg-orange-500 hover:bg-orange-400 text-white font-semibold gap-2 px-6 shadow-lg"}
+                className={btn1Color ? "hover:opacity-90 text-white font-semibold gap-2 px-6 shadow-lg" : "bg-red-700 hover:bg-red-600 text-white font-semibold gap-2 px-6 shadow-lg"}
                 style={btn1Color ? { backgroundColor: btn1Color, borderColor: btn1Color, color: "#fff" } : undefined}
                 data-testid="button-hero-primary"
               >
@@ -365,7 +365,7 @@ export default function Landing() {
         <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-6 md:gap-10">
           {whySevcoPills.map((pill) => {
             const PillIcon = getLucideIcon(pill.icon);
-            const accentColor = pill.color || "#f97316";
+            const accentColor = pill.color || "#BE0000";
             const inner = (
               <div
                 className="flex items-center gap-2.5 cursor-pointer"
@@ -584,27 +584,27 @@ export default function Landing() {
 
       {/* ── SEVCO RECORDS SPOTLIGHT ── */}
       {showRecordsSpotlight && (
-        <section className="relative overflow-hidden bg-gradient-to-br from-violet-950 via-violet-900 to-indigo-900">
+        <section className="relative overflow-hidden bg-gradient-to-br from-blue-950 via-blue-900 to-blue-900">
           <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-            <div className="absolute -bottom-16 -left-20 w-[400px] h-[400px] rounded-full bg-violet-500/15 blur-[100px] animate-[pulse_9s_ease-in-out_infinite]" />
+            <div className="absolute -bottom-16 -left-20 w-[400px] h-[400px] rounded-full bg-blue-600/15 blur-[100px] animate-[pulse_9s_ease-in-out_infinite]" />
             <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-indigo-500/10 blur-[80px] animate-[pulse_11s_ease-in-out_infinite_3s]" />
           </div>
           <div className="relative max-w-6xl mx-auto px-6 py-14 md:py-20 flex flex-col md:flex-row md:items-center gap-8">
             <div className="flex-1">
-              <Badge className="mb-4 bg-violet-500/30 text-violet-200 border-violet-400/30 text-xs font-semibold uppercase tracking-wider">
+              <Badge className="mb-4 bg-blue-600/30 text-blue-200 border-blue-400/30 text-xs font-semibold uppercase tracking-wider">
                 SEVCO RECORDS
               </Badge>
               <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 tracking-tight">
                 Independent music, built for artists.
               </h2>
-              <p className="text-violet-200/80 text-sm leading-relaxed max-w-lg">
+              <p className="text-blue-200/80 text-sm leading-relaxed max-w-lg">
                 SEVCO RECORDS is our label — discovering and developing artists across every genre, with distribution, promotion, and creative support from day one.
               </p>
               <div className="flex gap-3 mt-6">
                 <Link href="/music">
                   <Button
                     size="sm"
-                    className="bg-violet-500 hover:bg-violet-400 text-white font-semibold gap-2"
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-semibold gap-2"
                     data-testid="button-records-explore"
                   >
                     <Music className="h-3.5 w-3.5" />
@@ -615,7 +615,7 @@ export default function Landing() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-violet-400/40 text-violet-200 hover:bg-violet-800/50 gap-2"
+                    className="border-blue-400/40 text-blue-200 hover:bg-blue-800/50 gap-2"
                     data-testid="button-records-artists"
                   >
                     Browse Artists
@@ -624,8 +624,8 @@ export default function Landing() {
               </div>
             </div>
             <div className="hidden md:flex items-center justify-center">
-              <div className="h-40 w-40 rounded-3xl bg-white/[0.03] border border-violet-400/20 flex items-center justify-center">
-                <Music className="h-20 w-20 text-violet-300/60" />
+              <div className="h-40 w-40 rounded-3xl bg-white/[0.03] border border-blue-400/20 flex items-center justify-center">
+                <Music className="h-20 w-20 text-blue-300/60" />
               </div>
             </div>
           </div>
@@ -713,10 +713,10 @@ export default function Landing() {
 
       {/* ── COMMUNITY CTA ── */}
       {showCommunityCta && (
-        <section className="relative overflow-hidden bg-gradient-to-br from-indigo-900/60 via-background to-violet-900/30 border-t border-white/5 px-6 py-20 md:py-28 text-center">
+        <section className="relative overflow-hidden bg-gradient-to-br from-blue-900/60 via-background to-blue-900/30 border-t border-white/5 px-6 py-20 md:py-28 text-center">
           <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
             <div className="absolute top-0 left-1/4 w-[400px] h-[400px] rounded-full bg-indigo-600/10 blur-[100px] animate-[pulse_10s_ease-in-out_infinite]" />
-            <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] rounded-full bg-violet-600/10 blur-[80px] animate-[pulse_8s_ease-in-out_infinite_3s]" />
+            <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] rounded-full bg-blue-700/10 blur-[80px] animate-[pulse_8s_ease-in-out_infinite_3s]" />
           </div>
           <div className="relative z-10 max-w-xl mx-auto">
             <div className="flex items-center justify-center gap-3 mb-4">
@@ -728,7 +728,7 @@ export default function Landing() {
               </Badge>
             </div>
             <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
-              <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 bg-clip-text text-transparent">
                 Join the SEVCO community.
               </span>
             </h2>

@@ -123,8 +123,8 @@ export default function StoreProductForm() {
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="h-8 w-8 rounded-full bg-orange-500/10 flex items-center justify-center">
-          <ShoppingBag className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+        <div className="h-8 w-8 rounded-full bg-red-700/10 flex items-center justify-center">
+          <ShoppingBag className="h-4 w-4 text-red-700 dark:text-red-500" />
         </div>
         <div>
           <h1 className="text-xl font-bold tracking-tight">Add Product</h1>

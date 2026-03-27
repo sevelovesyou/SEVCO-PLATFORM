@@ -64,8 +64,8 @@ function StatusBadge({ status }: { status: string }) {
 
 function SubjectBadge({ subject }: { subject: string }) {
   const colors: Record<string, string> = {
-    Support: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-    "Business Inquiry": "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+    Support: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    "Business Inquiry": "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-500",
     Press: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400",
     Other: "bg-muted text-muted-foreground",
   };

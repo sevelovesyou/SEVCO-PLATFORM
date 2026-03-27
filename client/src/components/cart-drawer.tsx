@@ -44,10 +44,10 @@ export function CartDrawer() {
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 text-orange-500" />
+            <ShoppingCart className="h-5 w-5 text-red-600" />
             <h2 className="font-bold text-base">Your Cart</h2>
             {itemCount > 0 && (
-              <span className="bg-orange-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center" data-testid="cart-item-count">
+              <span className="bg-red-700 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center" data-testid="cart-item-count">
                 {itemCount}
               </span>
             )}
@@ -105,7 +105,7 @@ export function CartDrawer() {
                     <p className="text-sm font-semibold leading-tight line-clamp-2" data-testid={`cart-item-name-${item.productId}`}>
                       {item.name}
                     </p>
-                    <p className="text-sm font-bold text-orange-600 dark:text-orange-400 mt-0.5" data-testid={`cart-item-price-${item.productId}`}>
+                    <p className="text-sm font-bold text-red-700 dark:text-red-500 mt-0.5" data-testid={`cart-item-price-${item.productId}`}>
                       ${item.price.toFixed(2)}
                     </p>
                     <div className="flex items-center gap-1 mt-2">
@@ -156,7 +156,7 @@ export function CartDrawer() {
               </div>
               <p className="text-xs text-muted-foreground">Shipping and taxes calculated at checkout</p>
               <Button
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+                className="w-full bg-red-700 hover:bg-red-800 text-white font-semibold"
                 onClick={() => checkoutMutation.mutate()}
                 disabled={checkoutMutation.isPending}
                 data-testid="button-checkout"

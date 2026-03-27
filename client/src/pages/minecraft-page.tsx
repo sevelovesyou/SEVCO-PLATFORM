@@ -23,8 +23,8 @@ const THEME_MAP: Record<string, { color: string; accent: string }> = {
   emerald: { color: "text-emerald-400", accent: "bg-emerald-500/10" },
   green: { color: "text-green-400", accent: "bg-green-500/10" },
   blue: { color: "text-blue-400", accent: "bg-blue-500/10" },
-  violet: { color: "text-violet-400", accent: "bg-violet-500/10" },
-  orange: { color: "text-orange-400", accent: "bg-orange-500/10" },
+  violet: { color: "text-blue-500", accent: "bg-blue-600/10" },
+  orange: { color: "text-red-500", accent: "bg-red-700/10" },
   red: { color: "text-red-400", accent: "bg-red-500/10" },
   cyan: { color: "text-cyan-400", accent: "bg-cyan-500/10" },
 };

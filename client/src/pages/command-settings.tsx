@@ -385,13 +385,13 @@ const LUCIDE_ICON_OPTIONS = [
 ];
 
 const DEFAULT_ICON_PILLS = [
-  { icon: "Music", label: "Music", href: "/music", color: "#f97316" },
-  { icon: "ShoppingBag", label: "Store", href: "/store", color: "#f97316" },
-  { icon: "Folder", label: "Projects", href: "/projects", color: "#f97316" },
-  { icon: "Users", label: "Community", href: "/contact", color: "#f97316" },
-  { icon: "Zap", label: "Fast", href: "/", color: "#f97316" },
-  { icon: "Globe", label: "Global", href: "/", color: "#f97316" },
-  { icon: "Layers", label: "All-in-One", href: "/", color: "#f97316" },
+  { icon: "Music", label: "Music", href: "/music", color: "#BE0000" },
+  { icon: "ShoppingBag", label: "Store", href: "/store", color: "#BE0000" },
+  { icon: "Folder", label: "Projects", href: "/projects", color: "#BE0000" },
+  { icon: "Users", label: "Community", href: "/contact", color: "#BE0000" },
+  { icon: "Zap", label: "Fast", href: "/", color: "#BE0000" },
+  { icon: "Globe", label: "Global", href: "/", color: "#BE0000" },
+  { icon: "Layers", label: "All-in-One", href: "/", color: "#BE0000" },
 ];
 
 type IconPill = { icon: string; label: string; href: string; color: string };
@@ -1487,7 +1487,7 @@ export default function CommandSettings() {
   }
 
   function addPill() {
-    setIconPills((prev) => [...prev, { icon: "Star", label: "New", href: "/", color: "#f97316" }]);
+    setIconPills((prev) => [...prev, { icon: "Star", label: "New", href: "/", color: "#BE0000" }]);
   }
 
   function removePill(idx: number) {
@@ -2894,7 +2894,7 @@ export default function CommandSettings() {
                               className="h-7 text-xs font-mono"
                               value={pill.color}
                               onChange={(e) => updatePill(idx, "color", e.target.value)}
-                              placeholder="#f97316"
+                              placeholder="#BE0000"
                               data-testid={`input-pill-color-${idx}`}
                             />
                           </div>

@@ -26,8 +26,8 @@ type SearchResults = {
 
 const SECTION_CONFIG = [
   { key: "wiki" as const,     label: "Wiki",     icon: BookOpen,    color: "text-blue-500" },
-  { key: "projects" as const, label: "Projects", icon: Folder,      color: "text-purple-500" },
-  { key: "store" as const,    label: "Store",    icon: ShoppingBag, color: "text-orange-500" },
+  { key: "projects" as const, label: "Projects", icon: Folder,      color: "text-blue-600" },
+  { key: "store" as const,    label: "Store",    icon: ShoppingBag, color: "text-red-600" },
   { key: "music" as const,    label: "Music",    icon: Music,       color: "text-pink-500" },
   { key: "jobs" as const,     label: "Jobs",     icon: Users,       color: "text-green-500" },
   { key: "services" as const, label: "Services", icon: Briefcase,   color: "text-yellow-500" },

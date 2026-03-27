@@ -90,8 +90,8 @@ function StoreStatsPreview() {
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-md bg-orange-500/10 flex items-center justify-center shrink-0">
-              <BarChart2 className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
+            <div className="h-7 w-7 rounded-md bg-red-700/10 flex items-center justify-center shrink-0">
+              <BarChart2 className="h-3.5 w-3.5 text-red-700 dark:text-red-500" />
             </div>
             <span className="text-sm font-semibold">Store Analytics</span>
           </div>
@@ -122,7 +122,7 @@ function StoreStatsPreview() {
                 </div>
                 <div data-testid="preview-catalog-value">
                   <p className="text-xs text-muted-foreground">Catalog Value</p>
-                  <p className="text-lg font-bold text-violet-600 dark:text-violet-400">
+                  <p className="text-lg font-bold text-blue-700 dark:text-blue-400">
                     ${(stats?.catalogValue ?? 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </p>
                 </div>
@@ -170,9 +170,9 @@ const ROLES: Role[] = ["admin", "executive", "staff", "partner", "client", "user
 
 const ROLE_COLORS: Record<string, string> = {
   admin:     "bg-primary/10 text-primary border-primary/20",
-  executive: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
+  executive: "bg-blue-600/10 text-blue-700 dark:text-blue-400 border-blue-600/20",
   staff:     "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
-  partner:   "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
+  partner:   "bg-red-700/10 text-red-800 dark:text-red-500 border-red-700/20",
   client:    "bg-yellow-500/10 text-yellow-700 dark:text-yellow-500 border-yellow-500/20",
   user:      "bg-muted text-muted-foreground border-border",
 };
@@ -689,8 +689,8 @@ function ChangelogSection() {
 
 const CLIENT_LINKS = [
   { label: "Wiki", desc: "Browse articles and resources", path: "/wiki", icon: BookOpen, color: "text-primary", bg: "bg-primary/10" },
-  { label: "Music", desc: "SEVCO RECORDS releases", path: "/music", icon: Music, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-500/10" },
-  { label: "Store", desc: "Merchandise and products", path: "/store", icon: ShoppingBag, color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-500/10" },
+  { label: "Music", desc: "SEVCO RECORDS releases", path: "/music", icon: Music, color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-600/10" },
+  { label: "Store", desc: "Merchandise and products", path: "/store", icon: ShoppingBag, color: "text-red-700 dark:text-red-500", bg: "bg-red-700/10" },
   { label: "Projects", desc: "SEVCO Ventures", path: "/projects", icon: Folder, color: "text-green-600 dark:text-green-400", bg: "bg-green-500/10" },
 ];
 

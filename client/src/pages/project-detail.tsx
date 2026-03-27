@@ -54,19 +54,19 @@ const STATUS_LABELS: Record<string, string> = {
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
   Platform: "from-blue-600/20 via-blue-500/10 to-transparent",
-  App:      "from-purple-600/20 via-purple-500/10 to-transparent",
+  App:      "from-blue-700/20 via-blue-600/10 to-transparent",
   Game:     "from-green-600/20 via-green-500/10 to-transparent",
   Label:    "from-pink-600/20 via-pink-500/10 to-transparent",
-  Media:    "from-orange-600/20 via-orange-500/10 to-transparent",
+  Media:    "from-red-800/20 via-red-700/10 to-transparent",
   Other:    "from-zinc-600/20 via-zinc-500/10 to-transparent",
 };
 
 const CATEGORY_ICON_BG: Record<string, string> = {
   Platform: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
-  App:      "bg-purple-500/15 text-purple-600 dark:text-purple-400",
+  App:      "bg-blue-600/15 text-blue-600 dark:text-blue-400",
   Game:     "bg-green-500/15 text-green-600 dark:text-green-400",
   Label:    "bg-pink-500/15 text-pink-600 dark:text-pink-400",
-  Media:    "bg-orange-500/15 text-orange-600 dark:text-orange-400",
+  Media:    "bg-red-700/15 text-red-700 dark:text-red-500",
   Other:    "bg-muted text-muted-foreground",
 };
 

@@ -36,7 +36,7 @@ export default function MusicArtistsPage() {
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+              <Users className="h-4 w-4 text-blue-700 dark:text-blue-400" />
               <h1 className="text-xl font-bold tracking-tight">All Artists</h1>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -93,8 +93,8 @@ export default function MusicArtistsPage() {
                 data-testid={`card-artist-${artist.id}`}
               >
                 <div className="flex items-start gap-3">
-                  <div className="h-12 w-12 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0">
-                    <Users className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                  <div className="h-12 w-12 rounded-full bg-blue-600/10 flex items-center justify-center shrink-0">
+                    <Users className="h-5 w-5 text-blue-700 dark:text-blue-400" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">

@@ -113,8 +113,8 @@ export default function MusicArtistForm() {
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="h-8 w-8 rounded-full bg-violet-500/10 flex items-center justify-center">
-          <Users className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+        <div className="h-8 w-8 rounded-full bg-blue-600/10 flex items-center justify-center">
+          <Users className="h-4 w-4 text-blue-700 dark:text-blue-400" />
         </div>
         <div>
           <h1 className="text-xl font-bold tracking-tight">Add Artist</h1>

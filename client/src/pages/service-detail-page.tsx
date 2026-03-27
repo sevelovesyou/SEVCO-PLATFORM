@@ -19,8 +19,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
 const CATEGORY_STYLES: Record<string, { bg: string; text: string; badge: string }> = {
   Engineering: { bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", badge: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20" },
-  Design:      { bg: "bg-purple-500/10", text: "text-purple-600 dark:text-purple-400", badge: "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20" },
-  Marketing:   { bg: "bg-orange-500/10", text: "text-orange-600 dark:text-orange-400", badge: "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20" },
+  Design:      { bg: "bg-blue-600/10", text: "text-blue-600 dark:text-blue-400", badge: "bg-blue-600/10 text-blue-700 dark:text-blue-300 border-blue-600/20" },
+  Marketing:   { bg: "bg-red-700/10", text: "text-red-700 dark:text-red-500", badge: "bg-red-700/10 text-red-800 dark:text-red-300 border-red-700/20" },
   Operations:  { bg: "bg-green-500/10", text: "text-green-600 dark:text-green-400", badge: "bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/20" },
   Sales:       { bg: "bg-yellow-500/10", text: "text-yellow-600 dark:text-yellow-500", badge: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 border-yellow-500/20" },
   Support:     { bg: "bg-pink-500/10", text: "text-pink-600 dark:text-pink-400", badge: "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/20" },

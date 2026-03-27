@@ -11,16 +11,16 @@ import type { Job } from "@shared/schema";
 const TYPE_BADGE: Record<string, string> = {
   "full-time":  "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
   "part-time":  "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
-  "contract":   "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
-  "internship": "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20",
+  "contract":   "bg-red-700/10 text-red-800 dark:text-red-500 border-red-700/20",
+  "internship": "bg-blue-600/10 text-blue-700 dark:text-blue-400 border-blue-600/20",
 };
 
 const DEPT_COLORS: Record<string, string> = {
   "Engineering":     "text-blue-600 dark:text-blue-400",
-  "Design":          "text-purple-600 dark:text-purple-400",
+  "Design":          "text-blue-600 dark:text-blue-400",
   "Operations":      "text-green-600 dark:text-green-400",
-  "SEVCO Records":   "text-violet-600 dark:text-violet-400",
-  "Marketing":       "text-orange-600 dark:text-orange-400",
+  "SEVCO Records":   "text-blue-700 dark:text-blue-400",
+  "Marketing":       "text-red-700 dark:text-red-500",
   "Sales":           "text-yellow-600 dark:text-yellow-500",
 };
 

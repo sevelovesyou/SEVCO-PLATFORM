@@ -89,8 +89,8 @@ export default function MusicArtistDetail() {
       </div>
 
       <div className="flex items-start gap-4">
-        <div className="h-20 w-20 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0">
-          <Users className="h-9 w-9 text-violet-600 dark:text-violet-400" />
+        <div className="h-20 w-20 rounded-full bg-blue-600/10 flex items-center justify-center shrink-0">
+          <Users className="h-9 w-9 text-blue-700 dark:text-blue-400" />
         </div>
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">{artist.name}</h1>

@@ -32,9 +32,9 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  Company: "bg-violet-500/10 text-violet-700 dark:text-violet-400",
+  Company: "bg-blue-600/10 text-blue-700 dark:text-blue-400",
   "Record Label": "bg-pink-500/10 text-pink-700 dark:text-pink-400",
-  Brand: "bg-orange-500/10 text-orange-700 dark:text-orange-400",
+  Brand: "bg-red-700/10 text-red-800 dark:text-red-500",
   Initiative: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400",
   Other: "bg-muted text-muted-foreground",
 };

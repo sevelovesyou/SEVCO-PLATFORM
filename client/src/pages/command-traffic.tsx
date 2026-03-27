@@ -86,7 +86,7 @@ type DeviceRow = { device: string; sessions: number };
 const SOURCE_COLORS: Record<string, string> = {
   "Organic Search": "#4ade80",
   "Direct": "#60a5fa",
-  "Referral": "#f97316",
+  "Referral": "#BE0000",
   "Organic Social": "#a78bfa",
   "Paid Search": "#fb7185",
   "Email": "#fbbf24",
@@ -96,7 +96,7 @@ const SOURCE_COLORS: Record<string, string> = {
 const DEVICE_COLORS: Record<string, string> = {
   desktop: "#60a5fa",
   mobile: "#4ade80",
-  tablet: "#f97316",
+  tablet: "#BE0000",
 };
 
 function formatDate(dateStr: string): string {

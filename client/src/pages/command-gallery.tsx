@@ -60,9 +60,9 @@ const CATEGORY_OPTIONS = [
 
 const CATEGORY_COLORS: Record<string, string> = {
   profile: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
-  banner: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20",
+  banner: "bg-blue-600/10 text-blue-700 dark:text-blue-400 border-blue-600/20",
   wallpaper: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
-  logo: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
+  logo: "bg-red-700/10 text-red-800 dark:text-red-500 border-red-700/20",
   other: "bg-muted text-muted-foreground border-border",
 };
 

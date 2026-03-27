@@ -445,11 +445,11 @@ function PlaylistRow({ playlist, onEdit }: { playlist: Playlist; onEdit: (p: Pla
 
   return (
     <div className="flex items-center gap-4 p-4 border rounded-xl hover:bg-muted/30 transition-colors group" data-testid={`row-playlist-${playlist.id}`}>
-      <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/10 flex items-center justify-center shrink-0 overflow-hidden">
+      <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-600/20 to-blue-700/10 flex items-center justify-center shrink-0 overflow-hidden">
         {playlist.coverImageUrl ? (
           <img src={playlist.coverImageUrl} alt={playlist.title} className="h-full w-full object-cover rounded-lg" loading="lazy" />
         ) : (
-          <ListMusic className="h-5 w-5 text-violet-400 opacity-50" />
+          <ListMusic className="h-5 w-5 text-blue-500 opacity-50" />
         )}
       </div>
       <div className="flex-1 min-w-0">

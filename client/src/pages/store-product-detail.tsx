@@ -144,7 +144,7 @@ export default function StoreProductDetail() {
             </div>
 
             <div
-              className="text-4xl font-black text-orange-600 dark:text-orange-400"
+              className="text-4xl font-black text-red-700 dark:text-red-500"
               data-testid="text-product-price"
             >
               ${product.price.toFixed(2)}
@@ -178,7 +178,7 @@ export default function StoreProductDetail() {
 
             <div className="flex gap-3 pt-2">
               <Button
-                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+                className="flex-1 bg-red-800 hover:bg-red-800 text-white"
                 disabled={!inStock}
                 onClick={() => product && addItem(product)}
                 data-testid="button-add-to-cart"

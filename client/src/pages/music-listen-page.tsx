@@ -48,7 +48,7 @@ export default function MusicListenPage() {
 
         {/* Logo */}
         <div className="flex flex-col items-center mb-10">
-          <div className="h-20 w-20 rounded-full bg-violet-500/10 flex items-center justify-center mb-5 overflow-visible">
+          <div className="h-20 w-20 rounded-full bg-blue-600/10 flex items-center justify-center mb-5 overflow-visible">
             <SevcoLogo size={48} />
           </div>
           <img src={wordmarkBlack} alt="SEVCO" className="h-7 object-contain dark:invert mb-2" />

@@ -33,7 +33,7 @@ const STORE_PILLS = [
 
 const CATEGORY_PALETTES: Record<string, { bg: string; text: string; border: string; gradient: string }> = {
   apparel:      { bg: "bg-indigo-500/10",  text: "text-indigo-700 dark:text-indigo-300",  border: "border-indigo-500/20",  gradient: "from-indigo-400 to-indigo-600" },
-  music:        { bg: "bg-violet-500/10",  text: "text-violet-700 dark:text-violet-300",  border: "border-violet-500/20",  gradient: "from-violet-400 to-violet-600" },
+  music:        { bg: "bg-blue-600/10",  text: "text-blue-700 dark:text-blue-300",  border: "border-blue-600/20",  gradient: "from-blue-500 to-blue-700" },
   accessories:  { bg: "bg-rose-500/10",    text: "text-rose-700 dark:text-rose-300",      border: "border-rose-500/20",    gradient: "from-rose-400 to-rose-600" },
   vinyl:        { bg: "bg-amber-500/10",   text: "text-amber-700 dark:text-amber-400",    border: "border-amber-500/20",   gradient: "from-amber-400 to-amber-600" },
   electronics:  { bg: "bg-blue-500/10",    text: "text-blue-700 dark:text-blue-300",      border: "border-blue-500/20",    gradient: "from-blue-400 to-blue-600" },
@@ -42,7 +42,7 @@ const CATEGORY_PALETTES: Record<string, { bg: string; text: string; border: stri
   art:          { bg: "bg-fuchsia-500/10", text: "text-fuchsia-700 dark:text-fuchsia-300",border: "border-fuchsia-500/20", gradient: "from-fuchsia-400 to-fuchsia-600" },
   digital:      { bg: "bg-sky-500/10",     text: "text-sky-700 dark:text-sky-300",        border: "border-sky-500/20",     gradient: "from-sky-400 to-sky-600" },
 };
-const DEFAULT_PALETTE = { bg: "bg-orange-500/10", text: "text-orange-700 dark:text-orange-300", border: "border-orange-500/20", gradient: "from-orange-400 to-amber-500" };
+const DEFAULT_PALETTE = { bg: "bg-red-700/10", text: "text-red-800 dark:text-red-300", border: "border-red-700/20", gradient: "from-red-600 to-red-700" };
 
 function getCategoryPalette(cat: string) {
   return CATEGORY_PALETTES[cat.toLowerCase()] ?? DEFAULT_PALETTE;
@@ -97,7 +97,7 @@ function ProductImageArea({ product, onAddToCart }: { product: Product; onAddToC
           {!soldOut && (
             <Button
               size="sm"
-              className="bg-orange-500 hover:bg-orange-600 text-white shadow-md text-xs font-semibold px-3"
+              className="bg-red-700 hover:bg-red-800 text-white shadow-md text-xs font-semibold px-3"
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(); }}
               data-testid={`button-add-to-cart-${product.id}`}
             >
@@ -122,7 +122,7 @@ function ProductCard({ product, onAddToCart, accentHsl }: { product: Product; on
       <ProductImageArea product={product} onAddToCart={onAddToCart} />
       <div className="pt-3 pb-1 px-0.5 flex flex-col gap-0.5">
         <h3
-          className={`text-sm font-semibold leading-snug line-clamp-2 transition-colors ${accentColor ? "" : "group-hover:text-orange-600 dark:group-hover:text-orange-400"}`}
+          className={`text-sm font-semibold leading-snug line-clamp-2 transition-colors ${accentColor ? "" : "group-hover:text-red-700 dark:group-hover:text-red-500"}`}
           style={accentColor ? { "--product-accent": accentColor } as React.CSSProperties : undefined}
           data-testid={`text-name-${product.id}`}
         >
@@ -136,7 +136,7 @@ function ProductCard({ product, onAddToCart, accentHsl }: { product: Product; on
             <span className="text-muted-foreground line-through">${product.price.toFixed(2)}</span>
           ) : (
             <span
-              className={accentColor ? "" : "text-orange-600 dark:text-orange-400"}
+              className={accentColor ? "" : "text-red-700 dark:text-red-500"}
               style={accentColor ? { color: accentColor } : undefined}
             >
               ${product.price.toFixed(2)}
@@ -175,7 +175,7 @@ function CategoryBanner({ name, count, active, onClick, accentHsl }: {
       className={`group relative rounded-xl overflow-hidden border transition-all duration-200 cursor-pointer text-left shrink-0 w-36 md:w-auto ${
         active
           ? accentHsl ? "border-2 shadow-sm" : `${palette.bg} ${palette.border} border-2 shadow-sm`
-          : "border-border bg-white/[0.03] hover:bg-white/[0.06] hover:border-orange-300 dark:hover:border-orange-700"
+          : "border-border bg-white/[0.03] hover:bg-white/[0.06] hover:border-red-400 dark:hover:border-red-800"
       }`}
       style={active && accentHsl ? { backgroundColor: accentBg, borderColor: accentBorder } : undefined}
     >
@@ -207,18 +207,18 @@ function AllCategoryBanner({ active, count, onClick, accentHsl }: { active: bool
       data-testid="banner-category-all"
       className={`group relative rounded-xl overflow-hidden border transition-all duration-200 cursor-pointer text-left shrink-0 w-36 md:w-auto ${
         active
-          ? accentHsl ? "border-2 shadow-sm" : "bg-orange-500/10 border-orange-500/30 border-2 shadow-sm"
-          : "border-border bg-white/[0.03] hover:bg-white/[0.06] hover:border-orange-300 dark:hover:border-orange-700"
+          ? accentHsl ? "border-2 shadow-sm" : "bg-red-700/10 border-red-700/30 border-2 shadow-sm"
+          : "border-border bg-white/[0.03] hover:bg-white/[0.06] hover:border-red-400 dark:hover:border-red-800"
       }`}
       style={active && accentHsl ? { backgroundColor: accentBg, borderColor: accentBorder } : undefined}
     >
       <div
-        className={`h-20 w-full flex items-end p-3 ${active ? (accentHsl ? "" : "bg-orange-500/10") : "bg-muted/30 group-hover:bg-muted/60 transition-colors"}`}
+        className={`h-20 w-full flex items-end p-3 ${active ? (accentHsl ? "" : "bg-red-700/10") : "bg-muted/30 group-hover:bg-muted/60 transition-colors"}`}
         style={active && accentHsl ? { backgroundColor: accentBg } : undefined}
       >
         <div>
           <p
-            className={`text-xs font-bold leading-tight ${active ? (accentHsl ? "" : "text-orange-700 dark:text-orange-300") : "text-foreground"}`}
+            className={`text-xs font-bold leading-tight ${active ? (accentHsl ? "" : "text-red-800 dark:text-red-300") : "text-foreground"}`}
             style={active && accentHsl ? { color: accentText } : undefined}
           >
             All Products
@@ -291,7 +291,7 @@ export default function StorePage() {
       >
         {/* Animated gradient blobs */}
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute -top-20 -left-28 w-[500px] h-[500px] rounded-full bg-orange-600/20 blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />
+          <div className="absolute -top-20 -left-28 w-[500px] h-[500px] rounded-full bg-red-800/20 blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />
           <div className="absolute -bottom-20 -right-28 w-[400px] h-[400px] rounded-full bg-amber-500/15 blur-[100px] animate-[pulse_10s_ease-in-out_infinite_2s]" />
         </div>
 
@@ -308,12 +308,12 @@ export default function StorePage() {
 
         <div className="relative z-10 max-w-6xl mx-auto flex flex-col md:flex-row md:items-end md:justify-between gap-6">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold text-orange-400 uppercase tracking-wider mb-5">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold text-red-500 uppercase tracking-wider mb-5">
               <ShoppingBag className="h-3.5 w-3.5" />
               SEVCO Store
             </div>
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight text-white">
-              <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-300 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-red-600 via-red-400 to-yellow-300 bg-clip-text text-transparent">
                 SEVCO Store
               </span>
             </h1>
@@ -331,7 +331,7 @@ export default function StorePage() {
               <ShoppingCart className="h-4 w-4 mr-2" />
               Cart
               {itemCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[10px] font-black rounded-full h-5 w-5 flex items-center justify-center" data-testid="cart-badge-count">
+                <span className="absolute -top-1.5 -right-1.5 bg-red-700 text-white text-[10px] font-black rounded-full h-5 w-5 flex items-center justify-center" data-testid="cart-badge-count">
                   {itemCount}
                 </span>
               )}
@@ -340,7 +340,7 @@ export default function StorePage() {
               <Link href="/store/products/new">
                 <Button
                   data-testid="button-add-product"
-                  className="bg-orange-500 hover:bg-orange-400 text-white font-semibold shadow-md"
+                  className="bg-red-700 hover:bg-red-600 text-white font-semibold shadow-md"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Product
@@ -363,8 +363,8 @@ export default function StorePage() {
               className="flex items-center gap-2.5"
               data-testid={`store-pill-${pill.label.toLowerCase().replace(/\s+/g, "-")}`}
             >
-              <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-orange-500/15">
-                <pill.icon className="h-4 w-4 text-orange-400" />
+              <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-red-700/15">
+                <pill.icon className="h-4 w-4 text-red-500" />
               </div>
               <p className="text-xs font-semibold text-white/80">{pill.label}</p>
             </div>
@@ -437,8 +437,8 @@ export default function StorePage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
-            <div className="h-14 w-14 rounded-2xl bg-orange-500/10 flex items-center justify-center">
-              <AlertCircle className="h-7 w-7 text-orange-500" />
+            <div className="h-14 w-14 rounded-2xl bg-red-700/10 flex items-center justify-center">
+              <AlertCircle className="h-7 w-7 text-red-600" />
             </div>
             <div>
               <p className="font-semibold text-base">No products found</p>
@@ -468,11 +468,11 @@ export default function StorePage() {
 
       {/* ── BOTTOM CLOSER CTA ── */}
       <section
-        className="relative overflow-hidden bg-gradient-to-br from-orange-900/40 via-background to-amber-900/20 border-t border-white/5 px-6 py-20 md:py-24 text-center mt-8"
+        className="relative overflow-hidden bg-gradient-to-br from-red-900/40 via-background to-red-900/20 border-t border-white/5 px-6 py-20 md:py-24 text-center mt-8"
         data-testid="section-store-cta"
       >
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute top-0 left-1/3 w-[400px] h-[300px] rounded-full bg-orange-600/10 blur-[100px] animate-[pulse_9s_ease-in-out_infinite]" />
+          <div className="absolute top-0 left-1/3 w-[400px] h-[300px] rounded-full bg-red-800/10 blur-[100px] animate-[pulse_9s_ease-in-out_infinite]" />
           <div className="absolute bottom-0 right-1/3 w-[300px] h-[200px] rounded-full bg-amber-500/10 blur-[80px] animate-[pulse_11s_ease-in-out_infinite_2s]" />
         </div>
         <div className="relative z-10 max-w-xl mx-auto">
@@ -485,7 +485,7 @@ export default function StorePage() {
           <Link href="/contact">
             <Button
               size="lg"
-              className="bg-orange-500 hover:bg-orange-400 text-white font-semibold gap-2"
+              className="bg-red-700 hover:bg-red-600 text-white font-semibold gap-2"
               data-testid="button-store-contact"
             >
               Get in Touch

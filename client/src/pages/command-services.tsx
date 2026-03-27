@@ -55,8 +55,8 @@ function toSlug(str: string) {
 
 const CATEGORY_BADGE_CLASSES = [
   "bg-blue-500/10 text-blue-700 border-blue-500/20",
-  "bg-purple-500/10 text-purple-700 border-purple-500/20",
-  "bg-orange-500/10 text-orange-700 border-orange-500/20",
+  "bg-blue-600/10 text-blue-700 border-blue-600/20",
+  "bg-red-700/10 text-red-800 border-red-700/20",
   "bg-green-500/10 text-green-700 border-green-500/20",
   "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
   "bg-pink-500/10 text-pink-700 border-pink-500/20",

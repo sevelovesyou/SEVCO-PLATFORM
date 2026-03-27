@@ -24,9 +24,9 @@ const ROLES: Role[] = ["admin", "executive", "staff", "partner", "client", "user
 
 const ROLE_COLORS: Record<string, string> = {
   admin:     "bg-primary/10 text-primary border-primary/20",
-  executive: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
+  executive: "bg-blue-600/10 text-blue-700 dark:text-blue-400 border-blue-600/20",
   staff:     "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
-  partner:   "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
+  partner:   "bg-red-700/10 text-red-800 dark:text-red-500 border-red-700/20",
   client:    "bg-yellow-500/10 text-yellow-700 dark:text-yellow-500 border-yellow-500/20",
   user:      "bg-muted text-muted-foreground border-border",
 };

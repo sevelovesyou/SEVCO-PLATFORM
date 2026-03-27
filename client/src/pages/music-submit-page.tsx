@@ -147,7 +147,7 @@ export default function MusicSubmitPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
           {WHAT_WE_LOOK_FOR.map(({ icon: Icon, title, desc }) => (
             <div key={title} className="border rounded-xl p-4">
-              <Icon className="h-5 w-5 text-violet-500 mb-3" />
+              <Icon className="h-5 w-5 text-blue-600 mb-3" />
               <h3 className="text-sm font-semibold mb-1">{title}</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
             </div>

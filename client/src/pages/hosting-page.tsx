@@ -39,8 +39,8 @@ const services = [
     description:
       "Full root-access virtual private servers with dedicated resources. Scale your workload from hobby project to enterprise — on demand.",
     price: "From $6/mo",
-    color: "text-purple-500",
-    bg: "bg-purple-500/10",
+    color: "text-blue-600",
+    bg: "bg-blue-600/10",
   },
   {
     icon: Package,
@@ -48,8 +48,8 @@ const services = [
     description:
       "Databases, APIs, custom apps — if you can build it, we can host it. Tailored environments for your unique stack.",
     price: "From $10/mo",
-    color: "text-orange-500",
-    bg: "bg-orange-500/10",
+    color: "text-red-600",
+    bg: "bg-red-700/10",
   },
 ];
 
@@ -83,7 +83,7 @@ export default function HostingPage() {
           aria-hidden="true"
         >
           <div className="absolute -top-24 -left-32 w-[600px] h-[600px] rounded-full bg-blue-600/20 blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />
-          <div className="absolute -bottom-24 -right-32 w-[500px] h-[500px] rounded-full bg-purple-600/20 blur-[120px] animate-[pulse_10s_ease-in-out_infinite_2s]" />
+          <div className="absolute -bottom-24 -right-32 w-[500px] h-[500px] rounded-full bg-blue-700/20 blur-[120px] animate-[pulse_10s_ease-in-out_infinite_2s]" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] rounded-full bg-indigo-600/10 blur-[100px] animate-[pulse_12s_ease-in-out_infinite_4s]" />
         </div>
 
@@ -104,7 +104,7 @@ export default function HostingPage() {
           </div>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-tight tracking-tight">
             Lightning-Fast Hosting for{" "}
-            <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-500 bg-clip-text text-transparent">
               Websites, Minecraft Servers &amp; Everything In Between
             </span>
           </h1>
@@ -230,7 +230,7 @@ export default function HostingPage() {
 
       {/* Bottom CTA */}
       <section
-        className="bg-gradient-to-br from-blue-900/40 via-[#0a0a12] to-purple-900/40 border-t border-white/5 px-4 py-24 text-center"
+        className="bg-gradient-to-br from-blue-900/40 via-[#0a0a12] to-blue-900/40 border-t border-white/5 px-4 py-24 text-center"
         data-testid="section-cta"
       >
         <div className="max-w-2xl mx-auto">

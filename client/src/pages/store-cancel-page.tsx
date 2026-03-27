@@ -6,8 +6,8 @@ export default function StoreCancelPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
       <div className="flex flex-col items-center gap-6 text-center max-w-md">
-        <div className="h-20 w-20 rounded-full bg-orange-500/10 flex items-center justify-center">
-          <XCircle className="h-10 w-10 text-orange-500" />
+        <div className="h-20 w-20 rounded-full bg-red-700/10 flex items-center justify-center">
+          <XCircle className="h-10 w-10 text-red-600" />
         </div>
         <div>
           <h1 className="text-2xl font-bold mb-2" data-testid="text-cancel-heading">
@@ -19,7 +19,7 @@ export default function StoreCancelPage() {
         </div>
         <Link href="/store">
           <Button
-            className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
+            className="bg-red-700 hover:bg-red-800 text-white gap-2"
             data-testid="button-back-to-store"
           >
             <ShoppingBag className="h-4 w-4" />

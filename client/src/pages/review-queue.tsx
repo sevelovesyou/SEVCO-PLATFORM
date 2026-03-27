@@ -82,7 +82,7 @@ export default function ReviewQueue() {
       pending: { icon: Clock, color: "text-yellow-600 dark:text-yellow-400", label: "Pending" },
       approved: { icon: CheckCircle, color: "text-green-600 dark:text-green-400", label: "Approved" },
       rejected: { icon: XCircle, color: "text-destructive", label: "Rejected" },
-      flagged: { icon: AlertTriangle, color: "text-orange-500", label: "Flagged" },
+      flagged: { icon: AlertTriangle, color: "text-red-600", label: "Flagged" },
     };
 
     const config = statusConfig[revision.status] || statusConfig.pending;

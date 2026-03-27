@@ -59,10 +59,10 @@ function PlaylistCard({ playlist }: { playlist: Playlist }) {
         className={`overflow-hidden group transition-all flex flex-col ${isActive ? "ring-2 ring-[#1DB954]" : "hover-elevate"}`}
         data-testid={`card-playlist-${playlist.id}`}
       >
-        <div className="flex-1 bg-gradient-to-br from-violet-600/20 via-purple-500/15 to-indigo-600/20 p-4 flex flex-col gap-3 min-h-[140px]">
+        <div className="flex-1 bg-gradient-to-br from-blue-700/20 via-blue-600/15 to-indigo-600/20 p-4 flex flex-col gap-3 min-h-[140px]">
           <div className="flex items-start justify-between gap-2">
-            <div className="h-8 w-8 rounded-lg bg-violet-500/20 flex items-center justify-center shrink-0">
-              <ListMusic className="h-4 w-4 text-violet-400" />
+            <div className="h-8 w-8 rounded-lg bg-blue-600/20 flex items-center justify-center shrink-0">
+              <ListMusic className="h-4 w-4 text-blue-500" />
             </div>
             {isActive && (
               <Badge className="bg-[#1DB954] text-black text-[10px] px-1.5 py-0 font-semibold shrink-0">Playing</Badge>
@@ -117,7 +117,7 @@ function PlaylistCard({ playlist }: { playlist: Playlist }) {
       className={`overflow-hidden group transition-all ${isActive ? "ring-2 ring-[#1DB954]" : "hover-elevate"}`}
       data-testid={`card-playlist-${playlist.id}`}
     >
-      <div className="aspect-square bg-gradient-to-br from-violet-500/20 to-purple-500/10 flex items-center justify-center relative overflow-hidden">
+      <div className="aspect-square bg-gradient-to-br from-blue-600/20 to-blue-700/10 flex items-center justify-center relative overflow-hidden">
         <img
           src={playlist.coverImageUrl}
           alt={playlist.title}
@@ -430,8 +430,8 @@ export default function MusicPlaylistsPage() {
           <div className="border rounded-2xl overflow-hidden">
             <div className="bg-muted/40 p-6 md:p-8">
               <div className="flex items-start gap-4 mb-6">
-                <div className="h-10 w-10 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
-                  <Music className="h-5 w-5 text-violet-500" />
+                <div className="h-10 w-10 rounded-xl bg-blue-600/10 flex items-center justify-center shrink-0">
+                  <Music className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
                   <h2 className="font-bold text-lg mb-1">Suggest Your Music</h2>

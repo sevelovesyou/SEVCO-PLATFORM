@@ -37,7 +37,7 @@ export default function StoreSuccessPage() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
       {status === "loading" && (
         <div className="flex flex-col items-center gap-4 text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-orange-500" />
+          <Loader2 className="h-10 w-10 animate-spin text-red-600" />
           <p className="text-muted-foreground text-sm">Confirming your order…</p>
         </div>
       )}
@@ -73,7 +73,7 @@ export default function StoreSuccessPage() {
             </Link>
             <Link href="/">
               <Button
-                className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
+                className="bg-red-700 hover:bg-red-800 text-white gap-2"
                 data-testid="button-go-home"
               >
                 Go to Dashboard

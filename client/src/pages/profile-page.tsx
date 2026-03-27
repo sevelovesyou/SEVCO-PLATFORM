@@ -61,9 +61,9 @@ import { SevcoLogo } from "@/components/sevco-logo";
 
 const ROLE_BADGE: Record<string, { label: string; color: string }> = {
   admin:     { label: "Admin",     color: "#ef4444" },
-  executive: { label: "Executive", color: "#8b5cf6" },
+  executive: { label: "Executive", color: "#0037ff" },
   staff:     { label: "Staff",     color: "#22c55e" },
-  partner:   { label: "Partner",   color: "#f97316" },
+  partner:   { label: "Partner",   color: "#BE0000" },
   client:    { label: "Client",    color: "#eab308" },
   user:      { label: "Member",    color: "#6b7280" },
 };

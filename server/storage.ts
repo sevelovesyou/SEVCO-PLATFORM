@@ -2068,7 +2068,7 @@ export class DatabaseStorage implements IStorage {
     const existing = await db.select().from(newsCategories);
     if (existing.length > 0) return;
     await db.insert(newsCategories).values([
-      { name: "Music & Entertainment", query: "SEVCO music OR music industry", accentColor: "#8b5cf6", displayOrder: 0, enabled: true },
+      { name: "Music & Entertainment", query: "SEVCO music OR music industry", accentColor: "#0037ff", displayOrder: 0, enabled: true },
       { name: "Technology", query: "technology startup AI", accentColor: "#3b82f6", displayOrder: 1, enabled: true },
       { name: "Business", query: "business entrepreneurship startup", accentColor: "#10b981", displayOrder: 2, enabled: true },
     ]);

@@ -87,8 +87,8 @@ type ReplyWithAuthor = {
 const TYPE_META: Record<FeedPostType, { label: string; color: string; icon: React.ElementType }> = {
   update:    { label: "Update",    color: "text-blue-500 bg-blue-500/10",     icon: Info },
   release:   { label: "Release",   color: "text-primary bg-primary/10",       icon: Zap },
-  milestone: { label: "Milestone", color: "text-purple-500 bg-purple-500/10", icon: Flag },
-  media:     { label: "Media",     color: "text-orange-500 bg-orange-500/10", icon: ImageIcon },
+  milestone: { label: "Milestone", color: "text-blue-600 bg-blue-600/10", icon: Flag },
+  media:     { label: "Media",     color: "text-red-600 bg-red-700/10", icon: ImageIcon },
   event:     { label: "Event",     color: "text-green-500 bg-green-500/10",   icon: CalendarDays },
 };
 

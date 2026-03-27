@@ -39,8 +39,8 @@ function ArtistCard({ artist }: { artist: Artist }) {
         className="flex items-center gap-3 px-4 py-3 rounded-xl border hover:border-foreground/20 hover:bg-muted/30 transition-all cursor-pointer group"
         data-testid={`card-artist-${artist.id}`}
       >
-        <div className="h-10 w-10 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0">
-          <Users className="h-4 w-4 text-violet-500" />
+        <div className="h-10 w-10 rounded-full bg-blue-600/10 flex items-center justify-center shrink-0">
+          <Users className="h-4 w-4 text-blue-600" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm truncate">{artist.name}</p>
@@ -58,8 +58,8 @@ function AlbumCard({ album }: { album: AlbumWithArtist }) {
   return (
     <Link href={`/music/albums/${album.slug}`}>
       <div className="group cursor-pointer" data-testid={`card-album-${album.id}`}>
-        <div className="aspect-square rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/10 flex items-center justify-center mb-3 overflow-hidden group-hover:ring-2 group-hover:ring-violet-500/30 transition-all">
-          <Disc className="h-10 w-10 text-violet-400 opacity-60 group-hover:rotate-12 transition-transform duration-300" />
+        <div className="aspect-square rounded-xl bg-gradient-to-br from-blue-600/20 to-blue-700/10 flex items-center justify-center mb-3 overflow-hidden group-hover:ring-2 group-hover:ring-blue-600/30 transition-all">
+          <Disc className="h-10 w-10 text-blue-500 opacity-60 group-hover:rotate-12 transition-transform duration-300" />
         </div>
         <p className="font-semibold text-sm truncate">{album.title}</p>
         <p className="text-xs text-muted-foreground truncate">{album.artist?.name}</p>
@@ -83,11 +83,11 @@ function FeaturedPlaylistCard({ playlist }: { playlist: Playlist }) {
       className={`overflow-hidden group transition-all ${isActive ? "ring-2 ring-[#1DB954]" : ""}`}
       data-testid={`card-featured-playlist-${playlist.id}`}
     >
-      <div className="aspect-square bg-gradient-to-br from-violet-500/20 to-purple-500/10 flex items-center justify-center relative overflow-hidden">
+      <div className="aspect-square bg-gradient-to-br from-blue-600/20 to-blue-700/10 flex items-center justify-center relative overflow-hidden">
         {playlist.coverImageUrl ? (
           <img src={playlist.coverImageUrl} alt={playlist.title} className="w-full h-full object-cover" loading="lazy" />
         ) : (
-          <ListMusic className="h-8 w-8 text-violet-400 opacity-50 group-hover:scale-110 transition-transform duration-300" />
+          <ListMusic className="h-8 w-8 text-blue-500 opacity-50 group-hover:scale-110 transition-transform duration-300" />
         )}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
         {isActive && (
@@ -176,7 +176,7 @@ export default function MusicPage() {
       >
         {/* Hero */}
         <div
-          className="rounded-2xl bg-gradient-to-br from-violet-700 via-violet-800 to-purple-900 text-white p-8 md:p-12 relative overflow-hidden mb-12"
+          className="rounded-2xl bg-gradient-to-br from-blue-700 via-blue-800 to-blue-900 text-white p-8 md:p-12 relative overflow-hidden mb-12"
           style={musicAccentHsl ? {
             background: `linear-gradient(135deg, hsl(${musicAccentHsl}), hsl(${musicAccentHsl} / 0.7))`,
           } : undefined}
@@ -349,8 +349,8 @@ export default function MusicPage() {
         {/* Submit CTA */}
         <section>
           <div className="rounded-2xl bg-muted/40 border p-8 md:p-10 text-center">
-            <div className="h-12 w-12 rounded-2xl bg-violet-500/10 flex items-center justify-center mx-auto mb-4">
-              <Music className="h-6 w-6 text-violet-500" />
+            <div className="h-12 w-12 rounded-2xl bg-blue-600/10 flex items-center justify-center mx-auto mb-4">
+              <Music className="h-6 w-6 text-blue-600" />
             </div>
             <h2 className="text-2xl font-bold mb-2">Make music?</h2>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto text-sm">

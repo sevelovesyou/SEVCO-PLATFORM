@@ -220,9 +220,11 @@ export default function Landing() {
   const btn1Label = settings["hero.button1.label"] || DEFAULT_BTN1_LABEL;
   const btn1Url = settings["hero.button1.url"] || DEFAULT_BTN1_URL;
   const btn1IconName = settings["hero.button1.icon"];
+  const btn1Color = settings["hero.button1.color"];
   const btn2Label = settings["hero.button2.label"] || DEFAULT_BTN2_LABEL;
   const btn2Url = settings["hero.button2.url"] || DEFAULT_BTN2_URL;
   const btn2IconName = settings["hero.button2.icon"];
+  const btn2Color = settings["hero.button2.color"];
   const heroOverlayOpacity = settings["hero.overlayOpacity"] ? parseInt(settings["hero.overlayOpacity"]) / 100 : 0.7;
 
   let whySevcoPills = DEFAULT_WHY_SEVCO_PILLS;
@@ -331,7 +333,8 @@ export default function Landing() {
             <Link href={btn1Url}>
               <Button
                 size="lg"
-                className="bg-orange-500 hover:bg-orange-400 text-white font-semibold gap-2 px-6 shadow-lg"
+                className={btn1Color ? "hover:opacity-90 text-white font-semibold gap-2 px-6 shadow-lg" : "bg-orange-500 hover:bg-orange-400 text-white font-semibold gap-2 px-6 shadow-lg"}
+                style={btn1Color ? { backgroundColor: btn1Color, borderColor: btn1Color, color: "#fff" } : undefined}
                 data-testid="button-hero-primary"
               >
                 <Btn1Icon className="h-4 w-4" />
@@ -343,6 +346,7 @@ export default function Landing() {
                 size="lg"
                 variant="ghost"
                 className="text-white/70 hover:text-white hover:bg-white/10 border border-white/10 font-semibold gap-2 px-6"
+                style={btn2Color ? { backgroundColor: btn2Color, borderColor: btn2Color, color: "#fff" } : undefined}
                 data-testid="button-hero-secondary"
               >
                 <Btn2Icon className="h-4 w-4" />

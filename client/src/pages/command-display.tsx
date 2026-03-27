@@ -90,9 +90,11 @@ export default function CommandDisplay() {
   const [btn1Label, setBtn1Label] = useState("");
   const [btn1Url, setBtn1Url] = useState("");
   const [btn1Icon, setBtn1Icon] = useState("");
+  const [btn1Color, setBtn1Color] = useState("");
   const [btn2Label, setBtn2Label] = useState("");
   const [btn2Url, setBtn2Url] = useState("");
   const [btn2Icon, setBtn2Icon] = useState("");
+  const [btn2Color, setBtn2Color] = useState("");
   const [sectionVisibility, setSectionVisibility] = useState<Record<string, boolean>>({});
   const [faviconUrl, setFaviconUrl] = useState("");
   const [ogImageUrl, setOgImageUrl] = useState("");
@@ -136,9 +138,11 @@ export default function CommandDisplay() {
     setBtn1Label(settings["hero.button1.label"] ?? "");
     setBtn1Url(settings["hero.button1.url"] ?? "");
     setBtn1Icon(settings["hero.button1.icon"] ?? "");
+    setBtn1Color(settings["hero.button1.color"] ?? "");
     setBtn2Label(settings["hero.button2.label"] ?? "");
     setBtn2Url(settings["hero.button2.url"] ?? "");
     setBtn2Icon(settings["hero.button2.icon"] ?? "");
+    setBtn2Color(settings["hero.button2.color"] ?? "");
     setFaviconUrl(settings["platform.faviconUrl"] ?? "");
     setOgImageUrl(settings["platform.ogImageUrl"] ?? "");
     setPlatformLogoUrl(settings["platform.logoUrl"] ?? "");
@@ -205,9 +209,11 @@ export default function CommandDisplay() {
       "hero.button1.label": btn1Label,
       "hero.button1.url": btn1Url,
       "hero.button1.icon": btn1Icon,
+      "hero.button1.color": btn1Color,
       "hero.button2.label": btn2Label,
       "hero.button2.url": btn2Url,
       "hero.button2.icon": btn2Icon,
+      "hero.button2.color": btn2Color,
     });
   }
 
@@ -632,6 +638,20 @@ export default function CommandDisplay() {
                 />
               </div>
             </div>
+            <div className="flex items-center gap-2">
+              <Label className="w-16 text-xs shrink-0">Color</Label>
+              <input
+                type="color"
+                value={btn1Color || "#f97316"}
+                onChange={(e) => setBtn1Color(e.target.value)}
+                className="h-7 w-12 rounded border cursor-pointer"
+                data-testid="input-hero-button1-color"
+              />
+              <span className="text-xs text-muted-foreground font-mono">{btn1Color || "#f97316"}</span>
+              <Button variant="ghost" size="sm" onClick={() => setBtn1Color("")} className="text-xs h-6 px-2">
+                Reset
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -670,6 +690,20 @@ export default function CommandDisplay() {
                   data-testid="input-btn2-icon"
                 />
               </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="w-16 text-xs shrink-0">Color</Label>
+              <input
+                type="color"
+                value={btn2Color || "#ffffff"}
+                onChange={(e) => setBtn2Color(e.target.value)}
+                className="h-7 w-12 rounded border cursor-pointer"
+                data-testid="input-hero-button2-color"
+              />
+              <span className="text-xs text-muted-foreground font-mono">{btn2Color || "default (outline)"}</span>
+              <Button variant="ghost" size="sm" onClick={() => setBtn2Color("")} className="text-xs h-6 px-2">
+                Reset
+              </Button>
             </div>
           </div>
 

@@ -561,7 +561,6 @@ function AiAgentView({ agent, onBack, onPopOut }: { agent: AiAgent; onBack: () =
                 )
               )}
               <div className={`flex flex-col max-w-[80%] ${isUser ? "items-end" : "items-start"}`}>
-<<<<<<< HEAD
                 {(() => {
                   const imgMatch = !isUser && msg.content.startsWith("![") && msg.content.match(/!\[.*?\]\((https?:\/\/[^)]+)\)/);
                   if (imgMatch) {
@@ -577,16 +576,11 @@ function AiAgentView({ agent, onBack, onPopOut }: { agent: AiAgent; onBack: () =
                     );
                   }
                   return (
-                    <div className={`rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap break-words ${isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
-                      {msg.content}
+                    <div className={`rounded-2xl px-3 py-2 text-sm break-words ${isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+                      {isUser ? msg.content : <AiMessageRenderer content={msg.content} />}
                     </div>
                   );
                 })()}
-=======
-                <div className={`rounded-2xl px-3 py-2 text-sm break-words ${isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
-                  {isUser ? msg.content : <AiMessageRenderer content={msg.content} />}
-                </div>
->>>>>>> 22fbbd1 (feat(chat): fullscreen & floating chat windows (Task #113))
                 <span className="text-[10px] text-muted-foreground mt-0.5 px-1">
                   {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </span>

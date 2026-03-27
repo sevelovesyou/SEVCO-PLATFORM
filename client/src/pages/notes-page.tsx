@@ -40,6 +40,8 @@ import {
   Copy,
   Download,
   FileText,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { Link } from "wouter";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -317,6 +319,8 @@ export default function NotesPage() {
   const [showCollabPanel, setShowCollabPanel] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [mobileShowEditor, setMobileShowEditor] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const titleRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<string>("");
@@ -344,12 +348,26 @@ export default function NotesPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { title?: string; content?: string; pinned?: boolean; color?: string } }) =>
-      apiRequest("PATCH", `/api/notes/${id}`, data),
+    mutationFn: ({ id, data }: { id: number; data: { title?: string; content?: string; pinned?: boolean; color?: string } }) => {
+      if (data.title !== undefined || data.content !== undefined) {
+        setSaveStatus("saving");
+      }
+      return apiRequest("PATCH", `/api/notes/${id}`, data);
+    },
     onSuccess: (_, { id, data }) => {
       queryClient.setQueryData<Note[]>(["/api/notes"], (old = []) =>
         old.map((n) => n.id === id ? { ...n, ...data, updatedAt: new Date().toISOString() } : n)
       );
+      if (data.title !== undefined || data.content !== undefined) {
+        setSaveStatus("saved");
+        if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+        savedTimerRef.current = setTimeout(() => setSaveStatus("idle"), 2000);
+      }
+    },
+    onError: (_, { data }) => {
+      if (data.title !== undefined || data.content !== undefined) {
+        setSaveStatus("idle");
+      }
     },
   });
 
@@ -379,8 +397,15 @@ export default function NotesPage() {
       lastSavedRef.current = { title: selectedNote.title, content: selectedNote.content };
       contentRef.current = selectedNote.content;
       if (titleRef.current) titleRef.current.value = selectedNote.title;
+      setSaveStatus("idle");
     }
   }, [selectedNote?.id]);
+
+  useEffect(() => {
+    return () => {
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    };
+  }, []);
 
   const filteredNotes = notes.filter((n) => {
     if (!search.trim()) return true;
@@ -410,12 +435,12 @@ export default function NotesPage() {
 
   const color = selectedNote ? getNoteColor(selectedNote.color) : getNoteColor("default");
 
-  function handleContentChange(html: string) {
+  const handleContentChange = useCallback((html: string) => {
     contentRef.current = html;
-    if (selectedNote) {
-      scheduleAutoSave(selectedNote.id, titleRef.current?.value ?? selectedNote.title, html);
+    if (selectedId) {
+      scheduleAutoSave(selectedId, titleRef.current?.value ?? "", html);
     }
-  }
+  }, [selectedId, scheduleAutoSave]);
 
   if (!authLoading && !user) {
     return (
@@ -775,15 +800,29 @@ export default function NotesPage() {
 
               {/* Save indicator */}
               <div className="px-6 py-1 border-t border-border/30 flex items-center justify-between">
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-[10px] text-muted-foreground" data-testid="text-last-edited">
                   Edited {formatDate(selectedNote.updatedAt)}
                 </p>
-                {!isOwner && (
-                  <p className="text-[10px] text-blue-500 flex items-center gap-1">
-                    <Users className="h-2.5 w-2.5" />
-                    Shared with you
-                  </p>
-                )}
+                <div className="flex items-center gap-2">
+                  {saveStatus === "saving" && (
+                    <span className="text-[10px] text-muted-foreground flex items-center gap-1" data-testid="status-saving">
+                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                      Saving…
+                    </span>
+                  )}
+                  {saveStatus === "saved" && (
+                    <span className="text-[10px] text-green-600 dark:text-green-400 flex items-center gap-1" data-testid="status-saved">
+                      <CheckCircle2 className="h-2.5 w-2.5" />
+                      Saved
+                    </span>
+                  )}
+                  {!isOwner && (
+                    <p className="text-[10px] text-blue-500 flex items-center gap-1">
+                      <Users className="h-2.5 w-2.5" />
+                      Shared with you
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </>

@@ -5,7 +5,7 @@ import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Image from "@tiptap/extension-image";
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -64,6 +64,8 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
   const insertImageUrl = useCallback((url: string, editorInstance: ReturnType<typeof useEditor>) => {
     editorInstance?.chain().focus().setImage({ src: url }).run();
@@ -101,7 +103,7 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
     ],
     content: value,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      onChangeRef.current(editor.getHTML());
     },
     editorProps: {
       attributes: {
@@ -168,8 +170,8 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
   };
 
   return (
-    <div className={cn("border rounded-md overflow-hidden", className)}>
-      <div className="flex flex-wrap items-center gap-0.5 p-1.5 border-b bg-muted/30">
+    <div className={cn("border rounded-md overflow-hidden flex flex-col", className)}>
+      <div className="flex flex-wrap items-center gap-0.5 p-1.5 border-b bg-muted/30 sticky top-0 z-10">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           active={editor.isActive("bold")}

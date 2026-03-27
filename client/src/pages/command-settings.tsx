@@ -747,6 +747,7 @@ export default function CommandSettings() {
 
   // ── Search state ──
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("display");
 
   // ── Display state ──
   const [heroBgUrl, setHeroBgUrl] = useState("");
@@ -1459,18 +1460,21 @@ export default function CommandSettings() {
         )}
       </div>
 
-      <Tabs defaultValue="display">
+      <Tabs value={searchQuery ? "search-all" : activeTab} onValueChange={(v) => { if (!searchQuery) setActiveTab(v); }}>
           <TabsList className="flex flex-wrap gap-1 h-auto mb-6" data-testid="tabs-settings-main">
-            <TabsTrigger value="display" data-testid="tab-display">Display</TabsTrigger>
-            <TabsTrigger value="theme" data-testid="tab-theme">Theme</TabsTrigger>
-            <TabsTrigger value="navigation" data-testid="tab-navigation">Navigation</TabsTrigger>
-            <TabsTrigger value="analytics" data-testid="tab-analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="integrations" data-testid="tab-integrations">Integrations</TabsTrigger>
-            <TabsTrigger value="advanced" data-testid="tab-advanced">Advanced</TabsTrigger>
+            <TabsTrigger value="display" data-testid="tab-display" onClick={() => { setSearchQuery(""); setActiveTab("display"); }}>Display</TabsTrigger>
+            <TabsTrigger value="theme" data-testid="tab-theme" onClick={() => { setSearchQuery(""); setActiveTab("theme"); }}>Theme</TabsTrigger>
+            <TabsTrigger value="navigation" data-testid="tab-navigation" onClick={() => { setSearchQuery(""); setActiveTab("navigation"); }}>Navigation</TabsTrigger>
+            <TabsTrigger value="analytics" data-testid="tab-analytics" onClick={() => { setSearchQuery(""); setActiveTab("analytics"); }}>Analytics</TabsTrigger>
+            <TabsTrigger value="integrations" data-testid="tab-integrations" onClick={() => { setSearchQuery(""); setActiveTab("integrations"); }}>Integrations</TabsTrigger>
+            <TabsTrigger value="advanced" data-testid="tab-advanced" onClick={() => { setSearchQuery(""); setActiveTab("advanced"); }}>Advanced</TabsTrigger>
           </TabsList>
+          {searchQuery && (
+            <p className="text-xs text-muted-foreground mb-4" data-testid="text-search-scope">Showing results across all settings</p>
+          )}
 
           {/* ════════════ DISPLAY ════════════ */}
-          <TabsContent value="display" className="space-y-6">
+          <TabsContent value="display" forceMount className={`space-y-6 ${(!searchQuery && activeTab !== "display") ? "hidden" : ""}`}>
               {/* Hero Editor */}
               <Card data-search-label="hero editor logo background overlay tagline buttons footer version" className={cardVisible("hero editor logo background overlay tagline buttons footer version") ? "" : "hidden"}>
                 <CardHeader>
@@ -1750,7 +1754,7 @@ export default function CommandSettings() {
             </TabsContent>
 
           {/* ════════════ THEME ════════════ */}
-          <TabsContent value="theme">
+          <TabsContent value="theme" forceMount className={(!searchQuery && activeTab !== "theme") ? "hidden" : ""}>
               <div className="flex gap-6">
                 {/* Main column */}
                 <div className="flex-1 min-w-0 space-y-4">
@@ -2211,7 +2215,7 @@ export default function CommandSettings() {
             </TabsContent>
 
           {/* ════════════ NAVIGATION ════════════ */}
-          <TabsContent value="navigation" className="space-y-6">
+          <TabsContent value="navigation" forceMount className={`space-y-6 ${(!searchQuery && activeTab !== "navigation") ? "hidden" : ""}`}>
               {/* Sidebar Nav Colors */}
               <Card data-search-label="navigation sidebar nav colors active highlight hover menu dropdown" className={cardVisible("navigation sidebar nav colors active highlight hover menu dropdown") ? "" : "hidden"}>
                 <CardHeader>
@@ -2311,7 +2315,7 @@ export default function CommandSettings() {
             </TabsContent>
 
           {/* ════════════ ANALYTICS ════════════ */}
-          <TabsContent value="analytics" className="space-y-6">
+          <TabsContent value="analytics" forceMount className={`space-y-6 ${(!searchQuery && activeTab !== "analytics") ? "hidden" : ""}`}>
               <Card data-search-label="Google Analytics GA4 measurement ID property ID service account tracking" className={cardVisible("Google Analytics GA4 measurement ID property ID service account tracking") ? "" : "hidden"}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -2423,7 +2427,7 @@ export default function CommandSettings() {
             </TabsContent>
 
           {/* ════════════ INTEGRATIONS ════════════ */}
-          <TabsContent value="integrations" className="space-y-6">
+          <TabsContent value="integrations" forceMount className={`space-y-6 ${(!searchQuery && activeTab !== "integrations") ? "hidden" : ""}`}>
               {/* Email Diagnostics */}
               <Card data-search-label="email diagnostics Resend test email integration" className={cardVisible("email diagnostics Resend test email integration") ? "" : "hidden"}>
                 <CardHeader>
@@ -2512,7 +2516,7 @@ export default function CommandSettings() {
             </TabsContent>
 
           {/* ════════════ ADVANCED ════════════ */}
-          <TabsContent value="advanced" className="space-y-6">
+          <TabsContent value="advanced" forceMount className={`space-y-6 ${(!searchQuery && activeTab !== "advanced") ? "hidden" : ""}`}>
               {/* Platform Section Cards */}
               <Card data-search-label="platform section cards wiki store music projects services community description icon path" className={cardVisible("platform section cards wiki store music projects services community description icon path") ? "" : "hidden"}>
                 <CardHeader>

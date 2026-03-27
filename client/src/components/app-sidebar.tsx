@@ -71,10 +71,6 @@ export function AppSidebar() {
     enabled: canAccessReviewQueue,
   });
 
-  const { data: latestUpdate } = useQuery<{ updatedAt: string | null }>({
-    queryKey: ["/api/articles/latest-update"],
-  });
-
   const { data: archivedArticles } = useQuery<Article[]>({
     queryKey: ["/api/articles/archived"],
     enabled: canAccessArchive,
@@ -90,12 +86,6 @@ export function AppSidebar() {
       toast({ title: "Failed to unarchive article", variant: "destructive" });
     },
   });
-
-  const lastUpdatedLabel = (() => {
-    if (!latestUpdate?.updatedAt) return null;
-    const d = new Date(latestUpdate.updatedAt);
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  })();
 
   const navItems = [
     { title: "Home", url: "/wiki", icon: BookOpen, show: true },
@@ -118,7 +108,7 @@ export function AppSidebar() {
               </div>
               <div className="min-w-0">
                 <h1 className="text-sm font-bold leading-tight truncate">
-                  SEVCO WIKI{lastUpdatedLabel ? ` — Updated ${lastUpdatedLabel}` : ""}
+                  Wiki
                 </h1>
               </div>
             </div>
@@ -285,7 +275,7 @@ export function AppSidebar() {
         </SidebarGroup>
       )}
       <SidebarFooter className="p-3">
-        <div className="text-[10px] text-muted-foreground text-center">
+        <div className="text-[10px] text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
           Encyclopedia for sevco.us
         </div>
       </SidebarFooter>

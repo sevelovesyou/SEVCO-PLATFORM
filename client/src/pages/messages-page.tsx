@@ -24,6 +24,7 @@ import { EmailReadView } from "@/components/email-read-view";
 import type { Email, ChatChannel, ChatMessage } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 import { isClientPlus } from "@/lib/permissions";
+import { useToast } from "@/hooks/use-toast";
 
 type ChatMessageWithUser = ChatMessage & {
   fromUser: { id: string; username: string; displayName: string | null; avatarUrl: string | null };
@@ -119,13 +120,16 @@ function EmailListItem({
 
 export default function MessagesPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [activeFolder, setActiveFolder] = useState<Folder>("inbox");
   const [selectedEmailId, setSelectedEmailId] = useState<number | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<ChatChannel | null>(null);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);
-  const [mobileView, setMobileView] = useState<"list" | "read">("list");
+  const [mobileView, setMobileView] = useState<"sidebar" | "list" | "read">("sidebar");
+  const [chatInput, setChatInput] = useState("");
+  const [sendingChat, setSendingChat] = useState(false);
 
   if (!user || !isClientPlus(user.role)) {
     return (
@@ -204,6 +208,11 @@ export default function MessagesPage() {
     }
   }
 
+  function handleFolderClick(folder: Folder) {
+    handleFolderChange(folder);
+    setMobileView("list");
+  }
+
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     setSearch(searchInput);
@@ -215,20 +224,40 @@ export default function MessagesPage() {
     setSelectedChannel(null);
     setSearch("");
     setSearchInput("");
-    setMobileView("list");
   }
 
   function handleSelectChannel(ch: ChatChannel) {
     setSelectedChannel(ch);
     setSelectedEmailId(null);
     setMobileView("read");
+    setChatInput("");
+  }
+
+  async function handleSendChatMessage() {
+    if (!selectedChannel || !chatInput.trim() || sendingChat) return;
+    setSendingChat(true);
+    try {
+      const res = await fetch(`/api/chat/channels/${selectedChannel.id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ content: chatInput.trim() }),
+      });
+      if (!res.ok) throw new Error("Failed to send message");
+      setChatInput("");
+      queryClient.invalidateQueries({ queryKey: ["/api/chat/channels", selectedChannel.id, "messages"] });
+    } catch {
+      toast({ title: "Failed to send message", variant: "destructive" });
+    } finally {
+      setSendingChat(false);
+    }
   }
 
   return (
     <div className="flex h-[calc(100vh-3rem)] overflow-hidden" data-testid="messages-page">
       <div
-        className={`w-48 shrink-0 border-r flex flex-col bg-muted/20 overflow-y-auto
-          ${mobileView === "read" ? "hidden md:flex" : "flex"} md:flex`}
+        className={`shrink-0 border-r flex flex-col bg-muted/20 overflow-y-auto
+          w-full md:w-48 ${mobileView === "sidebar" ? "flex" : "hidden"} md:flex`}
       >
         <div className="p-2 border-b flex items-center justify-between">
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Messages</span>
@@ -256,7 +285,7 @@ export default function MessagesPage() {
                 key={id}
                 className={`flex items-center justify-between w-full px-2 py-1.5 rounded-md text-sm transition-colors
                   ${activeFolder === id && !search ? "bg-primary text-primary-foreground font-medium" : "text-foreground hover:bg-muted"}`}
-                onClick={() => handleFolderChange(id)}
+                onClick={() => handleFolderClick(id)}
                 data-testid={`folder-${id}`}
               >
                 <div className="flex items-center gap-2">
@@ -313,9 +342,20 @@ export default function MessagesPage() {
 
       <div
         className={`flex flex-col border-r bg-background overflow-hidden
-          ${mobileView === "read" ? "hidden md:flex" : "flex"}
+          ${mobileView === "list" ? "flex" : "hidden"} md:flex
           w-full md:w-72 md:shrink-0`}
       >
+        <div className="md:hidden p-2 border-b">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setMobileView("sidebar")}
+            data-testid="button-back-to-sidebar"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+        </div>
         <div className="p-2 border-b">
           <form onSubmit={handleSearch} className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -378,7 +418,7 @@ export default function MessagesPage() {
 
       <div
         className={`flex-1 flex flex-col overflow-hidden bg-background
-          ${mobileView === "list" ? "hidden md:flex" : "flex"} md:flex`}
+          ${mobileView === "read" ? "flex" : "hidden"} md:flex`}
       >
         {mobileView === "read" && (
           <div className="md:hidden p-2 border-b">
@@ -397,6 +437,16 @@ export default function MessagesPage() {
         {selectedChannel ? (
           <div className="flex flex-col h-full" data-testid="channel-thread-view">
             <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="md:hidden mr-1 -ml-2 h-7"
+                onClick={() => { setSelectedChannel(null); setMobileView("list"); }}
+                data-testid="button-back-to-channels"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
               <Hash className="h-4 w-4 text-muted-foreground" />
               <span className="font-semibold text-sm">{selectedChannel.name}</span>
               {selectedChannel.description && (
@@ -442,6 +492,23 @@ export default function MessagesPage() {
                   );
                 })
               )}
+            </div>
+            <div className="border-t p-3 flex gap-2 shrink-0">
+              <Input
+                placeholder={`Message #${selectedChannel.name}…`}
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendChatMessage()}
+                data-testid="input-chat-message"
+              />
+              <Button
+                onClick={handleSendChatMessage}
+                disabled={!chatInput.trim() || sendingChat}
+                size="icon"
+                data-testid="button-send-chat"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         ) : selectedEmail ? (

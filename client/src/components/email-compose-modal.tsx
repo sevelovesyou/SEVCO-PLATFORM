@@ -159,7 +159,7 @@ export function EmailComposeModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="max-w-2xl w-full max-h-[90vh] flex flex-col" data-testid="modal-compose-email">
+      <DialogContent className="max-w-full sm:max-w-2xl mx-2 sm:mx-auto max-h-[90vh] flex flex-col" data-testid="modal-compose-email">
         <DialogHeader>
           <DialogTitle>{modeTitle}</DialogTitle>
         </DialogHeader>

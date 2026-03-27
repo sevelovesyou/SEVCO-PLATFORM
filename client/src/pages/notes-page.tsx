@@ -346,7 +346,11 @@ export default function NotesPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: { title?: string; content?: string; pinned?: boolean; color?: string } }) =>
       apiRequest("PATCH", `/api/notes/${id}`, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/notes"] }),
+    onSuccess: (_, { id, data }) => {
+      queryClient.setQueryData<Note[]>(["/api/notes"], (old = []) =>
+        old.map((n) => n.id === id ? { ...n, ...data, updatedAt: new Date().toISOString() } : n)
+      );
+    },
   });
 
   const deleteMutation = useMutation({
@@ -752,7 +756,7 @@ export default function NotesPage() {
                   className="w-full text-xl font-bold bg-transparent border-none outline-none placeholder:text-muted-foreground/40 text-foreground shrink-0"
                 />
                 <RichTextEditor
-                  key={selectedNote.id}
+                  key={selectedId ?? 0}
                   value={selectedNote.content}
                   onChange={handleContentChange}
                   placeholder="Start writing…"

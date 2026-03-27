@@ -5,7 +5,7 @@ import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Image from "@tiptap/extension-image";
-import { useEffect, useRef, useCallback } from "react";
+import { useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -64,7 +64,6 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const lastExternalValueRef = useRef<string>(value);
 
   const insertImageUrl = useCallback((url: string, editorInstance: ReturnType<typeof useEditor>) => {
     editorInstance?.chain().focus().setImage({ src: url }).run();
@@ -102,9 +101,7 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
     ],
     content: value,
     onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
-      lastExternalValueRef.current = html;
-      onChange(html);
+      onChange(editor.getHTML());
     },
     editorProps: {
       attributes: {
@@ -142,13 +139,6 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
       },
     },
   });
-
-  useEffect(() => {
-    if (!editor) return;
-    if (value === lastExternalValueRef.current) return;
-    lastExternalValueRef.current = value;
-    editor.commands.setContent(value, false);
-  }, [value, editor]);
 
   if (!editor) return null;
 

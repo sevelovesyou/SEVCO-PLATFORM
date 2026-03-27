@@ -326,6 +326,27 @@ async function seedMinecraftProject() {
   });
 }
 
+async function seedRecordsProject() {
+  const existing = await storage.getProjectBySlug("sevco-records");
+  if (existing) {
+    if (existing.linkUrl !== "/music") {
+      await storage.updateProject(existing.id, { linkUrl: "/music" });
+    }
+    return;
+  }
+  await storage.createProject({
+    name: "SEVCO RECORDS",
+    slug: "sevco-records",
+    description: "The official SEVCO record label — music, artists, and releases.",
+    status: "active",
+    type: "Record Label",
+    linkUrl: "/music",
+    featured: true,
+    tags: ["music", "records", "label"],
+    menuIcon: "Music",
+  });
+}
+
 async function seedChangelogV13() {
   const existing = await storage.getChangelog();
   const alreadySeeded = existing.some((e) => e.version === "1.3.0");
@@ -1090,6 +1111,7 @@ export async function registerRoutes(
   seedTaskChangelogEntries().catch(console.error);
   seedMinecraftServers().catch(console.error);
   seedMinecraftProject().catch(console.error);
+  seedRecordsProject().catch(console.error);
 
   // Initialize Supabase storage buckets
   import("./supabase").then(({ ensureBucketsExist }) => ensureBucketsExist().catch(console.error));

@@ -139,14 +139,19 @@ export async function sendTestEmail(toEmail: string) {
 }
 
 function getBaseUrl(): string {
-  if (process.env.REPLIT_DEV_DOMAIN) {
-    const url = `https://${process.env.REPLIT_DEV_DOMAIN}`;
-    console.log(`[emailClient] getBaseUrl() → ${url} (source: REPLIT_DEV_DOMAIN)`);
+  if (process.env.SITE_URL) {
+    const url = process.env.SITE_URL.replace(/\/$/, "");
+    console.log(`[emailClient] getBaseUrl() → ${url} (source: SITE_URL)`);
     return url;
   }
   if (process.env.REPLIT_DEPLOYMENT_URL) {
     const url = process.env.REPLIT_DEPLOYMENT_URL;
     console.log(`[emailClient] getBaseUrl() → ${url} (source: REPLIT_DEPLOYMENT_URL)`);
+    return url;
+  }
+  if (process.env.REPLIT_DEV_DOMAIN) {
+    const url = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+    console.log(`[emailClient] getBaseUrl() → ${url} (source: REPLIT_DEV_DOMAIN)`);
     return url;
   }
   console.warn('[emailClient] getBaseUrl() falling back to localhost:5000 — verification links will not work in production');

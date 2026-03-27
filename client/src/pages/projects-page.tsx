@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PageHead } from "@/components/page-head";
 import { Link } from "wouter";
-import { Folder, Plus, Globe, AlertCircle, Building2, GitBranch, Users, Zap, ArrowRight } from "lucide-react";
+import { Folder, Plus, Globe, AlertCircle, GitBranch, Users, Zap, ArrowRight } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -69,19 +69,28 @@ function resolveLucideIcon(name: string | null | undefined): React.ElementType |
 }
 
 function ProjectCard({ project }: { project: Project }) {
-  const MenuIcon = resolveLucideIcon(project.menuIcon) ?? Building2;
-  return (
-    <Link href={`/projects/${project.slug}`}>
-      <div
-        data-testid={`card-project-${project.id}`}
-        className="group border border-white/8 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/15 hover:shadow-md transition-all duration-200 cursor-pointer p-5 flex flex-col gap-3"
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+  const MenuIcon = resolveLucideIcon(project.menuIcon) ?? Folder;
+  const href = project.linkUrl || `/projects/${project.slug}`;
+  const isExternal = href.startsWith("http");
+  const cardContent = (
+    <div
+      data-testid={`card-project-${project.id}`}
+      className="group border border-white/8 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/15 hover:shadow-md transition-all duration-200 cursor-pointer p-5 flex flex-col gap-3"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0 overflow-hidden">
+          {project.appIcon ? (
+            <img
+              src={project.appIcon}
+              alt={project.name}
+              className="h-8 w-8 rounded-lg object-cover"
+            />
+          ) : (
             <MenuIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
-          </div>
-          <StatusBadge status={project.status} />
+          )}
         </div>
+        <StatusBadge status={project.status} />
+      </div>
         <div className="min-w-0">
           <h3 className="font-semibold text-base group-hover:text-primary transition-colors truncate">
             {project.name}
@@ -99,8 +108,15 @@ function ProjectCard({ project }: { project: Project }) {
           )}
         </div>
       </div>
-    </Link>
   );
+  if (isExternal) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer">
+        {cardContent}
+      </a>
+    );
+  }
+  return <Link href={href}>{cardContent}</Link>;
 }
 
 function ProjectCardSkeleton() {

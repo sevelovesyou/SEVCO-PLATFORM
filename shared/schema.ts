@@ -201,6 +201,7 @@ export const projects = pgTable("projects", {
   socialLinks: jsonb("social_links"),
   menuIcon: text("menu_icon"),
   appIcon: text("app_icon"),
+  linkUrl: text("link_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

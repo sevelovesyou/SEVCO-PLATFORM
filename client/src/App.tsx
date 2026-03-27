@@ -354,7 +354,12 @@ function PlatformColorInjector() {
     }
     if (navActiveHighlight) {
       lightRules.push(`  --sidebar-primary: ${navActiveHighlight};`);
+      lightRules.push(`  --sidebar-accent: ${navActiveHighlight};`);
       lightRules.push(`  --sidebar-ring: ${navActiveHighlight};`);
+      const parts = navActiveHighlight.trim().split(/\s+/);
+      const l = parts.length === 3 ? parseFloat(parts[2]) : 50;
+      const fg = l < 50 ? "0 0% 100%" : "224 71% 4%";
+      lightRules.push(`  --sidebar-accent-foreground: ${fg};`);
     }
     if (brandSecondary) {
       lightRules.push(`  --secondary: ${brandSecondary};`);
@@ -399,7 +404,12 @@ function PlatformColorInjector() {
     }
     if (navActiveHighlight) {
       darkRules.push(`  --sidebar-primary: ${navActiveHighlight};`);
+      darkRules.push(`  --sidebar-accent: ${navActiveHighlight};`);
       darkRules.push(`  --sidebar-ring: ${navActiveHighlight};`);
+      const parts = navActiveHighlight.trim().split(/\s+/);
+      const l = parts.length === 3 ? parseFloat(parts[2]) : 50;
+      const fg = l < 50 ? "0 0% 100%" : "224 71% 4%";
+      darkRules.push(`  --sidebar-accent-foreground: ${fg};`);
     }
     if (brandSecondary) {
       darkRules.push(`  --secondary: ${brandSecondary};`);

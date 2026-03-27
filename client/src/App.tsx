@@ -88,6 +88,9 @@ import CommandAiAgents from "@/pages/command-ai-agents";
 import CommandTraffic from "@/pages/command-traffic";
 import CommandNews from "@/pages/command-news";
 import MessagesPage from "@/pages/messages-page";
+import FullscreenChatPage from "@/pages/fullscreen-chat-page";
+import { FloatingChatProvider } from "@/contexts/floating-chat-context";
+import { FloatingChatWindows } from "@/components/floating-chat-window";
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new/", "/search", "/review", "/category/"];
 const COMMAND_PREFIXES = ["/command"];
@@ -169,6 +172,7 @@ function Router() {
       <Route path="/news" component={() => <Redirect to="/" />} />
       <Route path="/profile/:username" component={ProfilePage} />
       <Route path="/messages" component={() => <ClientPlusRoute><MessagesPage /></ClientPlusRoute>} />
+      <Route path="/chat" component={() => <ProtectedRoute><FullscreenChatPage /></ProtectedRoute>} />
 
       {/* Protected write/manage routes */}
       <Route path="/profile" component={ProfilePage} />
@@ -680,12 +684,15 @@ function App() {
         <AuthProvider>
           <CartProvider>
             <SpotifyPlayerProvider>
-              <TooltipProvider>
-                <DynamicHead />
-                <PlatformColorInjector />
-                <AppShell />
-                <Toaster />
-              </TooltipProvider>
+              <FloatingChatProvider>
+                <TooltipProvider>
+                  <DynamicHead />
+                  <PlatformColorInjector />
+                  <AppShell />
+                  <FloatingChatWindows />
+                  <Toaster />
+                </TooltipProvider>
+              </FloatingChatProvider>
             </SpotifyPlayerProvider>
           </CartProvider>
         </AuthProvider>

@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermission } from "@/hooks/use-permission";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -31,8 +32,12 @@ import {
   Lock,
   Bot,
   Trash2,
+  Maximize2,
+  ExternalLink,
 } from "lucide-react";
 import type { ChatChannel, User, AiAgent, AiMessage } from "@shared/schema";
+import { AiMessageRenderer } from "@/components/ai-message-renderer";
+import { useFloatingChat } from "@/contexts/floating-chat-context";
 
 type ChatUserInfo = {
   id: string;
@@ -167,9 +172,11 @@ function MessageComposer({ onSend, disabled }: { onSend: (content: string) => vo
 function ChannelView({
   channel,
   onBack,
+  onPopOut,
 }: {
   channel: ChatChannel;
   onBack: () => void;
+  onPopOut?: () => void;
 }) {
   const { user } = useAuth();
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -205,7 +212,19 @@ function ChannelView({
             <p className="text-[11px] text-muted-foreground truncate">{channel.description}</p>
           )}
         </div>
-        {channel.isPrivate && <Lock className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />}
+        {channel.isPrivate && <Lock className="h-3 w-3 text-muted-foreground shrink-0" />}
+        {onPopOut && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 ml-auto text-muted-foreground"
+            onClick={onPopOut}
+            data-testid={`button-popout-sheet-channel-${channel.id}`}
+            aria-label="Pop out"
+          >
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+          </Button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0" data-testid="channel-messages">
@@ -234,9 +253,11 @@ function ChannelView({
 function DmView({
   otherUser,
   onBack,
+  onPopOut,
 }: {
   otherUser: ChatUserInfo;
   onBack: () => void;
+  onPopOut?: () => void;
 }) {
   const { user } = useAuth();
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -267,10 +288,22 @@ function DmView({
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
         <Avatar user={otherUser} size={6} />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold truncate">{otherUser.displayName || otherUser.username}</p>
           <p className="text-[11px] text-muted-foreground">@{otherUser.username}</p>
         </div>
+        {onPopOut && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground"
+            onClick={onPopOut}
+            data-testid={`button-popout-sheet-dm-${otherUser.id}`}
+            aria-label="Pop out"
+          >
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+          </Button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0" data-testid="dm-messages">
@@ -431,7 +464,7 @@ function CreateChannelDialog({
   );
 }
 
-function AiAgentView({ agent, onBack }: { agent: AiAgent; onBack: () => void }) {
+function AiAgentView({ agent, onBack, onPopOut }: { agent: AiAgent; onBack: () => void; onPopOut?: () => void }) {
   const { toast } = useToast();
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -489,6 +522,18 @@ function AiAgentView({ agent, onBack }: { agent: AiAgent; onBack: () => void }) 
         >
           <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
         </Button>
+        {onPopOut && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground"
+            onClick={onPopOut}
+            data-testid={`button-popout-sheet-ai-${agent.id}`}
+            aria-label="Pop out"
+          >
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+          </Button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0" data-testid="ai-messages">
@@ -516,6 +561,7 @@ function AiAgentView({ agent, onBack }: { agent: AiAgent; onBack: () => void }) 
                 )
               )}
               <div className={`flex flex-col max-w-[80%] ${isUser ? "items-end" : "items-start"}`}>
+<<<<<<< HEAD
                 {(() => {
                   const imgMatch = !isUser && msg.content.startsWith("![") && msg.content.match(/!\[.*?\]\((https?:\/\/[^)]+)\)/);
                   if (imgMatch) {
@@ -536,6 +582,11 @@ function AiAgentView({ agent, onBack }: { agent: AiAgent; onBack: () => void }) 
                     </div>
                   );
                 })()}
+=======
+                <div className={`rounded-2xl px-3 py-2 text-sm break-words ${isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+                  {isUser ? msg.content : <AiMessageRenderer content={msg.content} />}
+                </div>
+>>>>>>> 22fbbd1 (feat(chat): fullscreen & floating chat windows (Task #113))
                 <span className="text-[10px] text-muted-foreground mt-0.5 px-1">
                   {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </span>
@@ -572,11 +623,36 @@ type View =
 export function ChatSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user } = useAuth();
   const { role } = usePermission();
+  const [, setLocation] = useLocation();
+  const { openWindow } = useFloatingChat();
   const canManageChannels = role === "admin" || role === "executive" || role === "staff";
 
   const [view, setView] = useState<View>({ type: "list" });
   const [newDmOpen, setNewDmOpen] = useState(false);
   const [createChannelOpen, setCreateChannelOpen] = useState(false);
+
+  function handleExpandFullscreen() {
+    if (view.type === "channel") {
+      setLocation(`/chat?type=channel&id=${view.channel.id}`);
+    } else if (view.type === "aiAgent") {
+      setLocation(`/chat?type=ai&id=${view.agent.id}`);
+    } else if (view.type === "dm") {
+      setLocation(`/chat?type=dm&id=${view.otherUser.id}`);
+    } else {
+      setLocation("/chat");
+    }
+    onClose();
+  }
+
+  function handlePopOut() {
+    if (view.type === "channel") {
+      openWindow({ type: "channel", channel: view.channel });
+    } else if (view.type === "dm") {
+      openWindow({ type: "dm", otherUser: view.otherUser });
+    } else if (view.type === "aiAgent") {
+      openWindow({ type: "aiAgent", agent: view.agent });
+    }
+  }
 
   const { data: channels = [] } = useQuery<ChatChannel[]>({
     queryKey: ["/api/chat/channels"],
@@ -613,6 +689,16 @@ export function ChatSheet({ open, onClose }: { open: boolean; onClose: () => voi
                     <MessageCircle className="h-4 w-4" />
                     Chat
                   </SheetTitle>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground"
+                    onClick={handleExpandFullscreen}
+                    data-testid="button-expand-chat-fullscreen"
+                    aria-label="Open fullscreen chat"
+                  >
+                    <Maximize2 className="h-4 w-4" aria-hidden="true" />
+                  </Button>
                 </div>
               </SheetHeader>
 
@@ -717,6 +803,7 @@ export function ChatSheet({ open, onClose }: { open: boolean; onClose: () => voi
             <ChannelView
               channel={view.channel}
               onBack={() => setView({ type: "list" })}
+              onPopOut={handlePopOut}
             />
           )}
 
@@ -724,6 +811,7 @@ export function ChatSheet({ open, onClose }: { open: boolean; onClose: () => voi
             <DmView
               otherUser={view.otherUser}
               onBack={() => setView({ type: "list" })}
+              onPopOut={handlePopOut}
             />
           )}
 
@@ -731,6 +819,7 @@ export function ChatSheet({ open, onClose }: { open: boolean; onClose: () => voi
             <AiAgentView
               agent={view.agent}
               onBack={() => setView({ type: "list" })}
+              onPopOut={handlePopOut}
             />
           )}
         </SheetContent>

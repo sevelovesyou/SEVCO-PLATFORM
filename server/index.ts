@@ -14,9 +14,21 @@ import { checkEmailCredentials } from "./emailClient";
 import { pool } from "./db";
 
 async function runStartupMigrations() {
+  // Task #100 — X OAuth
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS x_id TEXT;`);
   await pool.query(`ALTER TABLE users ALTER COLUMN password DROP NOT NULL;`);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS users_x_id_unique ON users(x_id) WHERE x_id IS NOT NULL;`);
+  // Task #110 — Profile overhaul
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS banner_url TEXT;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_bg_opacity INTEGER DEFAULT 20;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_status TEXT;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_featured_type TEXT;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_featured_id TEXT;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_layout TEXT DEFAULT 'default';`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_font TEXT DEFAULT 'default';`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_pronouns TEXT;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_accent_gradient BOOLEAN DEFAULT false;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_show_followers BOOLEAN DEFAULT true;`);
   console.log("[startup] migrations applied");
 }
 

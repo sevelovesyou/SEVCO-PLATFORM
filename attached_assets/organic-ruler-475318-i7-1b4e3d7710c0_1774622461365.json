@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "organic-ruler-475318-i7",
+  "private_key_id": "1b4e3d7710c0264d273d1876383dcf40900a05fb",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCbNkgZFSyje6BO\nplRwgG0NpXFv8o5lBW9XJvCHrGJGMuzSkTFwfyL6IILKCewc8ezIgrXpqQleB7IC\nDBpw6AHwscv1MW9lyv1LQAaTJQl8WZbNQ/n2rDQpXxKeTThzOtzT8ozb9SOUT7k+\nUDjR24kZOUiuCquH2VN9A4OgHritNZYprA2R/nMm5qhz/Rq+MQOl5U06CpcP3DeN\nelKdzrp1ZIktzWTGV/4+2EHvROiN1xKiptlydaHqfHxNcMoKX2RfSJM8LBgn/k7G\ni+UKpd8pTcCccWXAayOe7L2xXIXRRPe5h+JqR/q4guSZe6TX5xrmfzByn16inIUL\nwF8K0XPVAgMBAAECggEAG76CeT9UdR2kXGK1fc2rELEl25OxOeQUkLDUdoANKgyw\n0fvjqT8Ens7gaiKHau4gu//Hai7NzpnUCzMkJ9IFBMQXV+sgBUNZbxHRCwzoCusN\nvn/b5ujFwy5sKtFVWZ2oOxekb638T+bHT1jyKysRsOlRMVEVc8lYd+SAqwbKzqUa\nAMluadcF1jbviuIZQKDrtjF0+bPJ7Ruln2psLYxnS2aAbr9TcLFJeqHSaQphQQuc\nse0kvAikQAnmlSGMaj8VFNGvr6rw5QtjUw4JaupUEpRz3VHifFTk61XDG0fx5WKd\ndOJYk2GfGyl62ir4YdPHwid7jask1WKvJVd/nf2T6QKBgQDHp/jhwuGEwHpcDg33\nXj0cZPFPAEagsxvXzBZMlE6U8j4KrbKg+zpuy4Tc1mQ/GkWB48kMQFhAQ1zY46xe\nHo45DL451ynyyPU3WU4TcsccXnntkCxgGdSsAmnotOPyOFfS9MPmItlb47sW/V96\nu2Z+iUQuKey7rBP+NqDGApKGDQKBgQDHA3lgheFXHQ1CruAr6Kj318ya7bTexN4T\n75COuholhwtsFBo24t61Pb8/mc1+/NWastyhAAUbk/HIdsAcL085sVqVl12Icld8\nXbOjfu5FbMGOgvlYOksdApkOuzTeBVDiG0/5rzvpSziCNX+nWUFLwZFbDsGbDqAo\n6JzrQlC66QKBgHuhseXqjUdtANfcBB33hxP8Fcj7vMBp6IXaZLyK4ZYt4ukt4fz5\nVJejAuTVBUJl/ECQUsB5X6x7ihTr9qJZfWwqTej3KYyjj+T0MfqtCkqw3gOTUUc4\n946D+B0XVkd5SDjjRCNP1RSnkgSMZQFU5gTY7xU+9M7JoZ+7KBc1JJJJAoGAQg87\nKPkHtZzlG+9kZe7St4IgXoTs9s0uUjvBJj9MEozjE7sQgIuKFWsronbxKWfPl4wr\nhB23lFHlff89AZ4KlEH0qZcW6wXZWGTaDjlB6jWRgjajgc/HwxdrquIlSFVHZeZf\nA6hRIL1hQodzmh8cd4MHNsyNI2UVcL7V55mZppECgYBoVFWrmY+HaB0b2usatgNf\nCbgaGQoyzip9zcEzkITsUISEbp4HhqVH0pfoNzHYlXyPHIeVEFYvGPgBMZhs6Pdv\nR9n6cWo+POIX9uDUQVjMlnwx1Z2A9dB8EczjQjk5QMy5DuBPS0ur8K7LQvjpBXT5\nMeT9ZkNw53MZ2+FvBCPqjw==\n-----END PRIVATE KEY-----\n",
+  "client_email": "sevco-platform@organic-ruler-475318-i7.iam.gserviceaccount.com",
+  "client_id": "107317550509448873315",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/sevco-platform%40organic-ruler-475318-i7.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

@@ -25,7 +25,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Trash2, ExternalLink, Briefcase, Tag } from "lucide-react";
+import { Plus, Pencil, Trash2, ExternalLink, Briefcase, Tag, ChevronUp, ChevronDown, Save } from "lucide-react";
 import { Link } from "wouter";
 import type { Service } from "@shared/schema";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -421,6 +421,188 @@ function CategoriesTab({ categories }: { categories: string[] }) {
   );
 }
 
+function NavSettingsTab({ categories }: { categories: string[] }) {
+  const { toast } = useToast();
+
+  const { data: platformSettings, isLoading } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
+  });
+
+  const [navTitle, setNavTitle] = useState<string | null>(null);
+  const [navIcon, setNavIcon] = useState<string | null>(null);
+  const [categoryOrder, setCategoryOrder] = useState<string[] | null>(null);
+
+  const currentTitle = navTitle ?? (platformSettings?.["nav.services.title"] ?? "Services");
+  const currentIcon = navIcon ?? (platformSettings?.["nav.services.icon"] ?? "");
+  const ResolvedIcon = resolveLucideIcon(currentIcon);
+
+  const currentOrder: string[] = (() => {
+    if (categoryOrder !== null) return categoryOrder;
+    try {
+      const raw = platformSettings?.["nav.services.categoryOrder"];
+      if (raw) return JSON.parse(raw) as string[];
+    } catch {}
+    return [...categories].sort();
+  })();
+
+  const orderedCategories = (() => {
+    const inOrder = currentOrder.filter((c) => categories.includes(c));
+    const rest = categories.filter((c) => !currentOrder.includes(c)).sort();
+    return [...inOrder, ...rest];
+  })();
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("PUT", "/api/platform-settings", {
+        "nav.services.title": currentTitle,
+        "nav.services.icon": currentIcon,
+        "nav.services.categoryOrder": JSON.stringify(orderedCategories),
+      });
+      if (!res.ok) throw new Error((await res.json()).message);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/platform-settings"] });
+      setNavTitle(null);
+      setNavIcon(null);
+      setCategoryOrder(null);
+      toast({ title: "Navigation settings saved" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  function moveCategory(index: number, direction: -1 | 1) {
+    const newOrder = [...orderedCategories];
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= newOrder.length) return;
+    [newOrder[index], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[index]];
+    setCategoryOrder(newOrder);
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => <div key={i} className="h-10 rounded-xl bg-muted animate-pulse" />)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Customize how the Services section appears in the top navigation bar.
+        </p>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Navigation Label</label>
+            <Input
+              value={currentTitle}
+              onChange={(e) => setNavTitle(e.target.value)}
+              placeholder="Services"
+              data-testid="input-nav-services-title"
+            />
+            <p className="text-xs text-muted-foreground">The label shown in the top nav bar for the Services dropdown.</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Navigation Icon</label>
+            <div className="flex items-center gap-2">
+              <Input
+                value={currentIcon}
+                onChange={(e) => setNavIcon(e.target.value)}
+                placeholder="e.g. Briefcase, Wrench, Sparkles"
+                data-testid="input-nav-services-icon"
+              />
+              {ResolvedIcon ? (
+                <div className="h-9 w-9 flex items-center justify-center border border-border rounded-md bg-muted shrink-0">
+                  <ResolvedIcon className="h-4 w-4 text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="h-9 w-9 flex items-center justify-center border border-border rounded-md bg-muted shrink-0 opacity-40">
+                  <Briefcase className="h-4 w-4 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">Lucide icon name (PascalCase). Leave blank for no icon.</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <p className="text-sm font-medium">Category Display Order</p>
+        <p className="text-xs text-muted-foreground">Drag or use arrow buttons to reorder how categories appear in the Services mega-menu.</p>
+
+        {orderedCategories.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">No categories to order. Add categories first.</p>
+        ) : (
+          <div className="border border-border rounded-xl divide-y divide-border overflow-hidden">
+            {orderedCategories.map((cat, index) => (
+              <div
+                key={cat}
+                className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors"
+                data-testid={`nav-order-row-${cat}`}
+              >
+                <span className="text-muted-foreground text-xs w-5 text-center">{index + 1}</span>
+                <span className="flex-1 text-sm font-medium">{cat}</span>
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => moveCategory(index, -1)}
+                        disabled={index === 0}
+                        data-testid={`button-move-up-${cat}`}
+                        aria-label="Move up"
+                      >
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Move up</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => moveCategory(index, 1)}
+                        disabled={index === orderedCategories.length - 1}
+                        data-testid={`button-move-down-${cat}`}
+                        aria-label="Move down"
+                      >
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Move down</TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-end">
+        <Button
+          onClick={() => saveMutation.mutate()}
+          disabled={saveMutation.isPending}
+          className="gap-1.5"
+          data-testid="button-save-nav-settings"
+        >
+          <Save className="h-4 w-4" />
+          {saveMutation.isPending ? "Saving…" : "Save Navigation Settings"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function CommandServices() {
   const { toast } = useToast();
   const [formOpen, setFormOpen] = useState(false);
@@ -467,6 +649,7 @@ export default function CommandServices() {
           <TabsList>
             <TabsTrigger value="services" data-testid="tab-services">Services</TabsTrigger>
             <TabsTrigger value="categories" data-testid="tab-categories">Categories</TabsTrigger>
+            <TabsTrigger value="nav" data-testid="tab-nav">Navigation</TabsTrigger>
           </TabsList>
           <Button
             size="sm"
@@ -584,6 +767,10 @@ export default function CommandServices() {
 
         <TabsContent value="categories" className="mt-0">
           <CategoriesTab categories={allCategories} />
+        </TabsContent>
+
+        <TabsContent value="nav" className="mt-0">
+          <NavSettingsTab categories={allCategories} />
         </TabsContent>
       </Tabs>
 

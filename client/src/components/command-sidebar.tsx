@@ -78,7 +78,7 @@ export function CommandSidebar() {
     ...(isAdmin ? [{ title: "Chat Log", url: "/command/chat-log", icon: MessageSquare }] : []),
     ...(isAdmin ? [{ title: "AI Agents", url: "/command/ai-agents", icon: Bot }] : []),
     ...(isAdmin ? [{ title: "Traffic", url: "/command/traffic", icon: BarChart2 }] : []),
-    ...(isAdmin ? [{ title: "Settings", url: "/command/settings", icon: Settings2 }] : []),
+    ...(isAdmin || isExec ? [{ title: "Platform Settings", url: "/command/settings", icon: Settings2 }] : []),
   ];
 
   function isActive(url: string) {

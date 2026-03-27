@@ -118,8 +118,16 @@ const SERVICE_ICON_MAP: Record<string, React.ElementType> = {
   Business: Briefcase, Media: Music, Support: HeadphonesIcon,
 };
 
-function buildServiceColumnGroups(services: Service[]): string[][] {
-  const cats = [...new Set(services.map((s) => s.category).filter(Boolean))].sort();
+function buildServiceColumnGroups(services: Service[], categoryOrder?: string[]): string[][] {
+  const rawCats = [...new Set(services.map((s) => s.category).filter(Boolean))];
+  let cats: string[];
+  if (categoryOrder && categoryOrder.length > 0) {
+    const inOrder = categoryOrder.filter((c) => rawCats.includes(c));
+    const rest = rawCats.filter((c) => !categoryOrder.includes(c)).sort();
+    cats = [...inOrder, ...rest];
+  } else {
+    cats = rawCats.sort();
+  }
   const groups: string[][] = [];
   for (let i = 0; i < cats.length; i += 2) {
     groups.push(cats.slice(i, i + 2));
@@ -304,27 +312,43 @@ function StoreDropdown({ isActive }: { isActive: boolean }) {
   );
 }
 
-function ServicesDropdown({ isActive }: { isActive: boolean }) {
+function ServicesDropdown({ isActive, platformSettings }: { isActive: boolean; platformSettings?: Record<string, string> }) {
   const { open, setOpen, ref } = useDropdown();
 
   const { data: services } = useQuery<Service[]>({
     queryKey: ["/api/services"],
   });
 
-  const serviceColumnGroups = buildServiceColumnGroups(services ?? []);
+  const navTitle = platformSettings?.["nav.services.title"] || "Services";
+  const navIconName = platformSettings?.["nav.services.icon"] || null;
+  const NavIcon = resolveLucideIcon(navIconName);
+
+  let categoryOrder: string[] = [];
+  try {
+    const raw = platformSettings?.["nav.services.categoryOrder"];
+    if (raw) categoryOrder = JSON.parse(raw);
+  } catch {}
+
+  const serviceColumnGroups = buildServiceColumnGroups(services ?? [], categoryOrder);
 
   const byCategory = (cat: string) =>
     (services ?? []).filter((s) => s.category === cat).slice(0, 3);
 
   return (
     <div className="relative" ref={ref}>
-      <NavButton
-        label="Services"
-        isActive={isActive}
+      <Button
+        variant={isActive ? "secondary" : "ghost"}
+        size="sm"
+        className={`gap-1 h-8 text-xs font-medium pr-2 ${
+          isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+        }`}
         onClick={() => setOpen((o) => !o)}
-        open={open}
         data-testid="nav-services"
-      />
+      >
+        {NavIcon && <NavIcon className="h-3.5 w-3.5 shrink-0" />}
+        {navTitle}
+        <ChevronDown className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} />
+      </Button>
       {open && (
         <DropdownPanel className="w-[640px]">
           {/* Featured platform offerings */}
@@ -624,7 +648,21 @@ export function PlatformHeader() {
     queryKey: ["/api/services"],
     staleTime: 60000,
   });
-  const mobileServiceCategories = [...new Set(allServices.map((s) => s.category).filter(Boolean))].sort();
+  const mobileServiceCategoryOrder: string[] = (() => {
+    const raw = platformSettings?.["nav.services.categoryOrder"];
+    if (raw) { try { return JSON.parse(raw) as string[]; } catch { /* ignore */ } }
+    return [];
+  })();
+  const mobileServiceCategories = (() => {
+    const cats = [...new Set(allServices.map((s) => s.category).filter(Boolean))] as string[];
+    if (mobileServiceCategoryOrder.length) {
+      return [
+        ...mobileServiceCategoryOrder.filter((c) => cats.includes(c)),
+        ...cats.filter((c) => !mobileServiceCategoryOrder.includes(c)).sort(),
+      ];
+    }
+    return cats.sort();
+  })();
 
   const storeCategories = ["Apparel", "Games", "Grocery", "Health", "Music", "Books"];
   const musicItems = [
@@ -675,7 +713,7 @@ export function PlatformHeader() {
         <nav className="hidden md:flex items-center gap-0.5 flex-1" data-testid="nav-app-switcher">
           <HomeDropdown isActive={activeApp === "/"} />
           <StoreDropdown isActive={activeApp === "/store"} />
-          <ServicesDropdown isActive={activeApp === "/services"} />
+          <ServicesDropdown isActive={activeApp === "/services"} platformSettings={platformSettings} />
           <MusicDropdown isActive={activeApp === "/music"} />
           <ProjectsDropdown isActive={activeApp === "/projects"} />
           <ToolsDropdown isActive={activeApp === "/notes" || activeApp === "/gallery"} />
@@ -894,7 +932,7 @@ export function PlatformHeader() {
           <Collapsible open={mobileSection === "services"} onOpenChange={(o) => setMobileSection(o ? "services" : null)}>
             <CollapsibleTrigger asChild>
               <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors" data-testid="mobile-nav-services">
-                Services
+                {platformSettings?.["nav.services.title"] || "Services"}
                 <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${mobileSection === "services" ? "rotate-180" : ""}`} />
               </button>
             </CollapsibleTrigger>

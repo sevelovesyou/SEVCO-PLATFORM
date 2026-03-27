@@ -4,7 +4,8 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
-import { useEffect } from "react";
+import Image from "@tiptap/extension-image";
+import { useEffect, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -28,7 +29,11 @@ import {
   Link2Off,
   Undo,
   Redo,
+  ImageIcon,
+  Loader2,
 } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface RichTextEditorProps {
   value: string;
@@ -37,7 +42,47 @@ interface RichTextEditorProps {
   className?: string;
 }
 
+async function uploadImageFile(file: File): Promise<string> {
+  const ext = file.name.split(".").pop() || "png";
+  const filename = `${crypto.randomUUID()}.${ext}`;
+  const path = `notes/${filename}`;
+  const res = await fetch(`/api/upload?bucket=gallery&path=${encodeURIComponent(path)}`, {
+    method: "POST",
+    headers: { "Content-Type": file.type || "application/octet-stream" },
+    credentials: "include",
+    body: file,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: "Upload failed" }));
+    throw new Error(err.message || "Upload failed");
+  }
+  const data = await res.json();
+  return data.url as string;
+}
+
 export function RichTextEditor({ value, onChange, placeholder, className }: RichTextEditorProps) {
+  const { toast } = useToast();
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const insertImageUrl = useCallback((url: string, editorInstance: ReturnType<typeof useEditor>) => {
+    editorInstance?.chain().focus().setImage({ src: url }).run();
+  }, []);
+
+  const handleImageUpload = useCallback(async (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    setUploading(true);
+    try {
+      const url = await uploadImageFile(file);
+      return url;
+    } catch (err: any) {
+      toast({ title: "Image upload failed", description: err.message, variant: "destructive" });
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  }, [toast]);
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -48,6 +93,11 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
       }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Placeholder.configure({ placeholder: placeholder || "Start writing..." }),
+      Image.configure({
+        HTMLAttributes: { class: "max-w-full rounded-md my-2" },
+        inline: false,
+        allowBase64: false,
+      }),
     ],
     content: value,
     onUpdate: ({ editor }) => {
@@ -56,6 +106,33 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
     editorProps: {
       attributes: {
         class: "min-h-[280px] p-4 prose prose-sm dark:prose-invert max-w-none focus:outline-none",
+      },
+      handlePaste(view, event) {
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          if (item.type.startsWith("image/")) {
+            const file = item.getAsFile();
+            if (!file) continue;
+            event.preventDefault();
+            setUploading(true);
+            uploadImageFile(file)
+              .then((url) => {
+                view.dispatch(
+                  view.state.tr.replaceSelectionWith(
+                    view.state.schema.nodes.image.create({ src: url })
+                  )
+                );
+              })
+              .catch((err) => {
+                toast({ title: "Image upload failed", description: err.message, variant: "destructive" });
+              })
+              .finally(() => setUploading(false));
+            return true;
+          }
+        }
+        return false;
       },
     },
   });
@@ -77,6 +154,20 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
       return;
     }
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  };
+
+  const handleImageButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    const url = await handleImageUpload(file);
+    if (url) {
+      insertImageUrl(url, editor);
+    }
   };
 
   return (
@@ -236,6 +327,18 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
         <Separator orientation="vertical" className="mx-0.5 h-5" />
 
         <ToolbarButton
+          onClick={handleImageButtonClick}
+          active={false}
+          disabled={uploading}
+          title="Upload image"
+          data-testid="rte-image"
+        >
+          {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5" />}
+        </ToolbarButton>
+
+        <Separator orientation="vertical" className="mx-0.5 h-5" />
+
+        <ToolbarButton
           onClick={() => editor.chain().focus().undo().run()}
           active={false}
           disabled={!editor.can().undo()}
@@ -254,6 +357,15 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
           <Redo className="h-3.5 w-3.5" />
         </ToolbarButton>
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+        data-testid="input-image-upload"
+      />
 
       <EditorContent editor={editor} data-testid="input-content" />
     </div>

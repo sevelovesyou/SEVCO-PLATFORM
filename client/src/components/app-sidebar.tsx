@@ -31,6 +31,7 @@ import {
   Archive,
   RotateCcw,
   ScrollText,
+  Settings2,
 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -263,6 +264,26 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
+      {canAccessReviewQueue && (
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  tooltip="Platform Settings"
+                  data-active={location === "/command/settings"}
+                >
+                  <Link href="/command/settings" data-testid="link-platform-settings">
+                    <Settings2 className="h-4 w-4" />
+                    <span>Platform Settings</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      )}
       <SidebarFooter className="p-3">
         <div className="text-[10px] text-muted-foreground text-center">
           Encyclopedia for sevco.us

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { RichTextEditor } from "@/components/rich-text-editor";
 import {
   Dialog,
   DialogContent,
@@ -231,7 +232,7 @@ function NoteListItem({
 }) {
   const color = getNoteColor(note.color);
   const isOwner = note.authorId === currentUserId;
-  const preview = note.content.replace(/\n/g, " ").slice(0, 80) || "No additional text";
+  const preview = note.content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 80) || "No additional text";
 
   return (
     <button
@@ -304,7 +305,7 @@ export default function NotesPage() {
   const [mobileShowEditor, setMobileShowEditor] = useState(false);
 
   const titleRef = useRef<HTMLInputElement>(null);
-  const contentRef = useRef<HTMLTextAreaElement>(null);
+  const contentRef = useRef<string>("");
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef<{ title: string; content: string }>({ title: "", content: "" });
 
@@ -358,8 +359,8 @@ export default function NotesPage() {
   useEffect(() => {
     if (selectedNote) {
       lastSavedRef.current = { title: selectedNote.title, content: selectedNote.content };
+      contentRef.current = selectedNote.content;
       if (titleRef.current) titleRef.current.value = selectedNote.title;
-      if (contentRef.current) contentRef.current.value = selectedNote.content;
     }
   }, [selectedNote?.id]);
 
@@ -375,9 +376,9 @@ export default function NotesPage() {
   function handleSelectNote(id: number) {
     if (autoSaveTimer.current) {
       clearTimeout(autoSaveTimer.current);
-      if (selectedId && titleRef.current && contentRef.current) {
+      if (selectedId && titleRef.current) {
         const title = titleRef.current.value;
-        const content = contentRef.current.value;
+        const content = contentRef.current;
         if (title !== lastSavedRef.current.title || content !== lastSavedRef.current.content) {
           lastSavedRef.current = { title, content };
           updateMutation.mutate({ id: selectedId, data: { title, content } });
@@ -390,6 +391,13 @@ export default function NotesPage() {
   }
 
   const color = selectedNote ? getNoteColor(selectedNote.color) : getNoteColor("default");
+
+  function handleContentChange(html: string) {
+    contentRef.current = html;
+    if (selectedNote) {
+      scheduleAutoSave(selectedNote.id, titleRef.current?.value ?? selectedNote.title, html);
+    }
+  }
 
   if (!authLoading && !user) {
     return (
@@ -616,7 +624,7 @@ export default function NotesPage() {
                       data-testid="menu-copy-markdown"
                       onClick={() => {
                         const title = titleRef.current?.value ?? selectedNote.title;
-                        const content = contentRef.current?.value ?? selectedNote.content;
+                        const content = contentRef.current || selectedNote.content;
                         navigator.clipboard.writeText(toMarkdown(title, content)).then(() => {
                           toast({ title: "Copied to clipboard" });
                         });
@@ -629,7 +637,7 @@ export default function NotesPage() {
                       data-testid="menu-copy-plain-text"
                       onClick={() => {
                         const title = titleRef.current?.value ?? selectedNote.title;
-                        const content = contentRef.current?.value ?? selectedNote.content;
+                        const content = contentRef.current || selectedNote.content;
                         navigator.clipboard.writeText(toPlainText(title, content)).then(() => {
                           toast({ title: "Copied to clipboard" });
                         });
@@ -643,7 +651,7 @@ export default function NotesPage() {
                       data-testid="menu-download-markdown"
                       onClick={() => {
                         const title = titleRef.current?.value ?? selectedNote.title;
-                        const content = contentRef.current?.value ?? selectedNote.content;
+                        const content = contentRef.current || selectedNote.content;
                         downloadFile(`${safeName(title)}.md`, toMarkdown(title, content), "text/markdown");
                       }}
                     >
@@ -654,7 +662,7 @@ export default function NotesPage() {
                       data-testid="menu-download-text"
                       onClick={() => {
                         const title = titleRef.current?.value ?? selectedNote.title;
-                        const content = contentRef.current?.value ?? selectedNote.content;
+                        const content = contentRef.current || selectedNote.content;
                         downloadFile(`${safeName(title)}.txt`, toPlainText(title, content), "text/plain");
                       }}
                     >
@@ -666,7 +674,7 @@ export default function NotesPage() {
                       data-testid="menu-open-in-bear"
                       onClick={() => {
                         const title = titleRef.current?.value ?? selectedNote.title;
-                        const content = contentRef.current?.value ?? selectedNote.content;
+                        const content = contentRef.current || selectedNote.content;
                         const url = `bear://x-callback-url/create?title=${encodeURIComponent(title)}&text=${encodeURIComponent(content)}`;
                         window.open(url, "_blank");
                       }}
@@ -717,7 +725,7 @@ export default function NotesPage() {
 
             {/* Editor body */}
             <div className={`flex flex-col flex-1 overflow-hidden ${color.bg}`}>
-              <div className="flex flex-col flex-1 overflow-hidden px-6 pt-5 pb-4 gap-2">
+              <div className="flex flex-col flex-1 overflow-y-auto px-6 pt-5 pb-4 gap-2">
                 <input
                   ref={titleRef}
                   type="text"
@@ -725,19 +733,16 @@ export default function NotesPage() {
                   placeholder="Title"
                   data-testid="input-note-title"
                   onChange={(e) => {
-                    scheduleAutoSave(selectedNote.id, e.target.value, contentRef.current?.value ?? "");
+                    scheduleAutoSave(selectedNote.id, e.target.value, contentRef.current);
                   }}
-                  className="w-full text-xl font-bold bg-transparent border-none outline-none placeholder:text-muted-foreground/40 text-foreground"
+                  className="w-full text-xl font-bold bg-transparent border-none outline-none placeholder:text-muted-foreground/40 text-foreground shrink-0"
                 />
-                <textarea
-                  ref={contentRef}
-                  defaultValue={selectedNote.content}
+                <RichTextEditor
+                  key={selectedNote.id}
+                  value={selectedNote.content}
+                  onChange={handleContentChange}
                   placeholder="Start writing…"
-                  data-testid="textarea-note-content"
-                  onChange={(e) => {
-                    scheduleAutoSave(selectedNote.id, titleRef.current?.value ?? "", e.target.value);
-                  }}
-                  className="flex-1 w-full bg-transparent border-none outline-none resize-none text-sm leading-relaxed placeholder:text-muted-foreground/40 text-foreground"
+                  className="flex-1 border-none rounded-none shadow-none bg-transparent"
                 />
               </div>
 

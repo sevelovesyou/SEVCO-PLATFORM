@@ -11,7 +11,8 @@ export type Role = typeof ROLES[number];
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  password: text("password"),
+  xId: text("x_id").unique(),
   displayName: text("display_name"),
   bio: text("bio"),
   email: text("email"),
@@ -315,7 +316,19 @@ export const insertUserSchema = createInsertSchema(users).pick({
     .max(30, "Username must be at most 30 characters")
     .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores")
     .refine((v) => !v.includes("@"), "Username cannot be an email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
+
+export const createOAuthUserSchema = z.object({
+  username: z.string(),
+  xId: z.string(),
+  displayName: z.string().optional(),
+  avatarUrl: z.string().url().optional().nullable(),
+  email: z.string().email().optional().nullable(),
+  emailVerified: z.boolean().default(true),
+  role: z.enum(ROLES).default("user"),
+});
+export type CreateOAuthUser = z.infer<typeof createOAuthUserSchema>;
 
 export const updateUserSchema = z.object({
   displayName: z.string().max(80).optional(),

@@ -1,5 +1,5 @@
 import {
-  type User, type InsertUser, type UpdateUser, type UpdateProfile, type Role,
+  type User, type InsertUser, type UpdateUser, type UpdateProfile, type Role, type CreateOAuthUser,
   type Category, type InsertCategory,
   type Article, type InsertArticle,
   type Revision, type InsertRevision,
@@ -61,7 +61,9 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByVerificationToken(token: string): Promise<User | undefined>;
+  getUserByXId(xId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  createOAuthUser(data: CreateOAuthUser): Promise<User>;
   updateUser(id: string, data: UpdateUser): Promise<User>;
   updateUsername(id: string, username: string): Promise<User>;
   updateUserProfile(id: string, data: UpdateProfile): Promise<User>;
@@ -428,6 +430,28 @@ export class DatabaseStorage implements IStorage {
   async getUserByVerificationToken(token: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.emailVerificationToken, token));
     return user || undefined;
+  }
+
+  async getUserByXId(xId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.xId, xId));
+    return user || undefined;
+  }
+
+  async createOAuthUser(data: CreateOAuthUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        username: data.username,
+        password: null,
+        xId: data.xId,
+        displayName: data.displayName ?? null,
+        avatarUrl: data.avatarUrl ?? null,
+        email: data.email ?? null,
+        emailVerified: data.emailVerified ?? true,
+        role: data.role ?? "user",
+      })
+      .returning();
+    return user;
   }
 
   async updateUserRole(id: string, role: Role): Promise<User | undefined> {

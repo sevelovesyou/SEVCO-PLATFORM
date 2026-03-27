@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail } from "lucide-react";
+import { SiX } from "react-icons/si";
 import { apiRequest } from "@/lib/queryClient";
 import planetBlack from "@assets/SEVCO_planet_icon_black_1774331331137.png";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
@@ -309,6 +310,24 @@ export default function AuthPage() {
                     </Button>
                   </form>
                 </Form>
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">or</span>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => { window.location.href = "/api/auth/twitter"; }}
+                  data-testid="button-sign-in-x"
+                >
+                  <SiX className="mr-2 h-4 w-4" />
+                  Sign in with X
+                </Button>
                 <div className="mt-4 text-center text-sm text-muted-foreground">
                   Don't have an account?{" "}
                   <button
@@ -397,6 +416,24 @@ export default function AuthPage() {
                     </Button>
                   </form>
                 </Form>
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">or</span>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => { window.location.href = "/api/auth/twitter"; }}
+                  data-testid="button-sign-in-x-register"
+                >
+                  <SiX className="mr-2 h-4 w-4" />
+                  Sign up with X
+                </Button>
                 <div className="mt-4 text-center text-sm text-muted-foreground">
                   Already have an account?{" "}
                   <button

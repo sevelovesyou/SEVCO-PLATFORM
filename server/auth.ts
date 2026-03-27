@@ -1,5 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import OAuth2Strategy from "passport-oauth2";
 import { type Express } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
@@ -41,6 +42,9 @@ export function setupAuth(app: Express) {
         if (!user) {
           return done(null, false, { message: "Invalid username or password" });
         }
+        if (!user.password) {
+          return done(null, false, { message: "This account uses X sign-in. Please use the Sign in with X button." });
+        }
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
           return done(null, false, { message: "Invalid username or password" });
@@ -64,6 +68,97 @@ export function setupAuth(app: Express) {
       done(err);
     }
   });
+
+  const TWITTER_CLIENT_ID = process.env.TWITTER_CLIENT_ID;
+  const TWITTER_CLIENT_SECRET = process.env.TWITTER_CLIENT_SECRET;
+  const BASE_URL = process.env.BASE_URL || `http://localhost:5000`;
+
+  type TwitterUserApiResponse = {
+    data: {
+      id: string;
+      username: string;
+      name: string;
+      profile_image_url?: string;
+    };
+  };
+
+  if (TWITTER_CLIENT_ID && TWITTER_CLIENT_SECRET) {
+    const twitterClientId = TWITTER_CLIENT_ID;
+    const twitterClientSecret = TWITTER_CLIENT_SECRET;
+
+    passport.use(
+      "twitter-oauth2",
+      new OAuth2Strategy(
+        {
+          authorizationURL: "https://twitter.com/i/oauth2/authorize",
+          tokenURL: "https://api.twitter.com/2/oauth2/token",
+          clientID: twitterClientId,
+          clientSecret: twitterClientSecret,
+          callbackURL: `${BASE_URL}/api/auth/twitter/callback`,
+          scope: ["tweet.read", "users.read", "offline.access"],
+          customHeaders: {
+            Authorization: `Basic ${Buffer.from(`${twitterClientId}:${twitterClientSecret}`).toString("base64")}`,
+          },
+          pkce: true,
+          state: true,
+        },
+        async (accessToken: string, _refreshToken: string, _results: object, _profile: object, done: OAuth2Strategy.VerifyCallback) => {
+          try {
+            const resp = await fetch("https://api.twitter.com/2/users/me?user.fields=name,profile_image_url,username", {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (!resp.ok) {
+              return done(new Error("Failed to fetch X user info"));
+            }
+            const json = (await resp.json()) as TwitterUserApiResponse;
+            const xUser = json.data;
+
+            let user = await storage.getUserByXId(xUser.id);
+            if (!user) {
+              const baseUsername = xUser.username.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 28) || "xuser";
+              let username = baseUsername;
+              let suffix = 1;
+              while (await storage.getUserByUsername(username)) {
+                username = `${baseUsername}${suffix++}`;
+              }
+              user = await storage.createOAuthUser({
+                username,
+                xId: xUser.id,
+                displayName: xUser.name || username,
+                avatarUrl: xUser.profile_image_url ?? null,
+                email: null,
+                emailVerified: true,
+                role: "user",
+              });
+            }
+            return done(null, user);
+          } catch (err) {
+            return done(err instanceof Error ? err : new Error(String(err)));
+          }
+        }
+      )
+    );
+
+    app.get(
+      "/api/auth/twitter",
+      passport.authenticate("twitter-oauth2")
+    );
+
+    app.get(
+      "/api/auth/twitter/callback",
+      passport.authenticate("twitter-oauth2", { failureRedirect: "/auth?error=oauth_failed" }),
+      (req, res) => {
+        res.redirect("/");
+      }
+    );
+  } else {
+    app.get("/api/auth/twitter", (_req, res) => {
+      res.status(503).json({ message: "X OAuth is not configured. Set TWITTER_CLIENT_ID and TWITTER_CLIENT_SECRET." });
+    });
+    app.get("/api/auth/twitter/callback", (_req, res) => {
+      res.redirect("/auth?error=oauth_not_configured");
+    });
+  }
 
   app.post("/api/register", async (req, res, next) => {
     try {

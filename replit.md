@@ -24,9 +24,11 @@ A multi-app platform for sevco.us (SEVE / SEVCO Records). Built as a platform sh
 - express-session with connect-pg-simple (stored in PostgreSQL)
 - Protected routes redirect unauthenticated users to /auth
 - **Email verification required on signup**: Registration collects email, sends verification link via Resend, user must verify before logging in
-- API routes: POST /api/register, POST /api/login, POST /api/logout, GET /api/user, GET /api/verify-email, POST /api/resend-verification
+- **X (Twitter) OAuth 2.0**: Users can sign in/up with their X account via `/api/auth/twitter`. Requires `TWITTER_CLIENT_ID` and `TWITTER_CLIENT_SECRET` env vars. Callback: `/api/auth/twitter/callback`. Uses `passport-oauth2` with PKCE.
+- API routes: POST /api/register, POST /api/login, POST /api/logout, GET /api/user, GET /api/verify-email, POST /api/resend-verification, GET /api/auth/twitter, GET /api/auth/twitter/callback
 - Email client: server/emailClient.ts (Resend integration via Replit connector)
 - Existing users auto-marked as email-verified on startup
+- `users.password` is now nullable (OAuth users have no password). `users.x_id` is a nullable unique column for X identity.
 
 ## Platform Routes
 | Route | Page | Sidebar |

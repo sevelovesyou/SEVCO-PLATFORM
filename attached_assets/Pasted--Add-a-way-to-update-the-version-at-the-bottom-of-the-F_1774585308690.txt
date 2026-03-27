@@ -1,0 +1,83 @@
+- Add a way to update the version at the bottom of the Footer from CMD, Settings and always display the current date and time instead of whatever date is there now.
+- The new News page looks great! Can we fill in more of the articles though? It looks a bit empty.
+- Fix: Wiki menu and CMD menu should both share Display Settings as "sub-menus"
+- Allow for adding inline screenshots to Notes
+- Remove weird green background from behind Project Icons (screenshot captured)
+- In Playlists section of /music either pull playlist cover image from Spotify or show cards without image areas
+- Move News in the menu from the Tools dropdown to the SEVCO dropdown
+- Update the Services nav bar dropdown with the list from CMD, Services as it changes, allow for menu title and icon change when editing Services.
+- Allow me to set Tailwind defaults and colors in CMD, Settings
+- It seems like we are working with two sets of colors on the platform that conflict from a design perspective, lets reimagine the CMD, Settings and make it more organized so I can find things, consider the following 3 feature ideas for this: 
+[1. Inside the “Branding & Colors” (or “Theme”) category, group all color settings logically:
+   - Primary Palette
+   - Secondary / Accent Palette
+   - Neutral / Background Colors
+   - Text & Typography Colors
+   - Status / Semantic Colors (success, warning, error, info)
+   - Custom / Advanced Colors (if needed)
+2. For each color group use:
+   - Collapsible accordions or card-based sections (Tailwind + Headless UI or shadcn-style)
+   - Color picker (native <input type="color"> + custom swatch grid)
+   - Live real-time preview pane on the right side that shows how the colors would look on a sample dashboard/header/sidebar (include SEVCO logo placeholder and sample UI elements)
+   - “Reset to defaults” button per group and for the whole section default colors are #FFFFFF, #000000, #0037ff, #bd0000, #fbc318, #00a811 (add more based on these if necessary) 
+3. Add a global search bar at the top that instantly filters and highlights matching settings across all tabs.]
+- Fix: cutoff text above the "Wiki Menu" (thats what it should say) and overhang text when menu is collapsed (screenshotted both)
+- "Latest Release" changelog in CMD, Overview should update automatically with the most recent Changelog entry
+- Large Task*
+*Add a complete, production-ready custom web-based email client that is seamlessly combined with the existing chat UI. The email client must use Resend.com for both sending and receiving emails on our company domain sevco.us.
+Each user’s SEVCO email address is automatically their existing username@sevco.us (example: if their username is “john”, their email is john@sevco.us).
+Email functionality must only become active for users who have the Client+ permission level (or higher). Users below Client+ must not see the Email tab, navigation item, or have any email features.
+
+Pay special attention to:
+The existing chat UI layout, sidebar/navigation, and components.
+Authentication system (how users are logged in, how their username and permission level are stored/retrieved).
+Database setup (whatever DB or storage is currently used).
+Any existing API routes or server actions.
+
+Integrate the email client without breaking or duplicating any existing chat functionality.
+Combine the email UI with the chat UI (a unified messaging center).
+Automatically derive each user’s email address as {username}@sevco.us and enforce that email is only active for Client+ (or higher) permission level users.
+Use Resend for everything (sending, receiving, webhooks).
+
+Once I approve the plan (or if I say “proceed”), implement it step by step in small, clean commits.
+Core Requirements for the Email Client:
+
+UI/UX
+Clean, modern inbox list (subject, from, date, preview, unread indicator).
+Clickable email opens in a full read view (HTML rendered safely, attachments downloadable).
+Compose modal or full-screen composer with To, CC, BCC, Subject, rich text body (use React Email or TipTap if it fits the existing design).
+Reply/Reply-All/Forward buttons.
+Search and basic filtering.
+Perfectly matches the existing SEVCO Platform design system and theme.
+
+Integration with existing Chat UI
+Add “Email” navigation item in Tools dropdown in the top nav only for Client+ users
+The two features should feel like one unified messaging experience (same layout, same header, consistent styling).
+
+Resend Integration (full send + receive)
+Use the official @resend/resend SDK.
+Sending: Server action or API route that sends emails from the user’s derived address (username@sevco.us).
+Receiving:
+Create a secure webhook endpoint (/api/resend/webhook) that listens for email.received events.
+On webhook, only process and store emails sent to active Client+ users’ addresses (username@sevco.us).
+Fetch the full email + attachments via Resend’s receiving API and store it in the database, associated with the correct user account.
+Emails in the inbox are pulled from our own database (fast UI) but kept in sync with Resend.
+
+Technical Details
+Derive every user’s email address from their existing username in the auth/DB as {username}@sevco.us.
+Email features (inbox, compose, navigation) are strictly gated behind the Client+ permission level.
+Use existing authentication and DB for all user/email mapping and permission checks.
+Emails must be filtered so each user only sees their own inbox.
+Full TypeScript, proper error handling, loading states, and toast notifications (match existing style).
+Secure: Never expose Resend API key to the client; all Resend calls go through server actions/API routes.
+Responsive and mobile-friendly.
+
+Success Criteria:
+After implementation, a logged-in Client+ should be able to:
+
+Create an @sevco.us email address if Client+
+View their personal SEVCO inbox at their username@sevco.us address.
+Compose and send emails from their username@sevco.us address.
+Receive real emails sent to their username@sevco.us address and see them appear instantly via webhook.
+
+Non-Client+ users must see no Email tab or functionality.

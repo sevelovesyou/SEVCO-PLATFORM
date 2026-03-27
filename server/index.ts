@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { seedDatabase, promoteFounderToAdmin, markExistingUsersVerified, seedProjects, seedServices, seedPlaylists, seedStoreProducts, migrateServiceCategories } from "./seed";
+import { runWikiSeed } from "./wikiSeed";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { WebhookHandlers } from "./webhookHandlers";
@@ -125,6 +126,7 @@ async function initStripe() {
   await storage.seedSocialLinksIfEmpty().catch((err) => console.error("Social links seed error:", err));
   await storage.migrateSocialLinksShowOnListen().catch((err) => console.error("Social links listen migration error:", err));
   await checkEmailCredentials().catch((err) => console.warn("[email] Startup credential check failed:", err?.message ?? err));
+  runWikiSeed().catch((err) => console.error("Wiki seed error:", err));
   setupAuth(app);
   await registerRoutes(httpServer, app);
 

@@ -88,7 +88,7 @@ import CommandTraffic from "@/pages/command-traffic";
 import NewsPage from "@/pages/news-page";
 import CommandNews from "@/pages/command-news";
 
-const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
+const WIKI_PREFIXES = ["/wiki", "/edit/", "/new/", "/search", "/review", "/category/"];
 const COMMAND_PREFIXES = ["/command"];
 
 function isWikiRoute(location: string): boolean {

@@ -71,7 +71,12 @@ export function setupAuth(app: Express) {
 
   const TWITTER_CLIENT_ID = process.env.TWITTER_CLIENT_ID;
   const TWITTER_CLIENT_SECRET = process.env.TWITTER_CLIENT_SECRET;
-  const BASE_URL = process.env.BASE_URL || `http://localhost:5000`;
+  const BASE_URL =
+    process.env.BASE_URL ||
+    (process.env.REPLIT_DEPLOYMENT === "1" && process.env.REPLIT_DOMAINS
+      ? `https://${process.env.REPLIT_DOMAINS.split(",")[0].trim()}`
+      : null) ||
+    `http://localhost:5000`;
 
   type TwitterUserApiResponse = {
     data: {

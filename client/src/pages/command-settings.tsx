@@ -44,7 +44,10 @@ import {
 // ─────────────────────────────────────────────────────────
 const SECTION_KEYS = [
   { key: "section.platformGrid.visible", label: "Platform Grid", description: "The six platform section cards (Wiki, Store, Music, etc.)" },
+  { key: "section.feed.visible", label: "SEVCO Feed", description: "Latest community and official posts from the SEVCO team" },
+  { key: "section.news.visible", label: "News — Top Stories", description: "Curated news bento grid and category swimlanes" },
   { key: "section.recordsSpotlight.visible", label: "RECORDS Spotlight", description: "The SEVCO RECORDS promotional section with purple gradient background" },
+  { key: "section.xFeed.visible", label: "X Feed", description: "Recent posts from configured X (Twitter) handles" },
   { key: "section.storePreview.visible", label: "Store Preview", description: "\"Shop the latest\" — featured products grid" },
   { key: "section.wikiLatest.visible", label: "Wiki Latest", description: "\"Latest knowledge\" — recent wiki articles" },
   { key: "section.communityCta.visible", label: "Community CTA", description: "Discord join section at the bottom" },
@@ -458,6 +461,158 @@ const DEFAULT_SITEMAP: SitemapColumn[] = [
     ],
   },
 ];
+
+// ─────────────────────────────────────────────────────────
+// X / Twitter Settings Card
+// ─────────────────────────────────────────────────────────
+function XTwitterSettingsCard() {
+  const { toast } = useToast();
+
+  const { data: settings = {} } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
+  });
+
+  const { data: xStatus } = useQuery<{ configured: boolean; handle?: string }>({
+    queryKey: ["/api/social/x/status"],
+  });
+
+  const mutation = useMutation({
+    mutationFn: (entries: Record<string, string>) =>
+      apiRequest("PUT", "/api/platform-settings", entries),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/platform-settings"] });
+      toast({ title: "X settings saved" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Save failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const [enabled, setEnabled] = useState(true);
+  const [handles, setHandles] = useState("");
+  const [maxTweets, setMaxTweets] = useState("6");
+  const [label, setLabel] = useState("On X");
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (!initialized && Object.keys(settings).length > 0) {
+      setEnabled(settings["social.x.enabled"] !== "false");
+      setHandles(settings["social.x.handles"] ?? "");
+      setMaxTweets(settings["social.x.maxTweets"] ?? "6");
+      setLabel(settings["social.x.label"] ?? "On X");
+      setInitialized(true);
+    }
+  }, [settings, initialized]);
+
+  function handleSave() {
+    mutation.mutate({
+      "social.x.enabled": enabled ? "true" : "false",
+      "social.x.handles": handles,
+      "social.x.maxTweets": maxTweets,
+      "social.x.label": label,
+    });
+  }
+
+  return (
+    <Card data-search-label="X Twitter social feed tweets handle bearer token" className="">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <X className="h-4 w-4" />
+          X / Twitter Feed
+        </CardTitle>
+        <CardDescription>
+          Configure the X (Twitter) feed shown on the home page. Requires an X Bearer Token secret to be set.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {/* API key status */}
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border">
+          {xStatus?.configured ? (
+            <>
+              <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+              <span className="text-sm text-green-600 dark:text-green-400 font-medium">X Bearer Token is configured</span>
+            </>
+          ) : (
+            <>
+              <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+              <span className="text-sm text-destructive font-medium">X_BEARER_TOKEN secret is not set</span>
+              <a
+                href="https://developer.twitter.com/en/docs/twitter-api/getting-started/getting-access-to-the-twitter-api"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-auto text-xs text-primary underline shrink-0 flex items-center gap-1"
+                data-testid="link-x-api-docs"
+              >
+                X API Docs <ExternalLink className="h-3 w-3" />
+              </a>
+            </>
+          )}
+        </div>
+
+        {/* Enable toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-sm font-medium">Show X Feed on Home Page</Label>
+            <p className="text-xs text-muted-foreground mt-0.5">Display recent posts from configured handles</p>
+          </div>
+          <Switch
+            checked={enabled}
+            onCheckedChange={setEnabled}
+            data-testid="switch-x-enabled"
+          />
+        </div>
+
+        {/* Handles */}
+        <div className="space-y-2">
+          <Label className="text-sm">X Handles</Label>
+          <Input
+            value={handles}
+            onChange={(e) => setHandles(e.target.value)}
+            placeholder="sevelovesyou,sevelovesu"
+            data-testid="input-x-handles"
+          />
+          <p className="text-xs text-muted-foreground">Comma-separated @handles (without the @)</p>
+        </div>
+
+        {/* Max tweets */}
+        <div className="space-y-2">
+          <Label className="text-sm">Max Tweets</Label>
+          <Input
+            type="number"
+            value={maxTweets}
+            onChange={(e) => setMaxTweets(e.target.value)}
+            min="1"
+            max="20"
+            placeholder="6"
+            className="w-24"
+            data-testid="input-x-max-tweets"
+          />
+        </div>
+
+        {/* Section label */}
+        <div className="space-y-2">
+          <Label className="text-sm">Section Heading Label</Label>
+          <Input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="On X"
+            className="max-w-xs"
+            data-testid="input-x-label"
+          />
+        </div>
+
+        <Button
+          onClick={handleSave}
+          disabled={mutation.isPending}
+          size="sm"
+          data-testid="button-save-x-settings"
+        >
+          {mutation.isPending ? "Saving…" : "Save X Settings"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 // ─────────────────────────────────────────────────────────
 // Email Diagnostics Panel
@@ -2508,6 +2663,9 @@ export default function CommandSettings() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* X / Twitter */}
+              <XTwitterSettingsCard />
 
               {/* Hosting */}
               <div data-search-label="hosting domain VPS Hostinger server" className={cardVisible("hosting domain VPS Hostinger server") ? "" : "hidden"}>

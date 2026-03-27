@@ -69,7 +69,6 @@ import CommandDisplay from "@/pages/command-display";
 import CommandSettings from "@/pages/command-settings";
 import DomainsPage from "@/pages/domains-page";
 import NotesPage from "@/pages/notes-page";
-import FeedPage from "@/pages/feed-page";
 import ChangelogPage from "@/pages/changelog-page";
 import ServiceDetailPage from "@/pages/service-detail-page";
 import ServicesListingPage from "@/pages/services-listing";
@@ -87,7 +86,6 @@ import CommandFinance from "@/pages/command-finance";
 import CommandMinecraft from "@/pages/command-minecraft";
 import CommandAiAgents from "@/pages/command-ai-agents";
 import CommandTraffic from "@/pages/command-traffic";
-import NewsPage from "@/pages/news-page";
 import CommandNews from "@/pages/command-news";
 import MessagesPage from "@/pages/messages-page";
 
@@ -164,11 +162,11 @@ function Router() {
       <Route path="/hosting" component={HostingPage} />
       <Route path="/minecraft" component={MinecraftPage} />
       <Route path="/contact" component={ContactPage} />
-      <Route path="/feed" component={FeedPage} />
+      <Route path="/feed" component={() => <Redirect to="/" />} />
       <Route path="/changelog" component={ChangelogPage} />
       <Route path="/jobs" component={JobsPage} />
       <Route path="/jobs/:slug" component={JobsDetailPage} />
-      <Route path="/news" component={NewsPage} />
+      <Route path="/news" component={() => <Redirect to="/" />} />
       <Route path="/profile/:username" component={ProfilePage} />
       <Route path="/messages" component={() => <ClientPlusRoute><MessagesPage /></ClientPlusRoute>} />
 

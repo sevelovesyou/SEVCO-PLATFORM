@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -5,15 +6,20 @@ import { PageHead } from "@/components/page-head";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import * as LucideIcons from "lucide-react";
 import {
   BookOpen, ShoppingBag, Music, Folder, Briefcase,
   ArrowRight, Users, Star, ChevronRight, Pin,
-  Zap, Globe, Layers,
+  Zap, Globe, Layers, Heart, Repeat2,
 } from "lucide-react";
-import { SiDiscord } from "react-icons/si";
+import { SiDiscord, SiX } from "react-icons/si";
 import type { Article, Product, FeedPost } from "@shared/schema";
-import planetIcon from "@assets/SEVCO_planet_icon_black_1774331331137.png";
+import type { NewsArticle } from "@/components/news-article-card";
+import { NewsBentoGrid } from "@/components/news-bento-grid";
+import { NewsArticleCard } from "@/components/news-article-card";
+import type { NewsCategory } from "@shared/schema";
+import { formatDistanceToNow } from "date-fns";
 import planetIconWhite from "@assets/sevco-planet-white.png";
 
 function getLucideIcon(name: string | undefined): LucideIcons.LucideIcon | null {
@@ -156,7 +162,99 @@ function ArticleCard({ article }: { article: Article }) {
   );
 }
 
-import { useState } from "react";
+function HomePrimaryNewsSection({ category }: { category: NewsCategory }) {
+  const { data: articles = [], isLoading } = useQuery<NewsArticle[]>({
+    queryKey: ["/api/news/feed", category.query, 10],
+    queryFn: () =>
+      fetch(`/api/news/feed?query=${encodeURIComponent(category.query)}&limit=10`).then((r) => r.json()),
+    staleTime: 15 * 60 * 1000,
+  });
+
+  return (
+    <section className="mb-10">
+      <div className="flex items-center gap-3 mb-4 border-t pt-6">
+        {category.accentColor && (
+          <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: category.accentColor }} />
+        )}
+        <h3 className="text-base font-bold text-foreground">{category.name}</h3>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="w-full h-48 rounded-xl" />
+          ))}
+        </div>
+      ) : (
+        <NewsBentoGrid
+          articles={articles}
+          accentColor={category.accentColor || undefined}
+          categoryLabel={category.name}
+        />
+      )}
+    </section>
+  );
+}
+
+function HomeNewsSwimlane({ category }: { category: NewsCategory }) {
+  const [expanded, setExpanded] = useState(false);
+  const limit = expanded ? 20 : 10;
+
+  const { data: articles = [], isLoading, isFetching } = useQuery<NewsArticle[]>({
+    queryKey: ["/api/news/feed", category.query, limit],
+    queryFn: () =>
+      fetch(`/api/news/feed?query=${encodeURIComponent(category.query)}&limit=${limit}`).then((r) => r.json()),
+    staleTime: 15 * 60 * 1000,
+  });
+
+  return (
+    <section className="mb-8" data-testid={`home-swimlane-${category.id}`}>
+      <div className="flex items-center gap-3 mb-4 border-t pt-6">
+        <span
+          className="w-3 h-3 rounded-full shrink-0"
+          style={{ backgroundColor: category.accentColor || "#6b7280" }}
+        />
+        <h3 className="text-base font-bold text-foreground">{category.name}</h3>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="w-full h-48 rounded-xl" />)}
+        </div>
+      ) : !articles.length ? (
+        <p className="text-sm text-muted-foreground py-4">No articles available right now.</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {articles.slice(0, limit).map((article) => (
+              <NewsArticleCard
+                key={article.link}
+                article={article}
+                variant="compact"
+                accentColor={category.accentColor || undefined}
+                categoryLabel={category.name}
+              />
+            ))}
+          </div>
+          {!expanded && (
+            <div className="mt-4 flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs"
+                onClick={() => setExpanded(true)}
+                disabled={isFetching}
+                data-testid={`button-loadmore-home-${category.id}`}
+              >
+                {isFetching ? "Loading…" : "Load more"}
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
 
 export default function Landing() {
   const { user } = useAuth();
@@ -183,6 +281,35 @@ export default function Landing() {
       const res = await fetch("/api/feed?pinned=true&limit=1");
       return res.json();
     },
+  });
+
+  const { data: recentFeedPosts = [], isLoading: feedPostsLoading } = useQuery<FeedPostWithAuthor[]>({
+    queryKey: ["/api/feed?pinned=false&limit=6"],
+    queryFn: async () => {
+      const res = await fetch("/api/feed?pinned=false&limit=6");
+      return res.json();
+    },
+  });
+
+  const { data: newsCategories = [] } = useQuery<NewsCategory[]>({
+    queryKey: ["/api/news"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  interface XStatus { configured: boolean; handle?: string }
+  const { data: xStatus } = useQuery<XStatus>({
+    queryKey: ["/api/social/x/status"],
+  });
+
+  interface Tweet {
+    id: string; text: string; authorId: string; authorName: string;
+    authorHandle: string; authorAvatarUrl: string | null;
+    likeCount: number; retweetCount: number; createdAt: string; url: string;
+  }
+
+  const { data: tweets = [], isLoading: tweetsLoading } = useQuery<Tweet[]>({
+    queryKey: ["/api/social/x/feed"],
+    enabled: xStatus?.configured === true,
   });
 
   const pinnedPost = pinnedFeedPosts[0] ?? null;
@@ -226,6 +353,13 @@ export default function Landing() {
   const showWikiLatest = toBool(settings["section.wikiLatest.visible"]);
   const showCommunityCta = toBool(settings["section.communityCta.visible"]);
   const showBulletin = toBool(settings["section.bulletin.visible"]);
+  const showFeedSection = toBool(settings["section.feed.visible"]);
+  const showNewsSection = toBool(settings["section.news.visible"]);
+  const showXFeedSection = settings["section.xFeed.visible"] !== "false";
+  const xEnabled = settings["social.x.enabled"] !== "false";
+  const xLabel = settings["social.x.label"] || "On X";
+  const primaryNewsCategory = newsCategories[0];
+  const otherNewsCategories = newsCategories.slice(1, 5);
 
   return (
     <div className="min-h-screen bg-background" data-page="landing">
@@ -383,11 +517,11 @@ export default function Landing() {
                 {pinnedPost.content.length > 280 ? pinnedPost.content.slice(0, 280) + "…" : pinnedPost.content}
               </p>
             </div>
-            <Link href="/feed" className="shrink-0">
-              <Button variant="outline" size="sm" className="gap-1 text-xs whitespace-nowrap" data-testid="link-bulletin-read-more">
-                Read more <ArrowRight className="h-3 w-3" />
+            <div className="shrink-0">
+              <Button variant="outline" size="sm" className="gap-1 text-xs whitespace-nowrap" data-testid="link-bulletin-read-more" disabled>
+                Pinned <Pin className="h-3 w-3" />
               </Button>
-            </Link>
+            </div>
           </div>
         </section>
       )}
@@ -462,6 +596,105 @@ export default function Landing() {
         </section>
       )}
 
+      {/* ── SEVCO FEED ── */}
+      {showFeedSection && recentFeedPosts.length > 0 && (
+        <section className="max-w-6xl mx-auto px-6 py-16 md:py-20" data-testid="section-sevco-feed">
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">SEVCO Feed</p>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Latest from the team.</h2>
+            </div>
+          </div>
+          {feedPostsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="rounded-xl border p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <div>
+                      <Skeleton className="h-3 w-24 mb-1" />
+                      <Skeleton className="h-2.5 w-16" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-3 w-full mb-1.5" />
+                  <Skeleton className="h-3 w-4/5 mb-1.5" />
+                  <Skeleton className="h-3 w-3/5" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {recentFeedPosts.slice(0, 6).map((post) => {
+                const authorName = post.author?.displayName || post.author?.username || "SEVCO";
+                const initials = authorName.charAt(0).toUpperCase();
+                const dateStr = (() => {
+                  try {
+                    return formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
+                  } catch { return ""; }
+                })();
+                return (
+                  <div
+                    key={post.id}
+                    className="rounded-xl border bg-white/[0.02] border-border/60 p-4 hover:bg-white/[0.04] transition-colors"
+                    data-testid={`card-feed-post-${post.id}`}
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <Avatar className="h-8 w-8 shrink-0">
+                        {post.author?.avatarUrl && <AvatarImage src={post.author.avatarUrl} />}
+                        <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">{initials}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-foreground truncate">{authorName}</p>
+                        {dateStr && <p className="text-[11px] text-muted-foreground">{dateStr}</p>}
+                      </div>
+                      {post.type && (
+                        <Badge variant="secondary" className="text-[10px] capitalize px-1.5 py-0 shrink-0">{post.type}</Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-foreground/80 leading-relaxed line-clamp-4">
+                      {post.content.length > 280 ? post.content.slice(0, 280) + "…" : post.content}
+                    </p>
+                    {post.mediaUrl && (
+                      <div className="mt-3 rounded-lg overflow-hidden">
+                        <img src={post.mediaUrl} alt="" className="w-full h-40 object-cover" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ── NEWS — TOP STORIES ── */}
+      {showNewsSection && (
+        <section className="max-w-6xl mx-auto px-6 py-16 md:py-20" data-testid="section-news">
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Headlines</p>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Top Stories.</h2>
+            </div>
+          </div>
+
+          {/* Primary category bento grid */}
+          {primaryNewsCategory && (
+            <HomePrimaryNewsSection category={primaryNewsCategory} />
+          )}
+
+          {/* Category swimlanes */}
+          {otherNewsCategories.map((cat) => (
+            <HomeNewsSwimlane key={cat.id} category={cat} />
+          ))}
+
+          {newsCategories.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground">
+              <p className="text-sm">No news categories configured yet.</p>
+            </div>
+          )}
+        </section>
+      )}
+
       {/* ── SEVCO RECORDS SPOTLIGHT ── */}
       {showRecordsSpotlight && (
         <section className="relative overflow-hidden bg-gradient-to-br from-violet-950 via-violet-900 to-indigo-900">
@@ -509,6 +742,89 @@ export default function Landing() {
               </div>
             </div>
           </div>
+        </section>
+      )}
+
+      {/* ── X (TWITTER) FEED ── */}
+      {showXFeedSection && xEnabled && xStatus?.configured && (tweets.length > 0 || tweetsLoading) && (
+        <section className="max-w-6xl mx-auto px-6 py-16 md:py-20" data-testid="section-x-feed">
+          <div className="flex items-end justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-foreground/10 flex items-center justify-center">
+                <SiX className="h-4 w-4 text-foreground" />
+              </div>
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold tracking-tight">{xLabel}</h2>
+              </div>
+            </div>
+          </div>
+          {tweetsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="rounded-xl border p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div>
+                      <Skeleton className="h-3 w-24 mb-1" />
+                      <Skeleton className="h-2.5 w-16" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-3 w-full mb-1.5" />
+                  <Skeleton className="h-3 w-4/5 mb-1.5" />
+                  <Skeleton className="h-3 w-3/5" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {tweets.slice(0, 6).map((tweet) => {
+                let relativeTime = "";
+                try {
+                  relativeTime = formatDistanceToNow(new Date(tweet.createdAt), { addSuffix: true });
+                } catch {}
+                return (
+                  <a
+                    key={tweet.id}
+                    href={tweet.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group block rounded-xl border bg-white/[0.02] border-border/60 p-4 hover:bg-white/[0.04] hover:border-border transition-colors"
+                    data-testid={`card-tweet-${tweet.id}`}
+                  >
+                    <div className="flex items-start gap-3 mb-3">
+                      <Avatar className="h-10 w-10 shrink-0">
+                        {tweet.authorAvatarUrl && <AvatarImage src={tweet.authorAvatarUrl} />}
+                        <AvatarFallback className="text-xs font-bold">
+                          {tweet.authorName.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{tweet.authorName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{tweet.authorHandle}</p>
+                      </div>
+                      <SiX className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                    </div>
+                    <p className="text-sm text-foreground/80 leading-relaxed line-clamp-5 mb-3">
+                      {tweet.text.length > 280 ? tweet.text.slice(0, 280) + "…" : tweet.text}
+                    </p>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center gap-1">
+                          <Heart className="h-3 w-3" />
+                          {tweet.likeCount.toLocaleString()}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Repeat2 className="h-3 w-3" />
+                          {tweet.retweetCount.toLocaleString()}
+                        </span>
+                      </div>
+                      {relativeTime && <span>{relativeTime}</span>}
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          )}
         </section>
       )}
 

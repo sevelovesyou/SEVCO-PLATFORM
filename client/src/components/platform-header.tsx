@@ -150,7 +150,6 @@ function getActiveApp(location: string): string {
   if (location.startsWith("/command")) return "/command";
   if (location.startsWith("/notes")) return "/notes";
   if (location.startsWith("/gallery")) return "/gallery";
-  if (location.startsWith("/news")) return "/news";
   if (location.startsWith("/messages")) return "/messages";
   return "";
 }
@@ -215,10 +214,6 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
     { label: "Home",       href: "/",        icon: Home,        desc: "Go to landing page",             authRequired: false },
     { label: "About",      href: "/about",   icon: BookOpen,    desc: "Learn about SEVCO",              authRequired: false },
     { label: "Wiki",       href: "/wiki",    icon: BookOpen,    desc: "Internal knowledge base",        authRequired: false },
-    { label: "News",       href: "/news",    icon: Rss,         desc: "Curated headlines from the web", authRequired: false },
-    ...(user ? [
-      { label: "Feed",     href: "/feed",    icon: Rss,         desc: "Posts from people you follow",   authRequired: true },
-    ] : []),
     { label: "Contact",    href: "/contact", icon: Mail,        desc: "Get in touch",                   authRequired: false },
     { label: "Jobs",       href: "/jobs",    icon: Users,       desc: "Open positions",                 authRequired: false },
     { label: "Account",    href: "/account", icon: User,        desc: "Manage your profile",            authRequired: false },
@@ -703,8 +698,7 @@ export function PlatformHeader() {
     { label: "Home",      href: "/" },
     { label: "About",     href: "/about" },
     { label: "Wiki",      href: "/wiki" },
-    { label: "News",      href: "/news" },
-    ...(user ? [{ label: "Feed", href: "/feed" }, { label: "Notes", href: "/notes" }] : []),
+    ...(user ? [{ label: "Notes", href: "/notes" }] : []),
     { label: "Contact",   href: "/contact" },
     { label: "Jobs",      href: "/jobs" },
     { label: "Account",   href: "/account" },
@@ -738,7 +732,7 @@ export function PlatformHeader() {
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-0.5 flex-1" data-testid="nav-app-switcher">
-          <HomeDropdown isActive={activeApp === "/" || activeApp === "/news"} />
+          <HomeDropdown isActive={activeApp === "/"} />
           <StoreDropdown isActive={activeApp === "/store"} />
           <ServicesDropdown isActive={activeApp === "/services"} platformSettings={platformSettings} />
           <MusicDropdown isActive={activeApp === "/music"} />

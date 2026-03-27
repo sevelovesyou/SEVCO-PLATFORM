@@ -15,6 +15,7 @@ import {
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema } from "@shared/schema";
 import { fetchNewsArticles, fetchGoogleNewsRSS, setGNewsApiKeyFromDb } from "./news";
+import { fetchUserTweets, searchTweets, isXConfigured } from "./x-api";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail, sendContactReplyEmail, sendInvoiceEmail, sendTestEmail } from "./emailClient";
 import { getEmailAddress, isClientPlus, sendEmail, processInboundEmail, verifyResendWebhookSignature, type ResendSendFn } from "./email";
@@ -4611,6 +4612,49 @@ export async function registerRoutes(
       res.status(200).json({ received: true });
     } catch (err: any) {
       console.error("[email/inbound] Error processing inbound email:", err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────
+  // X (Twitter) API
+  // ─────────────────────────────────────────────────────────
+  app.get("/api/social/x/status", async (_req, res) => {
+    try {
+      const configured = isXConfigured();
+      const settings = await storage.getPlatformSettings();
+      const handle = settings["social.x.handles"] ?? undefined;
+      res.json({ configured, handle });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/social/x/feed", async (req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      const handlesParam = req.query.handles as string | undefined;
+      const rawHandles = handlesParam || settings["social.x.handles"] || "";
+      const limitParam = parseInt(req.query.limit as string) || parseInt(settings["social.x.maxTweets"] ?? "6") || 6;
+
+      if (!rawHandles) {
+        return res.json([]);
+      }
+
+      const handles = rawHandles.split(",").map((h: string) => h.trim()).filter(Boolean);
+      const perHandle = Math.max(1, Math.ceil(limitParam / handles.length));
+
+      const tweetArrays = await Promise.all(
+        handles.map((handle: string) => fetchUserTweets(handle, perHandle))
+      );
+
+      const tweets = tweetArrays
+        .flat()
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, limitParam);
+
+      res.json(tweets);
+    } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });

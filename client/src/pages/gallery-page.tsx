@@ -124,8 +124,8 @@ export default function GalleryPage() {
               : "The gallery is empty. Check back soon!"}
           </p>
           {user ? (
-            <Link href="/feed">
-              <Button variant="outline" size="sm" data-testid="link-gallery-empty-feed">Go to Feed</Button>
+            <Link href="/">
+              <Button variant="outline" size="sm" data-testid="link-gallery-empty-feed">Go Home</Button>
             </Link>
           ) : (
             <Link href="/wiki/contact">

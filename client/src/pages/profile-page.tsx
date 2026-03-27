@@ -446,8 +446,8 @@ function PostCard({ post, currentUserId, canDelete, onDelete }: {
           </div>
           {repliesOpen && (
             <div className="mt-3 pt-3 border-t">
-              <Link href={`/feed`}>
-                <span className="text-xs text-primary hover:underline cursor-pointer">View on Feed →</span>
+              <Link href={`/`}>
+                <span className="text-xs text-primary hover:underline cursor-pointer">View on Home →</span>
               </Link>
             </div>
           )}

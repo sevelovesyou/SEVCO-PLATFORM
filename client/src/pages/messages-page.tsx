@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   Hash,
   MessageCircle,
+  RefreshCw,
 } from "lucide-react";
 import { EmailComposeModal } from "@/components/email-compose-modal";
 import { EmailReadView } from "@/components/email-read-view";
@@ -146,7 +147,7 @@ export default function MessagesPage() {
     );
   }
 
-  const { data: folderCounts, refetch: refetchCounts } = useQuery<Record<string, number>>({
+  const { data: folderCounts, isFetching: countsFetching, refetch: refetchCounts } = useQuery<Record<string, number>>({
     queryKey: ["/api/email/folders"],
     refetchInterval: 30000,
   });
@@ -155,7 +156,7 @@ export default function MessagesPage() {
     queryKey: ["/api/email/address"],
   });
 
-  const { data: emails = [], isLoading: emailsLoading, refetch: refetchEmails } = useQuery<Email[]>({
+  const { data: emails = [], isLoading: emailsLoading, isFetching: emailsFetching, refetch: refetchEmails } = useQuery<Email[]>({
     queryKey: ["/api/email/messages", activeFolder, search],
     queryFn: async () => {
       const params = new URLSearchParams({ folder: search ? "all" : activeFolder, limit: "50" });
@@ -263,16 +264,28 @@ export default function MessagesPage() {
       >
         <div className="p-2 border-b flex items-center justify-between">
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Messages</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setComposeOpen(true)}
-            data-testid="button-compose-email"
-            title="Compose"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => { refetchEmails(); refetchCounts(); }}
+              data-testid="button-refresh-inbox"
+              title="Refresh"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${emailsFetching || countsFetching ? "animate-spin" : ""}`} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setComposeOpen(true)}
+              data-testid="button-compose-email"
+              title="Compose"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
 
         <div className="p-2">

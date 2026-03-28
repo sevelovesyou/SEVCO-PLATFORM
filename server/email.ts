@@ -202,13 +202,18 @@ export function verifyResendWebhookSignature(rawBody: Buffer, headers: WebhookHe
   // Resend uses Svix-style webhook signing
   // Signed content: "{svix-id}.{svix-timestamp}.{rawBody}"
   // Signature: base64(HMAC-SHA256(secret, signedContent)), prefixed with "v1,"
+  // The secret has a "whsec_" prefix; strip it and base64-decode the remainder before use
+  const secretBytes = secret.startsWith("whsec_")
+    ? Buffer.from(secret.slice(6), "base64")
+    : Buffer.from(secret);
+
   const { svixId, svixTimestamp, svixSignature } = headers;
 
   if (svixId && svixTimestamp && svixSignature) {
     try {
       const signedContent = `${svixId}.${svixTimestamp}.${rawBody.toString()}`;
       const expected = crypto
-        .createHmac("sha256", secret)
+        .createHmac("sha256", secretBytes)
         .update(signedContent)
         .digest("base64");
 
@@ -218,6 +223,7 @@ export function verifyResendWebhookSignature(rawBody: Buffer, headers: WebhookHe
         const b64 = sig.startsWith("v1,") ? sig.slice(3) : sig;
         try {
           if (crypto.timingSafeEqual(Buffer.from(expected, "base64"), Buffer.from(b64, "base64"))) {
+            console.log("[email] Svix webhook signature verified successfully");
             return true;
           }
         } catch {
@@ -235,7 +241,7 @@ export function verifyResendWebhookSignature(rawBody: Buffer, headers: WebhookHe
   if (!resendSignature) return false;
   const sig = resendSignature.includes(",") ? resendSignature.split(",").pop()! : resendSignature;
   try {
-    const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+    const expected = crypto.createHmac("sha256", secretBytes).update(rawBody).digest("hex");
     return crypto.timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(sig, "hex"));
   } catch {
     return false;

@@ -201,7 +201,7 @@ function ChannelView({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 p-3 border-b bg-background shrink-0">
+      <div className="flex items-center gap-2 p-3 border-b bg-background shrink-0 pr-10">
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack} data-testid="button-chat-back" aria-label="Back to channels">
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
@@ -283,7 +283,7 @@ function DmView({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 p-3 border-b bg-background shrink-0">
+      <div className="flex items-center gap-2 p-3 border-b bg-background shrink-0 pr-10">
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack} data-testid="button-dm-back" aria-label="Back to conversations">
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
@@ -495,7 +495,7 @@ function AiAgentView({ agent, onBack, onPopOut }: { agent: AiAgent; onBack: () =
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 p-3 border-b bg-background shrink-0">
+      <div className="flex items-center gap-2 p-3 border-b bg-background shrink-0 pr-10">
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack} data-testid="button-ai-back" aria-label="Back to AI agents">
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
@@ -678,7 +678,7 @@ export function ChatSheet({ open, onClose }: { open: boolean; onClose: () => voi
           {view.type === "list" && (
             <>
               <SheetHeader className="p-3 border-b shrink-0">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 pr-8">
                   <SheetTitle className="flex items-center gap-2 text-base">
                     <MessageCircle className="h-4 w-4" />
                     Chat
@@ -686,7 +686,7 @@ export function ChatSheet({ open, onClose }: { open: boolean; onClose: () => voi
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-muted-foreground"
+                    className="h-7 w-7 text-muted-foreground shrink-0"
                     onClick={handleExpandFullscreen}
                     data-testid="button-expand-chat-fullscreen"
                     aria-label="Open fullscreen chat"

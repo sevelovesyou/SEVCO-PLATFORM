@@ -4507,6 +4507,43 @@ export async function registerRoutes(
     }
   });
 
+  const aiImageCache = new Map<string, { url: string; generatedAt: number }>();
+  const AI_IMAGE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
+  async function generateImageForPost(text: string, link: string): Promise<string | null> {
+    const cached = aiImageCache.get(link);
+    if (cached && Date.now() - cached.generatedAt < AI_IMAGE_CACHE_TTL_MS) return cached.url;
+
+    const prompt = `editorial news thumbnail for: ${text.slice(0, 200)}`;
+    try {
+      if (process.env.XAI_API_KEY) {
+        const xaiRes = await fetch("https://api.x.ai/v1/images/generations", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${process.env.XAI_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "grok-2-image-1212", prompt, n: 1, response_format: "url" }),
+        });
+        if (xaiRes.ok) {
+          const xaiData = await xaiRes.json() as { data?: Array<{ url?: string }> };
+          const url = xaiData?.data?.[0]?.url;
+          if (url) { aiImageCache.set(link, { url, generatedAt: Date.now() }); return url; }
+        }
+      }
+      if (process.env.OPENROUTER_API_KEY) {
+        const orRes = await fetch("https://openrouter.ai/api/v1/images/generations", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "black-forest-labs/FLUX-1-schnell:free", prompt, n: 1 }),
+        });
+        if (orRes.ok) {
+          const orData = await orRes.json() as { data?: Array<{ url?: string }> };
+          const url = orData?.data?.[0]?.url;
+          if (url) { aiImageCache.set(link, { url, generatedAt: Date.now() }); return url; }
+        }
+      }
+    } catch {}
+    return null;
+  }
+
   app.get("/api/news/x-feed", async (req, res) => {
     try {
       const categoryName = String(req.query.category ?? "");
@@ -4515,6 +4552,20 @@ export async function registerRoutes(
       if (!categoryName) {
         return res.status(400).json({ message: "category param required" });
       }
+
+      const settings = await storage.getPlatformSettings();
+      const imageMode = (settings["news.x.imageMode"] ?? "images_only") as "images_only" | "ai_generate" | "none";
+      const sourceType = (settings["news.x.sourceType"] ?? "both") as "both" | "rss_only" | "x_only";
+      const allowedAccountsRaw = settings["news.x.allowedAccounts"] ?? "";
+      const blockedAccountsRaw = settings["news.x.blockedAccounts"] ?? "";
+      const minEngagement = parseInt(settings["news.x.minEngagement"] ?? "0") || 0;
+
+      const allowedAccounts = allowedAccountsRaw
+        ? allowedAccountsRaw.split(",").map((h) => h.trim()).filter(Boolean)
+        : [];
+      const blockedAccounts = blockedAccountsRaw
+        ? blockedAccountsRaw.split(",").map((h) => h.trim()).filter(Boolean)
+        : [];
 
       const cats = await storage.getNewsCategories(true);
       const cat = cats.find((c) => c.name.toLowerCase() === categoryName.toLowerCase()) ?? cats[0];
@@ -4526,25 +4577,82 @@ export async function registerRoutes(
         authorHandle?: string; likeCount?: number; retweetCount?: number;
       }> = [];
 
-      if (xConfigured && cat) {
-        const tweets = await fetchCategoryNewsFromX(categoryName, cat?.query ?? categoryName, limit);
-        xArticles = tweets.map((t) => ({
-          title: t.text.slice(0, 140),
-          link: t.url,
-          description: t.text,
-          pubDate: t.createdAt,
-          source: t.authorName,
-          imageUrl: t.authorAvatarUrl,
-          sourceType: "x" as const,
-          authorHandle: t.authorHandle,
-          likeCount: t.likeCount,
-          retweetCount: t.retweetCount,
-        }));
+      if (xConfigured && cat && sourceType !== "rss_only") {
+        const tweets = await fetchCategoryNewsFromX(categoryName, cat?.query ?? categoryName, limit, {
+          imagesOnly: imageMode === "images_only",
+          allowedAccounts,
+          blockedAccounts,
+          minEngagement,
+        });
+
+        const ai_generate_candidates: Array<{ text: string; link: string; idx: number }> = [];
+        const mapped = tweets.map((t, idx) => {
+          let imageUrl: string | null = null;
+          if (imageMode !== "none") {
+            imageUrl = t.mediaUrl;
+            if (!imageUrl && imageMode === "ai_generate") {
+              ai_generate_candidates.push({ text: t.text, link: t.url, idx });
+            }
+          }
+          return {
+            title: t.text.slice(0, 140),
+            link: t.url,
+            description: t.text,
+            pubDate: t.createdAt,
+            source: t.authorName,
+            imageUrl,
+            sourceType: "x" as const,
+            authorHandle: t.authorHandle,
+            likeCount: t.likeCount,
+            retweetCount: t.retweetCount,
+          };
+        });
+
+        if (imageMode === "ai_generate" && ai_generate_candidates.length > 0) {
+          const toGenerate = ai_generate_candidates.slice(0, 5);
+          const generated = await Promise.all(
+            toGenerate.map((c) => generateImageForPost(c.text, c.link))
+          );
+          toGenerate.forEach((c, i) => {
+            if (generated[i]) mapped[c.idx].imageUrl = generated[i];
+          });
+        }
+
+        xArticles = mapped;
       }
 
       const query = cat?.query ?? categoryName;
-      const rssArticles = await fetchNewsArticles(query, limit);
-      const rssTagged = rssArticles.map((a) => ({ ...a, sourceType: "rss" as const }));
+      let rssTagged: Array<{
+        title: string; link: string; description: string;
+        pubDate: string; source: string; imageUrl: string | null; sourceType: "rss";
+      }> = [];
+
+      if (sourceType !== "x_only") {
+        const rssArticles = await fetchNewsArticles(query, limit);
+        const rssMapped = rssArticles.map((a) => ({
+          ...a,
+          imageUrl: imageMode === "none" ? null : a.imageUrl,
+          sourceType: "rss" as const,
+        }));
+
+        if (imageMode === "ai_generate") {
+          const rssAiCandidates = rssMapped
+            .map((a, idx) => (!a.imageUrl ? { text: a.title || a.description, link: a.link, idx } : null))
+            .filter((c): c is { text: string; link: string; idx: number } => c !== null)
+            .slice(0, 5);
+
+          if (rssAiCandidates.length > 0) {
+            const generated = await Promise.all(
+              rssAiCandidates.map((c) => generateImageForPost(c.text, c.link))
+            );
+            rssAiCandidates.forEach((c, i) => {
+              if (generated[i]) rssMapped[c.idx].imageUrl = generated[i];
+            });
+          }
+        }
+
+        rssTagged = rssMapped;
+      }
 
       const merged = [...xArticles, ...rssTagged].slice(0, limit + 5);
       res.json(merged);

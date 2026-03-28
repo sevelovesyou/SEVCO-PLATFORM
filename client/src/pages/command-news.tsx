@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Pencil, Trash2, Loader2, Newspaper, Eye, RefreshCw, Key, CheckCircle2, XCircle, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Newspaper, Eye, RefreshCw, Key, CheckCircle2, XCircle, ExternalLink, SlidersHorizontal } from "lucide-react";
 import type { NewsCategory } from "@shared/schema";
 import type { NewsArticle } from "@/components/news-article-card";
 
@@ -312,6 +314,175 @@ function ApiSettingsCard() {
   );
 }
 
+const xFeedSettingsSchema = z.object({
+  imageMode: z.enum(["images_only", "ai_generate", "none"]),
+  sourceType: z.enum(["both", "rss_only", "x_only"]),
+  allowedAccounts: z.string(),
+  blockedAccounts: z.string(),
+  minEngagement: z.coerce.number().int().min(0).default(0),
+});
+type XFeedSettingsForm = z.infer<typeof xFeedSettingsSchema>;
+
+function XFeedControlsCard() {
+  const { toast } = useToast();
+
+  const { data: settings, isLoading } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
+    staleTime: 30000,
+  });
+
+  const form = useForm<XFeedSettingsForm>({
+    resolver: zodResolver(xFeedSettingsSchema),
+    defaultValues: {
+      imageMode: "images_only",
+      sourceType: "both",
+      allowedAccounts: "",
+      blockedAccounts: "",
+      minEngagement: 0,
+    },
+    values: settings
+      ? {
+          imageMode: (settings["news.x.imageMode"] as XFeedSettingsForm["imageMode"]) || "images_only",
+          sourceType: (settings["news.x.sourceType"] as XFeedSettingsForm["sourceType"]) || "both",
+          allowedAccounts: settings["news.x.allowedAccounts"] || "",
+          blockedAccounts: settings["news.x.blockedAccounts"] || "",
+          minEngagement: parseInt(settings["news.x.minEngagement"] || "0") || 0,
+        }
+      : undefined,
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: (data: XFeedSettingsForm) =>
+      apiRequest("PUT", "/api/platform-settings", {
+        "news.x.imageMode": data.imageMode,
+        "news.x.sourceType": data.sourceType,
+        "news.x.allowedAccounts": data.allowedAccounts,
+        "news.x.blockedAccounts": data.blockedAccounts,
+        "news.x.minEngagement": String(data.minEngagement),
+      }).then((r) => r.json()),
+    onSuccess: () => {
+      toast({ title: "X feed settings saved" });
+      queryClient.invalidateQueries({ queryKey: ["/api/platform-settings"] });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <Card className="p-4 space-y-4" data-testid="card-xfeed-controls">
+      <div className="flex items-center gap-2">
+        <SlidersHorizontal className="h-4 w-4 text-primary" />
+        <h3 className="text-sm font-semibold">X Feed Controls</h3>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading settings…
+        </div>
+      ) : (
+        <form onSubmit={form.handleSubmit((d) => saveMutation.mutate(d))} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Image Mode</Label>
+              <Select
+                value={form.watch("imageMode")}
+                onValueChange={(v) => form.setValue("imageMode", v as XFeedSettingsForm["imageMode"])}
+              >
+                <SelectTrigger data-testid="select-image-mode" className="text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="images_only">Images Only (default)</SelectItem>
+                  <SelectItem value="ai_generate">AI Generate</SelectItem>
+                  <SelectItem value="none">No Images (fastest)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                "Images Only" fetches only X posts with attached photos. "AI Generate" creates editorial thumbnails for posts without images via Grok Imagine.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Source Type</Label>
+              <Select
+                value={form.watch("sourceType")}
+                onValueChange={(v) => form.setValue("sourceType", v as XFeedSettingsForm["sourceType"])}
+              >
+                <SelectTrigger data-testid="select-source-type" className="text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="both">Both (RSS + X posts)</SelectItem>
+                  <SelectItem value="rss_only">RSS Only</SelectItem>
+                  <SelectItem value="x_only">X Only</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Control whether the feed shows RSS articles, X posts, or both.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Trusted Accounts</Label>
+            <Textarea
+              {...form.register("allowedAccounts")}
+              placeholder="e.g. @verge, @techcrunch, wired"
+              rows={2}
+              className="text-sm resize-none"
+              data-testid="textarea-allowed-accounts"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Comma-separated X handles. When set, restricts X search to only posts from these accounts.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Blocked Accounts</Label>
+            <Textarea
+              {...form.register("blockedAccounts")}
+              placeholder="e.g. @spammer, botaccount"
+              rows={2}
+              className="text-sm resize-none"
+              data-testid="textarea-blocked-accounts"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Comma-separated X handles to always exclude from results.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Min Engagement (likes + retweets)</Label>
+            <Input
+              type="number"
+              min={0}
+              {...form.register("minEngagement")}
+              placeholder="0"
+              className="text-sm w-36"
+              data-testid="input-min-engagement"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Posts with fewer combined likes + retweets than this threshold will be filtered out. Set to 0 to disable.
+            </p>
+          </div>
+
+          <Button
+            type="submit"
+            size="sm"
+            className="text-xs"
+            disabled={saveMutation.isPending}
+            data-testid="button-save-xfeed-settings"
+          >
+            {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+            Save X Feed Settings
+          </Button>
+        </form>
+      )}
+    </Card>
+  );
+}
+
 export default function CommandNews() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -351,6 +522,7 @@ export default function CommandNews() {
   return (
     <div className="space-y-6" data-testid="command-news">
       <ApiSettingsCard />
+      <XFeedControlsCard />
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">

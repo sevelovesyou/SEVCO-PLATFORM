@@ -5,6 +5,7 @@ export interface Tweet {
   authorName: string;
   authorHandle: string;
   authorAvatarUrl: string | null;
+  mediaUrl: string | null;
   likeCount: number;
   retweetCount: number;
   createdAt: string;
@@ -22,18 +23,46 @@ const CATEGORY_QUERIES: Record<string, string> = {
   politics: "(#politics OR #news OR #government OR from:reuters OR from:apnews) -is:retweet lang:en has:links",
 };
 
-export function getCategoryXQuery(categoryName: string, fallbackQuery?: string): string {
+export function getCategoryXQuery(categoryName: string, fallbackQuery?: string, imagesOnly?: boolean): string {
   const key = categoryName.toLowerCase();
-  return CATEGORY_QUERIES[key] || fallbackQuery || `(${categoryName}) -is:retweet lang:en`;
+  const base = CATEGORY_QUERIES[key] || fallbackQuery || `(${categoryName}) -is:retweet lang:en`;
+  if (imagesOnly && !base.includes("has:images")) {
+    return `${base} has:images`;
+  }
+  return base;
 }
 
 export async function fetchCategoryNewsFromX(
   category: string,
   query: string,
-  limit: number = 10
+  limit: number = 10,
+  options?: {
+    imagesOnly?: boolean;
+    allowedAccounts?: string[];
+    blockedAccounts?: string[];
+    minEngagement?: number;
+  }
 ): Promise<Tweet[]> {
-  const xQuery = getCategoryXQuery(category, query);
-  return searchTweets(xQuery, limit);
+  const xQuery = getCategoryXQuery(category, query, options?.imagesOnly);
+  let finalQuery = xQuery;
+
+  if (options?.allowedAccounts && options.allowedAccounts.length > 0) {
+    const handles = options.allowedAccounts.map((h) => `from:${h.replace(/^@/, "")}`).join(" OR ");
+    finalQuery = `${finalQuery} (${handles})`;
+  }
+
+  if (options?.blockedAccounts && options.blockedAccounts.length > 0) {
+    const blocked = options.blockedAccounts.map((h) => `-from:${h.replace(/^@/, "")}`).join(" ");
+    finalQuery = `${finalQuery} ${blocked}`;
+  }
+
+  let tweets = await searchTweets(finalQuery, limit);
+
+  if (options?.minEngagement && options.minEngagement > 0) {
+    tweets = tweets.filter((t) => (t.likeCount + t.retweetCount) >= options.minEngagement!);
+  }
+
+  return tweets;
 }
 
 const tweetCache = new Map<string, { tweets: Tweet[]; fetchedAt: number }>();
@@ -93,7 +122,7 @@ export async function fetchUserTweets(handle: string, limit: number = 10): Promi
     const { id: userId, name: authorName, username: authorHandle, profile_image_url: authorAvatarUrl } = userData.data;
 
     const tweetsRes = await fetch(
-      `https://api.twitter.com/2/users/${userId}/tweets?max_results=${Math.min(limit, 100)}&tweet.fields=created_at,public_metrics&exclude=retweets,replies`,
+      `https://api.twitter.com/2/users/${userId}/tweets?max_results=${Math.min(limit, 100)}&tweet.fields=created_at,public_metrics,attachments&expansions=attachments.media_keys&media.fields=url,preview_image_url,type&exclude=retweets,replies`,
       { headers: { Authorization: `Bearer ${bearerToken}` } }
     );
 
@@ -108,7 +137,16 @@ export async function fetchUserTweets(handle: string, limit: number = 10): Promi
         text: string;
         created_at?: string;
         public_metrics?: { like_count: number; retweet_count: number };
+        attachments?: { media_keys?: string[] };
       }>;
+      includes?: {
+        media?: Array<{
+          media_key: string;
+          type: string;
+          url?: string;
+          preview_image_url?: string;
+        }>;
+      };
       errors?: unknown[];
     };
 
@@ -117,18 +155,30 @@ export async function fetchUserTweets(handle: string, limit: number = 10): Promi
       return [];
     }
 
-    const tweets: Tweet[] = tweetsData.data.slice(0, limit).map((t) => ({
-      id: t.id,
-      text: t.text,
-      authorId: userId,
-      authorName,
-      authorHandle: `@${authorHandle}`,
-      authorAvatarUrl: authorAvatarUrl ?? null,
-      likeCount: t.public_metrics?.like_count ?? 0,
-      retweetCount: t.public_metrics?.retweet_count ?? 0,
-      createdAt: t.created_at ?? new Date().toISOString(),
-      url: `https://x.com/${authorHandle}/status/${t.id}`,
-    }));
+    const mediaMap = new Map<string, string>();
+    for (const m of tweetsData.includes?.media ?? []) {
+      if (m.type === "photo" && (m.url || m.preview_image_url)) {
+        mediaMap.set(m.media_key, m.url ?? m.preview_image_url!);
+      }
+    }
+
+    const tweets: Tweet[] = tweetsData.data.slice(0, limit).map((t) => {
+      const firstKey = t.attachments?.media_keys?.[0];
+      const mediaUrl = firstKey ? (mediaMap.get(firstKey) ?? null) : null;
+      return {
+        id: t.id,
+        text: t.text,
+        authorId: userId,
+        authorName,
+        authorHandle: `@${authorHandle}`,
+        authorAvatarUrl: authorAvatarUrl ?? null,
+        mediaUrl,
+        likeCount: t.public_metrics?.like_count ?? 0,
+        retweetCount: t.public_metrics?.retweet_count ?? 0,
+        createdAt: t.created_at ?? new Date().toISOString(),
+        url: `https://x.com/${authorHandle}/status/${t.id}`,
+      };
+    });
 
     setCachedTweets(cacheKey, tweets);
     return tweets;
@@ -151,7 +201,7 @@ export async function searchTweets(query: string, limit: number = 6): Promise<Tw
 
   try {
     const res = await fetch(
-      `https://api.twitter.com/2/tweets/search/recent?query=${encodeURIComponent(query)}&max_results=${Math.min(Math.max(limit, 10), 100)}&tweet.fields=created_at,public_metrics,author_id&expansions=author_id&user.fields=name,username,profile_image_url`,
+      `https://api.twitter.com/2/tweets/search/recent?query=${encodeURIComponent(query)}&max_results=${Math.min(Math.max(limit, 10), 100)}&tweet.fields=created_at,public_metrics,author_id,attachments&expansions=author_id,attachments.media_keys&user.fields=name,username,profile_image_url&media.fields=url,preview_image_url,type`,
       { headers: { Authorization: `Bearer ${bearerToken}` } }
     );
 
@@ -167,6 +217,7 @@ export async function searchTweets(query: string, limit: number = 6): Promise<Tw
         author_id: string;
         created_at?: string;
         public_metrics?: { like_count: number; retweet_count: number };
+        attachments?: { media_keys?: string[] };
       }>;
       includes?: {
         users?: Array<{
@@ -174,6 +225,12 @@ export async function searchTweets(query: string, limit: number = 6): Promise<Tw
           name: string;
           username: string;
           profile_image_url?: string;
+        }>;
+        media?: Array<{
+          media_key: string;
+          type: string;
+          url?: string;
+          preview_image_url?: string;
         }>;
       };
       errors?: unknown[];
@@ -189,8 +246,17 @@ export async function searchTweets(query: string, limit: number = 6): Promise<Tw
       userMap.set(u.id, u);
     }
 
+    const mediaMap = new Map<string, string>();
+    for (const m of data.includes?.media ?? []) {
+      if (m.type === "photo" && (m.url || m.preview_image_url)) {
+        mediaMap.set(m.media_key, m.url ?? m.preview_image_url!);
+      }
+    }
+
     const tweets: Tweet[] = data.data.slice(0, limit).map((t) => {
       const author = userMap.get(t.author_id);
+      const firstKey = t.attachments?.media_keys?.[0];
+      const mediaUrl = firstKey ? (mediaMap.get(firstKey) ?? null) : null;
       return {
         id: t.id,
         text: t.text,
@@ -198,6 +264,7 @@ export async function searchTweets(query: string, limit: number = 6): Promise<Tw
         authorName: author?.name ?? "Unknown",
         authorHandle: author ? `@${author.username}` : "@unknown",
         authorAvatarUrl: author?.profile_image_url ?? null,
+        mediaUrl,
         likeCount: t.public_metrics?.like_count ?? 0,
         retweetCount: t.public_metrics?.retweet_count ?? 0,
         createdAt: t.created_at ?? new Date().toISOString(),

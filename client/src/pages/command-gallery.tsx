@@ -338,7 +338,7 @@ export default function CommandGallery() {
       )}
 
       {!isLoading && images && images.length > 0 && (
-        <div className="rounded-xl border overflow-hidden">
+        <div className="rounded-xl border overflow-hidden overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/40">
               <tr>

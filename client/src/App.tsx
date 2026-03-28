@@ -657,11 +657,11 @@ function AppShell() {
     >
       <div className="flex flex-col min-h-screen w-full overflow-x-hidden">
         <PlatformHeader />
-        <div className="flex flex-1">
+        <div className="flex flex-1 min-w-0 overflow-hidden">
           {showWikiSidebar && <AppSidebar />}
           {showCommandSidebar && <CommandSidebar />}
           <main
-            className="flex-1 flex flex-col"
+            className="flex-1 min-w-0 flex flex-col"
             style={{ paddingBottom: activePlaylist ? "220px" : undefined }}
           >
             <div className="flex-1">

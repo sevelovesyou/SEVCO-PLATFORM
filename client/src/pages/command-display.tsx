@@ -606,7 +606,7 @@ export default function CommandDisplay() {
               <Type className="h-3.5 w-3.5" />
               Button 1 (Primary)
             </p>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="btn1-label" className="text-xs">Label</Label>
                 <Input
@@ -659,7 +659,7 @@ export default function CommandDisplay() {
               <Type className="h-3.5 w-3.5" />
               Button 2 (Secondary)
             </p>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="btn2-label" className="text-xs">Label</Label>
                 <Input

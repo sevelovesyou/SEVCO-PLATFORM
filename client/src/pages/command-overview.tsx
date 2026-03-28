@@ -753,7 +753,7 @@ function AdminOverview({ data, summary, summaryLoading, userId, onRefreshSummary
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
           Platform Stats
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           <StatCard label="Articles" value={data.stats.totalArticles} icon={FileText} testId="stat-articles" color="text-primary" />
           <StatCard label="Revisions" value={data.stats.totalRevisions} icon={Clock} testId="stat-revisions" />
           <StatCard label="Pending Reviews" value={data.stats.pendingReviews} icon={Shield} testId="stat-pending" color="text-yellow-600 dark:text-yellow-400" />
@@ -762,7 +762,7 @@ function AdminOverview({ data, summary, summaryLoading, userId, onRefreshSummary
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="p-4 overflow-visible" data-testid="card-feed-post-count">
           <div className="flex items-center gap-2 mb-1.5">
             <MessageCircle className="h-4 w-4 text-muted-foreground" />
@@ -839,7 +839,7 @@ function ExecutiveOverview({ data, summary, summaryLoading, userId, onRefreshSum
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
           Business Overview
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard label="Articles" value={data.stats.totalArticles} icon={FileText} testId="stat-articles" color="text-primary" />
           <StatCard label="Pending Reviews" value={data.stats.pendingReviews} icon={Shield} testId="stat-pending" color="text-yellow-600 dark:text-yellow-400" />
           <StatCard label="Total Users" value={data.stats.totalUsers} icon={Users} testId="stat-users" color="text-green-600 dark:text-green-400" />
@@ -877,7 +877,7 @@ function StaffOverview({ data, summary, summaryLoading, onRefreshSummary }: { da
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
           Wiki Overview
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           <StatCard label="Published Articles" value={data.stats.totalArticles} icon={FileText} testId="stat-articles" color="text-primary" />
           <StatCard label="Pending Reviews" value={data.stats.pendingReviews} icon={Shield} testId="stat-pending" color="text-yellow-600 dark:text-yellow-400" />
           <StatCard label="Total Revisions" value={data.stats.totalRevisions} icon={Clock} testId="stat-revisions" />
@@ -967,7 +967,7 @@ export default function CommandOverview() {
   if (isLoading) {
     return (
       <div className="flex flex-col gap-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i} className="p-4 overflow-visible">
               <Skeleton className="h-4 w-24 mb-2" />

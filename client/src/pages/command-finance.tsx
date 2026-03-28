@@ -273,7 +273,7 @@ function TransactionForm({ onSuccess, projects }: { onSuccess: () => void; proje
             <FormMessage />
           </FormItem>
         )} />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField control={form.control} name="amount" render={({ field }) => (
             <FormItem>
               <FormLabel>Amount ($)</FormLabel>
@@ -377,7 +377,7 @@ function TransactionsTab() {
       ) : filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-12">No transactions found.</p>
       ) : (
-        <div className="rounded-lg border overflow-hidden">
+        <div className="rounded-lg border overflow-hidden overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -493,7 +493,7 @@ function InvoiceForm({ invoice, onSuccess }: { invoice?: FinanceInvoice; onSucce
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField control={form.control} name="clientName" render={({ field }) => (
             <FormItem>
               <FormLabel>Client Name</FormLabel>
@@ -509,7 +509,7 @@ function InvoiceForm({ invoice, onSuccess }: { invoice?: FinanceInvoice; onSucce
             </FormItem>
           )} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField control={form.control} name="dueDate" render={({ field }) => (
             <FormItem>
               <FormLabel>Due Date (optional)</FormLabel>
@@ -650,7 +650,7 @@ function InvoicesTab() {
       ) : invoices.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-12">No invoices yet.</p>
       ) : (
-        <div className="rounded-lg border overflow-hidden">
+        <div className="rounded-lg border overflow-hidden overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -821,7 +821,7 @@ function ProjectForm({ project, onSuccess }: { project?: FinanceProject; onSucce
             <FormMessage />
           </FormItem>
         )} />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField control={form.control} name="budget" render={({ field }) => (
             <FormItem>
               <FormLabel>Budget ($)</FormLabel>
@@ -899,7 +899,7 @@ function ProjectsTab() {
           </div>
           <Badge variant="outline" className={PROJECT_STATUS_COLORS[viewProject.status] || ""}>{viewProject.status.replace("_", " ")}</Badge>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card><CardContent className="p-4">
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Budget</p>
             <p className="text-xl font-bold mt-1">{formatCurrency(viewProject.budget)}</p>
@@ -913,7 +913,7 @@ function ProjectsTab() {
             <p className={`text-xl font-bold mt-1 ${remaining >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{formatCurrency(remaining)}</p>
           </CardContent></Card>
         </div>
-        <div className="rounded-lg border overflow-hidden">
+        <div className="rounded-lg border overflow-hidden overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -1341,7 +1341,7 @@ function SubscriptionsTab() {
         </Button>
       </div>
 
-      <Card>
+      <Card className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>

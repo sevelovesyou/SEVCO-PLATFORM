@@ -432,7 +432,7 @@ function DirectoryTab() {
         )}
       </div>
 
-      <div className="rounded-lg border overflow-hidden">
+      <div className="rounded-lg border overflow-hidden overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-muted/40 border-b">

@@ -189,7 +189,7 @@ export function PlatformFooter() {
 
   return (
     <footer
-      className="border-t bg-background text-foreground mt-auto"
+      className="border-t bg-background text-foreground mt-auto overflow-x-hidden"
       data-testid="platform-footer"
     >
       <div className="max-w-6xl mx-auto px-6 py-10">

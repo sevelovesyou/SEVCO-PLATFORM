@@ -359,7 +359,7 @@ export default function Landing() {
 
       {/* ── WHY SEVCO — FEATURE PILLS ── */}
       <section
-        className="bg-[#0f0f1a] border-y border-white/5 px-4 py-5"
+        className="relative overflow-hidden bg-[#0f0f1a] border-y border-white/5 px-4 py-5"
         data-testid="section-feature-pills"
       >
         <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-6 md:gap-10">
@@ -433,7 +433,7 @@ export default function Landing() {
 
       {/* ── PLATFORM GRID ── */}
       {showPlatformGrid && (
-        <section className="max-w-6xl mx-auto px-6 py-16 md:py-20">
+        <section className="overflow-hidden max-w-6xl mx-auto px-6 py-16 md:py-20">
           <div className="mb-8">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">The Platform</p>
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Everything SEVCO, in one place.</h2>
@@ -635,7 +635,7 @@ export default function Landing() {
 
       {/* ── STORE PREVIEW ── */}
       {showStorePreview && (
-        <section className="max-w-6xl mx-auto px-6 py-16 md:py-20">
+        <section className="overflow-hidden max-w-6xl mx-auto px-6 py-16 md:py-20">
           <div className="flex items-end justify-between mb-8">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">SEV Store</p>
@@ -676,7 +676,7 @@ export default function Landing() {
 
       {/* ── LATEST FROM WIKI ── */}
       {showWikiLatest && (
-        <section className="bg-muted/40 border-y border-border/60">
+        <section className="overflow-hidden bg-muted/40 border-y border-border/60">
           <div className="max-w-6xl mx-auto px-6 py-16 md:py-20">
             <div className="flex items-end justify-between mb-8">
               <div>

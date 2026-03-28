@@ -116,7 +116,7 @@ function JobForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit((v) => mutation.mutate(v))} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField control={form.control} name="title" render={({ field }) => (
             <FormItem>
               <FormLabel>Title</FormLabel>
@@ -145,7 +145,7 @@ function JobForm({
           )} />
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <FormField control={form.control} name="department" render={({ field }) => (
             <FormItem>
               <FormLabel>Department</FormLabel>
@@ -198,7 +198,7 @@ function JobForm({
           )} />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField control={form.control} name="location" render={({ field }) => (
             <FormItem>
               <FormLabel>Location</FormLabel>
@@ -219,7 +219,7 @@ function JobForm({
           )} />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField control={form.control} name="salaryMin" render={({ field }) => (
             <FormItem>
               <FormLabel>Salary Min ($/yr)</FormLabel>

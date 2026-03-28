@@ -381,7 +381,7 @@ export default function CommandNews() {
           <p className="text-sm">No categories yet. Add one to get started.</p>
         </div>
       ) : (
-        <div className="rounded-xl border overflow-hidden">
+        <div className="rounded-xl border overflow-hidden overflow-x-auto">
           <table className="w-full text-sm" data-testid="categories-table">
             <thead>
               <tr className="bg-muted/50 border-b">

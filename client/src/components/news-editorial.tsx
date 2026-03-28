@@ -438,8 +438,8 @@ export function NewsEditorial({
       {/* Main grid */}
       <div className="max-w-7xl mx-auto px-4 md:px-6 pb-8">
         {articlesLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <Skeleton className="md:col-span-2 md:row-span-2 h-72 rounded-2xl" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Skeleton className="md:col-span-1 lg:col-span-2 md:row-span-2 h-72 rounded-2xl" />
             {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
           </div>
         ) : articles.length === 0 ? (
@@ -449,9 +449,9 @@ export function NewsEditorial({
             {/* Left: editorial grid */}
             <div className="flex-1 min-w-0">
               {/* Hero + secondary 3-up */}
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                 {heroArticle && (
-                  <div className="md:col-span-2 md:row-span-2">
+                  <div className="md:col-span-1 lg:col-span-2 md:row-span-2">
                     <HeroCard article={heroArticle} accentColor={accentColor} />
                   </div>
                 )}

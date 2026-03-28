@@ -4594,7 +4594,7 @@ export async function registerRoutes(
       let xArticles: Array<{
         title: string; link: string; description: string;
         pubDate: string; source: string; imageUrl: string | null; sourceType: "x";
-        authorHandle?: string; likeCount?: number; retweetCount?: number;
+        authorHandle?: string; likeCount?: number; retweetCount?: number; replyCount?: number;
       }> = [];
 
       if (xConfigured && cat && sourceType !== "rss_only") {
@@ -4625,6 +4625,7 @@ export async function registerRoutes(
             authorHandle: t.authorHandle,
             likeCount: t.likeCount,
             retweetCount: t.retweetCount,
+            replyCount: t.replyCount,
           };
         });
 
@@ -4638,6 +4639,10 @@ export async function registerRoutes(
           });
         }
 
+        mapped.sort((a, b) =>
+          ((b.likeCount ?? 0) + (b.retweetCount ?? 0) + (b.replyCount ?? 0)) -
+          ((a.likeCount ?? 0) + (a.retweetCount ?? 0) + (a.replyCount ?? 0))
+        );
         xArticles = mapped;
       }
 

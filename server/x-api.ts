@@ -8,6 +8,7 @@ export interface Tweet {
   mediaUrl: string | null;
   likeCount: number;
   retweetCount: number;
+  replyCount: number;
   createdAt: string;
   url: string;
 }
@@ -26,8 +27,9 @@ const CATEGORY_QUERIES: Record<string, string> = {
 export function getCategoryXQuery(categoryName: string, fallbackQuery?: string, imagesOnly?: boolean): string {
   const key = categoryName.toLowerCase();
   const base = CATEGORY_QUERIES[key] || fallbackQuery || `(${categoryName}) -is:retweet lang:en`;
-  if (imagesOnly && !base.includes("has:images")) {
-    return `${base} has:images`;
+  if (imagesOnly) {
+    const withImages = base.includes("has:images") ? base : `${base} has:images`;
+    return `${withImages} min_faves:10`;
   }
   return base;
 }
@@ -136,7 +138,7 @@ export async function fetchUserTweets(handle: string, limit: number = 10): Promi
         id: string;
         text: string;
         created_at?: string;
-        public_metrics?: { like_count: number; retweet_count: number };
+        public_metrics?: { like_count: number; retweet_count: number; reply_count: number };
         attachments?: { media_keys?: string[] };
       }>;
       includes?: {
@@ -175,6 +177,7 @@ export async function fetchUserTweets(handle: string, limit: number = 10): Promi
         mediaUrl,
         likeCount: t.public_metrics?.like_count ?? 0,
         retweetCount: t.public_metrics?.retweet_count ?? 0,
+        replyCount: t.public_metrics?.reply_count ?? 0,
         createdAt: t.created_at ?? new Date().toISOString(),
         url: `https://x.com/${authorHandle}/status/${t.id}`,
       };
@@ -216,7 +219,7 @@ export async function searchTweets(query: string, limit: number = 6): Promise<Tw
         text: string;
         author_id: string;
         created_at?: string;
-        public_metrics?: { like_count: number; retweet_count: number };
+        public_metrics?: { like_count: number; retweet_count: number; reply_count: number };
         attachments?: { media_keys?: string[] };
       }>;
       includes?: {
@@ -267,6 +270,7 @@ export async function searchTweets(query: string, limit: number = 6): Promise<Tw
         mediaUrl,
         likeCount: t.public_metrics?.like_count ?? 0,
         retweetCount: t.public_metrics?.retweet_count ?? 0,
+        replyCount: t.public_metrics?.reply_count ?? 0,
         createdAt: t.created_at ?? new Date().toISOString(),
         url: author
           ? `https://x.com/${author.username}/status/${t.id}`

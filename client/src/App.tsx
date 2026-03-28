@@ -657,7 +657,7 @@ function AppShell() {
     <SidebarProvider
       style={{ "--sidebar-width": "16rem", "--sidebar-width-icon": "3rem" } as React.CSSProperties}
     >
-      <div className="flex flex-col min-h-screen w-full overflow-x-hidden">
+      <div className="flex flex-col min-h-screen w-full overflow-x-clip">
         <PlatformHeader />
         <div className="flex flex-1 min-w-0 overflow-hidden">
           {showWikiSidebar && <AppSidebar />}

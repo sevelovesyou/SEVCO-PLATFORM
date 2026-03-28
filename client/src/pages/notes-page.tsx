@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { RichTextEditor } from "@/components/rich-text-editor";
+import { RichTextEditor, RichTextToolbar } from "@/components/rich-text-editor";
+import type { Editor } from "@tiptap/react";
 import {
   Dialog,
   DialogContent,
@@ -330,6 +331,9 @@ export default function NotesPage() {
   const [mobileShowEditor, setMobileShowEditor] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [noteEditor, setNoteEditor] = useState<Editor | null>(null);
+  const [imageUploadTrigger, setImageUploadTrigger] = useState<(() => void) | null>(null);
+  const [noteUploading, setNoteUploading] = useState(false);
 
   const titleRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<string>("");
@@ -665,10 +669,16 @@ export default function NotesPage() {
                 ))}
               </div>
 
-              <div className="flex-1" />
+              <div className="flex items-center gap-0.5 flex-1 min-w-0 overflow-x-auto px-1">
+                <RichTextToolbar
+                  editor={noteEditor}
+                  uploading={noteUploading}
+                  onImageButtonClick={imageUploadTrigger ?? undefined}
+                />
+              </div>
 
               {/* Toolbar actions */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 shrink-0">
                 {/* Pin toggle */}
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -842,6 +852,10 @@ export default function NotesPage() {
                   onChange={handleContentChange}
                   placeholder="Start writing…"
                   className="flex-1 border-none rounded-none shadow-none bg-transparent"
+                  showToolbar={false}
+                  onEditorReady={setNoteEditor}
+                  onImageUploadReady={(fn) => setImageUploadTrigger(() => fn)}
+                  onUploadingChange={setNoteUploading}
                 />
               </div>
 

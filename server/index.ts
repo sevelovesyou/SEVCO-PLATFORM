@@ -29,6 +29,41 @@ async function runStartupMigrations() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_pronouns TEXT;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_accent_gradient BOOLEAN DEFAULT false;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_show_followers BOOLEAN DEFAULT true;`);
+  // Task #126 — Tasks tool
+  await pool.query(`CREATE TABLE IF NOT EXISTS user_tasks (
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id varchar NOT NULL,
+    title text NOT NULL,
+    description text,
+    completed boolean NOT NULL DEFAULT false,
+    pinned boolean NOT NULL DEFAULT false,
+    priority text NOT NULL DEFAULT 'normal',
+    due_date text,
+    created_at timestamp DEFAULT now() NOT NULL
+  );`);
+  await pool.query(`ALTER TABLE user_tasks ADD COLUMN IF NOT EXISTS description text;`);
+  await pool.query(`ALTER TABLE user_tasks ADD COLUMN IF NOT EXISTS completed boolean NOT NULL DEFAULT false;`);
+  await pool.query(`ALTER TABLE user_tasks ADD COLUMN IF NOT EXISTS pinned boolean NOT NULL DEFAULT false;`);
+  await pool.query(`ALTER TABLE user_tasks ADD COLUMN IF NOT EXISTS priority text NOT NULL DEFAULT 'normal';`);
+  await pool.query(`ALTER TABLE user_tasks ADD COLUMN IF NOT EXISTS due_date text;`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS staff_tasks (
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    title text NOT NULL,
+    description text,
+    completed boolean NOT NULL DEFAULT false,
+    priority text NOT NULL DEFAULT 'normal',
+    due_date text,
+    created_by_id varchar NOT NULL,
+    assignee_id varchar,
+    project_id integer,
+    created_at timestamp DEFAULT now() NOT NULL
+  );`);
+  await pool.query(`ALTER TABLE staff_tasks ADD COLUMN IF NOT EXISTS description text;`);
+  await pool.query(`ALTER TABLE staff_tasks ADD COLUMN IF NOT EXISTS completed boolean NOT NULL DEFAULT false;`);
+  await pool.query(`ALTER TABLE staff_tasks ADD COLUMN IF NOT EXISTS priority text NOT NULL DEFAULT 'normal';`);
+  await pool.query(`ALTER TABLE staff_tasks ADD COLUMN IF NOT EXISTS due_date text;`);
+  await pool.query(`ALTER TABLE staff_tasks ADD COLUMN IF NOT EXISTS assignee_id varchar;`);
+  await pool.query(`ALTER TABLE staff_tasks ADD COLUMN IF NOT EXISTS project_id integer;`);
   // Task #127 — Finance ↔ Projects sync
   await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS budget real;`);
   await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS financial_status text DEFAULT 'not_set';`);

@@ -540,6 +540,64 @@ export const insertFeedPostSchema = createInsertSchema(feedPosts).omit({ id: tru
 export type FeedPost = typeof feedPosts.$inferSelect;
 export type InsertFeedPost = z.infer<typeof insertFeedPostSchema>;
 
+export const userTasks = pgTable("user_tasks", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: varchar("user_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  completed: boolean("completed").notNull().default(false),
+  pinned: boolean("pinned").notNull().default(false),
+  priority: text("priority").notNull().default("normal"),
+  dueDate: text("due_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const staffTasks = pgTable("staff_tasks", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  title: text("title").notNull(),
+  description: text("description"),
+  completed: boolean("completed").notNull().default(false),
+  priority: text("priority").notNull().default("normal"),
+  dueDate: text("due_date"),
+  createdById: varchar("created_by_id").notNull(),
+  assigneeId: varchar("assignee_id"),
+  projectId: integer("project_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserTaskSchema = createInsertSchema(userTasks).omit({ id: true, createdAt: true, userId: true }).extend({
+  priority: z.enum(["low", "normal", "high", "urgent"]).optional().default("normal"),
+});
+export type UserTask = typeof userTasks.$inferSelect;
+export type InsertUserTask = z.infer<typeof insertUserTaskSchema>;
+
+export const updateUserTaskSchema = z.object({
+  title: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
+  completed: z.boolean().optional(),
+  pinned: z.boolean().optional(),
+  priority: z.enum(["low", "normal", "high", "urgent"]).optional(),
+  dueDate: z.string().nullable().optional(),
+});
+export type UpdateUserTask = z.infer<typeof updateUserTaskSchema>;
+
+export const insertStaffTaskSchema = createInsertSchema(staffTasks).omit({ id: true, createdAt: true, createdById: true }).extend({
+  priority: z.enum(["low", "normal", "high", "urgent"]).optional().default("normal"),
+});
+export type StaffTask = typeof staffTasks.$inferSelect;
+export type InsertStaffTask = z.infer<typeof insertStaffTaskSchema>;
+
+export const updateStaffTaskSchema = z.object({
+  title: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
+  completed: z.boolean().optional(),
+  priority: z.enum(["low", "normal", "high", "urgent"]).optional(),
+  dueDate: z.string().nullable().optional(),
+  assigneeId: z.string().nullable().optional(),
+  projectId: z.number().int().nullable().optional(),
+});
+export type UpdateStaffTask = z.infer<typeof updateStaffTaskSchema>;
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type UpdateRole = z.infer<typeof updateRoleSchema>;

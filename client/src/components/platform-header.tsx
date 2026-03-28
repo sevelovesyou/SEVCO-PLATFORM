@@ -72,6 +72,7 @@ import {
   Images,
   MessageCircle,
   Megaphone,
+  CheckSquare,
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { ChatSheet } from "@/components/chat-sheet";
@@ -151,6 +152,7 @@ function getActiveApp(location: string): string {
   if (location.startsWith("/notes")) return "/notes";
   if (location.startsWith("/gallery")) return "/gallery";
   if (location.startsWith("/messages")) return "/messages";
+  if (location.startsWith("/tools")) return "/tools";
   return "";
 }
 
@@ -585,6 +587,7 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
 
   const items = [
     ...(user ? [
+      { label: "Tasks",   href: "/tools/tasks", icon: CheckSquare, desc: "Personal to-do list & staff board" },
       { label: "Notes",   href: "/notes",   icon: StickyNote, desc: "Personal & shared notes" },
       { label: "Gallery", href: "/gallery", icon: Images,     desc: "Quick-copy images for your profile" },
     ] : []),
@@ -737,7 +740,7 @@ export function PlatformHeader() {
           <ServicesDropdown isActive={activeApp === "/services"} platformSettings={platformSettings} />
           <MusicDropdown isActive={activeApp === "/music"} />
           <ProjectsDropdown isActive={activeApp === "/projects"} />
-          <ToolsDropdown isActive={activeApp === "/notes" || activeApp === "/gallery" || activeApp === "/messages"} />
+          <ToolsDropdown isActive={activeApp === "/notes" || activeApp === "/gallery" || activeApp === "/messages" || activeApp === "/tools"} />
 
           {canAccessCMD && (
             <Link href="/command">
@@ -1026,6 +1029,11 @@ export function PlatformHeader() {
               <div className="pl-4 space-y-0.5 py-1">
                 {user && (
                   <>
+                    <Link href="/tools/tasks" onClick={() => setMobileOpen(false)}>
+                      <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-tools-tasks">
+                        Tasks
+                      </div>
+                    </Link>
                     <Link href="/notes" onClick={() => setMobileOpen(false)}>
                       <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-tools-notes">
                         Notes

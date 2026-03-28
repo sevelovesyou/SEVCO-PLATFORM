@@ -38,6 +38,8 @@ import {
   type AiMessage, type InsertAiMessage,
   type NewsCategory, type InsertNewsCategory,
   type Email, type InsertEmail,
+  type UserTask, type InsertUserTask, type UpdateUserTask,
+  type StaffTask, type InsertStaffTask, type UpdateStaffTask,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
@@ -52,6 +54,8 @@ import {
   aiAgents, aiMessages,
   newsCategories,
   emails,
+  userTasks,
+  staffTasks,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, or, inArray } from "drizzle-orm";
@@ -329,6 +333,16 @@ export interface IStorage {
   hardDeleteEmail(id: number): Promise<void>;
   getEmailFolderCounts(userId: string): Promise<Record<string, number>>;
   getEmailByResendIdForUser(userId: string, resendEmailId: string): Promise<Email | undefined>;
+
+  getUserTasks(userId: string): Promise<UserTask[]>;
+  createUserTask(data: InsertUserTask & { userId: string }): Promise<UserTask>;
+  updateUserTask(id: number, userId: string, data: UpdateUserTask): Promise<UserTask | undefined>;
+  deleteUserTask(id: number, userId: string): Promise<boolean>;
+
+  getStaffTasks(): Promise<StaffTask[]>;
+  createStaffTask(data: InsertStaffTask & { createdById: string }): Promise<StaffTask>;
+  updateStaffTask(id: number, data: UpdateStaffTask): Promise<StaffTask | undefined>;
+  deleteStaffTask(id: number): Promise<boolean>;
 }
 
 export type SearchResultItem = {
@@ -2173,6 +2187,44 @@ export class DatabaseStorage implements IStorage {
       and(eq(emails.userId, userId), eq(emails.resendEmailId, resendEmailId))
     );
     return email || undefined;
+  }
+
+  async getUserTasks(userId: string): Promise<UserTask[]> {
+    return db.select().from(userTasks).where(eq(userTasks.userId, userId)).orderBy(desc(userTasks.createdAt));
+  }
+
+  async createUserTask(data: InsertUserTask & { userId: string }): Promise<UserTask> {
+    const [task] = await db.insert(userTasks).values(data).returning();
+    return task;
+  }
+
+  async updateUserTask(id: number, userId: string, data: UpdateUserTask): Promise<UserTask | undefined> {
+    const [task] = await db.update(userTasks).set(data).where(and(eq(userTasks.id, id), eq(userTasks.userId, userId))).returning();
+    return task;
+  }
+
+  async deleteUserTask(id: number, userId: string): Promise<boolean> {
+    const result = await db.delete(userTasks).where(and(eq(userTasks.id, id), eq(userTasks.userId, userId))).returning({ id: userTasks.id });
+    return result.length > 0;
+  }
+
+  async getStaffTasks(): Promise<StaffTask[]> {
+    return db.select().from(staffTasks).orderBy(desc(staffTasks.createdAt));
+  }
+
+  async createStaffTask(data: InsertStaffTask & { createdById: string }): Promise<StaffTask> {
+    const [task] = await db.insert(staffTasks).values(data).returning();
+    return task;
+  }
+
+  async updateStaffTask(id: number, data: UpdateStaffTask): Promise<StaffTask | undefined> {
+    const [task] = await db.update(staffTasks).set(data).where(eq(staffTasks.id, id)).returning();
+    return task;
+  }
+
+  async deleteStaffTask(id: number): Promise<boolean> {
+    const result = await db.delete(staffTasks).where(eq(staffTasks.id, id)).returning({ id: staffTasks.id });
+    return result.length > 0;
   }
 }
 

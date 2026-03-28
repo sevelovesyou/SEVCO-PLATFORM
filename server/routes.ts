@@ -13,7 +13,7 @@ import {
   CAN_ACCESS_ARCHIVE,
 } from "./middleware/permissions";
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema, updateUserTaskSchema, updateStaffTaskSchema, insertUserTaskSchema, insertStaffTaskSchema } from "@shared/schema";
 import { fetchNewsArticles, fetchGoogleNewsRSS, setGNewsApiKeyFromDb } from "./news";
 import { fetchUserTweets, searchTweets, isXConfigured, fetchCategoryNewsFromX } from "./x-api";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
@@ -4976,6 +4976,115 @@ export async function registerRoutes(
       const tweets = tweetArrays.flat();
 
       res.json(tweets);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────
+  // Tasks — personal (user) + staff tasks
+  // ─────────────────────────────────────────────────────────
+  const CAN_ACCESS_STAFF_TASKS: Role[] = ["admin", "executive", "staff"];
+
+  // Staff task routes MUST be registered before /api/tasks/:id to avoid route conflicts
+
+  // GET /api/tasks/staff — all staff tasks (staff+ only)
+  app.get("/api/tasks/staff", requireRole(...CAN_ACCESS_STAFF_TASKS), async (_req, res) => {
+    try {
+      const tasks = await storage.getStaffTasks();
+      res.json(tasks);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // POST /api/tasks/staff — create staff task (staff+ only)
+  app.post("/api/tasks/staff", requireRole(...CAN_ACCESS_STAFF_TASKS), async (req, res) => {
+    try {
+      const createdById = (req.user as any).id as string;
+      const { insertStaffTaskSchema } = await import("@shared/schema");
+      const parsed = insertStaffTaskSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.issues[0]?.message ?? "Invalid data" });
+      const task = await storage.createStaffTask({ ...parsed.data, createdById });
+      res.status(201).json(task);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // PATCH /api/tasks/staff/:id — update staff task (staff+ only)
+  app.patch("/api/tasks/staff/:id", requireRole(...CAN_ACCESS_STAFF_TASKS), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const parsed = updateStaffTaskSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.issues[0]?.message ?? "Invalid data" });
+      const task = await storage.updateStaffTask(id, parsed.data);
+      if (!task) return res.status(404).json({ message: "Staff task not found" });
+      res.json(task);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // DELETE /api/tasks/staff/:id — delete staff task (staff+ only)
+  app.delete("/api/tasks/staff/:id", requireRole(...CAN_ACCESS_STAFF_TASKS), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteStaffTask(id);
+      if (!deleted) return res.status(404).json({ message: "Staff task not found" });
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // GET /api/tasks — personal tasks for current user
+  app.get("/api/tasks", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id as string;
+      const tasks = await storage.getUserTasks(userId);
+      res.json(tasks);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // POST /api/tasks — create personal task
+  app.post("/api/tasks", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id as string;
+      const parsed = insertUserTaskSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.issues[0]?.message ?? "Invalid data" });
+      const task = await storage.createUserTask({ ...parsed.data, userId });
+      res.status(201).json(task);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // PATCH /api/tasks/:id — update personal task (only owner)
+  app.patch("/api/tasks/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id as string;
+      const id = parseInt(req.params.id);
+      const parsed = updateUserTaskSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.issues[0]?.message ?? "Invalid data" });
+      const task = await storage.updateUserTask(id, userId, parsed.data);
+      if (!task) return res.status(404).json({ message: "Task not found" });
+      res.json(task);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // DELETE /api/tasks/:id — delete personal task (only owner)
+  app.delete("/api/tasks/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id as string;
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteUserTask(id, userId);
+      if (!deleted) return res.status(404).json({ message: "Task not found" });
+      res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

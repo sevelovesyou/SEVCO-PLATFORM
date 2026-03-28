@@ -69,6 +69,7 @@ import CommandDisplay from "@/pages/command-display";
 import CommandSettings from "@/pages/command-settings";
 import DomainsPage from "@/pages/domains-page";
 import NotesPage from "@/pages/notes-page";
+import TasksPage from "@/pages/tasks-page";
 import ChangelogPage from "@/pages/changelog-page";
 import ServiceDetailPage from "@/pages/service-detail-page";
 import ServicesListingPage from "@/pages/services-listing";
@@ -257,6 +258,7 @@ function Router() {
       )} />
       <Route path="/domains" component={DomainsPage} />
       <Route path="/notes" component={NotesPage} />
+      <Route path="/tools/tasks" component={() => <ProtectedRoute><TasksPage /></ProtectedRoute>} />
       <Route path="/gallery" component={GalleryPage} />
       <Route path="/command/gallery" component={() => (
         <ProtectedRoute requiredRole="admin">

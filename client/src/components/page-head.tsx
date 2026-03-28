@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 interface PageHeadProps {
   title: string;
@@ -8,12 +9,14 @@ interface PageHeadProps {
   ogUrl?: string;
   noIndex?: boolean;
   jsonLd?: Record<string, unknown>;
+  slug?: string;
 }
 
 const SITE_NAME = "SEVCO";
 const BASE_URL = "https://sevco.us";
 const DEFAULT_OG_IMAGE = "/favicon.jpg";
 const JSON_LD_SCRIPT_ID = "page-head-json-ld";
+const GEO_JSON_LD_SCRIPT_ID = "page-head-geo-json-ld";
 const CANONICAL_LINK_ID = "page-head-canonical";
 
 export function PageHead({
@@ -24,10 +27,42 @@ export function PageHead({
   ogUrl,
   noIndex = false,
   jsonLd,
+  slug,
 }: PageHeadProps) {
-  const fullTitle = title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`;
-  const resolvedOgImage = ogImage || DEFAULT_OG_IMAGE;
+  const { data: platformSettings } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const seo = slug && platformSettings
+    ? {
+        title: platformSettings[`seo.page.${slug}.title`] || undefined,
+        description: platformSettings[`seo.page.${slug}.description`] || undefined,
+        ogImage: platformSettings[`seo.page.${slug}.ogImage`] || undefined,
+        keywords: platformSettings[`seo.page.${slug}.keywords`] || undefined,
+        noIndex: platformSettings[`seo.page.${slug}.noIndex`] === undefined
+          ? undefined
+          : platformSettings[`seo.page.${slug}.noIndex`] === "true",
+        jsonLd: (() => {
+          const raw = platformSettings[`seo.page.${slug}.jsonLd`];
+          if (!raw) return undefined;
+          try { return JSON.parse(raw) as Record<string, unknown>; } catch { return undefined; }
+        })(),
+      }
+    : null;
+
+  const resolvedTitle = seo?.title || title;
+  const resolvedDescription = seo?.description || description;
+  const resolvedOgImage = seo?.ogImage || ogImage || DEFAULT_OG_IMAGE;
+  const resolvedNoIndex = seo?.noIndex ?? noIndex;
+  const resolvedJsonLd = seo?.jsonLd || jsonLd;
+  const resolvedKeywords = seo?.keywords;
+
+  const fullTitle = resolvedTitle.includes(SITE_NAME) ? resolvedTitle : `${resolvedTitle} | ${SITE_NAME}`;
   const resolvedOgUrl = ogUrl || (typeof window !== "undefined" ? window.location.href : BASE_URL);
+
+  const geoBrandVoice = platformSettings?.["seo.geo.brandVoice"];
+  const geoKeyFacts = platformSettings?.["seo.geo.keyFacts"];
 
   useEffect(() => {
     document.title = fullTitle;
@@ -43,10 +78,10 @@ export function PageHead({
       el.setAttribute(attr, value);
     }
 
-    if (description) {
-      setMeta('meta[name="description"]', "content", description);
-      setMeta('meta[property="og:description"]', "content", description);
-      setMeta('meta[name="twitter:description"]', "content", description);
+    if (resolvedDescription) {
+      setMeta('meta[name="description"]', "content", resolvedDescription);
+      setMeta('meta[property="og:description"]', "content", resolvedDescription);
+      setMeta('meta[name="twitter:description"]', "content", resolvedDescription);
     }
 
     setMeta('meta[property="og:title"]', "content", fullTitle);
@@ -59,7 +94,14 @@ export function PageHead({
       setMeta('meta[name="twitter:image"]', "content", resolvedOgImage);
     }
 
-    setMeta('meta[name="robots"]', "content", noIndex ? "noindex,nofollow" : "index,follow");
+    if (resolvedKeywords) {
+      setMeta('meta[name="keywords"]', "content", resolvedKeywords);
+    } else {
+      const kwEl = document.querySelector('meta[name="keywords"]');
+      if (kwEl) kwEl.remove();
+    }
+
+    setMeta('meta[name="robots"]', "content", resolvedNoIndex ? "noindex,nofollow" : "index,follow");
 
     let canonicalEl = document.getElementById(CANONICAL_LINK_ID) as HTMLLinkElement | null;
     if (!canonicalEl) {
@@ -77,27 +119,58 @@ export function PageHead({
     canonicalEl.href = resolvedOgUrl;
 
     let jsonLdEl = document.getElementById(JSON_LD_SCRIPT_ID) as HTMLScriptElement | null;
-    if (jsonLd) {
+    if (resolvedJsonLd) {
       if (!jsonLdEl) {
         jsonLdEl = document.createElement("script");
         jsonLdEl.id = JSON_LD_SCRIPT_ID;
         jsonLdEl.type = "application/ld+json";
         document.head.appendChild(jsonLdEl);
       }
-      jsonLdEl.textContent = JSON.stringify(jsonLd);
+      jsonLdEl.textContent = JSON.stringify(resolvedJsonLd);
     } else if (jsonLdEl) {
       jsonLdEl.remove();
+    }
+
+    // GEO: inject brand voice + key facts as JSON-LD on every page
+    let geoEl = document.getElementById(GEO_JSON_LD_SCRIPT_ID) as HTMLScriptElement | null;
+    if (geoBrandVoice || geoKeyFacts) {
+      if (!geoEl) {
+        geoEl = document.createElement("script");
+        geoEl.id = GEO_JSON_LD_SCRIPT_ID;
+        geoEl.type = "application/ld+json";
+        document.head.appendChild(geoEl);
+      }
+      const geoData: Record<string, unknown> = {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        name: SITE_NAME,
+      };
+      if (geoBrandVoice) geoData["description"] = geoBrandVoice;
+      if (geoKeyFacts) {
+        geoData["additionalProperty"] = geoKeyFacts
+          .split("\n")
+          .map((f) => f.replace(/^[-*•]\s*/, "").trim())
+          .filter(Boolean)
+          .map((value) => ({ "@type": "PropertyValue", name: "keyFact", value }));
+      }
+      geoEl.textContent = JSON.stringify(geoData);
+    } else if (geoEl) {
+      geoEl.remove();
     }
 
     return () => {
       document.title = "SEVCO Platform";
       setMeta('meta[name="robots"]', "content", "index,follow");
+      const kwEl = document.querySelector('meta[name="keywords"]');
+      if (kwEl) kwEl.remove();
       const el = document.getElementById(JSON_LD_SCRIPT_ID);
       if (el) el.remove();
+      const geoScript = document.getElementById(GEO_JSON_LD_SCRIPT_ID);
+      if (geoScript) geoScript.remove();
       const canonical = document.getElementById(CANONICAL_LINK_ID) as HTMLLinkElement | null;
       if (canonical) canonical.href = BASE_URL;
     };
-  }, [fullTitle, description, resolvedOgImage, ogType, resolvedOgUrl, noIndex, jsonLd]);
+  }, [fullTitle, resolvedDescription, resolvedOgImage, ogType, resolvedOgUrl, resolvedNoIndex, resolvedJsonLd, resolvedKeywords, geoBrandVoice, geoKeyFacts]);
 
   return null;
 }

@@ -52,6 +52,7 @@ export default function ServicesListingPage() {
   return (
     <div className="min-h-screen bg-background" data-page="services">
       <PageHead
+        slug="services"
         title="Services — Engineering, Design & Marketing | SEVCO"
         description="SEVCO offers professional services across engineering, design, marketing, and operations. Partner with our team to build and grow."
         ogUrl="https://sevco.us/services"

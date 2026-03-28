@@ -261,6 +261,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden" data-page="landing">
       <PageHead
+        slug="home"
         title="SEVCO — Music, Merch, Projects & Community"
         description={heroText}
         ogType="website"

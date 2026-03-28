@@ -19,7 +19,7 @@ import {
   Save, Image, Type, Eye, EyeOff, Globe, Link2, Package, Pencil, Trash2, Plus,
   Palette, RotateCcw, AlignLeft, Layers, Share2, Server, GripVertical, ExternalLink,
   ChevronUp, ChevronDown, Settings2, Layout, Star, BarChart2, CheckCircle2, AlertCircle,
-  Mail, Send, Search, X, Sparkles,
+  Mail, Send, Search, X, Sparkles, TrendingUp, FileText, Bot,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { FileUploadWithFallback } from "@/components/file-upload";
@@ -866,6 +866,26 @@ function LivePreviewPanel({
 }
 
 // ─────────────────────────────────────────────────────────
+// SEO / Optimization
+// ─────────────────────────────────────────────────────────
+const SEO_PAGES = [
+  "home", "wiki", "music", "store", "projects", "contact", "profile",
+  "jobs", "services", "feed", "notes", "gallery", "hosting", "minecraft",
+  "news", "messages", "about", "finance", "ai", "tools",
+] as const;
+
+type SeoPageMeta = {
+  title: string;
+  description: string;
+  ogImage: string;
+  keywords: string;
+  noIndex: boolean;
+  jsonLd: string;
+};
+
+const EMPTY_SEO: SeoPageMeta = { title: "", description: "", ogImage: "", keywords: "", noIndex: false, jsonLd: "" };
+
+// ─────────────────────────────────────────────────────────
 // Main Settings Page
 // ─────────────────────────────────────────────────────────
 export default function CommandSettings() {
@@ -1029,6 +1049,38 @@ export default function CommandSettings() {
   // ── Footer sitemap state ──
   const [sitemapColumns, setSitemapColumns] = useState<SitemapColumn[]>(DEFAULT_SITEMAP);
 
+  // ── SEO / Optimization state ──
+  const [selectedSeoPage, setSelectedSeoPage] = useState("home");
+  const [seoPages, setSeoPages] = useState<Record<string, SeoPageMeta>>(() =>
+    Object.fromEntries(SEO_PAGES.map((p) => [p, { ...EMPTY_SEO }]))
+  );
+  const [geoBrandVoice, setGeoBrandVoice] = useState("");
+  const [geoKeyFacts, setGeoKeyFacts] = useState("");
+
+  function updateSeoField(page: string, field: keyof SeoPageMeta, value: string | boolean) {
+    setSeoPages((prev) => ({ ...prev, [page]: { ...prev[page], [field]: value } }));
+  }
+
+  function saveSeoPage() {
+    const meta = seoPages[selectedSeoPage];
+    const entries: Record<string, string> = {
+      [`seo.page.${selectedSeoPage}.title`]: meta.title,
+      [`seo.page.${selectedSeoPage}.description`]: meta.description,
+      [`seo.page.${selectedSeoPage}.ogImage`]: meta.ogImage,
+      [`seo.page.${selectedSeoPage}.keywords`]: meta.keywords,
+      [`seo.page.${selectedSeoPage}.noIndex`]: meta.noIndex ? "true" : "false",
+      [`seo.page.${selectedSeoPage}.jsonLd`]: meta.jsonLd,
+    };
+    mutation.mutate(entries);
+  }
+
+  function saveGeoSettings() {
+    mutation.mutate({
+      "seo.geo.brandVoice": geoBrandVoice,
+      "seo.geo.keyFacts": geoKeyFacts,
+    });
+  }
+
   useEffect(() => {
     if (isLoading) return;
     setHeroBgUrl(settings["hero.backgroundImageUrl"] ?? "");
@@ -1170,6 +1222,26 @@ export default function CommandSettings() {
         if (Array.isArray(parsed)) setSitemapColumns(parsed);
       } catch {}
     }
+
+    // Load SEO page settings
+    setSeoPages((prev) => {
+      const next = { ...prev };
+      for (const slug of SEO_PAGES) {
+        next[slug] = {
+          title: settings[`seo.page.${slug}.title`] ?? "",
+          description: settings[`seo.page.${slug}.description`] ?? "",
+          ogImage: settings[`seo.page.${slug}.ogImage`] ?? "",
+          keywords: settings[`seo.page.${slug}.keywords`] ?? "",
+          noIndex: settings[`seo.page.${slug}.noIndex`] === "true",
+          jsonLd: settings[`seo.page.${slug}.jsonLd`] ?? "",
+        };
+      }
+      return next;
+    });
+
+    // Load GEO settings
+    setGeoBrandVoice(settings["seo.geo.brandVoice"] ?? "");
+    setGeoKeyFacts(settings["seo.geo.keyFacts"] ?? "");
   }, [settings, isLoading]);
 
   // ── Save functions ──
@@ -1633,6 +1705,7 @@ export default function CommandSettings() {
             <TabsTrigger value="analytics" data-testid="tab-analytics" onClick={() => { setSearchQuery(""); setActiveTab("analytics"); }}>Analytics</TabsTrigger>
             <TabsTrigger value="integrations" data-testid="tab-integrations" onClick={() => { setSearchQuery(""); setActiveTab("integrations"); }}>Integrations</TabsTrigger>
             <TabsTrigger value="advanced" data-testid="tab-advanced" onClick={() => { setSearchQuery(""); setActiveTab("advanced"); }}>Advanced</TabsTrigger>
+            <TabsTrigger value="optimization" data-testid="tab-optimization" onClick={() => { setSearchQuery(""); setActiveTab("optimization"); }}>Optimization</TabsTrigger>
           </TabsList>
 
           {/* ════════════ DISPLAY ════════════ */}
@@ -3164,6 +3237,198 @@ export default function CommandSettings() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+          {/* ════════════ OPTIMIZATION ════════════ */}
+          <TabsContent value="optimization" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "optimization") ? "none" : "block" }}>
+
+            {/* Per-page SEO metadata */}
+            <Card data-search-label="SEO page title description og image keywords noindex structured data json-ld search engine optimization">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Per-Page SEO Metadata
+                </CardTitle>
+                <CardDescription>
+                  Configure search engine metadata for each page. Settings override the page's default title and description.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-4 min-h-[460px]">
+                  {/* Page list */}
+                  <div className="w-36 shrink-0 border border-border/60 rounded-lg overflow-hidden">
+                    {SEO_PAGES.map((slug) => (
+                      <button
+                        key={slug}
+                        type="button"
+                        data-testid={`button-seo-page-${slug}`}
+                        onClick={() => setSelectedSeoPage(slug)}
+                        className={`w-full text-left px-3 py-2 text-sm capitalize transition-colors ${
+                          selectedSeoPage === slug
+                            ? "bg-primary text-primary-foreground font-medium"
+                            : "hover:bg-muted/60 text-muted-foreground"
+                        }`}
+                      >
+                        {slug}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Metadata form */}
+                  <div className="flex-1 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold capitalize">{selectedSeoPage} page</h3>
+                      <Button
+                        size="sm"
+                        onClick={saveSeoPage}
+                        disabled={mutation.isPending}
+                        data-testid="button-save-seo-page"
+                        className="gap-1.5"
+                      >
+                        <Save className="h-3.5 w-3.5" />
+                        {mutation.isPending ? "Saving…" : "Save"}
+                      </Button>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="seo-title" className="text-xs">Page Title</Label>
+                      <Input
+                        id="seo-title"
+                        placeholder="e.g. Wiki — Knowledge Base | SEVCO"
+                        value={seoPages[selectedSeoPage]?.title ?? ""}
+                        onChange={(e) => updateSeoField(selectedSeoPage, "title", e.target.value)}
+                        data-testid="input-seo-title"
+                      />
+                      <p className="text-[11px] text-muted-foreground">Overrides the default page title. Leave blank to use the page default.</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="seo-description" className="text-xs">
+                        Meta Description
+                        <span className="ml-1.5 text-muted-foreground font-normal">
+                          ({(seoPages[selectedSeoPage]?.description ?? "").length}/155)
+                        </span>
+                      </Label>
+                      <Textarea
+                        id="seo-description"
+                        placeholder="A short, compelling description under 155 characters…"
+                        value={seoPages[selectedSeoPage]?.description ?? ""}
+                        onChange={(e) => updateSeoField(selectedSeoPage, "description", e.target.value.slice(0, 155))}
+                        rows={3}
+                        data-testid="input-seo-description"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="seo-og-image" className="text-xs">OG Image URL</Label>
+                      <Input
+                        id="seo-og-image"
+                        placeholder="https://sevco.us/og/wiki.jpg"
+                        value={seoPages[selectedSeoPage]?.ogImage ?? ""}
+                        onChange={(e) => updateSeoField(selectedSeoPage, "ogImage", e.target.value)}
+                        data-testid="input-seo-og-image"
+                      />
+                      <p className="text-[11px] text-muted-foreground">Social sharing preview image (1200×630 recommended).</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="seo-keywords" className="text-xs">Keywords</Label>
+                      <Input
+                        id="seo-keywords"
+                        placeholder="wiki, knowledge base, sevco, documentation"
+                        value={seoPages[selectedSeoPage]?.keywords ?? ""}
+                        onChange={(e) => updateSeoField(selectedSeoPage, "keywords", e.target.value)}
+                        data-testid="input-seo-keywords"
+                      />
+                      <p className="text-[11px] text-muted-foreground">Comma-separated keywords for the meta keywords tag.</p>
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-lg border border-border/60 px-4 py-3">
+                      <div>
+                        <p className="text-sm font-medium">No-Index</p>
+                        <p className="text-[11px] text-muted-foreground">Prevents search engines from indexing this page.</p>
+                      </div>
+                      <Switch
+                        checked={seoPages[selectedSeoPage]?.noIndex ?? false}
+                        onCheckedChange={(v) => updateSeoField(selectedSeoPage, "noIndex", v)}
+                        data-testid="switch-seo-noindex"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="seo-jsonld" className="text-xs">Structured Data (JSON-LD)</Label>
+                      <Textarea
+                        id="seo-jsonld"
+                        placeholder={'{\n  "@context": "https://schema.org",\n  "@type": "WebPage"\n}'}
+                        value={seoPages[selectedSeoPage]?.jsonLd ?? ""}
+                        onChange={(e) => updateSeoField(selectedSeoPage, "jsonLd", e.target.value)}
+                        rows={5}
+                        className="font-mono text-xs"
+                        data-testid="input-seo-jsonld"
+                      />
+                      <p className="text-[11px] text-muted-foreground">Optional JSON-LD snippet injected into the page head.</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* GEO — Generative Engine Optimization */}
+            <Card data-search-label="GEO generative engine optimization AI brand voice key facts citation LLM">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bot className="h-4 w-4" />
+                  GEO — Generative Engine Optimization
+                </CardTitle>
+                <CardDescription>
+                  Site-wide settings that help AI systems (ChatGPT, Perplexity, Gemini, etc.) accurately represent your brand. These are injected as JSON-LD on every page.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="space-y-1.5">
+                  <Label htmlFor="geo-brand-voice" className="flex items-center gap-1.5 text-xs">
+                    <FileText className="h-3.5 w-3.5" />
+                    Brand Voice
+                  </Label>
+                  <Textarea
+                    id="geo-brand-voice"
+                    placeholder="SEVCO is a bold, community-first platform for creators and fans. We combine music, culture, and technology…"
+                    value={geoBrandVoice}
+                    onChange={(e) => setGeoBrandVoice(e.target.value)}
+                    rows={4}
+                    data-testid="input-geo-brand-voice"
+                  />
+                  <p className="text-[11px] text-muted-foreground">A short paragraph describing your brand voice used by AI for summaries and citations.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="geo-key-facts" className="flex items-center gap-1.5 text-xs">
+                    <Star className="h-3.5 w-3.5" />
+                    Key Facts
+                  </Label>
+                  <Textarea
+                    id="geo-key-facts"
+                    placeholder={"- SEVCO is headquartered in Atlanta, GA\n- Founded in 2022\n- Supports independent artists directly"}
+                    value={geoKeyFacts}
+                    onChange={(e) => setGeoKeyFacts(e.target.value)}
+                    rows={5}
+                    data-testid="input-geo-key-facts"
+                  />
+                  <p className="text-[11px] text-muted-foreground">Bullet list of key facts about your business. Helps AI provide accurate citations.</p>
+                </div>
+
+                <Button
+                  onClick={saveGeoSettings}
+                  disabled={mutation.isPending}
+                  data-testid="button-save-geo"
+                  className="gap-1.5"
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  {mutation.isPending ? "Saving…" : "Save GEO Settings"}
+                </Button>
+              </CardContent>
+            </Card>
+
+          </TabsContent>
 
         </Tabs>
 

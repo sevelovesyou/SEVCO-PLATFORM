@@ -110,6 +110,7 @@ export default function JobsPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
       <PageHead
+        slug="jobs"
         title="Careers — Join SEVCO"
         description="Explore job opportunities at SEVCO — open positions across engineering, creative, operations, and more."
         ogUrl="https://sevco.us/jobs"

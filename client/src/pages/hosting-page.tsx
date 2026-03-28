@@ -68,6 +68,7 @@ export default function HostingPage() {
   return (
     <div className="flex flex-col min-h-full">
       <PageHead
+        slug="hosting"
         title="SEVCO Hosting — Website, Game & VPS Hosting"
         description="SEVCO Hosting offers lightning-fast website hosting, Minecraft & game server hosting, VPS, and custom app hosting — all in one place."
         ogUrl="https://sevco.us/hosting"

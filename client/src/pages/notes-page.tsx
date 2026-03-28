@@ -1,3 +1,4 @@
+import { PageHead } from "@/components/page-head";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -514,6 +515,7 @@ export default function NotesPage() {
 
   return (
     <div className="flex h-[calc(100vh-3rem)] overflow-hidden">
+      <PageHead slug="notes" title="Notes — SEVCO" description="Your personal notes workspace on SEVCO." />
       {/* Left Pane — Note List */}
       <div className={`flex flex-col border-r border-border bg-background ${mobileShowEditor ? "hidden md:flex" : "flex"} w-full md:w-64 lg:w-72 shrink-0`}>
         {/* Header */}

@@ -1,3 +1,4 @@
+import { PageHead } from "@/components/page-head";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -255,6 +256,7 @@ export default function MessagesPage() {
 
   return (
     <div className="flex h-[calc(100vh-3rem)] overflow-hidden" data-testid="messages-page">
+      <PageHead slug="messages" title="Messages — SEVCO" description="Your SEVCO inbox — email, direct messages, and platform notifications." noIndex={true} />
       <div
         className={`shrink-0 border-r flex flex-col bg-muted/20 overflow-y-auto
           w-full md:w-48 ${mobileView === "sidebar" ? "flex" : "hidden"} md:flex`}

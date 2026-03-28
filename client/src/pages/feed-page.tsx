@@ -527,6 +527,7 @@ export default function FeedPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
       <PageHead
+        slug="feed"
         title="Feed — SEVCO Community"
         description="Stay up to date with the latest posts and updates from the SEVCO community and official channels."
         ogUrl="https://sevco.us/feed"

@@ -98,6 +98,7 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-background">
       <PageHead
+        slug="about"
         title="About SEVCO — Music, Merch, Projects & Community"
         description="SEVCO is a creative platform built for music, commerce, and community. Learn about SEVCO Records, Services, Ventures, and the team behind it all."
         ogUrl="https://sevco.us/about"

@@ -1,3 +1,4 @@
+import { PageHead } from "@/components/page-head";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -1528,6 +1529,7 @@ function SubscriptionsTab() {
 export default function CommandFinance() {
   return (
     <div className="space-y-6">
+      <PageHead slug="finance" title="Finance — SEVCO" description="SEVCO platform finance dashboard — transactions, invoices, and projects." noIndex={true} />
       <Tabs defaultValue="overview">
         <TabsList className="h-9">
           <TabsTrigger value="overview" data-testid="tab-finance-overview">Overview</TabsTrigger>

@@ -1,3 +1,4 @@
+import { PageHead } from "@/components/page-head";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -333,6 +334,7 @@ export default function CommandAiAgentsPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <PageHead slug="ai" title="AI Agents — SEVCO" description="Manage SEVCO AI agents and configurations." noIndex={true} />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">

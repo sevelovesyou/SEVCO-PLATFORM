@@ -136,6 +136,7 @@ export default function MinecraftPage() {
   return (
     <div className="flex flex-col min-h-full">
       <PageHead
+        slug="minecraft"
         title="SEVCO Minecraft — Join Our Servers"
         description="Join SEVCO's Minecraft servers — survival, creative, mini-games, and an active community. Copy server IPs, vote, and see live status."
         ogUrl="https://sevco.us/minecraft"

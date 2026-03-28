@@ -73,6 +73,7 @@ export default function GalleryPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <PageHead
+        slug="gallery"
         title="Brand Gallery — SEVCO"
         description="Browse SEVCO's brand assets — official images, logos, and visual resources."
         ogUrl="https://sevco.us/gallery"

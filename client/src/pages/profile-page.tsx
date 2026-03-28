@@ -1467,6 +1467,7 @@ export default function ProfilePage() {
   return (
     <>
       <PageHead
+        slug="profile"
         title={`${displayName} (@${profile.username}) — SEVCO`}
         description={profile.bio || `View ${displayName}'s profile on SEVCO.`}
         ogImage={profile.avatarUrl || undefined}

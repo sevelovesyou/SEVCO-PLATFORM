@@ -103,6 +103,7 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen bg-background">
       <PageHead
+        slug="contact"
         title="Contact SEVCO — Get in Touch"
         description="Have a question, partnership idea, or want to say hello? Reach out to the SEVCO team through the contact form or social media."
         ogUrl="https://sevco.us/contact"

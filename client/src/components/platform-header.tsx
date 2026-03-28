@@ -740,7 +740,7 @@ export function PlatformHeader() {
           <ServicesDropdown isActive={activeApp === "/services"} platformSettings={platformSettings} />
           <MusicDropdown isActive={activeApp === "/music"} />
           <ProjectsDropdown isActive={activeApp === "/projects"} />
-          <ToolsDropdown isActive={activeApp === "/notes" || activeApp === "/gallery" || activeApp === "/messages" || activeApp === "/tools"} />
+          {user && <ToolsDropdown isActive={activeApp === "/notes" || activeApp === "/gallery" || activeApp === "/messages" || activeApp === "/tools"} />}
 
           {canAccessCMD && (
             <Link href="/command">
@@ -1018,7 +1018,7 @@ export function PlatformHeader() {
             </div>
           </Link>
 
-          <Collapsible open={mobileSection === "tools"} onOpenChange={(o) => setMobileSection(o ? "tools" : null)}>
+          {user && <Collapsible open={mobileSection === "tools"} onOpenChange={(o) => setMobileSection(o ? "tools" : null)}>
             <CollapsibleTrigger asChild>
               <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors" data-testid="mobile-nav-tools">
                 Tools
@@ -1055,7 +1055,7 @@ export function PlatformHeader() {
                 )}
               </div>
             </CollapsibleContent>
-          </Collapsible>
+          </Collapsible>}
 
           {canAccessCMD && (
             <Link href="/command" onClick={() => setMobileOpen(false)}>

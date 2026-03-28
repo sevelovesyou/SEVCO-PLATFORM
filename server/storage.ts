@@ -131,6 +131,7 @@ export interface IStorage {
   updateOrderStatus(id: number, status: string, paymentIntentId?: string): Promise<Order>;
 
   getProjects(): Promise<Project[]>;
+  getProjectById(id: number): Promise<Project | undefined>;
   getProjectBySlug(slug: string): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: number, data: Partial<InsertProject>): Promise<Project>;
@@ -269,6 +270,8 @@ export interface IStorage {
   getAllChatMessages(filters?: { channelId?: number; userId?: string; dateFrom?: Date; dateTo?: Date }): Promise<ChatMessageWithUsers[]>;
   softDeleteChatMessage(id: number): Promise<ChatMessage>;
   getDmThreads(userId: string): Promise<DmThread[]>;
+
+  getProjectFinancialSummary(projectId: number): Promise<{ totalIncome: number; totalExpenses: number; balance: number }>;
 
   getFinanceProjects(): Promise<FinanceProject[]>;
   getFinanceProjectById(id: number): Promise<FinanceProject | undefined>;
@@ -817,6 +820,11 @@ export class DatabaseStorage implements IStorage {
 
   async getProjects(): Promise<Project[]> {
     return db.select().from(projects).orderBy(projects.name);
+  }
+
+  async getProjectById(id: number): Promise<Project | undefined> {
+    const [project] = await db.select().from(projects).where(eq(projects.id, id));
+    return project || undefined;
   }
 
   async getProjectBySlug(slug: string): Promise<Project | undefined> {
@@ -1826,6 +1834,17 @@ export class DatabaseStorage implements IStorage {
       });
     }
     return threads;
+  }
+
+  async getProjectFinancialSummary(projectId: number): Promise<{ totalIncome: number; totalExpenses: number; balance: number }> {
+    const txs = await db.select().from(financeTransactions).where(eq(financeTransactions.projectId, projectId));
+    let totalIncome = 0;
+    let totalExpenses = 0;
+    for (const tx of txs) {
+      if (tx.type === "income") totalIncome += tx.amount;
+      else totalExpenses += tx.amount;
+    }
+    return { totalIncome, totalExpenses, balance: totalIncome - totalExpenses };
   }
 
   async getFinanceProjects(): Promise<FinanceProject[]> {

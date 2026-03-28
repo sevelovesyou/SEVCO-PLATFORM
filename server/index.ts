@@ -29,6 +29,10 @@ async function runStartupMigrations() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_pronouns TEXT;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_accent_gradient BOOLEAN DEFAULT false;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_show_followers BOOLEAN DEFAULT true;`);
+  // Task #127 — Finance ↔ Projects sync
+  await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS budget real;`);
+  await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS financial_status text DEFAULT 'not_set';`);
+  await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS is_public_budget boolean DEFAULT false;`);
   console.log("[startup] migrations applied");
 }
 

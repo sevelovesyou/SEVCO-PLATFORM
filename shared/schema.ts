@@ -213,6 +213,9 @@ export const projects = pgTable("projects", {
   menuIcon: text("menu_icon"),
   appIcon: text("app_icon"),
   linkUrl: text("link_url"),
+  budget: real("budget"),
+  financialStatus: text("financial_status").default("not_set"),
+  isPublicBudget: boolean("is_public_budget").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

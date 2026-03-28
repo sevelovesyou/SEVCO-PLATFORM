@@ -38,14 +38,12 @@ import {
   Send,
   CheckCircle,
   Calculator,
-  Folder,
-  ArrowLeft,
   Pencil,
   ExternalLink,
   RefreshCw,
   CreditCard,
 } from "lucide-react";
-import type { FinanceTransaction, FinanceProject, FinanceInvoice, Subscription } from "@shared/schema";
+import type { FinanceTransaction, Project, FinanceInvoice, Subscription } from "@shared/schema";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const TRANSACTION_CATEGORIES = [
@@ -209,7 +207,7 @@ const transactionSchema = z.object({
 
 type TransactionFormValues = z.infer<typeof transactionSchema>;
 
-function TransactionForm({ onSuccess, projects }: { onSuccess: () => void; projects: FinanceProject[] }) {
+function TransactionForm({ onSuccess, projects }: { onSuccess: () => void; projects: Project[] }) {
   const { toast } = useToast();
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
@@ -298,7 +296,18 @@ function TransactionForm({ onSuccess, projects }: { onSuccess: () => void; proje
                 <FormControl><SelectTrigger data-testid="select-transaction-project"><SelectValue placeholder="No project" /></SelectTrigger></FormControl>
                 <SelectContent>
                   <SelectItem value="none">No project</SelectItem>
-                  {projects.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
+                  {projects.map(p => (
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      <span className="flex items-center gap-2">
+                        {p.name}
+                        {p.status && (
+                          <Badge variant="outline" className={`text-xs capitalize ${PROJECT_STATUS_COLORS[p.status] ?? ""}`}>
+                            {p.status.replace(/_/g, " ")}
+                          </Badge>
+                        )}
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -322,8 +331,8 @@ function TransactionsTab() {
     queryKey: ["/api/finance/transactions"],
   });
 
-  const { data: projects = [] } = useQuery<FinanceProject[]>({
-    queryKey: ["/api/finance/projects"],
+  const { data: projects = [] } = useQuery<Project[]>({
+    queryKey: ["/api/projects"],
   });
 
   const deleteMutation = useMutation({
@@ -769,97 +778,8 @@ function InvoicesTab() {
   );
 }
 
-const projectFormSchema = z.object({
-  name: z.string().min(1, "Name required"),
-  description: z.string().optional(),
-  budget: z.coerce.number().positive("Budget must be positive"),
-  status: z.enum(["active", "completed", "on_hold"]),
-});
-
-type ProjectFormValues = z.infer<typeof projectFormSchema>;
-
-function ProjectForm({ project, onSuccess }: { project?: FinanceProject; onSuccess: () => void }) {
-  const { toast } = useToast();
-  const isEdit = !!project;
-
-  const form = useForm<ProjectFormValues>({
-    resolver: zodResolver(projectFormSchema),
-    defaultValues: {
-      name: project?.name || "",
-      description: project?.description || "",
-      budget: project?.budget || 0,
-      status: (project?.status as any) || "active",
-    },
-  });
-
-  const mutation = useMutation({
-    mutationFn: (data: ProjectFormValues) =>
-      isEdit
-        ? apiRequest("PATCH", `/api/finance/projects/${project!.id}`, data)
-        : apiRequest("POST", "/api/finance/projects", data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/finance/projects"] });
-      toast({ title: isEdit ? "Project updated" : "Project created" });
-      onSuccess();
-    },
-    onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
-  });
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
-        <FormField control={form.control} name="name" render={({ field }) => (
-          <FormItem>
-            <FormLabel>Project Name</FormLabel>
-            <FormControl><Input {...field} data-testid="input-project-name" /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <FormField control={form.control} name="description" render={({ field }) => (
-          <FormItem>
-            <FormLabel>Description (optional)</FormLabel>
-            <FormControl><Textarea {...field} data-testid="input-project-description" /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField control={form.control} name="budget" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Budget ($)</FormLabel>
-              <FormControl><Input {...field} type="number" step="0.01" data-testid="input-project-budget" /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <FormField control={form.control} name="status" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl><SelectTrigger data-testid="select-project-status"><SelectValue /></SelectTrigger></FormControl>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="on_hold">On Hold</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )} />
-        </div>
-        <Button type="submit" disabled={mutation.isPending} data-testid="button-submit-project" className="w-full">
-          {mutation.isPending ? "Saving..." : isEdit ? "Update Project" : "Create Project"}
-        </Button>
-      </form>
-    </Form>
-  );
-}
-
 function ProjectsTab() {
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editProject, setEditProject] = useState<FinanceProject | null>(null);
-  const [viewProject, setViewProject] = useState<FinanceProject | null>(null);
-  const { toast } = useToast();
-
-  const { data: projects = [], isLoading } = useQuery<FinanceProject[]>({
+  const { data: projects = [], isLoading } = useQuery<Project[]>({
     queryKey: ["/api/finance/projects"],
   });
 
@@ -867,200 +787,91 @@ function ProjectsTab() {
     queryKey: ["/api/finance/transactions"],
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/finance/projects/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/finance/projects"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/finance/transactions"] });
-      toast({ title: "Project deleted" });
-    },
-    onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
-  });
-
-  function getSpent(projectId: number) {
-    return allTransactions
-      .filter(t => t.projectId === projectId && t.type === "expense")
-      .reduce((s, t) => s + t.amount, 0);
-  }
-
-  if (viewProject) {
-    const projectTx = allTransactions.filter(t => t.projectId === viewProject.id);
-    const spent = getSpent(viewProject.id);
-    const remaining = viewProject.budget - spent;
-
-    return (
-      <div className="space-y-4">
-        <Button variant="ghost" size="sm" onClick={() => setViewProject(null)} data-testid="button-back-project">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Projects
-        </Button>
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-xl font-bold">{viewProject.name}</h2>
-            {viewProject.description && <p className="text-sm text-muted-foreground mt-1">{viewProject.description}</p>}
-          </div>
-          <Badge variant="outline" className={PROJECT_STATUS_COLORS[viewProject.status] || ""}>{viewProject.status.replace("_", " ")}</Badge>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card><CardContent className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Budget</p>
-            <p className="text-xl font-bold mt-1">{formatCurrency(viewProject.budget)}</p>
-          </CardContent></Card>
-          <Card><CardContent className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Spent</p>
-            <p className="text-xl font-bold mt-1 text-red-600 dark:text-red-400">{formatCurrency(spent)}</p>
-          </CardContent></Card>
-          <Card><CardContent className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Remaining</p>
-            <p className={`text-xl font-bold mt-1 ${remaining >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{formatCurrency(remaining)}</p>
-          </CardContent></Card>
-        </div>
-        <div className="rounded-lg border overflow-hidden overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {projectTx.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">No transactions linked to this project.</TableCell></TableRow>
-              ) : projectTx.map(tx => (
-                <TableRow key={tx.id} data-testid={`row-project-tx-${tx.id}`}>
-                  <TableCell className="text-sm text-muted-foreground">{formatDate(tx.date)}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={tx.type === "income" ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20" : "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20"}>
-                      {tx.type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm">{tx.category}</TableCell>
-                  <TableCell className="text-sm">{tx.description}</TableCell>
-                  <TableCell className="text-right font-mono text-sm font-medium">
-                    <span className={tx.type === "income" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-                      {tx.type === "income" ? "+" : "-"}{formatCurrency(tx.amount)}
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-    );
+  function getProjectStats(projectId: number) {
+    const txs = allTransactions.filter(t => t.projectId === projectId);
+    const totalIncome = txs.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
+    const totalExpenses = txs.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+    return { totalIncome, totalExpenses, net: totalIncome - totalExpenses, txCount: txs.length };
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Sheet open={createOpen} onOpenChange={setCreateOpen}>
-          <SheetTrigger asChild>
-            <Button size="sm" data-testid="button-new-project">
-              <Plus className="h-4 w-4 mr-1" /> New Project
-            </Button>
-          </SheetTrigger>
-          <SheetContent>
-            <SheetHeader>
-              <SheetTitle>New Finance Project</SheetTitle>
-            </SheetHeader>
-            <div className="mt-6">
-              <ProjectForm onSuccess={() => setCreateOpen(false)} />
-            </div>
-          </SheetContent>
-        </Sheet>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Projects from the main Projects page with their linked transaction summaries.
+        </p>
+        <a href="/projects/new" className="text-xs text-primary hover:underline" data-testid="link-new-project">
+          + New Project
+        </a>
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-36 rounded-xl" />)}
-        </div>
+        <div className="space-y-2">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 rounded-lg" />)}</div>
       ) : projects.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-12">No finance projects yet.</p>
+        <p className="text-sm text-muted-foreground text-center py-12">No projects found.</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {projects.map(project => {
-            const spent = getSpent(project.id);
-            const remaining = project.budget - spent;
-            const pct = project.budget > 0 ? Math.min((spent / project.budget) * 100, 100) : 0;
-
-            return (
-              <Card key={project.id} data-testid={`card-project-${project.id}`} className="cursor-pointer hover:shadow-md transition-shadow">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 min-w-0">
-                      <button
-                        onClick={() => setViewProject(project)}
-                        className="text-left"
-                        data-testid={`button-view-project-${project.id}`}
+        <div className="rounded-lg border overflow-hidden overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Project</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Financial Status</TableHead>
+                <TableHead>Budget</TableHead>
+                <TableHead className="text-right">Income</TableHead>
+                <TableHead className="text-right">Expenses</TableHead>
+                <TableHead className="text-right">Net</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {projects.map(project => {
+                const { totalIncome, totalExpenses, net } = getProjectStats(project.id);
+                const hasBudget = project.budget != null && project.budget > 0;
+                return (
+                  <TableRow key={project.id} data-testid={`row-finance-project-${project.id}`}>
+                    <TableCell>
+                      <a
+                        href={`/projects/${project.slug}`}
+                        className="font-medium hover:underline text-sm"
+                        data-testid={`link-finance-project-${project.id}`}
                       >
-                        <h3 className="font-semibold truncate hover:underline">{project.name}</h3>
-                        {project.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{project.description}</p>}
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-1 ml-2 shrink-0">
-                      <Badge variant="outline" className={`text-xs ${PROJECT_STATUS_COLORS[project.status] || ""}`}>
-                        {project.status.replace("_", " ")}
+                        {project.name}
+                      </a>
+                      {project.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-1">{project.description}</p>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`text-xs ${PROJECT_STATUS_COLORS[project.status] ?? ""}`}>
+                        {project.status}
                       </Badge>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => setEditProject(project)} data-testid={`button-edit-project-${project.id}`} aria-label="Edit">
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Edit</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => deleteMutation.mutate(project.id)} data-testid={`button-delete-project-${project.id}`} aria-label="Delete">
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Delete</TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 text-center text-xs mb-3">
-                    <div>
-                      <p className="text-muted-foreground">Budget</p>
-                      <p className="font-semibold">{formatCurrency(project.budget)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Spent</p>
-                      <p className="font-semibold text-red-600 dark:text-red-400">{formatCurrency(spent)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Remaining</p>
-                      <p className={`font-semibold ${remaining >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{formatCurrency(remaining)}</p>
-                    </div>
-                  </div>
-
-                  <div className="w-full bg-muted rounded-full h-1.5">
-                    <div
-                      className={`h-1.5 rounded-full transition-all ${pct >= 100 ? "bg-destructive" : "bg-primary"}`}
-                      style={{ width: `${pct}%` }}
-                      data-testid={`bar-project-budget-${project.id}`}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                    </TableCell>
+                    <TableCell>
+                      {project.financialStatus && project.financialStatus !== "not_set" ? (
+                        <span className="text-xs capitalize">{project.financialStatus.replace(/_/g, " ")}</span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm font-mono">
+                      {hasBudget ? formatCurrency(project.budget!) : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm text-green-600 dark:text-green-400">
+                      {totalIncome > 0 ? `+${formatCurrency(totalIncome)}` : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm text-red-600 dark:text-red-400">
+                      {totalExpenses > 0 ? `-${formatCurrency(totalExpenses)}` : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
+                    <TableCell className={`text-right font-mono text-sm font-semibold ${net > 0 ? "text-green-600 dark:text-green-400" : net < 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
+                      {totalIncome > 0 || totalExpenses > 0 ? formatCurrency(net) : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
       )}
-
-      <Sheet open={!!editProject} onOpenChange={(open) => { if (!open) setEditProject(null); }}>
-        <SheetContent>
-          <SheetHeader>
-            <SheetTitle>Edit Project</SheetTitle>
-          </SheetHeader>
-          <div className="mt-6">
-            {editProject && <ProjectForm project={editProject} onSuccess={() => setEditProject(null)} />}
-          </div>
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }

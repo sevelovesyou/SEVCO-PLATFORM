@@ -54,6 +54,9 @@ const formSchema = z.object({
   socialDiscord: optUrl,
   socialGithub: optUrl,
   socialOther: optUrl,
+  budget: z.coerce.number().nonnegative().optional().or(z.literal("")),
+  isPublicBudget: z.boolean().default(false),
+  financialStatus: z.string().default("not_set"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -131,6 +134,9 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
       socialDiscord: sl.discord ?? "",
       socialGithub: sl.github ?? "",
       socialOther: sl.other ?? "",
+      budget: project?.budget ?? "",
+      isPublicBudget: project?.isPublicBudget ?? false,
+      financialStatus: project?.financialStatus ?? "not_set",
     },
   });
 
@@ -176,6 +182,9 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
         menuIcon: values.menuIcon || null,
         galleryUrls: galleryList.length > 0 ? galleryList : null,
         socialLinks: buildSocialLinks(values),
+        budget: values.budget !== "" && values.budget != null ? Number(values.budget) : null,
+        isPublicBudget: values.isPublicBudget,
+        financialStatus: values.financialStatus,
       });
     },
     onSuccess: async (res) => {
@@ -221,6 +230,9 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
         menuIcon: values.menuIcon || null,
         galleryUrls: galleryList.length > 0 ? galleryList : null,
         socialLinks: buildSocialLinks(values),
+        budget: values.budget !== "" && values.budget != null ? Number(values.budget) : null,
+        isPublicBudget: values.isPublicBudget,
+        financialStatus: values.financialStatus,
       });
     },
     onSuccess: async (res) => {
@@ -648,6 +660,77 @@ function ProjectFormInner({ mode, project }: ProjectFormProps) {
                       <FormDescription className="text-xs">
                         Comma-separated URLs for the project gallery images.
                       </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <div className="border-t border-border pt-4 mt-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Finance</p>
+              <div className="flex flex-col gap-4">
+                <FormField
+                  control={form.control}
+                  name="budget"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Budget ($)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="e.g. 10000"
+                          data-testid="input-project-budget"
+                          {...field}
+                          value={field.value ?? ""}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">Optional project budget for financial tracking.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="isPublicBudget"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-3 space-y-0">
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-project-public-budget" />
+                      </FormControl>
+                      <div>
+                        <FormLabel className="cursor-pointer">Make budget public</FormLabel>
+                        <FormDescription className="text-xs">Show the budget card to all visitors on the project page.</FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="financialStatus"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Financial Status</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-project-financial-status">
+                            <SelectValue placeholder="Not set" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="not_set">Not set</SelectItem>
+                          <SelectItem value="on_track">On track</SelectItem>
+                          <SelectItem value="at_risk">At risk</SelectItem>
+                          <SelectItem value="over_budget">Over budget</SelectItem>
+                          <SelectItem value="under_budget">Under budget</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription className="text-xs">Current financial health of the project.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

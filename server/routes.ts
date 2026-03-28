@@ -1778,10 +1778,16 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/projects", async (_req, res) => {
+  app.get("/api/projects", async (req, res) => {
     try {
       const all = await storage.getProjects();
-      res.json(all);
+      const isStaff = req.isAuthenticated() && ["admin", "executive", "staff"].includes((req.user as any)?.role ?? "");
+      const projects = isStaff
+        ? all
+        : all.map(({ budget, financialStatus, isPublicBudget, ...rest }) =>
+            isPublicBudget ? { ...rest, budget, financialStatus, isPublicBudget } : rest
+          );
+      res.json(projects);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -1795,6 +1801,11 @@ export async function registerRoutes(
     try {
       const project = await storage.getProjectBySlug(req.params.slug);
       if (!project) return res.status(404).json({ message: "Project not found" });
+      const isStaff = req.isAuthenticated() && ["admin", "executive", "staff"].includes((req.user as any)?.role ?? "");
+      if (!isStaff && !project.isPublicBudget) {
+        const { budget, financialStatus, isPublicBudget, ...rest } = project;
+        return res.json(rest);
+      }
       res.json(project);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -1820,6 +1831,24 @@ export async function registerRoutes(
       res.json(project);
     } catch (err: any) {
       res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/projects/:id/financial-summary", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid project id" });
+      const isStaff = req.isAuthenticated() && ["admin", "executive", "staff"].includes((req.user as any)?.role ?? "");
+      if (!isStaff) {
+        const project = await storage.getProjectById(id);
+        if (!project || !project.isPublicBudget) {
+          return res.status(403).json({ message: "Financial data is not public for this project" });
+        }
+      }
+      const summary = await storage.getProjectFinancialSummary(id);
+      res.json(summary);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
     }
   });
 
@@ -3843,32 +3872,29 @@ export async function registerRoutes(
 
   app.get("/api/finance/projects", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
     try {
-      const projects = await storage.getFinanceProjects();
+      const projects = await storage.getProjects();
       res.json(projects);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });
 
-  app.post("/api/finance/projects", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
+  app.get("/api/finance/projects/:id/summary", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
     try {
-      const parsed = insertFinanceProjectSchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ message: parsed.error.message });
-      const project = await storage.createFinanceProject(parsed.data);
-      res.status(201).json(project);
+      const id = parseInt(req.params.id);
+      const summary = await storage.getProjectFinancialSummary(id);
+      res.json(summary);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });
 
-  app.patch("/api/finance/projects/:id", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const project = await storage.updateFinanceProject(id, req.body);
-      res.json(project);
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
+  app.post("/api/finance/projects", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (_req, res) => {
+    res.status(410).json({ message: "Deprecated: use /api/projects to create projects" });
+  });
+
+  app.patch("/api/finance/projects/:id", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (_req, res) => {
+    res.status(410).json({ message: "Deprecated: use /api/projects/:id to update projects" });
   });
 
   // ─── Chat: Channel messages ────────────────────────────────────────────────
@@ -3958,14 +3984,8 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/finance/projects/:id", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      await storage.deleteFinanceProject(id);
-      res.status(204).end();
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
+  app.delete("/api/finance/projects/:id", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (_req, res) => {
+    res.status(410).json({ message: "Deprecated: finance projects are now managed via /api/projects" });
   });
 
   app.get("/api/finance/invoices", requireAuth, requireRole(...CAN_MANAGE_FINANCE), async (req, res) => {

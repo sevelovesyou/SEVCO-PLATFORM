@@ -1,20 +1,112 @@
 import { useParams, Link, useLocation } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { PageHead } from "@/components/page-head";
 import { useEffect } from "react";
 import * as LucideIcons from "lucide-react";
 import {
   ArrowLeft, Globe, User, BookOpen, CircleX, Pencil, Tag,
-  Calendar, ArrowRight, ExternalLink,
+  Calendar, ArrowRight, ExternalLink, DollarSign,
 } from "lucide-react";
 import { SiX, SiInstagram, SiYoutube, SiDiscord, SiGithub } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
 import { usePermission } from "@/hooks/use-permission";
-import { queryClient } from "@/lib/queryClient";
 import { AttachNotePanel } from "@/components/attach-note-panel";
 import { StaffNotes } from "@/components/staff-notes";
 import type { Project } from "@shared/schema";
+
+function formatCurrency(v: number) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
+}
+
+interface ProjectFinancialSummary {
+  totalIncome: number;
+  totalExpenses: number;
+  balance: number;
+}
+
+function BudgetCard({ project, canManage }: { project: Project; canManage: boolean }) {
+  const hasBudget = project.budget != null && project.budget > 0;
+  const isVisible = project.isPublicBudget || canManage;
+
+  const { data: summary, isLoading } = useQuery<ProjectFinancialSummary>({
+    queryKey: ["/api/projects", project.id, "financial-summary"],
+    queryFn: async () => {
+      const res = await fetch(`/api/projects/${project.id}/financial-summary`);
+      if (!res.ok) throw new Error("Failed to load financial summary");
+      return res.json();
+    },
+    enabled: isVisible,
+  });
+
+  if (!isVisible) return null;
+  if (!hasBudget && !summary?.totalIncome && !summary?.totalExpenses && !isLoading) return null;
+
+  return (
+    <section>
+      <h2 className="text-base font-bold mb-3 flex items-center gap-2 flex-wrap">
+        <DollarSign className="h-4 w-4 text-muted-foreground" />
+        Budget
+        {project.financialStatus && project.financialStatus !== "not_set" && (
+          <span className={`text-xs font-normal px-2 py-0.5 rounded-full capitalize border ${
+            project.financialStatus === "on_track" ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800" :
+            project.financialStatus === "at_risk" ? "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800" :
+            project.financialStatus === "over_budget" ? "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800" :
+            project.financialStatus === "under_budget" ? "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" :
+            project.financialStatus === "completed" ? "bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700" :
+            "bg-muted text-muted-foreground border-border"
+          }`} data-testid="text-project-financial-status">
+            {project.financialStatus.replace(/_/g, " ")}
+          </span>
+        )}
+        {canManage && !project.isPublicBudget && (
+          <span className="text-xs font-normal text-muted-foreground ml-1">(staff only)</span>
+        )}
+      </h2>
+      {isLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {hasBudget && (
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Budget</p>
+                <p className="text-lg font-bold mt-1" data-testid="text-project-budget">{formatCurrency(project.budget!)}</p>
+              </CardContent>
+            </Card>
+          )}
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Income</p>
+              <p className="text-lg font-bold mt-1 text-green-600 dark:text-green-400" data-testid="text-project-income">
+                {formatCurrency(summary?.totalIncome ?? 0)}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Expenses</p>
+              <p className="text-lg font-bold mt-1 text-red-600 dark:text-red-400" data-testid="text-project-expenses">
+                {formatCurrency(summary?.totalExpenses ?? 0)}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Net</p>
+              <p className={`text-lg font-bold mt-1 ${(summary?.balance ?? 0) >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`} data-testid="text-project-net">
+                {formatCurrency(summary?.balance ?? 0)}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </section>
+  );
+}
 
 type SocialLinks = Record<string, string>;
 
@@ -373,6 +465,8 @@ export default function ProjectDetail() {
                 </div>
               </section>
             )}
+
+            <BudgetCard project={project} canManage={!!canManage} />
 
             <StaffNotes resourceType="project" resourceId={project.id} />
           </div>

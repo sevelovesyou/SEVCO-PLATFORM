@@ -4930,11 +4930,22 @@ export async function registerRoutes(
 
   app.post("/api/email/inbound", async (req, res) => {
     try {
-      const signature = req.headers["resend-signature"] as string | undefined;
       const rawBody: Buffer = (req as any).rawBody ?? Buffer.from(JSON.stringify(req.body));
 
-      if (!verifyResendWebhookSignature(rawBody, signature)) {
-        console.warn("[email/inbound] Invalid webhook signature");
+      const webhookHeaders = {
+        svixId: req.headers["svix-id"] as string | undefined,
+        svixTimestamp: req.headers["svix-timestamp"] as string | undefined,
+        svixSignature: req.headers["svix-signature"] as string | undefined,
+        resendSignature: req.headers["resend-signature"] as string | undefined,
+      };
+
+      if (!verifyResendWebhookSignature(rawBody, webhookHeaders)) {
+        console.warn("[email/inbound] Invalid webhook signature — headers:", JSON.stringify({
+          hasSvixId: !!webhookHeaders.svixId,
+          hasSvixTimestamp: !!webhookHeaders.svixTimestamp,
+          hasSvixSignature: !!webhookHeaders.svixSignature,
+          hasResendSignature: !!webhookHeaders.resendSignature,
+        }));
         return res.status(401).json({ message: "Invalid signature" });
       }
 

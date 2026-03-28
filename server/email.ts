@@ -185,24 +185,58 @@ export async function processInboundEmail(payload: ResendInboundPayload): Promis
   }
 }
 
-export function verifyResendWebhookSignature(rawBody: Buffer, signatureHeader: string | undefined): boolean {
+export interface WebhookHeaders {
+  svixId?: string;
+  svixTimestamp?: string;
+  svixSignature?: string;
+  resendSignature?: string;
+}
+
+export function verifyResendWebhookSignature(rawBody: Buffer, headers: WebhookHeaders): boolean {
   const secret = process.env.RESEND_WEBHOOK_SECRET;
   if (!secret) {
     console.warn("[email] RESEND_WEBHOOK_SECRET not set — cannot verify inbound webhook signature");
     return false;
   }
-  if (!signatureHeader) return false;
 
-  const expected = crypto
-    .createHmac("sha256", secret)
-    .update(rawBody)
-    .digest("hex");
+  // Resend uses Svix-style webhook signing
+  // Signed content: "{svix-id}.{svix-timestamp}.{rawBody}"
+  // Signature: base64(HMAC-SHA256(secret, signedContent)), prefixed with "v1,"
+  const { svixId, svixTimestamp, svixSignature } = headers;
 
+  if (svixId && svixTimestamp && svixSignature) {
+    try {
+      const signedContent = `${svixId}.${svixTimestamp}.${rawBody.toString()}`;
+      const expected = crypto
+        .createHmac("sha256", secret)
+        .update(signedContent)
+        .digest("base64");
+
+      // svix-signature may contain multiple space-separated "v1,<sig>" entries
+      const signatures = svixSignature.split(" ");
+      for (const sig of signatures) {
+        const b64 = sig.startsWith("v1,") ? sig.slice(3) : sig;
+        try {
+          if (crypto.timingSafeEqual(Buffer.from(expected, "base64"), Buffer.from(b64, "base64"))) {
+            return true;
+          }
+        } catch {
+          continue;
+        }
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  // Fallback: legacy resend-signature header (raw HMAC hex)
+  const { resendSignature } = headers;
+  if (!resendSignature) return false;
+  const sig = resendSignature.includes(",") ? resendSignature.split(",").pop()! : resendSignature;
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(expected, "hex"),
-      Buffer.from(signatureHeader, "hex")
-    );
+    const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+    return crypto.timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(sig, "hex"));
   } catch {
     return false;
   }

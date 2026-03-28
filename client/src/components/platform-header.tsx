@@ -239,10 +239,10 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
                   className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
                   data-testid={`dropdown-home-${item.label.toLowerCase()}`}
                 >
-                  <item.icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <item.icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
                   <div>
-                    <p className="text-xs font-semibold text-foreground">{item.label}</p>
-                    <p className="text-[11px] text-muted-foreground">{item.desc}</p>
+                    <p className="text-xs font-semibold text-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">{item.label}</p>
+                    <p className="text-[11px] text-muted-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">{item.desc}</p>
                   </div>
                 </div>
               </Link>
@@ -280,11 +280,11 @@ function StoreDropdown({ isActive }: { isActive: boolean }) {
           <div className="p-2">
             <Link href="/store" onClick={() => setOpen(false)}>
               <div
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
                 data-testid="dropdown-store-all"
               >
-                <ShoppingBag className="h-4 w-4 text-muted-foreground shrink-0" />
-                <p className="text-xs font-semibold text-foreground">All Products</p>
+                <ShoppingBag className="h-4 w-4 text-muted-foreground shrink-0 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
+                <p className="text-xs font-semibold text-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">All Products</p>
               </div>
             </Link>
             <div className="border-t border-border/60 mt-1 pt-1">
@@ -294,11 +294,11 @@ function StoreDropdown({ isActive }: { isActive: boolean }) {
               {categories.map((cat) => (
                 <Link key={cat.value} href={`/store?category=${cat.value}`} onClick={() => setOpen(false)}>
                   <div
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
                     data-testid={`dropdown-store-${cat.label.toLowerCase()}`}
                   >
-                    <Tag className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <p className="text-xs text-foreground">{cat.label}</p>
+                    <Tag className="h-3.5 w-3.5 text-muted-foreground shrink-0 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
+                    <p className="text-xs text-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">{cat.label}</p>
                   </div>
                 </Link>
               ))}
@@ -353,19 +353,19 @@ function ServicesDropdown({ isActive, platformSettings }: { isActive: boolean; p
           <div className="p-3 grid grid-cols-3 gap-2 border-b border-border/60">
             <Link href="/hosting" onClick={() => setOpen(false)}>
               <div className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group" data-testid="dropdown-services-hosting">
-                <HardDrive className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                <HardDrive className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-foreground leading-none">Hosting</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">Websites, game servers, VPS & more</p>
+                  <p className="text-xs font-semibold text-foreground leading-none group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">Hosting</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">Websites, game servers, VPS & more</p>
                 </div>
               </div>
             </Link>
             <Link href="/domains" onClick={() => setOpen(false)}>
               <div className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group" data-testid="dropdown-services-domains">
-                <Globe className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                <Globe className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-foreground leading-none">Domains</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">Search & register domain names</p>
+                  <p className="text-xs font-semibold text-foreground leading-none group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">Domains</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">Search & register domain names</p>
                 </div>
               </div>
             </Link>
@@ -395,11 +395,11 @@ function ServicesDropdown({ isActive, platformSettings }: { isActive: boolean; p
                                 className="flex items-start gap-2.5 px-2 py-2 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
                                 data-testid={`dropdown-service-${service.slug}`}
                               >
-                                <IconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                                <IconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
                                 <div className="min-w-0">
-                                  <p className="text-xs font-semibold text-foreground leading-none">{service.name}</p>
+                                  <p className="text-xs font-semibold text-foreground leading-none group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">{service.name}</p>
                                   {service.tagline && (
-                                    <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{service.tagline}</p>
+                                    <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">{service.tagline}</p>
                                   )}
                                 </div>
                               </div>
@@ -454,13 +454,13 @@ function MusicDropdown({ isActive }: { isActive: boolean }) {
             {items.map((item) => (
               <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
                 <div
-                  className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer"
+                  className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
                   data-testid={`dropdown-music-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
                 >
-                  <item.icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <item.icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
                   <div>
-                    <p className="text-xs font-semibold text-foreground">{item.label}</p>
-                    <p className="text-[11px] text-muted-foreground">{item.desc}</p>
+                    <p className="text-xs font-semibold text-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">{item.label}</p>
+                    <p className="text-[11px] text-muted-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">{item.desc}</p>
                   </div>
                 </div>
               </Link>
@@ -513,11 +513,11 @@ function ProjectsDropdown({ isActive }: { isActive: boolean }) {
                             className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
                             data-testid={`dropdown-project-${project.slug}`}
                           >
-                            <MenuIconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <MenuIconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
                             <div className="min-w-0">
-                              <p className="text-xs font-semibold text-foreground leading-none">{project.name}</p>
+                              <p className="text-xs font-semibold text-foreground leading-none group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">{project.name}</p>
                               {project.description && (
-                                <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{project.description}</p>
+                                <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">{project.description}</p>
                               )}
                             </div>
                           </div>
@@ -538,14 +538,14 @@ function ProjectsDropdown({ isActive }: { isActive: boolean }) {
                             className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
                             data-testid={`dropdown-project-${project.slug}`}
                           >
-                            <MenuIconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <MenuIconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
-                                <p className="text-xs font-semibold text-foreground leading-none">{project.name}</p>
+                                <p className="text-xs font-semibold text-foreground leading-none group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">{project.name}</p>
                                 <span className="text-[10px] text-blue-500 font-medium">Soon</span>
                               </div>
                               {project.description && (
-                                <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{project.description}</p>
+                                <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">{project.description}</p>
                               )}
                             </div>
                           </div>
@@ -618,20 +618,20 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
             {items.map((item) => (
               <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
                 <div
-                  className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer"
+                  className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
                   data-testid={`dropdown-tools-${item.label.toLowerCase()}`}
                 >
-                  <item.icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <item.icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-xs font-semibold text-foreground">{item.label}</p>
+                      <p className="text-xs font-semibold text-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">{item.label}</p>
                       {item.label === "Email" && unreadEmailCount > 0 && (
                         <span className="h-4 min-w-4 px-1 rounded-full bg-blue-500 text-white text-[10px] font-semibold flex items-center justify-center" data-testid="badge-email-unread-dropdown">
                           {unreadEmailCount > 99 ? "99+" : unreadEmailCount}
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-muted-foreground">{item.desc}</p>
+                    <p className="text-[11px] text-muted-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">{item.desc}</p>
                   </div>
                 </div>
               </Link>

@@ -4565,39 +4565,53 @@ export async function registerRoutes(
   }
 
   app.get("/api/news/x-feed", async (req, res) => {
+    const categoryName = String(req.query.category ?? "");
+    const limit = Math.min(parseInt(String(req.query.limit ?? "10")), 20);
+
+    if (!categoryName) {
+      return res.status(400).json({ message: "category param required" });
+    }
+
+    let imageMode: "images_only" | "ai_generate" | "none" = "images_only";
+    let sourceType: "both" | "rss_only" | "x_only" = "both";
+    let allowedAccounts: string[] = [];
+    let blockedAccounts: string[] = [];
+    let minEngagement = 0;
+
     try {
-      const categoryName = String(req.query.category ?? "");
-      const limit = Math.min(parseInt(String(req.query.limit ?? "10")), 20);
-
-      if (!categoryName) {
-        return res.status(400).json({ message: "category param required" });
-      }
-
       const settings = await storage.getPlatformSettings();
-      const imageMode = (settings["news.x.imageMode"] ?? "images_only") as "images_only" | "ai_generate" | "none";
-      const sourceType = (settings["news.x.sourceType"] ?? "both") as "both" | "rss_only" | "x_only";
+      imageMode = (settings["news.x.imageMode"] ?? "images_only") as typeof imageMode;
+      sourceType = (settings["news.x.sourceType"] ?? "both") as typeof sourceType;
       const allowedAccountsRaw = settings["news.x.allowedAccounts"] ?? "";
       const blockedAccountsRaw = settings["news.x.blockedAccounts"] ?? "";
-      const minEngagement = parseInt(settings["news.x.minEngagement"] ?? "0") || 0;
-
-      const allowedAccounts = allowedAccountsRaw
+      minEngagement = parseInt(settings["news.x.minEngagement"] ?? "0") || 0;
+      allowedAccounts = allowedAccountsRaw
         ? allowedAccountsRaw.split(",").map((h) => h.trim()).filter(Boolean)
         : [];
-      const blockedAccounts = blockedAccountsRaw
+      blockedAccounts = blockedAccountsRaw
         ? blockedAccountsRaw.split(",").map((h) => h.trim()).filter(Boolean)
         : [];
+    } catch (settingsErr: any) {
+      console.error("[news/x-feed] Failed to load platform settings, using defaults:", settingsErr.message);
+    }
 
+    let cat: { name: string; query: string; accentColor?: string } | undefined;
+    try {
       const cats = await storage.getNewsCategories(true);
-      const cat = cats.find((c) => c.name.toLowerCase() === categoryName.toLowerCase()) ?? cats[0];
+      cat = cats.find((c) => c.name.toLowerCase() === categoryName.toLowerCase()) ?? cats[0];
+    } catch (catErr: any) {
+      console.error("[news/x-feed] Failed to load news categories:", catErr.message);
+    }
 
-      const xConfigured = isXConfigured();
-      let xArticles: Array<{
-        title: string; link: string; description: string;
-        pubDate: string; source: string; imageUrl: string | null; sourceType: "x";
-        authorHandle?: string; likeCount?: number; retweetCount?: number; replyCount?: number;
-      }> = [];
+    const xConfigured = isXConfigured();
+    let xArticles: Array<{
+      title: string; link: string; description: string;
+      pubDate: string; source: string; imageUrl: string | null; sourceType: "x";
+      authorHandle?: string; likeCount?: number; retweetCount?: number; replyCount?: number;
+    }> = [];
 
-      if (xConfigured && cat && sourceType !== "rss_only") {
+    if (xConfigured && cat && sourceType !== "rss_only") {
+      try {
         const tweets = await fetchCategoryNewsFromX(categoryName, cat?.query ?? categoryName, limit, {
           imagesOnly: imageMode === "images_only",
           allowedAccounts,
@@ -4631,12 +4645,16 @@ export async function registerRoutes(
 
         if (imageMode === "ai_generate" && ai_generate_candidates.length > 0) {
           const toGenerate = ai_generate_candidates.slice(0, 5);
-          const generated = await Promise.all(
-            toGenerate.map((c) => generateImageForPost(c.text, c.link))
-          );
-          toGenerate.forEach((c, i) => {
-            if (generated[i]) mapped[c.idx].imageUrl = generated[i];
-          });
+          try {
+            const generated = await Promise.all(
+              toGenerate.map((c) => generateImageForPost(c.text, c.link))
+            );
+            toGenerate.forEach((c, i) => {
+              if (generated[i]) mapped[c.idx].imageUrl = generated[i];
+            });
+          } catch (imgErr: any) {
+            console.error("[news/x-feed] AI image generation for X failed:", imgErr.message);
+          }
         }
 
         mapped.sort((a, b) =>
@@ -4644,15 +4662,19 @@ export async function registerRoutes(
           ((a.likeCount ?? 0) + (a.retweetCount ?? 0) + (a.replyCount ?? 0))
         );
         xArticles = mapped;
+      } catch (xErr: any) {
+        console.error("[news/x-feed] X API fetch failed, falling back to RSS only:", xErr.message);
       }
+    }
 
-      const query = cat?.query ?? categoryName;
-      let rssTagged: Array<{
-        title: string; link: string; description: string;
-        pubDate: string; source: string; imageUrl: string | null; sourceType: "rss";
-      }> = [];
+    const query = cat?.query ?? categoryName;
+    let rssTagged: Array<{
+      title: string; link: string; description: string;
+      pubDate: string; source: string; imageUrl: string | null; sourceType: "rss";
+    }> = [];
 
-      if (sourceType !== "x_only") {
+    if (sourceType !== "x_only") {
+      try {
         const rssArticles = await fetchNewsArticles(query, limit);
         const rssMapped = rssArticles.map((a) => ({
           ...a,
@@ -4667,23 +4689,27 @@ export async function registerRoutes(
             .slice(0, 5);
 
           if (rssAiCandidates.length > 0) {
-            const generated = await Promise.all(
-              rssAiCandidates.map((c) => generateImageForPost(c.text, c.link))
-            );
-            rssAiCandidates.forEach((c, i) => {
-              if (generated[i]) rssMapped[c.idx].imageUrl = generated[i];
-            });
+            try {
+              const generated = await Promise.all(
+                rssAiCandidates.map((c) => generateImageForPost(c.text, c.link))
+              );
+              rssAiCandidates.forEach((c, i) => {
+                if (generated[i]) rssMapped[c.idx].imageUrl = generated[i];
+              });
+            } catch (imgErr: any) {
+              console.error("[news/x-feed] AI image generation for RSS failed:", imgErr.message);
+            }
           }
         }
 
         rssTagged = rssMapped;
+      } catch (rssErr: any) {
+        console.error("[news/x-feed] RSS fetch failed:", rssErr.message);
       }
-
-      const merged = [...xArticles, ...rssTagged].slice(0, limit + 5);
-      res.json(merged);
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
     }
+
+    const merged = [...xArticles, ...rssTagged].slice(0, limit + 5);
+    res.json(merged);
   });
 
   const CLIENT_PLUS_ROLES: Role[] = ["client", "partner", "staff", "executive", "admin"];

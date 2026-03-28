@@ -6,8 +6,22 @@ import type { Components, ExtraProps } from "react-markdown";
 import type { JSX } from "react";
 
 type CodeProps = JSX.IntrinsicElements["code"] & ExtraProps;
+type ImgProps = JSX.IntrinsicElements["img"] & ExtraProps;
 
 const components: Components = {
+  img({ src, alt, ...props }: ImgProps) {
+    return (
+      <span className="block my-2">
+        <img
+          src={src}
+          alt={alt || ""}
+          className="max-w-full rounded-xl border border-border/40 shadow-sm object-contain"
+          style={{ maxWidth: "min(100%, 360px)" }}
+          {...props}
+        />
+      </span>
+    );
+  },
   code({ className, children, ...props }: CodeProps) {
     const match = /language-(\w+)/.exec(className || "");
     const childStr = String(children);

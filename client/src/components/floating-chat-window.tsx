@@ -1,7 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -209,8 +208,8 @@ function FloatingAiContent({
   agentAvatarUrl?: string | null;
   modelSlug?: string | null;
 }) {
-  const { toast } = useToast();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [inlineError, setInlineError] = useState<string | null>(null);
 
   const { data: messages = [] } = useQuery<AiMessage[]>({
     queryKey: ["/api/ai/chat", agentId],
@@ -219,16 +218,17 @@ function FloatingAiContent({
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+  }, [messages.length, inlineError]);
 
   const sendMutation = useMutation({
     mutationFn: (message: string) =>
       apiRequest("POST", `/api/ai/chat/${agentId}`, { message }),
     onSuccess: () => {
+      setInlineError(null);
       queryClient.invalidateQueries({ queryKey: ["/api/ai/chat", agentId] });
     },
     onError: (e: Error) => {
-      toast({ title: "AI Error", description: e.message, variant: "destructive" });
+      setInlineError(e.message || "Something went wrong. Please try again.");
     },
   });
 
@@ -276,6 +276,20 @@ function FloatingAiContent({
               </div>
             )}
             <div className="bg-muted rounded-xl px-2.5 py-1.5 text-xs text-muted-foreground italic">Thinking…</div>
+          </div>
+        )}
+        {inlineError && !sendMutation.isPending && (
+          <div className="flex gap-1.5">
+            {agentAvatarUrl ? (
+              <img src={agentAvatarUrl} alt={agentName} className="w-5 h-5 rounded-full object-cover shrink-0 mt-0.5" />
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                <Bot className="h-2.5 w-2.5 text-primary" />
+              </div>
+            )}
+            <div className="bg-muted rounded-xl px-2.5 py-1.5 text-xs text-destructive/80 max-w-[80%]">
+              {inlineError}
+            </div>
           </div>
         )}
         <div ref={bottomRef} />

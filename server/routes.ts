@@ -4956,7 +4956,10 @@ export async function registerRoutes(
 
   app.post("/api/email/inbound", async (req, res) => {
     try {
-      const rawBody: Buffer = (req as any).rawBody ?? Buffer.from(JSON.stringify(req.body));
+      const rawBodyRaw = (req as any).rawBody;
+      const rawBody: Buffer = Buffer.isBuffer(rawBodyRaw)
+        ? rawBodyRaw
+        : Buffer.from(typeof rawBodyRaw === "string" ? rawBodyRaw : JSON.stringify(req.body));
 
       const webhookHeaders = {
         svixId: req.headers["svix-id"] as string | undefined,
@@ -4965,16 +4968,21 @@ export async function registerRoutes(
         resendSignature: req.headers["resend-signature"] as string | undefined,
       };
 
+      console.log("[email/inbound] Received inbound webhook — headers:", JSON.stringify({
+        hasSvixId: !!webhookHeaders.svixId,
+        hasSvixTimestamp: !!webhookHeaders.svixTimestamp,
+        hasSvixSignature: !!webhookHeaders.svixSignature,
+        hasResendSignature: !!webhookHeaders.resendSignature,
+        rawBodyIsBuffer: Buffer.isBuffer(rawBodyRaw),
+        rawBodyLength: rawBody.length,
+      }));
+
       if (!verifyResendWebhookSignature(rawBody, webhookHeaders)) {
-        console.warn("[email/inbound] Invalid webhook signature — headers:", JSON.stringify({
-          hasSvixId: !!webhookHeaders.svixId,
-          hasSvixTimestamp: !!webhookHeaders.svixTimestamp,
-          hasSvixSignature: !!webhookHeaders.svixSignature,
-          hasResendSignature: !!webhookHeaders.resendSignature,
-        }));
+        console.warn("[email/inbound] Invalid webhook signature — rejecting request");
         return res.status(401).json({ message: "Invalid signature" });
       }
 
+      console.log("[email/inbound] Signature check passed — processing payload");
       const payload = req.body;
       await processInboundEmail(payload);
       res.status(200).json({ received: true });

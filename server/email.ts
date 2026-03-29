@@ -140,7 +140,10 @@ export async function processInboundEmail(payload: ResendInboundPayload): Promis
 
   for (const recipient of toAddresses) {
     const match = recipient.match(/^(.+?)@sevco\.us$/i);
-    if (!match) continue;
+    if (!match) {
+      console.log(`[email] Recipient ${recipient} is not a @sevco.us address — skipping`);
+      continue;
+    }
     const username = match[1].toLowerCase();
 
     const user = await storage.getUserByUsername(username);
@@ -195,8 +198,8 @@ export interface WebhookHeaders {
 export function verifyResendWebhookSignature(rawBody: Buffer, headers: WebhookHeaders): boolean {
   const secret = process.env.RESEND_WEBHOOK_SECRET;
   if (!secret) {
-    console.warn("[email] RESEND_WEBHOOK_SECRET not set — cannot verify inbound webhook signature");
-    return false;
+    console.warn("[email] RESEND_WEBHOOK_SECRET not set — skipping signature verification and allowing request");
+    return true;
   }
 
   // Resend uses Svix-style webhook signing

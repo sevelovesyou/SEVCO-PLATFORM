@@ -1074,6 +1074,49 @@ export function PlatformHeader() {
               </Link>
             </div>
           )}
+
+          {user && (
+            <div className="pt-2 border-t border-border mt-2">
+              <div className="flex items-center gap-2 px-3 py-2 mb-1" data-testid="mobile-user-info">
+                <span
+                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded capitalize ${roleBadgeClass}`}
+                  data-testid="mobile-badge-role"
+                >
+                  {role}
+                </span>
+                <span className="text-sm text-muted-foreground flex items-center gap-1">
+                  <User className="h-3.5 w-3.5" />
+                  <span data-testid="mobile-text-username">{user.displayName || user.username}</span>
+                </span>
+              </div>
+              <Link href={`/profile/${user.username}`} onClick={() => setMobileOpen(false)}>
+                <div className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer" data-testid="mobile-link-my-profile">
+                  <User className="h-4 w-4" />
+                  My Profile
+                </div>
+              </Link>
+              <Link href="/account" onClick={() => setMobileOpen(false)}>
+                <div className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer" data-testid="mobile-link-account">
+                  <Settings2 className="h-4 w-4" />
+                  Account
+                </div>
+              </Link>
+              <Link href="/notes" onClick={() => setMobileOpen(false)}>
+                <div className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer" data-testid="mobile-link-notes">
+                  <StickyNote className="h-4 w-4" />
+                  Notes
+                </div>
+              </Link>
+              <button
+                onClick={() => { setMobileOpen(false); logout(); }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                data-testid="mobile-button-logout"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </button>
+            </div>
+          )}
         </div>
       )}
     </header>

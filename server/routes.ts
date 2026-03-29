@@ -15,7 +15,7 @@ import {
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema, updateUserTaskSchema, updateStaffTaskSchema, insertUserTaskSchema, insertStaffTaskSchema } from "@shared/schema";
 import { fetchNewsArticles, fetchGoogleNewsRSS, setGNewsApiKeyFromDb, setBlockedSourcesFromDb } from "./news";
-import { getNewsAiSettings, getMaxRequestsPerHour, summarizeArticle as grokSummarize, generateNewsImage as grokImage, askGrokAboutArticle, searchNewsWithGrok, generateDailyBriefing, generateTrendingCommentary, streamSummarizeArticle, streamAskGrok } from "./grok-news";
+import { getNewsAiSettings, getMaxRequestsPerHour, getApiConfig, summarizeArticle as grokSummarize, generateNewsImage as grokImage, askGrokAboutArticle, searchNewsWithGrok, generateDailyBriefing, generateTrendingCommentary, streamSummarizeArticle, streamAskGrok } from "./grok-news";
 import { fetchUserTweets, searchTweets, isXConfigured, fetchCategoryNewsFromX } from "./x-api";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail, sendContactReplyEmail, sendInvoiceEmail, sendTestEmail } from "./emailClient";
@@ -5045,6 +5045,215 @@ export async function registerRoutes(
       const commentary = await generateTrendingCommentary(topics);
       res.json(commentary);
     } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  const trendingTopicsCache = new Map<string, { data: unknown; cachedAt: number }>();
+  const TRENDING_CACHE_TTL = 5 * 60 * 1000;
+
+  app.get("/api/trending-topics", async (_req, res) => {
+    try {
+      const cacheKey = "trending-topics-us";
+      const cached = trendingTopicsCache.get(cacheKey);
+      if (cached && Date.now() - cached.cachedAt < TRENDING_CACHE_TTL) {
+        return res.json(cached.data);
+      }
+
+      const bearerToken = process.env.X_BEARER_TOKEN;
+      if (!bearerToken) {
+        return res.json({ topics: [], source: "unavailable" });
+      }
+
+      const xRes = await fetch("https://api.x.com/2/trends/by/woeid/23424977", {
+        headers: { Authorization: `Bearer ${bearerToken}` },
+      });
+
+      if (!xRes.ok) {
+        console.error(`[trending-topics] X API error: ${xRes.status} ${xRes.statusText}`);
+        return res.json({ topics: [], source: "error" });
+      }
+
+      const xData = await xRes.json() as { data?: Array<{ trend_name?: string; tweet_count?: number }> };
+      const topics = (xData?.data ?? []).slice(0, 20).map((t, i) => ({
+        rank: i + 1,
+        name: t.trend_name || "Unknown",
+        tweetCount: t.tweet_count ?? null,
+      }));
+
+      const result = { topics, source: "x", fetchedAt: new Date().toISOString() };
+      trendingTopicsCache.set(cacheKey, { data: result, cachedAt: Date.now() });
+      res.json(result);
+    } catch (err: any) {
+      console.error("[trending-topics] Error:", err.message);
+      res.json({ topics: [], source: "error" });
+    }
+  });
+
+  const trendingNewsCache = new Map<string, { data: unknown; cachedAt: number }>();
+
+  app.get("/api/trending-news", async (_req, res) => {
+    try {
+      const cacheKey = "trending-news";
+      const cached = trendingNewsCache.get(cacheKey);
+      if (cached && Date.now() - cached.cachedAt < TRENDING_CACHE_TTL) {
+        return res.json(cached.data);
+      }
+
+      let topicNames: string[] = [];
+      const bearerToken = process.env.X_BEARER_TOKEN;
+      if (bearerToken) {
+        try {
+          const topicsCacheKey = "trending-topics-us";
+          const topicsCached = trendingTopicsCache.get(topicsCacheKey);
+          if (topicsCached && Date.now() - topicsCached.cachedAt < TRENDING_CACHE_TTL) {
+            const cachedTopics = topicsCached.data as { topics: Array<{ name: string }> };
+            topicNames = cachedTopics.topics.slice(0, 5).map((t) => t.name);
+          } else {
+            const xRes = await fetch("https://api.x.com/2/trends/by/woeid/23424977", {
+              headers: { Authorization: `Bearer ${bearerToken}` },
+            });
+            if (xRes.ok) {
+              const xData = await xRes.json() as { data?: Array<{ trend_name?: string; tweet_count?: number }> };
+              const topics = (xData?.data ?? []).slice(0, 20).map((t, i) => ({
+                rank: i + 1,
+                name: t.trend_name || "Unknown",
+                tweetCount: t.tweet_count ?? null,
+              }));
+              trendingTopicsCache.set(topicsCacheKey, { data: { topics, source: "x", fetchedAt: new Date().toISOString() }, cachedAt: Date.now() });
+              topicNames = topics.slice(0, 5).map((t) => t.name);
+            }
+          }
+        } catch (err) {
+          console.error("[trending-news] Failed to fetch topics:", err);
+        }
+      }
+
+      if (topicNames.length === 0) {
+        topicNames = ["breaking news", "technology", "politics", "entertainment", "sports"];
+      }
+
+      interface TrendingTweet {
+        id: string;
+        text: string;
+        authorHandle: string;
+        mediaUrl: string | null;
+        likeCount: number;
+        retweetCount: number;
+        createdAt: string;
+        url: string;
+        category: string;
+      }
+
+      const tweetPromises = topicNames.slice(0, 5).map(async (topic) => {
+        try {
+          const query = `${topic} -is:retweet lang:en`;
+          const tweets = await searchTweets(query, 3);
+          return tweets.map((t): TrendingTweet => ({
+            id: t.id,
+            text: t.text,
+            authorHandle: t.authorHandle,
+            mediaUrl: t.mediaUrl,
+            likeCount: t.likeCount,
+            retweetCount: t.retweetCount,
+            createdAt: t.createdAt,
+            url: t.url,
+            category: topic,
+          }));
+        } catch {
+          return [];
+        }
+      });
+
+      const allTweets = (await Promise.all(tweetPromises)).flat();
+      const seen = new Set<string>();
+      const uniqueTweets = allTweets.filter((t) => {
+        if (seen.has(t.id)) return false;
+        seen.add(t.id);
+        return true;
+      }).slice(0, 10);
+
+      interface EnrichedTrendingArticle {
+        id: string;
+        headline: string;
+        hook: string;
+        summary: string;
+        aiBlurb: string;
+        aiInsight: string;
+        timestamp: string;
+        category: string;
+        thumbnail: string | null;
+        link: string;
+        source: string;
+      }
+
+      const config = getApiConfig();
+      let enrichedArticles: EnrichedTrendingArticle[] = [];
+
+      const mapTweetToArticle = (t: TrendingTweet, i: number, blurb = "", insight = ""): EnrichedTrendingArticle => ({
+        id: `trending-${i}`,
+        headline: t.text.slice(0, 140),
+        hook: t.text.slice(0, 120),
+        summary: t.text,
+        aiBlurb: blurb,
+        aiInsight: insight,
+        timestamp: t.createdAt,
+        category: t.category,
+        thumbnail: t.mediaUrl,
+        link: t.url,
+        source: t.authorHandle,
+      });
+
+      if (config && uniqueTweets.length > 0) {
+        try {
+          const headlineList = uniqueTweets.map((t, i) => `${i + 1}. [${t.category}] ${t.text.slice(0, 140)} (${t.authorHandle})`).join("\n");
+
+          const aiRes = await fetch(config.apiUrl, {
+            method: "POST",
+            headers: config.headers,
+            body: JSON.stringify({
+              model: config.modelName,
+              messages: [
+                {
+                  role: "system",
+                  content: "You are a neutral editorial AI. Respond ONLY with valid JSON array, no markdown fences.",
+                },
+                {
+                  role: "user",
+                  content: `For each headline below, write a 2-sentence editorial blurb and a separate 1-sentence analytical insight. Respond with JSON array: [{"index": 0, "blurb": "2-sentence editorial", "insight": "1-sentence analysis"}]\n\nHeadlines:\n${headlineList}`,
+                },
+              ],
+              max_tokens: 1200,
+              temperature: 0.4,
+            }),
+          });
+
+          let aiResults: Array<{ index: number; blurb: string; insight: string }> = [];
+          if (aiRes.ok) {
+            const aiData = await aiRes.json() as { choices?: Array<{ message?: { content?: string } }> };
+            const content = aiData?.choices?.[0]?.message?.content?.trim() ?? "";
+            try {
+              const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+              aiResults = JSON.parse(cleaned);
+            } catch {}
+          }
+
+          enrichedArticles = uniqueTweets.map((t, i) => {
+            const aiMatch = aiResults.find((r) => r.index === i);
+            return mapTweetToArticle(t, i, aiMatch?.blurb || "", aiMatch?.insight || "");
+          });
+        } catch (err) {
+          console.error("[trending-news] AI enrichment error:", err);
+          enrichedArticles = uniqueTweets.map((t, i) => mapTweetToArticle(t, i));
+        }
+      } else {
+        enrichedArticles = uniqueTweets.map((t, i) => mapTweetToArticle(t, i));
+      }
+
+      trendingNewsCache.set(cacheKey, { data: enrichedArticles, cachedAt: Date.now() });
+      res.json(enrichedArticles);
+    } catch (err: any) {
+      console.error("[trending-news] Error:", err.message);
       res.status(500).json({ message: err.message });
     }
   });

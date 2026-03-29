@@ -20,6 +20,86 @@ import { useNewsAiSettings, useGrokSearch, useGrokImage, type NewsAiSettings } f
 import { ArticleDetailModal } from "@/components/news-article-modal";
 import { NewsAiSidebar } from "@/components/news-ai-sidebar";
 import { DailyBriefingFab } from "@/components/news-daily-briefing";
+import { TrendingUp as TrendingUpIcon, Hash } from "lucide-react";
+
+interface TrendingTopic {
+  rank: number;
+  name: string;
+  tweetCount: number | null;
+}
+
+interface TrendingNewsItem {
+  id: string;
+  headline: string;
+  hook: string;
+  summary: string;
+  aiBlurb: string;
+  aiInsight: string;
+  timestamp: string;
+  category: string;
+  thumbnail: string | null;
+  link: string;
+  source: string;
+}
+
+function TrendingTopicsSidebar({ onTopicClick }: { onTopicClick: (topic: string) => void }) {
+  const { data: trendingData, isLoading } = useQuery<{ topics: TrendingTopic[]; source: string }>({
+    queryKey: ["/api/trending-topics"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const topics = trendingData?.topics ?? [];
+
+  if (isLoading) {
+    return (
+      <div className="w-full lg:w-64 xl:w-72 shrink-0" data-testid="trending-topics-sidebar">
+        <div className="sticky top-24 space-y-3">
+          <div className="flex items-center gap-2 mb-3">
+            <SiX className="h-4 w-4" />
+            <h3 className="text-sm font-bold">Trending on X</h3>
+          </div>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-8 w-full rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!topics.length) return null;
+
+  return (
+    <div className="w-full lg:w-64 xl:w-72 shrink-0" data-testid="trending-topics-sidebar">
+      <div className="sticky top-24">
+        <div className="flex items-center gap-2 mb-3">
+          <SiX className="h-4 w-4" />
+          <h3 className="text-sm font-bold">Trending on X</h3>
+        </div>
+        <div className="space-y-1 border rounded-xl p-2 bg-card">
+          {topics.map((topic) => (
+            <button
+              key={topic.rank}
+              onClick={() => onTopicClick(topic.name)}
+              className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors group flex items-start gap-2"
+              data-testid={`trending-topic-${topic.rank}`}
+            >
+              <span className="text-[10px] text-muted-foreground font-mono mt-0.5 shrink-0">{topic.rank}</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate flex items-center gap-1">
+                  <Hash className="h-3 w-3 shrink-0 text-muted-foreground" />
+                  {topic.name.replace(/^#/, "")}
+                </p>
+                {topic.tweetCount && (
+                  <p className="text-[10px] text-muted-foreground">{topic.tweetCount.toLocaleString()} posts</p>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ArticleSkeleton() {
   return <Skeleton className="w-full h-48 rounded-xl" />;
@@ -96,9 +176,14 @@ function HeroSection({ article, aiSettings, onImageGenerated }: { article: NewsA
             <Sparkles className="h-2.5 w-2.5 mr-1" />AI Image
           </Badge>
         )}
-        {heroSummary?.category && (
+        {(heroSummary?.category || article.category) && (
           <Badge className="absolute top-3 left-3 bg-white/20 text-white text-[10px] backdrop-blur-sm">
-            {heroSummary.category}
+            {heroSummary?.category || article.category}
+          </Badge>
+        )}
+        {article.aiInsight && (
+          <Badge className="absolute top-12 left-3 bg-primary/80 text-white text-[10px] backdrop-blur-sm" data-testid="badge-ai-insight-hero">
+            <Sparkles className="h-2.5 w-2.5 mr-1" />AI Insight
           </Badge>
         )}
         <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
@@ -118,6 +203,12 @@ function HeroSection({ article, aiSettings, onImageGenerated }: { article: NewsA
           ) : article.description ? (
             <p className="text-sm text-white/80 line-clamp-2 mb-3 max-w-3xl">{article.description}</p>
           ) : null}
+          {article.aiInsight && (
+            <p className="text-xs text-white/70 italic line-clamp-1 mb-2 max-w-2xl flex items-start gap-1.5">
+              <Sparkles className="h-3 w-3 mt-0.5 shrink-0 text-white/50" />
+              {article.aiInsight}
+            </p>
+          )}
           <div className="flex items-center gap-4">
             {relativeTime && <span className="text-xs text-white/60">{relativeTime}</span>}
             <a
@@ -276,7 +367,7 @@ function AiSearchResults({ query, aiSettings }: { query: string; aiSettings: New
         </div>
       )}
       {grokSearch.data.articles.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {grokSearch.data.articles.map((article) => (
             <NewsArticleCard key={article.link} article={article} variant="compact" />
           ))}
@@ -303,13 +394,13 @@ function GlobalSearchResults({ query, aiSettings }: { query: string; aiSettings?
       {aiSettings && <AiSearchResults query={query} aiSettings={aiSettings} />}
 
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => <ArticleSkeleton key={i} />)}
         </div>
       ) : !results?.length ? (
         <p className="text-sm text-muted-foreground py-4 text-center">No results found for "{query}"</p>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" data-testid="search-results">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3" data-testid="search-results">
           {results.map((article) => (
             <NewsArticleCard key={article.link} article={article} variant="compact" />
           ))}
@@ -325,7 +416,7 @@ function SavedArticlesView() {
   });
 
   if (isLoading) return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
       {[1, 2, 3, 4].map((i) => <ArticleSkeleton key={i} />)}
     </div>
   );
@@ -348,7 +439,7 @@ function SavedArticlesView() {
   }));
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" data-testid="saved-articles">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3" data-testid="saved-articles">
       {articles.map((article, i) => (
         <NewsArticleCard key={`${article.link}-${i}`} article={article} variant="compact" categoryLabel={bookmarks[i]?.articleCategory ?? undefined} />
       ))}
@@ -431,14 +522,14 @@ function CategorySwimLane({ category, isFollowed, onFollowToggle, onArticleClick
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => <ArticleSkeleton key={i} />)}
         </div>
       ) : !visibleArticles.length ? (
         <p className="text-sm text-muted-foreground py-4">No articles available right now.</p>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 justify-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 justify-start">
             {visibleArticles.map((article) => (
               <NewsArticleCard
                 key={article.link}
@@ -564,11 +655,11 @@ function CategoryFilteredView({ categoryId, categories }: { categoryId: string; 
       ) : null}
 
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <ArticleSkeleton key={i} />)}
         </div>
       ) : restArticles.length > 0 ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {restArticles.map((article) => (
             <NewsArticleCard
               key={article.link}
@@ -676,8 +767,26 @@ export default function NewsPage() {
     staleTime: 15 * 60 * 1000,
   });
 
-  const heroArticle = primaryArticles?.[0];
-  const bentoArticles = primaryArticles?.slice(1, 11) ?? [];
+  const { data: trendingNews } = useQuery<TrendingNewsItem[]>({
+    queryKey: ["/api/trending-news"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const trendingHero = trendingNews?.[0];
+  const heroArticle = trendingHero
+    ? {
+        title: trendingHero.headline,
+        link: trendingHero.link,
+        description: trendingHero.aiBlurb || trendingHero.summary,
+        pubDate: trendingHero.timestamp,
+        source: trendingHero.source,
+        imageUrl: trendingHero.thumbnail,
+        aiBlurb: trendingHero.aiBlurb,
+        aiInsight: trendingHero.aiInsight,
+        category: trendingHero.category,
+      } as NewsArticle
+    : primaryArticles?.[0];
+  const bentoArticles = primaryArticles?.slice(trendingHero ? 0 : 1, trendingHero ? 10 : 11) ?? [];
 
   const isSearchActive = debouncedSearch.length > 0;
 
@@ -727,6 +836,7 @@ export default function NewsPage() {
       ) : (
         <div className="flex gap-6 flex-col lg:flex-row">
           <div className="flex-1 min-w-0 space-y-6">
+
             <div className="flex items-center gap-2">
               <div className="relative flex-1 max-w-lg">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -835,7 +945,7 @@ export default function NewsPage() {
                       </Link>
                     </div>
                     {primaryLoading ? (
-                      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <ArticleSkeleton key={i} />)}
                       </div>
                     ) : (
@@ -869,16 +979,17 @@ export default function NewsPage() {
             )}
           </div>
 
-          {!categoryParam && aiSettings && (aiSettings.trendingEnabled || aiSettings.chatEnabled) && (
-            <div className="hidden lg:block">
+          <div className="hidden lg:block space-y-6">
+            <TrendingTopicsSidebar onTopicClick={(topic) => { setSearchQuery(topic); setDebouncedSearch(topic); }} />
+            {!categoryParam && aiSettings && (aiSettings.trendingEnabled || aiSettings.chatEnabled) && (
               <NewsAiSidebar
                 aiSettings={aiSettings}
                 categoryName={primaryCategory?.name}
                 categories={categories?.map((c) => ({ id: c.id, name: c.name, accentColor: c.accentColor }))}
                 onCategoryFilter={(name) => { setSearchQuery(name); setDebouncedSearch(name); }}
               />
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 

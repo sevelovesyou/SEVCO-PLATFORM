@@ -18,6 +18,9 @@ export type NewsArticle = {
   source: string;
   imageUrl: string | null;
   aiImageUrl?: string | null;
+  aiBlurb?: string;
+  aiInsight?: string;
+  category?: string;
 };
 
 const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200' viewBox='0 0 400 200'%3E%3Crect width='400' height='200' fill='%23374151'/%3E%3Ctext x='200' y='105' text-anchor='middle' fill='%236B7280' font-size='14' font-family='sans-serif'%3ESEVCO News%3C/text%3E%3C/svg%3E";
@@ -217,11 +220,48 @@ function ArticleSummaryPanel({ articleUrl }: { articleUrl: string }) {
   );
 }
 
+function AiInsightPanel({ article }: { article: NewsArticle }) {
+  const [open, setOpen] = useState(false);
+
+  if (!article.aiInsight && !article.aiBlurb) return null;
+
+  return (
+    <div className="mt-1.5">
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((v) => !v); }}
+        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors group"
+        data-testid="button-ai-insight-toggle"
+      >
+        <Sparkles className="h-2.5 w-2.5 text-primary/70" />
+        <span className="font-medium">AI Insight</span>
+        <ChevronDown className={`h-2.5 w-2.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${open ? "max-h-40 opacity-100 mt-1.5" : "max-h-0 opacity-0"}`}
+        data-testid="panel-ai-insight"
+      >
+        <div className="rounded-md bg-primary/5 border border-primary/10 px-2.5 py-2">
+          {article.aiBlurb && (
+            <p className="text-[11px] text-foreground leading-relaxed">{article.aiBlurb}</p>
+          )}
+          {article.aiInsight && (
+            <p className="text-[11px] text-primary/80 leading-relaxed mt-1 italic">{article.aiInsight}</p>
+          )}
+          <span className="inline-flex items-center gap-0.5 mt-1 text-[9px] text-primary/60 font-medium">
+            <Sparkles className="h-2 w-2" />
+            Grok AI
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function NewsArticleCard({ article, variant = "medium", accentColor, categoryLabel, onCardClick }: NewsArticleCardProps) {
-  const { role } = usePermission();
   const [wikifyOpen, setWikifyOpen] = useState(false);
 
-  const isStaffPlus = role === "admin" || role === "executive" || role === "staff";
   const readTime = estimateReadTime((article.description || "") + " " + (article.title || ""));
 
   if (variant === "compact") {
@@ -272,11 +312,9 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <BookmarkButton article={article} categoryLabel={categoryLabel} size="xs" />
           </div>
-          {isStaffPlus && (
-            <div className="mt-1 flex justify-end px-1">
-              <WikifyButton onClick={() => setWikifyOpen(true)} testId="button-wikify-compact" />
-            </div>
-          )}
+          <div className="mt-1 flex justify-end px-1">
+            <WikifyButton onClick={() => setWikifyOpen(true)} testId="button-wikify-compact" />
+          </div>
         </div>
         <WikifyDialog open={wikifyOpen} onClose={() => setWikifyOpen(false)} article={article} />
       </>
@@ -343,16 +381,24 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
 
           {showSummary && <ArticleSummaryPanel articleUrl={article.link} />}
 
+          <AiInsightPanel article={article} />
+
           <div className="flex items-center justify-between mt-2">
             <span className="text-[11px] text-muted-foreground flex items-center gap-1 min-w-0">
+              {(categoryLabel || article.category) && (
+                <>
+                  <span className="text-[10px] font-semibold text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0" data-testid="badge-category">
+                    {categoryLabel || article.category}
+                  </span>
+                  <span className="shrink-0">·</span>
+                </>
+              )}
               {article.source && <SourceWithFavicon article={article} />}
               {article.source && <span className="shrink-0">·</span>}
               <span className="shrink-0">{formatRelativeTime(article.pubDate)}</span>
             </span>
             <div className="flex items-center gap-1 shrink-0">
-              {isStaffPlus && (
-                <WikifyButton onClick={() => setWikifyOpen(true)} />
-              )}
+              <WikifyButton onClick={() => setWikifyOpen(true)} />
               <a
                 href={article.link}
                 target="_blank"

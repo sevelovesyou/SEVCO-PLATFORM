@@ -62,7 +62,7 @@ export async function getMaxRequestsPerHour(): Promise<number> {
   }
 }
 
-function getApiConfig(): { apiUrl: string; apiKey: string; modelName: string; headers: Record<string, string> } | null {
+export function getApiConfig(): { apiUrl: string; apiKey: string; modelName: string; headers: Record<string, string> } | null {
   if (process.env.XAI_API_KEY) {
     return {
       apiUrl: "https://api.x.ai/v1/chat/completions",

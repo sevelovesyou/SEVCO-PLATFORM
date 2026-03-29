@@ -257,6 +257,7 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
     { label: "Wiki",       href: "/wiki",    icon: BookOpen,    desc: "Internal knowledge base",        authRequired: false },
     { label: "Contact",    href: "/contact", icon: Mail,        desc: "Get in touch",                   authRequired: false },
     { label: "Jobs",       href: "/jobs",    icon: Users,       desc: "Open positions",                 authRequired: false },
+    { label: "News",       href: "/news",    icon: LucideIcons.Newspaper, desc: "Latest news & trends",   authRequired: false },
     { label: "Account",    href: "/account", icon: User,        desc: "Manage your profile",            authRequired: false },
   ];
 

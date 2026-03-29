@@ -5047,6 +5047,8 @@ export async function registerRoutes(
 
       const payload = body?.data ?? body;
       console.log("[email/inbound] Payload keys:", Object.keys(payload || {}));
+      console.log("[email/inbound] Body fields — html:", typeof payload?.html, `(${(payload?.html || "").length}ch)`, "text:", typeof payload?.text, `(${(payload?.text || "").length}ch)`);
+      console.log("[email/inbound] Raw body (first 2000ch):", rawBody.toString().substring(0, 2000));
       await processInboundEmail(payload);
       res.status(200).json({ received: true });
     } catch (err: any) {

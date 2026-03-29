@@ -132,13 +132,16 @@ export async function processInboundEmail(payload: ResendInboundPayload): Promis
     to: toAddresses = [],
     cc: ccAddresses = [],
     subject = "",
-    html: bodyHtml = "",
-    text: bodyText = "",
+    html: payloadHtml = "",
+    text: payloadText = "",
     attachments: rawAttachments = [],
     reply_to: replyTo,
   } = payload;
 
-  console.log(`[email] processInboundEmail — email_id=${email_id}, from=${fromAddress}, to=${JSON.stringify(toAddresses)}, subject=${subject}`);
+  const bodyHtml = payloadHtml;
+  const bodyText = payloadText;
+
+  console.log(`[email] processInboundEmail — email_id=${email_id}, from=${fromAddress}, to=${JSON.stringify(toAddresses)}, subject=${subject}, bodyHtml=${bodyHtml.length}ch, bodyText=${bodyText.length}ch`);
 
   const attachments = rawAttachments.map((a) => ({
     filename: a.filename ?? "",

@@ -88,6 +88,9 @@ async function runStartupMigrations() {
     followed_category_ids integer[] NOT NULL DEFAULT '{}',
     created_at timestamp DEFAULT now() NOT NULL
   );`);
+  await pool.query(`UPDATE news_categories SET query = 'music industry OR new music OR music news' WHERE query = 'SEVCO music OR music industry';`);
+  await pool.query(`UPDATE news_categories SET query = 'technology AI startups OR tech news' WHERE query = 'technology startup AI';`);
+  await pool.query(`UPDATE news_categories SET query = 'business entrepreneurship startups OR business news' WHERE query = 'business entrepreneurship startup';`);
   console.log("[startup] migrations applied");
 }
 

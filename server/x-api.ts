@@ -48,7 +48,7 @@ export function getCategoryXQuery(categoryName: string, fallbackQuery?: string, 
   }
   if (imagesOnly) {
     const withImages = base.includes("has:media") ? base : `${base} has:media`;
-    return `${withImages} min_faves:10`;
+    return withImages;
   }
   return base;
 }
@@ -122,7 +122,7 @@ export async function fetchUserTweets(handle: string, limit: number = 10): Promi
 
   try {
     const userRes = await fetch(
-      `https://api.twitter.com/2/users/by/username/${cleanHandle}?user.fields=profile_image_url,name`,
+      `https://api.x.com/2/users/by/username/${cleanHandle}?user.fields=profile_image_url,name`,
       { headers: { Authorization: `Bearer ${bearerToken}` } }
     );
 
@@ -145,7 +145,7 @@ export async function fetchUserTweets(handle: string, limit: number = 10): Promi
     const { id: userId, name: authorName, username: authorHandle, profile_image_url: authorAvatarUrl } = userData.data;
 
     const tweetsRes = await fetch(
-      `https://api.twitter.com/2/users/${userId}/tweets?max_results=${Math.min(limit, 100)}&tweet.fields=created_at,public_metrics,attachments&expansions=attachments.media_keys&media.fields=url,preview_image_url,type&exclude=retweets,replies`,
+      `https://api.x.com/2/users/${userId}/tweets?max_results=${Math.min(limit, 100)}&tweet.fields=created_at,public_metrics,attachments&expansions=attachments.media_keys&media.fields=url,preview_image_url,type&exclude=retweets,replies`,
       { headers: { Authorization: `Bearer ${bearerToken}` } }
     );
 
@@ -225,7 +225,7 @@ export async function searchTweets(query: string, limit: number = 6): Promise<Tw
 
   try {
     const res = await fetch(
-      `https://api.twitter.com/2/tweets/search/recent?query=${encodeURIComponent(query)}&max_results=${Math.min(Math.max(limit, 10), 100)}&tweet.fields=created_at,public_metrics,author_id,attachments&expansions=author_id,attachments.media_keys&user.fields=name,username,profile_image_url&media.fields=url,preview_image_url,type`,
+      `https://api.x.com/2/tweets/search/recent?query=${encodeURIComponent(query)}&max_results=${Math.min(Math.max(limit, 10), 100)}&tweet.fields=created_at,public_metrics,author_id,attachments&expansions=author_id,attachments.media_keys&user.fields=name,username,profile_image_url&media.fields=url,preview_image_url,type`,
       { headers: { Authorization: `Bearer ${bearerToken}` } }
     );
 

@@ -258,7 +258,7 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
               </span>
             </div>
             <div className="p-2.5">
-              <p className="text-xs font-serif font-semibold text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+              <p className="text-sm font-serif font-semibold text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
                 {article.title}
               </p>
               <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
@@ -282,7 +282,7 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
     );
   }
 
-  const imageHeightClass = variant === "large" ? "aspect-[16/7]" : variant === "medium" ? "aspect-video" : "aspect-[4/3]";
+  const imageHeightClass = variant === "large" ? "aspect-[16/7]" : "aspect-video";
   const showSummary = variant === "large" || variant === "medium";
 
   return (
@@ -328,11 +328,14 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
 
         <div className="p-3 flex flex-col flex-1">
           <a href={article.link} target={onCardClick ? undefined : "_blank"} rel="noopener noreferrer" className="flex-1" onClick={(e) => { if (onCardClick) e.preventDefault(); }}>
-            <h3 className={`font-serif font-semibold text-foreground leading-snug group-hover:text-primary transition-colors ${variant === "large" ? "text-base" : variant === "medium" ? "text-sm" : "text-xs"} line-clamp-3`}>
+            <h3 className={`font-serif font-semibold text-foreground leading-snug group-hover:text-primary transition-colors ${variant === "large" ? "text-base" : variant === "medium" ? "text-sm" : "text-sm"} line-clamp-3`}>
               {article.title}
             </h3>
             {(variant === "large" || variant === "medium") && article.description && (
               <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{article.description}</p>
+            )}
+            {variant === "small" && article.description && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{article.description}</p>
             )}
           </a>
 

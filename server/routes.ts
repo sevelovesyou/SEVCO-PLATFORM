@@ -14,7 +14,7 @@ import {
 } from "./middleware/permissions";
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema, updateUserTaskSchema, updateStaffTaskSchema, insertUserTaskSchema, insertStaffTaskSchema } from "@shared/schema";
-import { fetchNewsArticles, fetchGoogleNewsRSS, setGNewsApiKeyFromDb } from "./news";
+import { fetchNewsArticles, fetchGoogleNewsRSS, setGNewsApiKeyFromDb, setBlockedSourcesFromDb } from "./news";
 import { getNewsAiSettings, getMaxRequestsPerHour, summarizeArticle as grokSummarize, generateNewsImage as grokImage, askGrokAboutArticle, searchNewsWithGrok, generateDailyBriefing, generateTrendingCommentary, streamSummarizeArticle, streamAskGrok } from "./grok-news";
 import { fetchUserTweets, searchTweets, isXConfigured, fetchCategoryNewsFromX } from "./x-api";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
@@ -4681,6 +4681,14 @@ export async function registerRoutes(
       const query = String(req.query.query ?? "");
       const limit = Math.min(parseInt(String(req.query.limit ?? "10")), 20);
       if (!query) return res.status(400).json({ message: "query param required" });
+      try {
+        const settings = await storage.getPlatformSettings();
+        const blockedSourcesRaw = settings["news.rss.blockedSources"] ?? "";
+        const dbBlockedSources = blockedSourcesRaw
+          ? blockedSourcesRaw.split(",").map((s: string) => s.trim()).filter(Boolean)
+          : [];
+        setBlockedSourcesFromDb(dbBlockedSources);
+      } catch {}
       const articles = await fetchNewsArticles(query, limit);
       res.json(articles);
     } catch (err: any) {
@@ -5178,6 +5186,11 @@ export async function registerRoutes(
         : [];
       globalImageGenEnabled = settings["news.ai.imageGenEnabled"] === "true";
       imagePromptTemplate = settings["news.ai.imagePromptTemplate"] || "";
+      const blockedSourcesRaw = settings["news.rss.blockedSources"] ?? "";
+      const dbBlockedSources = blockedSourcesRaw
+        ? blockedSourcesRaw.split(",").map((s: string) => s.trim()).filter(Boolean)
+        : [];
+      setBlockedSourcesFromDb(dbBlockedSources);
     } catch (settingsErr: any) {
       console.error("[news/x-feed] Failed to load platform settings, using defaults:", settingsErr.message);
     }

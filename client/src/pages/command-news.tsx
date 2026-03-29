@@ -377,6 +377,7 @@ const xFeedSettingsSchema = z.object({
   sourceType: z.enum(["both", "rss_only", "x_only"]),
   allowedAccounts: z.string(),
   blockedAccounts: z.string(),
+  blockedSources: z.string(),
   minEngagement: z.coerce.number().int().min(0).default(0),
 });
 type XFeedSettingsForm = z.infer<typeof xFeedSettingsSchema>;
@@ -396,6 +397,7 @@ function XFeedTab() {
       sourceType: "both",
       allowedAccounts: "",
       blockedAccounts: "",
+      blockedSources: "",
       minEngagement: 0,
     },
     values: settings
@@ -404,6 +406,7 @@ function XFeedTab() {
           sourceType: (settings["news.x.sourceType"] as XFeedSettingsForm["sourceType"]) || "both",
           allowedAccounts: settings["news.x.allowedAccounts"] || "",
           blockedAccounts: settings["news.x.blockedAccounts"] || "",
+          blockedSources: settings["news.rss.blockedSources"] || "",
           minEngagement: parseInt(settings["news.x.minEngagement"] || "0") || 0,
         }
       : undefined,
@@ -416,6 +419,7 @@ function XFeedTab() {
         "news.x.sourceType": data.sourceType,
         "news.x.allowedAccounts": data.allowedAccounts,
         "news.x.blockedAccounts": data.blockedAccounts,
+        "news.rss.blockedSources": data.blockedSources,
         "news.x.minEngagement": String(data.minEngagement),
       }).then((r) => r.json()),
     onSuccess: () => {
@@ -510,6 +514,20 @@ function XFeedTab() {
               />
               <p className="text-[11px] text-muted-foreground">
                 Comma-separated X handles to always exclude from results.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Blocked RSS Sources</Label>
+              <Textarea
+                {...form.register("blockedSources")}
+                placeholder="e.g. lokmattimes, indiaglitz, masala"
+                rows={2}
+                className="text-sm resize-none"
+                data-testid="textarea-blocked-sources"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Comma-separated source names (partial match, case-insensitive) to filter out from RSS feeds. These stack on top of the built-in blocklist.
               </p>
             </div>
 

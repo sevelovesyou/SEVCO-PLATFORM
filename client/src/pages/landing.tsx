@@ -573,13 +573,14 @@ export default function Landing() {
         </section>
       )}
 
-      {/* ── NEWS & NOW — unified editorial hub ── */}
+      {/* ── NEWS & NOW — condensed editorial hub ── */}
       {(showNewsSection || showXFeedSection) && newsCategories.length > 0 && (
         <NewsEditorial
           newsCategories={newsCategories}
           xHandles={xHandles}
           xMaxTweets={xMaxTweets}
           xEnabled={xEnabled && xStatus?.configured === true}
+          condensed
         />
       )}
 

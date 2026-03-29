@@ -9,6 +9,64 @@ export type NewsArticle = {
   imageUrl: string | null;
 };
 
+const BLOCKED_SOURCES = new Set([
+  "lokmattimes",
+  "lokmat",
+  "indiaglitz",
+  "masala",
+  "filmibeat",
+  "pinkvilla",
+  "dnaindia",
+  "india.com",
+  "koimoi",
+  "bollywoodlife",
+  "desimartini",
+  "siasat",
+  "oneindia",
+  "timesnownews",
+  "newsbyteshindi",
+  "newsbytes",
+  "thehindustantimes.in",
+  "thestatesman",
+  "latestly",
+  "boldsky",
+  "caravanmagazine",
+  "freepressjournal",
+  "devdiscourse",
+  "republicworld",
+  "zee5",
+  "zeebiznews",
+  "jansatta",
+  "punjabkesari",
+  "naidunia",
+  "patrika",
+  "bhaskar",
+  "aajtak",
+  "ndtv.in",
+]);
+
+let _blockedSourcesFromDb: string[] = [];
+
+export function setBlockedSourcesFromDb(sources: string[]) {
+  _blockedSourcesFromDb = sources;
+}
+
+function isSourceBlocked(source: string): boolean {
+  if (!source) return false;
+  const lower = source.toLowerCase();
+  for (const blocked of BLOCKED_SOURCES) {
+    if (lower.includes(blocked)) return true;
+  }
+  for (const blocked of _blockedSourcesFromDb) {
+    if (blocked && lower.includes(blocked.toLowerCase())) return true;
+  }
+  return false;
+}
+
+function filterBlockedSources(articles: NewsArticle[]): NewsArticle[] {
+  return articles.filter((a) => !isSourceBlocked(a.source));
+}
+
 const cache = new Map<string, { articles: NewsArticle[]; fetchedAt: number }>();
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
@@ -166,12 +224,12 @@ export async function fetchNewsArticles(query: string, limit = 10): Promise<News
     const cacheKey = `gnews:${query.toLowerCase().trim()}`;
     const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
-      return cached.articles.slice(0, limit);
+      return filterBlockedSources(cached.articles).slice(0, limit);
     }
-    const articles = await fetchGNewsAPI(query, limit);
+    const articles = await fetchGNewsAPI(query, limit * 2);
     if (articles.length > 0) {
       cache.set(cacheKey, { articles, fetchedAt: Date.now() });
-      return articles.slice(0, limit);
+      return filterBlockedSources(articles).slice(0, limit);
     }
   }
   return fetchGoogleNewsRSS(query, limit);
@@ -181,7 +239,7 @@ export async function fetchGoogleNewsRSS(query: string, limit = 10): Promise<New
   const cacheKey = query.toLowerCase().trim();
   const cached = cache.get(cacheKey);
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
-    return cached.articles.slice(0, limit);
+    return filterBlockedSources(cached.articles).slice(0, limit);
   }
 
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
@@ -224,7 +282,7 @@ export async function fetchGoogleNewsRSS(query: string, limit = 10): Promise<New
     const articles = await enrichWithOgImages(rawArticles);
 
     cache.set(cacheKey, { articles, fetchedAt: Date.now() });
-    return articles.slice(0, limit);
+    return filterBlockedSources(articles).slice(0, limit);
   } catch (err: unknown) {
     if (err instanceof Error && err.name === "AbortError") {
       console.error(`[news] RSS fetch timeout for query "${query}"`);

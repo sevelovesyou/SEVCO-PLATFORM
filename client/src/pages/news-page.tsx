@@ -429,14 +429,14 @@ function CategorySwimLane({ category, isFollowed, onFollowToggle, onArticleClick
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => <ArticleSkeleton key={i} />)}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map((i) => <ArticleSkeleton key={i} />)}
         </div>
       ) : !visibleArticles.length ? (
         <p className="text-sm text-muted-foreground py-4">No articles available right now.</p>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 justify-start">
             {visibleArticles.map((article) => (
               <NewsArticleCard
                 key={article.link}

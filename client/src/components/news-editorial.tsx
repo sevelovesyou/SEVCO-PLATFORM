@@ -2,12 +2,14 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import {
-  ExternalLink, Heart, Repeat2, Clock, Zap, TrendingUp,
+  ExternalLink, Heart, Repeat2, Clock, Zap, TrendingUp, ArrowRight,
 } from "lucide-react";
 import { SiX } from "react-icons/si";
+import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { NewsCategory } from "@shared/schema";
 
 export type EditorialArticle = {
@@ -345,6 +347,7 @@ interface NewsEditorialProps {
   xHandles?: string[];
   xMaxTweets?: number;
   xEnabled?: boolean;
+  condensed?: boolean;
 }
 
 export function NewsEditorial({
@@ -352,6 +355,7 @@ export function NewsEditorial({
   xHandles = [],
   xMaxTweets = 8,
   xEnabled = false,
+  condensed = false,
 }: NewsEditorialProps) {
   const [activeCatId, setActiveCatId] = useState<number | null>(null);
   const [selectedHandle, setSelectedHandle] = useState<string | null>(null);
@@ -411,17 +415,18 @@ export function NewsEditorial({
   }
 
   const accentColor = activeCategory?.accentColor ?? undefined;
-  const heroArticle = filteredArticles[0] ?? null;
-  const secondaryArticles = filteredArticles.slice(1, 4);
-  const gridArticles = filteredArticles.slice(4, 13);
+  const displayArticles = condensed ? filteredArticles.slice(0, 5) : filteredArticles;
+  const heroArticle = displayArticles[0] ?? null;
+  const secondaryArticles = displayArticles.slice(1, condensed ? 5 : 4);
+  const gridArticles = condensed ? [] : displayArticles.slice(4, 13);
 
   return (
     <div
       className="bg-[#08080f] text-white border-y border-white/[0.06] overflow-x-hidden"
       data-testid="section-news-editorial"
     >
-      {/* Breaking ticker */}
-      {articles.length > 0 && <BreakingTicker articles={articles} />}
+      {/* Breaking ticker — skip in condensed mode */}
+      {!condensed && articles.length > 0 && <BreakingTicker articles={articles} />}
 
       {/* Header */}
       <div className="max-w-7xl mx-auto px-4 md:px-6 pt-6 pb-4">
@@ -435,17 +440,19 @@ export function NewsEditorial({
               What's happening.
             </h2>
           </div>
-          <Badge
-            variant="outline"
-            className="border-white/10 text-white/40 text-[10px] font-semibold hidden sm:inline-flex items-center gap-1"
-          >
-            <SiX className="h-2.5 w-2.5" />
-            Powered by X
-          </Badge>
+          {!condensed && (
+            <Badge
+              variant="outline"
+              className="border-white/10 text-white/40 text-[10px] font-semibold hidden sm:inline-flex items-center gap-1"
+            >
+              <SiX className="h-2.5 w-2.5" />
+              Powered by X
+            </Badge>
+          )}
         </div>
 
-        {/* Category tabs */}
-        {newsCategories.length > 1 && (
+        {/* Category tabs — skip in condensed mode */}
+        {!condensed && newsCategories.length > 1 && (
           <CategoryTabBar
             categories={newsCategories}
             activeId={activeCatId ?? newsCategories[0].id}
@@ -453,8 +460,8 @@ export function NewsEditorial({
           />
         )}
 
-        {/* X source handle chips */}
-        {uniqueXHandles.length > 0 && (
+        {/* X source handle chips — skip in condensed mode */}
+        {!condensed && uniqueXHandles.length > 0 && (
           <div className="flex items-center gap-1.5 mt-3 flex-wrap" data-testid="news-handle-chips">
             <button
               onClick={() => setSelectedHandle(null)}
@@ -490,9 +497,9 @@ export function NewsEditorial({
         {articlesLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Skeleton className="md:col-span-1 lg:col-span-2 md:row-span-2 h-72 rounded-2xl" />
-            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
+            {Array.from({ length: condensed ? 2 : 6 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
           </div>
-        ) : filteredArticles.length === 0 ? (
+        ) : displayArticles.length === 0 ? (
           <p className="text-sm text-white/40 py-10 text-center">No articles available right now.</p>
         ) : (
           <div className="flex gap-5 flex-col lg:flex-row">
@@ -512,8 +519,8 @@ export function NewsEditorial({
                 </div>
               </div>
 
-              {/* Secondary grid */}
-              {gridArticles.length > 0 && (
+              {/* Secondary grid — skip in condensed mode */}
+              {!condensed && gridArticles.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {gridArticles.map((a) => (
                     <GridCard key={a.link} article={a} accentColor={accentColor} />
@@ -522,8 +529,8 @@ export function NewsEditorial({
               )}
             </div>
 
-            {/* Right: Live from X column */}
-            {xEnabled && (tweetsLoading || tweets.length > 0) && (
+            {/* Right: Live from X column — skip in condensed mode */}
+            {!condensed && xEnabled && (tweetsLoading || tweets.length > 0) && (
               <div className="lg:w-72 xl:w-80 shrink-0" data-testid="live-x-sidebar">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="h-6 w-6 rounded-md bg-white/10 flex items-center justify-center">
@@ -560,6 +567,22 @@ export function NewsEditorial({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* View All News button — condensed mode only */}
+        {condensed && (
+          <div className="flex justify-center mt-6">
+            <Link href="/news">
+              <Button
+                variant="outline"
+                className="border-white/15 text-white/70 hover:text-white hover:bg-white/10 gap-2 font-semibold"
+                data-testid="button-view-all-news"
+              >
+                View All News
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         )}
       </div>

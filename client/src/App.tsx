@@ -88,6 +88,7 @@ import CommandMinecraft from "@/pages/command-minecraft";
 import CommandAiAgents from "@/pages/command-ai-agents";
 import CommandTraffic from "@/pages/command-traffic";
 import CommandNews from "@/pages/command-news";
+import NewsPage from "@/pages/news-page";
 import MessagesPage from "@/pages/messages-page";
 import FullscreenChatPage from "@/pages/fullscreen-chat-page";
 import { FloatingChatProvider } from "@/contexts/floating-chat-context";
@@ -170,7 +171,7 @@ function Router() {
       <Route path="/changelog" component={ChangelogPage} />
       <Route path="/jobs" component={JobsPage} />
       <Route path="/jobs/:slug" component={JobsDetailPage} />
-      <Route path="/news" component={() => <Redirect to="/" />} />
+      <Route path="/news" component={NewsPage} />
       <Route path="/profile/:username" component={ProfilePage} />
       <Route path="/messages" component={() => <ClientPlusRoute><MessagesPage /></ClientPlusRoute>} />
       <Route path="/chat" component={() => <ProtectedRoute><FullscreenChatPage /></ProtectedRoute>} />

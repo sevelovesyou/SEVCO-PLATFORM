@@ -47,6 +47,7 @@ A multi-app platform for sevco.us (SEVE / SEVCO Records). Built as a platform sh
 | `/music/artists` | Artists listing | None |
 | `/music/artists/:slug` | Artist detail | None |
 | `/music/albums/:slug` | Album detail | None |
+| `/news` | AI-powered News page (Grok AI features, bento grid, sidebar) | None |
 | `/jobs` | Jobs board | None |
 | `/jobs/:slug` | Job detail + application form | None |
 | `/contact` | Contact page | None |
@@ -84,7 +85,8 @@ server/db.ts                  - Database connection (exports pool and db)
 server/auth.ts                - Passport setup, session config, auth routes
 server/middleware/permissions.ts  - requireAuth, requireRole middleware + RBAC constants
 server/storage.ts             - DatabaseStorage implementing IStorage interface
-server/routes.ts              - REST API routes + crosslink generation + citation validation + Hostinger API proxy
+server/grok-news.ts           - Grok AI news functions (summarize, image gen, search, briefing, ask) with caching + API key fallback
+server/routes.ts              - REST API routes + crosslink generation + citation validation + Hostinger API proxy + Grok news AI endpoints
 server/hostinger.ts           - Hostinger API client (VPS, domains, catalog, WHOIS)
 client/src/App.tsx            - Platform shell with PlatformHeader, conditional wiki sidebar, routing
 client/src/components/platform-header.tsx - Global header: logo, app-switcher, user badge/role, sign-out

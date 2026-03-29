@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
-import { BookOpen, ExternalLink, Bookmark, Sparkles, Loader2, ChevronDown } from "lucide-react";
+import { BookOpen, ExternalLink, Bookmark, Sparkles, Loader2, ChevronDown, TrendingUp, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePermission } from "@/hooks/use-permission";
@@ -17,6 +17,7 @@ export type NewsArticle = {
   pubDate: string;
   source: string;
   imageUrl: string | null;
+  aiImageUrl?: string | null;
 };
 
 const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200' viewBox='0 0 400 200'%3E%3Crect width='400' height='200' fill='%23374151'/%3E%3Ctext x='200' y='105' text-anchor='middle' fill='%236B7280' font-size='14' font-family='sans-serif'%3ESEVCO News%3C/text%3E%3C/svg%3E";
@@ -54,6 +55,7 @@ interface NewsArticleCardProps {
   accentColor?: string;
   categoryLabel?: string;
   onBookmarkToggle?: (bookmarked: boolean) => void;
+  onCardClick?: () => void;
 }
 
 function WikifyButton({ onClick, testId }: { onClick: () => void; testId?: string }) {
@@ -215,7 +217,7 @@ function ArticleSummaryPanel({ articleUrl }: { articleUrl: string }) {
   );
 }
 
-export function NewsArticleCard({ article, variant = "medium", accentColor, categoryLabel }: NewsArticleCardProps) {
+export function NewsArticleCard({ article, variant = "medium", accentColor, categoryLabel, onCardClick }: NewsArticleCardProps) {
   const { role } = usePermission();
   const [wikifyOpen, setWikifyOpen] = useState(false);
 
@@ -223,18 +225,22 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
   const readTime = estimateReadTime((article.description || "") + " " + (article.title || ""));
 
   if (variant === "compact") {
+    const handleCompactClick = (e: React.MouseEvent) => {
+      if (onCardClick) { e.preventDefault(); onCardClick(); }
+    };
     return (
       <>
         <div className="group flex flex-col relative" data-testid={`card-news-compact-${encodeURIComponent(article.link).slice(0, 30)}`}>
           <a
             href={article.link}
-            target="_blank"
+            target={onCardClick ? undefined : "_blank"}
             rel="noopener noreferrer"
-            className="block rounded-xl border bg-card overflow-hidden hover:shadow-md hover:scale-[1.02] transition-all duration-200"
+            onClick={handleCompactClick}
+            className="block rounded-xl border bg-card overflow-hidden hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer"
           >
             <div className="relative aspect-video overflow-hidden">
               <img
-                src={article.imageUrl || PLACEHOLDER_IMAGE}
+                src={article.aiImageUrl || article.imageUrl || PLACEHOLDER_IMAGE}
                 alt={article.title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 onError={(e) => { (e.currentTarget as HTMLImageElement).src = PLACEHOLDER_IMAGE; }}
@@ -283,12 +289,13 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
     <>
       <div
         data-testid={`card-news-${variant}-${encodeURIComponent(article.link).slice(0, 30)}`}
-        className="group relative rounded-xl border bg-card overflow-hidden hover:shadow-lg hover:scale-[1.01] transition-all duration-200 flex flex-col"
+        className="group relative rounded-xl border bg-card overflow-hidden hover:shadow-lg hover:scale-[1.01] transition-all duration-200 flex flex-col cursor-pointer"
+        onClick={(e) => { if (onCardClick) { e.preventDefault(); onCardClick(); } }}
       >
         <div className={`relative overflow-hidden ${imageHeightClass}`}>
-          <a href={article.link} target="_blank" rel="noopener noreferrer">
+          <a href={article.link} target={onCardClick ? undefined : "_blank"} rel="noopener noreferrer" onClick={(e) => { if (onCardClick) e.preventDefault(); }}>
             <img
-              src={article.imageUrl || PLACEHOLDER_IMAGE}
+              src={article.aiImageUrl || article.imageUrl || PLACEHOLDER_IMAGE}
               alt={article.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               onError={(e) => { (e.currentTarget as HTMLImageElement).src = PLACEHOLDER_IMAGE; }}
@@ -302,16 +309,25 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
               {categoryLabel || article.source}
             </span>
           )}
-          <span className="absolute bottom-2 left-2 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded-full backdrop-blur-sm">
-            ~{readTime} min
-          </span>
+          <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
+            <span className="bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded-full backdrop-blur-sm flex items-center gap-1">
+              <Eye className="h-2.5 w-2.5" />
+              ~{readTime} min
+            </span>
+            {article.aiImageUrl && (
+              <span className="bg-primary/80 text-white text-[9px] px-1.5 py-0.5 rounded-full backdrop-blur-sm flex items-center gap-0.5" data-testid="badge-ai-image">
+                <Sparkles className="h-2.5 w-2.5" />
+                AI
+              </span>
+            )}
+          </div>
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <BookmarkButton article={article} categoryLabel={categoryLabel} />
           </div>
         </div>
 
         <div className="p-3 flex flex-col flex-1">
-          <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex-1">
+          <a href={article.link} target={onCardClick ? undefined : "_blank"} rel="noopener noreferrer" className="flex-1" onClick={(e) => { if (onCardClick) e.preventDefault(); }}>
             <h3 className={`font-serif font-semibold text-foreground leading-snug group-hover:text-primary transition-colors ${variant === "large" ? "text-base" : variant === "medium" ? "text-sm" : "text-xs"} line-clamp-3`}>
               {article.title}
             </h3>

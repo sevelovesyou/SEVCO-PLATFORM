@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Newspaper, RefreshCw, ChevronRight, ArrowLeft, Search, X, Zap, BookmarkCheck } from "lucide-react";
+import { ExternalLink, Newspaper, RefreshCw, ChevronRight, ArrowLeft, Search, X, Zap, BookmarkCheck, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -15,12 +15,62 @@ import { SiX } from "react-icons/si";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { usePermission } from "@/hooks/use-permission";
+import { useNewsAiSettings, useGrokSearch, useGrokImage, type NewsAiSettings } from "@/hooks/use-news-ai";
+import { ArticleDetailModal } from "@/components/news-article-modal";
+import { NewsAiSidebar } from "@/components/news-ai-sidebar";
+import { DailyBriefingFab } from "@/components/news-daily-briefing";
 
 function ArticleSkeleton() {
   return <Skeleton className="w-full h-48 rounded-xl" />;
 }
 
-function HeroSection({ article }: { article: NewsArticle }) {
+function HeroSection({ article, aiSettings, onImageGenerated }: { article: NewsArticle; aiSettings?: NewsAiSettings; onImageGenerated?: (url: string) => void }) {
+  const [aiImageUrl, setAiImageUrl] = useState<string | null>(null);
+  const [heroSummary, setHeroSummary] = useState<{ summary: string; category: string } | null>(null);
+  const imageMutation = useGrokImage();
+
+  const imageTriggered = useRef(false);
+  const summaryTriggered = useRef(false);
+
+  useEffect(() => {
+    imageTriggered.current = false;
+    summaryTriggered.current = false;
+    setAiImageUrl(null);
+    setHeroSummary(null);
+  }, [article.link]);
+
+  useEffect(() => {
+    if (imageTriggered.current) return;
+    if (!aiSettings?.aiAvailable || !aiSettings?.imagesEnabled) return;
+    if (aiImageUrl || imageMutation.isPending) return;
+    imageTriggered.current = true;
+    imageMutation.mutate(
+      { prompt: `News illustration: ${article.title}`, cacheKey: `hero-${article.link}` },
+      {
+        onSuccess: (data) => {
+          setAiImageUrl(data.url);
+          if (onImageGenerated) onImageGenerated(data.url);
+        },
+      }
+    );
+  }, [article.link, aiSettings?.aiAvailable, aiSettings?.imagesEnabled, aiImageUrl, imageMutation.isPending]);
+
+  useEffect(() => {
+    if (summaryTriggered.current) return;
+    if (!aiSettings?.aiAvailable || !aiSettings?.summariesEnabled) return;
+    summaryTriggered.current = true;
+    fetch("/api/news/grok/summarize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: article.link, title: article.title }),
+    })
+      .then((r) => r.json())
+      .then((data: { summary: string; category: string }) => {
+        if (data.summary) setHeroSummary({ summary: data.summary, category: data.category || "" });
+      })
+      .catch(() => {});
+  }, [article.link, aiSettings?.aiAvailable, aiSettings?.summariesEnabled]);
+
   let relativeTime = "";
   try {
     const d = new Date(article.pubDate);
@@ -28,17 +78,28 @@ function HeroSection({ article }: { article: NewsArticle }) {
   } catch {}
 
   const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='400' viewBox='0 0 1200 400'%3E%3Crect width='1200' height='400' fill='%23374151'/%3E%3Ctext x='600' y='210' text-anchor='middle' fill='%236B7280' font-size='24' font-family='sans-serif'%3ESEVCO News%3C/text%3E%3C/svg%3E";
+  const displayImage = aiImageUrl || article.imageUrl || PLACEHOLDER;
 
   return (
     <div className="relative w-full rounded-2xl overflow-hidden border bg-card group" data-testid="news-hero">
       <div className="relative aspect-[21/7] md:aspect-[21/6] overflow-hidden">
         <img
-          src={article.imageUrl || PLACEHOLDER}
+          src={displayImage}
           alt={article.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           onError={(e) => { (e.currentTarget as HTMLImageElement).src = PLACEHOLDER; }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+        {aiImageUrl && (
+          <Badge className="absolute top-3 right-3 bg-primary/80 text-[10px] backdrop-blur-sm">
+            <Sparkles className="h-2.5 w-2.5 mr-1" />AI Image
+          </Badge>
+        )}
+        {heroSummary?.category && (
+          <Badge className="absolute top-3 left-3 bg-white/20 text-white text-[10px] backdrop-blur-sm">
+            {heroSummary.category}
+          </Badge>
+        )}
         <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
           {article.source && (
             <span className="inline-block bg-white/20 backdrop-blur-sm text-white text-xs font-medium px-3 py-1 rounded-full mb-3">
@@ -48,9 +109,14 @@ function HeroSection({ article }: { article: NewsArticle }) {
           <h1 className="text-xl md:text-3xl font-serif font-bold text-white leading-tight line-clamp-3 mb-2">
             {article.title}
           </h1>
-          {article.description && (
+          {heroSummary?.summary ? (
+            <p className="text-sm text-white/90 line-clamp-2 mb-3 max-w-3xl flex items-start gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 mt-0.5 shrink-0 text-white/70" />
+              {heroSummary.summary}
+            </p>
+          ) : article.description ? (
             <p className="text-sm text-white/80 line-clamp-2 mb-3 max-w-3xl">{article.description}</p>
-          )}
+          ) : null}
           <div className="flex items-center gap-4">
             {relativeTime && <span className="text-xs text-white/60">{relativeTime}</span>}
             <a
@@ -59,6 +125,7 @@ function HeroSection({ article }: { article: NewsArticle }) {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-white hover:text-white/80 transition-colors"
               data-testid="link-hero-read-more"
+              onClick={(e) => e.stopPropagation()}
             >
               Read more <ExternalLink className="h-3.5 w-3.5" />
             </a>
@@ -147,7 +214,78 @@ function TrendingHashtags({ primaryCategoryName, onHashtagClick, currentSearch }
   );
 }
 
-function GlobalSearchResults({ query }: { query: string }) {
+function AiSearchResults({ query, aiSettings }: { query: string; aiSettings: NewsAiSettings }) {
+  const grokSearch = useGrokSearch();
+  const lastQueryRef = useRef("");
+
+  useEffect(() => {
+    if (!aiSettings?.aiAvailable || !aiSettings?.searchEnabled) return;
+    if (query.length <= 5) return;
+    if (query === lastQueryRef.current) return;
+    lastQueryRef.current = query;
+    grokSearch.mutate({ query });
+  }, [query, aiSettings?.aiAvailable, aiSettings?.searchEnabled]);
+
+  if (!aiSettings?.aiAvailable || !aiSettings?.searchEnabled) return null;
+
+  if (grokSearch.isPending) {
+    return (
+      <div className="border rounded-xl p-4 bg-primary/5 mb-4">
+        <div className="flex items-center gap-2 text-sm text-primary">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <Sparkles className="h-3.5 w-3.5" />
+          <span>Grok is analyzing your query…</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!grokSearch.data) return null;
+
+  return (
+    <div className="border rounded-xl p-4 bg-primary/5 mb-4" data-testid="ai-search-results">
+      <div className="flex items-center gap-2 mb-2">
+        <Sparkles className="h-3.5 w-3.5 text-primary" />
+        <span className="text-xs font-semibold text-primary">Grok AI Interpretation</span>
+      </div>
+      <p className="text-sm text-foreground mb-3">{grokSearch.data.interpretation}</p>
+      {grokSearch.data.liveResults && grokSearch.data.liveResults.length > 0 && (
+        <div className="mb-3">
+          <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
+            <Search className="h-2.5 w-2.5" />
+            Live Search Results
+          </p>
+          <div className="space-y-1.5">
+            {grokSearch.data.liveResults.slice(0, 5).map((result, i) => (
+              <a
+                key={i}
+                href={result.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block p-2 rounded-lg border bg-background hover:bg-muted/50 transition-colors"
+                data-testid={`live-result-${i}`}
+              >
+                <p className="text-xs font-medium text-foreground line-clamp-1">{result.title}</p>
+                {result.snippet && (
+                  <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{result.snippet}</p>
+                )}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+      {grokSearch.data.articles.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {grokSearch.data.articles.map((article) => (
+            <NewsArticleCard key={article.link} article={article} variant="compact" />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GlobalSearchResults({ query, aiSettings }: { query: string; aiSettings?: NewsAiSettings }) {
   const { data: results, isLoading } = useQuery<NewsArticle[]>({
     queryKey: ["/api/news/feed", "search", query],
     queryFn: () => fetch(`/api/news/feed?query=${encodeURIComponent(query)}&limit=20`).then((r) => r.json()),
@@ -159,21 +297,23 @@ function GlobalSearchResults({ query }: { query: string }) {
     <p className="text-sm text-muted-foreground py-4 text-center">Type at least 3 characters to search…</p>
   );
 
-  if (isLoading) return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {[1, 2, 3, 4].map((i) => <ArticleSkeleton key={i} />)}
-    </div>
-  );
-
-  if (!results?.length) return (
-    <p className="text-sm text-muted-foreground py-4 text-center">No results found for "{query}"</p>
-  );
-
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" data-testid="search-results">
-      {results.map((article) => (
-        <NewsArticleCard key={article.link} article={article} variant="compact" />
-      ))}
+    <div className="space-y-4">
+      {aiSettings && <AiSearchResults query={query} aiSettings={aiSettings} />}
+
+      {isLoading ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map((i) => <ArticleSkeleton key={i} />)}
+        </div>
+      ) : !results?.length ? (
+        <p className="text-sm text-muted-foreground py-4 text-center">No results found for "{query}"</p>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" data-testid="search-results">
+          {results.map((article) => (
+            <NewsArticleCard key={article.link} article={article} variant="compact" />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -218,9 +358,10 @@ interface CategorySwimLaneProps {
   category: NewsCategory;
   isFollowed: boolean;
   onFollowToggle: (categoryId: number) => void;
+  onArticleClick?: (article: NewsArticle) => void;
 }
 
-function CategorySwimLane({ category, isFollowed, onFollowToggle }: CategorySwimLaneProps) {
+function CategorySwimLane({ category, isFollowed, onFollowToggle, onArticleClick }: CategorySwimLaneProps) {
   const [displayCount, setDisplayCount] = useState(10);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [allArticles, setAllArticles] = useState<NewsArticle[]>([]);
@@ -303,6 +444,7 @@ function CategorySwimLane({ category, isFollowed, onFollowToggle }: CategorySwim
                 variant="compact"
                 accentColor={category.accentColor || undefined}
                 categoryLabel={category.name}
+                onCardClick={onArticleClick ? () => onArticleClick(article) : undefined}
               />
             ))}
           </div>
@@ -380,7 +522,6 @@ function CategoryFilteredView({ categoryId, categories }: { categoryId: string; 
         </div>
       </div>
 
-      {/* X handle filter chips */}
       {uniqueXHandles.length > 0 && (
         <div className="flex items-center gap-1.5 flex-wrap" data-testid="news-page-handle-chips">
           <span className="text-xs text-muted-foreground flex items-center gap-1 mr-1">
@@ -453,11 +594,30 @@ export default function NewsPage() {
   const [activeTab, setActiveTab] = useState<"all" | "saved">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
+
+  const { data: aiSettings } = useNewsAiSettings();
 
   useEffect(() => {
     document.title = "News — SEVCO";
     const desc = document.querySelector("meta[name='description']");
-    if (desc) desc.setAttribute("content", "Stay up to date with the latest news in music, technology, and business — curated for the SEVCO community.");
+    if (desc) desc.setAttribute("content", "Stay up to date with the latest news in music, technology, and business — curated for the SEVCO community, powered by Grok AI.");
+
+    let ogTitle = document.querySelector("meta[property='og:title']");
+    if (!ogTitle) {
+      ogTitle = document.createElement("meta");
+      ogTitle.setAttribute("property", "og:title");
+      document.head.appendChild(ogTitle);
+    }
+    ogTitle.setAttribute("content", "News — SEVCO");
+
+    let ogDesc = document.querySelector("meta[property='og:description']");
+    if (!ogDesc) {
+      ogDesc = document.createElement("meta");
+      ogDesc.setAttribute("property", "og:description");
+      document.head.appendChild(ogDesc);
+    }
+    ogDesc.setAttribute("content", "AI-powered news curated for the SEVCO community. Summaries, trending topics, and daily briefings powered by Grok.");
   }, []);
 
   useEffect(() => {
@@ -519,18 +679,29 @@ export default function NewsPage() {
 
   const isSearchActive = debouncedSearch.length > 0;
 
+  const handleArticleClick = (article: NewsArticle) => {
+    setSelectedArticle(article);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-6" data-testid="news-page" data-page="news">
-      {/* Breaking banner */}
       {!categoryParam && <BreakingBanner />}
 
-      {/* Page header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Newspaper className="h-7 w-7 text-primary" />
           <div>
             <h1 className="text-2xl font-bold text-foreground">News</h1>
-            <p className="text-sm text-muted-foreground">Curated headlines from across the web</p>
+            <p className="text-sm text-muted-foreground">
+              {aiSettings?.aiAvailable ? (
+                <span className="flex items-center gap-1">
+                  AI-powered headlines curated for you
+                  <Sparkles className="h-3 w-3 text-primary inline" />
+                </span>
+              ) : (
+                "Curated headlines from across the web"
+              )}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -549,149 +720,174 @@ export default function NewsPage() {
         </div>
       </div>
 
-      {/* Category filtered view */}
       {categoryParam && categories && !catsLoading ? (
         <CategoryFilteredView categoryId={categoryParam} categories={categories} />
       ) : (
-        <>
-          {/* Search bar */}
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1 max-w-lg">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search all news…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-9"
-                data-testid="input-news-search"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => { setSearchQuery(""); setDebouncedSearch(""); }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  data-testid="button-clear-search"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+        <div className="flex gap-6 flex-col lg:flex-row">
+          <div className="flex-1 min-w-0 space-y-6">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 max-w-lg">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={aiSettings?.searchEnabled ? "Ask anything about the news…" : "Search all news…"}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-9"
+                  data-testid="input-news-search"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => { setSearchQuery(""); setDebouncedSearch(""); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    data-testid="button-clear-search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              {aiSettings?.searchEnabled && aiSettings?.aiAvailable && (
+                <Badge variant="outline" className="text-[10px] shrink-0 hidden sm:flex items-center gap-1">
+                  <Sparkles className="h-2.5 w-2.5 text-primary" />
+                  Grok Search
+                </Badge>
+              )}
+              {isLoggedIn && (
+                <div className="flex items-center border rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setActiveTab("all")}
+                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${activeTab === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                    data-testid="tab-all-news"
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("saved")}
+                    className={`px-3 py-1.5 text-xs font-medium transition-colors flex items-center gap-1 ${activeTab === "saved" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                    data-testid="tab-saved-news"
+                  >
+                    <BookmarkCheck className="h-3 w-3" />
+                    Saved
+                  </button>
+                </div>
               )}
             </div>
-            {isLoggedIn && (
-              <div className="flex items-center border rounded-lg overflow-hidden">
-                <button
-                  onClick={() => setActiveTab("all")}
-                  className={`px-3 py-1.5 text-xs font-medium transition-colors ${activeTab === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                  data-testid="tab-all-news"
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setActiveTab("saved")}
-                  className={`px-3 py-1.5 text-xs font-medium transition-colors flex items-center gap-1 ${activeTab === "saved" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                  data-testid="tab-saved-news"
-                >
-                  <BookmarkCheck className="h-3 w-3" />
-                  Saved
-                </button>
+
+            {!isSearchActive && activeTab === "all" && (
+              <TrendingHashtags
+                primaryCategoryName={primaryCategory?.name}
+                onHashtagClick={(val) => setSearchQuery(val)}
+                currentSearch={searchQuery}
+              />
+            )}
+
+            {activeTab === "saved" && isLoggedIn ? (
+              <SavedArticlesView />
+            ) : isSearchActive ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Results for "{debouncedSearch}"</p>
+                  <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setDebouncedSearch(""); }} className="text-xs" data-testid="button-clear-search-inline">
+                    Clear search
+                  </Button>
+                </div>
+                <GlobalSearchResults query={debouncedSearch} aiSettings={aiSettings} />
               </div>
+            ) : (
+              <>
+                {catsLoading || primaryLoading ? (
+                  <Skeleton className="w-full h-72 rounded-2xl" />
+                ) : heroArticle ? (
+                  <div className="cursor-pointer" onClick={() => handleArticleClick(heroArticle)} data-testid="hero-clickable">
+                    <HeroSection article={heroArticle} aiSettings={aiSettings} />
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border bg-muted/30 flex items-center justify-center h-48">
+                    <p className="text-sm text-muted-foreground">No headlines available right now. Check back soon.</p>
+                  </div>
+                )}
+
+                {primaryCategory && (
+                  <section>
+                    <div className="flex items-center gap-3 mb-4 border-t pt-6">
+                      {primaryCategory.accentColor && (
+                        <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: primaryCategory.accentColor }} />
+                      )}
+                      <h2 className="text-base font-bold text-foreground">{primaryCategory.name}</h2>
+                      {followedCategoryIds.includes(primaryCategory.id) && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Following</Badge>
+                      )}
+                      <div className="flex-1 h-px bg-border" />
+                      <Button
+                        variant={followedCategoryIds.includes(primaryCategory.id) ? "secondary" : "ghost"}
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => handleFollowToggle(primaryCategory.id)}
+                        data-testid={`button-follow-${primaryCategory.id}`}
+                      >
+                        {followedCategoryIds.includes(primaryCategory.id) ? "Following" : "Follow"}
+                      </Button>
+                      <Link href={`/news?category=${primaryCategory.id}`}>
+                        <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground" data-testid={`link-viewall-${primaryCategory.id}`}>
+                          View all <ChevronRight className="h-3.5 w-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
+                    {primaryLoading ? (
+                      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <ArticleSkeleton key={i} />)}
+                      </div>
+                    ) : (
+                      <NewsBentoGrid
+                        articles={bentoArticles}
+                        accentColor={primaryCategory.accentColor || undefined}
+                        categoryLabel={primaryCategory.name}
+                        onArticleClick={handleArticleClick}
+                      />
+                    )}
+                  </section>
+                )}
+
+                {otherCategories.map((cat) => (
+                  <CategorySwimLane
+                    key={cat.id}
+                    category={cat}
+                    isFollowed={followedCategoryIds.includes(cat.id)}
+                    onFollowToggle={handleFollowToggle}
+                    onArticleClick={handleArticleClick}
+                  />
+                ))}
+
+                {!catsLoading && !categories?.length && (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <Newspaper className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">No news categories configured yet.</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
-          {/* Trending hashtags */}
-          {!isSearchActive && activeTab === "all" && (
-            <TrendingHashtags
-              primaryCategoryName={primaryCategory?.name}
-              onHashtagClick={(val) => setSearchQuery(val)}
-              currentSearch={searchQuery}
-            />
-          )}
-
-          {/* Saved tab */}
-          {activeTab === "saved" && isLoggedIn ? (
-            <SavedArticlesView />
-          ) : isSearchActive ? (
-            /* Search results */
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Results for "{debouncedSearch}"</p>
-                <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setDebouncedSearch(""); }} className="text-xs" data-testid="button-clear-search-inline">
-                  Clear search
-                </Button>
-              </div>
-              <GlobalSearchResults query={debouncedSearch} />
+          {!categoryParam && aiSettings && (aiSettings.trendingEnabled || aiSettings.chatEnabled) && (
+            <div className="hidden lg:block">
+              <NewsAiSidebar
+                aiSettings={aiSettings}
+                categoryName={primaryCategory?.name}
+                categories={categories?.map((c) => ({ id: c.id, name: c.name, accentColor: c.accentColor }))}
+                onCategoryFilter={(name) => { setSearchQuery(name); setDebouncedSearch(name); }}
+              />
             </div>
-          ) : (
-            <>
-              {/* Hero */}
-              {catsLoading || primaryLoading ? (
-                <Skeleton className="w-full h-72 rounded-2xl" />
-              ) : heroArticle ? (
-                <HeroSection article={heroArticle} />
-              ) : (
-                <div className="rounded-2xl border bg-muted/30 flex items-center justify-center h-48">
-                  <p className="text-sm text-muted-foreground">No headlines available right now. Check back soon.</p>
-                </div>
-              )}
-
-              {/* Bento Grid */}
-              {primaryCategory && (
-                <section>
-                  <div className="flex items-center gap-3 mb-4 border-t pt-6">
-                    {primaryCategory.accentColor && (
-                      <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: primaryCategory.accentColor }} />
-                    )}
-                    <h2 className="text-base font-bold text-foreground">{primaryCategory.name}</h2>
-                    {followedCategoryIds.includes(primaryCategory.id) && (
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Following</Badge>
-                    )}
-                    <div className="flex-1 h-px bg-border" />
-                    <Button
-                      variant={followedCategoryIds.includes(primaryCategory.id) ? "secondary" : "ghost"}
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => handleFollowToggle(primaryCategory.id)}
-                      data-testid={`button-follow-${primaryCategory.id}`}
-                    >
-                      {followedCategoryIds.includes(primaryCategory.id) ? "Following" : "Follow"}
-                    </Button>
-                    <Link href={`/news?category=${primaryCategory.id}`}>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground" data-testid={`link-viewall-${primaryCategory.id}`}>
-                        View all <ChevronRight className="h-3.5 w-3.5" />
-                      </Button>
-                    </Link>
-                  </div>
-                  {primaryLoading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <ArticleSkeleton key={i} />)}
-                    </div>
-                  ) : (
-                    <NewsBentoGrid
-                      articles={bentoArticles}
-                      accentColor={primaryCategory.accentColor || undefined}
-                      categoryLabel={primaryCategory.name}
-                    />
-                  )}
-                </section>
-              )}
-
-              {/* Category swimlanes */}
-              {otherCategories.map((cat) => (
-                <CategorySwimLane
-                  key={cat.id}
-                  category={cat}
-                  isFollowed={followedCategoryIds.includes(cat.id)}
-                  onFollowToggle={handleFollowToggle}
-                />
-              ))}
-
-              {!catsLoading && !categories?.length && (
-                <div className="text-center py-16 text-muted-foreground">
-                  <Newspaper className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">No news categories configured yet.</p>
-                </div>
-              )}
-            </>
           )}
-        </>
+        </div>
+      )}
+
+      {aiSettings && <DailyBriefingFab aiSettings={aiSettings} />}
+
+      {selectedArticle && aiSettings && (
+        <ArticleDetailModal
+          article={selectedArticle}
+          onClose={() => setSelectedArticle(null)}
+          aiSettings={aiSettings}
+        />
       )}
     </div>
   );

@@ -772,6 +772,8 @@ interface AISettingsData {
   dailyBriefingEnabled: boolean;
   askGrokEnabled: boolean;
   breakingDetectionEnabled: boolean;
+  searchEnabled: boolean;
+  trendingEnabled: boolean;
   grokModel: string;
   summaryStyle: string;
   imagePromptTemplate: string;
@@ -782,7 +784,7 @@ function AISettingsTab() {
   const { toast } = useToast();
 
   const { data: aiData, isLoading } = useQuery<AISettingsData>({
-    queryKey: ["/api/news/ai-settings"],
+    queryKey: ["/api/news/ai-settings/admin"],
     staleTime: 30000,
   });
 
@@ -793,6 +795,8 @@ function AISettingsTab() {
       dailyBriefingEnabled: false,
       askGrokEnabled: false,
       breakingDetectionEnabled: false,
+      searchEnabled: false,
+      trendingEnabled: false,
       grokModel: "x-ai/grok-3-mini",
       summaryStyle: "concise",
       imagePromptTemplate: "",
@@ -804,6 +808,8 @@ function AISettingsTab() {
       dailyBriefingEnabled: aiData.dailyBriefingEnabled,
       askGrokEnabled: aiData.askGrokEnabled,
       breakingDetectionEnabled: aiData.breakingDetectionEnabled,
+      searchEnabled: aiData.searchEnabled,
+      trendingEnabled: aiData.trendingEnabled,
       grokModel: aiData.grokModel,
       summaryStyle: aiData.summaryStyle,
       imagePromptTemplate: aiData.imagePromptTemplate,
@@ -816,6 +822,8 @@ function AISettingsTab() {
   const dailyBriefingEnabled = aiSettingsForm.watch("dailyBriefingEnabled");
   const askGrokEnabled = aiSettingsForm.watch("askGrokEnabled");
   const breakingDetectionEnabled = aiSettingsForm.watch("breakingDetectionEnabled");
+  const searchEnabled = aiSettingsForm.watch("searchEnabled");
+  const trendingEnabled = aiSettingsForm.watch("trendingEnabled");
   const grokModel = aiSettingsForm.watch("grokModel");
   const summaryStyle = aiSettingsForm.watch("summaryStyle");
   const imagePromptTemplate = aiSettingsForm.watch("imagePromptTemplate");
@@ -823,12 +831,14 @@ function AISettingsTab() {
 
   const saveMutation = useMutation({
     mutationFn: () =>
-      apiRequest("PUT", "/api/news/ai-settings", {
+      apiRequest("PUT", "/api/news/ai-settings/admin", {
         summariesEnabled,
         imageGenEnabled,
         dailyBriefingEnabled,
         askGrokEnabled,
         breakingDetectionEnabled,
+        searchEnabled,
+        trendingEnabled,
         grokModel,
         summaryStyle,
         imagePromptTemplate,
@@ -836,7 +846,7 @@ function AISettingsTab() {
       }).then((r) => r.json()),
     onSuccess: () => {
       toast({ title: "AI settings saved" });
-      queryClient.invalidateQueries({ queryKey: ["/api/news/ai-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/news/ai-settings/admin"] });
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -933,6 +943,36 @@ function AISettingsTab() {
               checked={breakingDetectionEnabled}
               onCheckedChange={(v) => aiSettingsForm.setValue("breakingDetectionEnabled", v)}
               data-testid="switch-ai-breaking-detection"
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <Eye className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">AI Search</p>
+                <p className="text-[11px] text-muted-foreground">Enable Grok-powered natural language news search</p>
+              </div>
+            </div>
+            <Switch
+              checked={searchEnabled}
+              onCheckedChange={(v) => aiSettingsForm.setValue("searchEnabled", v)}
+              data-testid="switch-ai-search"
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Trending AI Commentary</p>
+                <p className="text-[11px] text-muted-foreground">Generate Grok commentary on trending X topics</p>
+              </div>
+            </div>
+            <Switch
+              checked={trendingEnabled}
+              onCheckedChange={(v) => aiSettingsForm.setValue("trendingEnabled", v)}
+              data-testid="switch-ai-trending"
             />
           </div>
         </div>

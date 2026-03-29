@@ -15,6 +15,7 @@ import {
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema, updateUserTaskSchema, updateStaffTaskSchema, insertUserTaskSchema, insertStaffTaskSchema } from "@shared/schema";
 import { fetchNewsArticles, fetchGoogleNewsRSS, setGNewsApiKeyFromDb } from "./news";
+import { getNewsAiSettings, getMaxRequestsPerHour, summarizeArticle as grokSummarize, generateNewsImage as grokImage, askGrokAboutArticle, searchNewsWithGrok, generateDailyBriefing, generateTrendingCommentary, streamSummarizeArticle, streamAskGrok } from "./grok-news";
 import { fetchUserTweets, searchTweets, isXConfigured, fetchCategoryNewsFromX } from "./x-api";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail, sendContactReplyEmail, sendInvoiceEmail, sendTestEmail } from "./emailClient";
@@ -4522,7 +4523,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/news/ai-settings", requireAuth, requireRole("admin"), async (_req, res) => {
+  app.get("/api/news/ai-settings/admin", requireAuth, requireRole("admin"), async (_req, res) => {
     try {
       const settings = await storage.getPlatformSettings();
       const aiSettings = {
@@ -4531,6 +4532,8 @@ export async function registerRoutes(
         dailyBriefingEnabled: settings["news.ai.dailyBriefingEnabled"] === "true",
         askGrokEnabled: settings["news.ai.askGrokEnabled"] === "true",
         breakingDetectionEnabled: settings["news.ai.breakingDetectionEnabled"] === "true",
+        searchEnabled: settings["news.ai.searchEnabled"] === "true",
+        trendingEnabled: settings["news.ai.trendingEnabled"] === "true",
         grokModel: settings["news.ai.grokModel"] || "x-ai/grok-3-mini",
         summaryStyle: settings["news.ai.summaryStyle"] || "concise",
         imagePromptTemplate: settings["news.ai.imagePromptTemplate"] || "",
@@ -4542,7 +4545,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/news/ai-settings", requireAuth, requireRole("admin"), async (req, res) => {
+  app.put("/api/news/ai-settings/admin", requireAuth, requireRole("admin"), async (req, res) => {
     try {
       const body = req.body;
       const allowedModels = ["x-ai/grok-3-mini", "x-ai/grok-3", "x-ai/grok-3-mini-fast", "x-ai/grok-2", "openai/gpt-4o-mini", "openai/gpt-4o", "anthropic/claude-3.5-sonnet"];
@@ -4567,6 +4570,8 @@ export async function registerRoutes(
       if (body.dailyBriefingEnabled !== undefined) entries["news.ai.dailyBriefingEnabled"] = String(body.dailyBriefingEnabled);
       if (body.askGrokEnabled !== undefined) entries["news.ai.askGrokEnabled"] = String(body.askGrokEnabled);
       if (body.breakingDetectionEnabled !== undefined) entries["news.ai.breakingDetectionEnabled"] = String(body.breakingDetectionEnabled);
+      if (body.searchEnabled !== undefined) entries["news.ai.searchEnabled"] = String(body.searchEnabled);
+      if (body.trendingEnabled !== undefined) entries["news.ai.trendingEnabled"] = String(body.trendingEnabled);
       if (body.grokModel !== undefined) entries["news.ai.grokModel"] = String(body.grokModel);
       if (body.summaryStyle !== undefined) entries["news.ai.summaryStyle"] = String(body.summaryStyle);
       if (body.imagePromptTemplate !== undefined) entries["news.ai.imagePromptTemplate"] = String(body.imagePromptTemplate);
@@ -4579,6 +4584,8 @@ export async function registerRoutes(
         dailyBriefingEnabled: settings["news.ai.dailyBriefingEnabled"] === "true",
         askGrokEnabled: settings["news.ai.askGrokEnabled"] === "true",
         breakingDetectionEnabled: settings["news.ai.breakingDetectionEnabled"] === "true",
+        searchEnabled: settings["news.ai.searchEnabled"] === "true",
+        trendingEnabled: settings["news.ai.trendingEnabled"] === "true",
         grokModel: settings["news.ai.grokModel"] || "x-ai/grok-3-mini",
         summaryStyle: settings["news.ai.summaryStyle"] || "concise",
         imagePromptTemplate: settings["news.ai.imagePromptTemplate"] || "",
@@ -4859,6 +4866,176 @@ export async function registerRoutes(
       newsSummaryCache.set(url, { summary, cachedAt: Date.now() });
       incrementNewsStat("news.stats.aiSummariesToday");
       res.json({ summary });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/news/ai-settings", async (_req, res) => {
+    try {
+      const settings = await getNewsAiSettings();
+      const hasApiKey = !!(process.env.XAI_API_KEY || process.env.OPENROUTER_API_KEY);
+      res.json({ ...settings, aiAvailable: hasApiKey });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  const grokRateLimitByIp = new Map<string, { count: number; resetAt: number }>();
+
+  function getClientIp(req: Request): string {
+    const forwarded = req.headers["x-forwarded-for"];
+    if (typeof forwarded === "string") return forwarded.split(",")[0].trim();
+    return req.ip || req.socket.remoteAddress || "unknown";
+  }
+
+  async function checkGrokRateLimit(req: Request): Promise<boolean> {
+    const ip = getClientIp(req);
+    const now = Date.now();
+    let bucket = grokRateLimitByIp.get(ip);
+    if (!bucket || now > bucket.resetAt) {
+      bucket = { count: 0, resetAt: now + 60 * 60 * 1000 };
+      grokRateLimitByIp.set(ip, bucket);
+    }
+    const maxPerHour = await getMaxRequestsPerHour();
+    if (bucket.count >= maxPerHour) return false;
+    bucket.count++;
+    return true;
+  }
+
+  setInterval(() => {
+    const now = Date.now();
+    for (const [ip, bucket] of grokRateLimitByIp) {
+      if (now > bucket.resetAt) grokRateLimitByIp.delete(ip);
+    }
+  }, 10 * 60 * 1000);
+
+  app.post("/api/news/grok/summarize", async (req, res) => {
+    try {
+      if (!(await checkGrokRateLimit(req))) return res.status(429).json({ message: "AI rate limit exceeded. Try again later." });
+      const settings = await getNewsAiSettings();
+      if (!settings.summariesEnabled) return res.status(403).json({ message: "AI summaries are disabled" });
+      const { url, title } = req.body as { url?: string; title?: string };
+      if (!url || !title) return res.status(400).json({ message: "url and title are required" });
+      const result = await grokSummarize(url, title);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/news/grok/image", async (req, res) => {
+    try {
+      if (!(await checkGrokRateLimit(req))) return res.status(429).json({ message: "AI rate limit exceeded. Try again later." });
+      const settings = await getNewsAiSettings();
+      if (!settings.imagesEnabled) return res.status(403).json({ message: "AI images are disabled" });
+      const { prompt, cacheKey } = req.body as { prompt?: string; cacheKey?: string };
+      if (!prompt) return res.status(400).json({ message: "prompt is required" });
+      const url = await grokImage(prompt, cacheKey || prompt);
+      if (!url) return res.status(502).json({ message: "Failed to generate image" });
+      res.json({ url });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/news/grok/ask", async (req, res) => {
+    try {
+      if (!(await checkGrokRateLimit(req))) return res.status(429).json({ message: "AI rate limit exceeded. Try again later." });
+      const settings = await getNewsAiSettings();
+      if (!settings.chatEnabled) return res.status(403).json({ message: "AI chat is disabled" });
+      const { title, url, question } = req.body as { title?: string; url?: string; question?: string };
+      if (!question) return res.status(400).json({ message: "question is required" });
+      const answer = await askGrokAboutArticle(title || "News article", url || "", question);
+      res.json({ answer });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/news/grok/summarize/stream", async (req, res) => {
+    try {
+      if (!(await checkGrokRateLimit(req))) return res.status(429).json({ message: "AI rate limit exceeded. Try again later." });
+      const { url, title } = req.body as { url?: string; title?: string };
+      if (!url || !title) return res.status(400).json({ message: "url and title are required" });
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      await streamSummarizeArticle(url, title, res);
+    } catch (err: any) {
+      if (!res.headersSent) res.status(500).json({ message: err.message });
+      else res.end();
+    }
+  });
+
+  app.post("/api/news/grok/ask/stream", async (req, res) => {
+    try {
+      if (!(await checkGrokRateLimit(req))) return res.status(429).json({ message: "AI rate limit exceeded. Try again later." });
+      const { title, url, question } = req.body as { title?: string; url?: string; question?: string };
+      if (!question) return res.status(400).json({ message: "question is required" });
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      await streamAskGrok(title || "News article", url || "", question, res);
+    } catch (err: any) {
+      if (!res.headersSent) res.status(500).json({ message: err.message });
+      else res.end();
+    }
+  });
+
+  app.post("/api/news/grok/search", async (req, res) => {
+    try {
+      if (!(await checkGrokRateLimit(req))) return res.status(429).json({ message: "AI rate limit exceeded. Try again later." });
+      const settings = await getNewsAiSettings();
+      if (!settings.searchEnabled) return res.status(403).json({ message: "AI search is disabled" });
+      const { query } = req.body as { query?: string };
+      if (!query) return res.status(400).json({ message: "query is required" });
+
+      const aiResult = await searchNewsWithGrok(query);
+      const allArticles = await Promise.all(
+        aiResult.suggestedQueries.slice(0, 3).map((q) => fetchNewsArticles(q, 5))
+      );
+      const seen = new Set<string>();
+      const articles = allArticles.flat().filter((a) => {
+        if (seen.has(a.link)) return false;
+        seen.add(a.link);
+        return true;
+      }).slice(0, 12);
+
+      res.json({ interpretation: aiResult.interpretation, articles, liveResults: aiResult.liveResults || [] });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/news/grok/briefing", async (req, res) => {
+    try {
+      if (!(await checkGrokRateLimit(req))) return res.status(429).json({ message: "AI rate limit exceeded. Try again later." });
+      const settings = await getNewsAiSettings();
+      if (!settings.briefingEnabled) return res.status(403).json({ message: "AI briefing is disabled" });
+
+      const cats = await storage.getNewsCategories(true);
+      const headlinePromises = cats.slice(0, 5).map(async (cat) => {
+        const articles = await fetchNewsArticles(cat.query, 4);
+        return articles.map((a) => ({ title: a.title, source: a.source, category: cat.name }));
+      });
+      const allHeadlines = (await Promise.all(headlinePromises)).flat();
+      const briefing = await generateDailyBriefing(allHeadlines);
+      res.json(briefing);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/news/grok/trending-commentary", async (req, res) => {
+    try {
+      if (!(await checkGrokRateLimit(req))) return res.status(429).json({ message: "AI rate limit exceeded. Try again later." });
+      const settings = await getNewsAiSettings();
+      if (!settings.trendingEnabled) return res.status(403).json({ message: "AI trending is disabled" });
+      const { topics } = req.body as { topics?: string[] };
+      if (!topics?.length) return res.status(400).json({ message: "topics are required" });
+      const commentary = await generateTrendingCommentary(topics);
+      res.json(commentary);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

@@ -6,6 +6,7 @@ import {
   ShoppingBag, Plus, Package, ArrowUpDown, SlidersHorizontal,
   AlertCircle, Eye, ShoppingCart, ShieldCheck, Truck, Star, ArrowRight,
 } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -64,6 +65,7 @@ function ProductImageArea({ product, onAddToCart }: { product: Product; onAddToC
             src={product.imageUrl}
             alt={product.name}
             className="w-full h-full object-cover rounded-md transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
             onError={() => setImgError(true)}
           />
         ) : (
@@ -463,27 +465,21 @@ export default function StorePage() {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
-            <div className="h-14 w-14 rounded-2xl bg-red-700/10 flex items-center justify-center">
-              <AlertCircle className="h-7 w-7 text-red-600" />
-            </div>
-            <div>
-              <p className="font-semibold text-base">No products found</p>
-              <p className="text-muted-foreground text-sm mt-1">
-                {activeCategory !== "all"
-                  ? `No items in "${activeCategory}" yet.`
-                  : "The store is empty. Check back soon."}
-              </p>
-            </div>
-            {canManage && activeCategory === "all" && (
+          <EmptyState
+            icon={Package}
+            title="No products found"
+            description={activeCategory !== "all"
+              ? `No items in "${activeCategory}" yet.`
+              : "The store is empty. Check back soon."}
+            action={canManage && activeCategory === "all" ? (
               <Link href="/store/products/new">
                 <Button variant="outline" size="sm" data-testid="button-add-first-product">
                   <Plus className="h-4 w-4 mr-2" />
                   Add First Product
                 </Button>
               </Link>
-            )}
-          </div>
+            ) : undefined}
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8">
             {filtered.map((product) => (

@@ -17,6 +17,7 @@ import {
   ArrowRight,
   X,
 } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 
 type SearchResultItem = {
   id: number;
@@ -148,15 +149,17 @@ export default function SearchPage() {
           )}
 
           {!isLoading && !hasResults && (
-            <div className="text-center py-16">
-              <SearchIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-30" />
-              <h2 className="text-lg font-semibold mb-1">No results for "{query}"</h2>
-              <p className="text-sm text-muted-foreground mb-6">Try different keywords or search on Google.</p>
-              <Button variant="outline" onClick={googleSearch} className="gap-2" data-testid="button-google-search-empty">
-                <Globe className="h-4 w-4" />
-                Search Google for "{query}"
-              </Button>
-            </div>
+            <EmptyState
+              icon={SearchIcon}
+              title={`No results for "${query}"`}
+              description="Try different keywords or search on Google."
+              action={
+                <Button variant="outline" onClick={googleSearch} className="gap-2" data-testid="button-google-search-empty">
+                  <Globe className="h-4 w-4" />
+                  Search Google for "{query}"
+                </Button>
+              }
+            />
           )}
 
           {!isLoading && hasResults && (

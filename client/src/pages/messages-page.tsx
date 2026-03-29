@@ -21,6 +21,7 @@ import {
   MessageCircle,
   RefreshCw,
 } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 import { EmailComposeModal } from "@/components/email-compose-modal";
 import { EmailReadView } from "@/components/email-read-view";
 import type { Email, ChatChannel, ChatMessage } from "@shared/schema";
@@ -414,10 +415,12 @@ export default function MessagesPage() {
               ))}
             </div>
           ) : emails.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center p-6 text-muted-foreground gap-2" data-testid="empty-email-list">
-              <Inbox className="h-8 w-8 opacity-30" />
-              <p className="text-sm">{search ? "No results found" : `No emails in ${activeFolder}`}</p>
-            </div>
+            <EmptyState
+              icon={Inbox}
+              title={search ? "No results found" : `No emails in ${activeFolder}`}
+              description={search ? "Try different search terms." : "When you receive messages, they'll appear here."}
+              className="h-full py-0"
+            />
           ) : (
             emails.map((email) => (
               <EmailListItem
@@ -482,10 +485,12 @@ export default function MessagesPage() {
                   ))}
                 </div>
               ) : channelMessages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center gap-3 text-muted-foreground" data-testid="empty-channel-messages">
-                  <Hash className="h-10 w-10 opacity-20" />
-                  <p className="text-sm">No messages in #{selectedChannel.name} yet.</p>
-                </div>
+                <EmptyState
+                  icon={Hash}
+                  title={`No messages in #${selectedChannel.name} yet`}
+                  description="Start a conversation by sending the first message."
+                  className="h-full py-0"
+                />
               ) : (
                 [...channelMessages].reverse().map((msg) => {
                   const senderName = msg.fromUser?.displayName ?? msg.fromUser?.username ?? "Unknown";

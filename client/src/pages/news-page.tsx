@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, Newspaper, RefreshCw, ChevronRight, ArrowLeft, Search, X, Zap, BookmarkCheck, Sparkles, Loader2 } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -330,10 +331,11 @@ function SavedArticlesView() {
   );
 
   if (!bookmarks?.length) return (
-    <div className="text-center py-16 text-muted-foreground">
-      <BookmarkCheck className="h-12 w-12 mx-auto mb-3 opacity-30" />
-      <p className="text-sm">No saved articles yet. Bookmark articles to read later.</p>
-    </div>
+    <EmptyState
+      icon={BookmarkCheck}
+      title="No saved articles"
+      description="Bookmark articles to read later."
+    />
   );
 
   const articles: NewsArticle[] = bookmarks.map((b) => ({

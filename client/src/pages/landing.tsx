@@ -120,6 +120,7 @@ function ProductCard({ product }: { product: Product }) {
                 src={product.imageUrl}
                 alt={product.name}
                 className="w-full h-full object-cover rounded-md group-hover:scale-105 transition-transform duration-500"
+                loading="lazy"
                 onError={() => setImgError(true)}
               />
             ) : (
@@ -394,7 +395,7 @@ export default function Landing() {
       {/* ── BULLETIN ── */}
       {showBulletin && pinnedPost && (
         <section className="max-w-6xl mx-auto px-6 py-8">
-          <div className="rounded-2xl border bg-muted/30 border-border/60 p-5 flex flex-col sm:flex-row sm:items-start gap-4" data-testid="section-bulletin">
+          <div className="rounded-xl border bg-muted/30 border-border/60 p-5 flex flex-col sm:flex-row sm:items-start gap-4" data-testid="section-bulletin">
             <div className="flex items-center gap-2 shrink-0 sm:pt-0.5">
               <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center">
                 <Pin className="h-3.5 w-3.5 text-primary" />
@@ -457,7 +458,7 @@ export default function Landing() {
                   return (
                     <Link key={section.path} href={section.path}>
                       <div
-                        className="group relative rounded-2xl border bg-gradient-to-br p-5 cursor-pointer hover:shadow-md hover:bg-white/[0.03] transition-all duration-200 border-border/30 from-muted/40 to-muted/10"
+                        className="group relative rounded-xl border bg-gradient-to-br p-5 cursor-pointer hover:shadow-md hover:bg-white/[0.03] transition-all duration-200 border-border/30 from-muted/40 to-muted/10"
                         data-testid={`card-platform-${section.label.toLowerCase()}`}
                         style={accentStyle ? { borderColor: accentStyle.borderColor } : undefined}
                       >
@@ -481,7 +482,7 @@ export default function Landing() {
               return PLATFORM_SECTIONS.map((section) => (
                 <Link key={section.path} href={section.path}>
                   <div
-                    className={`group relative rounded-2xl border bg-gradient-to-br p-5 cursor-pointer hover:shadow-md hover:bg-white/[0.03] transition-all duration-200 ${section.accent}`}
+                    className={`group relative rounded-xl border bg-gradient-to-br p-5 cursor-pointer hover:shadow-md hover:bg-white/[0.03] transition-all duration-200 ${section.accent}`}
                     data-testid={`card-platform-${section.label.toLowerCase()}`}
                     style={accentStyle ? { borderColor: accentStyle.borderColor } : undefined}
                   >
@@ -565,7 +566,7 @@ export default function Landing() {
                     </p>
                     {post.mediaUrl && (
                       <div className="mt-3 rounded-lg overflow-hidden">
-                        <img src={post.mediaUrl} alt="" className="w-full h-40 object-cover" />
+                        <img src={post.mediaUrl} alt="" className="w-full h-40 object-cover" loading="lazy" />
                       </div>
                     )}
                   </div>
@@ -629,7 +630,7 @@ export default function Landing() {
               </div>
             </div>
             <div className="hidden md:flex items-center justify-center">
-              <div className="h-40 w-40 rounded-3xl bg-white/[0.03] border border-blue-400/20 flex items-center justify-center">
+              <div className="h-40 w-40 rounded-xl bg-white/[0.03] border border-blue-400/20 flex items-center justify-center">
                 <Music className="h-20 w-20 text-blue-300/60" />
               </div>
             </div>

@@ -6,9 +6,10 @@ export default {
   theme: {
     extend: {
       borderRadius: {
-        lg: ".5625rem", /* 9px */
-        md: ".375rem", /* 6px */
-        sm: ".1875rem", /* 3px */
+        xl: "1rem",
+        lg: ".5625rem",
+        md: ".375rem",
+        sm: ".1875rem",
       },
       colors: {
         // Flat / base colors (regular buttons)
@@ -58,6 +59,9 @@ export default {
           "3": "hsl(var(--chart-3) / <alpha-value>)",
           "4": "hsl(var(--chart-4) / <alpha-value>)",
           "5": "hsl(var(--chart-5) / <alpha-value>)",
+          success: "hsl(var(--chart-success) / <alpha-value>)",
+          warning: "hsl(var(--chart-warning) / <alpha-value>)",
+          danger: "hsl(var(--chart-danger) / <alpha-value>)",
         },
         sidebar: {
           ring: "hsl(var(--sidebar-ring) / <alpha-value>)",

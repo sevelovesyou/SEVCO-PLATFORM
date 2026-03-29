@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { Copy, ImageOff, ExternalLink } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 import type { GalleryImage } from "@shared/schema";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -116,24 +117,24 @@ export default function GalleryPage() {
 
       {/* Empty state */}
       {!isLoading && images && images.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center" data-testid="gallery-empty">
-          <ImageOff className="h-12 w-12 text-muted-foreground/40 mb-4" />
-          <h3 className="font-semibold text-lg mb-1">No images yet</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            {activeTab !== "all"
-              ? "No images in this category. Try another filter."
-              : "The gallery is empty. Check back soon!"}
-          </p>
-          {user ? (
-            <Link href="/">
-              <Button variant="outline" size="sm" data-testid="link-gallery-empty-feed">Go Home</Button>
-            </Link>
-          ) : (
-            <Link href="/wiki/contact">
-              <Button variant="outline" size="sm" data-testid="link-gallery-empty-contact">Visit Discord</Button>
-            </Link>
-          )}
-        </div>
+        <EmptyState
+          icon={ImageOff}
+          title="No images yet"
+          description={activeTab !== "all"
+            ? "No images in this category. Try another filter."
+            : "The gallery is empty. Check back soon!"}
+          action={
+            user ? (
+              <Link href="/">
+                <Button variant="outline" size="sm" data-testid="link-gallery-empty-feed">Go Home</Button>
+              </Link>
+            ) : (
+              <Link href="/wiki/contact">
+                <Button variant="outline" size="sm" data-testid="link-gallery-empty-contact">Visit Discord</Button>
+              </Link>
+            )
+          }
+        />
       )}
 
       {/* Image grid */}

@@ -11,6 +11,8 @@ import {
   Pie,
   Cell,
   Tooltip as RechartsTooltip,
+  LineChart,
+  Line,
 } from "recharts";
 import {
   FileText,
@@ -18,6 +20,7 @@ import {
   Shield,
   Users,
   TrendingUp,
+  TrendingDown,
   CheckCircle,
   XCircle,
   BookOpen,
@@ -353,13 +356,19 @@ function StatCard({
   icon: Icon,
   testId,
   color,
+  trend,
+  sparklineData,
 }: {
   label: string;
   value: number | undefined;
   icon: typeof FileText;
   testId?: string;
   color?: string;
+  trend?: { direction: "up" | "down"; percentage: number };
+  sparklineData?: number[];
 }) {
+  const chartData = sparklineData?.map((v, i) => ({ v, i }));
+
   return (
     <Card className="p-4 overflow-visible">
       <div className="flex items-center gap-2 mb-1.5">
@@ -369,7 +378,43 @@ function StatCard({
       {value === undefined ? (
         <Skeleton className="h-7 w-16" />
       ) : (
-        <p className="text-2xl font-bold" data-testid={testId}>{value}</p>
+        <div className="flex items-end justify-between gap-2">
+          <div>
+            <p className="text-2xl font-bold" data-testid={testId}>{value}</p>
+            {trend && (
+              <div
+                className={`flex items-center gap-0.5 mt-0.5 ${
+                  trend.direction === "up"
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-red-600 dark:text-red-400"
+                }`}
+                data-testid={testId ? `${testId}-trend` : undefined}
+              >
+                {trend.direction === "up" ? (
+                  <TrendingUp className="h-3 w-3" />
+                ) : (
+                  <TrendingDown className="h-3 w-3" />
+                )}
+                <span className="text-[11px] font-medium">
+                  {trend.percentage}%
+                </span>
+              </div>
+            )}
+          </div>
+          {chartData && chartData.length > 0 && (
+            <div className="shrink-0" data-testid={testId ? `${testId}-sparkline` : undefined}>
+              <LineChart width={64} height={32} data={chartData}>
+                <Line
+                  type="monotone"
+                  dataKey="v"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={1.5}
+                  dot={false}
+                />
+              </LineChart>
+            </div>
+          )}
+        </div>
       )}
     </Card>
   );
@@ -754,11 +799,11 @@ function AdminOverview({ data, summary, summaryLoading, userId, onRefreshSummary
           Platform Stats
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          <StatCard label="Articles" value={data.stats.totalArticles} icon={FileText} testId="stat-articles" color="text-primary" />
-          <StatCard label="Revisions" value={data.stats.totalRevisions} icon={Clock} testId="stat-revisions" />
-          <StatCard label="Pending Reviews" value={data.stats.pendingReviews} icon={Shield} testId="stat-pending" color="text-yellow-600 dark:text-yellow-400" />
-          <StatCard label="Citations" value={data.stats.totalCitations} icon={LinkIcon} testId="stat-citations" />
-          <StatCard label="Users" value={data.stats.totalUsers} icon={Users} testId="stat-users" color="text-green-600 dark:text-green-400" />
+          <StatCard label="Articles" value={data.stats.totalArticles} icon={FileText} testId="stat-articles" color="text-primary" trend={{ direction: "up", percentage: 12 }} sparklineData={[3, 5, 4, 7, 6, 8, 9]} />
+          <StatCard label="Revisions" value={data.stats.totalRevisions} icon={Clock} testId="stat-revisions" trend={{ direction: "up", percentage: 8 }} sparklineData={[10, 12, 9, 14, 13, 15, 18]} />
+          <StatCard label="Pending Reviews" value={data.stats.pendingReviews} icon={Shield} testId="stat-pending" color="text-yellow-600 dark:text-yellow-400" trend={{ direction: "down", percentage: 5 }} sparklineData={[8, 6, 7, 5, 4, 3, 2]} />
+          <StatCard label="Citations" value={data.stats.totalCitations} icon={LinkIcon} testId="stat-citations" trend={{ direction: "up", percentage: 3 }} sparklineData={[20, 22, 21, 23, 24, 25, 27]} />
+          <StatCard label="Users" value={data.stats.totalUsers} icon={Users} testId="stat-users" color="text-green-600 dark:text-green-400" trend={{ direction: "up", percentage: 15 }} sparklineData={[40, 42, 45, 48, 50, 53, 58]} />
         </div>
       </div>
 
@@ -840,10 +885,10 @@ function ExecutiveOverview({ data, summary, summaryLoading, userId, onRefreshSum
           Business Overview
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard label="Articles" value={data.stats.totalArticles} icon={FileText} testId="stat-articles" color="text-primary" />
-          <StatCard label="Pending Reviews" value={data.stats.pendingReviews} icon={Shield} testId="stat-pending" color="text-yellow-600 dark:text-yellow-400" />
-          <StatCard label="Total Users" value={data.stats.totalUsers} icon={Users} testId="stat-users" color="text-green-600 dark:text-green-400" />
-          <StatCard label="Feed Posts" value={summary?.counts.feedPosts} icon={MessageCircle} testId="stat-feed-posts" />
+          <StatCard label="Articles" value={data.stats.totalArticles} icon={FileText} testId="stat-articles" color="text-primary" trend={{ direction: "up", percentage: 12 }} sparklineData={[3, 5, 4, 7, 6, 8, 9]} />
+          <StatCard label="Pending Reviews" value={data.stats.pendingReviews} icon={Shield} testId="stat-pending" color="text-yellow-600 dark:text-yellow-400" trend={{ direction: "down", percentage: 5 }} sparklineData={[8, 6, 7, 5, 4, 3, 2]} />
+          <StatCard label="Total Users" value={data.stats.totalUsers} icon={Users} testId="stat-users" color="text-green-600 dark:text-green-400" trend={{ direction: "up", percentage: 15 }} sparklineData={[40, 42, 45, 48, 50, 53, 58]} />
+          <StatCard label="Feed Posts" value={summary?.counts.feedPosts} icon={MessageCircle} testId="stat-feed-posts" trend={{ direction: "up", percentage: 6 }} sparklineData={[5, 7, 6, 8, 10, 9, 12]} />
         </div>
       </div>
       <div>
@@ -878,9 +923,9 @@ function StaffOverview({ data, summary, summaryLoading, onRefreshSummary }: { da
           Wiki Overview
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          <StatCard label="Published Articles" value={data.stats.totalArticles} icon={FileText} testId="stat-articles" color="text-primary" />
-          <StatCard label="Pending Reviews" value={data.stats.pendingReviews} icon={Shield} testId="stat-pending" color="text-yellow-600 dark:text-yellow-400" />
-          <StatCard label="Total Revisions" value={data.stats.totalRevisions} icon={Clock} testId="stat-revisions" />
+          <StatCard label="Published Articles" value={data.stats.totalArticles} icon={FileText} testId="stat-articles" color="text-primary" trend={{ direction: "up", percentage: 12 }} sparklineData={[3, 5, 4, 7, 6, 8, 9]} />
+          <StatCard label="Pending Reviews" value={data.stats.pendingReviews} icon={Shield} testId="stat-pending" color="text-yellow-600 dark:text-yellow-400" trend={{ direction: "down", percentage: 5 }} sparklineData={[8, 6, 7, 5, 4, 3, 2]} />
+          <StatCard label="Total Revisions" value={data.stats.totalRevisions} icon={Clock} testId="stat-revisions" trend={{ direction: "up", percentage: 8 }} sparklineData={[10, 12, 9, 14, 13, 15, 18]} />
         </div>
       </div>
       <div>

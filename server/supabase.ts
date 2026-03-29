@@ -43,6 +43,7 @@ export const BUCKETS = {
   tracks: { name: "tracks", public: false, maxSizeMb: 50, allowedMimeTypes: ["audio/mpeg", "audio/wav", "audio/ogg", "audio/flac", "audio/aac", "audio/mp4"] },
   gallery: { name: "gallery", public: true, maxSizeMb: 25, allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"] },
   "brand-assets": { name: "brand-assets", public: true, maxSizeMb: 25, allowedMimeTypes: [] },
+  "email-attachments": { name: "email-attachments", public: true, maxSizeMb: 25, allowedMimeTypes: [] },
 } as const;
 
 export type BucketName = keyof typeof BUCKETS;
@@ -68,6 +69,28 @@ export async function ensureBucketsExist() {
     } catch (err: any) {
       console.error(`[supabase] Error checking bucket "${bucket.name}":`, err.message);
     }
+  }
+}
+
+export async function uploadBuffer(bucket: BucketName, filePath: string, buffer: Buffer, contentType: string): Promise<string | null> {
+  if (!supabase) {
+    console.warn("[supabase] Client not initialized — cannot upload to", bucket);
+    return null;
+  }
+  try {
+    const { error } = await supabase.storage.from(bucket).upload(filePath, buffer, {
+      contentType,
+      upsert: true,
+    });
+    if (error) {
+      console.error(`[supabase] Upload to ${bucket}/${filePath} failed:`, error.message);
+      return null;
+    }
+    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
+    return urlData.publicUrl;
+  } catch (err: any) {
+    console.error(`[supabase] Error uploading to ${bucket}/${filePath}:`, err.message);
+    return null;
   }
 }
 

@@ -5007,6 +5007,39 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/email/messages/:id/attachments/:index", requireAuth, requireRole(...CLIENT_PLUS_ROLES), async (req, res) => {
+    try {
+      const emailId = parseInt(req.params.id);
+      const attachmentIndex = parseInt(req.params.index);
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const email = await storage.getEmail(emailId, userId);
+      if (!email) return res.status(404).json({ message: "Email not found" });
+
+      const attachments = (email.attachments as any[]) || [];
+      const att = attachments[attachmentIndex];
+      if (!att) return res.status(404).json({ message: "Attachment not found" });
+
+      if (att.url && att.url.startsWith("http")) {
+        return res.redirect(att.url);
+      }
+
+      if (att.content) {
+        const buffer = Buffer.from(att.content, "base64");
+        res.setHeader("Content-Type", att.contentType || "application/octet-stream");
+        res.setHeader("Content-Disposition", `attachment; filename="${(att.filename || "attachment").replace(/"/g, "''")}"`);
+        res.setHeader("Content-Length", buffer.length);
+        return res.send(buffer);
+      }
+
+      return res.status(404).json({ message: "Attachment content not available" });
+    } catch (err: any) {
+      console.error("[email] Error serving attachment:", err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.post("/api/email/inbound", async (req, res) => {
     try {
       const rawBodyRaw = (req as any).rawBody;
@@ -5021,35 +5054,76 @@ export async function registerRoutes(
         resendSignature: req.headers["resend-signature"] as string | undefined,
       };
 
-      console.log("[email/inbound] Received inbound webhook — headers:", JSON.stringify({
-        hasSvixId: !!webhookHeaders.svixId,
-        hasSvixTimestamp: !!webhookHeaders.svixTimestamp,
-        hasSvixSignature: !!webhookHeaders.svixSignature,
-        hasResendSignature: !!webhookHeaders.resendSignature,
-        rawBodyIsBuffer: Buffer.isBuffer(rawBodyRaw),
+      const hasSvixHeaders = !!(webhookHeaders.svixId && webhookHeaders.svixTimestamp && webhookHeaders.svixSignature);
+      const hasResendSig = !!webhookHeaders.resendSignature;
+      const body = req.body;
+      const eventType = body?.type;
+      const isWebhookFormat = !!(eventType && body?.data);
+
+      console.log("[email/inbound] Received request — format:", isWebhookFormat ? "webhook" : "inbound-route", "headers:", JSON.stringify({
+        hasSvixHeaders,
+        hasResendSig,
+        eventType: eventType ?? null,
         rawBodyLength: rawBody.length,
       }));
 
-      if (!verifyResendWebhookSignature(rawBody, webhookHeaders)) {
-        console.warn("[email/inbound] Invalid webhook signature — rejecting request");
-        return res.status(401).json({ message: "Invalid signature" });
+      if (isWebhookFormat || hasSvixHeaders || hasResendSig) {
+        if (!verifyResendWebhookSignature(rawBody, webhookHeaders)) {
+          console.warn("[email/inbound] Invalid webhook signature — rejecting request");
+          return res.status(401).json({ message: "Invalid signature" });
+        }
+        console.log("[email/inbound] Webhook signature verified");
+
+        if (eventType && eventType !== "email.received") {
+          console.log(`[email/inbound] Ignoring non-inbound event: ${eventType}`);
+          return res.status(200).json({ received: true, ignored: true });
+        }
+
+        const payload = body?.data ?? body;
+        console.log("[email/inbound] Webhook payload keys:", Object.keys(payload || {}));
+        console.log("[email/inbound] Webhook body fields — html:", typeof payload?.html, `(${(payload?.html || "").length}ch)`, "text:", typeof payload?.text, `(${(payload?.text || "").length}ch)`);
+        await processInboundEmail(payload);
+      } else {
+        const inboundSecret = process.env.RESEND_INBOUND_SECRET || process.env.RESEND_WEBHOOK_SECRET;
+        const providedSecret = req.query.secret as string | undefined;
+        if (!inboundSecret) {
+          console.error("[email/inbound] No RESEND_INBOUND_SECRET or RESEND_WEBHOOK_SECRET configured — rejecting unsigned inbound route request (fail-closed)");
+          return res.status(401).json({ message: "Inbound route not configured" });
+        }
+        if (!providedSecret || providedSecret !== inboundSecret) {
+          console.warn("[email/inbound] Invalid or missing ?secret= parameter on inbound route request — rejecting");
+          return res.status(401).json({ message: "Invalid inbound route secret" });
+        }
+        console.log("[email/inbound] Inbound Route secret verified — processing payload");
+        console.log("[email/inbound] Inbound Route keys:", Object.keys(body || {}));
+        console.log("[email/inbound] Inbound Route body fields — html:", typeof body?.html, `(${(body?.html || "").length}ch)`, "text:", typeof body?.text, `(${(body?.text || "").length}ch)`, "attachments:", (body?.attachments || []).length);
+
+        const payload = {
+          email_id: body?.email_id ?? body?.message_id ?? undefined,
+          from: body?.from,
+          to: Array.isArray(body?.to) ? body.to : (body?.to ? [body.to] : []),
+          cc: Array.isArray(body?.cc) ? body.cc : (body?.cc ? [body.cc] : []),
+          reply_to: body?.reply_to,
+          subject: body?.subject,
+          html: body?.html ?? "",
+          text: body?.text ?? "",
+          attachments: (body?.attachments || []).map((a: any) => ({
+            id: a.id,
+            filename: a.filename ?? a.name,
+            content_type: a.content_type ?? a.type,
+            content_disposition: a.content_disposition,
+            content_id: a.content_id ?? a.cid,
+            content: a.content,
+            url: a.url,
+            size: a.size,
+          })),
+          headers: body?.headers,
+          raw: body?.raw,
+        };
+
+        await processInboundEmail(payload);
       }
 
-      console.log("[email/inbound] Signature check passed — processing payload");
-      const body = req.body;
-      const eventType = body?.type;
-      console.log("[email/inbound] Event type:", eventType);
-
-      if (eventType && eventType !== "email.received") {
-        console.log(`[email/inbound] Ignoring non-inbound event: ${eventType}`);
-        return res.status(200).json({ received: true, ignored: true });
-      }
-
-      const payload = body?.data ?? body;
-      console.log("[email/inbound] Payload keys:", Object.keys(payload || {}));
-      console.log("[email/inbound] Body fields — html:", typeof payload?.html, `(${(payload?.html || "").length}ch)`, "text:", typeof payload?.text, `(${(payload?.text || "").length}ch)`);
-      console.log("[email/inbound] Raw body (first 2000ch):", rawBody.toString().substring(0, 2000));
-      await processInboundEmail(payload);
       res.status(200).json({ received: true });
     } catch (err: any) {
       console.error("[email/inbound] Error processing inbound email:", err);

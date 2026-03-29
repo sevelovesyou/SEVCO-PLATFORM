@@ -17,7 +17,12 @@
 
 import crypto from "crypto";
 import { storage } from "./storage";
+import { db } from "./db";
+import { emails } from "@shared/schema";
 import type { User } from "@shared/schema";
+import { eq, and, sql } from "drizzle-orm";
+import { uploadBuffer } from "./supabase";
+import { simpleParser } from "mailparser";
 
 const CLIENT_PLUS_ROLES = ["client", "partner", "staff", "executive", "admin"];
 
@@ -114,10 +119,12 @@ export interface ResendInboundPayload {
     content_type?: string;
     content_disposition?: string;
     content_id?: string;
+    content?: string;
     url?: string;
     size?: number;
   }>;
   headers?: Record<string, string>;
+  raw?: string;
 }
 
 function extractEmailAddress(raw: string): string {
@@ -125,8 +132,30 @@ function extractEmailAddress(raw: string): string {
   return (angleMatch ? angleMatch[1] : raw).trim().toLowerCase();
 }
 
+async function uploadAttachmentToStorage(
+  content: string,
+  filename: string,
+  contentType: string,
+  emailId: string
+): Promise<string | null> {
+  try {
+    const buffer = Buffer.from(content, "base64");
+    const timestamp = Date.now();
+    const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const storagePath = `${emailId}/${timestamp}_${safeName}`;
+    const url = await uploadBuffer("email-attachments", storagePath, buffer, contentType);
+    if (url) {
+      console.log(`[email] Uploaded attachment "${filename}" to Supabase (${buffer.length} bytes)`);
+    }
+    return url;
+  } catch (err: any) {
+    console.error(`[email] Failed to upload attachment "${filename}":`, err?.message ?? err);
+    return null;
+  }
+}
+
 export async function processInboundEmail(payload: ResendInboundPayload): Promise<void> {
-  const {
+  let {
     email_id,
     from: fromAddress = "",
     to: toAddresses = [],
@@ -138,17 +167,111 @@ export async function processInboundEmail(payload: ResendInboundPayload): Promis
     reply_to: replyTo,
   } = payload;
 
-  const bodyHtml = payloadHtml;
+  console.log(`[email] processInboundEmail — email_id=${email_id}, from=${fromAddress}, to=${JSON.stringify(toAddresses)}, subject=${subject}, bodyHtml=${payloadHtml.length}ch, bodyText=${payloadText.length}ch, attachments=${rawAttachments.length}`);
+
+  if (!payloadHtml && !payloadText && payload.raw) {
+    console.log("[email] Body fields empty — attempting MIME fallback parse from raw payload");
+    try {
+      const rawSource = payload.raw;
+      let parseInput: string | Buffer;
+      const looksLikeBase64 = /^[A-Za-z0-9+/\r\n]+=*$/.test(rawSource.trim()) && !rawSource.includes(":");
+      if (looksLikeBase64) {
+        parseInput = Buffer.from(rawSource, "base64");
+      } else {
+        parseInput = rawSource;
+      }
+      const parsed = await simpleParser(parseInput);
+
+      payloadHtml = (parsed.html && parsed.html !== false ? parsed.html : "") as string;
+      payloadText = parsed.text ?? "";
+      if (!fromAddress && parsed.from) {
+        fromAddress = parsed.from.text || "";
+      }
+      if ((!toAddresses || toAddresses.length === 0) && parsed.to) {
+        const toVal = parsed.to;
+        toAddresses = Array.isArray(toVal)
+          ? toVal.map((a) => a.text)
+          : [toVal.text];
+      }
+      if (!subject && parsed.subject) {
+        subject = parsed.subject;
+      }
+
+      if (parsed.attachments && parsed.attachments.length > 0) {
+        rawAttachments = parsed.attachments.map((a) => ({
+          filename: a.filename ?? "attachment",
+          content_type: a.contentType,
+          content: a.content.toString("base64"),
+          content_id: a.contentId ?? undefined,
+          size: a.size,
+        }));
+      }
+
+      console.log(`[email] MIME parse result — html=${payloadHtml.length}ch, text=${payloadText.length}ch, attachments=${rawAttachments.length}`);
+    } catch (mimeErr: any) {
+      console.error("[email] MIME fallback parse failed:", mimeErr?.message ?? mimeErr);
+    }
+  }
+
+  const cidMap: Record<string, string> = {};
+  const uniqueId = email_id || crypto.randomUUID();
+
+  const attachments: Array<{
+    filename: string;
+    contentType: string;
+    url: string;
+    size: number;
+    contentId?: string;
+  }> = [];
+
+  for (let idx = 0; idx < rawAttachments.length; idx++) {
+    const a = rawAttachments[idx];
+    const hasContent = !!a.content;
+    const contentType = a.content_type ?? "application/octet-stream";
+    const size = a.size ?? (hasContent ? Math.ceil((a.content!.length * 3) / 4) : 0);
+
+    let url = a.url ?? "";
+
+    if (hasContent) {
+      const uploadedUrl = await uploadAttachmentToStorage(
+        a.content!,
+        a.filename ?? `attachment_${idx}`,
+        contentType,
+        uniqueId
+      );
+      if (uploadedUrl) {
+        url = uploadedUrl;
+      }
+    }
+
+    if (a.content_id) {
+      const cid = a.content_id.replace(/^<|>$/g, "");
+      if (url) {
+        cidMap[cid] = url;
+      }
+    }
+
+    attachments.push({
+      filename: a.filename ?? "",
+      contentType,
+      url,
+      size,
+      ...(a.content_id ? { contentId: a.content_id.replace(/^<|>$/g, "") } : {}),
+    });
+  }
+
+  let bodyHtml = payloadHtml;
+  if (bodyHtml && Object.keys(cidMap).length > 0) {
+    for (const [cid, resolvedUrl] of Object.entries(cidMap)) {
+      bodyHtml = bodyHtml.replace(
+        new RegExp(`cid:${cid.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "gi"),
+        resolvedUrl
+      );
+    }
+    console.log(`[email] Replaced ${Object.keys(cidMap).length} CID reference(s) in HTML body`);
+  }
+
   const bodyText = payloadText;
-
-  console.log(`[email] processInboundEmail — email_id=${email_id}, from=${fromAddress}, to=${JSON.stringify(toAddresses)}, subject=${subject}, bodyHtml=${bodyHtml.length}ch, bodyText=${bodyText.length}ch`);
-
-  const attachments = rawAttachments.map((a) => ({
-    filename: a.filename ?? "",
-    contentType: a.content_type ?? "",
-    url: a.url ?? (a.id ? `resend:attachment:${a.id}` : ""),
-    size: a.size ?? 0,
-  }));
 
   for (const recipient of toAddresses) {
     const addr = extractEmailAddress(recipient);
@@ -198,6 +321,28 @@ export async function processInboundEmail(payload: ResendInboundPayload): Promis
     });
 
     console.log(`[email] Stored inbound email for ${username} (id: ${email_id})`);
+  }
+}
+
+export async function logEmptyBodyEmails(): Promise<void> {
+  try {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(emails)
+      .where(
+        and(
+          eq(emails.direction, "inbound"),
+          sql`(${emails.bodyHtml} IS NULL OR ${emails.bodyHtml} = '')`,
+          sql`(${emails.bodyText} IS NULL OR ${emails.bodyText} = '')`
+        )
+      );
+    const count = Number(result[0]?.count ?? 0);
+    if (count > 0) {
+      console.warn(`[email] BACKFILL NOTICE: ${count} inbound email(s) have empty bodies — these were received via the old webhook-only approach which did not include email content. New emails received via the Inbound Route will include full body content.`);
+    } else {
+      console.log("[email] All inbound emails have body content — no backfill needed.");
+    }
+  } catch (err: any) {
+    console.error("[email] Error checking for empty-body emails:", err?.message ?? err);
   }
 }
 

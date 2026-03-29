@@ -41,6 +41,7 @@ function safeHtml(html: string): string {
     ],
     ALLOWED_ATTR: ["href", "src", "alt", "title", "class", "style", "target", "rel"],
     ALLOW_DATA_ATTR: false,
+    ADD_DATA_URI_TAGS: ["img"],
   });
 }
 
@@ -89,7 +90,7 @@ export function EmailReadView({ email, fromAddress, onDeleted }: EmailReadViewPr
     },
   });
 
-  const attachments = (email.attachments as Array<{ filename: string; contentType: string; url: string; size: number }>) ?? [];
+  const attachments = (email.attachments as Array<{ filename: string; contentType: string; url: string; size: number; content?: string }>) ?? [];
   const sanitizedHtml = email.bodyHtml ? safeHtml(email.bodyHtml) : "";
 
   const senderName = email.fromAddress.match(/^(.+?)\s*</) ? email.fromAddress.match(/^(.+?)\s*</)?.[1] ?? email.fromAddress : email.fromAddress;
@@ -205,10 +206,12 @@ export function EmailReadView({ email, fromAddress, onDeleted }: EmailReadViewPr
             dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
             data-testid="email-body-html"
           />
-        ) : (
+        ) : email.bodyText ? (
           <pre className="text-sm whitespace-pre-wrap font-sans text-foreground leading-relaxed" data-testid="email-body-text">
-            {email.bodyText || "(empty message)"}
+            {email.bodyText}
           </pre>
+        ) : (
+          <p className="text-sm text-muted-foreground italic" data-testid="email-body-empty">(empty message)</p>
         )}
 
         {attachments.length > 0 && (
@@ -217,22 +220,29 @@ export function EmailReadView({ email, fromAddress, onDeleted }: EmailReadViewPr
               Attachments ({attachments.length})
             </p>
             <div className="space-y-1.5">
-              {attachments.map((att, idx) => (
+              {attachments.map((att, idx) => {
+                const hasValidUrl = att.url && att.url.startsWith("http");
+                const downloadUrl = hasValidUrl
+                  ? att.url
+                  : `/api/email/messages/${email.id}/attachments/${idx}`;
+                const hasDownload = !!(hasValidUrl || att.content);
+                return (
                 <div key={idx} className="flex items-center gap-2 p-2 rounded-md border bg-muted/30" data-testid={`attachment-${idx}`}>
                   <File className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-foreground truncate">{att.filename}</p>
                     <p className="text-[11px] text-muted-foreground">{formatBytes(att.size)}</p>
                   </div>
-                  {att.url && (
-                    <a href={att.url} target="_blank" rel="noopener noreferrer">
+                  {hasDownload && (
+                    <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
                       <Button variant="ghost" size="icon" className="h-6 w-6" data-testid={`button-download-attachment-${idx}`}>
                         <Download className="h-3.5 w-3.5" />
                       </Button>
                     </a>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

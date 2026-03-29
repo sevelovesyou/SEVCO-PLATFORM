@@ -3,7 +3,7 @@ import { BookOpen, ExternalLink, Bookmark, Sparkles, Loader2, ChevronDown, Trend
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePermission } from "@/hooks/use-permission";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { WikifyDialog } from "@/components/wikify-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -23,7 +23,129 @@ export type NewsArticle = {
   category?: string;
 };
 
-const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200' viewBox='0 0 400 200'%3E%3Crect width='400' height='200' fill='%23374151'/%3E%3Ctext x='200' y='105' text-anchor='middle' fill='%236B7280' font-size='14' font-family='sans-serif'%3ESEVCO News%3C/text%3E%3C/svg%3E";
+const MAX_CONCURRENT_AI_IMAGES = 3;
+let _concurrentAiImageRequests = 0;
+const pendingAiImageLinks = new Set<string>();
+type QueueEntry = { prompt: string; cacheKey: string; resolve: (url: string | null) => void };
+const aiImageQueue: QueueEntry[] = [];
+
+function isPlaceholderUrl(url: string | null | undefined): boolean {
+  if (!url) return true;
+  if (url.startsWith("data:image/svg+xml")) return true;
+  if (url.includes("SEVCO News") || url.includes("sevco-placeholder")) return true;
+  return false;
+}
+
+async function processAiImageQueue() {
+  while (aiImageQueue.length > 0 && _concurrentAiImageRequests < MAX_CONCURRENT_AI_IMAGES) {
+    const entry = aiImageQueue.shift()!;
+    if (pendingAiImageLinks.has(entry.cacheKey)) {
+      entry.resolve(null);
+      continue;
+    }
+    pendingAiImageLinks.add(entry.cacheKey);
+    _concurrentAiImageRequests++;
+    (async () => {
+      try {
+        const res = await fetch("/api/news/grok/image/fallback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: entry.prompt, cacheKey: entry.cacheKey }),
+        });
+        if (res.ok) {
+          const data = await res.json() as { url: string };
+          entry.resolve(data.url ?? null);
+        } else {
+          entry.resolve(null);
+        }
+      } catch {
+        entry.resolve(null);
+      } finally {
+        _concurrentAiImageRequests--;
+        pendingAiImageLinks.delete(entry.cacheKey);
+        processAiImageQueue();
+      }
+    })();
+  }
+}
+
+function enqueueAiImageRequest(prompt: string, cacheKey: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    aiImageQueue.push({ prompt, cacheKey, resolve });
+    processAiImageQueue();
+  });
+}
+
+function ImageSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={`w-full h-full bg-muted relative overflow-hidden ${className ?? ""}`}
+      data-testid="img-skeleton"
+    >
+      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+    </div>
+  );
+}
+
+const MAX_IMAGE_ERROR_RETRIES = 2;
+
+function useCardAiImage(article: NewsArticle) {
+  const [aiImageUrl, setAiImageUrl] = useState<string | null>(
+    isPlaceholderUrl(article.aiImageUrl) ? null : (article.aiImageUrl ?? null)
+  );
+  const [errorRetries, setErrorRetries] = useState(0);
+  const [sourceFailed, setSourceFailed] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const triggered = useRef(false);
+  const articleLinkRef = useRef(article.link);
+
+  const sourceImageUrl = isPlaceholderUrl(article.imageUrl) ? null : article.imageUrl;
+  const hasNoImage = !sourceImageUrl && isPlaceholderUrl(article.aiImageUrl);
+
+  useEffect(() => {
+    if (articleLinkRef.current === article.link) return;
+    articleLinkRef.current = article.link;
+    triggered.current = false;
+    setAiImageUrl(isPlaceholderUrl(article.aiImageUrl) ? null : (article.aiImageUrl ?? null));
+    setErrorRetries(0);
+    setSourceFailed(false);
+  }, [article.link, article.aiImageUrl]);
+
+  const requestAiImage = useCallback(async (prompt: string, cacheKey: string) => {
+    setIsGenerating(true);
+    try {
+      const url = await enqueueAiImageRequest(prompt, cacheKey);
+      if (url) setAiImageUrl(url);
+    } finally {
+      setIsGenerating(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (triggered.current) return;
+    if (!hasNoImage) return;
+    triggered.current = true;
+    const prompt = `editorial news thumbnail for: ${article.title}`;
+    const timer = setTimeout(() => {
+      requestAiImage(prompt, `card-${article.link}`);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [hasNoImage, article.title, article.link, requestAiImage]);
+
+  const handleImageError = useCallback(() => {
+    setSourceFailed(true);
+    if (errorRetries >= MAX_IMAGE_ERROR_RETRIES) return;
+    const nextRetry = errorRetries + 1;
+    setErrorRetries(nextRetry);
+    setAiImageUrl(null);
+    const prompt = `editorial news thumbnail for: ${article.title}`;
+    requestAiImage(prompt, `card-err-${nextRetry}-${article.link}`);
+  }, [errorRetries, article.title, article.link, requestAiImage]);
+
+  const displayUrl = aiImageUrl || (sourceFailed ? null : sourceImageUrl);
+
+  return { displayUrl, aiImageUrl, isGenerating, handleImageError };
+}
 
 function formatRelativeTime(pubDate: string): string {
   try {
@@ -261,6 +383,7 @@ function AiInsightPanel({ article }: { article: NewsArticle }) {
 
 export function NewsArticleCard({ article, variant = "medium", accentColor, categoryLabel, onCardClick }: NewsArticleCardProps) {
   const [wikifyOpen, setWikifyOpen] = useState(false);
+  const { displayUrl, aiImageUrl: cardAiImageUrl, isGenerating, handleImageError } = useCardAiImage(article);
 
   const readTime = estimateReadTime((article.description || "") + " " + (article.title || ""));
 
@@ -279,13 +402,22 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
             className="block rounded-xl border bg-card overflow-hidden hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer"
           >
             <div className="relative aspect-video overflow-hidden">
-              <img
-                src={article.aiImageUrl || article.imageUrl || PLACEHOLDER_IMAGE}
-                alt={article.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                loading="lazy"
-                onError={(e) => { (e.currentTarget as HTMLImageElement).src = PLACEHOLDER_IMAGE; }}
-              />
+              {displayUrl ? (
+                <img
+                  src={displayUrl}
+                  alt={article.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
+                  onError={handleImageError}
+                />
+              ) : (
+                <ImageSkeleton />
+              )}
+              {isGenerating && !displayUrl && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/50" />
+                </div>
+              )}
               {(categoryLabel || article.source) && (
                 <span
                   className="absolute top-2 left-2 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full truncate max-w-[120px]"
@@ -333,14 +465,23 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
       >
         <div className={`relative overflow-hidden ${imageHeightClass}`}>
           <a href={article.link} target={onCardClick ? undefined : "_blank"} rel="noopener noreferrer" onClick={(e) => { if (onCardClick) e.preventDefault(); }}>
-            <img
-              src={article.aiImageUrl || article.imageUrl || PLACEHOLDER_IMAGE}
-              alt={article.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              loading="lazy"
-              onError={(e) => { (e.currentTarget as HTMLImageElement).src = PLACEHOLDER_IMAGE; }}
-            />
+            {displayUrl ? (
+              <img
+                src={displayUrl}
+                alt={article.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                loading="lazy"
+                onError={handleImageError}
+              />
+            ) : (
+              <ImageSkeleton className={imageHeightClass} />
+            )}
           </a>
+          {isGenerating && !displayUrl && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/40" />
+            </div>
+          )}
           {(categoryLabel || accentColor) && (
             <span
               className="absolute top-2 left-2 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full"
@@ -354,7 +495,7 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
               <Eye className="h-2.5 w-2.5" />
               ~{readTime} min
             </span>
-            {article.aiImageUrl && (
+            {(article.aiImageUrl || cardAiImageUrl) && (
               <span className="bg-primary/80 text-white text-[9px] px-1.5 py-0.5 rounded-full backdrop-blur-sm flex items-center gap-0.5" data-testid="badge-ai-image">
                 <Sparkles className="h-2.5 w-2.5" />
                 AI

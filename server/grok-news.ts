@@ -406,10 +406,7 @@ export async function streamAskGrok(articleTitle: string, articleUrl: string, qu
 const imageCache = new Map<string, { url: string; cachedAt: number }>();
 const IMAGE_CACHE_TTL = 6 * 60 * 60 * 1000;
 
-export async function generateNewsImage(prompt: string, cacheKey: string): Promise<string | null> {
-  const settings = await getNewsAiSettings();
-  if (!settings.imagesEnabled) return null;
-
+async function generateNewsImageInternal(prompt: string, cacheKey: string): Promise<string | null> {
   const cached = imageCache.get(cacheKey);
   if (cached && Date.now() - cached.cachedAt < IMAGE_CACHE_TTL) return cached.url;
 
@@ -467,6 +464,16 @@ export async function generateNewsImage(prompt: string, cacheKey: string): Promi
   }
 
   return null;
+}
+
+export async function generateNewsImage(prompt: string, cacheKey: string): Promise<string | null> {
+  const settings = await getNewsAiSettings();
+  if (!settings.imagesEnabled) return null;
+  return generateNewsImageInternal(prompt, cacheKey);
+}
+
+export async function generateNewsImageUnchecked(prompt: string, cacheKey: string): Promise<string | null> {
+  return generateNewsImageInternal(prompt, cacheKey);
 }
 
 export async function askGrokAboutArticle(

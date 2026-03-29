@@ -143,12 +143,16 @@ async function scrapeOgImage(url: string): Promise<string | null> {
 }
 
 async function enrichWithOgImages(articles: NewsArticle[]): Promise<NewsArticle[]> {
-  const needsImage = articles.filter((a) => !a.imageUrl).slice(0, 5);
+  const needsImage = articles.filter((a) => !a.imageUrl);
   if (needsImage.length === 0) return articles;
 
-  const results = await Promise.allSettled(
-    needsImage.map((a) => scrapeOgImage(a.link))
-  );
+  const CONCURRENCY = 8;
+  const results: Array<PromiseSettledResult<string | null>> = [];
+  for (let i = 0; i < needsImage.length; i += CONCURRENCY) {
+    const batch = needsImage.slice(i, i + CONCURRENCY);
+    const batchResults = await Promise.allSettled(batch.map((a) => scrapeOgImage(a.link)));
+    results.push(...batchResults);
+  }
 
   const imageMap = new Map<string, string | null>();
   needsImage.forEach((a, i) => {

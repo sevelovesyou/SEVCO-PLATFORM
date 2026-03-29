@@ -108,6 +108,7 @@ function ArticleSkeleton() {
 function HeroSection({ article, aiSettings, onImageGenerated }: { article: NewsArticle; aiSettings?: NewsAiSettings; onImageGenerated?: (url: string) => void }) {
   const [aiImageUrl, setAiImageUrl] = useState<string | null>(null);
   const [heroSummary, setHeroSummary] = useState<{ summary: string; category: string } | null>(null);
+  const [heroImgError, setHeroImgError] = useState(false);
   const imageMutation = useGrokImage();
 
   const imageTriggered = useRef(false);
@@ -118,23 +119,31 @@ function HeroSection({ article, aiSettings, onImageGenerated }: { article: NewsA
     summaryTriggered.current = false;
     setAiImageUrl(null);
     setHeroSummary(null);
+    setHeroImgError(false);
   }, [article.link]);
 
-  useEffect(() => {
-    if (imageTriggered.current) return;
-    if (!aiSettings?.aiAvailable || !aiSettings?.imagesEnabled) return;
-    if (aiImageUrl || imageMutation.isPending) return;
-    imageTriggered.current = true;
+  const triggerHeroAiImage = useCallback((cacheKey: string) => {
+    if (imageMutation.isPending) return;
     imageMutation.mutate(
-      { prompt: `News illustration: ${article.title}`, cacheKey: `hero-${article.link}` },
+      { prompt: `News illustration: ${article.title}`, cacheKey },
       {
         onSuccess: (data) => {
           setAiImageUrl(data.url);
+          setHeroImgError(false);
           if (onImageGenerated) onImageGenerated(data.url);
         },
       }
     );
-  }, [article.link, aiSettings?.aiAvailable, aiSettings?.imagesEnabled, aiImageUrl, imageMutation.isPending]);
+  }, [article.title, imageMutation, onImageGenerated]);
+
+  useEffect(() => {
+    if (imageTriggered.current) return;
+    if (!aiSettings?.aiAvailable || !aiSettings?.imagesEnabled) return;
+    if (article.imageUrl) return;
+    if (aiImageUrl || imageMutation.isPending) return;
+    imageTriggered.current = true;
+    triggerHeroAiImage(`hero-${article.link}`);
+  }, [article.link, article.imageUrl, aiSettings?.aiAvailable, aiSettings?.imagesEnabled, aiImageUrl, imageMutation.isPending, triggerHeroAiImage]);
 
   useEffect(() => {
     if (summaryTriggered.current) return;
@@ -158,18 +167,28 @@ function HeroSection({ article, aiSettings, onImageGenerated }: { article: NewsA
     if (!isNaN(d.getTime())) relativeTime = formatDistanceToNow(d, { addSuffix: true });
   } catch {}
 
-  const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='400' viewBox='0 0 1200 400'%3E%3Crect width='1200' height='400' fill='%23374151'/%3E%3Ctext x='600' y='210' text-anchor='middle' fill='%236B7280' font-size='24' font-family='sans-serif'%3ESEVCO News%3C/text%3E%3C/svg%3E";
-  const displayImage = aiImageUrl || article.imageUrl || PLACEHOLDER;
+  const displayImage = aiImageUrl || article.imageUrl || null;
 
   return (
     <div className="relative w-full rounded-2xl overflow-hidden border bg-card group" data-testid="news-hero">
       <div className="relative aspect-[21/7] md:aspect-[21/6] overflow-hidden">
-        <img
-          src={displayImage}
-          alt={article.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-          onError={(e) => { (e.currentTarget as HTMLImageElement).src = PLACEHOLDER; }}
-        />
+        {displayImage && !heroImgError ? (
+          <img
+            src={displayImage}
+            alt={article.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            onError={() => {
+              setHeroImgError(true);
+              if (aiSettings?.aiAvailable && aiSettings?.imagesEnabled && !imageMutation.isPending) {
+                triggerHeroAiImage(`hero-err-${article.link}`);
+              }
+            }}
+          />
+        ) : (
+          <div className="w-full h-full bg-muted relative overflow-hidden">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
         {aiImageUrl && (
           <Badge className="absolute top-3 right-3 bg-primary/80 text-[10px] backdrop-blur-sm">

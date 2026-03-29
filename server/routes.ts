@@ -15,7 +15,7 @@ import {
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema, updateUserTaskSchema, updateStaffTaskSchema, insertUserTaskSchema, insertStaffTaskSchema } from "@shared/schema";
 import { fetchNewsArticles, fetchGoogleNewsRSS, setGNewsApiKeyFromDb, setBlockedSourcesFromDb } from "./news";
-import { getNewsAiSettings, getMaxRequestsPerHour, getApiConfig, summarizeArticle as grokSummarize, generateNewsImage as grokImage, askGrokAboutArticle, searchNewsWithGrok, generateDailyBriefing, generateTrendingCommentary, streamSummarizeArticle, streamAskGrok } from "./grok-news";
+import { getNewsAiSettings, getMaxRequestsPerHour, getApiConfig, summarizeArticle as grokSummarize, generateNewsImage as grokImage, generateNewsImageUnchecked as grokImageUnchecked, askGrokAboutArticle, searchNewsWithGrok, generateDailyBriefing, generateTrendingCommentary, streamSummarizeArticle, streamAskGrok } from "./grok-news";
 import { fetchUserTweets, searchTweets, isXConfigured, fetchCategoryNewsFromX } from "./x-api";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail, sendContactReplyEmail, sendInvoiceEmail, sendTestEmail } from "./emailClient";
@@ -4690,6 +4690,20 @@ export async function registerRoutes(
         setBlockedSourcesFromDb(dbBlockedSources);
       } catch {}
       const articles = await fetchNewsArticles(query, limit);
+      const needsImage = articles.filter((a) => !a.imageUrl).slice(0, 10);
+      if (needsImage.length > 0) {
+        try {
+          const generated = await Promise.allSettled(
+            needsImage.map((a) => grokImageUnchecked(`editorial news thumbnail for: ${a.title}`, `feed-${a.link}`))
+          );
+          needsImage.forEach((a, i) => {
+            const result = generated[i];
+            if (result.status === "fulfilled" && result.value) {
+              (a as typeof a & { imageUrl: string | null }).imageUrl = result.value;
+            }
+          });
+        } catch {}
+      }
       res.json(articles);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -4729,14 +4743,29 @@ export async function registerRoutes(
       const cats = await storage.getNewsCategories(true);
       if (cats.length === 0) return res.json([]);
       const results = await Promise.all(cats.map((c) => fetchNewsArticles(c.query, 8)));
-      const interleaved: unknown[] = [];
+      const interleaved: import("./news").NewsArticle[] = [];
       const maxLen = Math.max(...results.map((r) => r.length));
       for (let i = 0; i < maxLen; i++) {
         for (const arr of results) {
           if (arr[i]) interleaved.push(arr[i]);
         }
       }
-      res.json(interleaved.slice(0, 20));
+      const sliced = interleaved.slice(0, 20);
+      const needsImage = sliced.filter((a) => !a.imageUrl).slice(0, 10);
+      if (needsImage.length > 0) {
+        try {
+          const generated = await Promise.allSettled(
+            needsImage.map((a) => grokImageUnchecked(`editorial news thumbnail for: ${a.title}`, `feed-all-${a.link}`))
+          );
+          needsImage.forEach((a, i) => {
+            const result = generated[i];
+            if (result.status === "fulfilled" && result.value) {
+              a.imageUrl = result.value;
+            }
+          });
+        } catch {}
+      }
+      res.json(sliced);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -4940,6 +4969,19 @@ export async function registerRoutes(
       const { prompt, cacheKey } = req.body as { prompt?: string; cacheKey?: string };
       if (!prompt) return res.status(400).json({ message: "prompt is required" });
       const url = await grokImage(prompt, cacheKey || prompt);
+      if (!url) return res.status(502).json({ message: "Failed to generate image" });
+      res.json({ url });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/news/grok/image/fallback", async (req, res) => {
+    try {
+      if (!(await checkGrokRateLimit(req))) return res.status(429).json({ message: "AI rate limit exceeded. Try again later." });
+      const { prompt, cacheKey } = req.body as { prompt?: string; cacheKey?: string };
+      if (!prompt) return res.status(400).json({ message: "prompt is required" });
+      const url = await grokImageUnchecked(prompt, cacheKey || prompt);
       if (!url) return res.status(502).json({ message: "Failed to generate image" });
       res.json({ url });
     } catch (err: any) {
@@ -5442,12 +5484,9 @@ export async function registerRoutes(
 
         const ai_generate_candidates: Array<{ text: string; link: string; idx: number }> = [];
         const mapped = tweets.map((t, idx) => {
-          let imageUrl: string | null = null;
-          if (effectiveImageMode !== "none") {
-            imageUrl = t.mediaUrl;
-            if (!imageUrl && effectiveImageMode === "ai_generate") {
-              ai_generate_candidates.push({ text: t.text, link: t.url, idx });
-            }
+          const imageUrl: string | null = t.mediaUrl ?? null;
+          if (!imageUrl) {
+            ai_generate_candidates.push({ text: t.text, link: t.url, idx });
           }
           return {
             title: t.text.slice(0, 140),
@@ -5464,8 +5503,8 @@ export async function registerRoutes(
           };
         });
 
-        if (effectiveImageMode === "ai_generate" && ai_generate_candidates.length > 0) {
-          const toGenerate = ai_generate_candidates.slice(0, 5);
+        if (ai_generate_candidates.length > 0) {
+          const toGenerate = ai_generate_candidates.slice(0, 10);
           try {
             const generated = await Promise.all(
               toGenerate.map((c) => generateImageForPost(c.text, c.link, imagePromptTemplate || undefined))
@@ -5502,28 +5541,25 @@ export async function registerRoutes(
         const rssArticles = await fetchNewsArticles(query, limit);
         const rssMapped = rssArticles.map((a) => ({
           ...a,
-          imageUrl: effectiveImageMode === "none" ? null : a.imageUrl,
           sourceType: "rss" as const,
         }));
 
-        let rssAiCandidates: Array<{ text: string; link: string; idx: number }> = [];
-        if (effectiveImageMode === "ai_generate") {
-          rssAiCandidates = rssMapped
-            .map((a, idx) => (!a.imageUrl ? { text: a.title || a.description, link: a.link, idx } : null))
-            .filter((c): c is { text: string; link: string; idx: number } => c !== null)
-            .slice(0, 5);
+        const rssAiCandidates: Array<{ text: string; link: string; idx: number }> = [];
+        rssMapped.forEach((a, idx) => {
+          if (!a.imageUrl) rssAiCandidates.push({ text: a.title || a.description, link: a.link, idx });
+        });
 
-          if (rssAiCandidates.length > 0) {
-            try {
-              const generated = await Promise.all(
-                rssAiCandidates.map((c) => generateImageForPost(c.text, c.link, imagePromptTemplate || undefined))
-              );
-              rssAiCandidates.forEach((c, i) => {
-                if (generated[i]) rssMapped[c.idx].imageUrl = generated[i];
-              });
-            } catch (imgErr: any) {
-              console.error("[news/x-feed] AI image generation for RSS failed:", imgErr.message);
-            }
+        const toGenerate = rssAiCandidates.slice(0, 10);
+        if (toGenerate.length > 0) {
+          try {
+            const generated = await Promise.all(
+              toGenerate.map((c) => generateImageForPost(c.text, c.link, imagePromptTemplate || undefined))
+            );
+            toGenerate.forEach((c, i) => {
+              if (generated[i]) rssMapped[c.idx].imageUrl = generated[i];
+            });
+          } catch (imgErr: any) {
+            console.error("[news/x-feed] AI image generation for RSS failed:", imgErr.message);
           }
         }
 

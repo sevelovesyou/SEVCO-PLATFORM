@@ -369,9 +369,12 @@ export function NewsEditorial({
     queryFn: () =>
       fetch(
         `/api/news/x-feed?category=${encodeURIComponent(activeCategory?.name ?? "")}&limit=15`
-      ).then((r) => r.json()),
+      ).then((r) => {
+        if (!r.ok) throw new Error(`Failed to fetch news feed: ${r.status}`);
+        return r.json();
+      }),
     enabled: !!activeCategory,
-    staleTime: 10 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
   });
 
   const { data: tweets = [], isLoading: tweetsLoading } = useQuery<Tweet[]>({

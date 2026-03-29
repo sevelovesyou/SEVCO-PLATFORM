@@ -28,7 +28,7 @@ export function getCategoryXQuery(categoryName: string, fallbackQuery?: string, 
   const key = categoryName.toLowerCase();
   const base = CATEGORY_QUERIES[key] || fallbackQuery || `(${categoryName}) -is:retweet lang:en`;
   if (imagesOnly) {
-    const withImages = base.includes("has:images") ? base : `${base} has:images`;
+    const withImages = base.includes("has:media") ? base : `${base} has:media`;
     return `${withImages} min_faves:10`;
   }
   return base;

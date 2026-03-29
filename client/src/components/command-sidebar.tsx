@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -13,11 +12,6 @@ import {
   SidebarFooter,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -37,7 +31,6 @@ import {
   Bot,
   BarChart2,
   Newspaper,
-  ChevronRight,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -61,9 +54,6 @@ export function CommandSidebar() {
   const isAdmin = role === "admin";
   const isExec = role === "executive";
   const isStaff = role === "staff";
-
-  const [contentOpen, setContentOpen] = useState(true);
-  const [operationsOpen, setOperationsOpen] = useState(true);
 
   const overviewItems: NavItem[] = [
     { title: "Overview", url: "/command", icon: LayoutDashboard },
@@ -111,8 +101,6 @@ export function CommandSidebar() {
   const hasContentItems = contentTopItems.length > 0 || contentSubGroups.length > 0;
   const hasOperationsItems = operationsTopItems.length > 0 || operationsSubGroups.length > 0;
 
-  const [systemOpen, setSystemOpen] = useState(true);
-
   const systemTopItems: NavItem[] = [
     ...(isAdmin ? [{ title: "Users", url: "/command/users", icon: Users }] : []),
     ...(isAdmin ? [{ title: "Staff", url: "/command/staff", icon: UsersRound }] : []),
@@ -159,11 +147,12 @@ export function CommandSidebar() {
   function renderSubGroups(subGroups: NavSubGroup[]) {
     return subGroups.map((group) => (
       <li key={group.label} className="list-none">
-        <CollapsibleSubGroup label={group.label}>
-          <ul className="flex w-full min-w-0 flex-col gap-1">
-            {renderItems(group.items)}
-          </ul>
-        </CollapsibleSubGroup>
+        <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
+          {group.label}
+        </div>
+        <ul className="flex w-full min-w-0 flex-col gap-1">
+          {renderItems(group.items)}
+        </ul>
       </li>
     ));
   }
@@ -201,22 +190,8 @@ export function CommandSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {renderItems(contentTopItems)}
+                {renderSubGroups(contentSubGroups)}
               </SidebarMenu>
-              {contentSubGroups.length > 0 && (
-                <div className="group-data-[collapsible=icon]:hidden">
-                  <Collapsible open={contentOpen} onOpenChange={setContentOpen}>
-                    <CollapsibleTrigger className="flex items-center gap-1.5 w-full px-2 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors mt-1" data-testid="button-content-subgroups-toggle">
-                      <ChevronRight className={`h-3 w-3 transition-transform ${contentOpen ? "rotate-90" : ""}`} />
-                      More
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenu className="mt-0.5">
-                        {renderSubGroups(contentSubGroups)}
-                      </SidebarMenu>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </div>
-              )}
             </SidebarGroupContent>
           </SidebarGroup>
         )}
@@ -227,22 +202,8 @@ export function CommandSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {renderItems(operationsTopItems)}
+                {renderSubGroups(operationsSubGroups)}
               </SidebarMenu>
-              {operationsSubGroups.length > 0 && (
-                <div className="group-data-[collapsible=icon]:hidden">
-                  <Collapsible open={operationsOpen} onOpenChange={setOperationsOpen}>
-                    <CollapsibleTrigger className="flex items-center gap-1.5 w-full px-2 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors mt-1" data-testid="button-operations-subgroups-toggle">
-                      <ChevronRight className={`h-3 w-3 transition-transform ${operationsOpen ? "rotate-90" : ""}`} />
-                      More
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenu className="mt-0.5">
-                        {renderSubGroups(operationsSubGroups)}
-                      </SidebarMenu>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </div>
-              )}
             </SidebarGroupContent>
           </SidebarGroup>
         )}
@@ -253,22 +214,8 @@ export function CommandSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {renderItems(systemTopItems)}
+                {renderSubGroups(systemSubGroups)}
               </SidebarMenu>
-              {systemSubGroups.length > 0 && (
-                <div className="group-data-[collapsible=icon]:hidden">
-                  <Collapsible open={systemOpen} onOpenChange={setSystemOpen}>
-                    <CollapsibleTrigger className="flex items-center gap-1.5 w-full px-2 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors mt-1" data-testid="button-system-subgroups-toggle">
-                      <ChevronRight className={`h-3 w-3 transition-transform ${systemOpen ? "rotate-90" : ""}`} />
-                      More
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenu className="mt-0.5">
-                        {renderSubGroups(systemSubGroups)}
-                      </SidebarMenu>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </div>
-              )}
             </SidebarGroupContent>
           </SidebarGroup>
         )}
@@ -280,20 +227,5 @@ export function CommandSidebar() {
         </div>
       </SidebarFooter>
     </Sidebar>
-  );
-}
-
-function CollapsibleSubGroup({ label, children }: { label: string; children: React.ReactNode }) {
-  const [open, setOpen] = useState(true);
-  return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex items-center gap-1 w-full px-2 py-1 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider hover:text-muted-foreground transition-colors" data-testid={`button-subgroup-${label.toLowerCase().replace(/\s+/g, "-")}`}>
-        <ChevronRight className={`h-2.5 w-2.5 transition-transform ${open ? "rotate-90" : ""}`} />
-        {label}
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        {children}
-      </CollapsibleContent>
-    </Collapsible>
   );
 }

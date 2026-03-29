@@ -287,6 +287,10 @@ html, body {
   --sidebar-accent-foreground: var(--nav-sub-accent-foreground);
 }
 
+.wiki-sidebar [data-active="true"][data-slot="sidebar-menu-button"]::before {
+  display: none;
+}
+
 .cmd-sidebar [data-active="true"][data-slot="sidebar-menu-button"]::before {
   background: hsl(var(--destructive)) !important;
 }

@@ -13471,3 +13471,227 @@ The existing `/changelog` page (`changelog-page.tsx`) can remain as-is. The new 
 
 ---
 
+## Task — compile-update-log
+> Merged: 2026-03-29
+
+# SEVCO Platform Updates Page — Changelog Overhaul + Update Log + Auto-Update System
+
+## What & Why
+
+The SEVCO platform has a basic `/changelog` page that's manually maintained and not visually compelling. Meanwhile we need a comprehensive development update log compiled from 160+ task plan files. This task merges both needs into one system:
+
+1. **Redesign `/changelog` → `/platform`** — A beautiful public-facing "Platform Updates" marketing page with hero, featured update spotlights, full searchable timeline, and prominent sign-up/sign-in CTAs (including X sign-in). Goal: convert visitors into accounts.
+
+2. **Compile the initial `SEVCO_UPDATE_LOG.md`** — A complete markdown file in the project root with all 160+ task plan files reproduced verbatim, organized chronologically, with zero information omitted.
+
+3. **Auto-populate changelog from task plan files** — Extend `scripts/post-merge.sh` to call a new `scripts/append-to-update-log.js` script that: (a) appends the task to `SEVCO_UPDATE_LOG.md`, AND (b) auto-creates a structured changelog entry in the database from the plan file content.
+
+---
+
+## Part 1 — `/platform` Marketing Changelog Page
+
+### Route
+- **New route:** `/platform` — publicly accessible (no auth required)
+- **Old route:** `/changelog` should redirect to `/platform` (or both work, with `/platform` being the marketing version)
+- Add `/platform` to `client/src/App.tsx` routing
+
+### Page structure
+
+#### Section 1 — Hero
+Dark glassmorphism hero (consistent with landing page and tools page style):
+- **Headline:** "SEVCO is always evolving." (or similar short punchy statement)
+- **Subheadline:** "We ship constantly. Every new feature, fix, and improvement — documented here. Join us to use it all."
+- **Two CTAs side by side:**
+  - Primary (red): "Create Free Account" → `/auth?mode=register`
+  - Secondary (outline with X icon): "Sign in with X" → `/api/auth/twitter`
+- Small note below CTAs: "Already have an account? [Sign in →]"
+- **Stats bar** (3–4 animated counters, derived from changelog data):
+  - "[N] Updates shipped" — count of all changelog entries
+  - "[N] New features" — count of category=feature entries
+  - "[N] Fixes & improvements" — count of fix+improvement entries
+  - "Actively maintained" — static badge
+- Aurora background blobs (matching brand: deep red, indigo, emerald)
+
+#### Section 2 — Featured Updates Spotlight
+Auto-curated from the 3–5 most recent `category=feature` changelog entries.
+- **Heading:** "What's New" with a "Live" badge (green pulsing dot)
+- Display as horizontal scroll of glassmorphic feature cards:
+  - Each card: version badge (e.g., `v2.4.1`), category badge ("Feature"), title, 2-line description truncated, date ("3 days ago" relative), "Learn More →" link to wiki article if `wikiSlug` exists
+  - Hover: card lifts, border glows
+- Below cards: "See all [N] updates ↓" link scrolls to the timeline
+
+#### Section 3 — Searchable Timeline
+The full changelog, rendered as a beautiful vertical timeline:
+- **Search bar** at the top: real-time client-side filter by title or description text
+- **Category filter pills**: All | Features | Fixes | Improvements | Other (toggle, multi-select)
+- **Timeline entries** grouped by year (2024, 2025, 2026...) with a sticky year label on the left
+- Each entry:
+  - Left: date (month day) + connecting timeline dot + vertical line
+  - Right: version badge (`v1.x.x`), category badge (color-coded: Feature=blue, Fix=red, Improvement=amber, Other=grey), title (bold), description (full text, not truncated), "Read more →" link if wikiSlug exists
+  - Subtle glassmorphic card treatment: `bg-white/[0.03] border border-white/[0.06] rounded-xl px-5 py-4`
+- Empty state when search has no results: "No updates matching '[query]'" with clear button
+
+#### Section 4 — Sign-up CTA (bottom)
+Full-width dark panel before the footer:
+- Headline: "Everything above is just the beginning."
+- Body: "New features ship every week. Sign up free to use the Wiki, Store, Music, AI Tools, Email — everything. Or jump in instantly with your X account."
+- **Two CTAs:**
+  - Primary: "Get Started Free" → `/auth?mode=register`
+  - Secondary with X icon: "Continue with X" → `/api/auth/twitter`
+- Fine print: "No credit card required. Free tier available."
+- Hide this section if user is already logged in (`user` from `useAuth`)
+
+### Data source
+Reads from `GET /api/changelog` (existing endpoint, returns all entries ordered by `createdAt` desc).
+
+No new backend endpoints needed for the page itself — all data already exists.
+
+### Navigation
+- Add "Platform" or "Updates" link somewhere visible for public users:
+  - In `platform-footer.tsx` bottom link row alongside existing links
+  - In the SEVCO home dropdown (`platform-header.tsx`) — add "What's New" or "Platform Updates" entry below "About"
+- The old `/changelog` page can remain as-is for backward compat, or redirect; the new `/platform` page is the marketing face
+
+---
+
+## Part 2 — `SEVCO_UPDATE_LOG.md` Initial Compilation
+
+A file at `SEVCO_UPDATE_LOG.md` in the project root containing every task plan file reproduced verbatim. No information omitted.
+
+### Structure
+```
+# SEVCO Platform — Complete Development Update Log
+
+> Every Replit Agent task plan reproduced verbatim. Zero omissions.
+> Total tasks: [count] | Platform: sevco.us | Last updated: [date]
+
+---
+
+## Table of Contents
+- [#1 — RBAC & Role Permission System](#1)
+...
+
+---
+
+## Task Log
+
+### #1 — RBAC & Role Permission System
+> Merged: [date]
+
+[full contents of rbac-role-system.md]
+
+---
+...
+
+## Appendix — Additional Tasks & Fixes
+[unmatched plan files]
+```
+
+### Task-to-file mapping (for the compiler to use)
+
+**Named by topic (#1–#29):**
+- #1 → `rbac-role-system.md`, #2 → `platform-shell.md`, #3 → `landing-and-dashboard.md`, #4 → `music-page.md`, #5 → `store-page.md`, #6 → `projects-page.md`, #7 → `logo-favicon-update.md`, #8 → `logo-display-fix.md`, #9 → `logo-no-skew.md`, #10 → `platform-footer.md`, #11 → `platform-polish-and-changelog.md`, #12 → `fix-production-auth.md`, #13 → `stripe-checkout-cart.md`, #14 → `command-center.md`, #15 → `store-analytics.md`, #16 → `store-redesign.md`, #17 → `auto-wiki-engineering-articles.md`, #18 → `sidebar-account-cleanup.md`, #19 → `auth-copy-tweak.md`, #20 → `pre-publish-fixes.md`, #21 → `email-verification.md`, #22 → `public-access-mega-menu.md`, #23 → `home-contact-pages.md`, #24 → `profile-page.md`, #25 → `jobs-page.md`, #26 → `services-page.md`, #27 → `music-expansion.md`, #28 → `projects-megamenu-marketing.md`, #29 → `projects-dropdown-style-fix.md`
+
+**Prefixed with old offset (#30–#100):**
+- #30→`t28-bug-fixes-quick-wins.md`, #31→`t29-profile-user-enhancements.md`, #32→`t30-footer-social-links-admin.md`, #33→`t31-store-cmd-product-creation.md`, #34→`t32-music-player-playlist-cmd.md`, #35→`t33-wiki-archive.md`, #36→`t34-version-system-changelog.md`, #37→`t35-social-feed.md`, #38→`t36-notes-tool.md`, #39→`t39-nav-platform-housekeeping.md`, #40→`t40-cmd-restructure.md`, #41→`t41-hostinger-domains.md`, #42→`t42-engineering-articles-changelog.md`, #43→`t43-bug-fixes-nav-polish.md`, #44→`t44-project-social-links-about-page.md`, #45→`t45-listen-page-social-links-cmd.md`, #46→`t46-cmd-display-tab.md`, #47→`t47-platform-search.md`, #48→`t48-bug-fixes.md`, #49→`t49-cmd-enhancements.md`, #50→`t50-home-bulletin-footer-store-cleanup.md`, #51→`t51-gallery-tools-dropdown.md`, #52→`t52-brand-section-about.md`, #53→`t53-hosting-landing-page.md`, #54→`t54-project-service-icons-placeholder-products.md`, #55→`t55-spotify-integration.md`, #56→`t56-wiki-articles-changelog.md`, #57→`t57-supabase-storage.md`, #58→`t58-bug-fixes-2.md`, #59→`t59-display-tab-uploads-services.md`, #60→`t60-platform-colors.md`, #61→`t61-notes-export.md`, #62→`t62-bugs-polish.md`, #63→`t63-brand-colors-media-cdn.md`, #64→`t64-marketing-pages.md`, #65→`t65-support-tab-cmd.md`, #66→`t66-members-chat.md`, #67→`t67-minecraft-page.md`, #68→`t68-finance-tab-cmd.md`, #69→`t69-staff-tab-cmd.md`, #70→`t70-bugs-polish2.md`, #71→`t71-minecraft-project-cmd.md`, #72→`t72-hover-tooltips.md`, #73→`t73-hero-logo-brand-assets.md`, #74→`t74-services-menu-reorganization.md`, #75→`t75-finance-subscriptions.md`, #76→`t76-email-fix.md`, #77→`t77-ai-chat-agents.md`, #78→`t78-cmd-settings-tab.md`, #79→`t79-brand-color-theming.md`, #80→`t80-traffic-tab-cmd.md`, #81→`t81-bug-fixes-4.md`, #82→`t82-bug-fixes-5.md`, #83→`t83-extended-color-settings.md`, #84→`t84-admin-content-management.md`, #85→`t85-site-audit.md`, #86→`t86-google-analytics.md`, #87→`t87-registration-email-fix.md`, #88→`t88-bug-fixes-6.md`, #89→`t89-news-page.md`, #90→`t90-wiki-changelog-comprehensive.md`, #91→`t91-bug-fixes-7.md`, #92→`t92-news-improvements.md`, #93→`t93-nav-and-button-colors.md`, #94→`t94-bug-fixes-8.md`, #95→`t95-services-notes-display.md`, #96→`t96-settings-redesign.md`, #97→`t97-email-client.md`, #98→`t98-notes-fixes.md`, #99→`t99-notes-editor-final-fix.md`, #100→`t100-x-oauth-signin.md`
+
+**Direct task number mapping (#101+):**
+- #101→`t101-home-consolidation-x-api.md`, #103→`t103-grok-agent-models.md`, #104→`t104-production-db-migration.md`, #105→`t105-x-secrets-setup.md`, #106→`t106-fix-x-oauth-callback-url.md`, #107→`t107-link-x-account.md`, #108→`t108-bug-fixes-11.md`, #109→`t109-x-feed-improvements.md`, #110→`t110-profile-overhaul.md`, #111→`t111-notes-save-x-post.md`, #112→`t112-grok-models-imagine.md`, #113→`t113-fullscreen-floating-chat.md`, #114→`t114-protect-planet-logo.md`, #116→`t116-chat-conflict-hero-button-color.md`, #117→`t117-brand-color-palette-replacement.md`, #118→`task-118.md`, #119→`task-119.md`, #120→`task-120.md`, #121→`task-121.md`, #132→`t132-grok-imagine-error-image-rendering.md`, #154→`sidebar-cleanup.md`, #155→`news-x-only-migration.md`, #156→`beautiful-news-images.md`, #157→`cmd-news-controls.md`, #158→`home-page-redesign-wiki-docs.md`, #159→`wikify-tool-page.md`, #160→`tools-marketing-page.md`, #161→this file
+
+**Appendix (unmatched files):**
+`accessibility-error-handling.md`, `animation-motion-system.md`, `chat-overlap-fix.md`, `cmd-dashboard-polish.md`, `dark-mode-default.md`, `design-audit-report.md`, `design-system-consistency.md`, `email-body-fix.md`, `email-fetch-body-via-receiving-api.md`, `fix-x-feed-errors.md`, `grok-news-page.md`, `hide-tools-dropdown-signed-out.md`, `inbound-email-diagnostics.md`, `inbox-fix-and-refresh.md`, `marketing-page-upgrades.md`, `navigation-sidebar-enhancements.md`, `news-ai-summaries-wikify.md`, `news-feed-fix.md`, `news-fixes-home-sources.md`, `news-page-enhancements.md`, `news-page-ux-overhaul.md`, `news-x-fix.md`, `news-x-per-category-handles.md`, `task-email-fix.md`, `task-finance-projects-sync.md`, `task-nav-hover-text-fix.md`, `task-quick-fixes.md`, `task-seo-settings.md`, `task-tasks-tool.md`, `ui-sound-system.md`, `x-news-editorial-redesign.md`
+
+---
+
+## Part 3 — Auto-Update System (post-merge.sh + new script)
+
+### New file: `scripts/append-to-update-log.js`
+
+Runs after every task merge. Does two things:
+
+**A) Appends to `SEVCO_UPDATE_LOG.md`:**
+- Reads the plan file
+- Checks if the task ref is already in the log (idempotent)
+- Appends a new section with date and full plan content
+
+**B) Auto-creates a changelog DB entry via the API:**
+- Parses the plan file to extract:
+  - `title`: the first `# Heading` in the file
+  - `description`: the content of the `## What & Why` section (first 500 chars)
+  - `category`: auto-detected:
+    - Contains "fix", "bug", "crash", "error" → `fix`
+    - Contains "redesign", "overhaul", "new", "add", "create", "build" → `feature`
+    - Contains "improve", "enhance", "update", "upgrade", "polish" → `improvement`
+    - Otherwise → `other`
+  - `version`: auto-increments from latest changelog entry (patch bump: `1.x.y` → `1.x.y+1`)
+  - `wikiSlug`: null (wiki article is created separately by `create-wiki-article.js`)
+- Posts to `POST /api/changelog` using a server-to-server call (needs to run as admin)
+- The script needs to call the local API — use `http://localhost:5000/api/changelog` with a secret internal token OR write directly to the DB using the same `DATABASE_URL` env var
+- **Preferred approach**: Write directly to DB using `@neondatabase/serverless` (already a project dependency) to avoid needing an auth token
+
+**Script signature:**
+```
+node scripts/append-to-update-log.js <planFilePath> [taskRef] [taskTitle]
+```
+
+### Updated `scripts/post-merge.sh`:
+```bash
+#!/bin/bash
+set -e
+npm install
+npm run db:push
+
+LATEST_TASK=$(ls -t .local/tasks/*.md 2>/dev/null | head -1)
+if [ -n "$LATEST_TASK" ]; then
+  echo "Creating wiki article from task plan: $LATEST_TASK"
+  node scripts/create-wiki-article.js "$LATEST_TASK" || true
+  echo "Appending to update log and changelog: $LATEST_TASK"
+  node scripts/append-to-update-log.js "$LATEST_TASK" || true
+else
+  echo "No task plan files found."
+fi
+```
+
+The `|| true` keeps merges non-blocking if the script fails.
+
+---
+
+## Files to create/modify
+
+| File | Action |
+|---|---|
+| `client/src/pages/platform-page.tsx` | NEW — Platform Updates marketing page |
+| `client/src/App.tsx` | Add `/platform` route (public, no auth required) |
+| `client/src/components/platform-header.tsx` | Add "What's New" link to SEVCO home dropdown |
+| `client/src/components/platform-footer.tsx` | Add "Platform Updates" link in footer links |
+| `scripts/append-to-update-log.js` | NEW — auto-appends to log + creates changelog DB entry |
+| `scripts/post-merge.sh` | Extend to call append-to-update-log.js |
+| `SEVCO_UPDATE_LOG.md` | NEW — compiled from all 190 plan files |
+
+The existing `/changelog` page (`changelog-page.tsx`) can remain as-is. The new `/platform` page is the marketing face; `/changelog` stays as a simpler internal reference.
+
+---
+
+## Important requirements
+
+- **Marketing goal**: every visitor to `/platform` should feel motivated to sign up or log in. The X sign-in CTA must be visible and prominent (not buried).
+- **Zero information loss** in `SEVCO_UPDATE_LOG.md` — every word from every plan file reproduced verbatim.
+- The auto-update script must be idempotent — running twice with the same task creates only one changelog entry and one log section.
+- The `|| true` in post-merge.sh keeps merges non-blocking.
+- All interactive elements on the page need `data-testid` attributes.
+- Dark mode first, consistent with landing.tsx glassmorphism style.
+- The page must work fully for logged-out visitors (no auth dependency for the changelog data).
+- The featured "What's New" spotlight must pull from actual DB data (not hardcoded), so it auto-updates as new entries are added.
+
+## Relevant existing files
+- `client/src/pages/changelog-page.tsx` — existing changelog (reference for data shape)
+- `client/src/pages/landing.tsx` — glassmorphism style reference
+- `client/src/pages/tools-page.tsx` — marketing card style reference (just created in #160)
+- `client/src/pages/auth-page.tsx` — X sign-in button implementation (`/api/auth/twitter`)
+- `server/routes.ts` lines 1857–1896 — changelog API endpoints
+- `scripts/create-wiki-article.js` — reference for post-merge script pattern
+- `shared/schema.ts` lines 296–304 — changelog DB schema
+
+
+---
+

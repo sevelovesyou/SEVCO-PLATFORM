@@ -1,0 +1,13126 @@
+# SEVCO Platform — Complete Development Update Log
+
+> Every Replit Agent task plan reproduced verbatim. Zero omissions.
+> Main tasks: 128 | Appendix: 63
+> Platform: sevco.us | Last compiled: 2026-03-29
+
+---
+
+## Table of Contents
+
+### Main Task Log
+
+- **#1** — RBAC & Role Permission System (`rbac-role-system.md`)
+- **#2** — Platform Shell & Global Navigation (`platform-shell.md`)
+- **#3** — Platform Landing Page & Dashboard (`landing-and-dashboard.md`)
+- **#4** — Music Page — SEVCO RECORDS (`music-page.md`)
+- **#5** — Store / Marketplace Section (`store-page.md`)
+- **#6** — Projects Page — SEVCO Companies & Ventures (`projects-page.md`)
+- **#7** — Logo & Favicon Update (`logo-favicon-update.md`)
+- **#8** — Logo Display Fix (`logo-display-fix.md`)
+- **#9** — Prevent Logo Skewing on Resize (`logo-no-skew.md`)
+- **#10** — Platform Footer (`platform-footer.md`)
+- **#11** — Platform Polish & Dashboard Changelog (`platform-polish-and-changelog.md`)
+- **#12** — Fix Production Authentication (401 on POST) (`fix-production-auth.md`)
+- **#13** — Stripe Checkout & Cart (`stripe-checkout-cart.md`)
+- **#14** — Command Center: Sidebar + Store Management + Rename (`command-center.md`)
+- **#15** — Store Analytics & Stats Suite (`store-analytics.md`)
+- **#16** — Store Page Redesign (Shopify-style grid) (`store-redesign.md`)
+- **#17** — Auto-generate Engineering Wiki Articles on Merge (`auto-wiki-engineering-articles.md`)
+- **#18** — Remove sidebar Account button; link username/badge (`sidebar-account-cleanup.md`)
+- **#19** — Auth Page Copy Tweak (`auth-copy-tweak.md`)
+- **#20** — Pre-publish Fixes — Cart, Stats Preview, Product Permissions, Partner Access (`pre-publish-fixes.md`)
+- **#21** — Email Verification for Auth (Task #21) (`email-verification.md`)
+- **#22** — Public Access + Mega-Menu Navigation (Task #22) (`public-access-mega-menu.md`)
+- **#23** — Home Page Redesign + Contact Page (Task #23) (`home-contact-pages.md`)
+- **#24** — Profile Page with MySpace-Style Customization (Task #24) (`profile-page.md`)
+- **#25** — Jobs Page — Listings, Details & Applications (Task #25) (`jobs-page.md`)
+- **#26** — Services Page + Mega-Menu (Task #26) (`services-page.md`)
+- **#27** — Music Expansion — SEVCO RECORDS, Listen, Playlists, Submit (Task #27) (`music-expansion.md`)
+- **#28** — Projects Mega-Menu + Project & Service Marketing Pages (Task #28) (`projects-megamenu-marketing.md`)
+- **#29** — Projects Dropdown Style Alignment (`projects-dropdown-style-fix.md`)
+- **#30** — Bug Fixes & Quick UI Wins (`t28-bug-fixes-quick-wins.md`)
+- **#31** — Profile & User Admin Enhancements (`t29-profile-user-enhancements.md`)
+- **#32** — Footer Redesign & Social Links Admin (`t30-footer-social-links-admin.md`)
+- **#33** — Store CMD — Product Creation (`t31-store-cmd-product-creation.md`)
+- **#34** — Music Player & Playlist CMD Editing (`t32-music-player-playlist-cmd.md`)
+- **#35** — Wiki Article Archive System (`t33-wiki-archive.md`)
+- **#36** — Version System & Changelog Update (`t34-version-system-changelog.md`)
+- **#37** — Social Feed — Posts, Follows & Timelines (`t35-social-feed.md`)
+- **#38** — Notes Tool — Personal & Collaborative (`t36-notes-tool.md`)
+- **#39** — Nav & Platform Housekeeping (`t39-nav-platform-housekeeping.md`)
+- **#40** — CMD Restructure, Fixes & Overview Refresh (`t40-cmd-restructure.md`)
+- **#41** — Hostinger API — Hosting CMD & Domains Page (`t41-hostinger-domains.md`)
+- **#42** — Engineering Wiki Articles & Changelog Update (`t42-engineering-articles-changelog.md`)
+- **#43** — Bug fixes & navigation polish (`t43-bug-fixes-nav-polish.md`)
+- **#44** — Project social links + About page (`t44-project-social-links-about-page.md`)
+- **#45** — Listen page social links in CMD (`t45-listen-page-social-links-cmd.md`)
+- **#46** — CMD Display tab — platform presentation controls (`t46-cmd-display-tab.md`)
+- **#47** — Platform-wide search (`t47-platform-search.md`)
+- **#48** — Bug fixes: Hostinger API, CMD nav title, global cart drawer (`t48-bug-fixes.md`)
+- **#49** — CMD enhancements: edit social links, Resources tab, Recent Notes widget (`t49-cmd-enhancements.md`)
+- **#50** — Home Bulletin, Footer sitemap, Profile/Account cross-links, Store stats cleanup (`t50-home-bulletin-footer-store-cleanup.md`)
+- **#51** — Gallery page + Tools dropdown in nav (`t51-gallery-tools-dropdown.md`)
+- **#52** — Brand section on About page + CMD brand assets management (`t52-brand-section-about.md`)
+- **#53** — SEVCO Hosting landing page (`t53-hosting-landing-page.md`)
+- **#54** — Project/Service icon editing + placeholder store products (`t54-project-service-icons-placeholder-products.md`)
+- **#55** — Spotify integration in CMD Music tab (`t55-spotify-integration.md`)
+- **#56** — Wiki articles + changelog entries for tasks #43–55 (`t56-wiki-articles-changelog.md`)
+- **#57** — Supabase Storage setup + file uploads (profiles, music submissions, gallery, brand assets) (`t57-supabase-storage.md`)
+- **#58** — Bug Fixes: Sidebar, Music Crash, Nav, Changelog (`t58-bug-fixes-2.md`)
+- **#59** — Display Tab Expansions, File Uploads & Services Page (`t59-display-tab-uploads-services.md`)
+- **#60** — Platform Color Editor in CMD Display Tab (`t60-platform-colors.md`)
+- **#61** — Notes: Share & Export to External Apps (`t61-notes-export.md`)
+- **#62** — Bug Fixes & Polish Bundle (`t62-bugs-polish.md`)
+- **#63** — Brand Colors (4) + Media Library Tab in CMD + CDN Upload Everywhere (`t63-brand-colors-media-cdn.md`)
+- **#64** — Marketing Landing Page Redesigns (Home, Store, Projects) (`t64-marketing-pages.md`)
+- **#65** — Support Tab in CMD (Contact Form Submission Management) (`t65-support-tab-cmd.md`)
+- **#66** — Members Chat (Direct Messages + Channels + CMD Moderation Log) (`t66-members-chat.md`)
+- **#67** — Minecraft Marketing Page (`t67-minecraft-page.md`)
+- **#68** — Finance Tab in CMD (`t68-finance-tab-cmd.md`)
+- **#69** — Staff Tab in CMD (Staff Directory + Org Chart) (`t69-staff-tab-cmd.md`)
+- **#70** — Bug Fixes & Polish Bundle 2 (`t70-bugs-polish2.md`)
+- **#71** — Minecraft as a Project + CMD Minecraft Admin Tab (`t71-minecraft-project-cmd.md`)
+- **#72** — Platform-Wide Hover Tooltips (`t72-hover-tooltips.md`)
+- **#73** — Hero Logo Upload + Brand Assets Preview (`t73-hero-logo-brand-assets.md`)
+- **#74** — Services Mega-Menu Reorganization (`t74-services-menu-reorganization.md`)
+- **#75** — Finance — Subscriptions Tab (`t75-finance-subscriptions.md`)
+- **#76** — Fix Invoice Email + Support Reply Email (Resend) (`t76-email-fix.md`)
+- **#77** — AI Chat Agents / Bots in Platform Chat (Plan) (`t77-ai-chat-agents.md`)
+- **#78** — CMD Settings Tab Consolidation (`t78-cmd-settings-tab.md`)
+- **#79** — Dynamic Brand Color Theming (`t79-brand-color-theming.md`)
+- **#80** — CMD Traffic Analytics Tab (`t80-traffic-tab-cmd.md`)
+- **#81** — Bug Fixes Bundle 4 — Logo / Upload / Changelog (`t81-bug-fixes-4.md`)
+- **#82** — Bug Fixes 5 — Services, Emails, Nav Color (`t82-bug-fixes-5.md`)
+- **#83** — Extended Platform Color Settings (`t83-extended-color-settings.md`)
+- **#84** — Admin Content: Platform Cards + Service Categories (`t84-admin-content-management.md`)
+- **#85** — Full Site Audit & Fixes (`t85-site-audit.md`)
+- **#86** — Google Analytics 4 Integration (`t86-google-analytics.md`)
+- **#87** — Fix Registration Verification Emails (`t87-registration-email-fix.md`)
+- **#88** — Bug Fixes 6 — Nav Color, Project Icons, Email URL (`t88-bug-fixes-6.md`)
+- **#89** — News Page — Curated Feed + Wikify (`t89-news-page.md`)
+- **#90** — Engineering Wiki — Comprehensive Documentation Update (`t90-wiki-changelog-comprehensive.md`)
+- **#91** — Bug Fixes 7 — Wiki Menu on /news, Planet Logo, Wiki Seed (`t91-bug-fixes-7.md`)
+- **#92** — News Improvements — Images, Layout, More Articles, Wikify Icon (`t92-news-improvements.md`)
+- **#93** — Nav Color Controls (4 settings) + Per-Page Button Colors (`t93-nav-and-button-colors.md`)
+- **#94** — Bug Fixes 8 + Quick Wins (`t94-bug-fixes-8.md`)
+- **#95** — Dynamic Services Nav + Notes Inline Screenshots + Shared Display Settings (`t95-services-notes-display.md`)
+- **#96** — CMD Settings Redesign — Organized Colors, Live Preview, Global Search, Tailwind Theming (`t96-settings-redesign.md`)
+- **#97** — SEVCO Email Client — Unified Messaging with Resend (`t97-email-client.md`)
+- **#98** — Bug Fixes 9 — Notes Editor, Messages Chat Routing, Admin Username (`t98-notes-fixes.md`)
+- **#99** — Notes Editor Final Fix (`t99-notes-editor-final-fix.md`)
+- **#100** — X.com OAuth Sign-In (`t100-x-oauth-signin.md`)
+- **#101** — Home Page Consolidation — News + Feed + X API Integration (`t101-home-consolidation-x-api.md`)
+- **#102** — Grok Model Support for AI Agents (`t103-grok-agent-models.md`)
+- **#103** — CRITICAL: Production Database Migration — Add x_id Column (`t104-production-db-migration.md`)
+- **#104** — Task #105 — Wire X/Twitter Secrets & Verify Features (`t105-x-secrets-setup.md`)
+- **#105** — Task #106 — Fix X OAuth Callback URL (localhost → sevco.us) (`t106-fix-x-oauth-callback-url.md`)
+- **#106** — Task #107 — Connect X Account for Legacy Users (Account Page) (`t107-link-x-account.md`)
+- **#107** — Task #108 — Bug Fixes 11: CMD Settings Search + Notes Toolbar + Notes Save (`t108-bug-fixes-11.md`)
+- **#108** — Task #109 — X Feed: SEVCO Account Timelines + More Tweets on Home Page (`t109-x-feed-improvements.md`)
+- **#109** — Task #110 — Profile Page: Bug Fixes + Customization Expansion (`t110-profile-overhaul.md`)
+- **#110** — Task #111 — Notes: Save-on-Unmount Fix + Replace Bear with X Post (`t111-notes-save-x-post.md`)
+- **#111** — Task #112 — xAI: Latest Models + Grok Imagine + OpenRouter Fallback (`t112-grok-models-imagine.md`)
+- **#112** — Fullscreen & Floating Chat Windows (`t113-fullscreen-floating-chat.md`)
+- **#113** — Protect Planet Logo From Clipping (`t114-protect-planet-logo.md`)
+- **#114** — Task #116 — Fix chat-sheet.tsx merge conflict + hero button color settings (`t116-chat-conflict-hero-button-color.md`)
+- **#115** — Task #117 — Platform-wide brand color palette replacement (`t117-brand-color-palette-replacement.md`)
+- **#116** — Task #118 — Fix homepage layout (marquee overflow) + restart app (`task-118.md`)
+- **#117** — task 119 (`task-119.md`)
+- **#118** — task 120 (`task-120.md`)
+- **#119** — task 121 (`task-121.md`)
+- **#120** — Grok Imagine Error Handling & Rich Chat Rendering (`t132-grok-imagine-error-image-rendering.md`)
+- **#121** — Sidebar navigation cleanup (`sidebar-cleanup.md`)
+- **#122** — Remove RSS, switch news to X/xAI only (`news-x-only-migration.md`)
+- **#123** — Beautiful Images for All News Articles (`beautiful-news-images.md`)
+- **#124** — CMD News Admin Controls (`cmd-news-controls.md`)
+- **#125** — Home page redesign + platform Wiki docs (`home-page-redesign-wiki-docs.md`)
+- **#126** — Wikify Tool Page — Bulk wiki article generator (`wikify-tool-page.md`)
+- **#127** — Tools Marketing Page + Navigation Updates (`tools-marketing-page.md`)
+- **#128** — SEVCO Platform Updates Page — Changelog Overhaul + Update Log + Auto-Update System (`compile-update-log.md`)
+
+### Appendix
+
+- Accessibility & Error Handling (`accessibility-error-handling.md`)
+- Animation & Motion System (`animation-motion-system.md`)
+- Fix Chat UI Overlapping Buttons (`chat-overlap-fix.md`)
+- CMD Dashboard Polish (`cmd-dashboard-polish.md`)
+- Set Dark Mode as Default (`dark-mode-default.md`)
+- SEVCO Platform Design Audit Report (`design-audit-report.md`)
+- Design System Consistency (`design-system-consistency.md`)
+- Fix Inbound Email Body & Attachments (`email-body-fix.md`)
+- Fix Email Body via Resend Receiving API (`email-fetch-body-via-receiving-api.md`)
+- Fix X Feed: Broken Handles + 400 Search Errors (`fix-x-feed-errors.md`)
+- Grok-Powered News Page Upgrade (`grok-news-page.md`)
+- Hide Tools Dropdown for Signed-Out Users (`hide-tools-dropdown-signed-out.md`)
+- Inbound Email Diagnostic Tool (`inbound-email-diagnostics.md`)
+- Fix Inbox: Svix Secret Decoding + Refresh Button (`inbox-fix-and-refresh.md`)
+- Marketing Page Upgrades (`marketing-page-upgrades.md`)
+- Navigation & Sidebar Enhancements (`navigation-sidebar-enhancements.md`)
+- News: AI Summaries + Enhanced Wikify 💫 (`news-ai-summaries-wikify.md`)
+- Fix News Feed: Restart + Error Resilience (`news-feed-fix.md`)
+- News Quality, Layout & Home Section Fixes (`news-fixes-home-sources.md`)
+- News page enhancements & trending API (`news-page-enhancements.md`)
+- News Page UX Overhaul (`news-page-ux-overhaul.md`)
+- Fix News Feed: X API Operator + Cache + App Restart (`news-x-fix.md`)
+- News: Per-Category X Query + Handle Switching (`news-x-per-category-handles.md`)
+- Bug Fixes 10 — Wiki Sidebar, CMD Search, Messages Chat Input, Mobile UI (`t100-bug-fixes-10.md`)
+- Task #118 — Fix homepage layout (marquee overflow) + restart app (`t118-homepage-layout-fix.md`)
+- Mobile Badge & Email Inbox Fixes (`t119-mobile-badge-email-inbox-fixes.md`)
+- RBAC & Role Permission System (`task-1.md`)
+- Platform Shell & Global Navigation (`task-2.md`)
+- Public Access + Mega-Menu Navigation (Task #22) (`task-22.md`)
+- Home Page Redesign + Contact Page (Task #23) (`task-23.md`)
+- Profile Page with MySpace-Style Customization (Task #24) (`task-24.md`)
+- Jobs Page — Listings, Details & Applications (Task #25) (`task-25.md`)
+- Services Page + Mega-Menu (Task #26) (`task-26.md`)
+- Music Expansion — SEVCO RECORDS, Listen, Playlists, Submit (Task #27) (`task-27.md`)
+- Projects Mega-Menu + Project & Service Marketing Pages (Task #28) (`task-28.md`)
+- Platform Landing Page & Dashboard (`task-3.md`)
+- Bug Fixes & Quick UI Wins (`task-30.md`)
+- Profile & User Admin Enhancements (`task-31.md`)
+- Footer Redesign & Social Links Admin (`task-32.md`)
+- Store CMD — Product Creation (`task-33.md`)
+- Music Player & Playlist CMD Editing (`task-34.md`)
+- Wiki Article Archive System (`task-35.md`)
+- Version System & Changelog Update (`task-36.md`)
+- Social Feed — Posts, Follows & Timelines (`task-37.md`)
+- Notes Tool — Personal & Collaborative (`task-38.md`)
+- Music Page — SEVCO RECORDS (`task-4.md`)
+- Store / Marketplace Section (`task-5.md`)
+- Projects Page — SEVCO Companies & Ventures (`task-6.md`)
+- Bug Fixes & Polish Bundle 2 (`task-70.md`)
+- Minecraft as a Project + CMD Minecraft Admin Tab (`task-71.md`)
+- Platform-Wide Hover Tooltips (`task-72.md`)
+- Hero Logo Upload + Brand Assets Preview (`task-73.md`)
+- Services Mega-Menu Reorganization (`task-74.md`)
+- Finance — Subscriptions Tab (`task-75.md`)
+- Fix Invoice Email + Support Reply Email (Resend) (`task-76.md`)
+- task email fix (`task-email-fix.md`)
+- task finance projects sync (`task-finance-projects-sync.md`)
+- task nav hover text fix (`task-nav-hover-text-fix.md`)
+- task quick fixes (`task-quick-fixes.md`)
+- task seo settings (`task-seo-settings.md`)
+- task tasks tool (`task-tasks-tool.md`)
+- UI Sound System (`ui-sound-system.md`)
+- X-Powered Editorial News Redesign (`x-news-editorial-redesign.md`)
+
+---
+
+## Task Log
+
+### #1 — RBAC & Role Permission System
+
+> File: `rbac-role-system.md`
+
+# RBAC & Role Permission System
+
+## What & Why
+Add a role-based access control system to the platform. Every user gets one of six roles: Admin, Executive, Staff, Partner, Client, or User. Roles control what each person can see and do across the platform — for example, only Admins and Executives can access the wiki review queue and publish articles, while Admins, Executives, Staff, and Partners can create new articles. This is the foundation that all future platform features build on.
+
+## Done looks like
+- The users table has a `role` field with an enum of: admin, executive, staff, partner, client, user. Default role is "user".
+- Backend middleware enforces role requirements on protected API routes (e.g., creating articles, accessing the review queue).
+- A `usePermission` hook on the frontend returns whether the current user can perform a given action.
+- The wiki UI hides or disables "New Article" for Client and User roles, and hides "Review Queue" for everyone except Admin and Executive.
+- An admin can update any user's role via the account management API (PATCH /api/users/:id/role).
+- Role is included in the session/user object returned by GET /api/user.
+
+## Out of scope
+- A full admin UI for managing all users (that comes with the Dashboard task)
+- Permissions for non-wiki sections (those are defined per-section as they are built)
+
+## Tasks
+1. **Schema & migration** — Add a `role` text column (with enum values) to the users table, defaulting to "user". Run the DB push.
+
+2. **Backend permission middleware** — Create a `requireRole(...roles)` Express middleware factory. Apply it to wiki routes: article creation requires staff+, review queue access requires admin/executive.
+
+3. **Auth update** — Include the `role` field in the user object returned by GET /api/user, POST /api/login, and POST /api/register. Add PATCH /api/users/:id/role (admin only) to allow role changes.
+
+4. **Frontend permission hook** — Create a `usePermission(action)` hook (or map of capabilities) derived from the current user's role. Expose helper booleans like `canCreateArticle`, `canAccessReviewQueue`, `canPublishArticles`.
+
+5. **Wiki UI permission gates** — Hide or disable the "New Article" sidebar link and editor access for Client/User roles. Hide the "Review Queue" link and page for non-admin/executive roles. Show a "Not authorized" message if a restricted route is accessed directly.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/auth.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+- `client/src/hooks/use-auth.tsx`
+- `client/src/components/app-sidebar.tsx`
+- `client/src/pages/review-queue.tsx`
+- `client/src/App.tsx`
+
+---
+
+### #2 — Platform Shell & Global Navigation
+
+> File: `platform-shell.md`
+
+# Platform Shell & Global Navigation
+
+## What & Why
+Wrap the wiki (and future apps) inside a top-level SEVCO Platform shell. This means a persistent global header bar at the top of the screen that carries SEVCO branding, an app-switcher for navigating between platform sections (Home, Wiki, Music, Store, Projects, Dashboard), and the user menu (avatar, role badge, sign out). The wiki keeps its existing left sidebar when active. All other sections use the global header only, without a secondary sidebar.
+
+## Done looks like
+- A global header is visible on all authenticated platform pages, sitting above everything else.
+- The header shows the SEVCO wordmark/logo on the left, the app-switcher navigation in the center (or left after the logo), and the user avatar + role badge + sign-out on the right.
+- Clicking each app nav item routes to: `/` (Home), `/wiki` (Wiki hub), `/music` (Music), `/store` (Store), `/projects` (Projects), `/dashboard` (Dashboard).
+- The wiki section still shows its collapsible sidebar (for article navigation, categories, etc.) when the user is anywhere under `/wiki`.
+- Non-wiki sections (Music, Store, Projects, Dashboard, Home landing) render without the wiki sidebar.
+- The active app is visually highlighted in the global nav.
+- The layout is responsive — on mobile, the app-switcher collapses into a menu.
+- Stub/placeholder pages are created for Music (`/music`), Store (`/store`), Projects (`/projects`), and Dashboard (`/dashboard`) so all nav links work immediately.
+- The `/` route now renders the new platform Landing Page (stub is fine — a real one comes in a later task).
+- The existing home page logic moves to `/wiki` as the wiki hub entry point.
+
+## Out of scope
+- Content for Music, Store, Projects, Dashboard pages (those come in their own tasks)
+- Any permission-gating of nav items (that is handled by the RBAC task)
+
+## Tasks
+1. **Routing restructure** — Update App.tsx to add routes for `/wiki` (wiki home), `/music`, `/store`, `/projects`, `/dashboard`. Move the current `/` home to `/wiki`. Add new `/` as a landing page stub.
+
+2. **Global header component** — Build a `PlatformHeader` component with SEVCO logo, app-switcher links, and a user info area (username, role badge, sign-out). Use the existing design tokens (primary color, dark mode).
+
+3. **Shell layout update** — Update `AppShell` so the global header sits at the very top. The wiki sidebar only renders when the current route is under `/wiki/*`. Non-wiki sections render with just the global header and a content area below.
+
+4. **App-switcher active state** — Highlight the current app in the header nav based on the active route prefix.
+
+5. **Stub pages** — Create minimal placeholder pages for `/music`, `/store`, `/projects`, `/dashboard`, and the new `/` landing page so all navigation links resolve without errors.
+
+6. **Update existing internal links** — Update any links in the wiki sidebar or pages that point to `/` (old home) to point to `/wiki` or the correct new paths.
+
+## Relevant files
+- `client/src/App.tsx`
+- `client/src/components/app-sidebar.tsx`
+- `client/src/pages/home.tsx`
+- `client/src/hooks/use-auth.tsx`
+
+---
+
+### #3 — Platform Landing Page & Dashboard
+
+> File: `landing-and-dashboard.md`
+
+# Platform Landing Page & Dashboard
+
+## What & Why
+Build two key entry-point pages for the SEVCO Platform. The Landing Page (`/`) is the first thing users see after logging in — it gives a high-level view of the platform with quick-access cards to each section, recent activity, and a welcome message. The Dashboard (`/dashboard`) is a role-aware analytics and management view showing different metrics and tools depending on who is logged in (Admins see everything, Executives see business KPIs, Staff/Partners see their own activity).
+
+## Done looks like
+- The `/` landing page greets the user by name, shows the six platform app cards (Wiki, Music, Store, Projects, Dashboard + Account), and displays recent wiki activity.
+- The landing page app cards respect role permissions — sections the user cannot access are greyed out or hidden.
+- The `/dashboard` page shows stats relevant to the user's role:
+  - **Admin**: total users by role, total articles, pending reviews, platform-wide activity.
+  - **Executive**: key business metrics — article count, project count, active users.
+  - **Staff/Partner**: their own recent contributions (articles created/edited).
+  - **Client/User**: a simplified "welcome" dashboard with links to content they can access.
+- Dashboard data is fetched from real API endpoints (stats that already exist, plus new user-count endpoint).
+- Both pages use the platform shell (global header, no wiki sidebar).
+
+## Out of scope
+- Real-time notifications or live activity feeds
+- Charts/graphs (counts and text summaries are sufficient for now)
+- Music, Store, or Project-specific stats (those come with their own tasks)
+
+## Tasks
+1. **Landing page** — Build the `/` page with a greeting, platform app cards grid (linking to each section), and a "Recent Activity" panel showing the last 5 wiki articles updated. Cards are role-aware (disabled/hidden for restricted sections).
+
+2. **Dashboard API** — Add a `/api/dashboard` endpoint that returns role-filtered stats: article counts, pending reviews, user counts (admin only), and the current user's recent contributions.
+
+3. **Dashboard page** — Build the `/dashboard` page with role-aware stat cards and a "My Recent Activity" panel. Admins see a user management table with role editing; Executives see business KPIs; Staff/Partners see their contributions.
+
+## Relevant files
+- `client/src/App.tsx`
+- `client/src/pages/home.tsx`
+- `server/routes.ts`
+- `server/storage.ts`
+- `shared/schema.ts`
+
+---
+
+### #4 — Music Page — SEVCO RECORDS
+
+> File: `music-page.md`
+
+# Music Page — SEVCO RECORDS
+
+## What & Why
+Build the Music section (`/music`) for SEVCO RECORDS, the platform's record company. This gives users a place to browse and discover artists, albums, and releases from the SEVCO catalog. The section is visible to all roles but content creation (adding artists, albums) is limited to Admin, Executive, and Staff.
+
+## Done looks like
+- `/music` shows a browsable catalog with featured artists and latest releases.
+- `/music/artists` lists all artists with name, genre tags, and a cover image placeholder.
+- `/music/artists/:slug` shows an artist detail page with bio, discography (albums list), and links to associated wiki articles.
+- `/music/albums/:slug` shows an album detail page with title, artist, release year, and track listing.
+- Admin/Executive/Staff users see an "Add Artist" and "Add Album" button; others do not.
+- A simple form allows authorized users to create artists and albums (name, slug, bio/description, genre, release year for albums).
+- All pages use the global platform header with no wiki sidebar.
+
+## Out of scope
+- Audio playback or streaming
+- Integration with external music services (Spotify, Apple Music)
+- Image uploads (placeholder images only for now)
+- Full CRUD editing UI (create only for now; edit/delete in a future task)
+
+## Tasks
+1. **Schema & storage** — Add `artists` (id, name, slug, bio, genres array) and `albums` (id, artistId, title, slug, releaseYear, trackList jsonb) tables. Add storage methods and API routes for CRUD (create, list, get by slug).
+
+2. **Music hub page** — Build `/music` with a header banner, a featured artists grid, and a "Latest Releases" section, pulling from the new API.
+
+3. **Artist & album detail pages** — Build `/music/artists/:slug` and `/music/albums/:slug` with their respective detail layouts, linking to each other.
+
+4. **Create forms** — Add role-gated "Add Artist" and "Add Album" forms (modal or separate page) accessible only to Admin, Executive, and Staff.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/routes.ts`
+- `client/src/App.tsx`
+
+---
+
+### #5 — Store / Marketplace Section
+
+> File: `store-page.md`
+
+# Store / Marketplace Section
+
+## What & Why
+Build the Store section (`/store`) — a product marketplace for SEVCO merchandise and offerings. Visitors can browse products by category. Admin, Executive, and Staff can manage listings. This gives SEVCO a unified place to display and manage everything they sell, consistent with the platform's design language.
+
+## Done looks like
+- `/store` shows a catalog grid of product listings organized by category.
+- `/store/products/:slug` shows a product detail page with title, description, price, category, and an image placeholder.
+- Products can be filtered by category using tabs or a sidebar filter.
+- Admin/Executive/Staff see an "Add Product" button; other roles do not.
+- A create product form captures: name, slug, description, price, category, and stock status (available / sold out).
+- All pages use the global platform header with no wiki sidebar.
+
+## Out of scope
+- Shopping cart and checkout (no payment processing in this task)
+- Inventory management
+- Image uploads (placeholder images only)
+- Order management
+
+## Tasks
+1. **Schema & storage** — Add `products` (id, name, slug, description, price, categoryName, stockStatus, createdAt) table. Add storage methods and API routes for list, get by slug, and create.
+
+2. **Store hub page** — Build `/store` with a product grid, category filter tabs, and a loading/empty state.
+
+3. **Product detail page** — Build `/store/products/:slug` with a detail layout showing all product fields and a "Back to Store" link.
+
+4. **Create product form** — Add a role-gated "Add Product" form (modal or page) for Admin, Executive, and Staff. Include all fields from the schema.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/routes.ts`
+- `client/src/App.tsx`
+
+---
+
+### #6 — Projects Page — SEVCO Companies & Ventures
+
+> File: `projects-page.md`
+
+# Projects Page — SEVCO Companies & Ventures
+
+## What & Why
+Build the Projects section (`/projects`) to showcase all of SEVCO's active companies, businesses, and ventures. This gives the team and partners a clear overview of what's in the SEVCO portfolio, with status tracking and links to related wiki articles. Clients and Users can view projects; Admin, Executive, and Staff can create and edit them.
+
+## Done looks like
+- `/projects` shows a grid or list of all SEVCO projects/companies with name, description, status badge (Active, In Development, Archived), and category/type tag.
+- `/projects/:slug` shows a project detail page with: full description, status, website link, team lead, related wiki articles (linked by slug), and key info fields.
+- Projects can be filtered by status (Active, In Development, Archived).
+- Admin/Executive/Staff see an "Add Project" button; other roles see the list read-only.
+- A create/edit form captures: name, slug, description, status, type (Company / Record Label / Brand / Initiative / Other), website URL, team lead name, and related wiki article slugs.
+- All pages use the global platform header with no wiki sidebar.
+
+## Out of scope
+- File attachments or document uploads
+- Team member management (beyond a simple "team lead" text field)
+- Time tracking or task management within a project
+
+## Tasks
+1. **Schema & storage** — Add `projects` (id, name, slug, description, status, type, websiteUrl, teamLead, relatedWikiSlugs array, createdAt) table. Add storage methods and API routes for list, get by slug, create, and update.
+
+2. **Projects hub page** — Build `/projects` with a filterable grid layout, status badges, and type tags.
+
+3. **Project detail page** — Build `/projects/:slug` with a full detail layout, wiki article links panel, and an "Edit" button for authorized roles.
+
+4. **Create & edit form** — Add role-gated forms for creating and editing projects. Include all schema fields.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/routes.ts`
+- `client/src/App.tsx`
+
+---
+
+### #7 — Logo & Favicon Update
+
+> File: `logo-favicon-update.md`
+
+# Logo & Favicon Update
+
+## What & Why
+Replace all placeholder logos, icons, and the favicon throughout the SEVCO platform with the real brand assets. Currently the nav and sidebar use an old elephant icon, the favicon is a generic file, and the auth/landing pages have no real logo. Five assets are available: the SEVCO wordmark (black + white), the planet icon (black + white), and the elephant app icon (red background).
+
+## Done looks like
+- Browser tab favicon shows the elephant app icon
+- Platform header (top nav) shows the SEVCO wordmark — white version on dark header, adapts for light mode
+- App sidebar (Wiki section) shows the planet icon — white on dark sidebar
+- Auth/login page shows the planet icon prominently alongside the SEVCO wordmark
+- Landing page hero shows the SEVCO wordmark
+- All logo images have transparent backgrounds (no black/white fill behind them) where needed
+- No broken image paths anywhere
+
+## Out of scope
+- Creating new logo artwork or variants
+- Adding animated logos or transitions
+- Mobile app icons (beyond the browser favicon)
+
+## Tasks
+1. **Remove backgrounds from logo assets** — Use background removal on the wordmark (black and white) and planet icon (black and white) PNGs to produce clean transparent-background versions. Copy output files into the frontend's assets folder. The elephant app icon already has a proper opaque background and does not need processing.
+
+2. **Update favicon** — Copy the elephant app icon JPG into `client/public/` and update `client/index.html` to reference it as the favicon. Also update the `<title>` tag to "SEVCO Platform".
+
+3. **Update platform header logo** — In `platform-header.tsx`, replace the current elephant icon import with the transparent SEVCO wordmark. Show the white version in dark mode and black version in light mode using Tailwind dark: variants. Remove the redundant "SEVCO" text label beside it if the wordmark already contains the logotype.
+
+4. **Update app sidebar logo** — In `app-sidebar.tsx`, replace the current elephant icon with the transparent planet icon. Use white planet on dark sidebar, dark planet on light sidebar. Keep the "SEVCO Wiki" label beside it.
+
+5. **Update auth page logo** — In `auth-page.tsx`, replace the `BookOpen` Lucide icon placeholder with the planet icon on the left panel and the wordmark on the right/form panel, sized appropriately for a branded login experience.
+
+6. **Update landing page logo** — In `landing.tsx`, add the SEVCO wordmark to the hero section above or beside the welcome headline so the page has real brand presence.
+
+## Relevant files
+- `client/index.html`
+- `client/src/components/platform-header.tsx`
+- `client/src/components/app-sidebar.tsx`
+- `client/src/pages/auth-page.tsx`
+- `client/src/pages/landing.tsx`
+- `attached_assets/SEVCO_Logo_Black_1774331197327.png`
+- `attached_assets/SEVCO_Logo_White_1774331197329.png`
+- `attached_assets/SEVCO_planet_icon_black_1774331331137.png`
+- `attached_assets/SEVCO_planet_icon_white_1774331331138.png`
+- `attached_assets/SEVCO_App_Icon_-_Artboard_58_1774331354613.jpg`
+
+---
+
+### #8 — Logo Display Fix
+
+> File: `logo-display-fix.md`
+
+# Logo Display Fix
+
+## What & Why
+The background removal pass from Task #7 produced broken logo assets — the planet icon has chunks of artwork missing, and the wordmark images show black boxes in light mode. The fix drops the background-removed files entirely and uses the original source PNGs with CSS blend-mode techniques instead, which naturally hide a logo's background color based on what it's placed on. No image processing required.
+
+## Done looks like
+- Platform header shows the SEVCO wordmark cleanly in both light and dark mode — no black boxes, no white voids
+- App sidebar shows the planet icon cleanly in both modes — no missing chunks
+- Auth page and landing page logos display correctly in both modes
+- No broken image paths and no invisible logos anywhere
+
+## Out of scope
+- Redesigning logo placement or layout
+- Changing any other visual aspect of the header, sidebar, auth, or landing pages
+- Regenerating or re-processing any image files
+
+## Technical approach (for the executor)
+Use the original source files via @assets imports:
+- Wordmark light mode: `SEVCO_Logo_Black_1774331197327.png` with `mix-blend-mode: multiply` (makes white bg transparent on light surfaces)
+- Wordmark dark mode: `SEVCO_Logo_White_1774331197329.png` with `mix-blend-mode: screen` (makes black bg transparent on dark surfaces)
+- Planet icon light: `SEVCO_planet_icon_black_1774331331137.png` with `mix-blend-mode: multiply`
+- Planet icon dark: `SEVCO_planet_icon_white_1774331331138.png` with `mix-blend-mode: screen`
+
+Apply these as Tailwind classes: `[mix-blend-mode:multiply] dark:[mix-blend-mode:screen]` on the `<img>` elements, showing both images stacked with the appropriate one visible per mode, OR show one image and use `filter: invert(1)` in dark mode.
+
+Simplest reliable implementation: import only the black version of each asset, show it always, and add `dark:invert` (Tailwind's built-in `filter: invert(1)`) so it appears white in dark mode.
+
+## Tasks
+1. **Fix header wordmark** — In `platform-header.tsx`, replace the broken background-removed wordmark imports with the original black wordmark source file. Use Tailwind's `dark:invert` class so it appears white automatically in dark mode. Remove the separate white wordmark import.
+
+2. **Fix sidebar planet icon** — In `app-sidebar.tsx`, replace the broken planet icon imports with the original black planet source file and apply `dark:invert`. Remove the separate white planet import.
+
+3. **Fix auth page and landing page logos** — Apply the same `dark:invert` pattern to any logo `<img>` tags in `auth-page.tsx` and `landing.tsx`.
+
+## Relevant files
+- `client/src/components/platform-header.tsx`
+- `client/src/components/app-sidebar.tsx`
+- `client/src/pages/auth-page.tsx`
+- `client/src/pages/landing.tsx`
+- `attached_assets/SEVCO_Logo_Black_1774331197327.png`
+- `attached_assets/SEVCO_planet_icon_black_1774331331137.png`
+
+---
+
+### #9 — Prevent Logo Skewing on Resize
+
+> File: `logo-no-skew.md`
+
+# Prevent Logo Skewing on Resize
+
+## What & Why
+When the browser window is resized to narrow widths, the logo images can stretch or skew instead of maintaining their original proportions. This fix ensures all logo/wordmark images preserve their aspect ratio at any window size.
+
+## Done looks like
+- The SEVCO wordmark and planet icon in the header, sidebar, auth page, and landing page maintain their correct proportions at all window sizes
+- No stretching or squishing of the logo at any viewport width
+
+## Out of scope
+- Changing logo placement, sizing, or visual style
+- Any changes unrelated to aspect ratio / skewing
+
+## Tasks
+1. **Add aspect-ratio guards to all logo img elements** — Audit every `<img>` tag used for the wordmark and planet icon across the header, sidebar, auth page, and landing page. Ensure each has `object-contain` and that the container holding the image does not force a conflicting width (use `shrink-0` or `min-w-0` as needed on parent flex items). Remove any hardcoded width values that could override `w-auto`.
+
+## Relevant files
+- `client/src/components/platform-header.tsx`
+- `client/src/components/app-sidebar.tsx`
+- `client/src/pages/auth-page.tsx`
+- `client/src/pages/landing.tsx`
+
+---
+
+### #10 — Platform Footer
+
+> File: `platform-footer.md`
+
+# Platform Footer
+
+## What & Why
+Add a platform-level footer to the SEVCO platform that mirrors the branding and links on sevelovesyou.com. Includes a sitemap of internal platform sections, all social media links from the main site, a copyright notice, and policy links. The footer should feel cohesive with the existing header/nav.
+
+## Done looks like
+- Footer appears at the bottom of every page's scrollable content area (not fixed/sticky)
+- Left column: SEVCO logo (planet icon) + tagline/copyright
+- Middle column: Sitemap with links to all platform sections (Home, Wiki, Music, Store, Projects, Dashboard)
+- Right column: All social media icons linked to sevelovesyou.com accounts
+- Bottom bar: copyright © 2026 SEVCO, and policy links (Privacy, Terms, Contact, Refund)
+- Adapts cleanly to dark/light mode
+- Footer does NOT appear on the auth/login page
+
+## Social media links to include (exact URLs from sevelovesyou.com)
+- Facebook: https://www.facebook.com/sevelovesyou/
+- Instagram: https://instagram.com/sevelovesyou
+- YouTube: https://www.youtube.com/@sevelovesyou
+- TikTok: https://www.tiktok.com/@sevelovesu
+- Twitter/X: https://x.com/sevelovesu
+- Threads: https://www.threads.com/@sevelovesyou
+- LinkedIn: https://www.linkedin.com/company/sev-co/
+- Bluesky: https://bsky.app/profile/sevelovesyou.bsky.social
+- Snapchat: https://www.snapchat.com/@sevelovesu
+- Pinterest: https://pin.it/2iQOE7UYW
+- Vimeo: https://vimeo.com/sevelovesyou
+- GitHub: https://github.com/sevelovesyou
+
+## Policy links (use sevelovesyou.com URLs)
+- Privacy Policy: https://www.sevelovesyou.com/policies/privacy-policy
+- Terms of Service: https://www.sevelovesyou.com/policies/terms-of-service
+- Contact: https://www.sevelovesyou.com/policies/contact-information
+- Refund Policy: https://www.sevelovesyou.com/policies/refund-policy
+
+## Out of scope
+- Building actual policy pages within the platform
+- A mobile app footer or any native-specific treatment
+- Animated or interactive footer elements
+
+## Tasks
+1. **Create PlatformFooter component** — Build a new `client/src/components/platform-footer.tsx` component. Use a 3-column layout (logo+tagline | sitemap | socials) above a full-width bottom bar with copyright and policy links. Use `react-icons/si` for social media brand icons (SiFacebook, SiInstagram, SiYoutube, SiTiktok, SiX, SiThreads, SiLinkedin, SiBluesky, SiSnapchat, SiPinterest, SiVimeo, SiGithub). Use the SEVCO planet icon (`SEVCO_planet_icon_black_1774331331137.png`) with `dark:invert` for the logo. Include all social URLs and policy links listed above.
+
+2. **Wire footer into AppShell** — In `client/src/App.tsx`, import `PlatformFooter` and add it inside the `<main>` element as a flex child after `<Router />`. Make `<main>` a flex column so the router content fills the top and the footer sits at the bottom. The footer must NOT render on the `/auth` route.
+
+## Relevant files
+- `client/src/App.tsx:77-110`
+- `client/src/components/platform-header.tsx`
+- `attached_assets/SEVCO_planet_icon_black_1774331331137.png`
+
+---
+
+### #11 — Platform Polish & Dashboard Changelog
+
+> File: `platform-polish-and-changelog.md`
+
+# Platform Polish & Dashboard Changelog
+
+## What & Why
+A batch of polish fixes collected from a review of the platform, plus a new Dashboard changelog feature. The changelog gives staff and above a running feed of platform improvements. The polish fixes address visible UI issues, redundant content, and footer/wiki presentation problems spotted during review.
+
+## Done looks like
+- Wiki sidebar header shows "SEVCO WIKI — Updated [date]" with the actual date of the most recently updated article
+- Wiki sidebar toggle (hamburger) is gone from the platform header and appears in a natural location inside the Wiki layout
+- Store product cards and other content across the platform are not clipped or cut off
+- The footer uses the SEVCO wordmark image (not plain text) beside the planet icon
+- The footer policy links go to internal wiki articles (not sevelovesyou.com)
+- Four wiki articles exist: Privacy Policy, Terms of Service, Contact, Refund Policy
+- The redundant "sevelovesyou.com · SEVCO Platform" text on the landing page is removed
+- Dashboard has a Changelog section visible only to Staff, Executive, and Admin roles
+- The changelog feed shows dated entries with title, description, and a category tag
+- Admin/Executive/Staff can add new changelog entries from the dashboard
+- Existing platform improvements are pre-populated as initial changelog entries
+
+## Out of scope
+- Redesigning the dashboard layout beyond adding the changelog section
+- Adding changelog entries for every historical change automatically
+- A public-facing changelog page
+
+## Technical notes
+- **Changelog table**: Add to `shared/schema.ts` — fields: id (serial), title (text), description (text), category (text enum: "feature" | "fix" | "improvement" | "other"), createdAt (timestamp). No updatedAt needed.
+- **Wiki last updated**: Query articles for `MAX(updatedAt)` or the single most recently updated article's date. Display in the app sidebar header.
+- **Wiki sidebar trigger**: Remove `SidebarTrigger` from `platform-header.tsx` and add it inside `app-sidebar.tsx` in the sidebar header, so it appears at the top of the sidebar itself.
+- **Policy wiki articles**: Create via the existing article storage; assign to an appropriate category (e.g. "general"). Slugs: `privacy-policy`, `terms-of-service`, `contact`, `refund-policy`.
+- **RBAC for changelog**: `CAN_MANAGE_CHANGELOG = ["admin", "executive", "staff"]`. Read is also staff-and-above; hide the section entirely for partner/client/user.
+
+## Tasks
+
+1. **Wiki sidebar last-updated date** — In `app-sidebar.tsx`, fetch the most recently updated article timestamp from the API and display "SEVCO WIKI — Updated [date]" in the sidebar header, formatted as a short human-readable date.
+
+2. **Relocate wiki sidebar toggle** — Remove the `SidebarTrigger` from `platform-header.tsx` (and its `showSidebarTrigger` prop plumbing from `App.tsx`). Add the trigger inside the `app-sidebar.tsx` header so it lives within the wiki sidebar, not the global header.
+
+3. **Fix clipped/cut-off UI content** — Audit the store product cards, project cards, music cards, and any other grid/list views for overflow or clipping issues. Fix container sizing, text truncation, and card heights so all content is visible or properly truncated with ellipsis.
+
+4. **Footer logo and redundant text fixes** — In `platform-footer.tsx`: replace the plain-text "SEVCO" label with the SEVCO wordmark image (using `dark:invert` like the header). In `landing.tsx`: remove the redundant "sevelovesyou.com · SEVCO Platform" line (around line 212).
+
+5. **Create policy wiki articles and update footer links** — Seed 4 wiki articles with appropriate placeholder content for Privacy Policy, Terms of Service, Contact, and Refund Policy (slugs: `privacy-policy`, `terms-of-service`, `contact`, `refund-policy`). Update `platform-footer.tsx` to link to `/wiki/privacy-policy` etc. instead of the sevelovesyou.com policy pages.
+
+6. **Dashboard changelog — schema, API, and UI** — Add a `changelog` table to `shared/schema.ts` and run db:push. Add `getChangelog`, `createChangelogEntry` to `server/storage.ts`. Add `GET /api/changelog` (staff+) and `POST /api/changelog` (admin/executive/staff) to `server/routes.ts`. In `dashboard-page.tsx`, add a Changelog section (visible to staff and above) showing a feed of entries with date, category badge, title, and description, plus an inline form for authorized roles to add new entries. Pre-populate at least 6–8 entries covering recent platform work (Task #1–#10: RBAC, Platform Shell, Landing/Dashboard, Music, Store, Projects, Logo/Favicon, Footer).
+
+## Relevant files
+- `client/src/components/app-sidebar.tsx`
+- `client/src/components/platform-header.tsx`
+- `client/src/components/platform-footer.tsx`
+- `client/src/pages/landing.tsx:107,212`
+- `client/src/pages/dashboard-page.tsx`
+- `client/src/App.tsx:77-110`
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/routes.ts`
+- `attached_assets/SEVCO_Logo_Black_1774331197327.png`
+
+---
+
+### #12 — Fix Production Authentication (401 on POST)
+
+> File: `fix-production-auth.md`
+
+# Fix Production Authentication (401 on POST)
+
+  ## What & Why
+  The Express server is missing `app.set('trust proxy', 1)` — a single line required for session cookies to work behind Replit's reverse proxy in production. Without it, Express sees incoming connections as plain HTTP (because TLS is terminated at the proxy), so `express-session` never writes the `Set-Cookie` header when `secure: true` is set. The browser never receives a session cookie, making every authenticated API call return 401.
+
+  ## Done looks like
+  - Adding a product to the Store works in production without a 401 error
+  - All other authenticated actions (adding music, projects, changelog entries) also work correctly in production
+  - Session persists correctly after login
+
+  ## Out of scope
+  - Changing the session storage mechanism (already using Postgres sessions)
+  - Any frontend changes
+
+  ## Tasks
+  1. **Add proxy trust to Express** — Add `app.set('trust proxy', 1)` in `server/index.ts` before the session middleware is initialized. This makes Express read `X-Forwarded-Proto` from Replit's reverse proxy and treat the connection as HTTPS, allowing secure session cookies to be written correctly.
+
+  2. **Redeploy** — Publish the fix so it takes effect in the production environment.
+
+  ## Relevant files
+  - `server/index.ts`
+  - `server/auth.ts:14-30`
+
+---
+
+### #13 — Stripe Checkout & Cart
+
+> File: `stripe-checkout-cart.md`
+
+# Stripe Checkout & Cart
+
+  ## What & Why
+  Add full e-commerce checkout to the SEVCO Store using Stripe. Admins can create products that are automatically synced to Stripe. Customers get a cart drawer and are redirected to Stripe Checkout to pay. Orders are tracked in the database.
+
+  ## Done looks like
+  - The product add/edit form creates a matching Stripe product + price automatically
+  - A cart drawer is accessible from the Store, letting users add/remove items and see their running total
+  - Clicking "Checkout" creates a Stripe Checkout session and redirects to Stripe's hosted payment page
+  - After payment, a success page confirms the order and stores it in the database
+  - Orders are visible to admins in the Dashboard
+  - The existing products table gains stripeProductId and stripePriceId fields so each product links to its Stripe record
+  - Works in Stripe test mode in development; Replit handles live key migration on deploy
+
+  ## Out of scope
+  - Subscriptions or recurring billing
+  - Refund processing through the UI (use Stripe Dashboard for now)
+  - Digital product delivery / download links
+  - Inventory decrement on purchase (stock status is managed manually)
+
+  ## Tasks
+
+  1. **Stripe integration setup** — Connect the Replit Stripe integration, install required packages (stripe, stripe-replit-sync), create the stripeClient.ts server file, initialize Stripe on startup (runMigrations, syncBackfill, managed webhook), and register the webhook route before express.json().
+
+  2. **Schema & product linking** — Add stripeProductId and stripePriceId columns to the products table. Update the product creation route to simultaneously create a Stripe product + price and store the returned IDs. Update the product form to handle this transparently.
+
+  3. **Cart state** — Add a cart context/hook to the frontend that stores cart items in React state (product id, name, price, quantity). Build the cart drawer UI with item list, quantity controls, remove, and a total.
+
+  4. **Checkout session & order tracking** — Add a POST /api/checkout endpoint that creates a Stripe Checkout session from the cart contents (using stored Stripe price IDs). Add an orders table (userId, stripePaymentIntentId, total, status, items JSON). On successful payment (webhook), save the order. Build a /store/success and /store/cancel page.
+
+  5. **Admin order view** — Add an Orders section to the Dashboard visible to admin/executive showing order list with status, total, and date.
+
+  ## Relevant files
+  - `shared/schema.ts`
+  - `server/storage.ts`
+  - `server/routes.ts`
+  - `server/index.ts`
+  - `server/auth.ts:14-30`
+  - `client/src/pages/store-page.tsx`
+  - `client/src/pages/store-product-form.tsx`
+  - `client/src/pages/dashboard-page.tsx`
+  - `client/src/App.tsx`
+
+---
+
+### #14 — Command Center: Sidebar + Store Management + Rename
+
+> File: `command-center.md`
+
+# Command Center: Sidebar + Store Management + Rename
+
+  ## What & Why
+  Rename "Dashboard" to "Command" (or "CMD" in compact spaces) across the platform to give it a stronger, clearer identity. Add a persistent left sidebar to the Command page, mirroring the wiki sidebar pattern, so admins and executives can navigate between internal tools without returning to the main layout. Add a Store Management section that gives admin/exec a Shopify-esque back-office view of products.
+
+  ## Done looks like
+  - The header nav shows "CMD" (icon + short label); the page title inside shows "Command"
+  - The footer and any other text references say "Command"
+  - The route changes from /dashboard to /command (old /dashboard redirects to /command)
+  - The Command page has a collapsible left sidebar with sections:
+    - Overview — role-based stats (existing content, now at /command)
+    - Store — product management table (admin/exec only, at /command/store)
+    - Users — user role management (admin only, at /command/users)
+    - Changelog — changelog feed and add-entry form (admin/exec/staff, at /command/changelog)
+  - The Store section shows all products in a table with: name, category, price, stock status badge, and action buttons (toggle stock status, delete)
+  - Each section is only visible in the sidebar for the roles permitted to use it
+  - The sidebar is collapsible via a trigger button, same as the wiki sidebar
+
+  ## Out of scope
+  - Order management (comes with Task #13, Stripe Checkout & Cart)
+  - Adding or editing product details from Command (existing /store/products/new and detail pages handle that)
+  - Any new API endpoints beyond what already exists
+
+  ## Tasks
+
+  1. **Rename Dashboard → Command** — Update all user-facing text: header nav label to "CMD", page heading to "Command", route from /dashboard to /command with a redirect from the old path, any footer or other platform text that says "Dashboard".
+
+  2. **Command sidebar component** — Create a CommandSidebar component using the shadcn Sidebar primitives (same as AppSidebar). Sections: Overview (always), Store (admin/exec), Users (admin), Changelog (admin/exec/staff). Highlight the active section based on current route. Register /command/* routes in App.tsx and show the sidebar for all /command paths.
+
+  3. **Split Command page into sub-pages** — Refactor dashboard-page.tsx so each section (Overview, Users, Changelog) becomes its own focused component rendered at its sub-route. The main /command route renders Overview.
+
+  4. **Store Management section** — Build the /command/store page (admin/exec only) showing all products in a table. Each row has: product name, category, price, stock status toggle (calls PATCH /api/store/products/:id), and a delete button (calls DELETE /api/store/products/:id). Add the PATCH and DELETE endpoints to the server if missing.
+
+  ## Relevant files
+  - `client/src/pages/dashboard-page.tsx`
+  - `client/src/components/app-sidebar.tsx`
+  - `client/src/components/platform-header.tsx`
+  - `client/src/components/platform-footer.tsx`
+  - `client/src/App.tsx`
+  - `server/routes.ts`
+  - `shared/schema.ts:150-159`
+
+---
+
+### #15 — Store Analytics & Stats Suite
+
+> File: `store-analytics.md`
+
+# Store Analytics & Stats Suite
+
+  ## What & Why
+  Give admins, executives, and staff a rich visual view of store performance inside the Command Center. Charts and indicators make it easy to see product health, catalog composition, and stock availability at a glance. A compact preview widget on the main CMD overview surfaces the most important numbers without needing to navigate to the full stats page.
+
+  ## Done looks like
+  - A dedicated /command/store/stats page (or Stats tab within the Store section) shows:
+    - Stat cards: Total Products, In Stock, Sold Out, Total Catalog Value, Average Price
+    - Donut/pie chart: Stock status breakdown (available vs sold_out)
+    - Bar chart: Products by category (count per category)
+    - Bar chart: Price distribution (products bucketed by price range e.g. <$25, $25–$50, $50–$100, $100+)
+    - Horizontal bar or table: Top categories by total catalog value
+  - The main CMD Overview (/command) shows a compact Store Stats preview card with 3–4 key numbers and a mini donut chart (stock status), visible to admin/exec/staff
+  - A new /api/store/stats endpoint returns all computed numbers (totals, breakdowns by category and stock status, price ranges, catalog value)
+  - Charts use Recharts (already installed), styled to match the platform's light/dark theme using CSS variables
+  - The full stats page is only accessible to admin/exec; the preview card is visible to staff as well
+
+  ## Out of scope
+  - Revenue/sales data (no orders exist yet — that comes with Task #13)
+  - Real-time or time-series charts (no timestamped sales data yet)
+  - Inventory threshold alerts
+
+  ## Tasks
+
+  1. **Store stats API endpoint** — Add GET /api/store/stats (requireAuth, admin/exec/staff) that computes and returns: totalProducts, inStock, outOfStock, catalogValue, avgPrice, byCategory (array of {name, count, value}), byStockStatus, byPriceRange (bucketed). Derive everything from the existing products table.
+
+  2. **Full stats page** — Build the /command/store/stats page (or Stats tab in the Store section) with stat cards, a stock status donut chart, a products-by-category bar chart, and a price distribution bar chart. All charts use Recharts and adapt to light/dark mode via CSS variable colors.
+
+  3. **CMD overview preview widget** — Add a compact Store Stats card to the main /command overview visible to admin/exec/staff. Shows 3–4 key numbers (total products, in stock, out of stock, catalog value) and a mini donut chart. Clicking it links to the full stats page.
+
+  ## Relevant files
+  - `server/routes.ts:548-579`
+  - `server/storage.ts`
+  - `shared/schema.ts:150-159`
+  - `client/src/pages/dashboard-page.tsx`
+  - `client/src/App.tsx`
+
+---
+
+### #16 — Store Page Redesign (Shopify-style grid)
+
+> File: `store-redesign.md`
+
+# Store Page Redesign (Shopify-style grid)
+
+  ## What & Why
+  Redesign the SEVCO Store page to match the editorial, image-first layout of sevelovesyou.com/collections. The current store uses text-heavy cards. The new layout leads with product images, uses a 3–4 column grid, shows "Sold Out" overlaid on the image, has quick-action buttons on hover, and includes a proper sort & filter toolbar. This brings the platform store in line with the existing sevelovesyou.com brand experience.
+
+  ## Done looks like
+  - Products are displayed in a 3–4 column image-first grid (responsive: 2 columns on tablet, 1 on mobile)
+  - Each product card shows:
+    - A large square product image (or a styled branded placeholder when no image is uploaded)
+    - A "Sold Out" badge overlaid on the image when stock status is sold_out
+    - Quick-action buttons (View, Add to Cart) that appear on card hover
+    - Product name, category, and price below the image — clean, minimal
+  - A sort & filter toolbar sits above the grid with: sort dropdown (Featured, Price Low–High, Price High–Low, A–Z), and category filter pills/tabs
+  - Category pills replace the current tab-strip and are styled more boldly
+  - A "category banner" section at the top shows each unique category as a large clickable tile (image placeholder or color block) — clicking filters to that category
+  - Products schema gains an optional imageUrl text field; the product add/edit form gains an image URL input
+  - The overall aesthetic is white/clean with large imagery, matching the sevelovesyou.com tone
+
+  ## Out of scope
+  - Image uploading (URL input only for now; file upload comes later)
+  - The checkout/cart flow (Task #13)
+  - Any changes to the product detail page
+
+  ## Tasks
+
+  1. **Schema & API update** — Add imageUrl (optional text) to the products table and update insertProductSchema. No migration needed beyond db:push.
+
+  2. **Store page grid redesign** — Replace the current card layout with an image-first 3–4 column grid. Build the new ProductCard component with image area, sold-out overlay, hover quick-actions, and minimal text footer. Add the sort dropdown and category filter pill bar above the grid.
+
+  3. **Category banner section** — Add a horizontal scroll or grid of category tiles above the product grid. Each tile shows the category name with a color-coded or image background and filters the grid when clicked.
+
+  4. **Product form image field** — Add an Image URL input field to the add/edit product form so admins can attach a product image when creating or editing a product.
+
+  ## Relevant files
+  - `client/src/pages/store-page.tsx`
+  - `client/src/pages/store-product-form.tsx`
+  - `shared/schema.ts:150-159`
+  - `server/routes.ts:548-579`
+  - `server/storage.ts`
+
+---
+
+### #17 — Auto-generate Engineering Wiki Articles on Merge
+
+> File: `auto-wiki-engineering-articles.md`
+
+# Auto-generate Engineering Wiki Articles on Merge
+
+## What & Why
+Every time a task is merged in this Replit project, a detailed Engineering wiki article should be automatically created in the platform's wiki — no manual writing required. The article captures what was built, why, what "done" looks like, relevant files, and the original user prompt that triggered the work. All articles are attributed to the author "Peter".
+
+## Done looks like
+- After every task merge, a new article appears in the Engineering section of the wiki automatically, with no human intervention
+- Each article contains: a title matching the task, a summary, a structured body (What & Why, Done looks like, Out of scope, tasks/steps, relevant files), and the original user prompt that initiated the task under an "Origin / Request" section
+- Articles are attributed to "Peter" as the author
+- Articles are published immediately (not stuck in draft/pending review)
+- If an article with the same slug already exists, it is skipped or updated rather than duplicating
+- The system uses an internal secret (env var `WIKI_AUTO_ARTICLE_SECRET`) so no user login is needed from the script
+
+## Out of scope
+- AI-generated summaries or content beyond what the plan file and prompt contain
+- Retroactively creating articles for already-merged tasks (manual backfill, not automated)
+- Editing or deleting existing wiki articles via this system
+
+## Tasks
+1. **Prompt capture in task plan files** — When each task plan file is written to `.local/tasks/`, append an `## Origin / Request` section containing the exact user prompt that triggered the task. This ensures every plan file carries the originating request for later inclusion in the wiki article.
+
+2. **Internal article creation endpoint** — Add a `POST /api/internal/wiki-article` route to the Express server authenticated with an `x-internal-secret` header (checked against `WIKI_AUTO_ARTICLE_SECRET` env var). It accepts `{ title, slug, summary, content, tags }`, looks up the Engineering category ID, finds or creates the user account with username "Peter" (creating it as an admin if absent), and creates the article as published/approved attributed to that user. If an article with that slug already exists, update it instead.
+
+3. **Plan-to-article converter script** — Create `scripts/create-wiki-article.js` (Node.js, no extra deps). It accepts a single argument: the path to a task plan `.md` file. It reads and parses the file, derives a slug from the `#` title heading, includes the `## Origin / Request` section in the article body if present, formats the full content into a clean wiki article body, then POSTs to `http://localhost:5000/api/internal/wiki-article` using the `WIKI_AUTO_ARTICLE_SECRET` env var. It exits with code 0 on success or 1 on failure, printing a clear message either way.
+
+4. **Post-merge script integration** — Update `scripts/post-merge.sh` to run `scripts/create-wiki-article.js` after `npm run db:push`. It should find the most recently modified `.md` file in `.local/tasks/`, pass it to the converter script, and continue even if the article creation fails (use `|| true` so a wiki error never blocks a merge).
+
+5. **Environment secret** — Register `WIKI_AUTO_ARTICLE_SECRET` as an environment variable with a strong random value so the internal endpoint is protected.
+
+## Relevant files
+- `scripts/post-merge.sh`
+- `server/routes.ts`
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/seed.ts`
+- `.local/tasks/store-redesign.md`
+
+---
+
+### #18 — Remove sidebar Account button; link username/badge
+
+> File: `sidebar-account-cleanup.md`
+
+# Remove sidebar Account button; link username/badge
+
+## What & Why
+The wiki sidebar has a dedicated "Account" nav item that is redundant. Users should instead click their username or rank badge in the platform header to reach their account page — a more natural interaction that also declutters the sidebar navigation.
+
+## Done looks like
+- The "Account" entry is gone from the wiki sidebar navigation list
+- Clicking the username text in the platform header navigates to `/account`
+- Clicking the rank badge in the platform header also navigates to `/account`
+- Both are visually subtle (no button styling change needed, just make them clickable with a pointer cursor)
+
+## Out of scope
+- Any visual redesign of the header username or badge
+- Changes to any other navigation items in the sidebar
+
+## Tasks
+1. **Remove sidebar Account item** — Delete the Account entry from the `navItems` array in `app-sidebar.tsx`.
+
+2. **Make header username & badge clickable** — Wrap the rank badge `span` and username `span` in `platform-header.tsx` with a `Link` to `/account`. Add `cursor-pointer` styling so it's clear they are interactive.
+
+## Relevant files
+- `client/src/components/app-sidebar.tsx`
+- `client/src/components/platform-header.tsx`
+
+---
+
+### #19 — Auth Page Copy Tweak
+
+> File: `auth-copy-tweak.md`
+
+# Auth Page Copy Tweak
+
+  ## What & Why
+  Remove the "Welcome back" / "Create an account" heading from the login card and replace both mode-specific subtitles with a single static line: "Sign in or register for access".
+
+  ## Done looks like
+  - The CardTitle ("Welcome back" / "Create an account") is removed
+  - The CardDescription reads "Sign in or register for access" regardless of whether the user is on login or register mode
+
+  ## Out of scope
+  - Any layout or style changes to the auth page
+
+  ## Tasks
+  1. **Update auth-page.tsx** — Remove the CardTitle element and replace the mode-conditional CardDescription with the static string "Sign in or register for access".
+
+  ## Relevant files
+  - `client/src/pages/auth-page.tsx:69-76`
+
+---
+
+### #20 — Pre-publish Fixes — Cart, Stats Preview, Product Permissions, Partner Access
+
+> File: `pre-publish-fixes.md`
+
+# Pre-publish Fixes — Cart, Stats Preview, Product Permissions, Partner Access
+
+  ## Origin / Request
+  "fix all critical issues. Only admins and execs should be able to edit products. Don't show command to partners"
+
+  ## Summary
+  Four targeted fixes before publishing to production.
+
+  ---
+
+  ## Fix 1 — Cart cleared too early
+
+  **Problem:** `clearCart()` is called in `cart-drawer.tsx` the moment a Stripe checkout session is created (not when payment is confirmed). If the user cancels at Stripe, their cart is wiped. The cancel page copy is technically wrong as a result too.
+
+  **Fix:**
+  - `client/src/components/cart-drawer.tsx`: Remove `clearCart()` from the mutation's `onSuccess`. Keep the redirect to Stripe.
+  - `client/src/pages/store-success-page.tsx`: Import `useCart`, call `clearCart()` immediately inside the effect after `setStatus("success")` (payment confirmed).
+  - Cancel page copy is now correct as-is ("items are still waiting" is true after this fix).
+
+  ---
+
+  ## Fix 2 — StoreStatsPreview is on an orphaned page
+
+  **Problem:** Task #15 added `StoreStatsPreview` to `dashboard-page.tsx`, but `/dashboard` now redirects to `/command` and `dashboard-page.tsx` is never rendered. The widget is unreachable.
+
+  **Fix:**
+  - `client/src/pages/command-overview.tsx`: Extract and inline the `StoreStatsPreview` component (or import it from `dashboard-page.tsx` if it can be cleanly exported). Add it to `AdminOverview`, `ExecutiveOverview`, and `StaffOverview` sections, same as it appears in the dashboard views.
+  - Alternatively: cut the component from `dashboard-page.tsx` and put it at the top of the relevant admin/exec/staff sections in `command-overview.tsx`.
+
+  ---
+
+  ## Fix 3 — Only admins and execs can create/edit products
+
+  **Problem:** Backend `POST /api/store/products` uses `CAN_MANAGE_STORE` (admin + exec + **staff**), while `PATCH` and `DELETE` correctly use `CAN_MANAGE_STORE_PRODUCTS` (admin + exec only). Staff can create new products via API even though the user wants only admin/exec to manage products.
+
+  **Fix:**
+  - `server/routes.ts` line 575: Change `requireRole(...CAN_MANAGE_STORE)` → `requireRole(...CAN_MANAGE_STORE_PRODUCTS)` for the POST endpoint.
+  - `client/src/pages/store-page.tsx`: The "Add Product" button should only be shown to admin/exec (check current gating — update if it allows staff).
+  - `client/src/pages/store-product-form.tsx`: Same — ensure the form/page is gated to admin/exec, not staff.
+
+  ---
+
+  ## Fix 4 — Don't show Command to partners (or clients/users)
+
+  **Problem:** The CMD nav link appears for all authenticated users in the platform header. `command-overview.tsx` also renders a `StaffOverview` for `partner` role, and the footer shows a "Command" link unconditionally.
+
+  **Fix:**
+  - `client/src/components/platform-header.tsx`: Gate the CMD nav item to only render for admin, executive, or staff roles. Use the `role` from `usePermission()` (already imported).
+  - `client/src/components/platform-footer.tsx`: Gate the "Command" sitemap link the same way.
+  - `client/src/pages/command-overview.tsx` line 322: Remove `partner` from the `StaffOverview` display condition (`role === "staff"` only, not `|| role === "partner"`).
+  - `client/src/pages/command-page.tsx`: Add a redirect guard — if the current role is partner, client, or user, redirect to `/`.
+
+  ---
+
+  ## Relevant files
+  - `client/src/components/cart-drawer.tsx`
+  - `client/src/pages/store-success-page.tsx`
+  - `client/src/pages/store-cancel-page.tsx` (no code change needed, verify copy)
+  - `client/src/pages/command-overview.tsx`
+  - `client/src/pages/dashboard-page.tsx` (source of StoreStatsPreview)
+  - `client/src/pages/command-page.tsx`
+  - `client/src/components/platform-header.tsx`
+  - `client/src/components/platform-footer.tsx`
+  - `client/src/pages/store-page.tsx`
+  - `client/src/pages/store-product-form.tsx`
+  - `server/routes.ts`
+
+  ## Done looks like
+  - Cancelling out of Stripe keeps your cart intact
+  - Stats widget visible in Command Center for admin/exec/staff
+  - Staff cannot create, edit, or delete products (admin/exec only)
+  - CMD nav link hidden from partners, clients, and plain users
+  - Navigating to /command as a partner redirects away
+
+---
+
+### #21 — Email Verification for Auth (Task #21)
+
+> File: `email-verification.md`
+
+# Email Verification for Auth (Task #21)
+
+  ## Origin / Request
+  "it does not have you confirm an email when signing up or require one at all, can we make the auth a little more secure by adding these fairly standard features"
+
+  ## Summary
+  Add mandatory email collection on signup and a full email verification flow using the Resend integration (no manual API key needed — Replit connector handles it). Users must verify their email before they can log in.
+
+  ---
+
+  ## Email Service Setup
+  - Connect the **Resend** Replit integration (connector ID: `connector:ccfg_resend_01K69QKYK789WN202XSE3QS17V`)
+  - This gives the backend access to Resend credentials via the connector API (same pattern as Stripe)
+  - Create `server/emailClient.ts` — wraps Resend API for sending transactional emails
+
+  ---
+
+  ## Schema Changes (shared/schema.ts)
+  Add three new columns to the `users` table:
+  - `email_verified`: boolean, NOT NULL, default false
+  - `email_verification_token`: text, nullable
+  - `email_verification_expires`: timestamp, nullable
+  - `email` field stays nullable at DB level (existing users have no email on record), but required in the registration form
+
+  Run `db:push` after schema update.
+
+  ### Seed / startup migration
+  In `server/seed.ts` (already called on startup), add a step that sets `emailVerified = true` for the founder account (`severin@sevelovesyou.com`) and any other seeded accounts, so existing users aren't locked out.
+
+  ---
+
+  ## Backend Changes (server/auth.ts + server/routes.ts)
+
+  ### Registration (`POST /api/register`)
+  - Make `email` required in the Zod validation (not just optional)
+  - Check email uniqueness — reject if already taken
+  - On success: generate a secure random token (32-byte hex via `crypto.randomBytes`), store token + expiry (24 hours) on the new user record
+  - Send verification email via Resend with a link to `/verify-email?token=xxx`
+  - **Do NOT auto-login** — return 200 with `{ status: "pending_verification" }` instead of calling `req.login()`
+
+  ### Login (`POST /api/login`)
+  - After password check passes: if `emailVerified === false`, return HTTP 403 with body `{ code: "EMAIL_NOT_VERIFIED" }` instead of creating a session
+
+  ### New endpoint: `GET /api/verify-email?token=xxx`
+  - Look up user by token
+  - If not found or expired → 400 error
+  - If valid → set `emailVerified = true`, clear token fields, call `req.login(user)` to auto-login, return 200
+
+  ### New endpoint: `POST /api/resend-verification`
+  - Body: `{ email }`
+  - Find user by email; if already verified → return 200 (no-op)
+  - Generate new token + expiry, update user, re-send email
+  - Rate-limit: only resend if last token was issued > 60 seconds ago (use the expires field to check)
+
+  ---
+
+  ## Email Template
+  Plain but branded: SEVCO planet icon as text-based header, short copy, big CTA button linking to `/verify-email?token=xxx`. HTML + text fallback.
+
+  ---
+
+  ## Frontend Changes
+
+  ### auth-page.tsx
+  - Register mode: add **Email** field (required, before username) with proper autocomplete=`email`
+  - After successful registration response: show an inline "check your email" confirmation state instead of redirecting (stays on /auth, shows an envelope icon + message + resend link)
+  - Login mode: if API returns `EMAIL_NOT_VERIFIED` code, show specific inline error: "Please verify your email before signing in." with a "Resend verification email" link that triggers `POST /api/resend-verification`
+
+  ### New page: /verify-email (client/src/pages/verify-email-page.tsx)
+  - Reads `?token=` from URL query string
+  - On mount: calls `GET /api/verify-email?token=xxx`
+  - Loading state: spinner + "Verifying your email…"
+  - Success state: checkmark, "Email verified! You're now signed in." + redirect to `/` after 2 seconds
+  - Error state: X icon, "This link has expired or is invalid." + link back to /auth to resend
+  - Register route in App.tsx (no auth guard — user is not yet logged in when they click the link)
+
+  ### insertUserSchema update
+  - Extend to require email: `z.string().email("Please enter a valid email")`
+
+  ---
+
+  ## Relevant files
+  - `shared/schema.ts` — add 3 columns, update insertUserSchema
+  - `server/auth.ts` — registration, login, verify-email, resend-verification endpoints
+  - `server/emailClient.ts` — new file, Resend wrapper
+  - `server/seed.ts` — set emailVerified=true for founder + seeded users
+  - `server/storage.ts` — add getUserByEmail, getUserByVerificationToken, updateEmailVerified methods to IStorage + DatabaseStorage
+  - `client/src/pages/auth-page.tsx` — email field, post-register state, login error state
+  - `client/src/pages/verify-email-page.tsx` — new page
+  - `client/src/App.tsx` — register /verify-email route (unguarded)
+
+  ## Done looks like
+  - Registering requires email; duplicate email rejected cleanly
+  - After registering, user sees "check your email" on the auth page
+  - Clicking the link in the email verifies and auto-logs them in
+  - Logging in without verifying shows a clear error with a resend option
+  - Founder account and any pre-existing seeded users are auto-marked verified on server start
+  - Resend link works and is debounced to prevent spam
+
+---
+
+### #22 — Public Access + Mega-Menu Navigation (Task #22)
+
+> File: `public-access-mega-menu.md`
+
+# Public Access + Mega-Menu Navigation (Task #22)
+
+  ## Origin / Request
+  "I dont want to require sign in on landing, some pages will be public facing marketing pages... I would also like to update the menu with some dropdowns"
+
+  ## Summary
+  Two foundational changes that all other tasks depend on:
+  1. Remove the auth guard from public-facing pages (Home, Wiki, Store, Music, Projects and their read-only sub-pages)
+  2. Replace the flat nav bar with a multi-level mega-menu matching the Vercel-style dropdown design
+
+  ---
+
+  ## Part 1 — Public Access
+
+  Remove ProtectedRoute from the following routes in App.tsx (leave them in a plain Route):
+  - / (landing/home)
+  - /wiki, /wiki/:slug
+  - /music, /music/artists, /music/artists/:slug, /music/albums/:slug
+  - /store, /store/products/:slug
+  - /projects, /projects/:slug
+  - /listen (new, future task)
+  - /services (new, future task)
+  - /contact (new, future task)
+  - /about (redirect or wiki link, future task)
+  - /jobs, /jobs/:slug (new, future task)
+
+  Keep ProtectedRoute on:
+  - /edit/:slug, /new (article editing)
+  - /review (review queue)
+  - /account, /profile
+  - /store/products/new, /store/stats, /store/success, /store/cancel
+  - /music/artists/new, /music/albums/new
+  - /command/* (admin center)
+  - /projects/new, /projects/:slug/edit
+
+  Update PlatformHeader: currently the nav items link to protected pages. After this change, public users (not logged in) should see the nav and be able to browse. Hide management actions (like "Add Article", "Add Product") from unauthenticated users — these are already role-gated in individual pages, but double-check.
+
+  Also update ProtectedRoute: currently it redirects to /auth on any unauthenticated access. After this change, only truly protected routes should redirect.
+
+  ---
+
+  ## Part 2 — Mega-Menu Navigation
+
+  Replace the current flat APP_NAV list in platform-header.tsx with a multi-level dropdown mega-menu. Reference: Vercel.com Products dropdown — grouped items with icon + title + description, no border, clean white panel.
+
+  ### Navigation Structure
+
+  **Home** (dropdown)
+  - About → /wiki/company-overview (existing wiki article)
+  - Wiki → /wiki
+  - Contact → /contact (new page, Task #23)
+  - Account → /account
+  - Profile → /profile (new page, Task #24)
+  - Jobs → /jobs (new page, Task #25)
+
+  **Store** (dropdown, links to /store with category filter param)
+  - All Products → /store
+  - Collections → /store (section header, not a link)
+    - Apparel → /store?category=Apparel
+    - Games → /store?category=Games
+    - Grocery → /store?category=Grocery
+    - Health → /store?category=Health
+    - Music → /store?category=Music
+    - Books → /store?category=Books
+
+  **Services** (dropdown, Vercel mega-menu style)
+  - Links to /services (new page, Task #26)
+  - Show 6-8 placeholder service items grouped by category with icons
+  - Use lucide-react icons for each item
+
+  **Music** (dropdown)
+  - SEVCO RECORDS → /music (existing, will be redesigned in Task #27)
+  - Listen → /listen (new page, Task #27)
+  - Artists → /music/artists
+  - Playlists → /music/playlists (new page, Task #27)
+  - Submit → /music/submit (new page, Task #27)
+
+  **CMD** → /command (only visible to admin/executive/staff, no dropdown — keep as-is)
+
+  ### Mega-menu component design
+  - Use Radix UI NavigationMenu (already available via shadcn/ui) — it's built for this exact pattern
+  - Full-width panel drops down from header
+  - Services dropdown: 2-3 column grid layout like Vercel
+  - Home + Store + Music dropdowns: simple vertical list with icon, title, optional description
+  - Mobile: collapse all to a hamburger with accordion-style expandable sections
+  - Public users (logged out): show Home, Store, Services, Music dropdowns — hide CMD entirely
+  - Logged-in users: show all including CMD (if eligible role)
+
+  ### Store URL filter
+  Update store-page.tsx to read a `?category=` query param from the URL and pre-set the activeCategory filter on load. This makes the Store dropdown links functional without any backend changes.
+
+  ---
+
+  ## Relevant files
+  - client/src/App.tsx — remove ProtectedRoute from public routes
+  - client/src/components/platform-header.tsx — full mega-menu rewrite
+  - client/src/components/protected-route.tsx — no changes needed
+  - client/src/pages/store-page.tsx — read ?category= query param
+
+  ## Done looks like
+  - Visiting /wiki, /store, /music, /projects without being logged in shows the page (no redirect to /auth)
+  - Header shows mega-menu dropdowns on hover/click
+  - Store dropdown category links filter the store correctly
+  - Mobile hamburger works with expandable sections
+  - CMD link hidden from logged-out and partner/client/user roles
+
+---
+
+### #23 — Home Page Redesign + Contact Page (Task #23)
+
+> File: `home-contact-pages.md`
+
+# Home Page Redesign + Contact Page (Task #23)
+
+  ## Origin / Request
+  "The Home page will be more of a landing/marketing page for all things SEVCO... a new Contact page with an email form for support/inquiries, general contact information for SEVCO and the discord invite link"
+
+  ## Blocked by
+  Task #22 (public access + mega-menu) must merge first.
+
+  ## Summary
+  Redesign the home/landing page into a proper marketing page and build a new Contact page.
+
+  ---
+
+  ## Part 1 — Home Page Redesign (/
+
+  The current / route renders a landing page. Redesign it as a full marketing page covering all SEVCO verticals.
+
+  ### Sections (top to bottom):
+  1. **Hero** — Bold SEVCO wordmark + planet icon, tagline, two CTAs ("Explore the Wiki", "Shop the Store")
+  2. **Platform grid** — 4-6 cards showcasing Wiki, Store, Music, Projects, Services with brief descriptions and icons
+  3. **SEVCO RECORDS spotlight** — short music section with "Listen Now" CTA linking to /listen
+  4. **Store preview** — Featured/latest products (call GET /api/store/products, show first 4)
+  5. **Latest from the Wiki** — call GET /api/articles/recent, show 3 article cards
+  6. **Community/Join CTA** — Discord invite, Sign Up button (shown only to logged-out users)
+
+  Design: clean, editorial. Use existing SEVCO brand assets (planet icon, wordmark). Dark mode compatible.
+  The page should look great to a visitor who has never heard of SEVCO.
+
+  ---
+
+  ## Part 2 — Contact Page (/contact)
+
+  New public page at /contact.
+
+  ### Content:
+  1. **Page header** — "Get in Touch" heading + brief intro
+  2. **Contact form** — Name, Email, Subject (select: Support / Business Inquiry / Press / Other), Message. On submit: POST to a new backend endpoint POST /api/contact which sends an email to a configurable address using the existing Resend email client. Return success/error message inline.
+  3. **General contact info** — Discord invite link (with Discord icon from react-icons/si), social media links (Instagram @sevelovesyou, X @sevelovesu, TikTok @sevelovesu) matching the existing wiki Contact article
+  4. **Discord card** — Prominent "Join our Discord" card with SiDiscord icon and the invite link
+
+  ### Backend:
+  - POST /api/contact (public endpoint, no auth required)
+  - Validate: name (required), email (required, valid format), subject (required), message (required, min 10 chars)
+  - Rate limit: simple check — max 3 submissions per IP per hour (use an in-memory Map, reset every hour)
+  - Send email via existing sendVerificationEmail pattern in server/emailClient.ts — add a new sendContactEmail(name, email, subject, message) function that sends to a hardcoded address (use noreply@sevco.us as from, send TO sevco contact address — use hello@sevco.us as the recipient, or make it configurable via env var CONTACT_EMAIL)
+
+  ## Relevant files
+  - client/src/pages/landing-page.tsx (existing, redesign in place)
+  - client/src/pages/contact-page.tsx (new)
+  - client/src/App.tsx (register /contact as public route)
+  - server/emailClient.ts (add sendContactEmail function)
+  - server/routes.ts (add POST /api/contact)
+
+  ## Done looks like
+  - / shows the new SEVCO marketing page (no login required)
+  - /contact shows contact form, social links, Discord card
+  - Submitting the form sends an email and shows a success message
+  - Both pages work for logged-out visitors
+
+---
+
+### #24 — Profile Page with MySpace-Style Customization (Task #24)
+
+> File: `profile-page.md`
+
+# Profile Page with MySpace-Style Customization (Task #24)
+
+  ## Origin / Request
+  "a new Profile page that functions with accounts like a typical profile but, has the customization features like 'old myspace'"
+
+  ## Blocked by
+  Task #22 (public access + mega-menu) must merge first.
+
+  ## Summary
+  Build a public-facing user profile page at /profile/:username (viewable by anyone) with per-user customization — custom background, accent color, profile photo URL, bio, and social links. The /profile route (no username) shows the logged-in user's own profile in edit mode.
+
+  ---
+
+  ## Schema changes (shared/schema.ts)
+  Add new columns to the users table:
+  - displayName: text (already exists, use it)
+  - bio: text (already exists, use it)
+  - avatarUrl: text (nullable) — profile photo URL
+  - profileBgColor: text (nullable) — hex color for profile background
+  - profileAccentColor: text (nullable) — hex color for accent elements
+  - profileBgImageUrl: text (nullable) — optional background image URL
+  - socialLinks: jsonb (nullable) — { instagram, twitter, tiktok, discord, website }
+
+  Run db:push after schema update.
+
+  ---
+
+  ## Pages
+
+  ### /profile (own profile — requires auth, shows edit mode)
+  - Shows the logged-in user's profile with an "Edit Profile" panel
+  - Edit fields: Display Name, Bio, Avatar URL (with preview), Background Color picker, Accent Color picker, Background Image URL, Social Links (5 fields)
+  - Save via PATCH /api/profile (auth required)
+  - Live preview of customization changes as user edits
+
+  ### /profile/:username (public profile)
+  - Public, no auth required
+  - Displays: avatar (or planet icon fallback), display name, username, role badge, bio, social links
+  - Background and accent colors applied from user's settings
+  - Shows user's recent wiki contributions (GET /api/articles?author=username if available, else hide section)
+  - If viewing own profile: shows "Edit Profile" button
+
+  ---
+
+  ## Backend
+  - GET /api/profile/:username — public, returns user profile fields (exclude password, tokens)
+  - PATCH /api/profile — auth required, validates and updates profile fields
+    - Validate avatarUrl and profileBgImageUrl as URLs if provided
+    - Sanitize bio (strip HTML)
+
+  ## Relevant files
+  - shared/schema.ts — add profile columns
+  - server/storage.ts — add getUserByUsername (may already exist), updateUserProfile
+  - server/routes.ts — add GET /api/profile/:username and PATCH /api/profile
+  - client/src/pages/profile-page.tsx (new)
+  - client/src/pages/profile-edit-page.tsx (or inline edit panel)
+  - client/src/App.tsx — /profile and /profile/:username routes
+
+  ## Done looks like
+  - /profile (logged in) shows your profile with editable fields
+  - /profile/severin shows a public profile with SEVCO branding
+  - Background color, accent color, avatar all apply visually
+  - Social links show with correct icons
+  - Visiting /profile logged-out shows the page (no redirect)
+
+---
+
+### #25 — Jobs Page — Listings, Details & Applications (Task #25)
+
+> File: `jobs-page.md`
+
+# Jobs Page — Listings, Details & Applications (Task #25)
+
+  ## Origin / Request
+  "a Jobs page where new available contracts/jobs are listed when they become available, users can apply and view job details page for every position as long as they have a SEVCO account"
+
+  ## Blocked by
+  Task #22 (public access + mega-menu) must merge first.
+
+  ## Summary
+  Build a jobs board with public listing page, individual job detail pages, and an application form for logged-in users. Admin/exec can post and manage jobs from the Command Center.
+
+  ---
+
+  ## Schema changes (shared/schema.ts)
+
+  ### jobs table
+  - id: integer PK
+  - title: text notNull
+  - slug: text notNull unique
+  - type: text notNull (Contract / Part-time / Full-time / Freelance)
+  - department: text (Engineering / Design / Music / Operations / Marketing)
+  - location: text (Remote / On-site / Hybrid)
+  - description: text (markdown content)
+  - requirements: text (markdown)
+  - compensation: text (optional, e.g. "Negotiable" or "$50-80/hr")
+  - status: text default 'open' (open / closed / draft)
+  - createdAt: timestamp
+
+  ### jobApplications table
+  - id: integer PK
+  - jobId: integer FK → jobs.id
+  - userId: varchar FK → users.id
+  - coverLetter: text
+  - portfolioUrl: text (optional)
+  - status: text default 'pending' (pending / reviewing / accepted / rejected)
+  - createdAt: timestamp
+
+  Run db:push after schema changes.
+
+  ---
+
+  ## Pages
+
+  ### /jobs (public listing page)
+  - Shows all open jobs grouped by department or listed with type/location badges
+  - Each job card: title, type badge, department, location, brief description excerpt
+  - Filter by type and department (client-side)
+  - "View Details" button → /jobs/:slug
+  - Logged-out users see jobs but "Apply" prompts them to sign in
+
+  ### /jobs/:slug (public job detail page)
+  - Full job description (rendered markdown)
+  - Requirements section
+  - Compensation, type, location, department tags
+  - Apply button (only for logged-in users with a SEVCO account)
+  - If already applied: show "Application Submitted" status
+
+  ### Application form (modal or inline on /jobs/:slug for logged-in users)
+  - Cover letter textarea (required, min 50 chars)
+  - Portfolio URL (optional)
+  - Submit → POST /api/jobs/:id/apply
+
+  ---
+
+  ## Backend (server/routes.ts + storage.ts)
+  - GET /api/jobs — public, returns open jobs
+  - GET /api/jobs/:slug — public, returns job detail
+  - POST /api/jobs/:id/apply — auth required, creates application (one per user per job)
+  - GET /api/jobs/:id/applications — admin/exec only, returns all applications for a job
+  - POST /api/jobs — admin/exec only, create job
+  - PATCH /api/jobs/:id — admin/exec only, update job
+  - DELETE /api/jobs/:id — admin/exec only, delete job
+
+  ## Command Center integration
+  Add a "Jobs" section to command-sidebar.tsx and a command-jobs.tsx page (admin/exec only) that lists all jobs with status toggles and application counts.
+
+  ## Seed data
+  Seed 2-3 placeholder job listings on first run (gate on jobs table being empty) so the page isn't blank.
+
+  ## Relevant files
+  - shared/schema.ts — jobs + jobApplications tables
+  - server/storage.ts — job CRUD + application methods
+  - server/routes.ts — job API endpoints
+  - client/src/pages/jobs-page.tsx (new)
+  - client/src/pages/job-detail-page.tsx (new)
+  - client/src/pages/command-jobs.tsx (new, admin management)
+  - client/src/components/command-sidebar.tsx (add Jobs link)
+  - client/src/App.tsx — /jobs and /jobs/:slug routes (public), /command/jobs (protected)
+
+  ## Done looks like
+  - /jobs shows open positions (no login required to view)
+  - /jobs/:slug shows full job detail
+  - Logged-in users can apply; applying twice shows "already applied"
+  - Admin can post, edit, and close jobs from the Command Center
+
+---
+
+### #26 — Services Page + Mega-Menu (Task #26)
+
+> File: `services-page.md`
+
+# Services Page + Mega-Menu (Task #26)
+
+  ## Origin / Request
+  "A new menu dropdown called 'Services' which links to a comprehensive services page. Services will be divided into the same categories as the wiki, add some placeholder services with icons in the dropdown just like the Vercel.com landing page mega-menu"
+
+  ## Blocked by
+  Task #22 (public access + mega-menu) must merge first.
+
+  ## Summary
+  Build a comprehensive Services page at /services and populate the Services mega-menu dropdown (scaffolded in Task #22) with real grouped service items and icons.
+
+  ---
+
+  ## Services Page (/services)
+
+  Public page, no auth required.
+
+  ### Layout
+  Full-width marketing page similar to Vercel's Products page:
+  1. **Hero** — "What We Do" heading, short SEVCO services overview paragraph
+  2. **Service categories** — Each wiki category maps to a service section:
+     - Company (company-level services/consulting)
+     - Operations (operational services)
+     - Sales (sales support)
+     - Design (design/creative services)
+     - Engineering (technical/dev services)
+     - Support (support services)
+     - Marketing (marketing/content)
+  3. Each category section has: category heading + 3-4 service cards
+  4. Each service card: icon (lucide-react), service name, 1-line description
+  5. CTA at the bottom: "Interested in working with us?" → links to /contact
+
+  ### Placeholder services (examples, can be refined later)
+  Use wiki category names as groupings:
+  - **Engineering**: Platform Development, API Integration, Technical Consulting, Custom Automation
+  - **Design**: Brand Identity, UI/UX Design, Motion Graphics, Design Systems
+  - **Marketing**: Content Strategy, Social Media Management, Growth Consulting, Campaign Creative
+  - **Operations**: Project Management, Process Optimization, Vendor Management, Reporting
+  - **Sales**: Sales Strategy, Partnership Development, Pricing Consulting
+  - **Support**: Dedicated Support, SLA Management, Onboarding
+
+  ---
+
+  ## Mega-menu dropdown content (updates to Task #22's scaffold)
+
+  The Services dropdown should show a 2-3 column Vercel-style panel:
+  - Column 1: Engineering + Design services (2 items each with icon + name + tagline)
+  - Column 2: Marketing + Operations services  
+  - Column 3: Sales + Support services
+  - "View all services →" link at the bottom of the panel
+
+  Each item in the dropdown: icon (20px) | Service Name (bold) | One-line tagline
+
+  ---
+
+  ## Relevant files
+  - client/src/pages/services-page.tsx (new)
+  - client/src/components/platform-header.tsx (update Services dropdown items — Task #22 creates the shell, this fills the content)
+  - client/src/App.tsx — /services public route
+
+  ## Done looks like
+  - /services shows a clean, well-organized services marketing page
+  - Services dropdown shows grouped items with icons like Vercel's mega-menu
+  - All services link appropriately to the full /services page
+  - Page is fully public (no auth required)
+
+---
+
+### #27 — Music Expansion — SEVCO RECORDS, Listen, Playlists, Submit (Task #27)
+
+> File: `music-expansion.md`
+
+# Music Expansion — SEVCO RECORDS, Listen, Playlists, Submit (Task #27)
+
+  ## Origin / Request
+  "Under Music: a SEVCO RECORDS marketing page, a Listen page [short slug for bio link], an Artists page, a Playlists page with playlist submission form, and a Submit page where anyone can submit their music to SEVCO RECORDS"
+
+  ## Blocked by
+  Task #22 (public access + mega-menu) must merge first.
+
+  ## Summary
+  Expand the music section with new marketing and community pages. The existing /music page will be redesigned into the SEVCO RECORDS label marketing page. New pages: /listen (bio link), /music/playlists, /music/submit.
+
+  ---
+
+  ## Part 1 — /music redesign (SEVCO RECORDS marketing page)
+
+  Redesign the existing music-page.tsx into a full SEVCO RECORDS label marketing page:
+  - Hero: "SEVCO RECORDS" in large display type with the violet gradient treatment, record label tagline
+  - "Our Artists" section — grid of artist cards (from existing /api/music/artists)
+  - "Latest Releases" section — album cards (from existing /api/music/albums)
+  - "Submit Your Music" CTA → /music/submit
+  - "Listen Now" CTA → /listen
+  - "Our Playlists" teaser → /music/playlists
+
+  ---
+
+  ## Part 2 — /listen (short bio-link page)
+
+  Short slug, designed as a standalone link-in-bio page for social media.
+
+  Layout: centered, minimal, SEVCO RECORDS branded
+  - Planet icon + SEVCO RECORDS wordmark
+  - Prominent music streaming links as large buttons (Spotify, Apple Music, SoundCloud, YouTube Music) — these will be placeholder links initially, configurable via environment or a settings table
+  - "View All Artists" → /music/artists
+  - "Submit Music" → /music/submit
+  - Social media links row
+
+  No auth required. This is the page that goes in the Instagram bio.
+
+  ---
+
+  ## Part 3 — /music/playlists
+
+  ### Schema additions (shared/schema.ts)
+  New playlists table:
+  - id: integer PK
+  - title: text notNull
+  - slug: text notNull unique
+  - description: text
+  - platform: text (Spotify / Apple Music / YouTube / SoundCloud)
+  - playlistUrl: text notNull (external link)
+  - coverImageUrl: text (optional)
+  - isOfficial: boolean default true
+  - createdAt: timestamp
+
+  ### New musicSubmissions table (used by both Playlists and Submit pages)
+  - id: integer PK  
+  - submitterName: text notNull
+  - submitterEmail: text notNull
+  - userId: varchar FK → users.id (nullable, set if logged in)
+  - artistName: text notNull
+  - trackTitle: text notNull
+  - trackUrl: text notNull (SoundCloud, Spotify, YouTube, etc.)
+  - genre: text
+  - notes: text (optional)
+  - type: text default 'label' (label / playlist — which submission form it came from)
+  - status: text default 'pending' (pending / reviewed / accepted / rejected)
+  - createdAt: timestamp
+
+  Run db:push.
+
+  ### Playlists page (/music/playlists)
+  Public page:
+  - Grid of official SEVCO RECORDS playlists with cover image, title, platform badge
+  - Each card links to the external playlist
+  - "Suggest Your Music to Our Playlists" section at the bottom with a submission form
+  - Submission form: Artist Name, Track Title, Track URL, Genre (select), Notes (optional)
+  - POST /api/music/submissions (type: 'playlist') — no auth required (name + email collected in form)
+
+  Seed 2-3 placeholder playlists so the page isn't empty.
+
+  ---
+
+  ## Part 4 — /music/submit (SEVCO RECORDS A&R submission)
+
+  Public page but requires a SEVCO account to submit (shows sign-up prompt if logged out).
+
+  Page sections:
+  - Header: "Submit to SEVCO RECORDS" with brief description of what the label looks for
+  - What we're looking for: genre preferences, quality standards (placeholder copy)
+  - Submission form (logged-in users only):
+    - Artist Name, Track Title, Track URL (required)
+    - Genre, Notes
+    - Agreement checkbox: "I confirm this is original content and I own the rights"
+  - POST /api/music/submissions (type: 'label')
+  - Success: "Your submission has been received. We'll be in touch if it's a fit."
+
+  ## Backend
+  - GET /api/music/playlists — public
+  - POST /api/music/playlists — admin/exec only
+  - POST /api/music/submissions — public (playlist submissions) or auth required (label submissions, enforce in route)
+  - GET /api/music/submissions — admin/exec only (view all submissions)
+
+  ## Command Center
+  Add basic submissions view to command-store or a new command-music.tsx (admin/exec) showing pending submissions with status update capability.
+
+  ## Relevant files
+  - shared/schema.ts — playlists + musicSubmissions tables
+  - server/storage.ts — playlist + submission CRUD
+  - server/routes.ts — music playlist + submission endpoints
+  - client/src/pages/music-page.tsx (redesign as SEVCO RECORDS marketing page)
+  - client/src/pages/listen-page.tsx (new, at /listen)
+  - client/src/pages/music-playlists-page.tsx (new)
+  - client/src/pages/music-submit-page.tsx (new)
+  - client/src/App.tsx — new routes: /listen (public, registered BEFORE /wiki etc), /music/playlists, /music/submit
+
+  ## Done looks like
+  - /music is a polished SEVCO RECORDS label page
+  - /listen is a clean bio-link page ready to go in Instagram bio
+  - /music/playlists shows playlists + submission form
+  - /music/submit shows A&R submission form (requires SEVCO account)
+  - Submissions visible to admin in Command Center
+
+---
+
+### #28 — Projects Mega-Menu + Project & Service Marketing Pages (Task #28)
+
+> File: `projects-megamenu-marketing.md`
+
+# Projects Mega-Menu + Project & Service Marketing Pages (Task #28)
+
+  ## Origin / Request
+  "I would also like to add a dropdown to Projects with a similar mega-menu design to services, here will be things like SPHERE, SEVClaw, Minecraft but please also add some placeholder projects so we can see the menu at work, also create a system for making public detail pages/marketing pages for every project and service"
+
+  ## Blocked by
+  Task #22 (Public access + Mega-menu navigation) — must merge first (builds the nav shell this extends)
+  Task #26 (Services page) — must merge first (provides the /services foundation this extends with detail pages)
+
+  ## Summary
+  Three things:
+  1. Add a Projects dropdown to the mega-menu (extending Task #22's nav shell)
+  2. Build a rich public marketing page system for individual projects (/projects/:slug redesigned)
+  3. Build individual service marketing pages (/services/:slug)
+  Seed named placeholder projects so the menu and pages are immediately populated.
+
+  ---
+
+  ## Part 1 — Schema Additions (shared/schema.ts)
+
+  ### Extend the projects table with marketing fields
+  Add new optional columns to the existing projects table (all nullable so existing rows are unaffected):
+  - heroImageUrl: text (optional full-width hero image)
+  - logoUrl: text (optional project logo/icon URL)  
+  - longDescription: text (markdown — detailed about/mission content for the marketing page)
+  - tags: text().array() (tech stack, genre, or topic tags — e.g. ["Minecraft", "Game", "Community"])
+  - category: text (Game / Platform / App / Label / Media / Other — for grouping in the dropdown)
+  - featured: boolean default false (whether to feature in the mega-menu)
+  - launchDate: text (optional, e.g. "2024" or "Coming Soon")
+  - galleryUrls: text().array() (optional screenshot/artwork URLs for the marketing page)
+
+  ### New services table (shared/schema.ts)
+  - id: integer PK generatedAlwaysAsIdentity
+  - name: text notNull
+  - slug: text notNull unique
+  - category: text notNull (Engineering / Design / Marketing / Operations / Sales / Support)
+  - tagline: text (one-liner shown in mega-menu dropdown)
+  - description: text (markdown, full service description for the detail page)
+  - iconName: text (lucide-react icon name, e.g. "Code2", "Palette", "Megaphone")
+  - status: text default 'active' (active / archived)
+  - featured: boolean default false (whether to show in the mega-menu)
+  - createdAt: timestamp defaultNow
+
+  Run db:push after schema changes.
+
+  ---
+
+  ## Part 2 — Seed Data
+
+  ### Seed placeholder projects (in server/seed.ts, gate on projects count === 0)
+  1. **SPHERE** — category: Platform, status: active, featured: true
+     - tagline: "The SEVCO ecosystem platform"
+     - tags: ["Platform", "Web", "Community"]
+  2. **SEVClaw** — category: App, status: in-development, featured: true
+     - tagline: "Creative tools for the SEVCO community"
+     - tags: ["App", "Creative", "Tools"]
+  3. **Minecraft** — category: Game, status: active, featured: true
+     - tagline: "The official SEVCO Minecraft community"
+     - tags: ["Game", "Community", "Minecraft"]
+  4. **SEVCO Records** — category: Label, status: active, featured: true
+     - tagline: "Independent music label and A&R"
+     - tags: ["Music", "Label", "A&R"]
+  5. **SEV Store** — category: Platform, status: active, featured: false
+     - tagline: "The SEVCO merchandise and digital store"
+     - tags: ["Store", "E-commerce"]
+
+  ### Seed placeholder services (in server/seed.ts, gate on services count === 0)
+  Seed 12-15 services across all 6 categories:
+  - Engineering (3): Platform Development, API Integration, Technical Consulting
+  - Design (3): Brand Identity, UI/UX Design, Creative Direction
+  - Marketing (3): Content Strategy, Social Media, Growth Consulting
+  - Operations (2): Project Management, Process Optimization
+  - Sales (2): Partnership Development, Sales Strategy
+  - Support (2): Dedicated Support, Onboarding
+
+  ---
+
+  ## Part 3 — Projects Mega-Menu Dropdown
+
+  Add a "Projects" item to the mega-menu in platform-header.tsx (Task #22 builds the nav shell, this extends it).
+
+  ### Design: same Vercel mega-menu panel style as Services
+  - Panel shows featured projects (where featured = true) with icon/logo, name, tagline
+  - Use project category badge color-coded with a small dot
+  - Grouped loosely: "Active" projects at top, "In Development" below with a subtle badge
+  - "View all projects →" link to /projects at the bottom
+  - If logoUrl exists: show it (small 24px square); otherwise show a category-colored dot/icon
+  - Max 6 items in dropdown to keep it clean
+
+  ### Nav position
+  Insert between "Music" and "CMD" in the nav order:
+  Home | Store | Services | Projects | Music | CMD
+
+  ---
+
+  ## Part 4 — Project Marketing Pages (/projects/:slug redesign)
+
+  Redesign the existing project-detail.tsx into a polished public marketing page. Keep the same route (/projects/:slug) but transform the layout:
+
+  ### New layout sections:
+  1. **Hero** — Full-width hero (heroImageUrl if set, else gradient with category color), project name in display type, tagline/description, status badge, website CTA button
+  2. **About** — longDescription rendered as markdown (react-markdown or simple paragraph blocks)
+  3. **Tags / Tech** — tag pills row
+  4. **Gallery** — if galleryUrls has items: horizontal scroll image strip
+  5. **Team Lead** — if set: "Led by [teamLead]" with a person icon
+  6. **Related Wiki** — if relatedWikiSlugs set: cards linking to wiki articles
+  7. **Other SEVCO Projects** — 3-card row of other featured projects (cross-promotion)
+  8. **CTA** — "Learn more" / "Visit site" button + "Back to all projects" link
+
+  ### Public access
+  /projects/:slug should be public (Task #22 handles removing the auth guard).
+  Management actions (Edit, Delete) remain visible only to admin/exec/staff via role check — same as current implementation, just now the page itself is publicly accessible.
+
+  ---
+
+  ## Part 5 — Service Detail Pages (/services/:slug)
+
+  ### Backend
+  - GET /api/services — public, returns all active services
+  - GET /api/services/:slug — public, returns single service detail
+  - POST /api/services — admin/exec only, create service
+  - PATCH /api/services/:slug — admin/exec only, update service
+  - DELETE /api/services/:slug — admin/exec only, delete service
+
+  Add corresponding methods to IStorage + DatabaseStorage in server/storage.ts.
+
+  ### Service detail page (/services/:slug)
+  New public page client/src/pages/service-detail-page.tsx:
+  1. **Hero** — Service name, category badge, tagline, icon (rendered large from iconName)
+  2. **Description** — Full markdown description
+  3. **What's included** — placeholder bullet points (can be part of the description markdown)
+  4. **CTA** — "Interested in this service?" → links to /contact
+  5. **Other services in this category** — 3-card row of related services
+
+  ### Services listing page updates (/services from Task #26)
+  Each service card on the /services listing page should now link to /services/:slug (detail page).
+
+  ---
+
+  ## Admin management
+  Add services management to the Command Center:
+  - command-sidebar.tsx: add "Services" link (admin/exec only)
+  - client/src/pages/command-services.tsx: table of all services with edit/delete + "Add Service" button
+  - Service form: name, slug (auto-generated), category (select), tagline, description (textarea), iconName, status, featured toggle
+
+  Similarly for projects — the existing /command/projects or the edit page already handles this, but update it to include the new fields (heroImageUrl, logoUrl, longDescription, tags, category, featured, launchDate, galleryUrls).
+
+  ---
+
+  ## Routing additions (App.tsx)
+  - /services/:slug — public (add BEFORE the /services base route if slug route is more specific)
+  - /projects/:slug — already exists, remove ProtectedRoute (handled by Task #22)
+  - /command/services — protected (admin/exec)
+
+  ---
+
+  ## Relevant files
+  - shared/schema.ts — extend projects table + new services table
+  - server/storage.ts — service CRUD methods + extended project fields
+  - server/routes.ts — service API endpoints
+  - server/seed.ts — seed placeholder projects + services
+  - client/src/components/platform-header.tsx — add Projects dropdown to mega-menu
+  - client/src/pages/project-detail.tsx — full redesign as marketing page
+  - client/src/pages/service-detail-page.tsx (new)
+  - client/src/pages/services-page.tsx — update cards to link to /services/:slug (from Task #26)
+  - client/src/pages/command-services.tsx (new admin management)
+  - client/src/components/command-sidebar.tsx — add Services link
+  - client/src/App.tsx — /services/:slug route
+
+  ## Done looks like
+  - Projects dropdown appears in the mega-menu showing SPHERE, SEVClaw, Minecraft, etc.
+  - /projects/sphere loads a polished marketing page with hero, description, gallery
+  - /services/brand-identity loads a service detail page with full description and contact CTA
+  - /services listing page links to individual service pages
+  - Admin can manage services from the Command Center
+  - New projects seeded and visible in the menu immediately
+
+---
+
+### #29 — Projects Dropdown Style Alignment
+
+> File: `projects-dropdown-style-fix.md`
+
+# Projects Dropdown Style Alignment
+
+## What & Why
+The Projects dropdown in the platform header has a different visual style from the other nav dropdowns (Home, Music, Store, Services). The others use a consistent icon + title + description row pattern with the `DropdownPanel` wrapper component. The Projects dropdown uses project logo images or small colored circles instead, and inlines its own panel wrapper. This inconsistency is jarring.
+
+## Done looks like
+- The Projects dropdown uses the same `DropdownPanel` wrapper component as all other dropdowns
+- Each project row shows a consistent Lucide icon (mapped from category, e.g. `Folder` for Other, `Code2` for Platform/App, `Music` for Label, `Palette` for Design, `TrendingUp` for Media, etc.) in place of project logos or colored circles
+- The icon + project name + description layout matches the style of HomeDropdown and MusicDropdown exactly
+- The "In Development" section and "View all projects" footer link are preserved as-is
+- The "Soon" badge next to in-development projects is preserved
+
+## Out of scope
+- Changing any other dropdown
+- Changing project data or the API
+- Mobile navigation changes
+
+## Tasks
+1. Replace the inline panel `<div>` in `ProjectsDropdown` with the `<DropdownPanel>` component already used by the other dropdowns.
+2. Replace the per-project logo/circle rendering with a Lucide icon chosen by category (using a mapping similar to `CATEGORY_COLORS` or `SERVICE_ICON_MAP`), matching the `h-4 w-4 text-muted-foreground mt-0.5 shrink-0` style of other dropdowns.
+
+## Relevant files
+- `client/src/components/platform-header.tsx:355-460`
+
+---
+
+### #30 — Bug Fixes & Quick UI Wins
+
+> File: `t28-bug-fixes-quick-wins.md`
+
+# Bug Fixes & Quick UI Wins
+
+## What & Why
+Fix a collection of small bugs and polish issues reported by the user — permissions errors, session bugs, layout problems, and navigation polish. These are all self-contained fixes that don't require new schemas or major feature work.
+
+## Done looks like
+- Music submission no longer returns 401 when a logged-in user tries to submit — the session check is fixed to use Passport's `req.user` instead of `req.session.userId`
+- Job listing PATCH and DELETE routes in CMD work for both admin and executive roles — the `requireRole` call is fixed to spread the array correctly
+- Featured job cards on the Jobs page have proper spacing between them (not cramped)
+- Cart icon appears in the platform header nav, opens the existing cart drawer when clicked
+- Footer "Contact" link in the bottom-right policy bar is moved to the last position in the list and links to `/contact` instead of a wiki article
+- Home page hero: SEVCO wordmark logo is removed (redundant with menu bar), planet icon is larger, logos display in black on light backgrounds and white on dark backgrounds using `dark:invert`
+- Account page (`/account`) no longer shows the wiki sidebar — `WIKI_PREFIXES` is updated to exclude `/account`
+
+## Out of scope
+- Any new database tables or schema changes
+- Profile banner image editing (separate task)
+- Footer sitemap restructure (separate task)
+
+## Tasks
+1. **Fix music submission 401** — Replace `req.session?.userId` check in the `/api/music/submissions` POST route with `req.isAuthenticated()` and `req.user?.id` to align with Passport's session model.
+
+2. **Fix job route permissions** — In `server/routes.ts`, change `requireRole(CAN_MANAGE_JOBS)` to `requireRole(...CAN_MANAGE_JOBS)` (spread) for PATCH and DELETE job routes so the role array is correctly unpacked.
+
+3. **Jobs page card spacing** — Add appropriate gap/margin between featured job cards on the public Jobs page so they are not cramped.
+
+4. **Cart icon in header** — Add a cart icon button to `platform-header.tsx` that opens the existing `CartDrawer`. Show a badge with item count when cart is non-empty.
+
+5. **Footer contact link fix** — Move the "Contact" link to last in the bottom policy bar and point it to `/contact`.
+
+6. **Home hero cleanup** — Remove the SEVCO wordmark from the hero section, increase the planet icon size, and ensure logos use `dark:invert` so they display correctly in both light and dark modes.
+
+7. **Account page sidebar fix** — Remove `/account` from `WIKI_PREFIXES` in `App.tsx` so the wiki sidebar no longer appears on the account settings page.
+
+## Relevant files
+- `server/routes.ts:1150-1175,1255-1270`
+- `client/src/App.tsx:61`
+- `client/src/components/platform-header.tsx`
+- `client/src/components/platform-footer.tsx`
+- `client/src/pages/landing.tsx`
+- `client/src/pages/jobs-page.tsx`
+- `client/src/components/cart-drawer.tsx`
+- `client/src/hooks/use-cart.tsx`
+
+---
+
+### #31 — Profile & User Admin Enhancements
+
+> File: `t29-profile-user-enhancements.md`
+
+# Profile & User Admin Enhancements
+
+## What & Why
+Extend the profile system so users can personalize their banner image, add a Profile shortcut to the account dropdown, and give admins the ability to change any user's username from CMD.
+
+## Done looks like
+- A "Profile" link appears in the user dropdown (top-right of the platform header) for logged-in users, linking to their own profile at `/profile/:username`
+- On a user's own profile page, an "Edit Banner" button lets them set a banner image URL, which is saved and displayed as the full-width background image at the top of the profile
+- In CMD → Users, admin users see a "Change Username" action for each user row that opens a small inline form or modal — on save, the username is updated in the DB and reflected everywhere
+- The `users` table retains the same structure; `username` is already a column; only a new PATCH route or extension of the existing user update endpoint is needed
+
+## Out of scope
+- Profile photo (avatar) editing (not requested)
+- The social Feed or follow system (separate task)
+- File upload for banner — use a URL input (keep it simple)
+
+## Tasks
+1. **Profile link in header dropdown** — Add a "My Profile" link to the authenticated user dropdown menu in `platform-header.tsx` that navigates to `/profile/{username}`.
+
+2. **Banner image editing on profile** — Add a `bannerImageUrl` column to the `users` table (via `db:push`). On the user's own profile page, show an "Edit Banner" button that opens a URL input; save via a PATCH to the existing `/api/user` or a new route. Display the banner across the top of the profile.
+
+3. **Admin username change in CMD** — In the CMD Users page, add a "Change Username" option per user row (admin only). Wire it to a PATCH endpoint that updates the username, enforcing uniqueness.
+
+## Relevant files
+- `client/src/components/platform-header.tsx`
+- `client/src/pages/profile-page.tsx`
+- `client/src/pages/command-users.tsx`
+- `server/routes.ts`
+- `shared/schema.ts`
+- `server/storage.ts`
+
+---
+
+### #32 — Footer Redesign & Social Links Admin
+
+> File: `t30-footer-social-links-admin.md`
+
+# Footer Redesign & Social Links Admin
+
+## What & Why
+The footer sitemap is out of date and doesn't reflect the platform's current pages. Social links on the contact page have spacing issues. Admins also need the ability to manage the social link list (icon, label, URL) from CMD rather than hardcoding them — these changes apply both to the contact page's social section and the footer's "Follow Us" section.
+
+## Done looks like
+- Footer "Platform" sitemap section includes all current platform pages (Home, Wiki, Music, Listen, Store, Projects, Services, Jobs, Contact) organized to mirror the top mega-menu structure
+- Footer displays a "Connect" or similar section listing social links pulled from the DB (dynamic), with icon, label, and URL per entry
+- Contact page social cards have correct spacing and use the same dynamic social links from the DB
+- A new CMD page (admin/exec) lets authorized users add, edit, reorder, and delete social link entries — each with icon name (from `lucide-react` or `react-icons/si`), label, URL, and a `showInFooter` / `showOnContact` toggle
+- Footer link "Contact" is correctly linked to `/contact` and placed last in its list (or this is handled in Task #28)
+
+## Out of scope
+- Changing the font/branding of the footer beyond layout
+- Footer social icons for platforms not in the existing list
+
+## Tasks
+1. **Social links database table** — Add a `socialLinks` table to the schema with fields: `id`, `platform` (label), `url`, `iconName`, `displayOrder`, `showInFooter`, `showOnContact`. Seed with the current hardcoded social links. Run `db:push`.
+
+2. **API routes for social links** — Add GET `/api/social-links` (public), POST/PATCH/DELETE `/api/social-links/:id` (admin/exec only).
+
+3. **Footer sitemap update** — Restructure the footer's Platform nav to include all current pages, organized to mirror the top mega-menu. Pull social links dynamically from the API instead of hardcoding.
+
+4. **Contact page social card fix** — Fix the spacing/layout of social cards on the contact page and replace the hardcoded list with the dynamic social links from the API.
+
+5. **CMD social links management page** — Create `/command/social-links` with a table of all social link entries and inline add/edit/delete controls. Add it to the command sidebar (admin/exec only).
+
+## Relevant files
+- `client/src/components/platform-footer.tsx`
+- `client/src/pages/contact-page.tsx`
+- `client/src/components/command-sidebar.tsx`
+- `client/src/pages/command-store.tsx`
+- `server/routes.ts`
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/seed.ts`
+
+---
+
+### #33 — Store CMD — Product Creation
+
+> File: `t31-store-cmd-product-creation.md`
+
+# Store CMD — Product Creation
+
+## What & Why
+The Store tab in CMD currently only allows toggling stock status and deleting products. Admins and executives need to be able to create new products directly from CMD without needing developer access.
+
+## Done looks like
+- A "Add Product" button appears at the top of the CMD Store page (admin/exec only)
+- Clicking it opens a form (inline or dialog) with fields: Name, Slug (auto-generated from name), Description, Price, Category, Stock Status (available / unavailable / preorder), and optional Image URL
+- On submit, the product is created via the existing `POST /api/store/products` route and appears immediately in the product table
+- Form validates required fields and shows errors inline
+- Existing stock toggle and delete actions are preserved
+
+## Out of scope
+- Image file upload (URL input only for now)
+- Stripe product creation on add (can remain as-is — Stripe sync is already wired)
+- Bulk product import
+
+## Tasks
+1. **Add product creation form** — Build a dialog or drawer in `command-store.tsx` with all required product fields. Use the existing shadcn Form + react-hook-form pattern with zod validation from `insertProductSchema`.
+
+2. **Wire to existing POST endpoint** — On form submit, call `POST /api/store/products`, invalidate the products query cache, and close the form. Show a success toast and error handling.
+
+## Relevant files
+- `client/src/pages/command-store.tsx`
+- `shared/schema.ts`
+- `server/routes.ts`
+
+---
+
+### #34 — Music Player & Playlist CMD Editing
+
+> File: `t32-music-player-playlist-cmd.md`
+
+# Music Player & Playlist CMD Editing
+
+## What & Why
+Add a persistent music player to the platform that matches the design language, and give admins the ability to manage official playlists (add, edit, delete) directly from CMD using real Spotify/Apple Music/SoundCloud URLs. The playlists section on the music page should expand to showcase official playlists prominently.
+
+## Done looks like
+- A persistent mini music player bar appears at the bottom of the screen (above the footer) when a playlist or track is actively playing — shows track name, artist, and playback controls (play/pause, next, previous, progress bar)
+- On the `/music` and `/music/playlists` pages, official playlists are displayed in a rich grid with platform badges (Spotify, Apple Music, SoundCloud), cover images, and a "Play" button that loads the playlist into the player or opens it in the native platform
+- For Spotify playlists, the player embeds the Spotify Web Player iframe when "Play" is clicked, providing full playback within the platform
+- For Apple Music and SoundCloud playlists, the "Play" button opens the link in a new tab (native app behavior)
+- In CMD → Music, admins (admin/exec) can add, edit, and delete official playlists — each entry has: Title, Platform (Spotify/Apple Music/SoundCloud/YouTube Music), Playlist URL, Cover Image URL, and an "Official" toggle
+- Submitted track pitches remain visible in the existing submissions table
+
+## Out of scope
+- Spotify Web API authentication (OAuth) — use embed iframes for playback, not raw Spotify API
+- Per-track audio file hosting
+- Mobile native app playback
+
+## Tasks
+1. **Playlist grid expansion** — Redesign the Official Playlists section on `/music` and `/music/playlists` into a rich card grid showing cover image, title, platform badge, and a Play/Open button.
+
+2. **Spotify embed player** — When a user clicks "Play" on a Spotify playlist, show an embedded Spotify iframe player in a slide-up panel or persistent bottom bar, sized to fit the platform.
+
+3. **Non-Spotify platform handling** — For Apple Music and SoundCloud entries, the Play/Open button navigates to the external URL in a new tab with appropriate branding.
+
+4. **CMD playlist management** — Extend the existing CMD Music page to include a second tab or section for managing Official Playlists — add/edit/delete entries with all playlist fields. Wire to existing API routes.
+
+## Relevant files
+- `client/src/pages/music-page.tsx`
+- `client/src/pages/music-playlists-page.tsx`
+- `client/src/pages/command-music.tsx`
+- `server/routes.ts:1234-1250`
+- `shared/schema.ts`
+- `client/src/App.tsx`
+
+---
+
+### #35 — Wiki Article Archive System
+
+> File: `t33-wiki-archive.md`
+
+# Wiki Article Archive System
+
+## What & Why
+Currently, deleting a wiki article is permanent. Admins should instead be able to archive articles, which hides them from the public wiki but preserves them in a staff-only "Archive" section where they can be edited and republished.
+
+## Done looks like
+- The "Delete" action in the wiki is replaced by (or renamed to) "Archive" — articles are moved to `status: "archived"` rather than removed from the DB
+- A new "Archive" section appears in the wiki sidebar (visible to staff, executive, admin only) listing all archived articles
+- Archived articles are not visible in public wiki listings, search results, or category pages
+- Staff can open any archived article, edit it, and republish it (changing status back to `published` or to `pending` for review)
+- The review queue is unaffected — only published/draft articles go through review; archived ones skip directly to staff editing
+
+## Out of scope
+- Hard deletion capability (not in scope — users keep archive instead)
+- Automatic archival after inactivity
+- Public "tombstone" pages for archived articles (just disappear from public view)
+
+## Tasks
+1. **Add "archived" status** — Ensure the `status` column in the `articles` table includes "archived" as a valid value (it may already be an enum — check and extend if needed via `db:push`). Update any queries that list articles to exclude `archived` from public-facing routes.
+
+2. **Replace delete with archive** — In the Article View and Article Editor, replace the "Delete" button with "Archive". Update the backend route to set `status: "archived"` instead of removing the row. Remove or gate the hard-delete route.
+
+3. **Archive section in wiki sidebar** — Add an "Archive" nav group to the wiki sidebar (staff/exec/admin only) that lists archived articles fetched from a new `/api/articles?status=archived` endpoint.
+
+4. **Archived article editing & republishing** — When a staff member opens an archived article, show an "Edit" and "Republish" button. Republishing sets the status back to `published` (or `pending` if the user lacks publish rights).
+
+## Relevant files
+- `shared/schema.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+- `client/src/components/app-sidebar.tsx`
+- `client/src/pages/article-view.tsx`
+- `client/src/pages/article-editor.tsx`
+- `client/src/hooks/use-permission.ts`
+
+---
+
+### #36 — Version System & Changelog Update
+
+> File: `t34-version-system-changelog.md`
+
+# Version System & Changelog Update
+
+## What & Why
+Introduce a structured version numbering system for platform updates. Each Changelog entry gets a version label (e.g., v1.4.2). The current version is displayed in the footer, derived from the most recent published Changelog entry. Also update the Changelog with all the work done in the current and preceding sessions (Tasks #22–#27 and the new tasks in this batch).
+
+## Done looks like
+- Each Changelog entry has a `version` field (e.g., "1.0.0", "1.4.2") shown alongside the entry title and date
+- The footer displays the current platform version (e.g., "v1.4.2 — Mar 25 2026") pulled from the latest Changelog entry via API — no hardcoding
+- The CMD Changelog page shows the version field when creating/editing entries, with a suggested next version auto-filled based on the current latest
+- The Changelog is updated with well-organized entries covering all work done across sessions: platform launch, mega-menu, home page, contact, profile, jobs, services, music expansion, and the new features from this update batch (once they land)
+- Version format follows semantic versioning (MAJOR.MINOR.PATCH) with a brief explanation of what each number means in the CMD interface
+
+## Out of scope
+- Automated version bumping via CI/CD
+- Git tag integration
+- Changelog RSS feed
+
+## Tasks
+1. **Add version field to changelog schema** — Add a `version` varchar column to the `changelogs` table. Run `db:push`. Update the insert schema and storage methods.
+
+2. **Version display in footer** — Add a new public GET `/api/changelog/latest` route that returns the most recent published changelog entry. Update the footer to fetch and display the version and date.
+
+3. **CMD changelog versioning UI** — In the CMD Changelog create/edit form, add a `version` input with auto-suggested next version based on the latest entry. Show version badge on each entry row.
+
+4. **Seed current changelog entries** — Add well-organized changelog entries for all work done to date: v0.1.0 (initial wiki MVP), v0.2.0 (platform shell + auth), v0.3.0 (store + stripe), v1.0.0 (home page + mega-menu + contact + profile + jobs), v1.1.0 (services + music SEVCO RECORDS), v1.2.0 (the current batch of features). Use real dates and brief, user-readable descriptions.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+- `server/seed.ts`
+- `client/src/components/platform-footer.tsx`
+- `client/src/pages/command-changelog.tsx`
+
+---
+
+### #37 — Social Feed — Posts, Follows & Timelines
+
+> File: `t35-social-feed.md`
+
+# Social Feed — Posts, Follows & Timelines
+
+## What & Why
+Add a Twitter/X-style social layer to the platform so registered users can post updates, follow each other, like and reply to posts. A new "Feed" page aggregates posts from people the user follows. Each user's profile page shows their personal timeline of posts.
+
+## Done looks like
+- A "Feed" link appears in the Home dropdown menu (registered users only)
+- `/feed` page shows a chronological timeline of posts from users the current user follows, plus the user's own posts — with a "New Post" composer at the top
+- Posts support: text content (up to ~500 chars), optional image URL, timestamp, like count, reply count
+- Clicking the like heart increments the count; clicking reply expands an inline reply thread
+- On any user's public profile page (`/profile/:username`), a "Posts" tab shows that user's timeline of posts
+- A "Follow / Unfollow" button on profile pages lets authenticated users follow/unfollow — follower and following counts appear on the profile
+- Users who are not registered (not logged in) see a prompt to sign up when visiting `/feed` or trying to follow
+- Posts are real-time via page refresh (no WebSockets needed for MVP)
+
+## Out of scope
+- Direct messaging
+- Hashtags or trending topics
+- Post media upload (URL input only)
+- Notifications / push alerts
+- Retweet/reblog (not requested)
+
+## Tasks
+1. **Schema: posts, likes, follows** — Add `posts` (id, authorId, content, imageUrl, createdAt), `postLikes` (postId, userId), `postReplies` (id, postId, authorId, content, createdAt), and `userFollows` (followerId, followingId) tables. Run `db:push`.
+
+2. **API routes** — Add RESTful routes: GET/POST `/api/posts`, GET `/api/posts/:id/replies`, POST `/api/posts/:id/replies`, POST/DELETE `/api/posts/:id/like`, GET `/api/users/:username/posts`, POST/DELETE `/api/users/:username/follow`, GET `/api/users/:username/followers`, GET `/api/users/:username/following`.
+
+3. **Feed page** — Build `/feed` page with a composer (textarea + submit), infinite-scroll or paginated timeline of followed users' posts, like/reply interactions. Show sign-in prompt if unauthenticated.
+
+4. **Profile timeline tab** — Add a "Posts" tab to the profile page showing that user's posts chronologically with like and reply counts. Show follow/unfollow button for other users' profiles (logged-in required).
+
+5. **Follow counts on profile** — Display follower and following counts on profile pages; clicking them opens a simple list of who follows/is followed.
+
+6. **Header Feed link** — Add "Feed" to the Home/platform dropdown in the header, visible only to authenticated users.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+- `client/src/App.tsx`
+- `client/src/pages/profile-page.tsx`
+- `client/src/components/platform-header.tsx`
+
+---
+
+### #38 — Notes Tool — Personal & Collaborative
+
+> File: `t36-notes-tool.md`
+
+# Notes Tool — Personal & Collaborative
+
+## What & Why
+Add an Apple Notes-style notes tool to the platform for registered users. Users can create personal notes, collaborate on shared notes with other members, and optionally attach notes to projects or wiki articles for context.
+
+## Done looks like
+- A "Notes" section is accessible from the platform navigation (e.g., under the Home dropdown or as its own nav item)
+- `/notes` page shows the user's notes in a two-pane layout: a list/sidebar on the left and a rich text editor on the right — visually similar to Apple Notes
+- Users can create, rename, edit, and delete their own notes; content auto-saves as they type
+- Notes can be marked as "Shared" and a collaborator can be invited by username — shared notes appear in both users' notes lists and both can edit
+- When viewing a project (`/projects/:slug`) or wiki article, a "Attach Note" button lets the user link an existing note to that resource — the note then appears in a "Notes" panel on that page for the user who attached it
+- Notes are private by default; only the owner and explicitly invited collaborators can read or edit
+- Unauthenticated users visiting `/notes` see a prompt to sign in
+
+## Out of scope
+- Rich text formatting beyond basic markdown (bold, italic, lists, headers)
+- Real-time collaborative editing (last-write-wins is fine for MVP)
+- Note attachments / file uploads
+- Note sharing with external people (platform users only)
+- Full-text search across note content (can be a follow-up)
+
+## Tasks
+1. **Schema** — Add `notes` (id, ownerId, title, content, isShared, createdAt, updatedAt), `noteCollaborators` (noteId, userId), `noteAttachments` (noteId, resourceType enum "project"/"article", resourceId) tables. Run `db:push`.
+
+2. **API routes** — Add CRUD routes for notes (GET/POST/PATCH/DELETE `/api/notes`, GET `/api/notes/:id`), collaborator management (POST/DELETE `/api/notes/:id/collaborators`), and attachment routes (POST/DELETE `/api/notes/:id/attachments`).
+
+3. **Notes page layout** — Build the `/notes` two-pane layout: sidebar note list (search, new note button, note titles with timestamps) and main editor area (title input + textarea with auto-save via debounced mutation). Show sign-in prompt if unauthenticated.
+
+4. **Note collaboration** — On each note, an "Invite" button (owner only) lets the user type a username to add as a collaborator. Collaborators see the note in their list with a "Shared" badge. Remove collaborator option for owner.
+
+5. **Attach notes to projects/articles** — Add an "Attach Note" sidebar panel on project detail pages and wiki article pages. Shows the user's notes as a searchable list; selecting one creates a `noteAttachment` record. Attached notes display in the panel (read-only in context).
+
+6. **Header navigation** — Add "Notes" to the platform header navigation (e.g., under the Home or user dropdown), visible to authenticated users only. Add the `/notes` route to `App.tsx`.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+- `client/src/App.tsx`
+- `client/src/components/platform-header.tsx`
+- `client/src/pages/projects-page.tsx`
+- `client/src/pages/article-view.tsx`
+
+---
+
+### #39 — Nav & Platform Housekeeping
+
+> File: `t39-nav-platform-housekeeping.md`
+
+# Nav & Platform Housekeeping
+
+## What & Why
+A collection of navigation improvements, bug fixes, and platform-wide text corrections to polish the public experience and resolve reported issues.
+
+## Done looks like
+- The top-level "Home" dropdown is renamed to "SEVCO" and includes a "Home" link at the top that goes to the landing page (`/`)
+- Changelog link is removed from the SEVCO dropdown and added as a dedicated tab in the wiki sidebar (`AppSidebar`) — visible to all users
+- The main nav bar no longer hides the wiki sidebar toggle button (z-index / overlap fixed)
+- Adding the SEVCO platform to an iPhone homescreen shows the correct app icon (apple-touch-icon link in `index.html` pointing to an existing PNG asset)
+- Every visible instance of "sevelovesyou.com" in the UI (footers, sidebars, labels) is replaced with "sevco.us"
+- Wiki sidebar shows an "Archive" tab visible only to staff, executive, and admin roles; it links to a filtered view of archived articles (can reuse the existing archive storage/API from Task #35)
+
+## Out of scope
+- PWA service worker / offline support
+- Changing the wiki archive feature itself (already built in #35)
+- Any CMD navigation changes (handled in Task #40)
+
+## Tasks
+1. **Rename Home → SEVCO + add Home link** — Update the `HomeDropdown` component name/label to "SEVCO" and prepend a "Home" item that navigates to `/`.
+
+2. **Move Changelog to wiki sidebar** — Remove Changelog from the SEVCO dropdown and add it as a tab/link in `AppSidebar` below the existing nav items, visible to all users.
+
+3. **Fix nav bar overlap with wiki menu button** — Investigate and resolve the z-index or layout issue in `PlatformHeader` that causes the nav bar to obscure the wiki sidebar toggle.
+
+4. **Fix iPhone homescreen icon** — Add `<link rel="apple-touch-icon" href="/apple-touch-icon.png">` to `client/index.html` and copy (or convert) an appropriate square PNG from existing assets into `client/public/` at the right size (180×180).
+
+5. **Replace sevelovesyou.com → sevco.us** — Search all TSX/TS/HTML source files for the string "sevelovesyou.com" and replace with "sevco.us" in all display/label contexts (not URLs to external social profiles — those stay).
+
+6. **Add Archive tab to wiki sidebar** — Add an "Archive" navigation entry in `AppSidebar` that is only visible to users with role staff/executive/admin, linking to `/wiki/archive` (or similar) which lists archived articles.
+
+## Relevant files
+- `client/src/components/platform-header.tsx`
+- `client/src/components/app-sidebar.tsx`
+- `client/index.html`
+- `client/public/favicon.jpg`
+- `client/public/favicon.png`
+- `attached_assets/SEVCO_App_Icon_-_Artboard_58_1774331354613.jpg`
+- `attached_assets/SEVCO_App_Icon_-_SEVCO_App_Icon_2_(1)_1771523059981.png`
+- `client/src/components/platform-footer.tsx`
+
+---
+
+### #40 — CMD Restructure, Fixes & Overview Refresh
+
+> File: `t40-cmd-restructure.md`
+
+# CMD Restructure, Fixes & Overview Refresh
+
+## What & Why
+Several Command Center improvements: merging redundant music management tabs, surfacing job applicants, moving store analytics where they belong, fixing the admin timeline post bug, and making the CMD Overview a more useful at-a-glance dashboard.
+
+## Done looks like
+- CMD sidebar has one "Music" tab (replacing the separate "Music Submissions" and "Playlists" tabs) with both submission management and playlist management as sub-sections/tabs within a single page at `/command/music`
+- CMD Jobs tab shows open positions AND a list of applicants (name, applied-to job, date, status) — staff+ can update applicant status
+- Store Analytics section (charts, revenue stats) appears as a tab or section within the Store CMD page; the standalone `/command/store/stats` route is retired or redirected
+- Admin accounts can successfully create posts on the social timeline (root cause of the frontend bug fixed — likely a permission guard or conditional in `feed-page.tsx` blocking the compose box for admins)
+- CMD Overview shows: latest changelog entry, most recent job applicants (last 5), most recent music submissions (last 5), feed post count, notes count, and user count by role
+
+## Out of scope
+- Hostinger VPS status in Overview (covered in Task #41 once the API is integrated)
+- Any public-facing page changes
+
+## Tasks
+1. **Merge Music Submissions + Playlists into one Music tab** — Combine `/command/music` and `/command/playlists` into a single page with internal tabs for "Submissions" and "Playlists". Update `CommandSidebar` to show one "Music" entry. Remove the `/command/playlists` route (redirect to `/command/music`).
+
+2. **Show applicants in CMD Jobs tab** — Add an "Applicants" section to the Jobs management page that lists all submitted applications with applicant name/email, which job they applied for, date, and current status. Staff+ can update status (pending → reviewed → accepted/rejected).
+
+3. **Move Store Analytics into Store tab** — Add an "Analytics" sub-tab or expandable section within the CMD Store page showing the charts/stats currently on the standalone store stats page. Remove or redirect the standalone stats route.
+
+4. **Fix admin timeline post bug** — Identify and fix the frontend condition preventing admins from creating social timeline posts. Likely a guard in `feed-page.tsx` that incorrectly restricts the compose UI.
+
+5. **CMD Overview refresh** — Update `CommandOverview` to display: the most recent changelog entry (title, version, date), the 5 most recent job applicants, the 5 most recent music submissions, plus summary counts for feed posts, notes, and users by role. Use existing API endpoints where possible; add lightweight summary endpoints if needed.
+
+## Relevant files
+- `client/src/pages/command-music.tsx`
+- `client/src/pages/command-playlists.tsx`
+- `client/src/pages/command-jobs.tsx`
+- `client/src/pages/command-overview.tsx`
+- `client/src/pages/command-store.tsx`
+- `client/src/pages/store-stats-page.tsx`
+- `client/src/components/command-sidebar.tsx`
+- `client/src/pages/feed-page.tsx`
+- `client/src/App.tsx`
+- `server/routes.ts`
+- `server/storage.ts`
+
+---
+
+### #41 — Hostinger API — Hosting CMD & Domains Page
+
+> File: `t41-hostinger-domains.md`
+
+# Hostinger API — Hosting CMD & Domains Page
+
+## What & Why
+Integrate the Hostinger API to give admins a Hosting management section in CMD and give visitors a Domains page where they can search and purchase domains through SEVCO.
+
+## Done looks like
+- **Before implementation begins**: the executor must call the Hostinger API discovery endpoint (or its documentation), list available endpoints, then use `user_query` to present a feature-set menu to the user and wait for approval before writing any hosting/domain code.
+- CMD has a "Hosting" tab visible only to admins. Based on the approved feature set, this may include: VPS/server status panel, DNS record viewer/editor, SSL certificate status, server resource usage (CPU/RAM/disk), and quick restart/reboot actions.
+- CMD Overview shows a Hostinger VPS status card (online/offline, uptime) for admins.
+- A public "Domains" page exists under the Services section of the main navigation (`/domains`). Users can search domain availability, see pricing, and initiate purchase (via Hostinger API and/or Stripe checkout).
+- The Domains page is linked in the Services mega-menu dropdown.
+
+## Out of scope
+- Full DNS editor (view only in first version unless approved)
+- Email hosting management
+- Multi-server support (single VPS for now)
+
+## Tasks
+1. **Hostinger API research & user approval** — Fetch the Hostinger API documentation, enumerate available endpoint categories, and present a concise feature-set proposal to the user via `user_query`. Do not proceed past this step until the user approves the specific features to build.
+
+2. **Hostinger API server integration** — Set up Hostinger API credentials as a secret (`HOSTINGER_API_KEY`), create a server-side proxy module in `server/hostinger.ts` that wraps the approved API endpoints, and register corresponding Express routes under `/api/hostinger/...` (admin-only).
+
+3. **CMD Hosting tab** — Build the `/command/hosting` page and add it to `CommandSidebar` (admin-only). Render the approved feature widgets (status, resource usage, DNS, SSL, etc.) using data from the proxy routes.
+
+4. **Hosting VPS status in CMD Overview** — Add a compact status card to `CommandOverview` (admin-only) showing VPS online/offline status and uptime, fetched from the new proxy route.
+
+5. **Domains search & purchase page** — Build `/domains` page: a search input that checks domain availability via Hostinger API, displays results with pricing, and initiates a purchase flow (Hostinger checkout or Stripe-powered). Add the Domains link to the Services mega-menu in `PlatformHeader`.
+
+## Relevant files
+- `server/routes.ts`
+- `client/src/components/command-sidebar.tsx`
+- `client/src/pages/command-overview.tsx`
+- `client/src/components/platform-header.tsx`
+- `client/src/App.tsx`
+- `shared/schema.ts`
+
+---
+
+### #42 — Engineering Wiki Articles & Changelog Update
+
+> File: `t42-engineering-articles-changelog.md`
+
+# Engineering Wiki Articles & Changelog Update
+
+## What & Why
+Back-fill individual wiki articles for every completed task (#1–#38), add timestamps to changelog entries, and link changelog entries to their corresponding wiki articles so the engineering history is fully documented and browseable.
+
+## Done looks like
+- Each task (#1–#38) has a published wiki article in the "Engineering" category with the task summary as content, a General-type infobox showing: Tool = "Replit", Version = the changelog version for that task (or "—" if none), and Task = "#N"
+- All existing Changelog entries have a timestamp (created_at date) displayed in the CMD changelog management page and on the public `/changelog` page
+- Each Changelog entry that corresponds to a task has a link to its wiki article (stored as a field on the changelog entry or as a wiki slug reference)
+- The public changelog page renders these article links as clickable references
+
+## Out of scope
+- Changing the wiki article editor or article schema significantly
+- Auto-generation for future tasks (already handled by Task #17)
+
+## Tasks
+1. **Add `createdAt` display to changelog** — Ensure the `createdAt` timestamp on changelog entries is shown on both the CMD changelog management page and the public-facing changelog/version history page.
+
+2. **Add article link field to changelog entries** — Add an optional `wikiSlug` column to the `changelog` table in the schema, push the migration, update the storage interface and API routes to accept/return this field, and add a "Link to Wiki Article" input in the CMD changelog form.
+
+3. **Back-fill engineering wiki articles (#1–#38)** — For each completed task, create a published wiki article in the Engineering category using the task title as the article title and the task summary/description as content. Set an infobox with Tool=Replit, Version=matching changelog version, Task=#N.
+
+4. **Link changelog entries to articles** — Update each existing changelog entry whose version maps to a task article, setting the `wikiSlug` to that article's slug. On the public changelog page, render linked slugs as "Read more →" links to the wiki article.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/routes.ts`
+- `client/src/pages/command-changelog.tsx`
+- `client/src/pages/changelog-page.tsx`
+- `client/src/App.tsx`
+
+---
+
+### #43 — Bug fixes & navigation polish
+
+> File: `t43-bug-fixes-nav-polish.md`
+
+# Bug fixes & navigation polish
+
+## What & Why
+Resolves several reported issues and small navigation gaps from the recent feature push.
+
+## Done looks like
+- Wiki sidebar collapses to a narrow icon-only rail instead of fully disappearing; clicking the trigger again expands it; icons for each nav item remain visible when collapsed
+- Domain search on `/domains` correctly shows available and taken domains (API response parsing fixed; graceful fallback shown when Hostinger API key is missing or returns an error)
+- CMD Overview shows the "Latest Release" changelog card as the topmost widget for admin/executive views
+- The Changelog page (`/changelog`) has a breadcrumb or back-link that lets users navigate to the wiki (`/wiki`), so it feels connected to the wiki section
+
+## Out of scope
+- Redesigning the wiki sidebar
+- Any new CMD pages
+
+## Tasks
+1. **Wiki sidebar icon mode** — Change the `AppSidebar` component's `collapsible` prop from the default `"offcanvas"` to `"icon"`. Add `tooltip` props to each `SidebarMenuButton` so items are still discoverable when collapsed. Verify the layout does not break on mobile.
+
+2. **Domain search fix** — Inspect the Hostinger API domain availability response format in `server/hostinger.ts` and `domains-page.tsx`. Fix the parsing so the `available` flag is read correctly. Add a clear error/empty state when the API key is absent or the request fails, rather than showing everything as "Taken".
+
+3. **Latest Release at top of CMD Overview** — Reorder the widgets in `CommandOverview` (admin and executive views) so the "Latest Release" changelog card renders first, above the stats grid and other panels.
+
+4. **Changelog back-to-wiki link** — Add a wiki-style breadcrumb or a simple "← Wiki" link to the top of the Changelog page header. The link should navigate to `/wiki`.
+
+## Relevant files
+- `client/src/components/app-sidebar.tsx`
+- `client/src/components/ui/sidebar.tsx`
+- `client/src/pages/domains-page.tsx`
+- `server/hostinger.ts`
+- `client/src/pages/command-overview.tsx`
+- `client/src/pages/changelog-page.tsx`
+
+---
+
+### #44 — Project social links + About page
+
+> File: `t44-project-social-links-about-page.md`
+
+# Project social links + About page
+
+## What & Why
+Projects need their own social links so visitors can follow a project on X, Instagram, YouTube, Discord, etc. from the project detail page. Separately, a dedicated About page for SEVCO replaces the current pattern of pointing to a wiki article.
+
+## Done looks like
+- The project schema has a `socialLinks` JSONB column (same pattern as the user profile `socialLinks` field)
+- Project creation and edit forms include optional fields for: Website (already exists), X/Twitter, Instagram, YouTube, Discord, GitHub, and a generic "Other" URL
+- Project detail page displays populated social link buttons/icons below the project title (Website button already exists; other platforms appear conditionally)
+- `/about` is a new dedicated page with SEVCO's story, mission, and links — it is NOT a wiki article
+- "About" is linked from the SEVCO mega-menu dropdown in the header (replacing or alongside the existing wiki link if any)
+
+## Out of scope
+- Social link analytics or click tracking
+- Editing the project social links via CMD (the project create/edit form is sufficient)
+
+## Tasks
+1. **Schema + migration** — Add a `socialLinks` JSONB column to the `projects` table in `shared/schema.ts`. Run `db:push`. Update `insertProjectSchema`, `Project` type, and storage methods to include the new field.
+
+2. **Project create/edit form** — Add social link input fields (X, Instagram, YouTube, Discord, GitHub, Other) to the project creation and edit pages, stored as a JSON object in `socialLinks`.
+
+3. **Project detail social links** — On `project-detail.tsx`, render icon buttons for each populated `socialLinks` entry alongside the existing "Visit Site" button. Use `react-icons/si` for platform logos.
+
+4. **About page** — Create `client/src/pages/about-page.tsx` with SEVCO branding, mission statement, platform description, and team/contact links. Register a `/about` route in `App.tsx`. Add an "About" item to the SEVCO mega-menu dropdown in `platform-header.tsx`.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/routes.ts`
+- `client/src/pages/project-detail.tsx`
+- `client/src/pages/project-create-page.tsx`
+- `client/src/pages/project-edit-page.tsx`
+- `client/src/components/platform-header.tsx`
+- `client/src/App.tsx`
+
+---
+
+### #45 — Listen page social links in CMD
+
+> File: `t45-listen-page-social-links-cmd.md`
+
+# Listen page social links in CMD
+
+## What & Why
+The Music Listen page (`/music/listen`) currently has hardcoded social and streaming links. This task moves those links into the database so they can be managed through the existing Social Links CMD page — keeping the same beautiful design, just adding a "Listen Page" section.
+
+## Done looks like
+- `platform_social_links` table gains a `showOnListen` boolean column (alongside the existing `showInFooter` and `showOnContact` columns)
+- The CMD Social Links page adds a "Listen Page" toggle column to each link row, using the same design as the existing Footer and Contact toggles
+- The `/music/listen` page fetches its social/streaming links from the API (`GET /api/social-links`) filtered by `showOnListen: true`, instead of using hardcoded arrays
+- Existing hardcoded links are preserved as the initial seed values via the toggle defaults
+
+## Out of scope
+- Redesigning the Social Links CMD page layout
+- Changing the visual design of the Listen page links
+
+## Tasks
+1. **Schema + migration** — Add `showOnListen` boolean column (default `false`) to `platform_social_links` in `shared/schema.ts`. Run `db:push`. Update storage methods and API route to include/filter the new field.
+
+2. **Seed defaults** — In the migration or a seeding step, set `showOnListen = true` for the links that are currently hardcoded on the Listen page (Instagram, X, TikTok, YouTube, Spotify, Apple Music, YouTube Music, SoundCloud, etc.) so no data is lost.
+
+3. **CMD Social Links page update** — Add a "Listen" toggle column to `command-social-links.tsx` following the same pattern as the existing "Footer" and "Contact" toggles. No layout redesign — just an additional column.
+
+4. **Listen page dynamic links** — Update `music-listen-page.tsx` to fetch links from `/api/social-links` and filter by `showOnListen`. Remove the hardcoded `SOCIAL_LINKS` and `STREAMING_LINKS` constants. Display the same UI as before using the fetched data.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/routes.ts`
+- `client/src/pages/command-social-links.tsx`
+- `client/src/pages/music-listen-page.tsx`
+
+---
+
+### #46 — CMD Display tab — platform presentation controls
+
+> File: `t46-cmd-display-tab.md`
+
+# CMD Display tab — platform presentation controls
+
+## What & Why
+Admins need a way to control the visual presentation of the platform without touching code. A new "Display" tab in CMD centralizes: the Home page hero (image, text, buttons), section visibility toggles for each landing page block, and platform-wide assets (favicon, social/OG sharing image).
+
+## Done looks like
+- CMD sidebar has a "Display" item (admin-only) linking to `/command/display`
+- The Display page has four sections:
+
+  **Hero Editor**
+  - "Hero background image" — URL input (or upload) that overlays the existing radial gradient. Leaving it empty keeps the current gradient-only look.
+  - "Hero text" — editable textarea (the platform tagline below the logo)
+  - Two hero button editors: each has a Label field, URL field, and Icon selector (lucide icon name)
+
+  **Section Visibility**
+  - Toggle rows for each landing page section: Platform Grid, RECORDS Spotlight, Store Preview ("Shop the latest"), Wiki Latest ("Latest knowledge"), Community CTA. Toggling a section hides it completely from the public landing page.
+
+  **Platform Assets**
+  - "Favicon" — URL input (or file upload) to update the site favicon; the value is written into a served meta file or injected via a dynamic endpoint
+  - "Social image (OG)" — URL input for the default `og:image` meta tag used when the site is shared on social media
+
+- The Landing page (`/`) reads hero settings and section visibility from the API and renders accordingly (graceful fallback to current defaults if the API returns nothing)
+- The `<head>` of the app includes a dynamic `og:image` and a favicon that reflects the stored values
+
+## Architecture note
+Implement settings as a `platform_settings` table with `key` (text, primary key) and `value` (text) columns — a simple key-value store. Use keys like `hero.backgroundImageUrl`, `hero.text`, `hero.button1.label`, etc. and `section.recordsSpotlight.visible`, `platform.faviconUrl`, `platform.ogImageUrl`. The API exposes `GET /api/platform-settings` (public) and `PUT /api/platform-settings` (admin only, accepts a partial key-value map). The frontend Landing page fetches this on load and uses values with hardcoded defaults as fallback.
+
+## Out of scope
+- File/image hosting (URL inputs only — admin pastes a hosted URL)
+- Per-page settings beyond the Landing page (future work, the tab is designed to expand)
+- Light/dark theme switching (separate concern)
+
+## Tasks
+1. **Schema + storage** — Add a `platform_settings` table (`key` text PK, `value` text) to `shared/schema.ts`. Run `db:push`. Add `getPlatformSettings()` and `setPlatformSettings(entries)` methods to the storage interface and implementation. Register `GET /api/platform-settings` (public) and `PUT /api/platform-settings` (admin-only) routes.
+
+2. **CMD Display tab page** — Build `client/src/pages/command-display.tsx` with the three sections described above (Hero Editor, Section Visibility, Platform Assets). Each save action calls `PUT /api/platform-settings`. Add the "Display" item to `CommandSidebar` (admin-only). Register `/command/display` route in `App.tsx`.
+
+3. **Landing page dynamic rendering** — Update `landing.tsx` to fetch `GET /api/platform-settings` and use the stored values for: hero background image (applied as `style` backgroundImage if set), hero text, button labels/URLs, and section visibility (conditionally render each section). Fall back to current hardcoded defaults when a key is absent.
+
+4. **Dynamic favicon + OG image** — Update `client/index.html` to add `og:image` and `og:title` meta tags. On the server, add a `GET /api/meta` route that returns current favicon URL and OG image URL. On the client, use a `useEffect` in the app root to dynamically update the `<link rel="icon">` and `<meta property="og:image">` values whenever the platform settings change.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/routes.ts`
+- `client/src/pages/landing.tsx`
+- `client/src/components/command-sidebar.tsx`
+- `client/src/App.tsx`
+- `client/index.html`
+
+---
+
+### #47 — Platform-wide search
+
+> File: `t47-platform-search.md`
+
+# Platform-wide search
+
+## What & Why
+Users need a way to find anything across the platform — wiki articles, projects, music, store products, services, jobs — without knowing which section it lives in. The search should respect the viewer's permission level (e.g., archived articles only visible to staff+) and offer a Google fallback.
+
+## Done looks like
+- A search icon (magnifying glass) appears in the main nav bar (`PlatformHeader`) on all pages
+- Clicking the icon opens a Shopify-style full-width search overlay/modal with an input that auto-focuses
+- As the user types, live results appear grouped by content type (Wiki, Projects, Store, Music/Artists, Jobs, Services) — using the existing search endpoints where they exist and new ones where they don't
+- Results respect the current user's permission level: archived articles only appear for staff+, CMD-only content is excluded for non-staff
+- A "Search Google for '...'" button at the bottom of the results opens `https://www.google.com/search?q=site:sevco.us+{query}` in a new tab
+- Pressing Enter or clicking "See all results" navigates to `/search?q=...` — a full results page with the same grouped layout and more results per category
+- The existing `/search` page (if it exists) is updated to match this design; if not, it is created
+
+## Out of scope
+- Elasticsearch or any external search service (use existing Postgres `ILIKE` queries)
+- Search within note content (notes are private/personal)
+- Saved search history
+
+## Tasks
+1. **Backend search API** — Add or extend `GET /api/search?q=&limit=` to query across: articles (published only for guests; all non-deleted for staff+), projects, store products, artists/albums, jobs (open only for guests), and services. Return results grouped by type with a `type` discriminator field. Reuse existing `ilike` patterns from the codebase.
+
+2. **Search overlay component** — Build a `SearchOverlay` component (modal/drawer) that opens when the nav search icon is clicked: full-width dark overlay, centered input, live grouped results as the user types (debounced ~300ms), keyboard navigation (Escape to close, Enter to go to results page), and a "Search Google" button at the bottom.
+
+3. **Nav search icon** — Add a search icon button to `PlatformHeader` (desktop and mobile) that toggles the `SearchOverlay`. Position it in the right side of the nav, before the user avatar/login button.
+
+4. **Full results page** — Create or update `/search` to render a full grouped results page using the same API. Show more results per group (up to 10 each), a total count header, and the Google fallback link. Register the route in `App.tsx` if not already present.
+
+## Relevant files
+- `client/src/components/platform-header.tsx`
+- `client/src/pages/search-page.tsx`
+- `server/routes.ts`
+- `server/storage.ts`
+- `client/src/App.tsx`
+
+---
+
+### #48 — Bug fixes: Hostinger API, CMD nav title, global cart drawer
+
+> File: `t48-bug-fixes.md`
+
+# Bug fixes: Hostinger API, CMD nav title, global cart drawer
+
+## Items covered
+1. Hostinger API error — VPS status widget and Domain tool returning errors
+2. Nav bar hides CMD menu controls/title
+3. Cart drawer only available on Store pages (clicking nav cart icon does nothing elsewhere)
+
+## Done looks like
+
+### 1. Hostinger API fix
+- VPS status widget on CMD Overview loads correctly and shows VPS state/hostname/uptime
+- Domain search tool returns accurate availability results
+- When the API key is missing, the UI shows a clear "Not configured" state rather than an unhandled error
+- Root cause investigation: check whether the Hostinger API response format changed (field names, nesting) and add defensive parsing with detailed server-side error logging so the exact failure reason is visible
+
+### 2. CMD nav title/controls hidden fix
+- The CMD page header area (title bar, breadcrumbs, any action buttons at the top of CMD pages) is fully visible and not obscured by the sticky nav bar
+- Fix: audit the CMD page layout (`CommandPageLayout` or equivalent wrapper) for z-index or padding-top conflicts with the fixed `PlatformHeader`
+
+### 3. Global cart drawer
+- Moving `<CartDrawer />` from `store-page.tsx` and `store-product-detail.tsx` into `App.tsx` (or `AppShell`) so it mounts globally
+- Clicking the cart icon in the nav header from any page opens the drawer correctly
+- Cart state (items, open/close) is unchanged — only the mounting location changes
+
+## Relevant files
+- `server/hostinger.ts`
+- `server/routes.ts`
+- `client/src/pages/command-overview.tsx`
+- `client/src/components/platform-header.tsx`
+- `client/src/components/cart-drawer.tsx`
+- `client/src/pages/store-page.tsx`
+- `client/src/pages/store-product-detail.tsx`
+- `client/src/App.tsx`
+- Any `CommandPageLayout` wrapper component
+
+---
+
+### #49 — CMD enhancements: edit social links, Resources tab, Recent Notes widget
+
+> File: `t49-cmd-enhancements.md`
+
+# CMD enhancements: edit social links, Resources tab, Recent Notes widget
+
+## Items covered
+1. Allow Admins to edit existing social links (name, URL, icon) in CMD
+2. "Resources" tab in CMD with Quick Links widget in Overview
+3. Recent Notes widget in CMD Overview
+
+## Done looks like
+
+### 1. Edit social links
+- Each row in the CMD Social Links page has an "Edit" button (pencil icon) alongside the existing delete button
+- Clicking Edit opens a dialog pre-filled with the current Platform name, URL, and Icon name
+- Saving calls `PATCH /api/social-links/:id` which already exists (or adds it if not)
+- The add/edit dialog reuses the same form schema from the add dialog
+- The icon name field keeps its existing suggestions dropdown
+
+### 2. Resources tab in CMD + Quick Links widget
+**Schema:**
+- New `resources` table: `id` serial PK, `title` text not null, `url` text not null, `description` text, `category` text (default "general"), `displayOrder` integer (default 0), `showOnOverview` boolean (default false), `createdAt` timestamp
+
+**Storage + API:**
+- `IStorage` + `DatabaseStorage` get `getResources()`, `createResource()`, `updateResource()`, `deleteResource()`
+- `GET /api/resources` (admin-only), `POST /api/resources` (admin), `PATCH /api/resources/:id` (admin), `DELETE /api/resources/:id` (admin)
+
+**CMD Resources page (`/command/resources`):**
+- Table of all resources with title, URL (truncated), category, display order, and a showOnOverview toggle
+- "Add Resource" button opens a dialog: Title, URL, Description (optional), Category (text input), Show on Overview toggle
+- Edit and Delete buttons per row
+- "Resources" item added to CMD sidebar (admin-only)
+- Route registered in `App.tsx`
+
+**Quick Links widget in CMD Overview:**
+- Shows resources where `showOnOverview = true`, sorted by `displayOrder`
+- Each entry shows the title as a clickable link (opens in new tab) with the description below if set
+- Shows up to 8 links, "Manage Resources" button links to `/command/resources`
+- Visible to Admin and Executive roles
+
+### 3. Recent Notes widget in CMD Overview
+- New card in CMD Overview (Admin/Exec) showing the 5 most recently updated notes where the logged-in user is owner or collaborator
+- Queries `GET /api/notes?limit=5` (already exists)
+- Each entry shows note title, color indicator dot, and relative time since last update
+- Clicking a note navigates to `/notes` (notes page)
+- "View All Notes" link at the bottom
+
+## Relevant files
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/routes.ts`
+- `client/src/components/command-sidebar.tsx`
+- `client/src/pages/command-overview.tsx`
+- `client/src/pages/command-social-links.tsx`
+- `client/src/App.tsx`
+
+---
+
+### #50 — Home Bulletin, Footer sitemap, Profile/Account cross-links, Store stats cleanup
+
+> File: `t50-home-bulletin-footer-store-cleanup.md`
+
+# Home Bulletin, Footer sitemap, Profile/Account cross-links, Store stats cleanup
+
+## Items covered
+1. Bulletin section on home page — shows pinned Official Post from the feed publicly
+2. Full sitemap in Footer — comprehensive sitemap matching platform structure
+3. Profile link in Account page and vice versa
+4. Remove `/store/stats` page and update CMD Overview Store link to `/command/store`
+
+## Done looks like
+
+### 1. Bulletin section on home page
+- A new "Bulletin" section appears on the landing page (`/`) between the Hero and Platform Grid sections
+- Fetches `GET /api/feed?pinned=true&limit=1` (or the existing `/api/feed` sorted by pinned desc, take the first result)
+- If a pinned Official Post exists: displays it in a styled card — post type badge, content (truncated to ~280 chars), author name, relative timestamp, "Read more" link to `/feed`
+- If no pinned post exists: section is hidden entirely (no empty state shown publicly)
+- The section's visibility is also controlled by the Display tab `section.bulletin.visible` platform setting (defaults to true)
+- Backend: add `?pinned=true` query param support to `GET /api/feed` or use existing sorted endpoint (pinned posts already sort to top in storage)
+
+### 2. Full sitemap in Footer
+Update `platform-footer.tsx` to include a comprehensive multi-column sitemap:
+
+**Column 1 — Platform**
+- Home, Wiki, Feed, Changelog, About, Changelog
+
+**Column 2 — Music**
+- RECORDS, Listen, Artists, Submit Music
+
+**Column 3 — Commerce**
+- Store, Services, Domains (Hosting), Jobs
+
+**Column 4 — Community**
+- Discord, Contact, Profile (if logged in)
+
+**Column 5 — Legal & Info**
+- Privacy Policy, Terms of Service, Refund Policy
+
+The existing social icons row stays at the bottom. Platform version stays. "sevco.us" domain credit stays.
+
+### 3. Profile/Account cross-links
+- On the Account page (`/account` or `/settings`): add a "View Profile" button/link that navigates to the current user's public profile page (`/profile/:username`)
+- On the public Profile page: add a link (or a button in the logged-in user's own profile view) to Account Settings (`/account`)
+- These should only show when the user is viewing their own profile
+
+### 4. Store stats cleanup
+- Remove the `/store/stats` route and `store-stats-page.tsx` file (the same data is already in `/command/store` Analytics tab)
+- In CMD Overview, the Store Analytics Preview card's "View Details" link changes from `/store/stats` to `/command/store`
+- Remove the `/store/stats` route registration from `App.tsx`
+
+## Relevant files
+- `client/src/pages/landing.tsx`
+- `client/src/components/platform-footer.tsx`
+- `client/src/pages/account-page.tsx` (or equivalent)
+- `client/src/pages/profile-page.tsx`
+- `client/src/pages/command-overview.tsx`
+- `client/src/pages/store-stats-page.tsx` (to delete)
+- `client/src/App.tsx`
+- `server/routes.ts`
+
+---
+
+### #51 — Gallery page + Tools dropdown in nav
+
+> File: `t51-gallery-tools-dropdown.md`
+
+# Gallery page + Tools dropdown in nav
+
+## Depends on
+Task #57 (Supabase Storage setup) must be merged first — this task uses the `<FileUpload>` component and `gallery` Supabase bucket created there.
+
+## Items covered
+1. Gallery page — admin-managed images with file upload via Supabase Storage
+2. "Tools" dropdown in the nav bar for logged-in users (Notes + Gallery + more to come)
+
+## Done looks like
+
+### Schema: `gallery_images` table
+- `id` serial PK
+- `title` text not null
+- `imageUrl` text not null (Supabase public URL after upload)
+- `category` text not null (values: `profile`, `banner`, `wallpaper`, `logo`, `other`)
+- `altText` text
+- `displayOrder` integer default 0
+- `isPublic` boolean default true (false = only visible to logged-in users)
+- `createdAt` timestamp
+
+### Storage + API
+- `getGalleryImages(category?, isPublic?)` → returns images filtered and sorted by displayOrder
+- `createGalleryImage()`, `updateGalleryImage()`, `deleteGalleryImage()`
+- `GET /api/gallery` — public (returns only `isPublic=true` for guests, all for logged-in users)
+- `POST /api/gallery`, `PATCH /api/gallery/:id`, `DELETE /api/gallery/:id` — Admin only
+
+### Gallery page (`/gallery`)
+- Header: "Gallery" title + subtitle "Quick-copy images for profile pics, banners, and more"
+- Category filter tabs: All, Profile Pics, Banners, Wallpapers, Logos, Other
+- Grid of image cards: thumbnail (maintains aspect ratio), title, category badge
+- Each card has a **"Copy Link"** button that copies `imageUrl` to clipboard (toast confirmation)
+- Unauthenticated users see only `isPublic=true` images; logged-in users see all
+- If gallery is empty: friendly empty state
+
+### CMD gallery management (`/command/gallery`)
+- "Gallery" item added to CMD sidebar (admin-only)
+- Table of all images with title, category, thumbnail preview, isPublic toggle, displayOrder
+- "Add Image" button opens dialog with: Title, `<FileUpload bucket="gallery">` component (from Task #57), Category select, Alt Text, Public toggle, Display Order
+- After upload, `imageUrl` is set to the returned Supabase public URL
+- Edit (pencil) and Delete per row
+
+### Tools dropdown in nav
+- New "Tools" mega-menu item in `PlatformHeader` visible only to authenticated users
+- Dropdown: **Notes** → `/notes`, **Gallery** → `/gallery`, subtle "more coming soon" hint
+- Mobile drawer: Tools section with same items
+- Not shown to logged-out users
+
+## Relevant files
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/routes.ts`
+- `client/src/components/platform-header.tsx`
+- `client/src/components/command-sidebar.tsx`
+- `client/src/components/file-upload.tsx` (from Task #57)
+- `client/src/App.tsx`
+
+---
+
+### #52 — Brand section on About page + CMD brand assets management
+
+> File: `t52-brand-section-about.md`
+
+# Brand section on About page + CMD brand assets management
+
+## Depends on
+Task #57 (Supabase Storage setup) must be merged first — this task uses the `<FileUpload>` component and `brand-assets` Supabase bucket created there.
+
+## What & Why
+SEVCO needs a public-facing Brand section on the About page where visitors can download official brand assets (logos, color palettes, font info, etc.) for use in marketing materials. Admins upload and manage files directly from CMD using Supabase Storage.
+
+## Done looks like
+
+### Schema: `brand_assets` table
+- `id` serial PK
+- `name` text not null (e.g., "SEVCO Primary Logo — Black")
+- `description` text (e.g., "For use on light backgrounds")
+- `assetType` text not null (values: `logo`, `color_palette`, `font`, `banner`, `icon`, `other`)
+- `downloadUrl` text not null (Supabase public URL after file upload)
+- `previewUrl` text (separate preview/thumbnail image URL — can also be a Supabase URL)
+- `fileFormat` text (e.g., "PNG", "SVG", "PDF")
+- `displayOrder` integer default 0
+- `isPublic` boolean default true
+- `createdAt` timestamp
+
+### Storage + API
+- `getBrandAssets(isPublic?)` — returns assets sorted by displayOrder
+- `createBrandAsset()`, `updateBrandAsset()`, `deleteBrandAsset()`
+- `GET /api/brand-assets` — public (returns only `isPublic=true` for guests, all for logged-in staff+)
+- `POST /api/brand-assets`, `PATCH /api/brand-assets/:id`, `DELETE /api/brand-assets/:id` — Admin only
+
+### About page — Brand section
+- New "Brand & Assets" section at the bottom of `about-page.tsx`
+- Brief brand guidelines summary: logo usage rules, primary colors as hex swatches, typography note (hardcoded copy, can be updated later)
+- Asset grid: each card shows preview thumbnail, name, file format badge, and a "Download" button linking to `downloadUrl`
+- Cards grouped by `assetType` (logos first, then colors, fonts, banners, etc.)
+- Empty state: "Brand assets coming soon" — only shown to logged-in staff+; guests see nothing if no assets exist
+
+### CMD brand assets management
+- Add a "Brand Assets" sub-section to the existing CMD Display tab (`/command/display`)
+- Table of all brand assets with: name, type badge, format, preview thumbnail, public toggle, display order
+- "Add Asset" dialog: Name, Description, Asset Type select, File Upload (`<FileUpload bucket="brand-assets">` from Task #57), Preview Image URL (optional, paste a URL or upload a second file), File Format (auto-detected from filename or manually entered), Public toggle, Display Order
+- Edit (pencil) and Delete buttons per row
+
+## Relevant files
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/routes.ts`
+- `client/src/pages/about-page.tsx`
+- `client/src/pages/command-display.tsx`
+- `client/src/components/file-upload.tsx` (from Task #57)
+- `client/src/App.tsx`
+
+---
+
+### #53 — SEVCO Hosting landing page
+
+> File: `t53-hosting-landing-page.md`
+
+# SEVCO Hosting landing page
+
+## What & Why
+A beautiful, modern, mobile-first public landing page for SEVCO Hosting — a new all-in-one hosting company offering website hosting, Minecraft & game server hosting, VPS, and custom apps/databases.
+
+## Brand spec (from user)
+- **Name**: SEVCO Hosting  
+- **Tagline**: "Lightning-Fast Hosting for Websites, Minecraft Servers & Everything In Between"
+
+## Done looks like
+
+### New page: `client/src/pages/hosting-page.tsx`
+A single-file, complete landing page containing:
+
+**Hero section**
+- Full-width dark/gradient hero with the SEVCO wordmark + "Hosting" label
+- Large tagline headline
+- Two CTAs: "Get Started" (links to `/contact`) and "Learn More" (scrolls down)
+- Subtle animated background or gradient (CSS only, no heavy JS)
+
+**Services grid**
+Four service cards with icons, names, descriptions, and a "From $X/mo" price hint (placeholder):
+1. **Website Hosting** — Fast, reliable hosting for any website (static, WordPress, Node, etc.)
+2. **Minecraft & Game Servers** — Lag-free game server hosting with one-click setup
+3. **VPS** — Full root access virtual private servers, scale to any workload
+4. **Custom Hosting** — Databases, APIs, apps — if you can build it, we can host it
+
+**Feature highlights section**
+- 99.9% uptime, DDoS protection, 24/7 support, instant provisioning (4 feature pills with icons)
+
+**Why SEVCO Hosting section**
+- Brief paragraph about SEVCO's commitment to reliability + competitive pricing
+- Subtle nod to the SEVCO ecosystem (domain registration, Discord community)
+
+**CTA section at bottom**
+- "Ready to launch?" headline + "Contact Us" button → `/contact`
+
+**Page metadata**
+- Title: "SEVCO Hosting — Website, Game & VPS Hosting"
+- Meta description, og:title, og:description
+
+### Routing
+- Route `/hosting` registered in `App.tsx`
+- "Hosting" link added to the **Services** dropdown in `PlatformHeader` mega-menu (and mobile drawer)
+- The existing `/command/hosting` CMD page is unchanged
+
+## Relevant files
+- `client/src/pages/hosting-page.tsx` (new)
+- `client/src/components/platform-header.tsx`
+- `client/src/App.tsx`
+
+---
+
+### #54 — Project/Service icon editing + placeholder store products
+
+> File: `t54-project-service-icons-placeholder-products.md`
+
+# Project/Service icon editing + placeholder store products
+
+## Items covered
+1. Allow Executive+ to edit Project & Service menu icons from CMD, and add an app icon to each Project
+2. Add placeholder products with images so the store is previewable and testable
+
+## Done looks like
+
+### 1. Project icon editing
+
+**Schema changes:**
+- Add `menuIcon` text column to `projects` table (lucide icon name, e.g. "Rocket") — for the icon shown in menus/nav
+- Add `appIcon` text column to `projects` table (URL to an image, e.g. a square logo) — for a project's app icon shown in the project detail header
+
+**Project form (`project-form.tsx`):**
+- Add "Menu Icon" field — text input with lucide icon name, with a small live preview of the resolved icon
+- Add "App Icon URL" field — URL input, shows a small image preview when a valid URL is entered
+- Both fields are optional; existing projects get `null` (fall back to defaults)
+- These fields are shown to Executive+ users only (same as other project management controls)
+
+**Project detail page:**
+- If `appIcon` URL is set: show it as a small square icon in the project header alongside the project name
+- If `menuIcon` is set: use it as the project's icon in any navigation or list contexts
+
+**Service icon editing:**
+- Existing `services` table already has... check if it has an icon field; if not, add `menuIcon` text column to `services`
+- CMD Services page: add icon field to the create/edit service dialog (lucide icon name with preview)
+- Services mega-menu in `PlatformHeader`: resolve icon dynamically if set, fall back to `Briefcase`
+
+### 2. Placeholder store products with images
+Seed 6–8 representative placeholder products across different categories using real-looking royalty-free image URLs (from Unsplash or similar public CDN):
+
+| Name | Category | Price | Image |
+| --- | --- | --- | --- |
+| SEVCO Classic Tee | Apparel | $29.99 | Unsplash t-shirt |
+| SEVCO Hoodie — Black | Apparel | $59.99 | Unsplash hoodie |
+| SEVCO Planet Sticker Pack | Accessories | $9.99 | Unsplash stickers |
+| SEVCO Snapback Cap | Accessories | $34.99 | Unsplash cap |
+| SEVCO Digital Album — Vol. 1 | Music | $7.99 | Unsplash music |
+| SEVCO Tote Bag | Accessories | $19.99 | Unsplash tote |
+
+- Products are inserted via a seed/migration function that runs only if the store has fewer than 3 products (idempotent)
+- All products are `stockStatus: "available"` except one `"sold_out"` item for testing
+- `stripeProductId` and `stripePriceId` are null (placeholder products, not live Stripe items)
+
+## Relevant files
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/routes.ts`
+- `server/seed.ts` (for placeholder products)
+- `client/src/pages/project-form.tsx`
+- `client/src/pages/project-detail.tsx`
+- `client/src/pages/command-services.tsx`
+- `client/src/components/platform-header.tsx`
+- `client/src/App.tsx`
+
+---
+
+### #55 — Spotify integration in CMD Music tab
+
+> File: `t55-spotify-integration.md`
+
+# Spotify integration in CMD Music tab
+
+## What & Why
+Admins need visibility into streaming performance for SEVCO RECORDS artists and tools to manage playlists — all from within CMD. This uses the Spotify Web API with the Authorization Code flow (server-side, not PKCE, since this is an admin backend tool).
+
+## Prerequisites (env vars required before work begins)
+- `SPOTIFY_CLIENT_ID`
+- `SPOTIFY_CLIENT_SECRET`
+- `SPOTIFY_REDIRECT_URI` — must be an HTTPS URL (e.g. `https://[replit-domain]/api/spotify/callback`)
+
+## Done looks like
+
+### Auth flow (server-side Authorization Code)
+- `GET /api/spotify/auth` — redirects admin to Spotify authorization page with scopes: `user-read-private`, `playlist-read-private`, `playlist-modify-public`, `playlist-modify-private`, `user-library-read`
+- `GET /api/spotify/callback` — handles the OAuth callback, exchanges code for access + refresh tokens, stores both in `platform_settings` table (`spotify.accessToken`, `spotify.refreshToken`, `spotify.tokenExpiry`)
+- Token refresh: middleware checks expiry before each Spotify API call and refreshes using the stored refresh token if needed; respects `Retry-After` on 429 responses with exponential backoff
+- All Spotify endpoints are admin-only
+
+### Managed artists schema
+New `spotify_artists` table:
+- `id` serial PK
+- `spotifyArtistId` text not null (Spotify artist URI ID)
+- `displayName` text not null
+- `displayOrder` integer default 0
+- `createdAt` timestamp
+
+### API endpoints
+- `GET /api/spotify/artists` — list managed artists (from `spotify_artists` table with fetched Spotify data)
+- `POST /api/spotify/artists` — add an artist by Spotify ID
+- `DELETE /api/spotify/artists/:id` — remove an artist from the managed list
+- `GET /api/spotify/artists/:spotifyId/stats` — fetch followers, monthly listeners (from Spotify `/artists/{id}` endpoint)
+- `GET /api/spotify/playlists` — list the authenticated user's playlists
+- `GET /api/spotify/playlists/:id/tracks` — list tracks in a playlist (uses `/playlists/{id}/items` per API rules)
+- `POST /api/spotify/playlists` — create a new playlist
+- `POST /api/spotify/playlists/:id/tracks` — add tracks to a playlist
+- `DELETE /api/spotify/playlists/:id/tracks` — remove tracks from a playlist
+
+### CMD Music tab — new "Spotify" section
+The existing CMD Music page gains a third tab: **Spotify** (alongside Submissions and Playlists).
+
+**"Connect Spotify" panel (if not authenticated):**
+- Shows a "Connect your Spotify account" card with a "Authorize Spotify" button → calls `/api/spotify/auth`
+
+**Once connected:**
+
+**Artist Stats sub-section:**
+- Grid of artist cards (one per managed artist in `spotify_artists`)
+- Each card: artist name, Spotify profile image, follower count, monthly listeners (fetched live), "Remove" button
+- "Add Artist" button: opens a dialog with a Spotify Artist ID/URL input field, fetches and previews the artist name before confirming
+- Data is fetched live on page load; no long-term caching (comply with Spotify ToS)
+
+**Playlist Manager sub-section:**
+- List of playlists from the connected Spotify account
+- Click a playlist to expand: shows track list with name, artist, duration
+- "Add Track" button: search by track name using Spotify search → select from results → adds to playlist via `/playlists/{id}/items`
+- "Remove" button per track
+- "Create Playlist" button: dialog with name + public/private toggle
+
+### Attribution
+- All displayed Spotify data includes the Spotify logo / "Data from Spotify" attribution per Developer Terms
+
+## Error handling
+- All 4xx/5xx Spotify API responses are caught and shown as user-facing error toasts with the Spotify error message
+- 429 responses trigger exponential backoff (handled server-side) and the UI shows "Rate limited, retrying…"
+
+## Relevant files
+- `shared/schema.ts` (new `spotify_artists` table)
+- `server/storage.ts`
+- `server/routes.ts` (or new `server/spotify.ts` for Spotify logic)
+- `client/src/pages/command-music.tsx`
+- `client/src/App.tsx`
+
+---
+
+### #56 — Wiki articles + changelog entries for tasks #43–55
+
+> File: `t56-wiki-articles-changelog.md`
+
+# Wiki articles + changelog entries for tasks #43–55
+
+## What & Why
+Each completed task should have a wiki article in the Engineering category and a corresponding changelog entry so the platform's development history is fully documented.
+
+## Done looks like
+- Each task in the range #43–#55 has a published wiki article in the Engineering category
+- Article content uses the task plan summary (title, what was built, files changed)
+- Each article has an infobox: Tool = "Replit", Version = corresponding changelog version (if any), Task = "#N"
+- All new changelog entries have timestamps and a `wikiSlug` linking to the corresponding article
+- Existing changelog entries that correspond to tasks in this range are updated to link their articles
+- The public changelog page renders article links as "Read more →"
+
+## Notes
+- This task should run after all of #48–#55 are merged so the summaries are accurate
+- Use the same pattern established by task #42
+
+## Relevant files
+- `server/routes.ts` (wiki article creation API)
+- `client/src/pages/command-changelog.tsx`
+- `client/src/pages/changelog-page.tsx`
+
+---
+
+### #57 — Supabase Storage setup + file uploads (profiles, music submissions, gallery, brand assets)
+
+> File: `t57-supabase-storage.md`
+
+# Supabase Storage setup + file uploads (profiles, music submissions, gallery, brand assets)
+
+## What & Why
+Sets up Supabase Storage as the platform's file hosting layer. Replaces URL-input-only fields with real file upload buttons for profile images, music track submissions, gallery images, and brand assets. The Supabase free tier (1 GB) is sufficient to start; upgrading is straightforward.
+
+## Prerequisites (secrets required before work begins)
+The user must provide these as environment secrets:
+- `SUPABASE_URL` — e.g. `https://xxxx.supabase.co`
+- `SUPABASE_ANON_KEY` — public anon key (used on the frontend for uploads)
+- `SUPABASE_SERVICE_ROLE_KEY` — service role key (used server-side for admin operations only, never exposed to the client)
+
+## Done looks like
+
+### 1. Package + client setup
+- Install `@supabase/supabase-js` on both client and server
+- `server/supabase.ts` — server-side Supabase client using `SUPABASE_SERVICE_ROLE_KEY`
+- `client/src/lib/supabase.ts` — browser-side Supabase client using `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+
+### 2. Storage buckets
+Five buckets created in Supabase (via service role client on server startup or documented as a one-time setup step):
+| Bucket | Public? | Purpose |
+|---|---|---|
+| `avatars` | ✅ Public | User profile pictures |
+| `banners` | ✅ Public | User profile banner images |
+| `tracks` | ❌ Private | Music submission audio files |
+| `gallery` | ✅ Public | Gallery page images |
+| `brand-assets` | ✅ Public | Brand guideline downloads |
+
+File size limits enforced: avatars/banners 5 MB, tracks 50 MB, gallery/brand 25 MB.
+Accepted MIME types enforced per bucket (images for avatars/banners/gallery, audio/pdf/zip for tracks, any for brand).
+
+### 3. Reusable upload component
+New `client/src/components/file-upload.tsx`:
+- Props: `bucket`, `path`, `accept`, `maxSizeMb`, `currentUrl`, `onUpload(url: string)`, `label`
+- Renders: current file preview (image thumbnail or file name), a "Choose file" button, upload progress indicator, error message
+- On file select: uploads directly from browser to Supabase Storage using the anon key, returns the public URL via `onUpload`
+- For private buckets (tracks): uploads to Supabase, then passes the storage path (not a public URL) to the server; server generates a signed URL for playback
+
+### 4. Profile avatar + banner upload
+- In `ProfileEditPanel` (`profile-page.tsx`): replace the "Avatar Image URL" and "Background Image URL" text inputs with `<FileUpload>` components
+- Bucket: `avatars` for avatar, `banners` for banner
+- Path pattern: `{userId}/avatar.{ext}` and `{userId}/banner.{ext}`
+- After upload, the returned public URL is stored in the existing `avatarUrl` / `profileBgImageUrl` fields — no schema change needed
+- Keep the URL text input as a fallback option (collapsible "Or paste a URL" link below the upload button)
+
+### 5. Music submission file upload
+- In the music submit form (`music-submit-page.tsx`): add an optional "Upload Track File" section below the existing `trackUrl` field
+- Add `trackFileUrl` text column to `music_submissions` table (stores Supabase storage path for uploaded files)
+- Upload goes to `tracks` bucket with path `submissions/{submissionId}/{filename}`
+- If a file is uploaded, `trackFileUrl` is stored; if a URL is pasted, `trackUrl` is stored; both can coexist
+- In CMD Music tab (submission review): if `trackFileUrl` is set, show a playback button (generates a signed URL via `GET /api/music/submissions/:id/track-url`, admin-only) alongside any external URL
+- Schema change: add `trackFileUrl text` column to `music_submissions`, run `db:push`
+
+### 6. Gallery + Brand asset uploads (integration points for Tasks #51 and #52)
+- These tasks are planned to use file uploads. They should import and use the `<FileUpload>` component from this task
+- Gallery bucket: `gallery`, path: `gallery/{imageId}/{filename}`
+- Brand assets bucket: `brand-assets`, path: `brand/{assetId}/{filename}`
+- Task #51 and #52 agents: use `SUPABASE_URL` + anon key from env; do NOT implement the Supabase client setup themselves (it's done here)
+
+## Dependency note
+Tasks #51 (Gallery) and #52 (Brand assets) should be executed AFTER this task is merged.
+
+## Relevant files
+- `package.json` (install `@supabase/supabase-js`)
+- `server/supabase.ts` (new)
+- `client/src/lib/supabase.ts` (new)
+- `client/src/components/file-upload.tsx` (new)
+- `shared/schema.ts` (add `trackFileUrl` to music_submissions)
+- `server/storage.ts`
+- `server/routes.ts`
+- `client/src/pages/profile-page.tsx`
+- `client/src/pages/music-submit-page.tsx`
+- `client/src/pages/command-music.tsx`
+
+---
+
+### #58 — Bug Fixes: Sidebar, Music Crash, Nav, Changelog
+
+> File: `t58-bug-fixes-2.md`
+
+# Bug Fixes: Sidebar, Music Crash, Nav, Changelog
+
+## What & Why
+Five targeted bug fixes: the CMD sidebar disappears entirely when collapsed instead of shrinking to icons; the SEVCO planet logo overflows the page when either sidebar is collapsed; clicking Music in CMD crashes the whole app (black screen); Notes appears twice in navigation (both SEVCO dropdown and Tools); changelog entries are displayed out of semantic version order.
+
+## Done looks like
+- Collapsing the CMD sidebar shrinks it to a narrow icon-only strip (same as the wiki sidebar) and the toggle button remains visible and accessible
+- The SEVCO planet logo stays fully contained within the sidebar strip at all times — it does not bleed into the page content
+- Clicking the Music tab in CMD opens the page without crashing
+- Notes no longer appears in the SEVCO dropdown — only in the Tools dropdown
+- The changelog displays entries in descending semantic version order (e.g. 1.2.0 above 1.1.0 above 1.0.3) regardless of when they were created in the database
+
+## Out of scope
+- Redesigning the sidebar navigation layout or adding new menu items
+- Fixing any other CMD tabs beyond Music
+
+## Tasks
+1. **CMD sidebar icon-collapse** — Change the CMD sidebar collapsible mode from the default (offcanvas, slides off screen) to `"icon"` (narrows to an icon strip), matching the wiki sidebar. Add tooltip props to all menu buttons so labels appear on hover when collapsed.
+
+2. **Planet logo overflow fix** — In both the CMD sidebar and the wiki sidebar header, ensure the SEVCO planet icon and the text beside it are properly constrained when the sidebar is in its collapsed icon-strip state. The icon must not bleed into the page.
+
+3. **Music tab crash fix** — Add the missing `useLocation` import from `wouter` in `command-music.tsx`. This resolves the `ReferenceError` that causes React to unmount the entire tree.
+
+4. **Remove Notes from SEVCO dropdown** — Remove the Notes link from the SEVCO/Home dropdown in the platform header. Notes is already available in the Tools dropdown.
+
+5. **Changelog semantic version ordering** — Update the `getChangelog` storage method to sort entries by semantic version (major, minor, patch descending) rather than by creation timestamp. Entries with missing or invalid version strings fall to the bottom.
+
+## Relevant files
+- `client/src/components/command-sidebar.tsx`
+- `client/src/components/app-sidebar.tsx`
+- `client/src/pages/command-music.tsx`
+- `client/src/components/platform-header.tsx`
+- `server/storage.ts`
+
+---
+
+### #59 — Display Tab Expansions, File Uploads & Services Page
+
+> File: `t59-display-tab-uploads-services.md`
+
+# Display Tab Expansions, File Uploads & Services Page
+
+## What & Why
+Several areas of the platform currently accept only a pasted URL when an image or file upload would be more useful:
+- Gallery management lets Staff+ add images by URL only — should also support direct Supabase upload
+- CMD Resources lets Executives add a resource URL only — should also support file upload
+- CMD Display tab uses a plain URL input for the hero background — should support upload
+The Display tab is also missing a footer tagline editor and a hero overlay opacity control that the user needs for more visual polish. Finally, the Hosting and Domains offerings are not visible from the Services page, making them hard to discover.
+
+## Done looks like
+- In gallery management, Staff+ users see both an upload button (Supabase `gallery` bucket) and an optional "or paste a URL" fallback alongside the existing URL input
+- In CMD Resources, Executive+ users can upload a file (stored in Supabase) instead of typing a URL; the returned Supabase URL is saved automatically
+- In the CMD Display tab, the hero background image input has an upload option in addition to a URL field
+- The CMD Display tab has a "Footer Tagline" text field; saving it updates the footer tagline platform-wide
+- The CMD Display tab has an "Overlay Opacity" slider (0–100%); saving it controls how transparent the dark overlay is over the hero background image
+- The Services page has a visually distinct "Infrastructure" section near the bottom showing cards for SEVCO Hosting and Domain Registration, each linking to their respective pages
+
+## Out of scope
+- Platform color editing (separate task)
+- Changing the Supabase bucket structure or ACL rules
+- Any changes to the actual Hosting or Domains pages
+
+## Tasks
+1. **Gallery upload support** — In the gallery management view (CMD), replace the plain imageUrl text field with a combined file upload + URL fallback component (using the existing `FileUpload` component targeting the `gallery` bucket). The gallery route protection is extended to allow Staff+ (currently admin-only).
+
+2. **Resources file upload** — In CMD Resources, add a file upload option alongside the URL input for Executive+ users. Uploaded files go into the Supabase `brand-assets` bucket (or a `resources` path within it). The resulting public URL is saved as the resource URL.
+
+3. **Display tab hero image upload** — Replace the hero background image plain text input in the CMD Display tab with a combined upload + URL-fallback component (targeting the `gallery` bucket).
+
+4. **Footer tagline from Display tab** — Add a "Footer Tagline" input in the CMD Display tab. The value is saved as platform setting `footer.tagline`. The platform footer reads this setting and falls back to the current hardcoded tagline when the setting is absent.
+
+5. **Overlay opacity slider** — Add an "Overlay Opacity" slider (0–100%) to the Hero Editor section of the Display tab. Saved as platform setting `hero.overlayOpacity`. The landing page hero section reads this value and applies it to the overlay div's opacity, defaulting to the current value if not set.
+
+6. **Hosting & Domains on Services page** — Add a static "Infrastructure" section to the Services listing page above the footer CTA. It contains two featured cards: one for SEVCO Hosting (links to `/hosting`) and one for Domain Registration (links to `/domains`). Cards should be styled distinctly from the service category sections.
+
+## Relevant files
+- `client/src/pages/command-gallery.tsx`
+- `client/src/pages/command-resources.tsx`
+- `client/src/pages/command-display.tsx`
+- `client/src/components/platform-footer.tsx`
+- `client/src/pages/landing.tsx`
+- `client/src/pages/services-listing.tsx`
+- `client/src/components/file-upload.tsx`
+- `server/routes.ts`
+
+---
+
+### #60 — Platform Color Editor in CMD Display Tab
+
+> File: `t60-platform-colors.md`
+
+# Platform Color Editor in CMD Display Tab
+
+## What & Why
+Admins currently cannot change the platform's visual color scheme without editing code. Adding a color editor to the CMD Display tab lets admins customize primary, background, foreground, and accent colors for both light and dark mode, plus two brand accent colors that feed into the Brand & Assets section of the About page. Colors are stored in `platform_settings` and injected as CSS custom property overrides that cascade through the existing Tailwind design system.
+
+## Done looks like
+- The CMD Display tab has a "Platform Colors" section (admin-only) with light mode and dark mode sub-tabs
+- Each sub-tab has color pickers for: Primary, Background, Foreground, and Accent — each picker is paired with an HSL text display
+- A "Brand Colors" row (not mode-specific) provides pickers for Brand Main and Brand Secondary
+- Saving the colors applies them platform-wide immediately — all pages using the Tailwind `bg-primary`, `text-foreground`, etc. utility classes visually update
+- A "Reset to defaults" option clears all custom color settings and reverts to the original theme
+- The Brand & Assets section on the About page uses the brand colors set here (pulling from CSS variables) rather than hardcoded values
+
+## Out of scope
+- Changing fonts, border radii, or spacing
+- Per-user or per-page theming (this is a global platform setting)
+- Saving color presets or themes (single active color set only)
+
+## Tasks
+1. **Color utility helpers** — Create a `colorUtils.ts` utility file with functions to convert between hex (as used by native color inputs) and HSL string format (as used by the CSS variable system). Both directions are needed.
+
+2. **CSS injection in App root** — In `App.tsx` (or a new thin provider), fetch platform settings on mount and build a `<style>` tag that overrides `:root` and `.dark` CSS custom properties with any color values stored in platform settings. Insert it into `document.head`. Re-run when settings change.
+
+3. **Color editor UI in Display tab** — Add a "Platform Colors" card to the CMD Display tab. It has Light/Dark mode sub-tabs with color pickers for Primary, Background, Foreground, and Accent, plus a Brand Colors row for two brand accent values. Saving writes all values to platform settings via the existing PATCH endpoint.
+
+4. **Brand color variables on About page** — Replace hardcoded accent colors in the Brand & Assets section of the About page with references to the brand CSS variables injected by task 2, so admin color changes are reflected there automatically.
+
+## Relevant files
+- `client/src/App.tsx`
+- `client/src/pages/command-display.tsx`
+- `client/src/pages/about-page.tsx`
+- `client/src/index.css`
+- `server/routes.ts`
+
+---
+
+### #61 — Notes: Share & Export to External Apps
+
+> File: `t61-notes-export.md`
+
+# Notes: Share & Export to External Apps
+
+## What & Why
+Notes currently has no way to get content out of the platform. Users should be able to copy or export a note in formats compatible with Apple Notes, Notion, Bear, Obsidian, and other note-taking apps. This is a client-only addition — no backend or schema changes are needed since the note content is already available in the editor.
+
+## Done looks like
+- A "Share / Export" button appears in the note editor toolbar (next to the existing Pin, Color, and Collaborators buttons)
+- Clicking it opens a small dropdown menu with the following options:
+  - **Copy as Markdown** — copies `# {title}\n\n{content}` to clipboard; a toast confirms "Copied to clipboard"
+  - **Copy as Plain Text** — copies title + content as plain text; toast confirms
+  - **Download as Markdown (.md)** — triggers a file download named `{note-title}.md`; compatible with Obsidian, Bear import, Notion import
+  - **Download as Text (.txt)** — triggers a `.txt` download; compatible with Apple Notes import and most apps
+  - **Open in Bear** — opens the Bear URL scheme `bear://x-callback-url/create?title={title}&text={content}` in a new tab; only works on macOS/iOS with Bear installed; the option is always shown but gracefully does nothing if Bear is not installed
+
+## Out of scope
+- Notion API OAuth integration (not practical without user auth setup)
+- Apple Notes direct API (does not exist on the web)
+- Syncing or pushing notes — this is export only, one-way
+
+## Tasks
+1. **Export utilities** — Add a small helper module with functions that produce markdown string, plain text string, and trigger browser file downloads for a given note title + content. No external dependencies needed.
+
+2. **Share dropdown in note toolbar** — Add a "Share / Export" button (Share2 icon from lucide-react) to the note editor toolbar. It opens a dropdown with the five export options listed above. Wire each option to the appropriate export utility or clipboard API call. Show a toast on clipboard copy success.
+
+## Relevant files
+- `client/src/pages/notes-page.tsx`
+
+---
+
+### #62 — Bug Fixes & Polish Bundle
+
+> File: `t62-bugs-polish.md`
+
+# Bug Fixes & Polish Bundle
+
+## What & Why
+Six targeted fixes and one organizational improvement: Google search prepends a site filter that returns nothing; British spellings appear in UI text; the sidebar footer label overflows when the sidebar is collapsed; store product cards show a redundant category label; creating a new project lands on a "not found" screen; and the CMD sidebar has no category grouping.
+
+## Done looks like
+- Clicking "Search Google for X" in the search overlay and search page opens a plain Google search (`google.com/search?q=X`) with no `site:` prefix
+- "Colour", "colour palettes", "recolour", "Brand colours" → "Color", "color palettes", "recolor", "Brand colors" across `command-display.tsx`, `about-page.tsx`; "Payment Cancelled" → "Payment Canceled" in `store-cancel-page.tsx`
+- The "Command Center" text at the bottom of the CMD sidebar disappears when the sidebar is in icon-only mode (same `group-data-[collapsible=icon]:hidden` pattern used in the header)
+- Product cards in the store no longer show a small uppercase category label beneath the product name — category is already communicated by the section header and filter pills
+- After successfully creating a new project, the user lands on the project detail page (not a "project not found" screen); root cause is diagnosed and fixed (likely the query key needing to be a joined path string `/api/projects/${slug}` for the default fetcher, or a redirect timing issue)
+- The CMD sidebar navigation is organized into logical groups: **Content** (Store, Music, Gallery, Resources), **Operations** (Jobs, Services, Social Links, Changelog), **System** (Users, Hosting, Display) — each with its own `SidebarGroupLabel`; Overview stays at the top ungrouped
+
+## Out of scope
+- Changing the search page's internal results behavior
+- Redesigning the store product card layout beyond removing the category label
+- Adding new CMD sidebar items
+
+## Tasks
+1. **Google search fix** — Remove `site:sevco.us+` from the URL construction in both `search-overlay.tsx` and `search.tsx` so the link opens a plain Google query.
+
+2. **American spelling corrections** — Replace all British spellings in UI text strings: "colour" → "color" (and "Colour", "recolour" variants) in `command-display.tsx` and `about-page.tsx`; "Cancelled" → "Canceled" in `store-cancel-page.tsx`.
+
+3. **Sidebar footer collapse fix** — Add `group-data-[collapsible=icon]:hidden` to the "Command Center" text wrapper in `command-sidebar.tsx` so it hides when the sidebar is in icon-only mode.
+
+4. **Remove store card category label** — In `store-page.tsx`, remove the small uppercase `categoryName` text rendered inside the product card info area beneath the product name. Category context is already provided by the section banners and filter pills.
+
+5. **New project "not found" fix** — Investigate the `ProjectDetail` query key and default fetcher configuration. Fix the query so it fetches the correct `/api/projects/${slug}` endpoint. If the issue is a redirect race condition or wrong slug, fix accordingly.
+
+6. **CMD sidebar category grouping** — Reorganize `command-sidebar.tsx` into multiple `SidebarGroup` sections with labels (e.g., Content, Operations, System) instead of a single flat "Navigation" group.
+
+## Relevant files
+- `client/src/components/search-overlay.tsx`
+- `client/src/pages/search.tsx`
+- `client/src/pages/command-display.tsx`
+- `client/src/pages/about-page.tsx`
+- `client/src/pages/store-cancel-page.tsx`
+- `client/src/components/command-sidebar.tsx`
+- `client/src/pages/store-page.tsx`
+- `client/src/pages/project-detail.tsx`
+
+---
+
+### #63 — Brand Colors (4) + Media Library Tab in CMD + CDN Upload Everywhere
+
+> File: `t63-brand-colors-media-cdn.md`
+
+# Brand Colors (4) + Media Library Tab in CMD + CDN Upload Everywhere
+
+## What & Why
+Three related media/branding improvements:
+1. Expand brand colors from 2 to 4 (main, secondary, accent, highlight), with the About page brand section showing all four swatches updating live
+2. Anywhere the platform currently shows a plain text URL input for an image, video, or avatar — replace it with the existing FileUpload component (Supabase CDN upload) so staff never need to paste raw URLs
+3. Build a "Media" tab in CMD — a visual media library showing all Supabase Storage files across buckets, with bulk upload, rename, and copy-link actions
+
+## Done looks like
+- CMD Display → Platform Colors → Brand Colors section has 4 color pickers: "Brand Main", "Brand Secondary", "Brand Accent", "Brand Highlight" with corresponding settings keys `color.brand.accent` and `color.brand.highlight`
+- `PlatformColorInjector` in App.tsx injects all 4 brand vars (`--brand-main`, `--brand-secondary`, `--brand-accent`, `--brand-highlight`)
+- About page Brand & Assets section shows all 4 swatches and their CSS vars, updating live when changed in CMD
+- All URL input fields that accept images, videos, or profile pictures across the platform use the FileUpload component (or at minimum offer a file upload alongside the URL field) — this includes user avatar, hero background, product image, artist photo, gallery items, wiki article cover, etc.
+- CMD has a new "Media" sidebar item (admin only) that opens a full-page media library: 
+  - A bucket selector (avatars, banners, gallery, brand-assets, tracks)
+  - A grid of file thumbnails (images) or file-type icons (other formats)
+  - Bulk upload via drag-and-drop or file picker
+  - Inline rename (click to edit filename)
+  - Copy public URL to clipboard button per file
+  - Delete file button per file
+  - The library calls `GET /api/media?bucket=X` to list files and uses the existing `POST /api/upload` to upload
+
+## Backend additions
+- `GET /api/media?bucket=X` — calls `supabaseAdmin.storage.from(bucket).list()` and returns file metadata (name, size, updated_at, publicUrl)
+- `DELETE /api/media?bucket=X&path=Y` — calls `supabaseAdmin.storage.from(bucket).remove([path])`
+- `PATCH /api/media/rename` — calls copy then delete to simulate rename (Supabase doesn't have a native rename)
+
+## Out of scope
+- Changing the Supabase bucket structure
+- Building a video transcoding pipeline
+
+## Relevant files
+- `client/src/pages/command-display.tsx` (brand colors)
+- `client/src/pages/about-page.tsx` (brand swatches)
+- `client/src/App.tsx` (PlatformColorInjector)
+- `client/src/components/file-upload.tsx`
+- `client/src/components/command-sidebar.tsx`
+- `server/routes.ts` (new media endpoints)
+- `server/supabase.ts`
+- Various pages with URL inputs (user profile, product form, wiki form, artist form, gallery)
+
+---
+
+### #64 — Marketing Landing Page Redesigns (Home, Store, Projects)
+
+> File: `t64-marketing-pages.md`
+
+# Marketing Landing Page Redesigns (Home, Store, Projects)
+
+## What & Why
+The Hosting page uses a premium "SaaS/tech marketing" visual language — animated gradient blobs, gradient-clipped text, feature pills, trust sections, dual CTAs. The Home, Store, and Projects pages currently use flat static layouts. This task brings all three pages up to the same visual quality level.
+
+## Reference: What makes the Hosting page special
+- Animated pulse gradient blobs in the hero background (layered, different durations)
+- Subtle CSS grid overlay texture in the hero
+- Gradient text (`bg-clip-text text-transparent bg-gradient-to-r`)
+- Horizontal "Feature Pills" row (icon + label) above or below the hero CTA
+- Service cards with per-item color palettes and `bg-white/[0.03]` glass-style
+- Dual CTA (primary solid + secondary ghost with icon)
+- Dedicated "closing" section at the bottom with its own gradient background
+
+## Done looks like
+
+### Home Page (`landing.tsx` or equivalent)
+- Hero gets animated gradient blobs (using brand/orange/green color scheme matching SEVCO)
+- Main headline uses gradient text treatment
+- "Why SEVCO?" section: horizontal feature pills (e.g., Music, Wiki, Store, Community)
+- Dual CTA: "Explore" + "Join the Community"
+- Marketing "highlights" section showcasing key platform areas with icon cards
+
+### Store Page
+- Hero above the product grid: animated blobs + gradient headline "SEVCO Store"
+- "Why shop with us?" feature pill row (e.g., Secure checkout, Fast shipping, Quality gear)
+- Category section cards keep their color palettes but gain glass-style `bg-white/[0.03]` and hover depth
+- Bottom "closer" section: newsletter or featured product CTA
+
+### Projects Page
+- Hero above the project list: animated blobs + gradient headline "SEVCO Projects"
+- Feature pills: "Open Source", "Community Driven", "Live Updates", "Contribute"
+- Project cards gain subtle `bg-white/[0.03]` glass treatment with improved hover depth
+- "Contribute" or "Pitch a Project" CTA section at the bottom
+
+## Out of scope
+- Changing the underlying data fetching for any page
+- Redesigning the product or project cards' content (just adding visual depth to the container)
+- Changes to checkout or project creation flows
+
+## Relevant files
+- `client/src/pages/landing.tsx` (home page)
+- `client/src/pages/store-page.tsx`
+- `client/src/pages/projects-page.tsx`
+- `client/src/pages/hosting-page.tsx` (reference implementation)
+
+---
+
+### #65 — Support Tab in CMD (Contact Form Submission Management)
+
+> File: `t65-support-tab-cmd.md`
+
+# Support Tab in CMD (Contact Form Submission Management)
+
+## What & Why
+Currently, contact form submissions are only sent via email and never stored — they can't be tracked, assigned, or responded to inside the platform. This task stores every submission in the database and adds a "Support" CMD tab where staff can view, filter by category, mark submissions as resolved, and reply via email.
+
+## Schema changes
+New table: `contact_submissions`
+- `id` serial PK
+- `name` text (sender name)
+- `email` text (sender email)
+- `subject` text ("Support", "Business Inquiry", "Press", "Other")
+- `message` text
+- `status` text default "open" ("open", "in_progress", "resolved", "closed")
+- `staffNote` text nullable (internal note by staff)
+- `repliedAt` timestamp nullable
+- `createdAt` timestamp default now()
+
+## Backend additions
+- Modify `POST /api/contact` to also insert into `contact_submissions` before sending the email (keep the email too)
+- `GET /api/contact-submissions` — admin/exec/staff: returns all submissions, supports `?subject=Support&status=open` filters
+- `PATCH /api/contact-submissions/:id` — update status and staffNote
+- `POST /api/contact-submissions/:id/reply` — sends a reply email to the original sender via Resend, marks repliedAt
+
+## CMD Support tab
+- Visible to staff+ roles
+- Add "Support" item to the CMD sidebar (in the Operations group from Task #62)
+- Full-page submission list with columns: Name, Email, Subject (badge), Message preview, Status badge, Date
+- Clicking a row opens a slide-in panel (Sheet) showing: full message, status dropdown, staff note textarea, "Send Reply" button (opens an inline compose area → sends email)
+- Filter bar: by subject (All / Support / Business Inquiry / Press / Other) and status (All / Open / In Progress / Resolved)
+- Status badges: "Open" (yellow), "In Progress" (blue), "Resolved" (green), "Closed" (gray)
+
+## Out of scope
+- A full ticketing system with assignments, threads, or SLA timers
+- Storing attachment files
+
+## Dependencies
+- Task #62 should be merged first (CMD sidebar grouping) so the Support item slots into the correct category group; but it can also run independently
+
+## Relevant files
+- `shared/schema.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+- `server/emailClient.ts`
+- `client/src/pages/contact-page.tsx`
+- `client/src/components/command-sidebar.tsx`
+- New page: `client/src/pages/command-support.tsx`
+
+---
+
+### #66 — Members Chat (Direct Messages + Channels + CMD Moderation Log)
+
+> File: `t66-members-chat.md`
+
+# Members Chat (Direct Messages + Channels + CMD Moderation Log)
+
+## What & Why
+Members (logged-in users) need a way to message each other and participate in community channels. Staff can create and edit channels (group chats). Admins can see a full moderation log in CMD.
+
+## Schema additions
+`chat_channels` table:
+- `id` serial PK
+- `name` text (e.g., "general", "announcements")
+- `description` text nullable
+- `createdBy` integer (userId)
+- `isPrivate` boolean default false
+- `createdAt` timestamp
+
+`chat_messages` table:
+- `id` serial PK
+- `channelId` integer nullable (null = direct message)
+- `fromUserId` integer
+- `toUserId` integer nullable (only for DMs, channelId is null)
+- `content` text
+- `editedAt` timestamp nullable
+- `deletedAt` timestamp nullable (soft delete)
+- `createdAt` timestamp
+
+## Backend additions
+- `GET /api/chat/channels` — authenticated users; returns list of channels
+- `POST /api/chat/channels` — staff+; creates a channel
+- `PATCH /api/chat/channels/:id` — staff+; edits name/description
+- `DELETE /api/chat/channels/:id` — admin only
+- `GET /api/chat/channels/:id/messages?before=cursor&limit=50` — paginated messages
+- `POST /api/chat/channels/:id/messages` — send a message to a channel
+- `GET /api/chat/dm/:userId/messages` — DM thread with another user
+- `POST /api/chat/dm/:userId` — send a DM
+- `GET /api/chat/log` — admin only; all messages across all channels + DMs for moderation
+- `DELETE /api/chat/messages/:id` — admin only; soft-delete a message
+
+## Polling approach (no WebSocket)
+Use a 5-second polling interval (`refetchInterval: 5000`) with TanStack Query to keep messages updated. This avoids the complexity of a WebSocket server.
+
+## Frontend: Chat UI
+- Add a chat bubble icon (`MessageCircle`) to the platform header nav bar, visible only when logged in
+- Clicking it opens a Chat Sheet/drawer (slide-in from the right side, ~400px wide)
+- Left pane: list of channels + DM threads (unread count badge)
+- Right pane: message thread with:
+  - Scrollable message history
+  - Message composer (textarea + send button)
+  - For channel messages: sender avatar + name + timestamp
+- Use the existing user session for auth
+
+## CMD "Log" tab
+- Admin-only tab in CMD sidebar
+- Shows a full chronological log of all messages (channel + DM) with: channel/DM indicator, sender, recipient (for DMs), content, timestamp, a "Delete" action that soft-deletes the message
+- Filter by channel, user, or date range
+
+## Out of scope
+- Real-time WebSocket push — polling is used instead
+- File/image sharing within chat
+- Message reactions or threads
+
+## Dependencies
+- None (schema is independent)
+
+## Relevant files
+- `shared/schema.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+- `client/src/components/platform-header.tsx`
+- `client/src/components/command-sidebar.tsx`
+- New: `client/src/components/chat-sheet.tsx`
+- New: `client/src/pages/command-chat-log.tsx`
+
+---
+
+### #67 — Minecraft Marketing Page
+
+> File: `t67-minecraft-page.md`
+
+# Minecraft Marketing Page
+
+## What & Why
+A dedicated marketing landing page for SEVCO's Minecraft servers — styled like the Hosting page. Players can copy server IPs, visit voting sites, and see live server status.
+
+## Done looks like
+- New route `/minecraft` registered in App.tsx
+- Link added to the mega-menu navigation (under "Games" or equivalent)
+- Page design mirrors the Hosting page aesthetic: animated gradient blobs (green/emerald themed for Minecraft brand), gradient headline text, feature pills
+- Server cards — one per SEVCO Minecraft server — each showing:
+  - Server name & description
+  - Server IP (with a "Copy IP" button that writes to clipboard and shows a brief "Copied!" toast)
+  - Online/Offline status badge with player count (fetched from a public Minecraft server status API, e.g., `https://api.mcsrvstat.us/3/{host}`)
+  - Voting links — each server card has 1–3 "Vote on [Site Name]" buttons (e.g., Planet Minecraft, Minecraft Server List)
+- Feature pills row: "Survival", "Creative", "Mini Games", "Active Community" (or relevant game modes for SEVCO)
+- Bottom CTA: Discord join link
+
+## Backend additions
+- `GET /api/minecraft/status?host=play.sevco.us` — proxy call to `api.mcsrvstat.us` to avoid CORS, returning `{ online, players: { online, max }, motd }`. Cached for 60 seconds to avoid hammering the external API.
+- Admin-managed server list: seed 2–3 sample servers in the page directly (can be hardcoded since server list doesn't change often) — or add a `minecraft_servers` table if the user wants to manage it from CMD (out of scope for now, hardcode is fine)
+
+## Server data (hardcoded defaults)
+Define in the page file — admins can request a CMD editor in a future task:
+```ts
+const SERVERS = [
+  { name: "SEVCO SMP", host: "smp.sevco.us", description: "Survival Multiplayer", voteLinks: [...] },
+  { name: "SEVCO Creative", host: "creative.sevco.us", description: "Build anything", voteLinks: [...] },
+];
+```
+
+## Out of scope
+- CMD editor for server management (future task)
+- Custom Minecraft texture pack previews
+
+## Relevant files
+- New: `client/src/pages/minecraft-page.tsx`
+- `client/src/App.tsx` (route)
+- `client/src/components/platform-header.tsx` (nav link)
+- `server/routes.ts` (status proxy)
+
+---
+
+### #68 — Finance Tab in CMD
+
+> File: `t68-finance-tab-cmd.md`
+
+# Finance Tab in CMD
+
+## What & Why
+Admins need a basic internal accounting view inside the platform — tracking income, expenses, invoices, and project budgets without relying on an external tool.
+
+## Schema additions
+`finance_transactions` table:
+- `id` serial PK
+- `type` text ("income" | "expense")
+- `category` text (e.g., "Server Costs", "Merch Sales", "Sponsorship")
+- `description` text
+- `amount` real (positive always; type field indicates direction)
+- `date` date
+- `projectId` integer nullable (links to a finance project, not the public projects table)
+- `createdAt` timestamp
+
+`finance_projects` table:
+- `id` serial PK
+- `name` text
+- `description` text nullable
+- `budget` real
+- `status` text ("active" | "completed" | "on_hold")
+- `createdAt` timestamp
+
+`finance_invoices` table:
+- `id` serial PK
+- `invoiceNumber` text (auto-generated: INV-YYYY-XXXX)
+- `clientName` text
+- `clientEmail` text nullable
+- `lineItems` jsonb (array of `{ description, quantity, unitPrice }`)
+- `totalAmount` real
+- `status` text ("draft" | "sent" | "paid" | "overdue")
+- `dueDate` date nullable
+- `createdAt` timestamp
+
+## CMD Finance tab (admin only)
+Five sub-tabs within the Finance page:
+
+### Overview
+- Summary cards: Total Income (current month), Total Expenses (current month), Net Balance, Outstanding Invoices total
+- A simple line/bar chart (using recharts, already installed) showing income vs expenses by month
+
+### Transactions
+- Table of all transactions with columns: Date, Type badge (Income green / Expense red), Category, Description, Amount
+- "Add Transaction" button → inline form (type, category, description, amount, date, optional project link)
+- Filter by type, category, date range
+
+### Invoices
+- Table: Invoice #, Client, Total, Status badge, Due Date, Actions
+- "Create Invoice" → sheet/modal form with dynamic line items (add/remove rows, auto-calculates total)
+- "Mark as Paid", "Send Invoice" (sends a basic HTML email via Resend to the client email)
+- PDF export is out of scope (future task)
+
+### Projects
+- Cards showing finance projects with name, budget, spent (sum of linked transactions), remaining, status badge
+- "New Project" form: name, description, budget, status
+- Clicking a project shows its linked transactions
+
+### Calculator
+- A simple in-page calculator UI (a client-side only utility with no backend)
+- Standard calculator operations (+, -, ×, ÷) useful for quick finance math
+
+## Out of scope
+- Stripe or bank account integration
+- Tax calculations
+- PDF invoice generation
+- Multi-currency
+
+## Relevant files
+- `shared/schema.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+- `client/src/components/command-sidebar.tsx`
+- New: `client/src/pages/command-finance.tsx`
+- `server/emailClient.ts` (invoice send)
+
+---
+
+### #69 — Staff Tab in CMD (Staff Directory + Org Chart)
+
+> File: `t69-staff-tab-cmd.md`
+
+# Staff Tab in CMD (Staff Directory + Org Chart)
+
+## What & Why
+Admins need a dedicated staff view inside CMD — a clean staff directory and a visually organized org chart that admins can populate to show the team hierarchy.
+
+## Schema additions
+`staff_org_nodes` table:
+- `id` serial PK
+- `userId` integer references users (nullable — allows placeholder nodes for unfilled roles)
+- `title` text (job title, e.g., "Creative Director")
+- `department` text (e.g., "Engineering", "Creative", "Operations")
+- `parentId` integer nullable self-referencing FK (the manager's org node id)
+- `sortOrder` integer default 0
+- `createdAt` timestamp
+
+## Done looks like
+- "Staff" tab visible in CMD sidebar to admin+ users
+- Two sub-views toggled by a tab bar at the top: **Directory** and **Org Chart**
+
+### Directory view
+- Similar visual style to the existing Users tab in CMD
+- Filtered to only show users whose role is "staff" or higher (staff, partner, executive, admin)
+- Columns: Avatar, Name, Role badge, Email, Title (from org node if set), Department (from org node if set), Joined date
+- "Add to Org Chart" action per row (opens a dialog to create/link an org node for that user, setting their title, department, and parent)
+- Invite button (links to user creation flow)
+
+### Org Chart view
+- Visually rendered tree of `staff_org_nodes` records
+- Root node(s) at the top (no parentId), children underneath connected with lines
+- Each node card shows: user avatar (or placeholder silhouette if userId is null), user name, title, department badge
+- "Add Node" button at the top: opens a form to create a new node (select user from staff list, enter title/department, select parent node)
+- Clicking an existing node opens an edit panel: change title, department, parent, or remove from chart
+- Drag-to-reorder within the same level (optional: if too complex, use up/down sort buttons instead — prefer simplicity)
+- Visual styling: clean card nodes connected by thin lines, colored accent by department (Engineering = blue, Creative = purple, Operations = orange, etc.)
+
+## Backend additions
+- `GET /api/staff` — admin+; returns all users with role staff or higher, joined with their org node if one exists
+- `GET /api/staff/org` — admin+; returns full org node tree with nested children
+- `POST /api/staff/org` — admin; creates an org node
+- `PATCH /api/staff/org/:id` — admin; updates title, department, parentId, sortOrder
+- `DELETE /api/staff/org/:id` — admin; removes an org node (does not affect the user account)
+
+## Out of scope
+- Exporting the org chart as an image or PDF
+- Automated hierarchy sync from a HR system
+- Performance reviews or scheduling
+
+## Relevant files
+- `shared/schema.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+- `client/src/components/command-sidebar.tsx`
+- New: `client/src/pages/command-staff.tsx`
+
+---
+
+### #70 — Bug Fixes & Polish Bundle 2
+
+> File: `t70-bugs-polish2.md`
+
+# Bug Fixes & Polish Bundle 2
+
+## What & Why
+Six targeted fixes and one changelog update addressing issues found after the recent feature merge wave.
+
+## Done looks like
+- Store page no longer shows the orange pill filter buttons (All / Engineering / Music / etc.) below the category banner cards — the banner cards themselves already act as filters; removing the redundant pill row declutters the page
+- Chat sheet has only one X/close button (the built-in one from SheetContent); the manual duplicate close button inside the SheetHeader has been removed
+- Navigating to `/projects/new` no longer matches the `:slug` route and shows "project not found"; the `/projects/new` route is registered before `/projects/:slug` in App.tsx so the specific path wins
+- Auth form inputs accept keyboard input; the root cause (likely a focus-trap or pointer-events issue from an overlapping element or CSS rule) is diagnosed and fixed
+- Brand colors (main, secondary, accent, highlight) display correctly in the About page brand section; the CSS variable injection in PlatformColorInjector is verified and any timing/specificity issue fixed
+- A new Changelog entry is added in CMD for the recent work (Tasks #62–69): platform improvements including bug fixes, Minecraft page, chat, Finance, Staff, Support, Media, and marketing page redesigns
+
+## Out of scope
+- Redesigning the store filter experience
+- Changing the chat sheet layout beyond fixing the duplicate button
+
+## Tasks
+1. **Remove store pill filters** — Delete the `flex flex-wrap gap-2` pill filter row (All + category pills) from `store-page.tsx`. The category banner cards above already handle filtering.
+
+2. **Fix chat double X** — Remove the manual `<Button>` close button from the `SheetHeader` in `chat-sheet.tsx`. The `SheetContent` already renders an absolute-positioned X button automatically.
+
+3. **Fix project routing** — In `App.tsx`, move the `/projects/new` route registration to appear before `/projects/:slug` so the static path takes priority over the dynamic one.
+
+4. **Fix auth form typing** — Investigate and fix the issue preventing keyboard input in the auth form. Check for: overlapping elements with `pointer-events: none/all`, z-index stacking issues, focus traps from chat or search components that persist across navigation. Fix whatever prevents the inputs from receiving focus.
+
+5. **Fix brand colors on About page** — Debug the `PlatformColorInjector` to ensure CSS variables are injected before the About page renders its swatches. If fallback values still don't show, check the `var()` syntax and that `PRIMARY_COLORS` fallback strings use valid `hsl()` format.
+
+6. **Add changelog entry** — Add a new entry in CMD Changelog via the `POST /api/changelog` endpoint (or directly via storage): version 1.3.0, category "feature", title "Platform Expansion: Minecraft, Chat, Finance, Staff, Support, Media", summarizing the recent task wave.
+
+## Relevant files
+- `client/src/pages/store-page.tsx`
+- `client/src/components/chat-sheet.tsx`
+- `client/src/App.tsx`
+- `client/src/pages/auth-page.tsx`
+- `client/src/pages/about-page.tsx`
+- `client/src/App.tsx` (PlatformColorInjector)
+- `server/routes.ts` (changelog endpoint)
+
+---
+
+### #71 — Minecraft as a Project + CMD Minecraft Admin Tab
+
+> File: `t71-minecraft-project-cmd.md`
+
+# Minecraft as a Project + CMD Minecraft Admin Tab
+
+## What & Why
+The Minecraft page currently lives under the Services menu, which is the wrong home. It should be a SEVCO Project — visible in the Projects section — and the server details (IPs, descriptions, voting links) that are currently hardcoded in the page should be editable by admins in CMD.
+
+## Done looks like
+
+### Navigation
+- Minecraft is removed from the Services mega-menu footer and mobile Services section
+- A "Minecraft" project exists in the Projects page; clicking it navigates to `/minecraft` (the Minecraft marketing page acts as the project's detail view)
+- The Minecraft project is seeded in the DB on first run (or via migration): name="Minecraft", slug="minecraft", type="Game Server", status="active", websiteUrl="/minecraft"
+- In `project-detail.tsx`, if a project has `type === "Game Server"` and a `websiteUrl` starting with `/`, the page automatically redirects to that URL instead of rendering the standard detail layout
+
+### CMD Minecraft tab
+- A new "Minecraft" item in the CMD sidebar (Content group, admin only)
+- The tab at `/command/minecraft` shows a list of current servers with:
+  - Server name, host/IP, description, game mode (Survival, Creative, etc.)
+  - Vote links (list of { label, url })
+  - Enable/disable toggle (hidden servers don't show on the Minecraft page)
+- "Add Server" creates a new server record; clicking a server opens an edit sheet
+- "Delete" button with confirmation removes a server
+
+### Minecraft page reads from DB
+- The hardcoded `SERVERS` constant in `minecraft-page.tsx` is replaced by a `GET /api/minecraft/servers` endpoint call
+- The status polling endpoint remains as `GET /api/minecraft/status?host=X`
+
+## Schema additions
+`minecraft_servers` table:
+- `id` serial PK
+- `name` text
+- `host` text (e.g., smp.sevco.us)
+- `description` text nullable
+- `gameMode` text nullable (e.g., "Survival", "Creative")
+- `voteLinks` jsonb (array of `{ label: string, url: string }`)
+- `enabled` boolean default true
+- `sortOrder` integer default 0
+- `createdAt` timestamp
+
+## Backend additions
+- `GET /api/minecraft/servers` — public; returns enabled servers ordered by sortOrder
+- `POST /api/minecraft/servers` — admin only; creates a server
+- `PATCH /api/minecraft/servers/:id` — admin only; updates a server
+- `DELETE /api/minecraft/servers/:id` — admin only; removes a server
+- Seed 2 default servers on first run if table is empty
+
+## Out of scope
+- Server analytics or player history
+- Multiple Minecraft page themes
+
+## Relevant files
+- `client/src/pages/minecraft-page.tsx`
+- `client/src/components/platform-header.tsx` (remove from Services dropdown)
+- `client/src/pages/project-detail.tsx` (redirect for Game Server type)
+- `client/src/components/command-sidebar.tsx`
+- `client/src/App.tsx`
+- New: `client/src/pages/command-minecraft.tsx`
+- `shared/schema.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+
+---
+
+### #72 — Platform-Wide Hover Tooltips
+
+> File: `t72-hover-tooltips.md`
+
+# Platform-Wide Hover Tooltips
+
+## What & Why
+Many icon-only buttons across the platform (nav icons, CMD action buttons, sidebar items in icon-collapsed mode, etc.) give no indication of their function on hover. Adding tooltips improves discoverability and accessibility.
+
+## Done looks like
+- All icon-only buttons in the platform header nav (search, cart, chat, notifications, theme toggle, user avatar trigger) show a tooltip on hover describing their function
+- All icon-only buttons in the CMD sidebar (when collapsed to icon mode) show the item label as a tooltip
+- All icon-only action buttons in CMD pages show descriptive tooltips (e.g., "Edit", "Delete", "Copy URL", "Upload", "Save")
+- All icon-only buttons in the wiki sidebar show their label as a tooltip
+- The Tooltip component used is the shadcn/ui `Tooltip` from `@/components/ui/tooltip`
+- Tooltips appear below or beside the element with a short delay (default shadcn behavior)
+- No tooltip is added to buttons that already have a visible text label
+
+## Implementation approach
+- Use `TooltipProvider` (already expected to wrap the app in App.tsx or at a high level), `Tooltip`, `TooltipTrigger`, `TooltipContent` from `@/components/ui/tooltip`
+- If `TooltipProvider` is not already wrapping the app, add it in App.tsx
+- Priority order for tooltip placement:
+  1. Platform header nav icons (highest impact, most visible)
+  2. CMD sidebar icon-collapsed mode items (already have labels but need tooltips when collapsed)
+  3. CMD page action buttons (Edit, Delete, Copy, etc.)
+  4. Wiki sidebar action buttons
+
+## Out of scope
+- Adding tooltips to form labels or non-interactive elements
+- Custom tooltip animations or styling beyond shadcn defaults
+
+## Relevant files
+- `client/src/components/platform-header.tsx`
+- `client/src/components/command-sidebar.tsx`
+- `client/src/components/app-sidebar.tsx`
+- `client/src/App.tsx` (TooltipProvider)
+- `client/src/components/ui/tooltip.tsx`
+- CMD pages with action buttons (command-media.tsx, command-support.tsx, etc.)
+
+---
+
+### #73 — Hero Logo Upload + Brand Assets Preview
+
+> File: `t73-hero-logo-brand-assets.md`
+
+# Hero Logo Upload + Brand Assets Preview
+
+## What & Why
+Admins currently cannot change the planet icon shown in the Hero section — it's hardcoded. The Brand Assets section in CMD shows blank preview boxes for logo assets. Both items improve the CMS/admin UX significantly.
+
+## Done looks like
+
+### Hero logo upload (CMD Display)
+- The Hero Editor in CMD > Display has a new "Platform Logo" field above the background image section
+- The field uses `FileUploadWithFallback` to upload an image to the `brand-assets` Supabase bucket under the path `platform-logo/logo`
+- The uploaded URL is saved to the `platform.logoUrl` setting key
+- The landing page (`landing.tsx`) reads `platform.logoUrl` from the platform settings query (via `usePlatformSettings`) and renders the uploaded logo; if no logo is set, it falls back to the hardcoded planet icon import
+- The platform header and any other places that render the planet icon also use the dynamic logo URL
+
+### Brand Assets logo preview
+- In the Brand Assets section of CMD Display, when an asset has `assetType === "logo"` and a `fileUrl`, the asset card uses that `fileUrl` as its preview image (`<img src={asset.fileUrl} alt={asset.name} />`)
+- If the asset has no `fileUrl` or `assetType !== "logo"`, it falls back to the current placeholder icon
+- The About page brand assets section also uses the `fileUrl` as the preview for logo-type assets
+
+### Brand colors on About page
+- Investigate and confirm whether `color.brand.*` entries exist in the DB
+- If they exist but aren't rendering, fix the CSS variable injection timing (inject before first paint or re-render the About page when settings load)
+- Add a loading state to the About page brand colors section so it waits for platform settings before rendering the swatches
+
+## Implementation notes
+- `usePlatformSettings` hook already exists or can be created as a wrapper around `useQuery({ queryKey: ['/api/platform-settings'] })`
+- The landing page already has access to the settings from PlatformColorInjector in App.tsx; extend the same query to export the logo URL
+- Brand Assets cards: the `BrandAsset` type from the DB has a `fileUrl` column; use it directly for logo-type assets
+
+## Relevant files
+- `client/src/pages/command-display.tsx` (Hero editor section, Brand Assets section)
+- `client/src/pages/landing.tsx` (reads platform.logoUrl)
+- `client/src/pages/about-page.tsx` (brand assets preview + brand colors)
+- `client/src/App.tsx` (PlatformColorInjector)
+- `shared/schema.ts` (brand_assets table, platform_settings table)
+
+---
+
+### #74 — Services Mega-Menu Reorganization
+
+> File: `t74-services-menu-reorganization.md`
+
+# Services Mega-Menu Reorganization
+
+## What & Why
+The Services mega-menu currently groups services into generic categories (Engineering, Design, Marketing, Operations, Sales, Support) that were placeholders. The user wants every service properly categorized under the correct headings matching SEVCO's real service offerings.
+
+## Done looks like
+- The Services dropdown mega-menu groups are updated to match SEVCO's actual service categories
+- Each category has an appropriate Lucide icon
+- The layout stays three columns (or adjusts to fit the new categories cleanly)
+- Existing service records in the DB are updated to match the new category names
+- The mobile Services menu reflects the same categories
+- The Minecraft link has been removed from the footer links section (handled in Task #71); the footer links section now shows: Hosting, Domains, View all services
+
+## New category structure
+Based on SEVCO's known service portfolio, the updated categories should be:
+
+**Column 1:**
+- **Creative** — Design, branding, content creation (icon: Sparkles or Palette)
+- **Technology** — Software dev, platforms, apps (icon: Code2)
+
+**Column 2:**
+- **Marketing** — Social media, campaigns, growth (icon: Megaphone)
+- **Business** — Consulting, strategy, operations (icon: Briefcase)
+
+**Column 3:**
+- **Media** — Music production, recording, distribution (icon: Music)
+- **Support** — Client services, help desk (icon: LifeBuoy or HeadphonesIcon)
+
+Each category shows up to 3 services from the DB. The "Browse all" footer link remains.
+
+## Implementation approach
+- Update `SERVICE_COLUMN_GROUPS` constant in `platform-header.tsx` with new category names and icons
+- Update the mobile services section to use the same categories
+- Provide DB seed or admin instructions for re-categorizing existing service records
+- Show a "No services in this category yet" placeholder when a category has 0 items rather than hiding the header
+
+## Out of scope
+- Changing the visual design of the mega-menu itself (cards, fonts, spacing)
+- Adding subcategories
+- Reordering the Services page listing
+
+## Relevant files
+- `client/src/components/platform-header.tsx` (SERVICE_COLUMN_GROUPS constant, ServicesDropdown, mobile menu)
+
+---
+
+### #75 — Finance — Subscriptions Tab
+
+> File: `t75-finance-subscriptions.md`
+
+# Finance — Subscriptions Tab
+
+## What & Why
+SEVCO needs to track its corporate subscriptions (SaaS tools, services, renewals) in one place. A new Subscriptions sub-tab in CMD > Finance gives a centralized view of all recurring costs with due dates and a total monthly cost summary.
+
+## Done looks like
+- CMD > Finance has a new "Subscriptions" tab alongside the existing Accounting/Invoices/Budgets/Calculator sub-tabs
+- The Subscriptions tab shows a table of SEVCO's corporate subscriptions:
+  - Name, category (e.g., Software, Services, Hosting, Media, Other), amount, billing cycle (monthly/annually/quarterly), next due date, status (active/cancelled/paused)
+  - Monthly equivalent cost (for annual plans: amount / 12, for quarterly: amount / 3)
+- A "Total monthly cost" card at the top summarizes the sum of all active subscription monthly equivalents
+- "Add Subscription" button opens a form sheet with all fields
+- Each row has Edit and Delete actions
+- Subscriptions are sorted by next due date (soonest first)
+- Overdue subscriptions (next due date < today) are highlighted in red/amber
+
+## Schema additions
+`subscriptions` table:
+- `id` serial PK
+- `name` text (e.g., "Adobe Creative Cloud")
+- `category` text (Software/Services/Hosting/Media/Other)
+- `amount` numeric (e.g., 54.99)
+- `billingCycle` text (monthly/annually/quarterly)
+- `nextDueDate` date
+- `status` text default "active" (active/cancelled/paused)
+- `notes` text nullable
+- `websiteUrl` text nullable
+- `createdAt` timestamp
+
+## Backend additions
+- `GET /api/finance/subscriptions` — admin/executive; returns all subscriptions ordered by nextDueDate
+- `POST /api/finance/subscriptions` — admin/executive; creates subscription
+- `PATCH /api/finance/subscriptions/:id` — admin/executive; updates subscription
+- `DELETE /api/finance/subscriptions/:id` — admin/executive; removes subscription
+
+## Frontend
+- New `SubscriptionsTab` component inside `client/src/pages/command-finance.tsx`
+- Summary card: "Total Monthly Cost: $X,XXX.XX" using monthly equivalents of all active subs
+- Table with name, category badge, amount, cycle, next due (colored red if overdue), status badge, actions
+- Add/Edit uses a Sheet with a form (react-hook-form + zod)
+- Due date shown as relative (e.g., "In 12 days" or "3 days overdue")
+
+## Out of scope
+- Automatic renewal notifications/emails
+- Credit card tracking
+- Connecting to real subscription APIs (Stripe billing portal, etc.)
+
+## Relevant files
+- `shared/schema.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+- `client/src/pages/command-finance.tsx`
+
+---
+
+### #76 — Fix Invoice Email + Support Reply Email (Resend)
+
+> File: `t76-email-fix.md`
+
+# Fix Invoice Email + Support Reply Email (Resend)
+
+## What & Why
+Two email-sending features in CMD are broken: the "Send Invoice" button in Finance and the "Reply" function in the Support ticket viewer. Both use the Resend integration. The code appears structurally correct; the bug is likely a runtime credential or domain configuration issue.
+
+## Done looks like
+- Clicking "Send Invoice" on a Finance invoice that has a client email address successfully sends a professional HTML invoice email to the client and updates the invoice status to `sent`
+- Replying to a contact submission from CMD > Support successfully sends a reply email to the original submitter and marks the submission as replied
+- Both actions show a success toast on completion and an error toast with the specific error message if it fails
+- Error messages in the UI are informative enough to diagnose config issues (e.g., "Resend API key not found — check the Resend integration")
+
+## Investigation steps
+1. Check the actual runtime error from the server logs when either endpoint is called — the error is currently swallowed or not shown to the user
+2. Verify the Resend connector returns a valid API key from `getCredentials()` in `emailClient.ts` — add defensive logging
+3. Confirm `sevco.us` is verified in the Resend dashboard (required for outbound from `noreply@sevco.us`)
+4. If the connector API call fails, fall back to `process.env.RESEND_API_KEY` as a secondary source
+5. Improve error messages returned from the endpoint so they surface in the frontend toast
+
+## Known code structure
+- `server/emailClient.ts` → `sendInvoiceEmail(invoice)` and `sendContactReplyEmail(email, name, subject, body)`
+- `server/routes.ts` → `POST /api/finance/invoices/:id/send` and `POST /api/contact-submissions/:id/reply`
+- Frontend: invoice send button in `command-finance.tsx`, reply form in `command-support.tsx`
+- Resend credentials fetched via Replit Connector API at `https://${hostname}/api/v2/connection?connector_names=resend`
+
+## Fix approach
+- Add a try/catch inside `getCredentials()` that logs the exact error and falls back to `process.env.RESEND_API_KEY`
+- In both route handlers, return the specific Resend error in the 500 response body (not just "Failed to send email")
+- In the frontend, display the error message from the response body in the toast
+- If credential retrieval fails entirely, return a clear 503 "Email service not configured" error
+
+## Out of scope
+- Redesigning email templates
+- Adding email tracking/open analytics
+- Changing the from address
+
+## Relevant files
+- `server/emailClient.ts`
+- `server/routes.ts` (invoice send + contact reply endpoints)
+- `client/src/pages/command-finance.tsx`
+- `client/src/pages/command-support.tsx`
+
+---
+
+### #77 — AI Chat Agents / Bots in Platform Chat (Plan)
+
+> File: `t77-ai-chat-agents.md`
+
+# AI Chat Agents / Bots in Platform Chat (Plan)
+
+## What & Why
+Users should be able to converse with AI models (GPT-4o, Claude, Mistral, image generators, etc.) directly in the platform chat — as if the AI were a user/employee on the platform. Admins can configure which AI "agents" are available, their personas, and their underlying model. This transforms the chat into a powerful AI workspace.
+
+## Done looks like
+
+### Access control
+- Only users with role `executive` or `admin` can see and chat with AI agents
+- All other roles (staff, partner, client, user) do not see AI agents in the DM list and cannot invoke them via @mention
+- The `POST /api/ai/chat` endpoint is gated with `requireRole("admin", "executive")`
+- In the frontend, the AI agents section in the chat sheet is hidden for non-qualifying roles using the existing RBAC pattern
+
+### Agent concept
+- AI agents appear as regular platform users in the chat, with avatars, names, and status indicators
+- Each agent has a DB record (name, avatar, model slug, system prompt, capabilities)
+- Example agents: "SEVCO Assistant" (GPT-4o), "Creative AI" (Claude 3.5), "Image Generator" (Dall·E 3 / Flux), "Code Helper" (DeepSeek Coder)
+- Qualifying users (admin/executive) can open a DM with any enabled agent, or invite an agent into a group channel by @mentioning them
+
+### Chat interaction
+- When a user sends a message in a DM with an agent, the backend calls the configured AI model via OpenRouter (https://openrouter.ai/api/v1/chat/completions)
+- The agent's response appears as a new message from the agent's user ID, preserving context from the conversation history
+- Streaming responses shown in real-time (or full response on completion if streaming is complex)
+- Agents show "typing…" indicator while the model is generating
+
+### Image / video generation
+- Agents with `capability: "image"` accept text prompts and return generated images in-chat (via Replit's media-generation tool or OpenRouter multimodal endpoints, or Flux via Fal.ai)
+- Images are uploaded to Supabase `gallery` bucket and displayed inline in the chat message
+
+### Admin configuration (CMD > AI Agents tab)
+- New "AI Agents" tab in CMD sidebar
+- Admins can create/edit/delete agent records:
+  - Name, avatar image (upload), system prompt, model slug (dropdown of OpenRouter models), enabled toggle, capabilities (text/image/code)
+- API key stored as an environment secret `OPENROUTER_API_KEY`
+- Each agent gets a dedicated "user" row in the platform's users/auth table (or a separate `ai_agents` table with a synthetic user record so they appear in DM lists)
+
+### OpenClaw integration
+- OpenClaw is the platform's internal AI tool name / branding layer on top of OpenRouter
+- Agents are branded as "SEVCO AI" internally but route through OpenRouter externally
+- The system prompt for all agents prepends SEVCO context (platform name, brand guidelines, available services)
+
+## Schema additions
+`ai_agents` table:
+- `id` serial PK
+- `name` text
+- `slug` text unique
+- `avatarUrl` text nullable
+- `systemPrompt` text
+- `modelSlug` text (e.g., "openai/gpt-4o", "anthropic/claude-3-5-sonnet")
+- `capabilities` text[] (text, image, code, video)
+- `enabled` boolean default true
+- `description` text nullable (shown in agent selector)
+- `createdAt` timestamp
+
+`ai_messages` table (for storing conversation history per agent DM):
+- Reuse existing `chat_messages` table — no new table needed; agent messages appear as regular chat messages from the agent's user ID
+
+## Backend additions
+- `GET /api/ai-agents` — public; returns enabled agents
+- `POST /api/ai-agents` — admin only; creates agent
+- `PATCH /api/ai-agents/:id` — admin only
+- `DELETE /api/ai-agents/:id` — admin only
+- `POST /api/ai/chat` — auth required; sends a user message to an agent, calls OpenRouter, saves the response as a chat message, returns the response; body: `{ agentId, channelId, message }`
+
+## Frontend additions
+- CMD sidebar: "AI Agents" item (admin, System group)
+- New `command-ai-agents.tsx` page
+- In `chat-sheet.tsx`: DM list includes AI agents with a robot/sparkle icon badge; selecting an agent DM shows the conversation; the message input has a special "@ an agent" affordance in channels
+- Loading/streaming state in the chat message area while AI generates
+
+## Dependencies
+- `OPENROUTER_API_KEY` environment secret
+- Optional: `OPENCLAW_API_KEY` if OpenClaw has its own endpoint separate from OpenRouter
+- OpenRouter API: https://openrouter.ai/api/v1/chat/completions (standard OpenAI-compatible)
+- Fal.ai or DALL·E for image generation (optional, can start with text only)
+
+## Milestones / Phased approach
+1. **Phase 1 (MVP):** Text-only agents via OpenRouter; DM with a single "SEVCO Assistant" agent; CMD config for model/prompt
+2. **Phase 2:** Multi-agent support, @mention in channels, agent persona gallery in CMD
+3. **Phase 3:** Image generation capability, streaming responses, agent memory/context persistence
+
+## Out of scope (initial task)
+- Video generation
+- Voice/audio interaction
+- Training or fine-tuning models
+- Agent-to-agent conversations
+
+## Relevant files (will be created/modified)
+- `shared/schema.ts` (ai_agents table)
+- `server/routes.ts` (ai-agents CRUD + /api/ai/chat endpoint)
+- `server/storage.ts`
+- `client/src/components/chat-sheet.tsx`
+- New: `client/src/pages/command-ai-agents.tsx`
+- `client/src/components/command-sidebar.tsx`
+- `client/src/App.tsx`
+
+---
+
+### #78 — CMD Settings Tab Consolidation
+
+> File: `t78-cmd-settings-tab.md`
+
+# CMD Settings Tab Consolidation
+
+## What & Why
+Consolidate the three separate Command Center navigation items — Display, Social Links, and Hosting — into a single unified "Settings" page, and add two new sub-sections: an editable Home Page icon pills editor and a comprehensive Footer Sitemap editor. This reduces sidebar clutter and puts all platform configuration in one organized place.
+
+## Done looks like
+- CMD sidebar has a single "Settings" link replacing Display, Social Links, and Hosting
+- Settings page is organized into clearly labeled sections:
+  - **Display**: Hero editor (background, overlay, buttons), section visibility toggles
+  - **Brand & Colors**: Brand colors (main, secondary, accent, highlight) + light/dark CSS overrides + Brand Assets
+  - **Social Links**: Full social link management (same as current Social Links tab)
+  - **Hosting**: Domain/VPS management (same as current Hosting tab)
+  - **Home Page Icons**: Editor for the "Why SEVCO" icon pills — change icon (from a set of Lucide options), label, link URL, and accent color for each of the 7 pills; stored in `platformSettings` as JSON
+  - **Footer**: Editor for footer columns — add/remove/reorder columns, add/remove links per column; stored in `platformSettings` as JSON; footer component reads from DB with static fallback
+- All old routes (`/command/display`, `/command/social-links`, `/command/hosting`) redirect to `/command/settings`
+
+## Out of scope
+- Brand color → CSS variable mapping (Task #79)
+- Traffic analytics (Task #80)
+- Hero logo bug fix (Task #81)
+
+## Tasks
+1. **Create `command-settings.tsx`** — New unified settings page that imports and inlines the content from `command-display.tsx`, `command-social-links.tsx`, and `command-hosting.tsx` into a single scrollable page with `<section>` groupings and sticky heading anchors.
+
+2. **Home Page Icons editor** — Add a "Home Page Icons" section to Settings. Store the 7 icon pills as a JSON array in `platformSettings` under key `home.iconPills` (fields: `icon` string (Lucide name), `label`, `href`, `color`). Build an inline editor with icon picker dropdown (subset of Lucide icons), label input, URL input, and color picker. Landing page reads from `platformSettings["home.iconPills"]` with static fallback.
+
+3. **Footer Sitemap editor** — Add a "Footer" section to Settings. Store footer columns as JSON in `platformSettings["footer.sitemap"]` (array of `{ heading, links: [{ label, path, external }] }`). Build an editor with add/remove/reorder for both columns and their links. Footer component reads from DB with static default fallback.
+
+4. **Update routes and sidebar** — Register `/command/settings` in `App.tsx`, update `command-sidebar.tsx` to show "Settings" instead of three separate links, and add redirect routes from the old URLs.
+
+## Relevant files
+- `client/src/pages/command-display.tsx`
+- `client/src/pages/command-social-links.tsx`
+- `client/src/pages/command-hosting.tsx`
+- `client/src/components/command-sidebar.tsx`
+- `client/src/components/platform-footer.tsx`
+- `client/src/pages/landing.tsx:80-88`
+- `client/src/App.tsx`
+- `server/routes.ts`
+- `server/storage.ts`
+- `shared/schema.ts`
+
+---
+
+### #79 — Dynamic Brand Color Theming
+
+> File: `t79-brand-color-theming.md`
+
+# Dynamic Brand Color Theming
+
+## What & Why
+The platform currently has hardcoded purple/orange accent colors baked into `index.css`. The admin can set Brand Colors (main, secondary, accent, highlight) in CMD → Display, but those colors only populate `--brand-main` etc. custom properties — they don't drive the platform's actual UI colors (buttons, links, badges, highlights). This task wires the Brand Colors set in CMD into the platform's live Tailwind/CSS variable system so the platform's color palette adapts automatically.
+
+## Done looks like
+- When an admin sets "Brand Main" color in CMD → Settings (Brand Colors), the platform's primary color (buttons, links, active states) immediately updates to match
+- "Brand Secondary" maps to the secondary/muted-accent color; "Brand Highlight" maps to the accent/highlight color
+- Changes are visible sitewide without a page reload (the `PlatformColorInjector` in App.tsx re-runs when settings change)
+- Light and dark mode each get appropriate mappings from the brand colors
+- Colors are entered as hex values in the CMD editor; the injector converts them to HSL format required by Tailwind CSS variables
+- The existing "Light Mode" / "Dark Mode" manual color override fields are preserved for fine-tuning but are now secondary to the brand color mappings
+- If no brand colors are set, the platform falls back to the default CSS values from `index.css`
+
+## Out of scope
+- Per-page color overrides
+- Color transitions / animations
+- Changing the Brand Colors UI itself (already exists in CMD → Settings after Task #78)
+
+## Tasks
+1. **Hex-to-HSL converter utility** — Add a `hexToHsl(hex: string): string` helper (returns `"H S% L%"` format for CSS variables) in a shared frontend utility file.
+
+2. **Update `PlatformColorInjector`** — Extend the existing injector in `App.tsx` to map `color.brand.main` → `--primary`, `color.brand.secondary` → `--secondary`, `color.brand.accent` → `--accent`, `color.brand.highlight` → `--ring` (and their dark-mode counterparts). The mapping should use the hex-to-HSL converter and only apply when a valid hex color is stored. Manual `color.light.*` / `color.dark.*` overrides continue to work and take precedence when both are set.
+
+3. **Live preview in Settings** — In the Brand Colors section of CMD Settings, show a small live swatch preview next to each color picker so admins can see exactly what color will be applied before saving.
+
+## Relevant files
+- `client/src/App.tsx:310-375`
+- `client/src/pages/command-display.tsx:150-200`
+- `client/src/index.css`
+
+---
+
+### #80 — CMD Traffic Analytics Tab
+
+> File: `t80-traffic-tab-cmd.md`
+
+# CMD Traffic Analytics Tab
+
+## What & Why
+Add a "Traffic" tab to the Command Center so admins can monitor platform traffic (visitors, sessions, top pages, geographic breakdown) for sevco.us and other owned websites from a single dashboard.
+
+## Done looks like
+- CMD sidebar has a "Traffic" link (admin-only) leading to `/command/traffic`
+- The tab has two main areas:
+  - **Platform Analytics**: An embedded analytics iframe or widget showing live traffic for sevco.us. Configured via `platformSettings["traffic.embedUrl"]` — admin pastes in a shareable embed URL from their chosen analytics provider (Plausible, Simple Analytics, GA4, Cloudflare, etc.)
+  - **Watched Sites**: A list of additional owned websites the admin wants to monitor. Each entry has a name, URL, and optional embed URL for that site's analytics. Stored in a `watchedSites` array in `platformSettings["traffic.watchedSites"]`. Admin can add/remove sites and click through to view each site's analytics embed.
+- If no embed URL is configured, the Platform Analytics section shows a setup guide with recommended analytics providers and instructions for getting a shareable embed URL
+- Watched Sites section always shows, even without embeds, so admins can at least track which sites they own
+
+## Out of scope
+- Building a custom analytics engine or event tracking system
+- Server-side log analysis
+- Real-time websocket connections
+
+## Tasks
+1. **Backend**: Add `GET/POST /api/traffic-settings` routes (admin-only) for reading and writing `traffic.embedUrl` and `traffic.watchedSites` from `platformSettings`. No new DB tables needed — reuse the existing key-value `platformSettings` store.
+
+2. **`command-traffic.tsx` page** — Build the Traffic tab UI: platform embed section with setup guide fallback, watched sites list with add/remove/edit capability (name, site URL, embed URL fields), and an iframe viewer that loads the embed URL for the selected site.
+
+3. **Register route and sidebar link** — Add `/command/traffic` in `App.tsx` and add "Traffic" to the admin section of `command-sidebar.tsx`.
+
+## Relevant files
+- `client/src/components/command-sidebar.tsx`
+- `client/src/App.tsx`
+- `server/routes.ts`
+- `server/storage.ts`
+- `shared/schema.ts`
+
+---
+
+### #81 — Bug Fixes Bundle 4 — Logo / Upload / Changelog
+
+> File: `t81-bug-fixes-4.md`
+
+# Bug Fixes Bundle 4 — Logo / Upload / Changelog
+
+## What & Why
+Three targeted bug fixes and a changelog update:
+
+1. **Hero logo vs platform logo**: The Hero Editor in CMD → Display (soon Settings) uses `platform.logoUrl` for the logo field, which is the same key used by the platform header. Changing the logo in the Hero Editor inadvertently replaces the header logo everywhere. These should be two separate settings.
+
+2. **File upload clear button**: When clicking the X button in the image preview inside `FileUploadWithFallback`, the local preview clears but the parent form state retains the old URL. The bug is in `file-upload.tsx`: `FileUploadWithFallback.onUpload` only calls `onUrlChange(url)` when `url` is truthy, so clearing (`url = ""`) never propagates.
+
+3. **Latest Release in CMD Overview**: The "Latest Release" card in CMD Overview doesn't always match the most-recently-created changelog entry shown in the Changelog tab. Investigate and fix the data source so the card always reflects the actual latest entry.
+
+4. **Changelog update**: Add a new changelog entry documenting the recent platform work (Tasks #75–77: Subscriptions tab, email fixes, AI chat agents) with the appropriate version bump.
+
+## Done looks like
+- Uploading a new logo in the Hero Editor section only changes the hero section logo; the platform header logo is unchanged and must be set separately via its own field
+- Clicking the X button on an uploaded image in any form clears both the preview and the stored URL in the form, preventing stale data from being saved
+- The CMD Overview "Latest Release" card always shows the same entry as the first item in the Changelog tab
+- A new changelog entry is visible on `/changelog` and in CMD → Changelog documenting recent features
+
+## Out of scope
+- Visual redesign of the Hero Editor UI
+- Changes to the changelog editor itself
+
+## Tasks
+1. **Separate hero logo from platform logo** — Introduce `hero.logoUrl` as a distinct `platformSettings` key for the hero section logo. Update CMD Display/Settings Hero Editor to read/write `hero.logoUrl` instead of `platform.logoUrl`. Update `landing.tsx` hero section to use `hero.logoUrl` (with fallback to `platform.logoUrl` for backward compatibility). The platform header and footer continue to use `platform.logoUrl` only.
+
+2. **Fix file upload clear button** — In `FileUploadWithFallback` in `file-upload.tsx`, update the `onUpload` callback to always call `onUrlChange(url)` regardless of whether `url` is empty, so clearing an image correctly resets the parent form field.
+
+3. **Fix Latest Release in Overview** — Audit the `getLatestChangelogEntry()` storage method and the `/api/command/summary` route to ensure the entry returned is truly the most recent (by `createdAt` DESC). Fix any ordering or caching issue found. If the Overview uses a different query path, align it with `GET /api/changelog/latest`.
+
+4. **Add changelog entry** — Via the existing CMD Changelog UI or directly in the seed/routes, add a new entry describing the Subscriptions tab, email fixes, and AI chat agents features with an updated semantic version.
+
+## Relevant files
+- `client/src/components/file-upload.tsx:176-216`
+- `client/src/pages/command-display.tsx:85-230`
+- `client/src/pages/landing.tsx`
+- `client/src/pages/command-overview.tsx:431-477,937-960`
+- `server/storage.ts:756-780`
+- `server/routes.ts:1698-1800`
+- `client/src/pages/command-changelog.tsx`
+
+---
+
+### #82 — Bug Fixes 5 — Services, Emails, Nav Color
+
+> File: `t82-bug-fixes-5.md`
+
+# Bug Fixes 5 — Services, Emails, Nav Color
+
+## What & Why
+Three targeted bug fixes:
+
+1. **Services not showing**: `command-services.tsx` has hardcoded `SERVICE_CATEGORIES = ["Engineering", "Design", "Marketing", "Operations", "Sales", "Support"]` and a `z.enum()` form validation against those same values. However Task #74 migrated all service data to new categories: Technology, Creative, Marketing, Business, Media, Support. Any service with a new-style category (Technology, Creative, Business, Media) fails the form enum check and cannot be edited. The public services listing page likely also has hardcoded CATEGORY_STYLES that miss the new names.
+
+2. **Verification emails not sending**: `sendVerificationEmail()` is called in `auth.ts` on signup, but errors are swallowed by a `try/catch` that only logs to console. If the FROM domain (`noreply@sevco.us`) is not yet verified in Resend, the call fails silently and users never receive their link — yet they're blocked from logging in until they verify. The fix involves: (a) surfacing a "resend verification email" endpoint, (b) exposing an `emailSent` flag in the registration response so the frontend can communicate clearly, and (c) ensuring the `getUncachableResendClient()` error is visible in logs.
+
+3. **Nav active highlight uses brand main color**: The `PlatformColorInjector` in `App.tsx` maps `color.brand.main` → `--sidebar-primary` and `--sidebar-ring`, which causes the sidebar active-item highlight and focus rings to change color when the admin sets a brand main color. The active nav color should be a separate, independently-configurable setting. The fix decouples the sidebar active highlight from the brand main color.
+
+## Done looks like
+- CMD → Services shows all services (Technology, Creative, Marketing, Business, Media, Support categories) and the edit form works for all of them
+- Public `/services` page renders all services grouped by their correct categories with appropriate styling
+- On signup, if the verification email fails, the user is told "We couldn't send your verification email — contact support or use the resend link" rather than waiting silently
+- A `POST /api/auth/resend-verification` endpoint lets users request a new verification email
+- Setting brand main color in CMD no longer changes the sidebar navigation active item color
+- CMD Settings → Brand & Colors shows a new "Nav Active Highlight" color field (defaults to the existing sidebar accent color)
+
+## Out of scope
+- Visual redesign of CMD Services or the public services page
+- Adding new service categories (that's Task #84)
+- Full re-architecture of the email system
+
+## Tasks
+1. **Fix service categories** — Update `SERVICE_CATEGORIES` constant and `z.enum()` in `command-services.tsx` to use the correct post-migration categories (Technology, Creative, Marketing, Business, Media, Support). Update `CATEGORY_BADGE` styles for the new names. Update `services-listing.tsx` `CATEGORY_STYLES` map to include the new category names with appropriate colors.
+
+2. **Fix verification email flow** — Add `POST /api/auth/resend-verification` route that looks up a user by email, generates a new token, and calls `sendVerificationEmail()`. Update the registration response to include an `emailSent` boolean. Update the frontend register/auth flow to show a clear message when `emailSent` is false and provide a "Resend verification email" action.
+
+3. **Decouple nav active highlight from brand main** — In `PlatformColorInjector` (App.tsx), remove the `--sidebar-primary` and `--sidebar-ring` mappings from `color.brand.main`. Instead read a new `color.nav.activeHighlight` key and map it to `--sidebar-primary` and `--sidebar-ring`. Add this field to the Brand & Colors section in `command-settings.tsx` with label "Nav Active Highlight Color".
+
+## Relevant files
+- `client/src/pages/command-services.tsx:38-49,57-65`
+- `client/src/pages/services-listing.tsx`
+- `server/auth.ts:68-110,180-210`
+- `server/emailClient.ts:66-77`
+- `client/src/App.tsx:325-395`
+- `client/src/pages/command-settings.tsx`
+
+---
+
+### #83 — Extended Platform Color Settings
+
+> File: `t83-extended-color-settings.md`
+
+# Extended Platform Color Settings
+
+## What & Why
+The platform currently supports 4 brand colors (main, secondary, accent, highlight) that drive the primary/secondary/accent/ring CSS variables. But many visible UI elements — buttons, page-specific cards, wiki tag chips — draw from the same single `--primary`/`--accent` value, giving little room for differentiation. Admins need more granular control so each section of the platform can have its own distinct color accent.
+
+## Done looks like
+- CMD Settings → Brand & Colors gains a second expandable section: "Per-Section Colors"
+- Per-section controls (all optional — fall back to global brand colors or Tailwind defaults if not set):
+  - **Buttons**: Global button background color (maps to `--primary`) — replaces the current "Brand Main" → primary mapping so it's explicit
+  - **Home page cards** (the 6 platform section cards): Card accent/gradient color — stored as `home.cardAccentColor`; landing page applies it as CSS class or inline style
+  - **Store page**: Product card highlight color — stored as `store.accentColor`; the store page uses it for featured/active states
+  - **Services page**: Service category accent color — stored as `services.accentColor`; used in the services listing section headings and icons
+  - **/music page**: RECORDS section accent color — stored as `music.accentColor`; applied to the music landing purple gradient section
+  - **Wiki tags/highlights**: Tag background color — stored as `wiki.tagColor`; applied to category badge and article tag chips
+- `PlatformColorInjector` reads these new keys and injects them as CSS variables (`--home-card-accent`, `--store-accent`, `--services-accent`, `--music-accent`, `--wiki-tag-color`) into `:root` and `.dark`
+- Each section page reads the matching CSS variable and applies it to the relevant elements
+
+## Out of scope
+- Per-product or per-article color overrides (admin sets one color per section, not per item)
+- Changes to dark mode behavior beyond injecting the same values
+- The 4 existing global brand colors (those stay, this adds granular overrides)
+
+## Tasks
+1. **Extend PlatformColorInjector** — Add reading and CSS-variable injection for the 5 new per-section color keys (`home.cardAccentColor`, `store.accentColor`, `services.accentColor`, `music.accentColor`, `wiki.tagColor`), using the hex-to-HSL utility already in the codebase.
+
+2. **Per-section color controls in CMD Settings** — Add a "Per-Section Colors" accordion/card in CMD Settings → Brand & Colors with 5 color pickers (one per section), each with a swatch preview. Include a "Reset to default" option per color.
+
+3. **Wire CSS variables into section pages** — Update `landing.tsx` (platform cards), `store-page.tsx` (product cards), `services-listing.tsx` (section headings/icons), the music landing page (RECORDS gradient section), and the wiki article/category page (tag chips) to reference the new CSS variables when set.
+
+## Relevant files
+- `client/src/App.tsx:310-395`
+- `client/src/pages/command-settings.tsx`
+- `client/src/pages/landing.tsx:23-78`
+- `client/src/pages/services-listing.tsx`
+- `client/src/pages/wiki-page.tsx`
+- `client/src/lib/colorUtils.ts`
+
+---
+
+### #84 — Admin Content: Platform Cards + Service Categories
+
+> File: `t84-admin-content-management.md`
+
+# Admin Content: Platform Cards + Service Categories
+
+## What & Why
+Two admin content management features:
+
+1. **"THE PLATFORM" cards on home page**: The 6 section cards on the landing page (Wiki, Store, Music, Projects, Services, Community) are hardcoded in `landing.tsx`. Admins should be able to edit their label, description, link path, icon, and accent color from CMD.
+
+2. **Service categories in CMD**: Services are grouped into categories (Technology, Creative, Marketing, Business, Media, Support), but these are hardcoded strings scattered across the codebase. Admins should be able to view and manage service categories from CMD → Services, including adding new categories and renaming existing ones. The services mega-menu in the platform header also hardcodes `SERVICE_COLUMN_GROUPS`; that should pull from the live category list.
+
+## Done looks like
+- CMD → Settings → Display section has a "Platform Section Cards" editor where admins can edit each of the 6 cards' label, description, path/link, and Lucide icon name; changes are stored in `platformSettings["home.platformSections"]` as JSON and the landing page reads them with the static array as fallback
+- CMD → Services has a "Categories" tab alongside the existing services list; admins can see all categories currently in use, add new ones (which then appear in the service create/edit form dropdown), and rename existing ones (which updates all services in that category)
+- Service create/edit form in CMD loads categories dynamically from the list of currently-used categories + any admin-added ones (stored in `platformSettings["services.categories"]`), replacing the hardcoded `z.enum()`
+- Platform header `SERVICE_COLUMN_GROUPS` in `platform-header.tsx` is computed dynamically from the live categories (fetched from `/api/services` and grouped by category field) rather than hardcoded, so new categories automatically appear in the mega-menu
+
+## Out of scope
+- Reordering the 6 platform section cards (static order for now)
+- Per-service-category icons or color themes (category color handled by Task #83)
+- Deleting a category (only rename/add to avoid data loss)
+
+## Tasks
+1. **Platform section cards editor** — Add a "Platform Section Cards" editor section to `command-settings.tsx`. Each of the 6 cards has label, description, path, and icon fields (Lucide icon name string). Store the edited array as JSON in `platformSettings["home.platformSections"]`. The landing page reads from this key with the `PLATFORM_SECTIONS` constant as the static fallback. No schema changes needed — reuses the existing `platformSettings` key-value store.
+
+2. **Dynamic service categories in CMD** — Add a "Categories" tab to `command-services.tsx`. It shows the current list of categories (read from `platformSettings["services.categories"]` initialized from the current distinct categories in the services table). Admins can add a new category name or rename an existing one (which calls a `PATCH /api/services/categories/rename` route that updates all matching rows in the services table). The service create/edit form loads categories from this list dynamically instead of a hardcoded enum. Add `GET /api/services/categories` backend route that returns distinct categories from the services table merged with any stored in `platformSettings["services.categories"]`.
+
+3. **Dynamic service mega-menu** — Update `platform-header.tsx` to compute `SERVICE_COLUMN_GROUPS` from the live `/api/services` query (group services by category) rather than the hardcoded constant. Keep the column pair layout (2 categories per column) but derive the category names from data.
+
+## Relevant files
+- `client/src/pages/command-settings.tsx`
+- `client/src/pages/landing.tsx:23-78`
+- `client/src/pages/command-services.tsx`
+- `client/src/components/platform-header.tsx:121-160`
+- `server/routes.ts:1888-1935`
+- `server/storage.ts:787-800`
+
+---
+
+### #85 — Full Site Audit & Fixes
+
+> File: `t85-site-audit.md`
+
+# Full Site Audit & Fixes
+
+## What & Why
+Run a comprehensive audit of the deployed SEVCO platform using the squirrelscan CLI across 230+ rules covering SEO, accessibility, performance, security, technical health, crawlability, and content quality. Fix all identified errors and warnings to bring the platform's health score above 85.
+
+Based on a code review of the current codebase, expected findings include:
+- Missing or thin meta descriptions on dynamic pages (wiki articles, store products, service detail, profile pages)
+- No `robots.txt` or `sitemap.xml` — search engines cannot efficiently crawl
+- Missing Open Graph / Twitter Card tags on inner pages
+- No JSON-LD structured data (Organization, Product, Article schemas)
+- Icon-only buttons without `aria-label` throughout CMD and the platform nav
+- Images missing `alt` text, `loading="lazy"`, `width`/`height` attributes (causing CLS)
+- Potential broken links or redirects in the footer/nav
+
+## Done looks like
+- squirrelscan surface audit of the live deployed site returns a score ≥ 85 (Grade B)
+- `robots.txt` is served at `/robots.txt` and `sitemap.xml` at `/sitemap.xml`
+- Every public-facing page has a unique `<title>` and `<meta name="description">`
+- Open Graph (`og:title`, `og:description`, `og:image`) tags present on all key pages
+- All meaningful images have descriptive `alt` text
+- All icon-only buttons have `aria-label` attributes
+- No broken internal links detected in the audit
+- Before/after audit scores documented
+
+## Out of scope
+- Performance code-splitting (separate task)
+- Database indexing (separate task)
+- Visual/design changes — only meta, markup, and attribute fixes
+
+## Tasks
+1. **Install squirrelscan** — Install the squirrel CLI using the Linux binary from squirrelscan.com/download; verify with `squirrel --version`.
+
+2. **Run surface audit** — Run `squirrel audit https://sevco.us --format llm --coverage surface` (or the deployed Replit URL if sevco.us is not the primary domain). Capture the report and identify all errors and high-priority warnings by category.
+
+3. **Add `robots.txt` and `sitemap.xml`** — Serve a static `robots.txt` from the Express server (allow all crawlers, point to sitemap). Generate a dynamic `/sitemap.xml` route that lists all public pages (home, wiki articles, store products, services, projects, changelog, about, contact, music, gallery) with last-modified timestamps from the DB.
+
+4. **Fix per-page `<title>` and `<meta name="description">`** — Audit every public page component for missing or duplicate titles. Add unique, descriptive titles and meta descriptions to: wiki article pages, store product pages, service detail pages, profile pages, project pages, and any other pages the audit flags. Update the `<head>` section for each via `document.title` + a `<meta>` tag, or a shared `PageHead` component.
+
+5. **Add Open Graph tags** — Add `og:title`, `og:description`, `og:image`, `og:url`, `og:type` meta tags to the landing page, store product pages, wiki articles, music page, and about page. Use existing product/article images where available.
+
+6. **Fix accessibility issues** — Add `aria-label` to all icon-only `<button>` elements throughout the platform (platform header, command sidebar, CMD table action buttons, gallery, chat, etc.). Add `alt` text to all `<img>` elements missing it. Add `width`/`height` attributes or `aspect-ratio` CSS to images to prevent CLS.
+
+7. **Re-audit and validate** — Re-run the audit after fixes. Iterate on any remaining errors or high-rank warnings until score reaches ≥ 85.
+
+## Relevant files
+- `client/src/App.tsx`
+- `client/src/pages/landing.tsx`
+- `client/src/pages/wiki-page.tsx`
+- `client/src/pages/article-view.tsx`
+- `client/src/pages/store-page.tsx`
+- `client/src/pages/store-product.tsx`
+- `client/src/pages/services-listing.tsx`
+- `client/src/pages/service-detail-page.tsx`
+- `client/src/components/platform-header.tsx`
+- `client/src/components/platform-footer.tsx`
+- `client/src/components/command-sidebar.tsx`
+- `server/routes.ts`
+- `server/static.ts`
+
+---
+
+### #86 — Google Analytics 4 Integration
+
+> File: `t86-google-analytics.md`
+
+# Google Analytics 4 Integration
+
+## What & Why
+Wire Google Analytics 4 (GA4) into the SEVCO platform in two layers:
+
+1. **Tracking** — Inject the `gtag.js` measurement script into every page so GA4 collects visitor data for sevco.us (and any other owned properties the admin configures).
+2. **Reporting** — Connect to the GA4 Data API server-side (using a Google Cloud service account) so the CMD Traffic tab shows real native stat charts — sessions over time, active users, top pages, geographic breakdown, device split — instead of a third-party embed URL.
+
+The current CMD Traffic tab is an iframe that pastes in a URL. GA4 doesn't support native iframes, so this task replaces the platform analytics section with a full native dashboard powered by the GA4 Data API.
+
+## Done looks like
+- Admins go to CMD → Settings → an "Analytics" section and enter:
+  - **GA4 Measurement ID** (e.g. `G-XXXXXXXXXX`) — stored in `platformSettings["analytics.ga4MeasurementId"]`
+  - **GA4 Property ID** (e.g. `123456789`) — stored in `platformSettings["analytics.ga4PropertyId"]`
+- A service account JSON key is added as the environment secret `GOOGLE_SERVICE_ACCOUNT_JSON` (instructions shown in CMD)
+- The `gtag.js` script is injected into every page's `<head>` when a Measurement ID is configured
+- CMD → Traffic tab shows a native analytics dashboard (no third-party iframe required):
+  - **Summary cards**: Sessions today, Active users (30d), Pageviews (30d), Bounce rate
+  - **Sessions over time**: Area chart for 7 / 28 / 90-day windows (selectable)
+  - **Top pages**: Horizontal bar chart of top 10 pages by pageviews
+  - **Traffic sources**: Donut chart (Organic, Direct, Referral, Social, Paid)
+  - **Geographic breakdown**: Top 10 countries table with session counts
+  - **Device split**: Pie chart (Desktop / Mobile / Tablet)
+- A 5-minute server-side cache on GA4 API responses avoids hitting rate limits
+- When GA4 is not yet configured, the Traffic tab shows a clear step-by-step setup guide
+- The existing "Watched Sites" / iframe embed fallback section is kept for non-GA4 owned properties
+
+## Out of scope
+- Google Search Console integration
+- Custom event tracking beyond what gtag.js automatically captures
+- Real-time (sub-minute) data (GA4 Data API has ~24h delay for some metrics; use `realtimeData` endpoint for active users)
+- Multi-property GA4 (one property per installation for now)
+
+## Architecture note
+The GA4 Data API requires a **service account** (not an API key). The executor must:
+1. Install `@google-analytics/data` npm package (the official Google client)
+2. Read `GOOGLE_SERVICE_ACCOUNT_JSON` from `process.env` and parse it as JSON for auth
+3. Read the GA4 Property ID from `platformSettings` on each request
+4. Cache responses server-side for 5 minutes using a simple in-memory Map keyed by `{propertyId}:{reportType}:{dateRange}`
+5. Expose all GA4 data via new admin-only routes under `/api/analytics/ga4/*`
+
+## Tasks
+
+1. **Install GA4 package and add environment secret** — Install `@google-analytics/data` via the package manager. Add `GOOGLE_SERVICE_ACCOUNT_JSON` as an env secret placeholder (prompt the user to fill it in with their downloaded service account key JSON).
+
+2. **Backend: `server/analytics.ts`** — Create a new analytics module with:
+   - `getGA4Client()` — parses `GOOGLE_SERVICE_ACCOUNT_JSON` and returns an authenticated `BetaAnalyticsDataClient`
+   - `runGA4Report(propertyId, metrics, dimensions, dateRange)` — wrapper with 5-minute in-memory cache
+   - Individual report functions: `getSessionsOverTime()`, `getTopPages()`, `getTrafficSources()`, `getCountryBreakdown()`, `getDeviceSplit()`, `getRealtimeActiveUsers()`
+
+3. **Backend routes** — Register these admin-only routes in `server/routes.ts`:
+   - `GET /api/analytics/ga4/status` — returns `{ configured: bool, propertyId, measurementId }`
+   - `GET /api/analytics/ga4/summary?range=7d|28d|90d` — sessions, pageviews, active users, bounce rate
+   - `GET /api/analytics/ga4/sessions?range=7d|28d|90d` — daily sessions array for the area chart
+   - `GET /api/analytics/ga4/pages?range=7d|28d|90d` — top 10 pages
+   - `GET /api/analytics/ga4/sources?range=7d|28d|90d` — traffic source breakdown
+   - `GET /api/analytics/ga4/countries?range=7d|28d|90d` — country breakdown
+   - `GET /api/analytics/ga4/devices?range=7d|28d|90d` — device breakdown
+   - `GET /api/analytics/ga4/realtime` — active users right now (uses realtimeData endpoint)
+
+4. **Frontend: Update CMD Traffic tab** — Replace the "Platform Analytics" section's iframe embed with a GA4 native dashboard:
+   - Range selector (7d / 28d / 90d) at the top
+   - Summary stat cards row (sessions, pageviews, active users, bounce rate)
+   - Sessions area chart (Recharts `AreaChart`)
+   - Two-column layout: Top pages bar chart + Traffic sources donut chart
+   - Two-column layout: Countries table + Device pie chart
+   - When `analytics.ga4PropertyId` is not set, show a step-by-step setup guide (create GA4 property → create service account → grant Viewer access → download JSON → set env secret)
+
+5. **Add Analytics section to CMD Settings** — Add a new "Analytics" card in `command-settings.tsx` with:
+   - Measurement ID input (`G-XXXXXXXXXX` format) with save button — controls gtag.js injection
+   - Property ID input (numeric) with save button — controls the Data API connection
+   - Link to instructions for creating a service account key
+   - Status indicator showing whether `GOOGLE_SERVICE_ACCOUNT_JSON` is detected
+
+6. **Inject gtag.js tracking script** — In `server/routes.ts` or the Vite server HTML template, inject the gtag.js `<script>` tag when `analytics.ga4MeasurementId` is set in platformSettings. The script should be injected into the `<head>` of the served HTML on every request.
+
+## Relevant files
+- `client/src/pages/command-traffic.tsx`
+- `client/src/pages/command-settings.tsx`
+- `server/routes.ts`
+- `server/storage.ts`
+- `server/vite.ts`
+- `client/index.html`
+- `package.json`
+
+---
+
+### #87 — Fix Registration Verification Emails
+
+> File: `t87-registration-email-fix.md`
+
+# Fix Registration Verification Emails
+
+## What & Why
+Users who register are never receiving the verification email sent via Resend. The email is silently failing — the server logs the error but the frontend just shows `emailSent: false` with no clear path forward. The root causes to investigate and fix are: credential retrieval from the Resend connector, the verification link base URL, error surfacing to the user, and the resend-verification rate-limit logic.
+
+## Done looks like
+- Registering a new account successfully triggers a verification email arriving in the inbox
+- If email delivery fails for any reason, the "Check your email" screen shows a clear error message and a working "Resend verification email" button
+- The "Resend verification email" button on the pending-verification screen works and confirms success or failure visibly
+- A CMD admin diagnostic tool (e.g. a "Send test email" button in CMD Settings) lets admins verify the Resend integration is live without creating a test account
+- Server logs clearly show the exact Resend error (API key not found, domain not verified, etc.) when email fails
+
+## Out of scope
+- Redesigning email templates
+- Email open/click tracking
+- Changing the sender address or domain
+
+## Tasks
+1. **Diagnose and fix credential retrieval** — Add explicit, structured logging inside `getCredentials()` so the exact failure reason (no connector hostname, connector returned no key, etc.) appears in server logs. Ensure the fallback to `RESEND_API_KEY` env var is working and add a startup log that confirms which source the key came from.
+
+2. **Fix base URL for verification links** — Audit `getBaseUrl()` to ensure it resolves correctly in both the dev Repl and the deployed production environment. The verification link in the email must point to the live domain, not `localhost:5000`.
+
+3. **Improve registration error surfacing** — When `emailSent` is `false` after registration, return enough detail in the response for the frontend to show a specific, actionable message (e.g. "We couldn't send your verification email — click below to retry"). Update the pending-verification UI in `auth-page.tsx` to prominently show a "Resend email" button and display a warning when `emailSent` was false on initial registration.
+
+4. **Fix resend-verification rate-limit logic** — The current rate-limit check (`tokenAge < 60 * 1000`) is inverted — it blocks sending if the token was issued less than 60 seconds ago, but the arithmetic produces unexpected behavior. Verify and correct it so users can retry after a reasonable cooldown (e.g. 60 seconds).
+
+5. **Add CMD email diagnostics** — Add a "Send test email" action in CMD Settings that lets an admin send a test email to themselves and see a success/failure response directly in the UI. This verifies the Resend integration end-to-end without needing a new account.
+
+## Relevant files
+- `server/emailClient.ts`
+- `server/auth.ts:68-214`
+- `client/src/pages/auth-page.tsx`
+
+---
+
+### #88 — Bug Fixes 6 — Nav Color, Project Icons, Email URL
+
+> File: `t88-bug-fixes-6.md`
+
+# Bug Fixes 6 — Nav Color, Project Icons, Email URL
+
+## What & Why
+Four bugs confirmed in the codebase:
+
+1. **Nav active highlight color doesn't apply** — CMD Settings lets admins set a custom nav highlight color, but the sidebar active item actually uses `--sidebar-accent` CSS variable (not `--sidebar-primary` which is what `PlatformColorInjector` currently sets). The setting saves correctly but has no visual effect.
+
+2. **Project app icons not shown on /projects** — The projects DB table has an `appIcon` column (URL string, set via CMD project editing since Task #54), but the `/projects` page card component never reads or renders it.
+
+3. **SEVCO RECORDS project links to its detail page instead of /music** — The projects table has a `linkUrl` column for custom overrides, but the project card in `/projects` always links to `/projects/${slug}` regardless of `linkUrl`.
+
+4. **Verification email links to dev Replit URL** — `getBaseUrl()` in `emailClient.ts` checks `REPLIT_DEV_DOMAIN` first, which is always set in Replit environments (even deployed ones), so production verification emails point to `https://{dev-id}.picard.replit.dev/verify-email?token=…` instead of `https://sevco.us/verify-email?token=…`.
+
+## Done looks like
+- Changing the nav active highlight color in CMD Settings → Settings tab immediately changes the sidebar's active item background after a page reload
+- Project cards on `/projects` show the project's uploaded app icon (if set), or a default icon placeholder if not
+- The SEVCO RECORDS project card on `/projects` navigates to `/music` (its `linkUrl`)
+- Verification emails sent from the deployed app link to `https://sevco.us/verify-email?token=…` (or whatever `SITE_URL` is set to)
+
+## Root causes & fixes
+
+### Fix 1 — Nav color CSS variable mismatch
+`client/src/App.tsx` `PlatformColorInjector` injects `--sidebar-primary` but the shadcn `SidebarMenuButton` active state uses `data-[active=true]:bg-sidebar-accent` and `data-[active=true]:text-sidebar-accent-foreground`. Fix: also inject `--sidebar-accent` (and optionally `--sidebar-accent-foreground`) from `color.nav.activeHighlight`. Keep `--sidebar-primary` injection for any other consumers.
+
+The foreground should auto-contrast: if the accent color is dark, use white; if light, use dark. Calculate via HSL lightness — if L < 50%, foreground = white (0 0% 100%), else dark (224 71% 4%).
+
+### Fix 2 — Project app icons
+`client/src/pages/projects-page.tsx` project card (`ProjectCard` component, or wherever the card is rendered):
+- Query already returns `appIcon` from the API (confirm in routes)
+- Add an `<img src={project.appIcon}>` or `<Image>` in the card's top-left area (32×32 rounded-lg) when `appIcon` is set
+- Fall back to a generic `Folder` icon when `appIcon` is null/empty
+
+### Fix 3 — Project linkUrl
+In the project card `<Link href={...}>` (currently `/projects/${project.slug}`):
+- Use `project.linkUrl || `/projects/${project.slug}`` 
+- When `linkUrl` is set, also add `target="_blank"` if it's an external URL (starts with http)
+- If `linkUrl` is an internal path (starts with `/`), use wouter `Link` normally
+
+The SEVCO RECORDS project's `linkUrl` needs to be set to `/music` via the CMD project editor (or the executor can seed it directly in the routes seeding logic).
+
+### Fix 4 — Email base URL
+`server/emailClient.ts` `getBaseUrl()` currently: REPLIT_DEV_DOMAIN → REPLIT_DEPLOYMENT_URL → localhost fallback.
+
+Fix: reorder priority and add `SITE_URL`:
+1. `SITE_URL` env var (e.g. `https://sevco.us`) — highest priority, set by admin
+2. `REPLIT_DEPLOYMENT_URL` — production deployed URL
+3. `REPLIT_DEV_DOMAIN` — dev preview (last resort)
+4. `localhost:5000` fallback with warning
+
+Add `SITE_URL` as a documented env variable. In deployed production, `REPLIT_DEPLOYMENT_URL` will be set to the `.replit.app` domain, which still isn't `sevco.us`. So the cleanest fix for sevco.us is adding `SITE_URL=https://sevco.us` as an environment secret and checking it first.
+
+## Relevant files
+- `client/src/App.tsx` — PlatformColorInjector
+- `client/src/pages/projects-page.tsx` — ProjectCard
+- `server/emailClient.ts` — getBaseUrl()
+- `server/routes.ts` — project seeding (set SEVCO RECORDS linkUrl)
+
+---
+
+### #89 — News Page — Curated Feed + Wikify
+
+> File: `t89-news-page.md`
+
+# News Page — Curated Feed + Wikify
+
+## What & Why
+Add a `/news` page to the SEVCO Platform. Admins configure topic categories (e.g. "Music Industry", "Technology", "SEVCO Updates"), each mapped to a search query. The page fetches live headlines from Google News RSS (free, no API key) for each category. The layout uses a bold newspaper-meets-bento-box design: large image-heavy hero, asymmetric grid of article cards, and category swimlanes. Staff+ users can "Wikify" any article — clicking the button pre-fills a wiki article editor with the article's content and sends them to create an engineering or general wiki entry.
+
+## Done looks like
+- `/news` is accessible to all visitors (public)
+- Admins can manage news categories in CMD → a new "News" tab or in the Settings area:
+  - Add/edit/delete categories (name, search query, accent color, display order, enabled toggle)
+  - A preview of the current feed per category
+- The News page renders:
+  - **Hero section**: The single most-recent article across all categories — large landscape image, headline, source, published time, excerpt, and a "Read more →" link opening the original source in a new tab
+  - **Bento grid** (main area): 6–8 articles from the primary/first category in a mixed-size grid: 1 large card (col-span-2), 2 medium cards, 2–3 small cards — all with images, headlines, source, and time
+  - **Category swimlanes**: Below the bento grid, each additional category gets a horizontal row with its name, accent color, and 4 article cards (compact: image + headline + source)
+  - Images fall back to a branded placeholder if the article has no image
+- RSS is fetched server-side and cached for 15 minutes per category query to avoid rate limiting
+- A **Wikify** button appears on each article card (visible to Staff+ only, hidden for guests/users/partners/clients):
+  - Clicking opens a dialog with the article headline pre-filled as the wiki title, and the article excerpt + original URL formatted as Markdown pre-filled as content
+  - Staff+ can edit the content in the dialog, choose a wiki category, and click "Create Wiki Article"
+  - On success, the dialog closes and a toast confirms the article was wikified with a link to view it
+
+## Architecture
+
+### Database schema additions
+New table `news_categories`:
+- `id` — serial primary key
+- `name` — text not null (e.g. "Music Industry")
+- `query` — text not null (the RSS search query)
+- `accentColor` — text (hex color for category label)
+- `displayOrder` — integer default 0
+- `enabled` — boolean default true
+- `createdAt` — timestamp
+
+### News fetching (server-side)
+- `server/news.ts` — new module:
+  - `fetchGoogleNewsRSS(query: string): Promise<NewsArticle[]>` — fetches `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`, parses XML using the `fast-xml-parser` npm package (already used or installable), extracts title, link, description, pubDate, source, and `media:content` or `enclosure` for images
+  - In-memory cache: Map keyed by query, TTL 15 minutes
+  - `NewsArticle` type: `{ title, link, description, pubDate, source, imageUrl | null }`
+
+### API routes (admin-only for management, public for fetch)
+- `GET /api/news` — returns all enabled categories in displayOrder (public)
+- `POST /api/news/categories` — create category (admin only)
+- `PATCH /api/news/categories/:id` — update (admin only)
+- `DELETE /api/news/categories/:id` — delete (admin only)
+- `GET /api/news/feed?query=X&limit=10` — fetches and returns parsed articles for a query (public, uses 15-min cache)
+- `GET /api/news/feed/all?limit=20` — fetches articles from all enabled categories interleaved (public)
+
+### Frontend pages & components
+- `client/src/pages/news-page.tsx` — main `/news` page
+- `client/src/components/news-bento-grid.tsx` — the mixed-size bento card grid
+- `client/src/components/news-article-card.tsx` — reusable card (large/medium/small variants via prop)
+- `client/src/components/wikify-dialog.tsx` — Wikify modal for Staff+
+- `client/src/pages/command-news.tsx` — CMD News tab for category management
+
+### Navigation
+- Add "News" to the platform mega-menu (Tools or top-level)
+- Add route `/news` in `App.tsx`
+- Add CMD route `/command/news` in `App.tsx` and sidebar
+
+### PageHead
+- `/news` gets unique title "News — SEVCO" and meta description
+
+## Design spec
+
+### Layout (desktop)
+```
+┌─────────────────────────────────────────────┐
+│  HERO  — full-width, tall image, headline   │
+│         source · time · excerpt · Read more │
+└─────────────────────────────────────────────┘
+┌──────────────────┬──────────┬──────────────┐
+│  LARGE CARD      │  MED 1   │  SMALL 1     │
+│  (col-span-2)    │          │  SMALL 2     │
+│                  ├──────────┴──────────────┤
+│                  │        MED 2            │
+└──────────────────┴─────────────────────────┘
+
+[ Category: Music Industry ─────────────────── ]
+│ card │ card │ card │ card │  →  View all
+
+[ Category: Technology ──────────────────────── ]
+│ card │ card │ card │ card │  →  View all
+```
+
+### Card design
+- Dark-mode-aware: dark card background with image top, text bottom
+- Source logo/name as a small pill in top-left of image
+- Published time as relative ("2 hours ago") using `date-fns`
+- Wikify button: small ghost button with `BookOpen` icon, bottom-right, Staff+ only
+- Hover: subtle scale + shadow elevation
+
+### CMD category management
+- Table with columns: Name, Query, Color swatch, Order, Enabled toggle, Edit/Delete actions
+- "Add Category" button opens an inline form or dialog
+
+## Dependencies to install
+- `fast-xml-parser` — for parsing Google News RSS XML responses
+- `date-fns` — for relative time formatting (likely already installed; check first)
+
+## Seed data (default categories)
+1. Name: "Music & Entertainment", query: "SEVCO music OR music industry", accentColor: "#8b5cf6"
+2. Name: "Technology", query: "technology startup AI", accentColor: "#3b82f6"
+3. Name: "Business", query: "business entrepreneurship startup", accentColor: "#10b981"
+
+## Relevant files
+- `shared/schema.ts` — add news_categories table
+- `server/storage.ts` — add newsCategory CRUD methods
+- `server/routes.ts` — add news API routes
+- `server/news.ts` — new RSS fetching module
+- `client/src/App.tsx` — add /news and /command/news routes
+- `client/src/pages/news-page.tsx` — new
+- `client/src/pages/command-news.tsx` — new
+- `client/src/components/news-*.tsx` — new components
+- `client/src/components/platform-header.tsx` — add News to nav
+- `client/src/components/command-sidebar.tsx` — add News tab to sidebar
+
+---
+
+### #90 — Engineering Wiki — Comprehensive Documentation Update
+
+> File: `t90-wiki-changelog-comprehensive.md`
+
+# Engineering Wiki — Comprehensive Documentation Update
+
+## What & Why
+The SEVCO Platform Engineering Wiki is the official technical documentation for everything built. The current state has articles for most tasks but they range from one-liners to brief summaries — not the full detail needed to serve as real platform documentation. This task brings every task article up to the same high standard: comprehensive descriptions of what was built, why, technical architecture, files changed, API endpoints, schema changes, and notable decisions. It also ensures every task has a corresponding changelog entry with a timestamp, and that each changelog entry links to its wiki article.
+
+## Done looks like
+- Every task from #1 to #89 (or the latest at time of execution) has exactly one published wiki article in the Engineering category — no duplicates, no stubs
+- Each article contains all of:
+  - **What & Why** — the business/product problem solved
+  - **What Was Built** — detailed feature list with user-facing description
+  - **Technical Architecture** — data model changes (tables, columns, types), new API routes (method, path, auth level, request/response shape), frontend pages/components added or modified, key design decisions
+  - **Files Changed** — explicit list of modified files with one-line descriptions of what changed in each
+  - **Testing Notes** — how to verify the feature works
+  - **Known Limitations / Out of Scope** — what was explicitly not done
+  - General infobox: Task #N, Tool: Replit, Version: the changelog version that shipped this task (or "—" if none)
+- Every article uses the task slug pattern `eng-task-{N}-{short-title}` (already established)
+- Every changelog entry has a `createdAt` timestamp (already stored in DB — ensure it's displayed on the public changelog page and in CMD)
+- Every changelog entry that corresponds to a task has the `wikiSlug` field set to that task's article slug
+- The public `/changelog` page renders "Read more →" links to wiki articles when `wikiSlug` is set
+
+## Approach
+
+### Step 1 — Audit what exists
+Query the wiki articles database (`GET /api/articles?category=Engineering`) and the changelog (`GET /api/changelog`) to get the current state. Map task numbers to existing articles and changelog entries.
+
+### Step 2 — Determine gaps
+Build a list of:
+- Tasks with no wiki article at all → create from scratch using task plan files in `.local/tasks/`
+- Tasks with stub articles (< 200 words) → update with full content
+- Tasks with reasonable articles → review and enhance if missing sections
+
+### Step 3 — Write/update articles
+For each task, the article content must include all sections listed in "Done looks like." The source material is:
+- Task plan files in `.local/tasks/t{N}-*.md`
+- The changelog entry description for that task
+- The commit messages from merged tasks (available in git log)
+- The actual code changes (the executor should read relevant files to document the real API shapes and schema)
+
+**Content depth standard**: Each article should be at minimum 400 words. Articles for major features (News page, GA4 integration, Auth system, Store, etc.) should be 800+ words. The goal is that a new engineer reading the article could understand exactly what was built and how to work with it without reading the code.
+
+### Step 4 — Changelog timestamps and links
+- Verify all existing changelog entries have their `createdAt` date displayed in the CMD changelog management page
+- For each changelog entry, set `wikiSlug` to the corresponding task article slug
+- The mapping is: changelog version → task(s) that shipped in that version → article slug(s)
+- The public changelog page already supports rendering "Read more →" when `wikiSlug` is set (added in Task #42)
+
+### Step 5 — Verify
+- Visit `/wiki` and confirm the Engineering category shows all task articles with no duplicates
+- Visit `/changelog` and confirm timestamps and article links are visible
+- Spot-check 5 articles for completeness
+
+## Article quality guidelines
+For each article, the executor must document the following where applicable:
+
+**Schema additions**: List every new table and column added, with the Drizzle type. E.g.:
+```
+Added to shared/schema.ts:
+- news_categories table: id (serial PK), name (text), query (text), accentColor (text), displayOrder (integer), enabled (boolean), createdAt (timestamp)
+```
+
+**API routes**: Document every new route. E.g.:
+```
+GET /api/news — public — returns all enabled news categories
+POST /api/news/categories — admin only — creates a category { name, query, accentColor, displayOrder }
+GET /api/news/feed?query=X&limit=10 — public — returns parsed RSS articles (15-min cache)
+```
+
+**Frontend additions**: List every new page and component with its path and purpose.
+
+**Environment variables**: Note any new env vars introduced.
+
+**Notable decisions**: Any architectural choices worth documenting (e.g. "Used RSS instead of official API to avoid rate limits and API keys").
+
+## Relevant files (for reading source material)
+- `.local/tasks/t*.md` — all task plan files
+- `shared/schema.ts` — current DB schema
+- `server/routes.ts` — all API routes
+- `server/storage.ts` — storage interface
+- `client/src/App.tsx` — all registered routes
+- `client/src/pages/` — all page components
+- `client/src/components/` — all shared components
+- Git log for commit messages per task
+
+---
+
+### #91 — Bug Fixes 7 — Wiki Menu on /news, Planet Logo, Wiki Seed
+
+> File: `t91-bug-fixes-7.md`
+
+# Bug Fixes 7 — Wiki Menu on /news, Planet Logo, Wiki Seed
+
+## Bugs to fix
+
+### 1. Wiki sidebar appears on /news
+**Root cause**: `WIKI_PREFIXES` in `client/src/App.tsx` includes the string `"/new"` (meant for the new-article route). The `isWikiRoute()` check uses `location.startsWith(prefix)`, so any URL beginning with `/new` — including `/news` — incorrectly triggers the wiki sidebar.
+
+**Fix**: Change `"/new"` to `"/new/"` in `WIKI_PREFIXES` (line 91 of App.tsx). This is a one-character fix. Verify that `/new/wiki-article` and `/new/note` etc. still show the sidebar, and that `/news` does not.
+
+### 2. White planet logo in Home Hero
+**Root cause**: `client/src/pages/landing.tsx` imports `SEVCO_planet_icon_black_1774331331137.png` as `planetIcon` and uses it as the hero logo fallback. The hero always has a dark overlay, so the black logo is invisible against dark backgrounds.
+
+**Fix**: The asset `sevco-planet-white.png` already exists in `client/src/assets/`. Import it as `planetIconWhite` and use it instead of the black version as the default in the hero:
+```tsx
+src={settings["hero.logoUrl"] || settings["platform.logoUrl"] || planetIconWhite}
+```
+Do NOT change the platform header, footer, or sidebar logos — those correctly use the black version with dark:invert already. Only the hero fallback should switch to white.
+
+### 3. Engineering wiki articles not visible — trigger wiki seed
+**Root cause**: Task #90 created `server/wikiSeed.ts` and a `POST /api/admin/run-wiki-seed` endpoint, but the seed was never executed in the deployed environment. The post-merge script only created the task-plan wiki article, not the 89 engineering articles.
+
+**Fix**: Call the seed endpoint programmatically on server startup (idempotent — it upserts, never duplicates) **or** have the executor directly call `POST /api/admin/run-wiki-seed` as part of this task. The simplest fix is to call `runWikiSeed()` inside `server/index.ts` at startup after the DB is ready, so it always runs and keeps articles up to date. Gate it with a quick check: if the number of Engineering articles >= the number of tasks (89+), skip. Otherwise run.
+
+Alternatively, if startup-time seeding is too slow, call the HTTP endpoint once as a post-task action.
+
+## Done looks like
+- Visiting `/news` does NOT show the wiki sidebar
+- The home hero shows the white planet logo when no custom logo is configured
+- The Engineering wiki category shows 89+ articles (one per task), each with full content
+- No duplicate articles in Engineering
+
+## Relevant files
+- `client/src/App.tsx` — WIKI_PREFIXES line 91
+- `client/src/pages/landing.tsx` — hero logo import and src
+- `server/index.ts` — startup hook for wiki seed
+- `server/wikiSeed.ts` — seed function
+- `server/routes.ts` — /api/admin/run-wiki-seed endpoint
+
+---
+
+### #92 — News Improvements — Images, Layout, More Articles, Wikify Icon
+
+> File: `t92-news-improvements.md`
+
+# News Improvements — Images, Layout, More Articles, Wikify Icon
+
+## What & Why
+The `/news` page launched but has two key problems:
+1. **No images** — Google News RSS doesn't include `<media:content>` or image tags, so nearly all articles render with a grey placeholder
+2. **Layout needs work** — the current bento grid is functional but not visually modern; category swimlanes show only 4 compact cards
+
+Also: the Wikify button currently shows "BookOpen + Wikify" text — it should be icon-only with a tooltip, and it needs to appear on Feed/timeline posts too.
+
+## News Content — Source Recommendation
+Google News RSS is free but image-less. The best upgrade path:
+
+**Option A — OG image scraping (no new API key needed, works with existing RSS)**
+For each article fetched via Google News RSS, make a server-side `HEAD` + HTML-parse request to the article URL, extract the `og:image` meta tag, and cache the result per URL. This works with any RSS source and gives real article images. Downside: adds ~100–200ms per unique article on first load (subsequent requests hit cache).
+
+**Option B — GNews API (recommended upgrade)**
+[GNews.io](https://gnews.io) has a free tier with 100 req/day. Returns JSON with `image` field for every article. Requires setting `GNEWS_API_KEY` as an environment secret. Endpoint: `GET https://gnews.io/api/v4/search?q={query}&apikey={key}&lang=en&max=10`.
+
+**Implement both**: Use GNews API when `GNEWS_API_KEY` is set (better quality, images included), fall back to Google News RSS + OG scraping when no key is set. Admin can set API key in CMD → News tab.
+
+## Changes Required
+
+### 1. OG image scraping (server/news.ts)
+Add `scrapeOgImage(url: string): Promise<string | null>`:
+- Fetch the article URL with a short timeout (3s)
+- Parse the response for `<meta property="og:image" content="...">` using a regex (no heavy HTML parser needed)
+- Cache results in a Map keyed by URL with 24h TTL
+- Called for each article whose `imageUrl` is null after RSS parsing
+- Run scraping for up to 5 articles in parallel (Promise.allSettled) per feed request
+
+### 2. GNews API integration (server/news.ts)
+Add `fetchGNewsAPI(query: string, limit: number): Promise<NewsArticle[]>`:
+- Uses `process.env.GNEWS_API_KEY`
+- Maps GNews response to same `NewsArticle` type (title, link, description, pubDate, source, imageUrl)
+- `fetchNewsArticles(query, limit)` wrapper: uses GNews if key present, Google RSS otherwise
+- Cache 15 minutes per query regardless of source
+
+### 3. News page layout redesign (client/src/pages/news-page.tsx)
+**Hero section** — already looks good; keep the full-width image + text overlay style
+**Main bento grid** — increase from 5 to 8 articles, redesign as:
+```
+┌───────────────────────────────┬──────────────┐
+│  HERO CARD (large, row-span-2)│  CARD 2      │
+│  Full image, large headline   │  CARD 3      │
+│                               ├──────────────┤
+│                               │  CARD 4      │
+├────────────┬──────────────────┤              │
+│  CARD 5    │  CARD 6          │  CARD 7      │
+│  (medium)  │  (medium)        │  CARD 8      │
+└────────────┴──────────────────┴──────────────┘
+```
+Use CSS grid with `grid-template-areas` or explicit `col-span`/`row-span` Tailwind classes.
+
+**Category swimlanes** — increase articles from 4 to 6, use medium cards (image + headline + source) instead of compact, add "View all →" button that links to `/news?category={id}` for a filtered view.
+
+**Overall aesthetics**:
+- Use `font-serif` for headlines (newspaper feel)
+- Larger card images (aspect-ratio 16/9 for medium, 3/2 for small)
+- Category label pills with accent color background on each card image (top-left corner)
+- Source name + bullet + time in one line below headline
+- Add a thin `border-t` section divider with category name on the left and a "View all" link on the right
+
+**Add a "Load more" button** per category swimlane — increases the fetched limit from 6 to 12 via a second query with `limit=12`.
+
+### 4. Wikify button — icon only + tooltip (all occurrences)
+In `client/src/components/news-article-card.tsx`:
+- Remove the "Wikify" text from ALL variants (compact, medium, large)
+- Keep only `<BookOpen className="h-3.5 w-3.5" />`
+- Wrap the button in shadcn `<Tooltip>` with content `"Wikify 💫"`
+- Button should be `size="icon"` variant `"ghost"` — no text, just the icon
+- Keep same Staff+ visibility guard
+
+In `client/src/pages/feed-page.tsx` (timeline posts):
+- Add Wikify button to each post card (Staff+ only), same icon-only style
+- The WikifyDialog content pre-fill: post body as content, post author + timestamp as context
+- Wire up the WikifyDialog the same way as in news-article-card
+
+### 5. CMD News tab — GNews API key setting
+In `client/src/pages/command-news.tsx`, add an "API Settings" card above the categories table:
+- Input for GNews API key (password-masked, save to `platformSettings["news.gNewsApiKey"]`)
+- Status indicator: "Using GNews API (images included)" vs "Using Google News RSS (no images)"
+- Link: "Get a free GNews API key at gnews.io"
+
+### 6. Route: /news?category={id} (filtered view)
+Add handling in `news-page.tsx` for a `?category` query param:
+- When set, show only that category's articles in the main area (no other swimlanes)
+- Show a breadcrumb "← All News" back to `/news`
+
+## Done looks like
+- News articles show real images (either via OG scraping or GNews API)
+- The bento grid has 8 varied-size cards with a newspaper feel (serif headlines, image-first)
+- Category swimlanes show 6 medium cards each with "Load more" and "View all" controls
+- Wikify button on all news cards is icon-only (BookOpen) with tooltip "Wikify 💫"
+- Wikify button also appears on Feed timeline posts for Staff+
+- CMD → News tab has a GNews API key input with status indicator
+
+## Relevant files
+- `server/news.ts` — OG scraping + GNews API
+- `client/src/pages/news-page.tsx` — layout redesign
+- `client/src/components/news-article-card.tsx` — wikify button
+- `client/src/components/news-bento-grid.tsx` — grid redesign
+- `client/src/pages/feed-page.tsx` — wikify on posts
+- `client/src/pages/command-news.tsx` — API key setting
+
+---
+
+### #93 — Nav Color Controls (4 settings) + Per-Page Button Colors
+
+> File: `t93-nav-and-button-colors.md`
+
+# Nav Color Controls (4 settings) + Per-Page Button Colors
+
+## What & Why
+Two related color-customization expansions in CMD Settings → Platform Colors:
+
+**1. Nav color settings (currently only 1, need 4)**
+The user can currently set one "nav active highlight" color. But there are two distinct highlight contexts with independent colors:
+- **Main nav** = the CMD/wiki sidebar's active item — currently appears yellow (uses `--sidebar-accent`)
+- **Sub-menu** = the mega-menu dropdown hover states and wiki sidebar hover — currently appears red (uses `--primary` / `hover:bg-muted/70` or similar)
+
+Each of these needs independent background AND text color control — 4 settings total.
+
+**2. Per-page primary + secondary button colors for landing pages**
+Each public-facing landing page (Home, Store, Services, Projects, Music, News) should be able to have its own primary button color and secondary button color, overriding the global brand primary. This lets the brand palette be customized per section (e.g. the music page uses purple buttons, the store uses green).
+
+## Nav Color Settings
+
+### Settings keys (new)
+Replace/extend the single `color.nav.activeHighlight` key with:
+- `color.nav.main.bg` — main sidebar active item background (replaces `color.nav.activeHighlight`)
+- `color.nav.main.text` — main sidebar active item text color (auto-contrasted by default)
+- `color.nav.sub.bg` — mega-menu and wiki sidebar hover/active background
+- `color.nav.sub.text` — mega-menu and wiki sidebar hover/active text color
+
+**Migration**: keep `color.nav.activeHighlight` working as a fallback for `color.nav.main.bg` so existing settings aren't lost.
+
+### CSS variable mapping (PlatformColorInjector in App.tsx)
+| Setting key | CSS variable injected |
+|---|---|
+| `color.nav.main.bg` | `--sidebar-accent` |
+| `color.nav.main.text` | `--sidebar-accent-foreground` |
+| `color.nav.sub.bg` | `--nav-sub-accent` (new custom variable) |
+| `color.nav.sub.text` | `--nav-sub-accent-foreground` (new custom variable) |
+
+### Applying the sub-menu colors
+In `client/src/components/platform-header.tsx`, the mega-menu dropdown hover classes are currently hardcoded as `hover:bg-muted/70`. Replace with `hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))]` (or via a Tailwind arbitrary value).
+
+In `client/src/components/app-sidebar.tsx` (wiki sidebar), the active/hover item classes similarly use `bg-muted` style. Replace active state color with the sub-accent variables.
+
+Define defaults in `index.css` so the page renders sensibly before settings load:
+```css
+:root {
+  --nav-sub-accent: 0 0% 93%;      /* light gray hover */
+  --nav-sub-accent-foreground: 224 71% 4%;  /* near-black text */
+}
+.dark {
+  --nav-sub-accent: 0 0% 15%;
+  --nav-sub-accent-foreground: 0 0% 95%;
+}
+```
+
+### CMD Settings UI
+Under "Platform Colors" section, replace the single "Nav Active Highlight" color picker with a labeled 2×2 grid:
+
+```
+┌─────────────────────────────────────────────────┐
+│  Sidebar Navigation                              │
+│  ┌───────────────────┐  ┌────────────────────┐  │
+│  │ Active background │  │ Active text color  │  │
+│  │   [color picker]  │  │  [color picker]    │  │
+│  └───────────────────┘  └────────────────────┘  │
+│                                                  │
+│  Menus & Dropdowns                               │
+│  ┌───────────────────┐  ┌────────────────────┐  │
+│  │ Hover background  │  │ Hover text color   │  │
+│  │   [color picker]  │  │  [color picker]    │  │
+│  └───────────────────┘  └────────────────────┘  │
+└─────────────────────────────────────────────────┘
+```
+
+Each picker has a reset button. Show a small live preview strip (colored rectangle) next to each picker.
+
+## Per-Page Button Colors
+
+### Settings keys (new)
+For each landing page, store primary and secondary button hex colors:
+- `color.{page}.primaryBtn` — primary button background for that page
+- `color.{page}.primaryBtnText` — primary button text for that page  
+- `color.{page}.secondaryBtn` — secondary/outline button color
+- `color.{page}.secondaryBtnText` — secondary button text
+
+Where `{page}` is one of: `landing`, `store`, `services`, `projects`, `music`, `news`
+
+### Implementation
+In each page component, read the relevant settings and inject a wrapper `<div>` with inline `style` CSS variable overrides:
+```tsx
+const primaryBtn = toHsl(settings["color.landing.primaryBtn"] ?? "");
+const primaryBtnText = toHsl(settings["color.landing.primaryBtnText"] ?? "");
+
+<div style={{
+  ...(primaryBtn ? { "--primary": primaryBtn } : {}),
+  ...(primaryBtnText ? { "--primary-foreground": primaryBtnText } : {}),
+}}>
+  {/* page content */}
+</div>
+```
+
+This uses CSS cascade — all `bg-primary` and `text-primary-foreground` buttons inside the div pick up the page-specific override without any global changes.
+
+Pages to update: `landing.tsx`, `store-page.tsx`, `services-listing.tsx`, `projects-page.tsx`, `music-page.tsx`, `news-page.tsx`.
+
+### CMD Settings UI
+Add a "Button Colors" section in CMD Settings → Platform Colors (after the nav color grid), with per-page cards:
+
+Each page gets a row:
+```
+Home    [Primary BG ▐] [Primary Text ▐] [Secondary BG ▐] [Secondary Text ▐] [Reset]
+Store   [Primary BG ▐] [Primary Text ▐] [Secondary BG ▐] [Secondary Text ▐] [Reset]
+...
+```
+
+Or as an accordion (one page expanded at a time) to save vertical space.
+
+A small preview strip shows the button appearance in real time using the chosen colors.
+
+## Done looks like
+- CMD Settings → Platform Colors shows a 2×2 grid of nav color pickers (sidebar bg/text + menu bg/text) and a per-page button colors section
+- Changing "Sidebar Navigation > Active background" immediately changes the CMD sidebar active item color after saving
+- Changing "Menus & Dropdowns > Hover background" immediately changes the mega-menu and wiki sidebar hover color after saving
+- Changing a page's primary button color changes the `bg-primary` button appearance on that specific page only, without affecting others
+- All settings persist (saved to platformSettings table) and survive page reload
+- Reset buttons restore defaults for each setting
+
+## Out of scope
+- Per-page font or spacing overrides (future task)
+- Real-time preview without saving (CSS variables are injected on load from saved settings)
+
+## Relevant files
+- `client/src/App.tsx` — PlatformColorInjector
+- `client/src/index.css` — default CSS variable definitions
+- `client/src/components/platform-header.tsx` — mega-menu hover classes
+- `client/src/components/app-sidebar.tsx` — wiki sidebar hover classes
+- `client/src/pages/command-settings.tsx` — UI for all new settings
+- `client/src/pages/landing.tsx` — button color wrapper div
+- `client/src/pages/store-page.tsx` — button color wrapper div
+- `client/src/pages/services-listing.tsx` — button color wrapper div
+- `client/src/pages/projects-page.tsx` — button color wrapper div
+- `client/src/pages/music-page.tsx` — button color wrapper div
+- `client/src/pages/news-page.tsx` — button color wrapper div
+
+---
+
+### #94 — Bug Fixes 8 + Quick Wins
+
+> File: `t94-bug-fixes-8.md`
+
+# Bug Fixes 8 + Quick Wins
+
+## Fixes included
+
+### 1. Remove green background from Project Icons
+`client/src/pages/projects-page.tsx` line 81: the icon container div uses `bg-green-500/10` with green fallback icon colors. Replace with neutral `bg-muted/50` and a neutral icon color. Also change the fallback `MenuIcon` color to `text-muted-foreground`.
+
+### 2. Fix wiki sidebar cutoff text and overhang when collapsed
+`client/src/components/app-sidebar.tsx`: The label above the wiki nav list (line 119) uses `truncate` but still clips in collapsed state. Two issues:
+- "Wiki Menu" heading text is cut off at the top — likely a top padding issue; add `pt-1` or check `CardHeader` padding
+- When sidebar is icon-only/collapsed, text overhangs — add `group-data-[collapsible=icon]:hidden` to text elements that shouldn't show when collapsed
+
+### 3. Move News from Tools dropdown to SEVCO dropdown
+`client/src/components/platform-header.tsx` has two dropdowns: "SEVCO" and "Tools". News is currently in Tools. Move the News entry (href `/news`, icon Rss) into the SEVCO dropdown section alongside other SEVCO-branded pages. Remove from Tools. Update mobile nav accordingly.
+
+### 4. News page — more articles
+The news swimlanes currently show 6 articles (limit=6). Increase the default fetch limit to 10 per category for swimlanes, and load-more expands to 20. Also increase the bento grid from 8 to 10 articles pulled from the first category so there's more visual density. Update the `/api/news/feed` call limit params.
+
+### 5. Music Playlists — no image fallback
+`client/src/pages/music-playlists-page.tsx` line 62: when `playlist.coverImageUrl` is null, it shows an empty image area. Fix: when no `coverImageUrl` is set, render the card without the image area entirely — show just the playlist name, description, and track count on a solid colored card using the playlist's accent color or a gradient. This looks far better than an empty grey box.
+
+### 6. Footer — live date/time + version editable from CMD
+**Footer date**: The footer currently shows the `createdAt` date of the latest changelog entry. Change it to always display the **current live date** (rendered client-side with `new Date().toLocaleDateString()`). The time is also requested — show both: e.g. "Mar 26, 2026 · 8:14 PM". Use `useEffect` + `useState` with a 1-minute interval to keep it live.
+
+**Version from CMD Settings**: The footer already derives the version from `latestChangelog.version`. The user wants to be able to set a custom footer version string from CMD Settings. Add a `footer.version` platformSetting key. If set, use it; otherwise fall back to `latestChangelog.version`. Add a "Footer Version" text input in CMD Settings → Display (or the relevant section) with a save button.
+
+### 7. CMD Overview — Latest Release auto-updates
+`client/src/pages/command-overview.tsx`: The `LatestChangelogCard` already uses `summary.latestChangelog`. Check that the summary query uses `staleTime: 0` or is invalidated after changelog mutations. If the CMD Overview is showing a stale changelog entry, change the `staleTime` on the `/api/admin/summary` query to `30 * 1000` (30 seconds) so it refreshes frequently. Also add a manual "Refresh" button on the Latest Release card.
+
+## Done looks like
+- Project cards on `/projects` show app icons/icons on a neutral background, no green tint
+- Wiki sidebar header text is not cut off; collapsed state hides text labels cleanly
+- News appears in the SEVCO dropdown (not Tools)
+- News swimlanes show 10 articles; bento grid shows 10; Load more expands to 20
+- Music playlists without cover images render as text-only gradient cards (no empty image area)
+- Footer shows live current date + time, updated every minute
+- CMD Settings has a "Footer Version" input to override the version string shown in the footer
+- CMD Overview Latest Release card shows the actual latest changelog entry and has a refresh button
+
+## Relevant files
+- `client/src/pages/projects-page.tsx`
+- `client/src/components/app-sidebar.tsx`
+- `client/src/components/platform-header.tsx`
+- `client/src/pages/news-page.tsx`
+- `client/src/pages/music-playlists-page.tsx`
+- `client/src/components/platform-footer.tsx`
+- `client/src/pages/command-settings.tsx`
+- `client/src/pages/command-overview.tsx`
+
+---
+
+### #95 — Dynamic Services Nav + Notes Inline Screenshots + Shared Display Settings
+
+> File: `t95-services-notes-display.md`
+
+# Dynamic Services Nav + Notes Inline Screenshots + Shared Display Settings
+
+## 1. Dynamic Services Nav Dropdown with Editable Title and Icon
+
+### Current state
+`platform-header.tsx` already fetches `/api/services` and groups by category. But the Services mega-menu header title ("Services") and the section icon are hardcoded. The dropdown structure uses the service categories pulled from the API, but the category display names and icons in the nav don't reflect changes made in CMD.
+
+### What to build
+**A. Fully dynamic service categories in nav**
+The mega-menu should group services by `category` exactly as returned by `/api/services`. If a category is renamed or reordered in CMD, the nav reflects it on next load (already mostly true — verify and fix any hardcoded fallbacks).
+
+**B. Editable nav menu title and icon for Services**
+Add two new platformSettings keys:
+- `nav.services.title` — the label shown in the top nav bar for the Services dropdown (defaults to "Services")
+- `nav.services.icon` — a Lucide icon name for the Services nav item
+
+In CMD → Services page (or CMD Settings), add an "Navigation Label" and "Navigation Icon" input. The platform-header reads these settings and uses them.
+
+**C. Service category ordering in nav**
+In CMD Services page, add a `displayOrder` integer to each service category grouping (or at minimum, allow drag-reorder of the categories). The nav renders categories in `displayOrder` sequence. Currently services are grouped by category string, then returned in insertion order. Add a `navOrder` column to the `services` table OR maintain category order via a separate `serviceCategories` settings key in platformSettings (simpler: store `nav.services.categoryOrder` as a JSON array of category names).
+
+### Implementation
+- Add `nav.services.title` and `nav.services.icon` to platformSettings table reads/writes
+- Update `platform-header.tsx` to read these from the platformSettings query
+- Add inputs in `client/src/pages/command-services.tsx` for nav title + icon (with Lucide icon picker or simple text input)
+- Store category display order in `platformSettings["nav.services.categoryOrder"]` as `["Technology","Creative","Marketing","Business","Media","Support"]`
+- Add drag-to-reorder (or up/down arrows) in CMD Services for categories
+
+## 2. Inline Screenshots in Notes
+
+### Current state
+The Notes page (`client/src/pages/notes-page.tsx`) uses a `RichTextEditor` component. Notes are stored as HTML/markdown. There's no image upload support in the editor.
+
+### What to build
+Add image upload to the TipTap-based `RichTextEditor` component:
+
+**A. Paste to upload** — When a user pastes an image (e.g. a screenshot from clipboard), intercept the `paste` event, detect `image/*` blob, upload to Supabase Storage (`POST /api/upload?bucket=notes-images&path=notes/{userId}/{uuid}.png`), and insert the returned URL as an inline `<img>` in the TipTap editor.
+
+**B. Image upload button** — Add an image icon to the editor toolbar. Clicking opens a hidden `<input type="file" accept="image/*">`. On file select, upload via `POST /api/upload` and insert the image URL into the editor.
+
+**C. Image rendering** — TipTap's `Image` extension already supports inline images via `insertContent`. Install/import `@tiptap/extension-image` if not already present. Images render inline with `max-width: 100%` and a caption on click (optional).
+
+**D. Supabase bucket** — Use the existing `POST /api/upload?bucket=gallery&path=notes/{userId}/{filename}` route (or create a dedicated `notes` bucket if gallery feels wrong). The server's existing upload endpoint handles bucket-level auth, so no new route is needed.
+
+### Implementation
+- Update `client/src/components/rich-text-editor.tsx`:
+  - Add TipTap `Image` extension
+  - Add paste handler for image blobs
+  - Add image upload button to toolbar
+  - Show upload progress (replace image placeholder with real img when done)
+- Optionally create a `notes` Supabase storage bucket in the upload endpoint if not present (use `gallery` bucket under `notes/` path as fallback)
+
+## 3. Wiki & CMD Menus — Shared "Display Settings" Sub-menu Entry
+
+### Current state
+The wiki sidebar (`AppSidebar`) and CMD sidebar (`CommandSidebar`) are independent. Display Settings is only accessible from CMD (`/command/settings`). The user wants both sidebars to have a "Display Settings" sub-menu item.
+
+### What to build
+Add a "Display Settings" link in both sidebars that navigates to `/command/settings`:
+
+**In AppSidebar** (wiki sidebar, `client/src/components/app-sidebar.tsx`):
+- Add a bottom section (below the article list) with a `SidebarMenuItem` labeled "Display Settings" linking to `/command/settings`, icon `Settings2`, visible only to `admin` and `executive` roles
+- Match the styling of the existing CMD sidebar menu items
+
+**In CommandSidebar** (already has Settings at `/command/settings`):
+- The CMD sidebar already has this. Verify it works and is visibly labeled "Settings" in the appropriate section.
+
+**Shared sub-menu concept**:
+The user's intent is that "Display Settings" should feel like a shared system-level option in both contexts. Label it consistently as "Platform Settings" with a `Settings2` icon in both places, opening `/command/settings`.
+
+## Done looks like
+- Services mega-menu header label and icon can be changed from CMD → Services page
+- Category ordering in the Services mega-menu can be managed from CMD
+- Notes editor has an image upload button and supports paste-to-upload screenshots
+- Pasted or uploaded screenshots appear inline in notes content
+- Wiki sidebar (admin/executive only) has a "Platform Settings" link at the bottom pointing to `/command/settings`
+- Both sidebars consistently show the Display Settings entry
+
+## Relevant files
+- `client/src/components/platform-header.tsx`
+- `client/src/pages/command-services.tsx`
+- `client/src/pages/notes-page.tsx`
+- `client/src/components/rich-text-editor.tsx`
+- `client/src/components/app-sidebar.tsx`
+- `client/src/components/command-sidebar.tsx`
+- `server/routes.ts` — platformSettings + upload endpoint
+
+---
+
+### #96 — CMD Settings Redesign — Organized Colors, Live Preview, Global Search, Tailwind Theming
+
+> File: `t96-settings-redesign.md`
+
+# CMD Settings Redesign — Organized Colors, Live Preview, Global Search, Tailwind Theming
+
+## What & Why
+CMD Settings (`command-settings.tsx`) is 2,800+ lines and has grown organically — colors are scattered across multiple sections with inconsistent labeling, making it hard to find specific settings. The user also has two conflicting color systems (brand colors + per-page overrides) that feel disconnected.
+
+This task reorganizes Settings into a coherent structure, adds a full-featured theme editor for all CSS variables (including Tailwind defaults), adds a live preview panel, and adds a settings search bar.
+
+## Done looks like
+- CMD Settings has a clean top-level tab structure and an always-visible search bar
+- "Branding & Colors" / "Theme" section has logically grouped color controls in collapsible accordions
+- Each color group has a live preview mini-pane showing the effect in real time
+- A "Reset to defaults" button per group and globally
+- Admin can set any Tailwind/CSS variable (including border-radius, font sizes, spacing) via the Theme editor
+- Global search instantly filters and highlights matching settings across all tabs
+- Defaults: #FFFFFF, #000000, #0037ff, #bd0000, #fbc318, #00a811 with sensible extensions
+
+## Architecture
+
+### Top-Level Tab Structure (rationalized from current)
+Keep the existing tabs but reorganize their content order and labels:
+1. **Display** — hero, logo, sections, banners, footer
+2. **Theme** — all color/typography/spacing settings (new unified tab, replaces scattered color sections)
+3. **Navigation** — menu labels, icons, nav colors, page button colors (moved here from Theme)
+4. **Analytics** — GA4 setup, news API key
+5. **Integrations** — email diagnostics, Resend, other API keys
+6. **Advanced** — platform sections editor, platform card editor, changelog, danger zone
+
+### Settings Search Bar
+At the very top of the Settings page (above tabs), add a `<Input placeholder="Search settings…" />` with a magnifying glass icon. As the user types:
+- All setting labels and descriptions across all tabs are searched
+- Non-matching settings are hidden (their containing `<Card>` fades out)
+- Matching text is highlighted with a `<mark>` span
+- If no results, show "No settings match '{query}'" empty state
+- Clear button (×) resets the filter
+
+Implementation: keep a flat index of `{ label, description, tabKey, elementRef }` objects. On search, iterate and show/hide. Use a `data-search-label` attribute on each Card for easy selection.
+
+### Theme Tab — Color Groups
+Replace all scattered color pickers with a unified "Theme" tab using **collapsible accordion sections** (shadcn `Accordion` component):
+
+#### Group 1 — Primary Palette
+Controls: `--primary`, `--primary-foreground`
+Live preview: a filled button + an outlined button showing the colors
+Default: `#0037ff` (blue)
+
+#### Group 2 — Secondary / Accent Palette
+Controls: `--secondary`, `--secondary-foreground`, `--accent`, `--accent-foreground`
+Live preview: a badge, a card with accent border
+Default: `#bd0000` (red secondary), `#fbc318` (yellow accent)
+
+#### Group 3 — Brand Colors (sidebar, page-specific)
+Controls: brand main, secondary, tertiary, quaternary (existing 4 brand colors)
+Plus: sidebar nav active bg/text, menu/dropdown hover bg/text (the 4 nav color controls from Task #93, moved here)
+Live preview: a mini sidebar mockup with one active item
+
+#### Group 4 — Neutral / Background Colors
+Controls: `--background`, `--foreground`, `--card`, `--card-foreground`, `--muted`, `--muted-foreground`, `--border`, `--input`, `--ring`
+Live preview: a sample card with text, border, input field
+Default: whites, grays, blacks from shadcn defaults + #000000, #FFFFFF
+
+#### Group 5 — Text & Typography
+Controls: `--foreground`, font family (heading/body — dropdown of web-safe + Google fonts), heading font size scale (sm/md/lg/xl), base font size
+Live preview: h1, h2, paragraph text sample
+Note: font family injection via `<link>` tag in `<head>` when Google Font is selected
+
+#### Group 6 — Status / Semantic Colors
+Controls: success (`--chart-2` or custom `--success`), warning (`--chart-4`), error/destructive (`--destructive`), info (`--chart-1`)
+Default: #00a811 (green), #fbc318 (yellow), #bd0000 (red), #0037ff (blue)
+Live preview: 4 colored badges/alerts
+
+#### Group 7 — Page Button Color Overrides
+The per-page button colors from Task #93 — move here under a collapsible "Per-Page Overrides" accordion.
+
+#### Group 8 — Advanced / Custom CSS Variables
+A textarea where admin can type raw CSS variable overrides (e.g. `--radius: 0.25rem;`). These are injected verbatim into a `<style>` tag after all other overrides.
+Defaults include: `--radius: 0.5rem` (border radius)
+
+### Live Preview Panel
+On screens ≥ 1280px (xl breakpoint), show a sticky right-side preview pane (~280px wide) when the Theme tab is active.
+
+The preview renders a static mini-UI mockup:
+```
+┌─────────────────────┐
+│ [SEVCO logo]  [Nav] │  ← uses --background, --primary
+├─────┬───────────────┤
+│Side │  Card         │  ← uses --card, --sidebar-accent
+│bar  │  [Button]     │  ← uses --primary
+│[●]  │  [Secondary]  │  ← uses --secondary
+│[ ]  │  Body text    │  ← uses --foreground, font settings
+└─────┴───────────────┘
+```
+
+All colors in the preview update immediately as the user moves the color picker (no save needed for preview — use CSS custom property on the preview div, not on `:root`).
+
+### Tailwind/CSS Variable Defaults in CMD
+The "Advanced" accordion contains a full variable table: every shadcn CSS variable listed with its current value and a color picker or text input. Changes are saved to a new `platformSettings["theme.cssVars"]` key as a JSON object `{ "--primary": "221 83% 53%", "--radius": "0.5rem", ... }`.
+
+The PlatformColorInjector in `App.tsx` reads `theme.cssVars` and injects all entries into `:root` and `.dark` as appropriate.
+
+Default palette (base from which the swatch grid is generated):
+- #FFFFFF, #000000, #0037ff, #bd0000, #fbc318, #00a811
+- Plus derived: #1a1a2e (dark navy), #f5f5f5 (off-white), #6b7280 (neutral gray), #7c3aed (purple), #0891b2 (teal)
+
+The swatch grid shows these 11 colors for one-click selection on any color picker.
+
+## Implementation notes
+- Keep `command-settings.tsx` but reorganize it — don't rewrite from scratch; migrate sections into the new tab structure
+- The settings search bar is a client-side filter only — no API calls
+- Live preview is a static non-interactive HTML element within the Theme tab, not an iframe
+- All new settings keys follow existing patterns and use existing `platformSettings` storage
+- All saves continue to use the existing mutation pattern (POST /api/platform-settings)
+
+## Relevant files
+- `client/src/pages/command-settings.tsx` — full reorganization
+- `client/src/App.tsx` — PlatformColorInjector extended for `theme.cssVars`
+- `client/src/index.css` — default variable definitions to reference
+- `server/routes.ts` — no new routes needed (use existing platformSettings endpoint)
+
+---
+
+### #97 — SEVCO Email Client — Unified Messaging with Resend
+
+> File: `t97-email-client.md`
+
+# SEVCO Email Client — Unified Messaging with Resend
+
+## What & Why
+Add a full web-based email client to the SEVCO Platform. Every Client+ user (client, partner, staff, executive, admin) gets a personal `{username}@sevco.us` inbox, can compose and send emails, and receives inbound emails via Resend's inbound routing. The email UI is merged with the existing chat into a single "Messages" hub — the same layout, header, and design system, extended with email-specific folders and compose tools.
+
+Non-Client+ users (the `user` role) see none of this — no nav link, no page, no API responses.
+
+## Prerequisites (manual setup required before this works end-to-end)
+1. **Resend domain verification**: `sevco.us` must be verified in Resend (DNS: SPF, DKIM records) — already attempted, may need completing.
+2. **Resend inbound routing**: In the Resend dashboard → Inbound → Create a route catching `*@sevco.us` and pointing to `https://sevco.us/api/email/inbound`. Set up **MX record** in DNS: `sevco.us MX 10 inbound.resend.com`.
+3. **Environment variables**:
+   - `RESEND_WEBHOOK_SECRET` — signing secret for webhook verification (from Resend dashboard)
+   - `SITE_URL` — already set; used for reply links
+The executor should document these in the code with clear comments.
+
+## Database Schema
+New `emails` table in `shared/schema.ts`:
+```typescript
+emails: {
+  id: serial PK,
+  userId: integer notNull FK → users.id,
+  resendEmailId: text unique,        // Resend's email ID (deduplication)
+  direction: text notNull,           // 'inbound' | 'outbound'
+  fromAddress: text notNull,
+  toAddresses: text[].notNull(),
+  ccAddresses: text[].default([]),
+  bccAddresses: text[].default([]),
+  replyTo: text,
+  subject: text notNull default "",
+  bodyHtml: text default "",
+  bodyText: text default "",
+  folder: text notNull default "inbox", // inbox | sent | drafts | trash | starred
+  isRead: boolean default false,
+  isStarred: boolean default false,
+  attachments: jsonb default [],     // [{ filename, contentType, url, size }]
+  threadId: text,                    // optional threading (match by subject)
+  createdAt: timestamp defaultNow(),
+}
+```
+
+Insert schema, types, and `Email` select type as per project conventions.
+
+## Backend — server/email.ts (new module)
+Centralize all email logic:
+
+```typescript
+// Derive the user's email address
+getEmailAddress(username: string): string → `${username}@sevco.us`
+
+// Check if a user is Client+ (client, partner, staff, executive, admin)
+isClientPlus(role: string): boolean
+
+// Send an email via Resend
+sendEmail(params: { fromUserId, to, cc, bcc, subject, html, text, replyTo? }): Promise<{ id }>
+  - Builds "From" as `${user.displayName} <${username}@sevco.us>`
+  - Uses resendSend() from emailClient.ts
+  - Stores sent email in DB (folder: "sent", direction: "outbound")
+  - Returns Resend's email ID
+
+// Process inbound webhook payload
+processInboundEmail(payload: ResendInboundPayload): Promise<void>
+  - Extracts to, from, subject, html, text, attachments
+  - For each recipient matching *@sevco.us, finds matching user by username
+  - Checks user has Client+ role
+  - Deduplicates by resendEmailId
+  - Stores in DB (folder: "inbox", direction: "inbound", isRead: false)
+```
+
+## Backend — API Routes (server/routes.ts)
+
+All email routes require `requireAuth` + `requireRole("client")` middleware:
+
+```
+GET  /api/email/folders             → counts per folder for current user
+GET  /api/email/messages?folder=inbox&limit=50&offset=0&search=
+                                    → paginated list of emails
+GET  /api/email/messages/:id        → single email (marks as read)
+POST /api/email/send               → send email { to, cc, bcc, subject, html }
+POST /api/email/messages/:id/star  → toggle isStarred
+POST /api/email/messages/:id/move  → move to folder { folder }
+DELETE /api/email/messages/:id     → move to trash
+DELETE /api/email/messages/:id/permanent → hard delete (admin only)
+POST /api/email/drafts             → save draft
+PUT  /api/email/drafts/:id         → update draft
+```
+
+Inbound webhook (no auth — uses signature verification):
+```
+POST /api/email/inbound            → Resend inbound webhook
+  - Verify signature: HMAC-SHA256 of raw body with RESEND_WEBHOOK_SECRET
+  - If invalid: 401
+  - If valid: processInboundEmail(payload), respond 200
+```
+
+## Frontend — Unified Messages Page
+
+### Route: `/messages`
+New page `client/src/pages/messages-page.tsx`. Registered in `App.tsx`.
+
+**Layout** (matches existing chat style — two-panel on desktop, stacked on mobile):
+```
+┌────────────────────────────────────────────────────────┐
+│  [← Back] Messages                          [Compose]  │
+├──────────────┬─────────────────────────────────────────┤
+│ FOLDERS      │  Email List / Read View                  │
+│ ─────────    │                                          │
+│ 📥 Inbox (3) │  From: John Smith                        │
+│ 📤 Sent      │  Subject: Re: Partnership proposal       │
+│ ⭐ Starred   │  2 hours ago · john@example.com          │
+│ 📝 Drafts    │  ─────────────────────────────────────   │
+│ 🗑 Trash     │  [HTML email body rendered safely]       │
+│              │                                          │
+│ ─ CHAT ─     │  [Reply] [Reply All] [Forward]           │
+│ # general    │                                          │
+│ # updates    │                                          │
+│ 💬 DMs       │                                          │
+└──────────────┴─────────────────────────────────────────┘
+```
+
+The left sidebar shows:
+- Email folders (Inbox with unread count, Sent, Starred, Drafts, Trash)
+- A divider
+- The existing chat channels (pulled from the existing chat channel/DM list)
+
+Clicking an email folder shows the email list in the middle panel. Clicking a chat channel navigates to the existing chat UI embedded or linked.
+
+### Email list panel
+- Each row: avatar/initials of sender, from name, subject (bold if unread), preview text, relative time
+- Unread emails: bold text, small blue dot indicator
+- Selected email: highlighted row, full email shown in read panel
+- On mobile: list takes full width, tapping opens full-screen read view
+
+### Email read view
+- Header: From (with avatar), To, CC/BCC (collapsed), Subject, Date
+- Body: rendered HTML using `dangerouslySetInnerHTML` **after** sanitizing with `DOMPurify` (`npm install dompurify @types/dompurify`)
+- Attachments list below body with file icon, name, size, download link
+- Action bar: Reply | Reply All | Forward | ⭐ Star | Move | Delete
+
+### Compose modal (`EmailComposeModal` component)
+- Full-width dialog (or slide-up drawer on mobile)
+- Fields: To (multi-input with tag pills), CC, BCC (toggle), Subject, Body (TipTap rich text editor — reuse existing `RichTextEditor`)
+- From address shown as read-only: `{username}@sevco.us`
+- Send button + Save Draft button
+- Discard cancels and asks for confirmation if body is not empty
+
+### Reply/Forward
+- Reply pre-fills To = original sender, quotes original body below a divider
+- Reply All pre-fills To = all recipients
+- Forward pre-fills Subject with "Fwd: " prefix, includes original body
+
+### Search
+- Search input in list panel header
+- Calls `GET /api/email/messages?folder=all&search={query}` and shows results across all folders
+- Highlights matched terms in results
+
+## Permission Gating
+- **Nav link**: In `platform-header.tsx` Tools dropdown, add "Email" entry (icon: `Mail`) linking to `/messages` — only rendered when `user && isClientPlus(user.role)`
+- **Route guard**: In `App.tsx` the `/messages` route checks `isClientPlus`. Non-Client+ users are redirected to `/` with a toast "Email is available for Client and above"
+- **API routes**: All `/api/email/*` routes use `requireRole("client")` middleware. The middleware for "client" should allow client, partner, staff, executive, admin (i.e. everyone except user)
+- **Inbound webhook**: Processes only emails addressed to Client+ users; silently discards others
+
+## Real-time updates
+Use the existing pattern (polling or WebSocket if available) — poll `GET /api/email/folders` every 30 seconds to update unread counts. Show a badge on the Messages nav link when there are unread emails.
+
+## Storage Interface (server/storage.ts)
+Add to `IStorage`:
+```typescript
+createEmail(data: InsertEmail): Promise<Email>
+getEmails(userId: number, folder: string, limit: number, offset: number, search?: string): Promise<Email[]>
+getEmail(id: number, userId: number): Promise<Email | undefined>
+updateEmail(id: number, userId: number, updates: Partial<Email>): Promise<Email>
+deleteEmail(id: number, userId: number): Promise<void>
+getEmailFolderCounts(userId: number): Promise<Record<string, number>>
+```
+
+## Out of scope
+- Attachment file uploads in compose (link-only initially; file uploads can be added later)
+- Full email threading UI (store threadId but display as flat list for now)
+- Push notifications (use polling for now)
+- PGP encryption
+
+## Relevant files
+- `shared/schema.ts` — emails table
+- `server/storage.ts` — email storage interface + implementation
+- `server/email.ts` — new module (send, receive, process webhook)
+- `server/routes.ts` — all /api/email/* routes
+- `server/emailClient.ts` — reuse resendSend() for sending
+- `client/src/pages/messages-page.tsx` — new unified messages page
+- `client/src/components/email-compose-modal.tsx` — new compose dialog
+- `client/src/components/email-read-view.tsx` — new read panel
+- `client/src/components/platform-header.tsx` — Email nav link (Client+ only)
+- `client/src/App.tsx` — /messages route registration + guard
+
+---
+
+### #98 — Bug Fixes 9 — Notes Editor, Messages Chat Routing, Admin Username
+
+> File: `t98-notes-fixes.md`
+
+# Bug Fixes 9 — Notes Editor, Messages Chat Routing, Admin Username
+
+## Fix 1: Notes Editor — Stops Deleting/Altering Text While Typing
+
+### Root cause
+`rich-text-editor.tsx` has a `useEffect` that fires every time the parent's `value` prop changes:
+```js
+useEffect(() => {
+  if (editor && value !== editor.getHTML()) {
+    editor.commands.setContent(value, false);
+  }
+}, [value, editor]);
+```
+In `notes-page.tsx`, the `onChange` callback fires on every keystroke → schedules an auto-save → the parent state updates → the effect re-runs → TipTap calls `setContent` while the user is still typing, disrupting cursor position and undoing characters.
+
+### Fix
+**A. Remove the problematic `useEffect` from `rich-text-editor.tsx`**
+The editor is already initialized with `content: value` in `useEditor()`. The `setContent` sync should only happen when the note ID changes (i.e. a completely different note is opened), not on every keystroke.
+
+Replace the current `useEffect` with one gated by a stable "initializing from external source" signal:
+
+```js
+const lastExternalValueRef = useRef<string>(value);
+
+// Only force-sync if a genuinely new external value arrives
+// (e.g. user clicked a different note). Never call setContent during normal typing.
+useEffect(() => {
+  if (!editor) return;
+  if (value === lastExternalValueRef.current) return; // same note, user is typing — skip
+  lastExternalValueRef.current = value;
+  editor.commands.setContent(value, false);
+}, [value, editor]);
+
+// After each onChange, keep our ref in sync so the effect above doesn't re-trigger
+const handleUpdate = ({ editor }: { editor: any }) => {
+  const html = editor.getHTML();
+  lastExternalValueRef.current = html;
+  onChange(html);
+};
+```
+
+Pass `handleUpdate` to `onUpdate` in `useEditor`. This completely prevents TipTap from resetting its content while the user types, while still syncing when a new note is opened.
+
+**B. Remove "reset on external change" effect in notes-page.tsx**
+`notes-page.tsx` maintains `contentRef` and has complex auto-save timing. Simplify: the `RichTextEditor`'s `onChange` just schedules auto-save via a debounce, and content is never re-set into the editor from outside (except on initial mount / note switch).
+
+**C. Disable browser spellcheck / autocorrect interfering with editor**
+Add `spellCheck={false}` and `autoCorrect="off"` to the `editorProps.attributes` in `useEditor`. These browser behaviors can cause character mutations in contenteditable elements.
+
+## Fix 2: Notes — Polish with Brand Colors, Remove "AI" Feel
+
+### Brand color mapping
+Replace the current generic Tailwind color classes in `NOTE_COLORS` with SEVCO brand colors:
+
+```js
+const NOTE_COLORS = [
+  { value: "default", label: "Default", bg: "bg-card",                    border: "border-border",      dot: "bg-muted-foreground" },
+  { value: "blue",    label: "Blue",    bg: "bg-blue-50 dark:bg-[#0037ff]/10",   border: "border-[#0037ff]/30",  dot: "bg-[#0037ff]" },
+  { value: "red",     label: "Red",     bg: "bg-red-50 dark:bg-[#bd0000]/10",    border: "border-[#bd0000]/30",  dot: "bg-[#bd0000]" },
+  { value: "yellow",  label: "Yellow",  bg: "bg-yellow-50 dark:bg-[#fbc318]/10", border: "border-[#fbc318]/40",  dot: "bg-[#fbc318]" },
+  { value: "green",   label: "Green",   bg: "bg-green-50 dark:bg-[#00a811]/10",  border: "border-[#00a811]/30",  dot: "bg-[#00a811]" },
+  { value: "dark",    label: "Dark",    bg: "bg-gray-900 dark:bg-black",          border: "border-gray-700",     dot: "bg-gray-400" },
+];
+```
+
+Rename "Pink" → "Red" and "Purple" removed; add "Dark" as a neutral dark option. Dots and borders use exact brand hex values.
+
+### Editor toolbar cleanup
+The toolbar has bold, italic, underline, strikethrough, code, heading, lists, links, align, and the new image upload. Clean it up visually:
+- Use compact icon-only buttons (no labels) with tooltips
+- Group: [text styles] | [lists] | [align] | [insert image] | [link]
+- No AI-looking auto-formatting — disable TipTap's typographic smart quotes, em-dash substitution, and similar heuristics (these are in StarterKit's Typography extension if added, or in browser autocorrect)
+- Remove any "click to ask AI" or smart-assist hints from placeholder text
+
+### Notes list sidebar polish
+- Note color dot is displayed as a small solid circle badge on the card
+- Card hover uses the note's brand color (e.g. blue note card gets `hover:border-[#0037ff]/50`)
+- Pinned notes shown at top with a subtle "📌" badge using brand accent
+- Clean monospace timestamp
+
+## Fix 3: Messages Page — Staff Channel Link Returns 404
+
+### Root cause
+`messages-page.tsx` links chat channels via `<Link href={/chat?channel=${ch.id}}>`. There is **no `/chat` route** registered in `App.tsx` — only `/command/chat-log` (admin log) and `/messages` (the new page). So every channel click goes to 404.
+
+### Fix
+The messages page should handle channel navigation **within itself**, not redirect to a non-existent `/chat` route.
+
+Add a `selectedChannel` state to `messages-page.tsx`. The sidebar channel list sets `selectedChannel` on click (no navigation). When a channel is selected, the right panel switches from the email read view to a **chat view** embedded inline.
+
+The chat view fetches `GET /api/chat/messages?channelId={id}&limit=50` and renders messages in the same style as the email read view — same font, same spacing, same background, but with message bubbles or a simple chat thread layout.
+
+This makes the Messages hub truly unified: one page, left sidebar for navigation (folders + channels), center panel for list (emails or channel messages), right panel for reading (email body or chat thread).
+
+Remove all `href={/chat?channel=...}` links; replace with `onClick={() => selectChannel(ch)}`.
+
+## Fix 4: Admin Username Change (severin@sevelovesyou.com → seve)
+
+### The issue
+The admin user has `username = "severin@sevelovesyou.com"` which is an email address, not a username. This:
+- Makes their email address `severin@sevelovesyou.com@sevco.us` (broken)
+- Looks wrong everywhere the username is displayed
+
+### Fix A — Change the existing admin username in the DB
+The server has `PATCH /api/users/:id/username` (admin only). This endpoint:
+```
+trimmed = username.trim().toLowerCase().replace(/\s+/g, "_")
+```
+Will set the username to `"seve"`.
+
+The task executor should call this route directly or update the seed/admin setup code so the admin's username is set to `"seve"` on fresh seed. Also check the seed code (`storage.createUser({ username: "..." })`) for any hardcoded email-style usernames.
+
+### Fix B — Registration auto-derives username from email
+Update the registration flow so the username field **auto-populates** from the email input:
+
+In `auth-page.tsx` (register form), add a `useEffect` or `onChange` handler on the email field:
+```js
+const emailValue = registerForm.watch("email");
+useEffect(() => {
+  if (emailValue && !registerForm.getValues("username")) {
+    const derived = emailValue.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "").toLowerCase();
+    registerForm.setValue("username", derived, { shouldValidate: false });
+  }
+}, [emailValue]);
+```
+
+This pre-fills the username field as the user types their email (the part before `@`), but remains editable. Users can still choose their own username. This prevents future admin accounts from accidentally using an email as a username.
+
+### Fix C — Validate username format on registration  
+Update the registration Zod schema to reject usernames that look like emails:
+```js
+username: z.string()
+  .min(3, "Username must be at least 3 characters")
+  .max(30, "Username must be at most 30 characters")
+  .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores")
+  .refine(v => !v.includes("@"), "Username cannot be an email address")
+```
+
+Apply same validation in server-side `insertUserSchema`.
+
+## Done looks like
+- Typing in a note no longer deletes or reformats characters
+- Note colors use SEVCO brand colors: blue (#0037ff), red (#bd0000), yellow (#fbc318), green (#00a811), and dark
+- Editor feels like a clean text editor, not an AI tool
+- Clicking a chat channel in the Messages sidebar opens the chat thread inline in the same page (no 404)
+- Admin user's username shows as "seve" (not an email)
+- New user registration auto-fills username from email; email-format usernames are rejected
+
+## Files
+- `client/src/components/rich-text-editor.tsx`
+- `client/src/pages/notes-page.tsx`
+- `client/src/pages/messages-page.tsx`
+- `client/src/pages/auth-page.tsx`
+- `server/routes.ts` (seed + username validation)
+- `shared/schema.ts` (username regex validation)
+
+---
+
+### #99 — Notes Editor Final Fix
+
+> File: `t99-notes-editor-final-fix.md`
+
+# Notes Editor Final Fix
+
+## Root Cause (confirmed)
+
+`notes-page.tsx` auto-saves every 800ms via `updateMutation`. Its `onSuccess` calls:
+```js
+queryClient.invalidateQueries({ queryKey: ["/api/notes"] })
+```
+This triggers a full re-fetch of all notes. The re-fetched `selectedNote.content` (now from the server) becomes the new `value` prop for `<RichTextEditor>`. Even with the ref guard, if the server returns slightly different HTML than TipTap's `getHTML()` (whitespace, attribute order, normalization), the `useEffect` sees `value !== lastExternalValueRef.current` and calls `setContent()` — interrupting the cursor, deleting characters, etc.
+
+## Fix (3 targeted changes)
+
+### 1. notes-page.tsx — Stop auto-save from re-fetching notes
+Change `updateMutation.onSuccess` from:
+```js
+onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/notes"] }),
+```
+To a local cache update that patches only the changed note, without re-fetching:
+```js
+onSuccess: (_, { id, data }) => {
+  queryClient.setQueryData<Note[]>(["/api/notes"], (old = []) =>
+    old.map((n) => n.id === id ? { ...n, ...data, updatedAt: new Date().toISOString() } : n)
+  );
+},
+```
+This keeps the notes list in sync without ever hitting the network during typing, eliminating the external value change that fights the editor.
+
+### 2. notes-page.tsx — Add key prop to RichTextEditor
+Find the `<RichTextEditor>` usage in the editor panel and add `key={selectedId ?? 0}`:
+```jsx
+<RichTextEditor
+  key={selectedId ?? 0}
+  value={selectedNote.content}
+  onChange={handleContentChange}
+  placeholder="Start writing..."
+/>
+```
+React remounts the editor when `selectedId` changes (user clicks a different note), ensuring fresh initialization from the new note's content. This replaces the need for any external-sync `useEffect` in the editor.
+
+### 3. rich-text-editor.tsx — Remove the useEffect entirely
+Delete the `useEffect` block that was added in Task #98:
+```js
+useEffect(() => {
+  if (!editor) return;
+  if (value === lastExternalValueRef.current) return;
+  lastExternalValueRef.current = value;
+  editor.commands.setContent(value, false);
+}, [value, editor]);
+```
+And remove `lastExternalValueRef` too. The editor is initialized once on mount (via `content: value` in `useEditor`), and `key`-based remounting handles note-switching. There is zero need for external→editor sync after mount.
+
+## Done looks like
+- Typing in a note produces exactly what is typed, with no deletions, insertions, or formatting changes
+- Auto-save runs silently in the background without any visible effect on the editor
+- Switching to a different note resets the editor cleanly to the new note's content
+- No re-fetching on every save; the notes list stays up to date via local cache patching
+
+## Files
+- `client/src/pages/notes-page.tsx` (2 changes: onSuccess + key prop)
+- `client/src/components/rich-text-editor.tsx` (remove useEffect + lastExternalValueRef)
+
+---
+
+### #100 — X.com OAuth Sign-In
+
+> File: `t100-x-oauth-signin.md`
+
+# X.com OAuth Sign-In
+
+## What & Why
+Allow users to sign up and log in using their X.com (Twitter) account via OAuth 2.0, so they don't need to create a separate username/password.
+
+## Done looks like
+- A "Sign in with X" button appears on the login/register page
+- Clicking it redirects the user through X's OAuth flow and logs them in (or creates a new account) on return
+- Existing email/password login continues to work unchanged
+- OAuth-created users are assigned the default `user` role and do not require email verification
+- If a user logs in with X and an account already exists with that X ID, they are logged into the existing account
+- The necessary X Developer credentials (Client ID and Client Secret) are read from environment variables
+
+## Out of scope
+- Linking an X account to an existing password-based account
+- Displaying the X handle publicly on the profile
+- Any other OAuth providers (Google, GitHub, etc.)
+
+## Tasks
+1. **Schema update** — Add a nullable `xId` (text) column and make `password` nullable in the users table. Update the insert schema and storage interface accordingly.
+2. **OAuth backend** — Install `passport-oauth2` (or `@superfaceai/passport-twitter-oauth2`), configure an X OAuth 2.0 strategy in `server/auth.ts`, and add `/api/auth/twitter`, `/api/auth/twitter/callback` routes. On callback, find or create the user by their X ID and log them in via session.
+3. **Auth page UI** — Add a "Sign in with X" button (using the X logo icon) on the login/register page that initiates the OAuth redirect.
+
+## Relevant files
+- `server/auth.ts`
+- `shared/schema.ts`
+- `server/storage.ts`
+- `client/src/pages/auth-page.tsx`
+
+---
+
+### #101 — Home Page Consolidation — News + Feed + X API Integration
+
+> File: `t101-home-consolidation-x-api.md`
+
+# Home Page Consolidation — News + Feed + X API Integration
+
+## Overview
+Merge the /news and /feed pages into the Home page, creating a rich, multi-section homepage. Remove the standalone /news and /feed routes (redirect to home). Add an X (Twitter) API feed section. Lay out the home page to accommodate all new content.
+
+## What's Being Removed
+- `/news` route — redirect `301` to `/`
+- `/feed` route — redirect `301` to `/`
+- The `<Link href="/news">` and `<Link href="/feed">` nav entries in platform-header.tsx Tools dropdown (or SEVCO dropdown) are removed
+
+The underlying server routes (`/api/news/feed`, `/api/feed`) are kept — the home page will call them. The page components `news-page.tsx` and `feed-page.tsx` can be archived or deleted.
+
+## Home Page New Section Layout
+The home page sections in order (top to bottom):
+1. **Hero** (existing — unchanged)
+2. **Feature Pills** (existing — unchanged)
+3. **Bulletin / Pinned Post** (existing — unchanged)
+4. **Platform Grid** (existing — unchanged)
+5. **🆕 SEVCO Feed** — pull top 6 most-recent platform feed posts from `/api/feed`, show as a horizontal card row or a 2-column grid. Each card shows author avatar, content preview, timestamp, like/comment counts. A "View all" link doesn't go anywhere (no standalone feed page anymore — optionally filter within home). If no feed posts: section hidden.
+6. **🆕 News — Top Stories** — the bento grid from news-page: 10 articles from the primary news category, shown as a 4-column bento. Below: 2-3 category swimlanes (10 articles each with Load More).
+7. **Records Spotlight** (existing — moved below news)
+8. **🆕 X (Twitter) Feed** — 6 most recent posts from the configured X handle(s). Each shows avatar, display name, @handle, tweet text, timestamp, like/retweet counts. Link to the tweet. Only shown if `social.x.enabled` is true AND the X bearer token is configured.
+9. **Store Preview** (existing — unchanged)
+10. **Wiki Latest** (existing — unchanged)
+11. **Community CTA** (existing — unchanged)
+
+Section 5, 6, 8 can each be toggled via platformSettings (e.g., `section.feed.visible`, `section.news.visible`, `section.xFeed.visible`) and controlled from CMD Settings → Display → Section Visibility.
+
+## X API Integration
+
+### Server-side: server/x-api.ts (new module)
+```typescript
+// Fetch recent tweets from a user by handle
+fetchUserTweets(handle: string, limit: number): Promise<Tweet[]>
+
+// Fetch tweets matching a search query
+searchTweets(query: string, limit: number): Promise<Tweet[]>
+
+// Tweet type
+interface Tweet {
+  id: string;
+  text: string;
+  authorId: string;
+  authorName: string;
+  authorHandle: string;
+  authorAvatarUrl: string | null;
+  likeCount: number;
+  retweetCount: number;
+  createdAt: string;
+  url: string;
+}
+```
+
+Uses `X_BEARER_TOKEN` environment secret. Caches results for 15 minutes in-memory (same pattern as news.ts). Logs a clear error if the secret is not set (doesn't crash server).
+
+### API Routes (server/routes.ts)
+```
+GET /api/social/x/feed?handles=sevelovesyou&limit=6
+  → Returns Tweet[] from the configured handles
+  → Reads handles from query param OR falls back to platformSettings["social.x.handles"]
+  → Requires no auth (public endpoint, data is already public tweets)
+
+GET /api/social/x/status
+  → Returns { configured: boolean, handle?: string }
+```
+
+### CMD Settings — new section in Integrations tab or new "Social" tab
+Add `social.x.*` settings under a **"X / Twitter"** accordion in CMD Settings → Integrations (or a new Social tab):
+- `social.x.enabled` — toggle switch: Show X feed on home page
+- `social.x.handles` — text input: Comma-separated @handles (e.g. "sevelovesyou,sevelovesu")
+- `social.x.maxTweets` — number input: Max tweets per handle (default 6)
+- `social.x.label` — text input: Section heading label on home page (default "On X")
+- Status indicator: shows green ✓ if `X_BEARER_TOKEN` secret is present, red ✗ if not
+- Link to X API docs for adding the secret
+
+### Home page X Feed section
+Only renders if:
+1. `section.xFeed.visible !== false` (or `social.x.enabled === true`)
+2. `X_BEARER_TOKEN` is set on server (check via `/api/social/x/status`)
+
+Visual style:
+- Section heading "On X" (or configured label) with X logo icon (from react-icons/si: `SiX`)
+- Horizontal scrolling row of tweet cards on mobile, 3-column grid on desktop
+- Each tweet card: avatar, name, @handle, tweet text (truncated at 280 chars), relative timestamp, ♥ likes, 🔁 retweets, "View on X →" link
+- Branded blue → transparent gradient background, or subtle card border
+
+## SEVCO Feed Section on Home
+Reuse `FeedPost` data from `/api/feed?limit=6&pinned=false`. 
+The existing "Bulletin" already shows the pinned post — the new Feed section shows the latest 6 non-pinned posts below it.
+
+Display as a 2-column masonry or flex-wrap card grid (matching feed-page.tsx card style). Each card shows:
+- Author avatar + name
+- Post body (truncated)
+- Images if any
+- Like/comment count chips
+- Timestamp
+
+No standalone `/feed` page — the feed exists only on the home page now.
+
+## News Section on Home
+Reuse all components from `news-page.tsx`:
+- `NewsBentoGrid` (10 articles from primary category)
+- `CategorySwimLane` (one per active news category, max 3 swimlanes on home, with a "See more categories →" link to `/news` — wait, /news is removed. Instead show up to 5 swimlanes inline)
+
+Since /news is removed, the "View all" links in swimlanes can just expand the swimlane (already has load-more logic).
+
+## Navigation Cleanup
+- Remove "News" from SEVCO dropdown (it was moved there in task #94)
+- Remove "Feed" from wherever it currently links in the nav
+- The home page IS the news + feed destination now
+- If wiki sidebar has a "Feed" link, remove it
+
+## Platform Settings Additions
+Add to CMD Settings → Display → Section Visibility:
+- `section.feed.visible` — "SEVCO Feed" toggle (default: true)
+- `section.news.visible` — "News" toggle (default: true)  
+- `section.xFeed.visible` — "X Feed" toggle (default: true if X_BEARER_TOKEN is set)
+
+## Done looks like
+- `/news` and `/feed` URLs redirect to `/`
+- Home page has: Hero → Pills → Bulletin → Platform Grid → Feed → News Bento + Swimlanes → Records → X Feed → Store → Wiki Latest → CTA
+- X feed section shows real tweets from configured handles when X_BEARER_TOKEN is set
+- CMD Settings → Integrations has an X / Twitter section with enable toggle, handle config, and secret status
+- All 3 new sections can be toggled off from CMD Settings → Display
+- Nav no longer has standalone News or Feed links
+
+## Files
+- `client/src/pages/landing.tsx` — major additions (news, feed, X feed sections)
+- `client/src/pages/news-page.tsx` — can be removed or turned into a redirect component
+- `client/src/pages/feed-page.tsx` — can be removed or turned into a redirect component
+- `client/src/App.tsx` — redirect /news and /feed routes
+- `client/src/components/platform-header.tsx` — remove News + Feed nav links
+- `server/x-api.ts` — new module
+- `server/routes.ts` — new /api/social/x/* routes
+- `client/src/pages/command-settings.tsx` — X API settings section
+
+---
+
+### #102 — Grok Model Support for AI Agents
+
+> File: `t103-grok-agent-models.md`
+
+# Grok Model Support for AI Agents
+
+## Overview
+Add all available Grok models as choices when creating/editing AI agents in CMD → AI Agents. Support both the direct x.ai API (latest Grok 3 models) and OpenRouter's Grok offerings. The x.ai API is OpenAI-compatible, so minimal server changes are needed.
+
+## Current State
+- `client/src/pages/command-ai-agents.tsx` has a hardcoded `MODELS` array with 4 entries (GPT-4o mini/full, Claude 3 Haiku/Sonnet)
+- `server/routes.ts` calls `https://openrouter.ai/api/v1/chat/completions` with the stored `modelSlug`
+- Model slug is stored as-is in the `ai_agents.model_slug` column (text field, no enum constraint)
+
+## Changes
+
+### 1. client/src/pages/command-ai-agents.tsx — Expand MODELS list
+
+Add a grouped model list with a visual separator between providers:
+
+```typescript
+const MODELS = [
+  // ── OpenAI ──
+  { value: "openai/gpt-4o-mini",         label: "GPT-4o Mini",            group: "OpenAI" },
+  { value: "openai/gpt-4o",              label: "GPT-4o",                  group: "OpenAI" },
+
+  // ── Anthropic ──
+  { value: "anthropic/claude-3-haiku",   label: "Claude 3 Haiku",         group: "Anthropic" },
+  { value: "anthropic/claude-3.5-sonnet",label: "Claude 3.5 Sonnet",      group: "Anthropic" },
+
+  // ── Grok (x.ai) — direct API ──
+  { value: "xai/grok-3",                 label: "Grok 3",                  group: "Grok" },
+  { value: "xai/grok-3-fast",            label: "Grok 3 Fast",             group: "Grok" },
+  { value: "xai/grok-3-mini",            label: "Grok 3 Mini",             group: "Grok" },
+  { value: "xai/grok-3-mini-fast",       label: "Grok 3 Mini Fast",        group: "Grok" },
+  { value: "xai/grok-2-1212",            label: "Grok 2",                  group: "Grok" },
+  { value: "xai/grok-2-vision-1212",     label: "Grok 2 Vision",           group: "Grok" },
+  { value: "xai/grok-beta",              label: "Grok Beta",               group: "Grok" },
+];
+```
+
+Use `xai/` prefix (not `x-ai/`) as a convention to distinguish direct x.ai API calls from OpenRouter routing.
+
+In the `<Select>` for model selection, group models with `<SelectGroup>` and `<SelectLabel>`:
+```jsx
+{["OpenAI", "Anthropic", "Grok"].map(group => (
+  <SelectGroup key={group}>
+    <SelectLabel>{group}</SelectLabel>
+    {MODELS.filter(m => m.group === group).map(m => (
+      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+    ))}
+  </SelectGroup>
+))}
+```
+
+Also update the agent card display: when `modelSlug` starts with `xai/`, show a small "x.ai" badge instead of "OpenRouter".
+
+### 2. server/routes.ts — Route xai/ models to x.ai API directly
+
+In the agent chat completion route (around line 4074), detect the model prefix and choose the appropriate API:
+
+```typescript
+const modelSlug = agent.modelSlug; // e.g. "xai/grok-3" or "openai/gpt-4o"
+
+let apiUrl: string;
+let apiKey: string;
+let modelName: string;
+
+if (modelSlug.startsWith("xai/")) {
+  // Direct x.ai API (OpenAI-compatible)
+  apiUrl = "https://api.x.ai/v1/chat/completions";
+  apiKey = process.env.XAI_API_KEY ?? "";
+  modelName = modelSlug.replace("xai/", ""); // "grok-3"
+  if (!apiKey) {
+    return res.status(500).json({ message: "XAI_API_KEY is not configured. Add it in Replit Secrets." });
+  }
+} else {
+  // OpenRouter (default — handles openai/, anthropic/, x-ai/, etc.)
+  apiUrl = "https://openrouter.ai/api/v1/chat/completions";
+  apiKey = process.env.OPENROUTER_API_KEY ?? "";
+  modelName = modelSlug; // passed as-is to OpenRouter
+}
+
+const response = await fetch(apiUrl, {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    model: modelName,
+    messages: [...],
+    stream: true,
+  }),
+});
+```
+
+The x.ai API returns the same streaming format as OpenAI, so the existing streaming/parsing code works unchanged.
+
+### 3. CMD Settings — XAI_API_KEY status indicator
+
+In CMD Settings → Integrations (or the existing AI section), add a small status row:
+
+```
+x.ai API Key   [✓ Configured / ✗ Not set]   [docs link]
+```
+
+- Calls a new endpoint `GET /api/ai/xai/status` → `{ configured: boolean }` (checks `!!process.env.XAI_API_KEY`)
+- If not configured, show note: "Required for Grok models. Add XAI_API_KEY to Replit Secrets."
+
+### 4. Environment secret
+Add `XAI_API_KEY` to the list of recognized secrets. The user will need to add this from https://console.x.ai/ → API Keys. The task executor should add a comment in the code noting where to get the key, and optionally call `requestEnvVar` if the key isn't already set.
+
+## Done looks like
+- CMD → AI Agents → Create/Edit agent shows Grok models grouped under a "Grok" section
+- Grok 3, 3 Fast, 3 Mini, 3 Mini Fast, Grok 2, Grok 2 Vision, Grok Beta all available as choices
+- Agent cards show which model is assigned; Grok models show x.ai branding
+- When a Grok agent is chatted with, the server routes the request to `api.x.ai` using XAI_API_KEY
+- If XAI_API_KEY is missing, a clear error message is returned (not a crash)
+- CMD Settings → Integrations shows XAI_API_KEY status
+
+## Files
+- `client/src/pages/command-ai-agents.tsx` — MODELS list + grouped Select + badge
+- `server/routes.ts` — provider routing logic (xai/ vs default OpenRouter)
+- `client/src/pages/command-settings.tsx` — XAI_API_KEY status row
+
+---
+
+### #103 — CRITICAL: Production Database Migration — Add x_id Column
+
+> File: `t104-production-db-migration.md`
+
+# CRITICAL: Production Database Migration — Add x_id Column
+
+## Problem
+Task #100 (X.com OAuth sign-in) added `xId` to the `users` table in `shared/schema.ts`.
+The dev database was updated via `db:push`, but the **production database** was not.
+
+Drizzle ORM now includes `x_id` in every `SELECT * FROM users` query. Since the production
+DB doesn't have the column, every single API request that touches a user record fails with:
+  `column "x_id" does not exist`
+
+The entire deployed site is down.
+
+## Fix
+
+### Option A — Startup SQL migration (safest, immediate, no redeploy risk)
+Add a safe `IF NOT EXISTS` migration in `server/index.ts` (or `server/db.ts`) that runs
+before the app starts serving requests:
+
+```typescript
+// Run before registerRoutes / app.listen
+import { pool } from "./db"; // or however the raw pg pool is exported
+
+async function runStartupMigrations() {
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS x_id TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE users ALTER COLUMN password DROP NOT NULL;
+  `);
+  // Unique index (separate statement — CREATE UNIQUE INDEX IF NOT EXISTS is safer than constraint)
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS users_x_id_unique ON users(x_id) WHERE x_id IS NOT NULL;
+  `);
+  console.log("[startup] migrations applied");
+}
+```
+
+Call `await runStartupMigrations()` before `registerRoutes(app)` in the startup sequence.
+
+The `IF NOT EXISTS` / `IF NOT NULL` guards make these idempotent — they can run on every
+startup without causing errors once the column exists.
+
+### Option B — Run db:push in the production environment
+If the executor can access the production DATABASE_URL, run:
+```
+npm run db:push
+```
+This is the standard Drizzle approach. However, startup migrations (Option A) are more
+reliable and don't require manual production access.
+
+## Priority
+HIGHEST — the live site at sevco.us is returning 500 errors on every page load.
+Implement Option A. The change is 4 lines and the redeploy will fix production instantly.
+
+## Files
+- `server/index.ts` — add runStartupMigrations() call before app starts
+
+---
+
+### #104 — Task #105 — Wire X/Twitter Secrets & Verify Features
+
+> File: `t105-x-secrets-setup.md`
+
+# Task #105 — Wire X/Twitter Secrets & Verify Features
+
+## Overview
+The user has provided all X/Twitter credentials. Add them as Replit secrets and verify the two
+features they unlock: (1) X social feed on the home page, (2) Sign in with X on the auth page.
+
+## Secrets to set (use environment-secrets skill)
+
+| Secret name         | Value source              | Feature unlocked          |
+|---------------------|---------------------------|---------------------------|
+| `X_BEARER_TOKEN`    | Bearer Token provided     | X social feed (home page) |
+| `TWITTER_CLIENT_ID` | Client ID provided        | Sign in with X (auth page)|
+| `TWITTER_CLIENT_SECRET` | Client Secret provided | Sign in with X (auth page)|
+
+Note: The Consumer Key and Secret Key (OAuth 1.0a) are NOT needed — the platform uses
+OAuth 2.0 for sign-in and Bearer Token for feed reads only.
+
+## Steps
+
+1. **Set secrets** using the environment-secrets skill:
+   - `X_BEARER_TOKEN`
+   - `TWITTER_CLIENT_ID`
+   - `TWITTER_CLIENT_SECRET`
+
+2. **Restart the workflow** so the new env vars are picked up by the running server.
+
+3. **Verify X feed status**: `GET /api/social/x/status` should return `{ configured: true }`.
+
+4. **Test the X social feed**: The home page X feed section (when enabled in CMD Settings →
+   Integrations → X Twitter) should now fetch tweets instead of showing "not configured".
+   - If no X handle is configured in CMD Settings yet, that's expected — the user configures
+     which X handles to follow/search from CMD Settings → Integrations.
+
+5. **Verify X OAuth sign-in**: Navigate to `/auth`. Both "Sign in with X" and "Sign up with X"
+   buttons should now redirect to Twitter's auth flow (not a 503 error).
+   - The callback URL `https://sevco.us/api/auth/twitter/callback` must be set in the
+     X Developer Portal app settings (user confirmed this is their deployed domain).
+
+6. **No code changes expected** — both features were already implemented. This task is purely
+   secret configuration + verification.
+
+## Done looks like
+- `/api/social/x/status` → `{ configured: true }`
+- Home page X section loads (or gracefully states no handles configured yet)
+- `/auth` → clicking "Sign in with X" initiates OAuth flow without 503 error
+
+---
+
+### #105 — Task #106 — Fix X OAuth Callback URL (localhost → sevco.us)
+
+> File: `t106-fix-x-oauth-callback-url.md`
+
+# Task #106 — Fix X OAuth Callback URL (localhost → sevco.us)
+
+## Problem
+`server/auth.ts` line 74:
+```typescript
+const BASE_URL = process.env.BASE_URL || `http://localhost:5000`;
+```
+`BASE_URL` is not set as an env var, so in the deployed environment it falls back to
+`http://localhost:5000`. X then builds the authorization URL with:
+  `redirect_uri=http%3A%2F%2Flocalhost%3A5000%2Fapi%2Fauth%2Ftwitter%2Fcallback`
+X's developer portal rejects this because it doesn't match the registered callback
+(`https://sevco.us/api/auth/twitter/callback`), showing "Something went wrong".
+
+## Fix
+
+### Step 1 — Set BASE_URL secret
+Using the environment-secrets skill, set:
+```
+BASE_URL = https://sevco.us
+```
+This is the simplest and most immediate fix.
+
+### Step 2 — Harden the auto-detection fallback in code
+Update `server/auth.ts` line 74 to also check Replit's deployment domain env vars,
+so it never accidentally falls back to localhost in production even if BASE_URL is unset:
+
+```typescript
+const BASE_URL =
+  process.env.BASE_URL ||
+  (process.env.REPLIT_DEPLOYMENT === "1" && process.env.REPLIT_DOMAINS
+    ? `https://${process.env.REPLIT_DOMAINS.split(",")[0].trim()}`
+    : null) ||
+  `http://localhost:5000`;
+```
+
+`REPLIT_DOMAINS` contains the deployed domain(s) (e.g. `sevco.us,...`).
+`REPLIT_DEPLOYMENT` is `"1"` only in deployed (production) environments.
+This makes the callback URL always correct in production even without BASE_URL being set.
+
+### Step 3 — Restart and verify
+- Restart the workflow so the new BASE_URL env var is picked up
+- Redeploy so the production environment picks up the new secret
+- Navigate to `/auth` and click "Sign in with X" — should redirect to
+  `twitter.com/i/oauth2/authorize?...&redirect_uri=https%3A%2F%2Fsevco.us%2Fapi%2Fauth%2Ftwitter%2Fcallback`
+  (no more localhost in the redirect_uri)
+
+## Files
+- `server/auth.ts` — update BASE_URL fallback logic (line 74)
+- Replit Secrets — add `BASE_URL=https://sevco.us`
+
+---
+
+### #106 — Task #107 — Connect X Account for Legacy Users (Account Page)
+
+> File: `t107-link-x-account.md`
+
+# Task #107 — Connect X Account for Legacy Users (Account Page)
+
+## Overview
+Legacy accounts (username/password) have `xId = null` in the database. This task adds a
+"Connected Accounts" section to the `/account` page where users can connect (or disconnect)
+their X account via OAuth 2.0, linking it to their existing SEVCO account.
+
+## Current State
+- `users.xId` already exists (added by Task #100, nullable, unique)
+- `GET /api/user` already returns `xId` in the user object (password stripped, rest included)
+- `server/auth.ts` has a single OAuth 2.0 strategy for sign-in/sign-up only
+- `account-page.tsx` has no connected accounts section
+
+## Backend Changes
+
+### server/storage.ts — Two new methods
+```typescript
+linkUserXAccount(userId: string, xId: string): Promise<User>;
+unlinkUserXAccount(userId: string): Promise<User>;
+```
+Both use `db.update(users).set(...).where(eq(users.id, userId)).returning()`.
+`linkUserXAccount` should first check `getUserByXId(xId)` — if another account already has
+that xId, return a clear error (can't link an X account that belongs to someone else).
+
+### server/auth.ts — New "link" OAuth flow (separate from sign-in flow)
+Two new routes registered alongside the existing twitter-oauth2 routes:
+
+**`GET /api/auth/twitter/link`** (requireAuth middleware):
+- Stores `req.user.id` in `req.session.linkUserId = req.user.id`
+- Redirects to X OAuth with the link callback URL
+- Uses same TWITTER_CLIENT_ID/SECRET but with `callbackURL: BASE_URL + '/api/auth/twitter/link/callback'`
+
+**`GET /api/auth/twitter/link/callback`** (requireAuth middleware):
+- Exchanges the OAuth code for a token
+- Fetches the X user profile (same `/2/users/me` call as sign-up)
+- Reads `req.session.linkUserId` (or falls back to `req.user.id`)
+- Calls `storage.linkUserXAccount(userId, xTwitterId)` 
+- On success: redirects to `/account?linked=1`
+- On error (already linked to another account): redirects to `/account?error=already_linked`
+
+**`POST /api/auth/twitter/disconnect`** (requireAuth middleware):
+- Calls `storage.unlinkUserXAccount(req.user.id)`
+- Returns `{ success: true }`
+- Does NOT log the user out — only clears xId
+
+Implementation note: Register these new routes using a second `OAuth2Strategy` instance with
+a `passReqToCallback: true` option so the strategy can access `req.session.linkUserId`. Name
+this strategy `"twitter-link"`.
+
+### server/routes.ts — Register the link/disconnect routes
+Add:
+```
+GET  /api/auth/twitter/link           → auth.ts handler
+GET  /api/auth/twitter/link/callback  → auth.ts handler
+POST /api/auth/twitter/disconnect     → requireAuth, unlinkUserXAccount
+```
+
+## Frontend Changes
+
+### client/src/pages/account-page.tsx — Connected Accounts card
+
+Add a new `<Card>` section after the existing "Account Details" card:
+
+```
+┌─────────────────────────────────────────┐
+│ Connected Accounts                       │
+│                                         │
+│  [X logo]  X / Twitter                  │
+│            Connected as @handle  [Disconnect] │
+│   OR                                    │
+│            Not connected        [Connect X] │
+└─────────────────────────────────────────┘
+```
+
+Logic:
+- Read `user.xId` from `useQuery(["/api/user"])`
+- If `user.xId` is truthy: show green badge "Connected", and a "Disconnect" button
+  - Disconnect button: `POST /api/auth/twitter/disconnect` → `queryClient.invalidateQueries(["/api/user"])`
+  - Show loading state while disconnecting
+- If `user.xId` is null/undefined: show "Not connected" and a "Connect X" button
+  - Connect button: `window.location.href = '/api/auth/twitter/link'` (navigates to OAuth flow)
+
+Handle URL params on mount:
+- If `?linked=1`: show a success toast "X account connected successfully"
+- If `?error=already_linked`: show an error toast "That X account is already connected to another SEVCO account"
+- Clear the query params after showing the toast (use `window.history.replaceState`)
+
+Imports needed: `SiX` from `react-icons/si`, `Badge` from shadcn/ui.
+
+Also: for OAuth users (those who signed up via X — `user.password === null`), show a subtle
+note: "Signed in via X — your X account is your login." and disable the disconnect button
+(they can't disconnect because it's their only auth method).
+
+## Done Looks Like
+- `/account` page shows a "Connected Accounts" card
+- Legacy user with password can click "Connect X" → goes through X OAuth → returns to /account with success toast
+- Connected user sees their xId and can disconnect
+- X-only OAuth user sees connected status but disconnect is disabled
+- If two users try to link the same X account, the second gets a clear error toast
+- POST /api/auth/twitter/disconnect returns 200; user's xId becomes null in DB
+
+---
+
+### #107 — Task #108 — Bug Fixes 11: CMD Settings Search + Notes Toolbar + Notes Save
+
+> File: `t108-bug-fixes-11.md`
+
+# Task #108 — Bug Fixes 11: CMD Settings Search + Notes Toolbar + Notes Save
+
+## Bug 1: CMD Settings search shows blank results (Radix Tabs data-state issue)
+
+### Root cause
+`command-settings.tsx` line 1618:
+```tsx
+<Tabs value={searchQuery ? "search-all" : activeTab} ...>
+```
+When `searchQuery` is set, `value="search-all"`. Radix Tabs then marks ALL `TabsContent`
+panels as `data-state="inactive"`. Shadcn's CSS hides `[data-state=inactive]` content.
+`forceMount` keeps them in the DOM but doesn't prevent the attribute-based CSS hiding.
+The `hidden` className workaround only handles the no-search case — it never applies when
+searching, but by then Radix's own CSS has already hidden everything.
+
+### Fix
+Replace the `className` hidden approach with an inline `style={{ display }}` that overrides
+Radix's attribute-based CSS. Never use `value="search-all"` — keep the tab value as
+`activeTab` at all times:
+
+```tsx
+// Before:
+<Tabs value={searchQuery ? "search-all" : activeTab} onValueChange={...}>
+  <TabsContent value="display" forceMount
+    className={`space-y-6 ${(!searchQuery && activeTab !== "display") ? "hidden" : ""}`}>
+
+// After:
+<Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)}>
+  <TabsContent value="display" forceMount
+    className="space-y-6"
+    style={{ display: (!searchQuery && activeTab !== "display") ? "none" : "block" }}>
+```
+
+Apply this fix to all 6 `TabsContent` panels (display, theme, navigation, analytics,
+integrations, advanced). Remove the `value="search-all"` virtual tab entirely.
+
+The `style.display` inline style has higher specificity than the Radix attribute CSS and
+forces all content visible during search regardless of Radix's `data-state` attribute.
+
+Also move the "Showing results across all settings" helper text to just below the search
+bar (outside the Tabs), so it always appears regardless of active tab.
+
+---
+
+## Bug 2: Notes formatting toolbar disappears when typing
+
+### Root cause
+The `RichTextEditor` component wraps its toolbar and `EditorContent` in:
+```tsx
+<div className={cn("border rounded-md overflow-hidden", className)}>
+  <div className="flex flex-wrap items-center gap-0.5 p-1.5 border-b bg-muted/30">
+    {/* Bold, Italic, etc. buttons */}
+  </div>
+  <EditorContent editor={editor} ... />
+</div>
+```
+The Notes page renders this editor inside a scrollable pane. As the user types and content
+grows, the editor container scrolls, pushing the internal toolbar out of the visible area
+if the outer pane has `overflow-y: auto/scroll`. The toolbar scrolls with the content
+instead of staying fixed at the top.
+
+### Fix
+In `client/src/components/rich-text-editor.tsx`, change the toolbar div to `sticky top-0`:
+
+```tsx
+<div className={cn("border rounded-md overflow-hidden flex flex-col", className)}>
+  <div className="flex flex-wrap items-center gap-0.5 p-1.5 border-b bg-muted/30 sticky top-0 z-10">
+    {/* toolbar buttons */}
+  </div>
+  <EditorContent editor={editor} ... />
+</div>
+```
+
+This keeps the formatting toolbar visible regardless of scroll position.
+
+---
+
+## Bug 3: Notes not saving
+
+### Root cause analysis
+`handleContentChange` in `notes-page.tsx`:
+```typescript
+function handleContentChange(html: string) {
+  contentRef.current = html;
+    scheduleAutoSave(selectedNote.id, titleRef.current?.value ?? selectedNote.title, html);
+}
+```
+`scheduleAutoSave` is a `useCallback` with empty `[]` deps. This means it captures the
+**initial** `queryClient` reference, which is a singleton and is fine. However, the function
+is called inside `handleContentChange` which is a regular function (not memoized). Every
+render creates a new `handleContentChange` closure, which is passed as `onChange` to the
+`RichTextEditor`.
+
+In the `RichTextEditor`, `onChange` is used in `onUpdate: ({ editor }) => onChange(editor.getHTML())`.
+Because `onChange` is not wrapped in `useCallback` in the parent, on every re-render a new
+function reference is passed to `useEditor`. However, TipTap's `useEditor` does NOT update
+`onUpdate` dynamically — it closes over the initial `onChange`. This means after the
+**first** re-render, `handleContentChange` points to a stale closure where `selectedNote`
+or `scheduleAutoSave` may be stale or incorrect.
+
+### Fix
+
+**Option A — memoize onChange in notes-page.tsx:**
+Wrap `handleContentChange` in `useCallback`:
+```typescript
+const handleContentChange = useCallback((html: string) => {
+  contentRef.current = html;
+  if (selectedId) {
+    scheduleAutoSave(selectedId, titleRef.current?.value ?? "", html);
+  }
+}, [selectedId, scheduleAutoSave]);
+```
+
+**Option B — use a ref for the callback (more robust):**
+Store the latest `onChange` in a ref inside `RichTextEditor` and call via the ref in `onUpdate`:
+```typescript
+// In RichTextEditor:
+const onChangeRef = useRef(onChange);
+useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+
+// In useEditor:
+onUpdate: ({ editor }) => {
+  onChangeRef.current(editor.getHTML());
+},
+```
+
+Implement **both** Option A (memoize in notes-page.tsx) AND Option B (ref in editor component)
+for belt-and-suspenders reliability. Also add `scheduleAutoSave` to `useCallback` deps
+for the handleContentChange wrapper.
+
+Additionally: add a visual "Saved" indicator (e.g., a small checkmark or timestamp) in the
+notes toolbar area so the user can confirm saves are happening. Show "Saving..." while
+`updateMutation.isPending` and "Saved" for 2 seconds after success.
+
+## Files
+- `client/src/pages/command-settings.tsx` — Bug 1 fix (Tabs display override)
+- `client/src/components/rich-text-editor.tsx` — Bug 2 fix (sticky toolbar), Bug 3 fix (onChange ref)
+- `client/src/pages/notes-page.tsx` — Bug 3 fix (memoize handleContentChange, saved indicator)
+
+---
+
+### #108 — Task #109 — X Feed: SEVCO Account Timelines + More Tweets on Home Page
+
+> File: `t109-x-feed-improvements.md`
+
+# Task #109 — X Feed: SEVCO Account Timelines + More Tweets on Home Page
+
+## Overview
+The X / Twitter feed section on the home page is currently invisible because:
+1. No X handles are configured in CMD Settings → `social.x.handles`
+2. The visibility condition requires both `xStatus.configured === true` AND `tweets.length > 0`
+3. There is no default/fallback handle, so new installs always show nothing
+
+This task seeds SEVCO's official X handles as defaults and improves the home page
+X feed display to show a proper account timeline layout.
+
+## Changes
+
+### 1. server/index.ts (or server/routes.ts seed block) — Seed default X handles
+
+In the platform settings seed (the block that sets default `platformSettings` values),
+add the SEVCO official handles as the default if `social.x.handles` is not yet set:
+
+```typescript
+// Default X handles for SEVCO social feed
+const existingHandles = await storage.getPlatformSetting("social.x.handles");
+if (!existingHandles) {
+  await storage.setPlatformSetting("social.x.handles", "sevco,sevelovesyou");
+}
+
+// Enable the X feed section by default
+const existingXEnabled = await storage.getPlatformSetting("social.x.enabled");
+if (!existingXEnabled) {
+  await storage.setPlatformSetting("social.x.enabled", "true");
+}
+
+// Set a reasonable default tweet count
+const existingMaxTweets = await storage.getPlatformSetting("social.x.maxTweets");
+if (!existingMaxTweets) {
+  await storage.setPlatformSetting("social.x.maxTweets", "12");
+}
+```
+
+These handles correspond to the official SEVCO accounts. If the handles don't resolve
+(account doesn't exist or is private), the feed gracefully shows nothing.
+
+### 2. client/src/pages/landing.tsx — Improved X feed layout
+
+Currently the X section renders a list of tweet cards. Improve this to:
+
+**Account header rows** — before the tweet grid, show which accounts are being displayed:
+- Parse the `social.x.handles` setting from CMD (already fetched via `/api/social/x/status`)
+- Show each handle as a pill/badge with the X logo: `@sevco  @sevelovesyou`
+
+**Larger tweet count** — change the default limit when fetching:
+```typescript
+// Before: no explicit limit (defaults to server setting)
+// After: pass limit=12 explicitly (or use what the server setting says)
+queryKey: ["/api/social/x/feed", { handles: "sevco,sevelovesyou" }],
+```
+
+**Timeline-style layout** — change from a single horizontal scroll to a 2-column grid
+(one column per handle) on `md+` screens, single column on mobile. Each column is labelled
+with the handle name and shows that account's latest tweets chronologically.
+
+This requires the `/api/social/x/feed` endpoint to return per-handle tweet groups.
+Update the response format:
+
+```typescript
+// Current: Tweet[] flat array
+// New: { handle: string; tweets: Tweet[] }[] array
+// OR keep flat array and add a `handle` field to each Tweet (already present in x-api.ts
+// if Tweet has author.username)
+```
+
+Looking at `server/x-api.ts`, `Tweet` objects already include `author.username`. So on the
+frontend, just group the flat tweet array by `tweet.author?.username`:
+
+```typescript
+const tweetsByHandle = handles.reduce((acc, h) => {
+  acc[h] = tweets.filter(t => t.author?.username?.toLowerCase() === h.toLowerCase());
+  return acc;
+}, {} as Record<string, Tweet[]>);
+```
+
+Render as a 2-column grid:
+```tsx
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  {handles.map(handle => (
+    <div key={handle}>
+      <div className="flex items-center gap-2 mb-3">
+        <SiX className="h-4 w-4" />
+        <span className="font-semibold text-sm">@{handle}</span>
+      </div>
+      <div className="space-y-3">
+        {tweetsByHandle[handle]?.map(tweet => <TweetCard key={tweet.id} tweet={tweet} />)}
+      </div>
+    </div>
+  ))}
+</div>
+```
+
+### 3. server/x-api.ts — Increase per-handle tweet limit
+
+Currently `fetchUserTweets` defaults to 6 tweets per handle. Raise the default to 10
+(cap at what the Twitter API allows per request — typically 10 for basic tier). The
+actual display count is controlled by `social.x.maxTweets` in settings.
+
+### 4. CMD Settings — Show configured handles in Integrations tab
+
+In the existing X Twitter card in `command-settings.tsx`, make sure the "X Handles" input
+field shows the current value from `platformSettings["social.x.handles"]`. If the field is
+empty, show a placeholder hint: `e.g. sevco,sevelovesyou`.
+
+Also add a "Max Tweets" number input (if not already present) so admins can control how
+many tweets appear per account.
+
+## Done looks like
+- Home page `/` shows the X feed section with @sevco and @sevelovesyou timelines
+  side-by-side (2 columns on desktop, 1 on mobile)
+- Each column has an `@handle` label
+- 10–12 tweets shown per account (configurable from CMD Settings)
+- If Bearer Token is not configured, the section remains hidden (no change to existing guard)
+- CMD Settings → Integrations → X Twitter shows current handles pre-filled
+
+## Files
+- `server/index.ts` — seed default handles, xFeed enabled, maxTweets
+- `server/x-api.ts` — increase default limit to 10
+- `client/src/pages/landing.tsx` — 2-column timeline layout with handle headers
+- `client/src/pages/command-settings.tsx` — pre-fill handles input, add maxTweets input
+
+---
+
+### #109 — Task #110 — Profile Page: Bug Fixes + Customization Expansion
+
+> File: `t110-profile-overhaul.md`
+
+# Task #110 — Profile Page: Bug Fixes + Customization Expansion
+
+## Bugs to fix
+
+### Bug A: Avatar cut off by banner (z-index)
+**Root cause**: The avatar row uses `-mt-10` to overlap the banner from below. The banner div
+appears earlier in the DOM and renders on top because neither element has an explicit z-index.
+The banner's background image paints over the top 40px of the avatar.
+
+**Fix** (`client/src/pages/profile-page.tsx`):
+```tsx
+// Before:
+<div className="flex items-end justify-between -mt-10 mb-4">
+// After:
+<div className="flex items-end justify-between -mt-10 mb-4 relative z-10">
+```
+`relative z-10` on the avatar container lifts it above the banner's stacking context.
+
+---
+
+### Bug B: CMD Settings search bar — overlapping icons + double border
+**Root cause** (`client/src/pages/command-settings.tsx`):
+- The search icon (`absolute left-3`) and clear button (`absolute right-1`) are correctly placed,
+  but the Input from Shadcn may have `type="search"` behavior in some browsers adding a native
+  clear button that conflicts. Additionally, the Shadcn Input's default focus ring (`ring-2 ring-ring`)
+  combined with the platform's accent color `outline` causes a double green glow border.
+- The icons may render over each other if viewport is narrow.
+
+**Fix**:
+1. Add `type="text"` explicitly to the Input to prevent any browser-native search controls
+2. Add `focus-visible:ring-0 focus-visible:outline-none focus:ring-1` to suppress double ring
+3. Replace absolute positioning with a `flex` row wrapping approach using the Shadcn `Input`
+   styled as: icon left inside the input, clear button right inside the input, no double border
+
+```tsx
+<div className="relative flex items-center">
+  <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+  <Input
+    type="text"
+    placeholder="Search settings…"
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+    className="pl-9 pr-9 focus-visible:ring-1"
+    data-testid="input-settings-search"
+  />
+  {searchQuery && (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="absolute right-1 h-7 w-7 text-muted-foreground hover:text-foreground"
+      onClick={() => setSearchQuery("")}
+      data-testid="button-clear-search"
+    >
+      <X className="h-3.5 w-3.5" />
+    </Button>
+  )}
+</div>
+```
+
+---
+
+## Profile customization: Separate banner from background
+
+### New DB field: `bannerUrl`
+Add `bannerUrl: text("banner_url")` to `users` table in `shared/schema.ts`.
+Add it to `updateProfileSchema` and `UpdateProfile` type.
+Add to storage `updateUserProfile`.
+Run `db:push` to apply.
+
+**No migration needed** — it's an additive nullable column.
+
+### Profile view (`profile-page.tsx`)
+- **Card banner** (`h-24`): use `profile.bannerUrl` if set; fall back to `profileBgImageUrl`; fall
+  back to accent gradient. This keeps backward compatibility.
+- **Full-page background**: use `profile.profileBgImageUrl` only (no longer uses banner).
+  The full-page bg renders at `opacity-20` by default.
+
+### Profile edit form (`profile-page.tsx` edit drawer)
+Add two separate upload fields:
+1. **Profile Banner** — `bannerUrl` — bucket `"banners"`, path `${userId}/banner.{ext}`
+   - Label: "Profile Banner" with dimensions hint "1200×400px recommended"
+2. **Page Background** — `profileBgImageUrl` — bucket `"banners"`, path `${userId}/bg.{ext}`
+   - Label: "Background Image" with note "Shows faintly behind your entire profile page"
+
+---
+
+## Profile customization: Background overlay opacity control
+
+### New DB field: `profileBgOpacity`
+Add `profileBgOpacity: integer("profile_bg_opacity").default(20)` to `users` table.
+Range: 0–100 (maps to CSS `opacity` as value/100).
+Add to schema, updateProfileSchema, storage.
+
+### Profile view
+```tsx
+// Before:
+<div className="absolute inset-0 bg-cover opacity-20" />
+// After:
+const bgOpacity = (profile.profileBgOpacity ?? 20) / 100;
+<div className="absolute inset-0 bg-cover" style={{ backgroundImage: ..., opacity: bgOpacity }} />
+```
+
+### Profile edit form
+Add a slider (0–100, step 5) below the background image upload:
+```
+Background Opacity  [====|====] 20%
+```
+Live preview the page background opacity as the user drags.
+
+---
+
+## Suggested new profile customization features (implement all)
+
+### 1. Custom status line
+**Field**: `profileStatus: text` (e.g. "🎵 Working on new music")
+**Display**: Show below the username/bio area as a small pill with emoji + text.
+**Edit**: Single-line input, max 60 chars, optional emoji picker shortcut.
+
+### 2. Featured pinned item
+**Field**: `profileFeaturedType: text` ("project" | "product" | "wiki" | "post" | "playlist")
+         `profileFeaturedId: text`
+**Display**: A "Featured" card below the bio — shows the linked item's title, thumbnail,
+and type badge. Links to the item.
+**Edit**: Dropdown to pick type + search/select the item.
+
+### 3. Profile layout theme
+**Field**: `profileLayout: text` — choices: `"default"` | `"compact"` | `"wide"`
+- `default`: current layout
+- `compact`: no banner, avatar left-aligned with name beside it (Twitter-like compact)
+- `wide`: full-width banner taller (h-48), avatar larger, more whitespace
+
+### 4. Custom display font
+**Field**: `profileFont: text` — choices: `"default"` | `"serif"` | `"mono"` | `"handwritten"`
+Maps to: system-ui / Georgia / monospace / "Caveat" (Google Font)
+Apply to the user's display name and bio text only.
+
+### 5. Pronouns
+**Field**: `profilePronouns: text` (e.g. "they/them", "he/him", "she/her", max 20 chars)
+**Display**: Small muted text beside the @username line.
+**Edit**: Freeform text input.
+
+### 6. Profile accent gradient
+**Field**: `profileAccentGradient: boolean` default false
+When enabled, use a gradient of `accentColor` + 60° hue-shifted variant for the card banner
+(if no banner image is set) and for the avatar border. Creates a more dynamic look.
+
+### 7. Follower/following visibility toggle
+**Field**: `profileShowFollowers: boolean` default true
+When false, hide the follower/following counts from public view (shows a lock icon instead).
+
+## Schema changes summary
+New nullable columns to add to `users` table:
+- `banner_url` text
+- `profile_bg_opacity` integer default 20
+- `profile_status` text
+- `profile_featured_type` text
+- `profile_featured_id` text
+- `profile_layout` text default 'default'
+- `profile_font` text default 'default'
+- `profile_pronouns` text
+- `profile_accent_gradient` boolean default false
+- `profile_show_followers` boolean default true
+
+## Files
+- `shared/schema.ts` — new columns + update updateProfileSchema
+- `server/storage.ts` — updateUserProfile handles new fields
+- `server/routes.ts` — ensure PATCH /api/user/profile passes new fields through
+- `client/src/pages/profile-page.tsx` — view + edit form for all new fields
+- `client/src/pages/command-settings.tsx` — Bug B (search bar)
+
+---
+
+### #110 — Task #111 — Notes: Save-on-Unmount Fix + Replace Bear with X Post
+
+> File: `t111-notes-save-x-post.md`
+
+# Task #111 — Notes: Save-on-Unmount Fix + Replace Bear with X Post
+
+## Bug: Notes lost when navigating away (save-on-unmount)
+
+### Root cause
+`scheduleAutoSave` fires after an 800ms debounce. If the user navigates away from the Notes
+page before 800ms elapses, the component unmounts and the pending `setTimeout` is discarded
+by the JavaScript engine — the save never fires.
+
+`handleSelectNote` correctly flushes unsaved changes when switching notes within the page,
+but there is no equivalent flush when leaving the page entirely.
+
+### Fix A — Save on unmount via `useEffect` cleanup + `keepalive` fetch
+
+Add a `useEffect` that runs on component unmount. On unmount, cancel any pending debounce
+timer and fire a `keepalive` fetch directly (bypasses mutation lifecycle since component
+is being destroyed):
+
+```typescript
+// Near the top of the notes-page component, after contentRef / autoSaveTimer / lastSavedRef:
+const selectedIdRef = useRef<number | null>(null);
+useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
+
+// New unmount effect (separate useEffect with empty deps):
+useEffect(() => {
+  return () => {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    const id = selectedIdRef.current;
+    const title = titleRef.current?.value ?? "";
+    const content = contentRef.current;
+    if (
+      id !== null &&
+      (title !== lastSavedRef.current.title || content !== lastSavedRef.current.content)
+    ) {
+      // keepalive: true ensures the request completes even if the page is unloading
+      fetch(`/api/notes/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        keepalive: true,
+        body: JSON.stringify({ title, content }),
+      });
+    }
+  };
+}, []); // empty deps — only runs on mount/unmount
+```
+
+The `keepalive: true` flag instructs the browser to keep the request alive even after the
+page/component unmounts. This is the standard browser API for save-on-navigate-away.
+
+### Fix B — Reduce debounce from 800ms to 400ms
+
+Shorter debounce means less time window for navigation to interrupt a save:
+```typescript
+// Before:
+autoSaveTimer.current = setTimeout(() => { ... }, 800);
+// After:
+autoSaveTimer.current = setTimeout(() => { ... }, 400);
+```
+
+### Fix C — Flush timer before navigation (window beforeunload)
+
+Add a `beforeunload` listener that flushes unsaved changes:
+```typescript
+useEffect(() => {
+  const flush = () => {
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current);
+      const id = selectedIdRef.current;
+      const title = titleRef.current?.value ?? "";
+      const content = contentRef.current;
+      if (id !== null && (title !== lastSavedRef.current.title || content !== lastSavedRef.current.content)) {
+        fetch(`/api/notes/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          keepalive: true,
+          body: JSON.stringify({ title, content }),
+        });
+      }
+    }
+  };
+  window.addEventListener("beforeunload", flush);
+  return () => window.removeEventListener("beforeunload", flush);
+}, []);
+```
+
+Implement all three fixes (A + B + C) together for belt-and-suspenders reliability.
+
+---
+
+## Feature: Replace "Open in Bear" with "Post to X"
+
+### What changes
+In `client/src/pages/notes-page.tsx`, replace the Bear dropdown menu item with an X Post
+action that drafts a tweet using X's web intent URL.
+
+### Implementation
+
+```typescript
+// Helper — strip HTML tags to plain text and truncate for X's 280-char limit
+function noteToXText(title: string, htmlContent: string): string {
+  // Strip HTML tags
+  const plain = htmlContent.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  // Build tweet: title on first line, then body content
+  const full = `${title}\n\n${plain}`;
+  // X allows 280 chars; leave room for the intent URL overhead
+  if (full.length <= 270) return full;
+  return full.slice(0, 267) + "…";
+}
+
+// In the dropdown menu, replace the Bear item:
+<DropdownMenuItem
+  data-testid="menu-post-to-x"
+  onClick={() => {
+    const title = titleRef.current?.value ?? selectedNote.title;
+    const content = contentRef.current || selectedNote.content;
+    const text = noteToXText(title, content);
+    const url = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }}
+>
+  <SiX className="h-3.5 w-3.5 mr-2" />
+  Post to X
+</DropdownMenuItem>
+```
+
+Import `SiX` from `react-icons/si` (already imported elsewhere in the codebase).
+Remove the `bear://x-callback-url/...` code entirely.
+
+X's tweet intent URL (`x.com/intent/tweet?text=...`) opens in a new tab with the X
+composer pre-filled with the note text. The user can edit before posting.
+
+Note: if the note content is longer than 270 chars after stripping HTML, it's truncated
+with an ellipsis. Users will see the character count in X's composer.
+
+---
+
+## Files
+- `client/src/pages/notes-page.tsx` — save-on-unmount (Fixes A+B+C) + X Post button
+
+---
+
+### #111 — Task #112 — xAI: Latest Models + Grok Imagine + OpenRouter Fallback
+
+> File: `t112-grok-models-imagine.md`
+
+# Task #112 — xAI: Latest Models + Grok Imagine + OpenRouter Fallback
+
+## Overview
+Three related improvements to the AI agents system:
+1. Fix the "no credits" x.ai error by adding OpenRouter as automatic fallback for Grok chat models
+2. Add `grok-2-image-1212` (Grok Imagine) to the model list with image generation support
+3. Add any missing latest xAI models and improve the Grok group UI in the agents page
+
+---
+
+## Fix 1 — OpenRouter fallback for Grok chat models
+
+### Problem
+When `xai/grok-*` (chat) models hit the x.ai API and the team has no credits, the raw JSON
+error is returned to the user:
+```
+x.ai error: {"code":"The caller does not have permission to execute the specified operation",
+"error":"Your newly created team doesn't have any credits or licenses yet..."}
+```
+
+### Fix
+In `server/routes.ts`, the chat endpoint section that handles `xai/` models:
+
+1. After getting the x.ai error response, check if it contains "credits" or "permission":
+   - If yes AND `OPENROUTER_API_KEY` is available: automatically retry through OpenRouter
+     using the `x-ai/` prefixed model name (e.g. `x-ai/grok-3`).
+   - If OpenRouter also fails or key not available: return the improved error message with
+     a direct link and suggestion to add credits or switch to the OpenRouter Grok variants.
+
+```typescript
+// In the !response.ok block for xai/ models:
+if (modelSlug.startsWith("xai/")) {
+  let errText = await response.text();
+  let errObj: any = {};
+  try { errObj = JSON.parse(errText); } catch {}
+  const isCreditsError =
+    errObj?.error?.includes("credits") ||
+    errObj?.error?.includes("licenses") ||
+    errObj?.code?.includes("permission");
+
+  if (isCreditsError && process.env.OPENROUTER_API_KEY) {
+    // Fallback: retry through OpenRouter (they support x-ai/* models)
+    const openRouterModel = modelName.replace("grok-", "grok-"); // keep as-is, use x-ai/ prefix
+    const fallbackRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://sevco.us",
+        "X-Title": "SEVCO Platform",
+      },
+      body: JSON.stringify({
+        model: `x-ai/${modelName}`, // e.g. "x-ai/grok-3"
+        messages: [
+          { role: "system", content: agent.systemPrompt },
+          ...contextMessages,
+        ],
+        max_tokens: 1024,
+      }),
+    });
+    if (fallbackRes.ok) {
+      const fallbackData = await fallbackRes.json() as any;
+      const assistantContent = fallbackData.choices?.[0]?.message?.content ?? "No response.";
+      const assistantMsg = await storage.createAiMessage({
+        agentId, userId: user.id, role: "assistant", content: assistantContent
+      });
+      return res.json({ message: assistantMsg });
+    }
+  }
+  // Still failing: return improved error
+  const teamUrl = errObj?.error?.match(/https:\/\/console\.x\.ai\/team\/[^\s"]+/)?.[0];
+  const purchaseLink = teamUrl ? ` Purchase credits: ${teamUrl}` : " Visit https://console.x.ai to add credits.";
+  return res.status(502).json({
+    message: `x.ai error: ${errObj?.error ?? errText}${purchaseLink} Or switch your agent to an OpenRouter Grok model (e.g. "x-ai/grok-3" via OpenRouter).`
+  });
+}
+```
+
+Note: use the already-fetched `response.text()` carefully (text can only be read once;
+read it first, then parse).
+
+---
+
+## Fix 2 — Grok Imagine (image generation)
+
+### What it is
+xAI's image generation model: `grok-2-image-1212`
+Endpoint: `POST https://api.x.ai/v1/images/generations`
+Auth: `Authorization: Bearer {XAI_API_KEY}`
+Request body:
+```json
+{
+  "model": "grok-2-image-1212",
+  "prompt": "A futuristic city at sunset",
+  "n": 1,
+  "response_format": "url"
+}
+```
+Response:
+```json
+{ "data": [{ "url": "https://..." }] }
+```
+
+### Backend
+
+In the existing `/api/ai/agents/:id/chat` route in `server/routes.ts`, BEFORE the normal
+chat completion fetch, add a branch for image models:
+
+```typescript
+const IMAGE_MODELS = ["grok-2-image-1212"];
+
+if (modelSlug.startsWith("xai/") && IMAGE_MODELS.includes(modelName)) {
+  // Image generation via xAI
+  if (!process.env.XAI_API_KEY) {
+    return res.status(500).json({ message: "XAI_API_KEY is required for Grok Imagine." });
+  }
+  const imgRes = await fetch("https://api.x.ai/v1/images/generations", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.XAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: modelName,         // "grok-2-image-1212"
+      prompt: message,          // user's message is the prompt
+      n: 1,
+      response_format: "url",
+    }),
+  });
+  if (!imgRes.ok) {
+    const errText = await imgRes.text();
+    return res.status(502).json({ message: `x.ai image error: ${errText}` });
+  }
+  const imgData = await imgRes.json() as any;
+  const imageUrl = imgData?.data?.[0]?.url;
+  if (!imageUrl) return res.status(502).json({ message: "No image URL returned from x.ai." });
+
+  // Store user message
+  await storage.createAiMessage({ agentId, userId: user.id, role: "user", content: message });
+  // Store assistant message with image as markdown
+  const assistantContent = `![Generated image](${imageUrl})`;
+  const assistantMsg = await storage.createAiMessage({
+    agentId, userId: user.id, role: "assistant", content: assistantContent
+  });
+  return res.json({ message: assistantMsg });
+}
+```
+
+### Chat UI
+
+The existing chat renders markdown from the assistant. Add a check in the chat bubble:
+if the message starts with `![` it's an image response. Render it with an `<img>` tag
+instead of (or in addition to) the markdown renderer.
+
+In `client/src/pages/command-ai-agents.tsx`, in the chat message rendering section, detect
+image markdown responses and render them:
+```tsx
+// In the assistant message bubble:
+const isImage = msg.content.startsWith("![");
+const imgMatch = msg.content.match(/!\[.*?\]\((https?:\/\/[^\)]+)\)/);
+if (isImage && imgMatch) {
+  return (
+    <div>
+      <img
+        src={imgMatch[1]}
+        alt="Grok generated image"
+        className="rounded-lg max-w-sm w-full object-cover"
+        data-testid={`img-grok-generated-${msg.id}`}
+      />
+    </div>
+  );
+}
+// Otherwise normal text rendering
+```
+
+---
+
+## Fix 3 — Model list: latest xAI models + OpenRouter Grok variants
+
+In `client/src/pages/command-ai-agents.tsx`, update the MODELS array:
+
+### Keep existing xai/ direct models (for when credits are added)
+All existing models are correct. Add one more:
+```typescript
+{ value: "xai/grok-2-image-1212", label: "Grok Imagine", group: "Grok" },
+```
+
+### Add OpenRouter Grok variants (work without x.ai credits)
+Add a new group "Grok (via OpenRouter)" so users can use Grok even before adding x.ai credits:
+```typescript
+// Grok via OpenRouter (no x.ai credits needed — uses OPENROUTER_API_KEY)
+{ value: "x-ai/grok-3",              label: "Grok 3 (OpenRouter)",           group: "Grok (via OpenRouter)" },
+{ value: "x-ai/grok-3-fast",         label: "Grok 3 Fast (OpenRouter)",      group: "Grok (via OpenRouter)" },
+{ value: "x-ai/grok-3-mini",         label: "Grok 3 Mini (OpenRouter)",      group: "Grok (via OpenRouter)" },
+{ value: "x-ai/grok-3-mini-fast",    label: "Grok 3 Mini Fast (OpenRouter)", group: "Grok (via OpenRouter)" },
+{ value: "x-ai/grok-2-1212",         label: "Grok 2 (OpenRouter)",           group: "Grok (via OpenRouter)" },
+```
+
+These use the standard OpenRouter routing (no `xai/` prefix = OpenRouter path).
+
+### Update agent badge display
+Currently shows `x.ai` badge for `xai/` prefix models.
+Add a similar `x.ai (OR)` or `Grok↗` badge for `x-ai/` models (OpenRouter Grok route).
+
+---
+
+## Files Changed
+- `server/routes.ts` — fallback logic + image generation branch in chat endpoint
+- `client/src/pages/command-ai-agents.tsx` — model list update + image rendering in chat UI
+
+## No DB changes — no startup migrations needed
+
+---
+
+### #112 — Fullscreen & Floating Chat Windows
+
+> File: `t113-fullscreen-floating-chat.md`
+
+# Fullscreen & Floating Chat Windows
+
+## What & Why
+Enhance the chat experience with three new modes: a fullscreen focused chat view accessible from the existing ChatSheet, proper rich AI coding support (markdown + syntax highlighting) in that fullscreen view, and the ability to pop any conversation out into a draggable/resizable floating window — so users can multitask while keeping conversations visible.
+
+## Done looks like
+- A small "expand" icon button in the ChatSheet header opens the current conversation (channel, DM, or AI agent) in a fullscreen mode within the platform, styled similar to the Inbox/Messages page layout
+- The fullscreen chat sidebar lists all channels, DMs, and AI agents so users can switch conversations without leaving fullscreen
+- In fullscreen chat, AI agent messages render with full Markdown support — headings, bold/italic, bullet lists, and fenced code blocks with syntax highlighting
+- A "pop out" icon on any conversation (in both ChatSheet and fullscreen mode) opens it as a floating draggable, resizable window overlaying the rest of the app
+- Multiple floating windows can be open simultaneously; each one independently tracks its conversation
+- Floating windows remember their last position and size for the session; they can be minimized to a title bar and closed
+- All existing AI coding/agent functionality (send messages, clear history, model display, role access control) continues to work identically in all three modes
+
+## Out of scope
+- Code execution / sandboxed code running
+- File attachment uploads to chat
+- WebSocket real-time updates (polling remains as-is)
+- Persisting floating window positions across page refreshes or sessions
+
+## Tasks
+1. **Fullscreen chat page** — Create a new `/chat` route (or reuse `/messages` logic) with a left sidebar listing channels, DMs, and AI agents, and a main content area that renders the appropriate conversation view (ChannelView, DmView, or AiAgentView). Add an "expand to fullscreen" icon button in the ChatSheet header that navigates to this page with the active conversation pre-selected.
+
+2. **Markdown + syntax highlighting in AI views** — Install a markdown renderer (e.g. `react-markdown` with `remark-gfm`) and a syntax highlighter (e.g. `react-syntax-highlighter`). Apply it to AI agent message rendering in both the ChatSheet's AiAgentView and the new fullscreen chat page so code blocks, headings, and inline formatting display correctly.
+
+3. **Floating chat window system** — Build a `FloatingChatWindow` component that wraps any conversation view in a draggable (via mouse/touch drag on the title bar), resizable panel with minimize and close controls. Add a "pop out" icon to conversation headers in both the ChatSheet and fullscreen views. Manage all open floating windows in a global context/store so multiple windows can coexist across the app without interfering with routing.
+
+## Relevant files
+- `client/src/components/chat-sheet.tsx`
+- `client/src/pages/messages-page.tsx`
+- `client/src/App.tsx`
+- `shared/schema.ts`
+- `server/routes.ts`
+
+---
+
+### #113 — Protect Planet Logo From Clipping
+
+> File: `t114-protect-planet-logo.md`
+
+# Protect Planet Logo From Clipping
+
+## What & Why
+The SEVCO planet logo repeatedly gets a small chunk clipped off when surrounding layout code is reformatted. This happens because logo containers sit inside elements that have `overflow: hidden`, meaning any slight sizing or padding change by a future edit clips the edges of the planet image. The fix is to extract the planet logo into a single reusable component with explicit overflow-safe styling and a prominent code comment, then replace every inline usage with that component so future refactors can't accidentally clip it.
+
+## Done looks like
+- The planet logo displays fully (no missing chunk) in all locations: both sidebars, auth page, verify email page, profile page, music listen page, landing page hero, and footer.
+- Any future edit to surrounding layout will not affect logo rendering because the component is self-contained.
+- A clear comment in the component warns future executors not to reduce padding or add overflow-hidden to the logo container.
+
+## Out of scope
+- Changing the logo asset itself.
+- Any visual redesign of areas surrounding the logo.
+- The wordmark/text logo (SEVCO_Logo_Black) — only the planet icon is affected.
+
+## Tasks
+1. **Create `SevcoLogo` component** — Create `client/src/components/sevco-logo.tsx` that renders the planet icon image with `object-contain`, explicit `overflow-visible` on its wrapper, and a padding buffer (`p-0.5` or similar) so the image never touches the edge of its container. Include a code comment warning not to add `overflow-hidden` to this container or reduce its size. Accept `size`, `className`, and `invert` props for flexibility.
+
+2. **Replace all inline planet logo usages** — Swap every direct `<img src={planetBlack} ... />` and `<img src={planetIcon} ... />` usage across all files with the new `<SevcoLogo>` component, passing appropriate size/invert props to match the existing visual output. The landing page hero usage with its fallback logic (`settings["hero.logoUrl"] || ...`) should remain an `<img>` but use the same protective container styling as the component.
+
+## Relevant files
+- `client/src/components/app-sidebar.tsx`
+- `client/src/components/command-sidebar.tsx`
+- `client/src/components/platform-footer.tsx`
+- `client/src/pages/auth-page.tsx`
+- `client/src/pages/verify-email-page.tsx`
+- `client/src/pages/profile-page.tsx`
+- `client/src/pages/music-listen-page.tsx`
+- `client/src/pages/landing.tsx`
+
+---
+
+### #114 — Task #116 — Fix chat-sheet.tsx merge conflict + hero button color settings
+
+> File: `t116-chat-conflict-hero-button-color.md`
+
+# Task #116 — Fix chat-sheet.tsx merge conflict + hero button color settings
+
+## Part 1 — CRITICAL: Resolve merge conflict in chat-sheet.tsx
+
+`client/src/components/chat-sheet.tsx` lines 563–589 contain unresolved Git merge conflict
+markers left from the Task #113 merge colliding with Task #112's image rendering addition.
+This crashes the TypeScript compiler and brings the whole app down.
+
+### The conflict (lines 564–589):
+```
+<<<<<<< HEAD
+  {/* Task #112 version: image detection, then raw text */}
+  {(() => {
+    const imgMatch = !isUser && msg.content.startsWith("![") && ...;
+    if (imgMatch) { return <img .../>; }
+    return <div ...>{msg.content}</div>;
+  })()}
+=======
+  {/* Task #113 version: always use AiMessageRenderer for markdown */}
+  <div ...>
+    {isUser ? msg.content : <AiMessageRenderer content={msg.content} />}
+  </div>
+>>>>>>> 22fbbd1
+```
+
+### Resolution: combine both — image detection takes priority, AiMessageRenderer for text
+```tsx
+{(() => {
+  const imgMatch = !isUser && msg.content.startsWith("![") &&
+    msg.content.match(/!\[.*?\]\((https?:\/\/[^)]+)\)/);
+  if (imgMatch) {
+    return (
+      <div className="rounded-2xl overflow-hidden bg-muted p-1">
+        <img
+          src={imgMatch[1]}
+          alt="Grok generated image"
+          className="rounded-lg max-w-sm w-full object-cover"
+          data-testid={`img-grok-generated-${msg.id}`}
+        />
+      </div>
+    );
+  }
+  return (
+    <div className={`rounded-2xl px-3 py-2 text-sm break-words ${
+      isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+    }`}>
+      {isUser ? msg.content : <AiMessageRenderer content={msg.content} />}
+    </div>
+  );
+})()}
+```
+
+Remove the conflict markers (`<<<<<<< HEAD`, `=======`, `>>>>>>> 22fbbd1`) entirely.
+Restart the workflow after fixing to confirm the app starts cleanly.
+
+---
+
+## Part 2 — Hero button color settings (CMD Display → Hero)
+
+### Current state
+`client/src/pages/landing.tsx` hero CTAs have no color fields:
+- Button 1 label/url/icon configurable → color hardcoded orange (#f97316)
+- Button 2 label/url/icon configurable → color hardcoded transparent/outline
+
+### Add to Platform Settings
+In the `platformSettings` schema (or just use the generic key/value settings table) add
+two new setting keys: `hero.button1.color` and `hero.button2.color` (stored as hex strings,
+e.g. `#2563eb`).
+
+### CMD Display changes (client/src/pages/command-display.tsx)
+In the Hero section (where button label/url/icon are already editable), add two color picker
+inputs — one below each button's row:
+
+```tsx
+<div className="flex items-center gap-2">
+  <Label className="w-16 text-xs shrink-0">Color</Label>
+  <input
+    type="color"
+    value={btn1Color || "#f97316"}
+    onChange={(e) => setBtn1Color(e.target.value)}
+    className="h-7 w-12 rounded border cursor-pointer"
+    data-testid="input-hero-button1-color"
+  />
+  <span className="text-xs text-muted-foreground font-mono">{btn1Color || "#f97316"}</span>
+  <Button variant="ghost" size="sm" onClick={() => setBtn1Color("")} className="text-xs h-6 px-2">
+    Reset
+  </Button>
+</div>
+```
+
+Add state: `const [btn1Color, setBtn1Color] = useState("")` and
+`const [btn2Color, setBtn2Color] = useState("")`.
+Load from settings on mount: `setBtnColor(settings["hero.button1.color"] ?? "")`.
+Include in the save payload: `"hero.button1.color": btn1Color`.
+
+### Landing page changes (client/src/pages/landing.tsx)
+Read both color settings from the settings query and apply via `style`:
+
+```tsx
+const btn1Color = settings["hero.button1.color"];
+const btn2Color = settings["hero.button2.color"];
+
+// Button 1 (primary CTA):
+<Button
+  style={btn1Color ? { backgroundColor: btn1Color, borderColor: btn1Color, color: "#fff" } : undefined}
+  className={!btn1Color ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "hover:opacity-90 text-white"}
+  ...
+>
+
+// Button 2 (secondary CTA):
+<Button
+  variant="outline"
+  style={btn2Color ? { backgroundColor: btn2Color, borderColor: btn2Color, color: "#fff" } : undefined}
+  ...
+>
+```
+
+When no color is set, falls back to the existing default (primary blue for btn1,
+outline for btn2). When set, the inline style overrides Tailwind.
+
+**Also update the Settings page** (command-settings.tsx Hero section) with the same
+color picker fields, mirroring what was done in command-display.tsx.
+
+---
+
+## Files
+- `client/src/components/chat-sheet.tsx` — remove conflict markers (merge fix)
+- `client/src/pages/command-display.tsx` — add btn1Color/btn2Color state + pickers
+- `client/src/pages/command-settings.tsx` — same color picker additions to hero section
+- `client/src/pages/landing.tsx` — read color settings, apply via style prop
+
+## No DB changes — settings use existing key/value store
+
+---
+
+### #115 — Task #117 — Platform-wide brand color palette replacement
+
+> File: `t117-brand-color-palette-replacement.md`
+
+# Task #117 — Platform-wide brand color palette replacement
+
+## Goal
+Replace all hardcoded `orange-*` and `violet-*`/`purple-*` Tailwind classes across 30+ files
+with the SEVCO brand palette: Blue, Red, Yellow, Green, Black, White.
+
+Brand colors (from CMD Display → Colors → Brand Colors):
+- **Blue** (brand main):      HSL 227 100% 50% ≈ Tailwind `blue-600`
+- **Red** (brand secondary):  HSL 0 100% 37%   ≈ Tailwind `red-700`/`red-800`
+- **Yellow** (brand accent):  HSL 45 97% 54%   ≈ Tailwind `yellow-400`/`amber-400`
+- **Green** (brand highlight): HSL 126 100% 33% ≈ Tailwind `green-700`
+
+Orange was used as "warm/CTA" → replace with **Red** (brand secondary).
+Violet/Purple was used as "music/media" → replace with **Blue** (brand main / `bg-primary`).
+
+---
+
+## Color mapping rules
+
+### Orange → Red
+| Old class                        | New class                         | Notes                     |
+|----------------------------------|-----------------------------------|---------------------------|
+| `bg-orange-500`                  | `bg-red-700`                      | primary CTA fill          |
+| `hover:bg-orange-600`            | `hover:bg-red-800`                | hover state               |
+| `hover:bg-orange-400`            | `hover:bg-red-600`                | lighter hover             |
+| `bg-orange-500/10`               | `bg-red-700/10`                   | muted background          |
+| `bg-orange-500/15`               | `bg-red-700/15`                   |                           |
+| `bg-orange-500/20`               | `bg-red-700/20`                   |                           |
+| `bg-orange-600/20`               | `bg-red-800/20`                   |                           |
+| `bg-orange-900/40`               | `bg-red-900/40`                   | dark gradient stop        |
+| `text-orange-400`                | `text-red-500`                    | dark mode text            |
+| `text-orange-500`                | `text-red-600`                    |                           |
+| `text-orange-600`                | `text-red-700`                    |                           |
+| `text-orange-700`                | `text-red-800`                    |                           |
+| `text-orange-800`                | `text-red-800`                    |                           |
+| `dark:text-orange-400`           | `dark:text-red-400`               |                           |
+| `dark:text-orange-300`           | `dark:text-red-300`               |                           |
+| `border-orange-500`              | `border-red-700`                  |                           |
+| `border-orange-500/20`           | `border-red-700/20`               |                           |
+| `border-orange-500/30`           | `border-red-700/30`               |                           |
+| `from-orange-400`                | `from-red-600`                    | gradient start            |
+| `from-orange-500/20`             | `from-red-700/20`                 |                           |
+| `from-orange-600/20`             | `from-red-800/20`                 |                           |
+| `from-orange-900/40`             | `from-red-900/40`                 |                           |
+| `to-orange-500`                  | `to-red-700`                      |                           |
+| `to-orange-600/5`                | `to-red-800/5`                    |                           |
+| `to-amber-500`                   | `to-red-600`                      | amber gradients → red too |
+| `via-amber-300`                  | `via-red-400`                     |                           |
+| `to-yellow-300`                  | `to-yellow-300`                   | keep yellow (brand color) |
+| `to-amber-900/20`                | `to-red-900/20`                   |                           |
+| `bg-orange-100`                  | `bg-red-100`                      |                           |
+| `dark:bg-orange-900/30`          | `dark:bg-red-900/30`              |                           |
+| `ring-orange-500`                | `ring-red-700`                    |                           |
+| `shadow-orange-500`              | `shadow-red-700`                  |                           |
+| `animate-[pulse_8s_...]`         | keep timing, change bg color class|                           |
+
+Also replace hardcoded hex `#f97316` (orange-500) → `hsl(0, 100%, 37%)` or `#BE0000`
+wherever it appears as an inline style or in JS color constants.
+
+### Violet/Purple → Blue
+| Old class                        | New class                         | Notes                     |
+|----------------------------------|-----------------------------------|---------------------------|
+| `bg-violet-500/10`               | `bg-blue-600/10`                  | muted bg                  |
+| `bg-violet-500/15`               | `bg-blue-600/15`                  |                           |
+| `bg-violet-500/20`               | `bg-blue-600/20`                  |                           |
+| `bg-purple-500/10`               | `bg-blue-600/10`                  |                           |
+| `text-violet-400`                | `text-blue-500`                   |                           |
+| `text-violet-500`                | `text-blue-600`                   |                           |
+| `text-violet-600`                | `text-blue-700`                   |                           |
+| `text-violet-700`                | `text-blue-700`                   |                           |
+| `dark:text-violet-400`           | `dark:text-blue-400`              |                           |
+| `dark:text-purple-400`           | `dark:text-blue-400`              |                           |
+| `text-purple-400`                | `text-blue-500`                   |                           |
+| `text-purple-600`                | `text-blue-600`                   |                           |
+| `border-violet-500/20`           | `border-blue-600/20`              |                           |
+| `border-purple-500/20`           | `border-blue-600/20`              |                           |
+| `from-violet-600/20`             | `from-blue-700/20`                |                           |
+| `from-purple-600/20`             | `from-blue-700/20`                |                           |
+| `to-violet-500/5`                | `to-blue-600/5`                   |                           |
+| `fill-violet-500`                | `fill-blue-600`                   |                           |
+| `bg-violet-500`                  | `bg-blue-600`                     | solid fills (uncommon)    |
+
+Also replace hardcoded hex `#8b5cf6` (violet-500) → `hsl(227, 100%, 50%)` or `#0037ff`
+wherever it appears (e.g. news category accentColor seeds in routes.ts).
+
+### Special case: news category accent colors in server/routes.ts
+In the seeded news categories (Music & Entertainment accentColor, etc.):
+```typescript
+// Before:
+accentColor: "#8b5cf6"  // violet — Music & Entertainment
+// After:
+accentColor: "#0037ff"  // brand blue
+```
+Also update any other hardcoded news/feed accent colors to brand colors if they're orange/violet.
+
+### Special case: store-page.tsx DEFAULT_PALETTE
+```typescript
+// Before:
+const DEFAULT_PALETTE = { bg: "bg-orange-500/10", text: "text-orange-700 dark:text-orange-300",
+  border: "border-orange-500/20", gradient: "from-orange-400 to-amber-500" };
+// After:
+const DEFAULT_PALETTE = { bg: "bg-red-700/10", text: "text-red-800 dark:text-red-300",
+  border: "border-red-700/20", gradient: "from-red-600 to-red-700" };
+```
+
+### Special case: landing.tsx store app card
+```typescript
+// Before:
+accent: "from-orange-500/20 to-orange-600/5 border-orange-500/20",
+iconColor: "text-orange-500",
+iconBg: "bg-orange-500/10",
+// After:
+accent: "from-red-700/20 to-red-800/5 border-red-700/20",
+iconColor: "text-red-700",
+iconBg: "bg-red-700/10",
+```
+
+---
+
+## Files to update (orange-*)
+- client/src/components/cart-drawer.tsx
+- client/src/components/news-editorial.tsx
+- client/src/components/platform-header.tsx
+- client/src/components/search-overlay.tsx
+- client/src/pages/command-gallery.tsx
+- client/src/pages/command-overview.tsx
+- client/src/pages/command-page.tsx
+- client/src/pages/command-services.tsx
+- client/src/pages/command-staff.tsx
+- client/src/pages/command-store.tsx
+- client/src/pages/command-support.tsx
+- client/src/pages/command-users.tsx
+- client/src/pages/dashboard-page.tsx
+- client/src/pages/feed-page.tsx
+- client/src/pages/gallery-page.tsx
+- client/src/pages/hosting-page.tsx
+- client/src/pages/jobs-page.tsx
+- client/src/pages/landing.tsx
+- client/src/pages/minecraft-page.tsx
+- client/src/pages/project-detail.tsx
+- client/src/pages/projects-page.tsx
+- client/src/pages/review-queue.tsx
+- client/src/pages/search.tsx
+- client/src/pages/service-detail-page.tsx
+- client/src/pages/services-listing.tsx
+- client/src/pages/store-cancel-page.tsx
+- client/src/pages/store-page.tsx
+- client/src/pages/store-product-detail.tsx
+- client/src/pages/store-product-form.tsx
+- client/src/pages/store-success-page.tsx
+
+## Files to update (violet/purple-*)
+All the above plus:
+- client/src/pages/command-music.tsx
+- client/src/pages/command-playlists.tsx
+- client/src/pages/music-artist-detail.tsx
+- client/src/pages/music-artist-form.tsx
+- client/src/pages/music-artists-page.tsx
+- client/src/pages/music-listen-page.tsx
+- client/src/pages/music-page.tsx
+- client/src/pages/music-playlists-page.tsx
+- client/src/pages/music-submit-page.tsx
+- server/routes.ts (hardcoded hex color seeds)
+
+## No DB schema changes needed
+The accentColor values in the news_categories table are just strings; they'll be updated
+via the routes.ts seed data on next restart (or via CMD → News settings if the seed
+is idempotent). If the DB already has the old colors, they can stay — the UI uses
+whatever accentColor is stored, and the seeded values only apply on first insert.
+The partner role badge color (orange → red) is purely a CSS class change.
+
+## Validation
+After replacement, run a grep for `orange-` and `violet-`/`purple-` across client/src —
+the results should be zero (or near-zero for truly intentional one-off uses).
+No TS errors should be introduced (these are only className string changes).
+
+---
+
+### #116 — Task #118 — Fix homepage layout (marquee overflow) + restart app
+
+> File: `task-118.md`
+
+---
+title: CRITICAL: Fix homepage layout broken by marquee overflow in NewsEditorial + restart app
+---
+# Task #118 — Fix homepage layout (marquee overflow) + restart app
+
+## Bug: Horizontal overflow caused by marquee ticker in NewsEditorial
+
+### Root cause
+`client/src/components/news-editorial.tsx` — the `BreakingTicker` component renders:
+```tsx
+<div className="relative flex items-center overflow-hidden bg-red-700/90 ...">
+  <div className="shrink-0 ...">BREAKING</div>
+  <div className="flex-1 overflow-hidden">
+    <div className="flex gap-10 whitespace-nowrap animate-marquee">
+      {[...items, ...items].map(...)}  {/* doubled items, very wide */}
+    </div>
+  </div>
+</div>
+```
+
+The inner `animate-marquee` div is `whitespace-nowrap` and contains ALL article titles doubled
+(~16 articles). Its computed width is potentially thousands of pixels. The CSS animation
+translates it `translateX(-50%)` — leftward. While the immediate parent has `overflow-hidden`,
+CSS transforms can escape `overflow-hidden` in some browser rendering paths when there is no
+explicit containing block for the transform context.
+
+Additionally, the marquee `<style>` tag is inserted at the bottom of the component JSX as a
+sibling of the wrapper div, which can cause style bleed.
+
+### Fix A — Add overflow-x-hidden to the NewsEditorial outer container
+```tsx
+// Before:
+<div className="bg-[#08080f] text-white border-y border-white/[0.06]">
+// After:
+<div className="bg-[#08080f] text-white border-y border-white/[0.06] overflow-x-hidden">
+```
+This guarantees any overflow from the marquee is clipped at the component boundary.
+
+### Fix B — Move `<style>` tag inside the root div
+The `<style>` tag that defines the `marquee` keyframe is currently a sibling of the main div
+(outside it). Move it inside the outer container div to avoid any style/render ordering issue.
+
+### Fix C — Ensure the BreakingTicker's flex-1 overflow wrapper is a proper containing block
+Add `relative` to the `flex-1 overflow-hidden` wrapper so the transform creates a stacking context:
+```tsx
+// Before:
+<div className="flex-1 overflow-hidden">
+// After:
+<div className="flex-1 overflow-hidden relative">
+```
+
+Apply all three fixes together.
+
+### Restart the app
+After applying the fix, restart the "Start application" workflow to confirm the app comes back up cleanly and the homepage renders correctly.
+
+## Files changed
+- `client/src/components/news-editorial.tsx` — overflow-x-hidden + relative on inner wrapper + move style tag
+
+## No DB changes, no migration needed
+
+---
+
+### #117 — task 119
+
+> File: `task-119.md`
+
+---
+  title: Fix homepage horizontal overflow — add overflow-x hidden to html/body and app shell
+  ---
+  # Task #119 — Fix homepage horizontal overflow at root level
+
+  ## Why Task #118 didn't fully fix it
+  Task #118 added `overflow-x-hidden` only to the `NewsEditorial` component's outer div.
+  However, CSS `transform`-based animations (like the marquee using `translateX`) can cause
+  the **document scroll width** to expand even when a parent has `overflow-x-hidden`,
+  because browsers compute scroll width before applying clip contexts in certain paths.
+  The overflow needs to be stopped at the `html`/`body` level.
+
+  ## Fixes
+
+  ### Fix 1 — index.css: add overflow-x hidden to html and body
+  ```css
+  /* at the top of index.css, after @tailwind directives */
+  html, body {
+    overflow-x: hidden;
+  }
+  ```
+
+  ### Fix 2 — App.tsx: add overflow-x-hidden to AppShell outer div
+  Line ~658:
+  ```tsx
+  // Before:
+  <div className="flex flex-col min-h-screen w-full">
+  // After:
+  <div className="flex flex-col min-h-screen w-full overflow-x-hidden">
+  ```
+
+  ### Fix 3 — landing.tsx: add overflow-x-hidden to landing page root div
+  Line ~262:
+  ```tsx
+  // Before:
+  <div className="min-h-screen bg-background" data-page="landing">
+  // After:
+  <div className="min-h-screen bg-background overflow-x-hidden" data-page="landing">
+  ```
+
+  ## Files changed
+  - `client/src/index.css` — global html/body overflow-x hidden
+  - `client/src/App.tsx` — AppShell outer div overflow-x-hidden
+  - `client/src/pages/landing.tsx` — landing page root div overflow-x-hidden
+
+  ## No DB changes, no migration needed
+
+---
+
+### #118 — task 120
+
+> File: `task-120.md`
+
+---
+  title: Comprehensive platform responsiveness audit — fix flex min-w-0, table overflow, and section containment across all pages
+  ---
+  # Task #120 — Comprehensive Responsiveness Fix (Platform-Wide)
+
+  ## Root Problem — Homepage display issue persists
+  The `<main>` element in AppShell (`App.tsx`) is `flex-1 flex flex-col` but **lacks `min-w-0`**.
+  In CSS flexbox, items default to `min-width: auto` (their content width), not 0.
+  So when any descendant (marquee, wide grid, wide image) is wider than available space,
+  `main` won't shrink below that content width — the layout VISUALLY breaks even though
+  `overflow-x: hidden` on html/body suppresses the scrollbar.
+
+  The same issue applies to the inner flex row container `<div className="flex flex-1">`
+  that wraps sidebars + main — it also lacks `min-w-0`.
+
+  ---
+
+  ## Fix 1 — App.tsx: AppShell flex containment
+  ```tsx
+  // Line ~660 — flex row container wrapping sidebar + main
+  // Before:
+  <div className="flex flex-1">
+  // After:
+  <div className="flex flex-1 min-w-0 overflow-hidden">
+
+  // Line ~663 — main element
+  // Before:
+  <main className="flex-1 flex flex-col" ...>
+  // After:
+  <main className="flex-1 min-w-0 flex flex-col" ...>
+  ```
+
+  ## Fix 2 — Landing page sections: add overflow-hidden to sections with decorative blobs
+  These sections have absolute-positioned large gradient blobs but NO overflow-hidden:
+  - WHY SEVCO pills section (line 361): `<section className="bg-[#0f0f1a] border-y border-white/5 px-4 py-5">`
+    → Add `relative overflow-hidden`
+  - Platform Grid section (line 436): `<section className="max-w-6xl mx-auto px-6 py-16 md:py-20">`
+    → No blobs here, but add `overflow-hidden` for safety
+  - Store Preview section (line 637+): `<section className="max-w-6xl mx-auto px-6 py-16 md:py-20">`
+    → If it has blobs, add `relative overflow-hidden`
+  - Wiki Latest section (line 679): `<section className="bg-muted/40 border-y border-border/60">`
+    → add `overflow-hidden`
+
+  ## Fix 3 — Command pages: wrap data tables in overflow-x-auto
+  Multiple command-facing pages have data tables without horizontal scroll wrappers:
+
+  ### command-finance.tsx
+  - Line ~380: `<div className="rounded-lg border overflow-hidden">` containing `<Table>`
+    → Change to `<div className="rounded-lg border overflow-hidden overflow-x-auto">`
+  - Line ~653: Same pattern for invoices table → add `overflow-x-auto`
+  - Line ~916: Same pattern for subscriptions table → add `overflow-x-auto`
+
+  ### command-staff.tsx
+  - Line ~435: `<div className="rounded-lg border overflow-hidden">` 
+    → Add `overflow-x-auto`
+
+  ### command-chat-log.tsx
+  - Has `min-w-[160px]` columns — ensure parent table wrapper has `overflow-x-auto`
+
+  ### command-settings.tsx, command-news.tsx, command-gallery.tsx, command-services.tsx
+  - Any `<Table>` without a scrollable wrapper → wrap in `overflow-x-auto` div
+
+  ## Fix 4 — Command pages: responsive grid breakpoints
+  Many command page grids use `grid-cols-2`, `grid-cols-3`, `grid-cols-4` without
+  responsive prefixes. These break on tablet/mobile. Priority fixes:
+
+  ### command-finance.tsx
+  - Line ~276: `grid grid-cols-2 gap-4` (stat cards) → `grid grid-cols-1 sm:grid-cols-2 gap-4`
+  - Line ~902: `grid grid-cols-3 gap-4` (billing stats) → `grid grid-cols-1 sm:grid-cols-3 gap-4`
+
+  ### command-jobs.tsx  
+  - Line ~119: `grid grid-cols-2 gap-4` → `grid grid-cols-1 sm:grid-cols-2 gap-4`
+  - Line ~148: `grid grid-cols-3 gap-4` → `grid grid-cols-1 sm:grid-cols-3 gap-4`
+
+  ### command-overview.tsx
+  - Any `grid-cols-2/3/4` without responsive prefixes → add `sm:` or `md:` prefix
+
+  ### command-display.tsx
+  - Line ~609: `grid grid-cols-3 gap-3` → `grid grid-cols-1 sm:grid-cols-3 gap-3`
+  - Line ~662: same pattern
+
+  ## Fix 5 — News editorial: hero card grid at tablet
+  The news grid at `md:grid-cols-3` with `md:col-span-2 md:row-span-2` creates an
+  asymmetric layout between 768-1023px. At this range, the secondary cards column is very narrow.
+  Fix by adjusting the grid: at `md` show 2-column layout instead of 3.
+
+  ## Fix 6 — Platform header: intermediate widths
+  At 768-900px the desktop nav (`hidden md:flex items-center gap-0.5 flex-1`) can get crowded
+  with 6 dropdown items. Add `flex-wrap` or reduce gap at this width, OR accept current behavior
+  since it doesn't cause overflow (dropdowns hide on mobile, hamburger shows).
+
+  ## Fix 7 — Platform footer: ensure mobile containment
+  Footer root: add `overflow-x-hidden` to prevent any wide content from causing page overflow.
+
+  ---
+
+  ## Files to change
+  - `client/src/App.tsx` — AppShell min-w-0 and overflow-hidden (Fix 1)
+  - `client/src/pages/landing.tsx` — section overflow-hidden (Fix 2)
+  - `client/src/pages/command-finance.tsx` — table overflow-x-auto + responsive grids (Fix 3+4)
+  - `client/src/pages/command-staff.tsx` — table overflow-x-auto (Fix 3)
+  - `client/src/pages/command-chat-log.tsx` — table overflow-x-auto (Fix 3)
+  - `client/src/pages/command-jobs.tsx` — responsive grids (Fix 4)
+  - `client/src/pages/command-overview.tsx` — responsive grids (Fix 4)
+  - `client/src/pages/command-display.tsx` — responsive grids (Fix 4)
+  - `client/src/components/news-editorial.tsx` — hero card grid (Fix 5)
+  - `client/src/components/platform-footer.tsx` — overflow-x-hidden (Fix 7)
+
+  ## No DB changes, no migrations needed
+
+---
+
+### #119 — task 121
+
+> File: `task-121.md`
+
+---
+  title: X news image quality — filter to image-only posts OR AI-generate images per post + CMD controls
+  ---
+  # Task #121 (updated) — X News Image Quality + CMD Feed Controls
+
+  ## Problem
+  X post cards show blurry profile avatar thumbnails (48×48px) stretched to fill large card slots.
+  Profile avatars should NOT be used as card images at all.
+
+  ## Solution (two modes, admin-selectable)
+
+  ### Mode A — "Images Only" (default)
+  Only fetch X posts that already have a real photo attached.
+  Add `has:images` to every X search query so the API only returns posts with media.
+  Fetch tweet media attachments by adding:
+    `expansions=attachments.media_keys&media.fields=url,preview_image_url,type`
+  Use the actual tweet photo URL as the card image. If a post somehow has no image
+  after filtering, **do not fall back to the profile avatar** — omit the image entirely
+  (the card renders fine image-free).
+
+  ### Mode B — "AI Generate" (admin opt-in)
+  For any X post or RSS article without an image, call Grok Imagine (`grok-2-image-1212`)
+  via the existing x.ai `/v1/images/generations` endpoint, using the post title/text
+  as the generation prompt. Cache the result in-memory keyed by post URL (6-hour TTL)
+  so images are only generated once per post per server restart.
+
+  If `XAI_API_KEY` is missing or x.ai returns a billing error, fall back to OpenRouter
+  with a compatible image model (e.g. `black-forest-labs/FLUX-1-schnell`).
+
+  ---
+
+  ## server/x-api.ts changes
+
+  ### Tweet interface — add mediaUrl
+  ```ts
+  export interface Tweet {
+    ...
+    mediaUrl: string | null;  // real attached photo URL (not avatar)
+  }
+  ```
+
+  ### searchTweets — expand to fetch media
+  Add to query URL:
+    `&tweet.fields=created_at,public_metrics,author_id,attachments`
+    `&expansions=author_id,attachments.media_keys`
+    `&user.fields=name,username,profile_image_url`
+    `&media.fields=url,preview_image_url,type`
+
+  Build a mediaMap from `data.includes.media`, extract first photo URL per tweet.
+
+  ### getCategoryXQuery — append has:images when mode is "images_only"
+  Export a variant or accept an `imagesOnly` param that appends `has:images` to the query.
+
+  ---
+
+  ## server/routes.ts changes
+
+  ### New in-memory AI image cache
+  ```ts
+  const aiImageCache = new Map<string, { url: string; generatedAt: number }>();
+  const AI_IMAGE_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+  async function generateImageForPost(text: string, link: string): Promise<string | null> {
+    const cached = aiImageCache.get(link);
+    if (cached && Date.now() - cached.generatedAt < AI_IMAGE_CACHE_TTL_MS) return cached.url;
+
+    const prompt = `editorial news thumbnail for: ${text.slice(0, 200)}`;
+    try {
+      // Try xAI Grok Imagine first
+      if (process.env.XAI_API_KEY) {
+        const res = await fetch("https://api.x.ai/v1/images/generations", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${process.env.XAI_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "grok-2-image-1212", prompt, n: 1, response_format: "url" }),
+        });
+        if (res.ok) {
+          const data = await res.json() as any;
+          const url = data?.data?.[0]?.url;
+          if (url) { aiImageCache.set(link, { url, generatedAt: Date.now() }); return url; }
+        }
+      }
+      // Fallback: OpenRouter image model
+      if (process.env.OPENROUTER_API_KEY) {
+        const res = await fetch("https://openrouter.ai/api/v1/images/generations", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "black-forest-labs/FLUX-1-schnell:free", prompt, n: 1 }),
+        });
+        if (res.ok) {
+          const data = await res.json() as any;
+          const url = data?.data?.[0]?.url;
+          if (url) { aiImageCache.set(link, { url, generatedAt: Date.now() }); return url; }
+        }
+      }
+    } catch {}
+    return null;
+  }
+  ```
+
+  ### x-feed route — read mode setting and apply
+  ```ts
+  const imageMode = settings["news.x.imageMode"] ?? "images_only";  // "images_only" | "ai_generate" | "none"
+  const sourceType = settings["news.x.sourceType"] ?? "both";
+
+  // When images_only: only fetch tweets with has:images
+  // Map xArticles using t.mediaUrl (not t.authorAvatarUrl)
+  // If imageMode is ai_generate: for articles without imageUrl, call generateImageForPost()
+  // Do not cap AI generation to more than 5 posts per request to avoid latency
+  ```
+
+  ---
+
+  ## client/src/pages/command-news.tsx changes
+
+  ### XFeedControlsCard — new component
+  Settings card placed below ApiSettingsCard in the CMD News layout.
+
+  Controls:
+  1. **Image Mode** (radio/select):
+     - "Images Only" — default; only fetch X posts that have a real photo
+     - "AI Generate" — generate editorial images via Grok Imagine for posts without photos
+     - "No Images" — skip images entirely (fastest)
+
+  2. **Source Type** (select):
+     - "Both" — RSS articles + X posts (default)
+     - "RSS Only" — no X posts
+     - "X Only" — no RSS articles
+
+  3. **Trusted Accounts** (textarea):
+     Comma-separated X handles. When set, restricts X search to only these accounts
+     (appends `(from:handle1 OR from:handle2)` to every X query).
+
+  4. **Blocked Accounts** (textarea):
+     Comma-separated X handles to always exclude (`-from:handle` appended to queries).
+
+  5. **Min Engagement** (number input):
+     Posts below this combined likes+retweets threshold are filtered out after fetch.
+
+  ### Settings keys (platform_settings, no schema changes)
+  - `news.x.imageMode` — "images_only" | "ai_generate" | "none"
+  - `news.x.sourceType` — "both" | "rss_only" | "x_only"
+  - `news.x.allowedAccounts` — comma-separated handles
+  - `news.x.blockedAccounts` — comma-separated handles
+  - `news.x.minEngagement` — number string
+
+  ---
+
+  ## Files to change
+  - `server/x-api.ts` — Tweet.mediaUrl field + media attachment expansion in searchTweets
+  - `server/routes.ts` — generateImageForPost cache + apply imageMode/sourceType/account filters
+  - `client/src/pages/command-news.tsx` — XFeedControlsCard component
+
+  ## No DB schema changes — all settings in platform_settings key-value store
+
+---
+
+### #120 — Grok Imagine Error Handling & Rich Chat Rendering
+
+> File: `t132-grok-imagine-error-image-rendering.md`
+
+# Grok Imagine Error Handling & Rich Chat Rendering
+
+## What & Why
+When a user chats with a Grok Imagine agent, x.ai may return a permission/credits error (e.g. "Your newly created team doesn't have any credits or licenses yet"). Currently this surfaces as an alarming red modal overlay. It should instead appear as a clear, calm inline message within the chat thread.
+
+Additionally, the chat message renderer should render agent-returned images with proper visual styling, and code blocks should be confirmed working so the interface is fully prepared for rich agent responses.
+
+## Done looks like
+- When Grok Imagine returns a permission/credits error from x.ai, the error is displayed as an assistant message inline in the chat thread (not a red modal). The message clearly explains the issue and links or references where credits can be purchased.
+- Images returned by agents (via Markdown `![alt](url)` syntax) are displayed with proper styling: constrained max-width, rounded corners, and a subtle border — making them feel like a natural part of the conversation.
+- Code blocks returned by agents are syntax-highlighted and display correctly in the chat panel (both floating and sheet variants).
+- The inline error handling applies consistently across the floating chat window and chat sheet.
+
+## Out of scope
+- Actually purchasing x.ai credits or changing the x.ai billing setup.
+- Adding a fallback image generation model when x.ai fails.
+- Supporting raw HTML `<img>` tags in agent responses (only Markdown image syntax is needed).
+
+## Tasks
+1. **Inline error display for Grok Imagine failures** — In the chat send handler (floating-chat-window and/or chat-sheet), detect when the `/api/ai/chat/:agentId` endpoint returns an error response for the image model, and instead of showing a toast/modal, insert the error text as an inline assistant message in the conversation thread.
+2. **Rich image rendering in `AiMessageRenderer`** — Add a custom `img` component renderer to `react-markdown` that wraps returned images with a styled container (max-width constrained, rounded corners, subtle border/shadow, responsive). Verify code block rendering still works correctly.
+
+## Relevant files
+- `client/src/components/ai-message-renderer.tsx`
+- `client/src/components/floating-chat-window.tsx`
+- `client/src/components/chat-sheet.tsx`
+- `server/routes.ts:4157-4189`
+
+---
+
+### #121 — Sidebar navigation cleanup
+
+> File: `sidebar-cleanup.md`
+
+# Sidebar navigation cleanup
+
+## What & Why
+Three sidebar UX improvements requested by the user:
+1. **CMD sidebar**: Remove dropdown/collapsible sub-categories — show all items flat under their category labels (Content, Operations, System) without the "More" collapsible toggles and nested `CollapsibleSubGroup` dropdowns.
+2. **Wiki sidebar**: Remove the extra selection indicator bar (the `::before` pseudo-element active indicator) — the background highlight is sufficient.
+3. **Wiki sidebar**: Remove the "Platform Settings" link — it belongs only in the CMD sidebar.
+
+## Done looks like
+- CMD sidebar shows all nav items organized under category headings (Content, Operations, System) without any collapsible/dropdown toggles — all items visible at once with sub-group labels rendered as static section dividers.
+- Wiki sidebar active items only show the background highlight, no left-edge bar indicator.
+- "Platform Settings" link no longer appears in the Wiki sidebar.
+
+## Out of scope
+- CMD sidebar active indicator styling (keep the red bar).
+- Any other sidebar structural changes.
+
+## Tasks
+1. In `command-sidebar.tsx`, flatten the `contentSubGroups`, `operationsSubGroups`, and `systemSubGroups` into their parent sections. Remove the `Collapsible`/`CollapsibleTrigger`/`CollapsibleContent` wrappers and the `CollapsibleSubGroup` component. Render sub-group labels as small static text dividers followed by their items directly.
+2. In `app-sidebar.tsx`, remove the "Platform Settings" `SidebarGroup` block (lines ~255-274).
+3. In `app-sidebar.tsx`, remove the `Settings2` import (no longer needed).
+4. In the sidebar UI or CSS, remove the `data-[active=true]:before:*` active indicator bar styles for the wiki sidebar specifically. The wiki sidebar uses the `.wiki-sidebar` CSS class — either override the `::before` to `display: none` or remove the pseudo-element styles from the base `SidebarMenuButton` and keep them only for `.cmd-sidebar`.
+
+## Relevant files
+- `client/src/components/command-sidebar.tsx`
+- `client/src/components/app-sidebar.tsx:255-274`
+- `client/src/components/ui/sidebar.tsx:480`
+- `client/src/index.css:285-292`
+
+---
+
+### #122 — Remove RSS, switch news to X/xAI only
+
+> File: `news-x-only-migration.md`
+
+# Remove RSS, switch news to X/xAI only
+
+## What & Why
+The news system currently pulls from Google News RSS / GNews API, resulting in articles with no images or low-quality stock placeholders. This task removes all RSS/GNews sourcing and switches exclusively to X API (for real-time posts and trends) and xAI Grok API (for AI-generated editorial blurbs, summaries, and images). Also updates the landing page news section, CMD news management controls, and news article cards to reflect the X/xAI-only architecture.
+
+## Done looks like
+- All news articles are sourced exclusively from X API search results and/or xAI Grok search (no RSS, no GNews)
+- Article images come from X media attachments or AI-generated images via Grok (no more Google favicon placeholders or broken stock photos)
+- Landing page news editorial section shows X-sourced articles with proper images
+- CMD news management page updated: "Source Type" selector removed (always X/xAI), "GNews API Key" setting removed, "Blocked RSS Sources" removed; X-specific controls (X Search Query, trusted/blocked accounts, min engagement, AI image mode) remain and become primary
+- News feed, breaking news, and category feeds all source from X/xAI
+- Each news card shows real content with proper thumbnail (X media or AI-generated), headline, AI summary, source attribution (X handle), and timestamp
+
+## Out of scope
+- Changing the trending-news/trending-topics endpoints (just built in Task #155)
+- User bookmarks/preferences system (works regardless of source)
+- News AI sidebar "Ask Grok" feature (already works with xAI)
+
+## Tasks
+1. **Backend: Rewrite `server/news.ts`** — Remove `fetchGoogleNewsRSS`, `fetchGNewsAPI`, `scrapeOgImage`, `enrichWithOgImages`, XML parser imports, and `BLOCKED_SOURCES`. Replace `fetchNewsArticles` to call X API `searchTweets` from `server/x-api.ts` as the primary source, mapping tweet data to the existing `NewsArticle` interface (title from tweet text, imageUrl from media attachments, source from author handle, link to tweet URL). For posts without images, call Grok image generation (`grok-2-image-1212`) to create editorial thumbnails.
+2. **Backend: Consolidate routes in `server/routes.ts`** — Update `/api/news/feed` and `/api/news/feed/all` to use the new X-only `fetchNewsArticles`. Update `/api/news/x-feed` to stop merging RSS results (X-only). Update `/api/news/breaking` to source from X (high-engagement recent posts). Remove the `/api/news/api-key` PUT route for GNews key. Remove GNews-related settings from `/api/news/ai-settings/admin` GET/PUT routes.
+3. **Backend: Enhance xAI search integration** — Promote `searchNewsWithGrok` from `server/grok-news.ts` as a secondary enrichment source: for each X-sourced article, generate a 2-sentence editorial summary via Grok. Use `liveResults` from Grok search to supplement the feed with web-sourced articles that include proper images and summaries.
+4. **Frontend: Update `news-article-card.tsx`** — Change image fallback chain to: (1) X media URL, (2) AI-generated image, (3) styled gradient placeholder with headline text overlay (no more generic "SEVCO News" SVG or Google favicons). Update source display to show X handle with X logo instead of domain favicon.
+5. **Frontend: Update `news-editorial.tsx` (landing page)** — Update to consume X-sourced articles. Replace RSS source badges with X source badges. Ensure hero card and grid cards display X media images or AI images. Remove any RSS-specific logic.
+6. **Frontend: Update `command-news.tsx` (CMD controls)** — Remove "Source Type" dropdown (force X-only). Remove "GNews API Key" field. Remove "Blocked RSS Sources" textarea. Keep and promote: "X Search Query" per category, "Trusted Accounts", "Blocked Accounts", "Min Engagement", and "Image Mode" (ai_generate / images_only / none). Add clear labeling that all content is sourced from X/xAI.
+7. **Frontend: Update news-page.tsx hero section** — Ensure hero uses X-sourced article with proper image (X media or AI-generated). Remove any fallback to RSS article data.
+
+## Relevant files
+- `server/news.ts`
+- `server/routes.ts:4477-5462`
+- `server/x-api.ts`
+- `server/grok-news.ts`
+- `client/src/components/news-article-card.tsx`
+- `client/src/components/news-editorial.tsx`
+- `client/src/pages/news-page.tsx`
+- `client/src/pages/command-news.tsx`
+
+---
+
+### #123 — Beautiful Images for All News Articles
+
+> File: `beautiful-news-images.md`
+
+# Beautiful Images for All News Articles
+
+## What & Why
+Many news articles currently fall back to a generic gray "SEVCO News" SVG placeholder when no image is available from the source. The image enrichment pipeline has gaps: OG scraping is capped at 5 articles, AI generation only auto-triggers for the hero article on the frontend, and the backend X-feed AI generation is gated behind multiple settings flags that default to off. This task ensures every article displays a visually compelling image — either from the source, via improved scraping, or through AI generation as a reliable fallback.
+
+## Done looks like
+- Every news article card across the news page displays a real, relevant image — no gray placeholder SVGs visible
+- Articles without source images get an AI-generated editorial illustration automatically on the backend before reaching the frontend
+- The hero section always shows a high-quality image
+- Image loading is graceful with a subtle skeleton/shimmer state instead of the gray SVG while images load
+- Broken/dead image URLs are detected and replaced with AI-generated alternatives
+
+## Out of scope
+- Changing the AI image generation providers (xAI / OpenRouter stay as-is)
+- Modifying the news feed sources or categories
+- Changes to the news AI settings admin panel
+
+## Tasks
+1. **Remove the OG scrape cap** — Increase the OG image enrichment from 5 articles to all articles without images, with concurrent request limiting to avoid overwhelming target servers.
+2. **Backend AI image fallback for all articles** — In both the RSS fetch pipeline and the X-feed pipeline, generate AI images for any article that still lacks an image after OG scraping, regardless of the `imageMode` setting. Cap at a reasonable batch size (e.g., 10) per request to manage API costs. Use the existing `generateImageForPost` / `grokImage` functions.
+3. **Frontend lazy AI image generation for cards** — On the article card component, if an article arrives with no image (or with the placeholder), trigger an on-demand AI image generation request (similar to what the hero section already does) so each visible card gets a unique illustration. Debounce and limit concurrent requests.
+4. **Replace placeholder SVG with shimmer skeleton** — Swap the static gray "SEVCO News" SVG placeholder with a styled skeleton/shimmer animation that matches the card's aspect ratio, providing a polished loading state while images are being fetched or generated.
+5. **Broken image detection and recovery** — Enhance the `onError` handler on article card images to attempt OG scrape or AI generation instead of just falling back to the static placeholder. Add a retry mechanism that requests `/api/news/grok/image` when the original image URL fails to load.
+
+## Relevant files
+- `server/news.ts:88-165`
+- `server/grok-news.ts:406-470`
+- `server/routes.ts:4935-4948`
+- `server/routes.ts:5328-5362`
+- `server/routes.ts:5370-5530`
+- `client/src/components/news-article-card.tsx:13-27,262-420`
+- `client/src/pages/news-page.tsx:108-167`
+- `client/src/hooks/use-news-ai.ts:1-20`
+
+---
+
+### #124 — CMD News Admin Controls
+
+> File: `cmd-news-controls.md`
+
+# CMD News Admin Controls
+
+## What & Why
+Expand the Command Center News page (`/command/news`) with comprehensive admin controls for managing all news features, including the new xAI Grok AI capabilities. Admins need to configure AI-powered features (Grok summaries, image generation, daily briefings, Ask Grok chat), manage breaking news, view news analytics, and fine-tune content curation — all from one centralized dashboard.
+
+## Done looks like
+- CMD News page has organized tabs: **Categories**, **AI Settings**, **X Feed**, **Analytics**
+- **Categories tab** retains existing category CRUD but adds: bulk enable/disable, drag-to-reorder, per-category AI image generation toggle
+- **AI Settings tab** includes:
+  - Grok model selector (dropdown of available xAI models)
+  - Toggle switches for: AI Summaries, AI Image Generation (Grok Imagine), Daily Briefing, Ask Grok Chat, Breaking News AI Detection
+  - Summary style selector (concise / detailed / editorial)
+  - Image style prompt template (editable text for Grok Imagine art direction)
+  - Max AI requests per hour (rate limit slider)
+- **X Feed tab** keeps existing controls (image mode, source type, trusted/blocked accounts, engagement threshold) and adds: per-category X query override editor with live preview
+- **Analytics tab** shows: total articles fetched (by source type), AI summaries generated today, images generated today, most-read categories, top bookmarked articles
+- All new settings persist to platform_settings table (JSON storage pattern already used for other CMD settings)
+- Settings are consumed by the public news page and API routes via the existing settings fetch pattern
+
+## Out of scope
+- The public-facing news page Grok features (separate task)
+- User-facing news preference changes
+- Billing/usage tracking for xAI API calls
+
+## Tasks
+1. **Add AI Settings tab** — Create a new tab in command-news.tsx with toggle controls for each Grok feature (summaries, image gen, daily briefing, ask-grok chat, breaking detection), model selector dropdown, summary style picker, and image prompt template editor. Save all to platform_settings.
+2. **Enhance Categories tab** — Add per-category toggles for AI image generation and featured/pinned status. Add bulk actions (enable all, disable all).
+3. **Add Analytics tab** — Display news engagement metrics: articles fetched by source, AI operations count, popular categories, and top bookmarked articles. Add API endpoint to aggregate this data.
+4. **Reorganize existing controls into tabs** — Move existing category management, API settings, and X feed controls into a clean tabbed layout (Categories, AI Settings, X Feed, Analytics).
+5. **Add backend settings endpoints** — Create GET/PUT endpoints for news AI settings that read/write to platform_settings. Ensure the public news routes can consume these settings.
+
+## Relevant files
+- `client/src/pages/command-news.tsx`
+- `server/routes.ts:4580-4720`
+- `shared/schema.ts`
+- `client/src/pages/command-settings.tsx`
+- `server/storage.ts`
+
+---
+
+### #125 — Home page redesign + platform Wiki docs
+
+> File: `home-page-redesign-wiki-docs.md`
+
+# Home page redesign + platform Wiki docs
+
+## What & Why
+Redesign the landing page into a compelling marketing experience that converts visitors into sign-ups and shoppers. The headline positioning is "A creative community platform built by creators, for creators." Hero features are Store, Services, and Projects/Ventures. Animation style: immersive dark glassmorphism — frosted cards, aurora/aurora gradients, floating UI elements. Also write comprehensive Wiki documentation articles covering every major platform feature so "Learn More" links on the landing page lead somewhere real.
+
+## Done looks like
+
+### Home Page
+- New hero section: full-viewport dark glassmorphism with animated aurora gradient blobs (deep red, indigo, emerald — matching brand), floating frosted-glass UI element previews, large headline with animated character-by-character or word reveal, prominent "Sign Up Free" CTA + "Shop the Store" secondary CTA. Non-logged-in users see both; logged-in users see "Go to Platform" instead.
+- "Built for creators" value-prop band below hero: 5-6 animated stat/pill counters (Store items, Artists, Projects, etc.) with scroll-triggered fade-in.
+- **Showstopper #1 — Store**: Full-width immersive section. Glassmorphic product cards with subtle hover float animation, price tag, "Shop Now" button. Live product data from API. Aurora gradient background (dark red).
+- **Showstopper #2 — Services**: Split layout. Left: animated icon grid of service categories (Engineering, Design, Marketing, Business) with hover glow. Right: headline + description + "Work with us" CTA linking to /services. Dark indigo gradient.
+- **Showstopper #3 — Projects/Ventures**: Bento-grid style layout. Each active project as a frosted glass card with status badge, description, and "View Project" link. Emerald/teal gradient background.
+- **SEVCO RECORDS spotlight**: Upgraded from current — add animated waveform/equalizer SVG graphic, artist count badge, streaming platform logos (Spotify, Apple Music icons).
+- **News teaser**: Compact horizontal scroll of top 3 news headlines from X feed, linking to /news.
+- **Sign-up CTA section** (bottom, before community): Full-width dark glassmorphism panel — "Join thousands of creators" headline, feature bullet list (Music, Store, Projects, AI News, Community, Wiki), "Create Free Account" button (primary red CTA). Only shown to non-logged-in users.
+- **Community CTA** (final): Keep existing Discord section, improve visual with glassmorphic card treatment.
+- All section transitions use scroll-triggered fade+slide-up (Intersection Observer or framer-motion, consistent with existing AnimatedPage approach).
+- Dark mode first — all glassmorphism uses `bg-white/[0.04]`, `backdrop-blur-xl`, `border-white/10` patterns.
+
+### Wiki Documentation Articles
+Create 8 new published wiki articles (category: general, unless specified) covering platform features. Each article should be 300-600 words of real documentation with markdown headings, feature descriptions, and usage tips. Articles to create:
+1. **SEVCO Platform Overview** — What SEVCO is, the full app ecosystem, how to navigate, sign-up instructions. slug: `platform-overview`
+2. **SEVCO Store — Shopping Guide** — How to browse, filter by category, add to cart, checkout (Stripe), view orders. slug: `store-shopping-guide` (category: general)
+3. **SEVCO Services — Work With Us** — What services SEVCO offers (engineering, design, marketing, business), how to request a quote, partner program. slug: `services-guide` (category: general)
+4. **SEVCO Ventures & Projects** — What Ventures are, how to follow project updates, types of projects (active, in-development), how partners collaborate. slug: `projects-ventures-guide`
+5. **SEVCO RECORDS — Music Platform** — How to listen, discover artists, submit music for label review, Spotify integration. slug: `records-music-guide`
+6. **AI-Powered News — SEVCO News** — How news is sourced from X + xAI Grok, what the trending topics sidebar is, how AI Insight works, Wikify feature. slug: `news-ai-guide`
+7. **SEVCO Wiki — Knowledge Base Guide** — How to read and search articles, how to request article creation, revision system, categories. slug: `wiki-guide` (category: general)
+8. **Getting Started with SEVCO** — Account creation, profile setup, how to explore each app, role/permission tiers (User, Client, Partner, Staff). slug: `getting-started`
+
+### Learn More Links
+Each showstopper section on the home page has a "Learn More →" ghost link pointing to its corresponding wiki article (e.g., Store section → `/wiki/store-shopping-guide`).
+
+## Out of scope
+- Changing the platform-header navigation
+- Changing the CMD dashboard
+- Changing any backend routes
+- Mobile-app-style gestures or native animations (web only)
+
+## Tasks
+1. Write and insert the 8 Wiki documentation articles via the `/api/articles` POST endpoint or direct DB insert in a seed function. All articles status=published. Use markdown content. Articles must link to real pages on the platform.
+2. Redesign the hero section in `landing.tsx`: replace current hero with full-viewport glassmorphism hero — aurora blobs (use existing animation style but add indigo + emerald blobs), animated headline using CSS `@keyframes` character reveal or staggered word animation with a simple `delay-[Xms]` Tailwind pattern, frosted-glass floating UI preview card (shows a mini store/music card floating at 15deg rotation), Sign Up CTA prominent, keep hero text from platform settings.
+3. Add the "value-prop stat band" below the hero: 5 stat pills (e.g., "10+ Projects", "Free to Join", "AI-Powered News", "Independent Music", "Built by Creators") with staggered entrance animation.
+4. Build the Store showstopper section: dark red aurora background, 4-column product grid (real data from `/api/store/products`), each card glassmorphic with float-on-hover (`hover:-translate-y-1 transition-transform`), "Learn More" → `/wiki/store-shopping-guide`, "Shop Now" → `/store`.
+5. Build the Services showstopper section: dark indigo aurora, split layout — left side animated 2x2 icon grid for service categories with glow pulse on hover, right side: headline + 3 bullet benefits + "Work with us" CTA. "Learn More" → `/wiki/services-guide`.
+6. Build the Projects/Ventures showstopper section: dark emerald aurora, bento-grid of project cards (real data from `/api/projects` if it exists, else static showcase of project types) each with status badge, frosted glass treatment. "Learn More" → `/wiki/projects-ventures-guide`.
+7. Upgrade the SEVCO RECORDS spotlight: add an animated equalizer/waveform SVG (pure CSS bars animating heights), add streaming platform icon pills (SiSpotify, SiApplemusic from react-icons), add "Learn More" → `/wiki/records-music-guide`.
+8. Add the News teaser strip: horizontal scroll of 3 news headline cards sourced from `/api/news/feed/all`, each with category badge and timestamp. "View All News" → `/news`.
+9. Add the Sign-up CTA section for non-logged-in users: glassmorphism panel, feature bullet list with icons, "Create Free Account" button. Place it before the Community CTA section.
+10. Polish: ensure all new sections use consistent `scroll-mt` anchors, `overflow-hidden` on sections to prevent aurora blob overflow, and all interactive elements have `data-testid` attributes.
+
+## Relevant files
+- `client/src/pages/landing.tsx`
+- `client/src/components/stagger-grid.tsx`
+- `client/src/components/animated-page.tsx`
+- `client/src/components/news-editorial.tsx`
+- `server/seed.ts` (for wiki article insertion pattern)
+- `server/wikiSeed.ts` (for wiki article insertion pattern)
+- `server/routes.ts` (POST /api/articles for article creation)
+- `shared/schema.ts` (Article, Product types)
+
+---
+
+### #126 — Wikify Tool Page — Bulk wiki article generator
+
+> File: `wikify-tool-page.md`
+
+# Wikify Tool Page — Bulk wiki article generator
+
+## What & Why
+A new standalone tool page at `/wikify` (Partner+ access) that lets users paste in large amounts of raw text or generate source material with AI, then uses the xAI Grok API to analyze that content and produce 1–25 fully-drafted, SEO/AEO-optimized wiki article suggestions. Users preview each suggested article, adjust detail level via a slider, then selectively submit chosen articles directly to the Wiki Review Queue in a single action.
+
+This is a content velocity tool — someone can paste a 5,000-word document, set "generate 10 articles," and have 10 properly structured, SEO-ready drafts queued for review in under a minute.
+
+## Done looks like
+
+### Page: `/wikify`
+- Protected: `canCreateArticle` (partner, staff, executive, admin). Logged-out users redirected to auth. Lower roles see permission message.
+- Linked in the SEVCO header (Wiki dropdown or as a standalone nav entry), and accessible from the wiki sidebar via a "Wikify Tool" button for eligible roles.
+
+### Input Panel (left/top)
+- **Large textarea**: "Paste your text or source material here..." (min 200px tall, resizable). Character/word count shown live.
+- **OR divider** with "Generate with AI" toggle button — clicking opens a second input for a topic/prompt (e.g., "Write about SEVCO's engineering services"), calls `POST /api/tools/wikify/generate-source` to produce raw source text via Grok, which then auto-fills the textarea.
+- **Article Count slider**: 1–25, default 5. Label: "Suggest [N] articles". Adapts based on input length (short input → max capped at 5 automatically; long input → full 1–25 range).
+- **Detail Level slider**: 3 steps — Brief (150–250 words), Standard (350–500 words), Detailed (600–900 words). Visual label under slider.
+- **Category selector**: multi-select dropdown of wiki categories (from `GET /api/categories`). Grok uses selected categories to assign each article; if none selected, Grok auto-assigns.
+- **"Analyze & Generate Articles" button**: primary red CTA. Disabled until textarea has content. Shows spinner and streamed progress during generation.
+
+### Generation & Preview Panel (right/bottom)
+- While generating: skeleton cards (one per expected article) with shimmer animation.
+- After generation: scrollable list of article suggestion cards, each showing:
+  - Checkbox (selected by default) for bulk submission
+  - Title (editable inline)
+  - Assigned category badge (editable via dropdown)
+  - SEO meta description (shown collapsed, expandable) — one sentence, 120–160 chars
+  - AEO keywords (comma-separated tags displayed as pill badges)
+  - Estimated read time
+  - "Preview" expand button → shows full markdown content in a read-only code/preview pane (toggleable between raw markdown and rendered view)
+  - "Edit" button → opens the full content in a textarea for manual editing before submission
+  - Grok confidence indicator (subtle) — "Strong", "Good", "Review" — based on content coverage
+- **Article count indicator**: "12 of 15 selected"
+- **"Submit Selected to Review Queue" button**: secondary blue button. Submits all checked articles as `status: "draft"` with pending revisions. Shows progress (e.g., "Submitting 3/12..."). On complete: success toast + link to review queue.
+- **"Download as Markdown" button**: ghost button, downloads all selected articles as a `.zip` of `.md` files.
+
+### Backend: POST /api/tools/wikify/analyze
+- Auth: `requireAuth` + `requireRole("partner")`
+- Body: `{ text: string, count: number (1-25), detailLevel: "brief"|"standard"|"detailed", categoryIds?: number[] }`
+- Calls xAI API (`https://api.x.ai/v1/chat/completions`, model `grok-3-mini` or `grok-3`) with a structured system prompt instructing Grok to:
+  - Identify distinct topics/subtopics in the provided text
+  - Generate exactly `count` distinct wiki article suggestions
+  - Each article: title, slug (url-friendly), category, content (markdown with H2/H3 structure), seoDescription (120-160 chars), aeoKeywords (5-10 keywords), confidence ("strong"|"good"|"review")
+  - Follow SEO/AEO best practices: question-based H2s, concise definition paragraph, FAQ section at end, internal link placeholders `[See: Topic]`, no keyword stuffing
+  - Content length per article matches `detailLevel` spec
+- Returns JSON array of article suggestions. No DB writes happen here.
+- 5-minute server timeout for large generations. Rate limited: 3 requests/min per user.
+
+### Backend: POST /api/tools/wikify/generate-source
+- Auth: `requireAuth` + `requireRole("partner")`
+- Body: `{ prompt: string }`
+- Calls xAI API to generate 800–1200 words of informational source text on the given topic
+- Returns `{ text: string }`
+- Used when user clicks "Generate with AI" instead of pasting their own text
+
+### Submission Flow
+- Uses existing `POST /api/articles` endpoint for each article (no new endpoint needed)
+- Submits sequentially with a 200ms delay between requests to avoid thundering herd
+- Each article: `{ title, slug: generatedSlug + timestamp, content, categoryId, status: "draft", summary: seoDescription }`
+- Partner/staff submissions auto-create pending revisions (existing behavior)
+- Admin/executive submissions auto-publish (existing behavior)
+
+### SEO/AEO Prompt Engineering
+The Grok system prompt must instruct:
+- **SEO**: keyword-rich title (60 chars max), H1 matches title, H2s as questions ("What is...?", "How does...?", "Why does...?"), natural keyword density, internal link placeholders, meta description as a complete sentence with primary keyword
+- **AEO (Answer Engine Optimization)**: opening paragraph directly answers "what is X" in 2 sentences, FAQ section with 3–5 Q&A pairs at end using `### Frequently Asked Questions` heading, structured data-friendly headings, factual and authoritative tone, no hallucinations (stick to provided text)
+
+## Out of scope
+- Real-time streaming of article generation to the frontend (batch response is fine)
+- Editing articles after submission (use the existing wiki editor)
+- Image generation for articles (separate concern)
+- Scheduling or publishing directly (always goes through review queue for partner/staff)
+
+## Tasks
+1. Create `server/routes/wikify-tool.ts` (or add to `server/routes.ts`) with two endpoints: `POST /api/tools/wikify/analyze` and `POST /api/tools/wikify/generate-source`. Both require auth + partner role. The analyze endpoint builds a structured Grok prompt and returns article suggestion JSON. The generate-source endpoint returns raw text from a topic prompt.
+2. Create `client/src/pages/wikify-tool-page.tsx` — full page layout with left input panel and right results panel (responsive: stacked on mobile, side-by-side on desktop). Wire all state: textarea, sliders, category selector, article cards, checkboxes, inline editing, preview modal/pane.
+3. Add route to `client/src/App.tsx`: `<Route path="/wikify" component={WikifyToolPage} />` wrapped in `ProtectedRoute` with `requiredRole="partner"`.
+4. Add "Wikify Tool" entry to the wiki sidebar (`app-sidebar.tsx`) — shown only when `canCreateArticle` is true. Use `Wand2` icon from lucide-react. Link to `/wikify`.
+5. Add "Wikify Tool" entry to the wiki-related dropdown in `platform-header.tsx` — shown only for partner+ users.
+6. Implement the article suggestion card component with: checkbox, editable title, category badge dropdown, collapsible SEO meta, AEO keyword pills, preview toggle (raw markdown / rendered), edit textarea, confidence indicator.
+7. Implement the bulk submission flow: sequential `POST /api/articles` calls with progress tracking, success/error state per article, final summary toast.
+8. Add the "Generate with AI" source-text flow: topic prompt input → `POST /api/tools/wikify/generate-source` → auto-fills textarea, then user can proceed with analysis.
+9. Ensure all interactive elements have `data-testid` attributes. Add loading skeletons for the generation phase. Confirm mobile responsiveness.
+
+## Relevant files
+- `client/src/components/wikify-dialog.tsx` (existing single-article Wikify — reference only)
+- `client/src/components/app-sidebar.tsx`
+- `client/src/components/platform-header.tsx`
+- `client/src/App.tsx:141-335`
+- `client/src/hooks/use-permission.ts`
+- `client/src/components/protected-route.tsx`
+- `server/routes.ts` (POST /api/articles pattern, auth/role middleware)
+- `server/grok-news.ts` (xAI API call pattern to reuse)
+- `shared/schema.ts` (Article, Category types)
+
+---
+
+### #127 — Tools Marketing Page + Navigation Updates
+
+> File: `tools-marketing-page.md`
+
+# Tools Marketing Page + Navigation Updates
+
+## Overview
+
+Three related improvements to the Tools section of the platform:
+1. **Fix critical crash** — `jszip` was not installed after the Wikify merge, crashing Vite.
+2. **New `/tools` marketing page** — a beautiful landing page that showcases all 5 tools (Notes, Tasks, Gallery, Email, Wikify) with feature descriptions and role-aware CTAs.
+3. **Rename "Wikify Tool" → "Wikify"** everywhere in the UI.
+4. **Tools dropdown visible to all users** — remove the `user &&` gate; all visitors see the Tools nav button; clicking a protected tool redirects unauthenticated users to `/auth` or shows an access prompt.
+
+---
+
+## 1. Critical crash fix
+
+Run `npm install jszip` — the `wikify-tool-page.tsx` page imports JSZip at line 2 but the package was never added. This causes a Vite pre-transform error that crashes the whole app.
+
+---
+
+## 2. Tools Marketing Page (`/tools`)
+
+### Route
+`/tools` — publicly accessible (no auth required). Guest users can view the page; login/signup prompts appear on tool CTAs based on access level.
+
+Add to `client/src/App.tsx`:
+```tsx
+<Route path="/tools" component={ToolsPage} />
+```
+
+Add `/tools` to the active-app detection in `platform-header.tsx` so "Tools" highlights when on `/tools`.
+
+### File
+`client/src/pages/tools-page.tsx`
+
+### Layout
+- **Hero**: Dark glassmorphism hero (consistent with landing page style). Headline: "SEVCO Tools" or "Your Creative Toolkit". Subheadline: "Powerful tools built into your SEVCO workspace — notes, tasks, media, communication, and AI content creation." No CTA gating — just scroll-down affordance.
+- **Tool Cards Grid**: 5 tool feature cards in a responsive grid (2-col desktop, 1-col mobile). Each card:
+  - Icon (from lucide-react)
+  - Tool name
+  - Short description (1–2 sentences)
+  - Feature bullet list (3–4 bullets)
+  - Access badge (e.g. "Free with account", "Client+", "Partner+")
+  - CTA button: "Open Tool" → links to the tool's route. If user not logged in → `/auth`. If user logged in but lacking role → shows `useToast` with "Upgrade your account to access this tool."
+  - Glassmorphic card: `bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-2xl`
+
+### The 5 Tool Cards
+
+| Tool | Route | Icon | Access | Features |
+|---|---|---|---|---|
+| **Notes** | `/notes` | `StickyNote` | Free with account | Personal & shared notes, markdown support, pin notes, search |
+| **Tasks** | `/tools/tasks` | `CheckSquare` | Free with account | To-do lists, priority labels, staff task board, due dates |
+| **Gallery** | `/gallery` | `Images` | Free with account | Media library, quick-copy images, organize by album |
+| **Email** | `/messages` | `Mail` | Client+ | `@sevco.us` inbox, folders, compose & reply, notifications |
+| **Wikify** | `/wikify` | `Wand2` | Partner+ | AI bulk article generator, SEO/AEO optimization, submit to review queue |
+
+### Access logic for CTAs
+```tsx
+const handleToolOpen = (href: string, requiredRoles: string[]) => {
+  if (!user) { navigate("/auth"); return; }
+  if (!requiredRoles.includes(user.role)) {
+    toast({ title: "Access required", description: "Your account tier doesn't include this tool.", variant: "destructive" });
+    return;
+  }
+  navigate(href);
+};
+```
+
+### Visual style
+- Dark background, consistent with landing.tsx glassmorphism aesthetic
+- Each card has a subtle accent glow on hover matching the tool's color: Notes=amber, Tasks=blue, Gallery=purple, Email=green, Wikify=red
+- Below the tool grid: a small "More tools coming soon" section
+- Add `data-testid` to all interactive elements
+
+---
+
+## 3. Rename "Wikify Tool" → "Wikify"
+
+Change in these files:
+- `client/src/components/platform-header.tsx` line 259: `label: "Wikify Tool"` → `label: "Wikify"`
+- `client/src/components/platform-header.tsx` line 747 (mobile homeItems): `"Wikify Tool"` → `"Wikify"`
+- `client/src/components/app-sidebar.tsx` line 95: `title: "Wikify Tool"` → `title: "Wikify"`
+- Page `<title>` inside `wikify-tool-page.tsx` if present → remove "Tool" suffix
+
+---
+
+## 4. Tools Dropdown Visible to All Users
+
+### Desktop header
+At `platform-header.tsx` line 788, change:
+```tsx
+{user && <ToolsDropdown isActive={...} />}
+```
+to:
+```tsx
+<ToolsDropdown isActive={...} />
+```
+
+Inside `ToolsDropdown`, change the items list so ALL tools are always shown (not conditionally on `user`). Remove the `...(user ? [...] : [])` and `...(isClientPlus ? [...] : [])` wrapping — always show all 5 tools. Add an access indicator per item:
+- Small role badge or lock icon next to restricted tools
+- When user is NOT logged in: clicking any item navigates to `/auth`
+- When user IS logged in but lacks permission (e.g. clicking Email without Client+): show toast, don't navigate
+
+Also update the "More tools coming soon" footer text to "View all tools →" linking to `/tools`.
+
+### Mobile nav
+At `platform-header.tsx` around line 1103, the Tools collapsible is currently inside `{user && ...}`. Remove that gate so it shows for all visitors.
+- Show all 5 tool links in mobile nav
+- Same click logic: guest → `/auth`, wrong role → toast, correct role → navigate
+
+### Updated ToolsDropdown items (always show all)
+```tsx
+const allItems = [
+  { label: "Notes",   href: "/notes",        icon: StickyNote,   desc: "Personal & shared notes",               requiredRoles: ["user","client","partner","staff","executive","admin"] },
+  { label: "Tasks",   href: "/tools/tasks",  icon: CheckSquare,  desc: "Personal to-do list & staff board",     requiredRoles: ["user","client","partner","staff","executive","admin"] },
+  { label: "Gallery", href: "/gallery",      icon: Images,       desc: "Quick-copy images for your profile",    requiredRoles: ["user","client","partner","staff","executive","admin"] },
+  { label: "Email",   href: "/messages",     icon: Mail,         desc: `${user?.username ?? "your"}@sevco.us`,  requiredRoles: ["client","partner","staff","executive","admin"] },
+  { label: "Wikify",  href: "/wikify",       icon: Wand2,        desc: "Bulk AI wiki article generator",        requiredRoles: ["partner","staff","executive","admin"] },
+];
+```
+
+Click handler in dropdown:
+```tsx
+const handleClick = (item) => {
+  setOpen(false);
+  if (!user) { navigate("/auth"); return; }
+  if (!item.requiredRoles.includes(user.role)) {
+    toast({ title: "Upgrade required", description: "This tool requires a higher account tier.", variant: "destructive" });
+    return;
+  }
+  navigate(item.href);
+};
+```
+
+Note: Keep the unread email badge logic — it only shows when `isClientPlus` is true.
+
+---
+
+## Files to change
+
+| File | Change |
+|---|---|
+| `package.json` (via npm install only) | Add `jszip` dependency |
+| `client/src/pages/wikify-tool-page.tsx` | Already imports jszip correctly — no change |
+| `client/src/pages/tools-page.tsx` | NEW FILE — Tools marketing page |
+| `client/src/App.tsx` | Add `/tools` route |
+| `client/src/components/platform-header.tsx` | Remove `user &&` gate on ToolsDropdown; rebuild items list; rename Wikify; add `/tools` link in footer; mobile nav always visible; add click handler |
+| `client/src/components/app-sidebar.tsx` | Rename "Wikify Tool" → "Wikify" |
+
+---
+
+## Out of scope
+- Changing individual tool pages (Notes, Tasks, Gallery, etc.)
+- Changing role/permissions logic on the backend
+- Adding new backend endpoints
+
+---
+
+### #128 — SEVCO Platform Updates Page — Changelog Overhaul + Update Log + Auto-Update System
+
+> File: `compile-update-log.md`
+
+# SEVCO Platform Updates Page — Changelog Overhaul + Update Log + Auto-Update System
+
+## What & Why
+
+The SEVCO platform has a basic `/changelog` page that's manually maintained and not visually compelling. Meanwhile we need a comprehensive development update log compiled from 160+ task plan files. This task merges both needs into one system:
+
+1. **Redesign `/changelog` → `/platform`** — A beautiful public-facing "Platform Updates" marketing page with hero, featured update spotlights, full searchable timeline, and prominent sign-up/sign-in CTAs (including X sign-in). Goal: convert visitors into accounts.
+
+2. **Compile the initial `SEVCO_UPDATE_LOG.md`** — A complete markdown file in the project root with all 160+ task plan files reproduced verbatim, organized chronologically, with zero information omitted.
+
+3. **Auto-populate changelog from task plan files** — Extend `scripts/post-merge.sh` to call a new `scripts/append-to-update-log.js` script that: (a) appends the task to `SEVCO_UPDATE_LOG.md`, AND (b) auto-creates a structured changelog entry in the database from the plan file content.
+
+---
+
+## Part 1 — `/platform` Marketing Changelog Page
+
+### Route
+- **New route:** `/platform` — publicly accessible (no auth required)
+- **Old route:** `/changelog` should redirect to `/platform` (or both work, with `/platform` being the marketing version)
+- Add `/platform` to `client/src/App.tsx` routing
+
+### Page structure
+
+#### Section 1 — Hero
+Dark glassmorphism hero (consistent with landing page and tools page style):
+- **Headline:** "SEVCO is always evolving." (or similar short punchy statement)
+- **Subheadline:** "We ship constantly. Every new feature, fix, and improvement — documented here. Join us to use it all."
+- **Two CTAs side by side:**
+  - Primary (red): "Create Free Account" → `/auth?mode=register`
+  - Secondary (outline with X icon): "Sign in with X" → `/api/auth/twitter`
+- Small note below CTAs: "Already have an account? [Sign in →]"
+- **Stats bar** (3–4 animated counters, derived from changelog data):
+  - "[N] Updates shipped" — count of all changelog entries
+  - "[N] New features" — count of category=feature entries
+  - "[N] Fixes & improvements" — count of fix+improvement entries
+  - "Actively maintained" — static badge
+- Aurora background blobs (matching brand: deep red, indigo, emerald)
+
+#### Section 2 — Featured Updates Spotlight
+Auto-curated from the 3–5 most recent `category=feature` changelog entries.
+- **Heading:** "What's New" with a "Live" badge (green pulsing dot)
+- Display as horizontal scroll of glassmorphic feature cards:
+  - Each card: version badge (e.g., `v2.4.1`), category badge ("Feature"), title, 2-line description truncated, date ("3 days ago" relative), "Learn More →" link to wiki article if `wikiSlug` exists
+  - Hover: card lifts, border glows
+- Below cards: "See all [N] updates ↓" link scrolls to the timeline
+
+#### Section 3 — Searchable Timeline
+The full changelog, rendered as a beautiful vertical timeline:
+- **Search bar** at the top: real-time client-side filter by title or description text
+- **Category filter pills**: All | Features | Fixes | Improvements | Other (toggle, multi-select)
+- **Timeline entries** grouped by year (2024, 2025, 2026...) with a sticky year label on the left
+- Each entry:
+  - Left: date (month day) + connecting timeline dot + vertical line
+  - Right: version badge (`v1.x.x`), category badge (color-coded: Feature=blue, Fix=red, Improvement=amber, Other=grey), title (bold), description (full text, not truncated), "Read more →" link if wikiSlug exists
+  - Subtle glassmorphic card treatment: `bg-white/[0.03] border border-white/[0.06] rounded-xl px-5 py-4`
+- Empty state when search has no results: "No updates matching '[query]'" with clear button
+
+#### Section 4 — Sign-up CTA (bottom)
+Full-width dark panel before the footer:
+- Headline: "Everything above is just the beginning."
+- Body: "New features ship every week. Sign up free to use the Wiki, Store, Music, AI Tools, Email — everything. Or jump in instantly with your X account."
+- **Two CTAs:**
+  - Primary: "Get Started Free" → `/auth?mode=register`
+  - Secondary with X icon: "Continue with X" → `/api/auth/twitter`
+- Fine print: "No credit card required. Free tier available."
+- Hide this section if user is already logged in (`user` from `useAuth`)
+
+### Data source
+Reads from `GET /api/changelog` (existing endpoint, returns all entries ordered by `createdAt` desc).
+
+No new backend endpoints needed for the page itself — all data already exists.
+
+### Navigation
+- Add "Platform" or "Updates" link somewhere visible for public users:
+  - In `platform-footer.tsx` bottom link row alongside existing links
+  - In the SEVCO home dropdown (`platform-header.tsx`) — add "What's New" or "Platform Updates" entry below "About"
+- The old `/changelog` page can remain as-is for backward compat, or redirect; the new `/platform` page is the marketing face
+
+---
+
+## Part 2 — `SEVCO_UPDATE_LOG.md` Initial Compilation
+
+A file at `SEVCO_UPDATE_LOG.md` in the project root containing every task plan file reproduced verbatim. No information omitted.
+
+### Structure
+```
+# SEVCO Platform — Complete Development Update Log
+
+> Every Replit Agent task plan reproduced verbatim. Zero omissions.
+> Total tasks: [count] | Platform: sevco.us | Last updated: [date]
+
+---
+
+## Table of Contents
+- [#1 — RBAC & Role Permission System](#1)
+...
+
+---
+
+## Task Log
+
+### #1 — RBAC & Role Permission System
+> Merged: [date]
+
+[full contents of rbac-role-system.md]
+
+---
+...
+
+## Appendix — Additional Tasks & Fixes
+[unmatched plan files]
+```
+
+### Task-to-file mapping (for the compiler to use)
+
+**Named by topic (#1–#29):**
+- #1 → `rbac-role-system.md`, #2 → `platform-shell.md`, #3 → `landing-and-dashboard.md`, #4 → `music-page.md`, #5 → `store-page.md`, #6 → `projects-page.md`, #7 → `logo-favicon-update.md`, #8 → `logo-display-fix.md`, #9 → `logo-no-skew.md`, #10 → `platform-footer.md`, #11 → `platform-polish-and-changelog.md`, #12 → `fix-production-auth.md`, #13 → `stripe-checkout-cart.md`, #14 → `command-center.md`, #15 → `store-analytics.md`, #16 → `store-redesign.md`, #17 → `auto-wiki-engineering-articles.md`, #18 → `sidebar-account-cleanup.md`, #19 → `auth-copy-tweak.md`, #20 → `pre-publish-fixes.md`, #21 → `email-verification.md`, #22 → `public-access-mega-menu.md`, #23 → `home-contact-pages.md`, #24 → `profile-page.md`, #25 → `jobs-page.md`, #26 → `services-page.md`, #27 → `music-expansion.md`, #28 → `projects-megamenu-marketing.md`, #29 → `projects-dropdown-style-fix.md`
+
+**Prefixed with old offset (#30–#100):**
+- #30→`t28-bug-fixes-quick-wins.md`, #31→`t29-profile-user-enhancements.md`, #32→`t30-footer-social-links-admin.md`, #33→`t31-store-cmd-product-creation.md`, #34→`t32-music-player-playlist-cmd.md`, #35→`t33-wiki-archive.md`, #36→`t34-version-system-changelog.md`, #37→`t35-social-feed.md`, #38→`t36-notes-tool.md`, #39→`t39-nav-platform-housekeeping.md`, #40→`t40-cmd-restructure.md`, #41→`t41-hostinger-domains.md`, #42→`t42-engineering-articles-changelog.md`, #43→`t43-bug-fixes-nav-polish.md`, #44→`t44-project-social-links-about-page.md`, #45→`t45-listen-page-social-links-cmd.md`, #46→`t46-cmd-display-tab.md`, #47→`t47-platform-search.md`, #48→`t48-bug-fixes.md`, #49→`t49-cmd-enhancements.md`, #50→`t50-home-bulletin-footer-store-cleanup.md`, #51→`t51-gallery-tools-dropdown.md`, #52→`t52-brand-section-about.md`, #53→`t53-hosting-landing-page.md`, #54→`t54-project-service-icons-placeholder-products.md`, #55→`t55-spotify-integration.md`, #56→`t56-wiki-articles-changelog.md`, #57→`t57-supabase-storage.md`, #58→`t58-bug-fixes-2.md`, #59→`t59-display-tab-uploads-services.md`, #60→`t60-platform-colors.md`, #61→`t61-notes-export.md`, #62→`t62-bugs-polish.md`, #63→`t63-brand-colors-media-cdn.md`, #64→`t64-marketing-pages.md`, #65→`t65-support-tab-cmd.md`, #66→`t66-members-chat.md`, #67→`t67-minecraft-page.md`, #68→`t68-finance-tab-cmd.md`, #69→`t69-staff-tab-cmd.md`, #70→`t70-bugs-polish2.md`, #71→`t71-minecraft-project-cmd.md`, #72→`t72-hover-tooltips.md`, #73→`t73-hero-logo-brand-assets.md`, #74→`t74-services-menu-reorganization.md`, #75→`t75-finance-subscriptions.md`, #76→`t76-email-fix.md`, #77→`t77-ai-chat-agents.md`, #78→`t78-cmd-settings-tab.md`, #79→`t79-brand-color-theming.md`, #80→`t80-traffic-tab-cmd.md`, #81→`t81-bug-fixes-4.md`, #82→`t82-bug-fixes-5.md`, #83→`t83-extended-color-settings.md`, #84→`t84-admin-content-management.md`, #85→`t85-site-audit.md`, #86→`t86-google-analytics.md`, #87→`t87-registration-email-fix.md`, #88→`t88-bug-fixes-6.md`, #89→`t89-news-page.md`, #90→`t90-wiki-changelog-comprehensive.md`, #91→`t91-bug-fixes-7.md`, #92→`t92-news-improvements.md`, #93→`t93-nav-and-button-colors.md`, #94→`t94-bug-fixes-8.md`, #95→`t95-services-notes-display.md`, #96→`t96-settings-redesign.md`, #97→`t97-email-client.md`, #98→`t98-notes-fixes.md`, #99→`t99-notes-editor-final-fix.md`, #100→`t100-x-oauth-signin.md`
+
+**Direct task number mapping (#101+):**
+- #101→`t101-home-consolidation-x-api.md`, #103→`t103-grok-agent-models.md`, #104→`t104-production-db-migration.md`, #105→`t105-x-secrets-setup.md`, #106→`t106-fix-x-oauth-callback-url.md`, #107→`t107-link-x-account.md`, #108→`t108-bug-fixes-11.md`, #109→`t109-x-feed-improvements.md`, #110→`t110-profile-overhaul.md`, #111→`t111-notes-save-x-post.md`, #112→`t112-grok-models-imagine.md`, #113→`t113-fullscreen-floating-chat.md`, #114→`t114-protect-planet-logo.md`, #116→`t116-chat-conflict-hero-button-color.md`, #117→`t117-brand-color-palette-replacement.md`, #118→`task-118.md`, #119→`task-119.md`, #120→`task-120.md`, #121→`task-121.md`, #132→`t132-grok-imagine-error-image-rendering.md`, #154→`sidebar-cleanup.md`, #155→`news-x-only-migration.md`, #156→`beautiful-news-images.md`, #157→`cmd-news-controls.md`, #158→`home-page-redesign-wiki-docs.md`, #159→`wikify-tool-page.md`, #160→`tools-marketing-page.md`, #161→this file
+
+**Appendix (unmatched files):**
+`accessibility-error-handling.md`, `animation-motion-system.md`, `chat-overlap-fix.md`, `cmd-dashboard-polish.md`, `dark-mode-default.md`, `design-audit-report.md`, `design-system-consistency.md`, `email-body-fix.md`, `email-fetch-body-via-receiving-api.md`, `fix-x-feed-errors.md`, `grok-news-page.md`, `hide-tools-dropdown-signed-out.md`, `inbound-email-diagnostics.md`, `inbox-fix-and-refresh.md`, `marketing-page-upgrades.md`, `navigation-sidebar-enhancements.md`, `news-ai-summaries-wikify.md`, `news-feed-fix.md`, `news-fixes-home-sources.md`, `news-page-enhancements.md`, `news-page-ux-overhaul.md`, `news-x-fix.md`, `news-x-per-category-handles.md`, `task-email-fix.md`, `task-finance-projects-sync.md`, `task-nav-hover-text-fix.md`, `task-quick-fixes.md`, `task-seo-settings.md`, `task-tasks-tool.md`, `ui-sound-system.md`, `x-news-editorial-redesign.md`
+
+---
+
+## Part 3 — Auto-Update System (post-merge.sh + new script)
+
+### New file: `scripts/append-to-update-log.js`
+
+Runs after every task merge. Does two things:
+
+**A) Appends to `SEVCO_UPDATE_LOG.md`:**
+- Reads the plan file
+- Checks if the task ref is already in the log (idempotent)
+- Appends a new section with date and full plan content
+
+**B) Auto-creates a changelog DB entry via the API:**
+- Parses the plan file to extract:
+  - `title`: the first `# Heading` in the file
+  - `description`: the content of the `## What & Why` section (first 500 chars)
+  - `category`: auto-detected:
+    - Contains "fix", "bug", "crash", "error" → `fix`
+    - Contains "redesign", "overhaul", "new", "add", "create", "build" → `feature`
+    - Contains "improve", "enhance", "update", "upgrade", "polish" → `improvement`
+    - Otherwise → `other`
+  - `version`: auto-increments from latest changelog entry (patch bump: `1.x.y` → `1.x.y+1`)
+  - `wikiSlug`: null (wiki article is created separately by `create-wiki-article.js`)
+- Posts to `POST /api/changelog` using a server-to-server call (needs to run as admin)
+- The script needs to call the local API — use `http://localhost:5000/api/changelog` with a secret internal token OR write directly to the DB using the same `DATABASE_URL` env var
+- **Preferred approach**: Write directly to DB using `@neondatabase/serverless` (already a project dependency) to avoid needing an auth token
+
+**Script signature:**
+```
+node scripts/append-to-update-log.js <planFilePath> [taskRef] [taskTitle]
+```
+
+### Updated `scripts/post-merge.sh`:
+```bash
+#!/bin/bash
+set -e
+npm install
+npm run db:push
+
+LATEST_TASK=$(ls -t .local/tasks/*.md 2>/dev/null | head -1)
+if [ -n "$LATEST_TASK" ]; then
+  echo "Creating wiki article from task plan: $LATEST_TASK"
+  node scripts/create-wiki-article.js "$LATEST_TASK" || true
+  echo "Appending to update log and changelog: $LATEST_TASK"
+  node scripts/append-to-update-log.js "$LATEST_TASK" || true
+else
+  echo "No task plan files found."
+fi
+```
+
+The `|| true` keeps merges non-blocking if the script fails.
+
+---
+
+## Files to create/modify
+
+| File | Action |
+|---|---|
+| `client/src/pages/platform-page.tsx` | NEW — Platform Updates marketing page |
+| `client/src/App.tsx` | Add `/platform` route (public, no auth required) |
+| `client/src/components/platform-header.tsx` | Add "What's New" link to SEVCO home dropdown |
+| `client/src/components/platform-footer.tsx` | Add "Platform Updates" link in footer links |
+| `scripts/append-to-update-log.js` | NEW — auto-appends to log + creates changelog DB entry |
+| `scripts/post-merge.sh` | Extend to call append-to-update-log.js |
+| `SEVCO_UPDATE_LOG.md` | NEW — compiled from all 190 plan files |
+
+The existing `/changelog` page (`changelog-page.tsx`) can remain as-is. The new `/platform` page is the marketing face; `/changelog` stays as a simpler internal reference.
+
+---
+
+## Important requirements
+
+- **Marketing goal**: every visitor to `/platform` should feel motivated to sign up or log in. The X sign-in CTA must be visible and prominent (not buried).
+- **Zero information loss** in `SEVCO_UPDATE_LOG.md` — every word from every plan file reproduced verbatim.
+- The auto-update script must be idempotent — running twice with the same task creates only one changelog entry and one log section.
+- The `|| true` in post-merge.sh keeps merges non-blocking.
+- All interactive elements on the page need `data-testid` attributes.
+- Dark mode first, consistent with landing.tsx glassmorphism style.
+- The page must work fully for logged-out visitors (no auth dependency for the changelog data).
+- The featured "What's New" spotlight must pull from actual DB data (not hardcoded), so it auto-updates as new entries are added.
+
+## Relevant existing files
+- `client/src/pages/changelog-page.tsx` — existing changelog (reference for data shape)
+- `client/src/pages/landing.tsx` — glassmorphism style reference
+- `client/src/pages/tools-page.tsx` — marketing card style reference (just created in #160)
+- `client/src/pages/auth-page.tsx` — X sign-in button implementation (`/api/auth/twitter`)
+- `server/routes.ts` lines 1857–1896 — changelog API endpoints
+- `scripts/create-wiki-article.js` — reference for post-merge script pattern
+- `shared/schema.ts` lines 296–304 — changelog DB schema
+
+---
+
+## Appendix — Additional Tasks & Fixes
+
+> Additional plan files not in the primary ordered sequence.
+
+### Accessibility & Error Handling
+
+> File: `accessibility-error-handling.md`
+
+# Accessibility & Error Handling
+
+## What & Why
+The platform has zero `prefers-reduced-motion` support, thin focus rings, no React ErrorBoundary, no skip-to-content link, and inconsistent ARIA landmarks. These are WCAG 2.2 AA compliance gaps that need to be addressed as the highest priority design system fix.
+
+## Done looks like
+- All `animate-*` Tailwind classes in custom code are wrapped with `motion-safe:` variant (Radix/shadcn primitives are excluded — they handle this internally)
+- Focus rings on all interactive elements increased from 1px to 2px with a 2px offset against the background color
+- A React ErrorBoundary wraps the app root, catching render errors and showing a branded fallback UI instead of a white screen
+- A "Skip to main content" link appears on keyboard focus at the top of every page
+- Key page layouts use `<main>`, `<nav>`, `<aside>` landmark elements where appropriate
+- ARIA labels added to interactive elements in CMD pages that currently lack them
+- `muted-foreground` dark-mode color verified to meet 4.5:1 contrast ratio against card background; adjusted if needed
+
+## Out of scope
+- Rewriting Radix/shadcn UI primitives (they handle reduced-motion internally)
+- Full WCAG AAA compliance
+- Screen reader testing across multiple assistive technologies
+
+## Tasks
+1. **Add `prefers-reduced-motion` support** — Add `motion-safe:` prefix to custom `animate-*` classes across marketing pages (landing, store, music, projects) and custom animation keyframes. Add a `motion-reduce:animate-none` utility to index.css.
+2. **Improve focus rings globally** — Update the button base class and all input/switch/checkbox/slider components to use `focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background`.
+3. **Add React ErrorBoundary** — Create an ErrorBoundary component that catches render errors, displays a branded dark-mode fallback (SEVCO aesthetic, "Something went wrong" message, "Reload" button), and logs errors. Wrap the app root in App.tsx.
+4. **Skip-to-content link** — Add a visually-hidden-until-focused "Skip to main content" link at the top of the page layout. Add `id="main-content"` to the main content area.
+5. **ARIA landmarks and labels** — Wrap page content in `<main>`, sidebars in `<aside>`, navbars in `<nav>`. Add missing `aria-label` attributes to CMD page buttons that only have icons.
+6. **Contrast verification** — Check `muted-foreground` in dark mode (`220 10% 55%`) against `card` background (`222 18% 11%`) for 4.5:1 ratio. Adjust lightness if needed.
+
+## Relevant files
+- `client/src/index.css`
+- `client/src/App.tsx`
+- `client/src/components/ui/button.tsx`
+- `client/src/components/ui/input.tsx`
+- `client/src/components/ui/checkbox.tsx`
+- `client/src/components/ui/switch.tsx`
+- `client/src/components/ui/slider.tsx`
+- `client/src/pages/landing.tsx`
+- `client/src/pages/store-page.tsx`
+- `client/src/pages/music-page.tsx`
+- `client/src/pages/projects-page.tsx`
+- `client/src/components/platform-header.tsx`
+
+---
+
+### Animation & Motion System
+
+> File: `animation-motion-system.md`
+
+# Animation & Motion System
+
+## What & Why
+The platform has `framer-motion` installed but completely unused. Route changes are instant, card grids appear all at once, skeletons snap to content, and chart animations are disabled. Adding a purposeful motion layer will dramatically increase the premium feel to match the "command center" aesthetic.
+
+## Done looks like
+- Page transitions: routes fade in over 150ms with a subtle 8px upward slide using framer-motion AnimatePresence
+- Card grids on landing, store, news, projects, CMD overview, and dashboard pages use staggered entrance animations (50ms delay between items, 200ms duration each)
+- Skeleton loaders cross-fade to content (200ms opacity transition) instead of snapping
+- Recharts charts animate on entry: lines draw, bars grow, pie segments expand (800ms, ease-out)
+- Sidebar collapse/expand uses a smooth 200ms width transition
+- All motion respects `prefers-reduced-motion` — animations are disabled when this preference is set
+- Standard easing curves defined in Tailwind config: `ease-out-expo` for entrances, `ease-standard` for exits
+
+## Out of scope
+- Complex physics-based animations (springs, drag, gesture recognition)
+- Scroll-triggered animations (parallax, reveal-on-scroll)
+- Lottie or SVG path animations
+
+## Tasks
+1. **Create AnimatedPage wrapper** — Build a framer-motion wrapper component that provides fade+slide entrance/exit animations for route children. Wrap all Route components in App.tsx with AnimatePresence.
+2. **Create StaggerGrid wrapper** — Build a reusable framer-motion component that staggers children entrance by 50ms. Apply to card grids on landing (platform grid, store preview, wiki articles), store (product grid), news (bento grid, swimlanes), projects (project cards), command-overview (stat cards, quick links), and dashboard-page.
+3. **Skeleton cross-fade** — Add a CSS transition wrapper around content that replaces skeletons, using `transition-opacity duration-200` to fade from 0 to 1 when isLoading changes to false.
+4. **Chart entry animations** — Enable `isAnimationActive={true}` and `animationDuration={800}` with `animationEasing="ease-out"` on all Recharts components (command-overview donut chart, command-traffic charts, command-finance charts).
+5. **Easing tokens in Tailwind** — Add custom keyframes and timing functions to tailwind.config.ts: `ease-out-expo` (`cubic-bezier(0.16, 1, 0.3, 1)`) and `ease-standard` (`cubic-bezier(0.4, 0, 0.2, 1)`).
+6. **Sidebar transition smoothing** — Ensure the sidebar width collapse uses explicit `transition-[width] duration-200 ease-out` class.
+
+## Relevant files
+- `client/src/App.tsx`
+- `client/src/pages/landing.tsx`
+- `client/src/pages/store-page.tsx`
+- `client/src/pages/news-page.tsx`
+- `client/src/pages/projects-page.tsx`
+- `client/src/pages/dashboard-page.tsx`
+- `client/src/pages/command-overview.tsx`
+- `client/src/pages/command-traffic.tsx`
+- `client/src/pages/command-finance.tsx`
+- `client/src/components/ui/sidebar.tsx`
+- `client/src/components/news-bento-grid.tsx`
+- `tailwind.config.ts`
+
+---
+
+### Fix Chat UI Overlapping Buttons
+
+> File: `chat-overlap-fix.md`
+
+# Fix Chat UI Overlapping Buttons
+
+## What & Why
+The Chat slide-over panel has two buttons that land on top of each other in the header area:
+- shadcn's `SheetContent` automatically renders an absolute-positioned X close button at `right-4 top-4`
+- The chat header independently places a Maximize2 (expand) button on the far right of a flex row
+
+Both end up at the same visual spot, making the expand button unreachable and looking broken.
+
+## Done looks like
+- The expand/fullscreen button and the close (X) button are both clearly visible and not overlapping in the Chat panel header
+- Clicking each button performs its intended action independently
+- The fix applies consistently to all views inside the chat panel (list, channel, DM, AI agent)
+
+## Out of scope
+- Redesigning the Chat panel layout beyond fixing the button collision
+
+## Tasks
+1. **Reorganize the chat header buttons** — In `chat-sheet.tsx`, move the Maximize2 expand button to sit next to the title on the left side of the header row (or group it alongside an explicit SheetClose button on the right), so it no longer collides with the automatically rendered absolute-positioned X button from SheetContent. Apply consistently across all chat views.
+
+## Relevant files
+- `client/src/components/chat-sheet.tsx:675-697`
+- `client/src/components/ui/sheet.tsx`
+
+---
+
+### CMD Dashboard Polish
+
+> File: `cmd-dashboard-polish.md`
+
+# CMD Dashboard Polish
+
+## What & Why
+The CMD dashboard needs structural improvements: no breadcrumbs for deep navigation, a narrow max-width container that wastes screen space, stat cards that show raw numbers without trends, and no data freshness indicators. These changes will make the command center feel more like a professional analytics dashboard (GA4-inspired).
+
+## Done looks like
+- CMD pages display breadcrumbs below the header: `CMD / Content / News`, `CMD / Operations / Finance / Subscriptions`
+- CommandPageLayout container widened from `max-w-5xl` to `max-w-7xl` for data-heavy pages
+- StatCard component accepts optional `trend` prop showing direction arrow (green up / red down) and percentage change text
+- StatCard component accepts optional `sparklineData` prop rendering an inline 7-point mini line chart using Recharts
+- Page header shows "Updated X min ago" text with a refresh button that triggers React Query refetch with a spin animation
+- Dashboard overview uses the enhanced StatCards with mock trend data and sparklines
+
+## Out of scope
+- Real historical data for sparklines (will use placeholder data initially — real data requires analytics aggregation pipeline)
+- Redesigning individual CMD sub-pages (News, Store, etc.)
+- Mobile optimization of widened layout (existing responsive grid handles this)
+
+## Tasks
+1. **Add breadcrumbs to CommandPageLayout** — Create a breadcrumb bar that parses the current route path and renders clickable segments. Place it between the header and page content. Use the existing Breadcrumb UI component.
+2. **Widen container** — Change `max-w-5xl` to `max-w-7xl` in CommandPageLayout. Verify all CMD sub-pages still look balanced at the wider width.
+3. **Enhance StatCard with trends** — Add a `trend` prop to the StatCard component in command-overview.tsx. Render a small colored arrow icon and percentage text below the metric number.
+4. **Add sparkline mini-charts** — Add a `sparklineData` prop to StatCard that renders a tiny inline Recharts LineChart (no axes, no labels, just the trend line in primary blue). Show 7 data points.
+5. **Refresh indicator** — Add "Updated X ago" text (using relative timestamps) and a refresh IconButton to the CommandPageLayout header. Wire it to invalidate relevant React Query caches with a spin animation on the icon.
+
+## Relevant files
+- `client/src/pages/command-page.tsx`
+- `client/src/pages/command-overview.tsx`
+- `client/src/components/ui/breadcrumb.tsx`
+
+---
+
+### Set Dark Mode as Default
+
+> File: `dark-mode-default.md`
+
+# Set Dark Mode as Default
+
+## What & Why
+The app currently defaults to light mode. The intended experience is dark mode, so the default theme should be changed to dark.
+
+## Done looks like
+- New visitors (or anyone without a saved theme preference) see the app in dark mode immediately on load
+- Users who previously chose a theme still see their saved preference
+
+## Out of scope
+- Any changes to the dark or light mode styles themselves
+
+## Tasks
+1. In `App.tsx`, change the `defaultTheme` prop on `ThemeProvider` from `"light"` to `"dark"`.
+2. In `theme-provider.tsx`, update the default value of the `defaultTheme` parameter from `"light"` to `"dark"`, and update the context default theme to `"dark"` as well.
+
+## Relevant files
+- `client/src/App.tsx:684`
+- `client/src/components/theme-provider.tsx`
+
+---
+
+### SEVCO Platform Design Audit Report
+
+> File: `design-audit-report.md`
+
+# SEVCO Platform Design Audit Report
+
+---
+
+## 1. Executive Summary
+
+**Overall Score: 78 / 100**
+
+### 3 Biggest Strengths
+1. **Cohesive dark-mode identity** — The near-black backgrounds (`222 20% 8%`), card system (`222 18% 11%`), and elevation utility classes (`.hover-elevate`, `.active-elevate`) create a genuinely premium, command-center feel that is consistent across every page.
+2. **Well-tokenized design system** — CSS variables in `:root` / `.dark` drive the entire theme, with Tailwind mapping every token. The `PlatformColorInjector` lets admins override sidebar/nav accent colors from the database. This is sophisticated infrastructure most teams don't have.
+3. **Page-level structural consistency** — Every marketing page follows the "Hero + Feature Pills + Content Grid + CTA" pattern with category-specific gradient accents (Blue for Wiki, Red for Store, Green for Projects). The CMD dashboard follows a card-grid pattern with role-based progressive disclosure. Both feel intentional.
+
+### 3 Highest-Impact Opportunities
+1. **Missing motion layer** — `framer-motion` is installed but unused. There are no page transitions, no staggered list animations, and no spring-based micro-interactions. Adding even basic entrance animations and smooth page transitions would dramatically increase the premium feel.
+2. **No `prefers-reduced-motion` support** — Zero references to `motion-reduce` or `prefers-reduced-motion` anywhere in the codebase. This is a WCAG 2.2 AA failure. Every animation must respect this media query.
+3. **Inconsistent spacing and border-radius scale** — The Tailwind config defines `border-radius-lg` at 9px, yet marketing pages use hardcoded `rounded-2xl` (16px) and `rounded-3xl` (24px) on cards. The base `--radius` variable is `.5rem` (8px) but is often bypassed. This creates subtle visual inconsistency across pages.
+
+---
+
+## 2. Section-by-Section Audit
+
+---
+
+### 2.1 Global Design System & Consistency
+
+#### What's Already Excellent
+- **Color token architecture**: HSL-based CSS variables with light/dark pairings, dynamically injectable via `PlatformColorInjector`. The approach of separating hue/saturation/lightness allows alpha compositing via Tailwind's `<alpha-value>` syntax.
+- **Typography stack**: Inter (sans), Source Serif 4 (serif), JetBrains Mono (mono) — a professional, versatile trio. The `@tailwindcss/typography` plugin handles prose rendering.
+- **Elevation system**: `.hover-elevate`, `.active-elevate`, `.toggle-elevate` using `::after` pseudo-elements with `--elevate-1` / `--elevate-2` values is a clever, performant approach that avoids box-shadow repaints.
+- **Shadow scale**: 8-level shadow scale from `shadow-2xs` to `shadow-2xl` with dark-mode variants using higher alpha values. Well-considered.
+
+#### Issues & Missed Opportunities
+| Issue | Severity | Details |
+|-------|----------|---------|
+| **Border-radius inconsistency** | P1 | Tailwind config defines `lg: 9px`, `md: 6px`, `sm: 3px`. But marketing pages use `rounded-2xl` (16px) and `rounded-3xl` (24px) extensively. Hero cards in the store and music pages use even larger radii. The `--radius` variable (8px) is defined but rarely referenced by non-shadcn components. |
+| **No spacing scale documentation** | P2 | `--spacing: 0.25rem` is set but the 8px grid mentioned in the brief isn't enforced. Components mix `p-3`, `p-4`, `p-5`, `p-6` without a clear rhythm. |
+| **Hardcoded colors in marketing pages** | P1 | Landing page uses raw hex values (`#0a0a12`, `#BE0000`, `white/[0.03]`) instead of design tokens. Store page has a `CATEGORY_PALETTES` object with raw Tailwind color classes (`indigo-500/10`, `rose-500/10`) that bypass the token system. |
+| **Chart colors are generic** | P2 | `--chart-1` through `--chart-5` are reasonable but don't include semantic names (success, warning, danger). Dashboard charts should use named semantic tokens. |
+| **No focus-visible custom styling** | P1 | Buttons use `focus-visible:ring-1 focus-visible:ring-ring` (1px ring). This is functionally accessible but visually thin. A 2px ring with a slight offset would be more visible, especially on dark backgrounds. |
+
+#### Recommendations
+1. **Unify border-radius**: Add `xl: 1rem` (16px) to the Tailwind config and use it as the standard card radius. Reserve `rounded-3xl` for hero images only. Update marketing page cards to use `rounded-xl`.
+2. **Establish a spacing rhythm**: Document and enforce a 4/8/12/16/24/32/48 spacing scale. Use `gap-3` (12px) for tight groups, `gap-4` (16px) for card grids, `gap-6` (24px) for section spacing, `gap-8` (32px) for major sections.
+3. **Add semantic chart tokens**: `--chart-success: 160 60% 45%`, `--chart-warning: 30 80% 60%`, `--chart-danger: 0 62% 50%`.
+4. **Increase focus ring**: Change button base to `focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background`.
+
+---
+
+### 2.2 Complex Navigation (Critical)
+
+#### What's Already Excellent
+- **Dual sidebar architecture**: Wiki gets `AppSidebar` with category/article navigation; CMD gets `CommandSidebar` with role-based section grouping. Both use the same foundational `SidebarProvider` — very clean.
+- **Dynamic color injection**: `PlatformColorInjector` sets `--sidebar-primary` and `--nav-sub-accent` from database settings, allowing the admin to rebrand navigation without touching code.
+- **Mobile sidebar**: Uses Radix `Sheet` component on mobile, keyboard shortcut `Cmd+B` for desktop toggle. Good foundations.
+- **ARIA labels**: Platform header icons have proper `aria-label` and `aria-hidden` attributes.
+- **Dropdown system**: `HomeDropdown`, `StoreDropdown`, etc. provide rich mega-menu-style navigation with category previews.
+
+#### Issues & Missed Opportunities
+| Issue | Severity | Details |
+|-------|----------|---------|
+| **No breadcrumbs on CMD pages** | P1 | CMD uses a flat header with title/subtitle. Deep pages like `/command/finance/subscriptions` or `/command/news` have no breadcrumb trail. Users lose context after 2+ clicks. |
+| **Sidebar active state is position-only** | P2 | Active items get a colored background pill, but there's no left-edge indicator bar. Adding a 3px left border accent on the active item (red for CMD, blue for Wiki) would improve scannability. |
+| **No mega-menu keyboard navigation** | P1 | Dropdown menus don't implement arrow-key navigation between items. Tab order works, but power users expect arrow keys in menus (WCAG 2.2 AA requirement for composite widgets). |
+| **Mobile nav overflow** | P2 | On smaller tablets (768-1024px), the top nav items may wrap or become cramped. The 7-item horizontal nav (SEVCO, Store, Services, Music, Projects, Tools, CMD) needs a breakpoint-aware collapse strategy. |
+| **Deep CMD nesting** | P2 | Finance, AI Agents, and Hosting have sub-sections that aren't reflected in the sidebar. Consider adding collapsible sub-groups under "Operations" and "System" with `ChevronRight` expand indicators. |
+
+#### Recommendations
+1. **Add breadcrumbs to CMD**: Use `CommandPageLayout` to render a breadcrumb bar below the header: `CMD / Content / News` or `CMD / Operations / Finance / Subscriptions`.
+2. **Sidebar active indicator**: Add a `before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[3px] before:rounded-full before:bg-destructive` (or primary) to the active sidebar item.
+3. **Implement `roving tabindex`**: For dropdown menus, add arrow-key navigation using `@radix-ui/react-roving-focus`.
+4. **Tablet breakpoint**: At `md` (768px), collapse the top nav into a hamburger that opens a slide-over with all nav items. Keep the CMD button always visible.
+
+---
+
+### 2.3 Marketing Pages (Store, Services, Music, Projects, Landing)
+
+#### What's Already Excellent
+- **Hero section visual identity**: Each page has a unique gradient atmosphere (Red for Store, Blue for Music, Green for Projects) created with animated background blobs (`animate-[pulse_8s_ease-in-out_infinite]`). This creates immediate visual differentiation while maintaining the shared dark aesthetic.
+- **Feature pills pattern**: The "Why SEVCO" pills on the landing page and similar patterns on other pages provide quick scanning of value props.
+- **Glass-morphic card treatment**: Cards using `white/[0.03]` backgrounds with `white/8` borders have a refined glass-morphic feel that complements the dark theme.
+- **Platform grid**: The 6-card grid (Wiki, Store, Music, Projects, Services, Community) with color-coded accents is immediately scannable and beautiful.
+
+#### Issues & Missed Opportunities
+| Issue | Severity | Details |
+|-------|----------|---------|
+| **No social proof anywhere** | P0 | None of the marketing pages show testimonials, client logos, user counts, or trust indicators. The Services page especially needs social proof — it's selling professional services with zero credibility signals. |
+| **Hero CTAs lack hierarchy** | P1 | Most pages have two equal-weight buttons in the hero. The primary CTA should be visually dominant (filled, larger) while the secondary should be a ghost/outline. Currently both often look similar. |
+| **No pricing tables** | P2 | Services page lists offerings but doesn't show pricing or package tiers. Even "Starting at $X" badges would increase conversion intent. |
+| **Missing urgency/scarcity** | P2 | Store page has no "X in stock", "Limited edition", or sale badges. These are conversion levers that match the premium brand. |
+| **Product images need container treatment** | P1 | Product grid images lack consistent aspect ratios and container styling. Some products have white backgrounds that clash with the dark theme. Use a subtle dark overlay or contain images in dark-bordered containers. |
+
+#### Recommendations
+1. **Add a social proof strip**: Below hero sections, add a horizontal bar with "Trusted by X+ clients" or logos of notable projects/partners. Even a simple `<div className="flex gap-8 opacity-50">` with grayscale logos adds credibility.
+2. **Hero CTA differentiation**: Primary CTA gets `bg-destructive text-destructive-foreground` (the red CTA language). Secondary gets `variant="outline" border-white/20`.
+3. **Product card dark-mode containers**: Wrap product images in `<div className="bg-muted/50 rounded-lg p-4">` to create a dark container that handles both dark and light product images gracefully.
+
+---
+
+### 2.4 Admin Dashboard (SEVCO CMD)
+
+#### What's Already Excellent
+- **Role-based progressive disclosure**: Admin sees everything (VPS, analytics, submissions, role distribution). Executive sees business metrics. Staff sees contributions. Client sees quick links. This is thoughtful information architecture.
+- **StatCard pattern**: Large 2xl metric numbers with Lucide icons — clean, scannable, GA4-inspired.
+- **Loading skeletons**: Every stat card and data block has proper `Skeleton` loaders. Layout stability is maintained during fetches.
+- **Status color system**: `ROLE_COLORS`, `STATUS_COLORS`, `APP_STATUS_COLORS` provide consistent semantic coloring across all badges and indicators.
+
+#### Issues & Missed Opportunities
+| Issue | Severity | Details |
+|-------|----------|---------|
+| **Max-width too narrow** | P1 | `CommandPageLayout` uses `max-w-5xl` (64rem / 1024px). On wide monitors, this wastes 40%+ of screen space. GA4-style dashboards should use `max-w-7xl` (80rem) or full-width with sidebar padding. |
+| **No delta indicators on metrics** | P1 | StatCards show raw numbers but no trend direction (up/down arrows, percentage changes). "Users: 47" is less useful than "Users: 47 (+12% this week)". |
+| **Single chart type** | P2 | Only a donut chart (Recharts PieChart) exists for store inventory. The dashboard would benefit from a line chart for traffic over time and a bar chart for content volume by type. |
+| **No sparklines** | P2 | StatCards should have inline sparkline mini-charts (7-day trend) next to the metric number. This is a GA4 signature pattern. |
+| **Card density varies** | P2 | Some CMD sub-pages (News, Settings) use full-width forms while others (Overview) use card grids. A consistent "card in grid" layout would unify the feel. |
+| **No data refresh indicator** | P2 | Dashboard data fetches on mount but doesn't show "Last updated: 2 min ago" or a refresh button with a spin animation. |
+
+#### Recommendations
+1. **Widen layout**: Change `max-w-5xl` to `max-w-7xl` in `CommandPageLayout` for data-heavy pages like Overview, Traffic, and Finance.
+2. **Add trend indicators**: Extend `StatCard` to accept a `trend` prop: `{ direction: 'up' | 'down' | 'neutral', value: '+12%' }`. Show a small green/red arrow with percentage.
+3. **Add sparklines**: Use Recharts `<Sparkline>` (or a `<LineChart>` with minimal config) inside StatCards. 7 data points, no axes, just the trend line.
+4. **Refresh indicator**: Add "Updated X ago" text and a refresh icon button in the page header that triggers React Query `refetchQueries`.
+
+---
+
+### 2.5 Animations & Motion Design
+
+#### What's Already Excellent
+- **Elevation interaction system**: `.hover-elevate` / `.active-elevate` pseudo-element approach is performant (no box-shadow repaints, GPU-composited via opacity).
+- **Background blobs**: Landing page hero blobs with 8s pulse create atmospheric movement without being distracting.
+- **Radix animation primitives**: Dialogs, sheets, popovers, and dropdowns all have enter/exit animations via `tailwindcss-animate`.
+- **Group hover patterns**: Cards use `group-hover:scale-105` on images and `group-hover:translate-x-0.5` on arrows — subtle, correct.
+
+#### Issues & Missed Opportunities
+| Issue | Severity | Details |
+|-------|----------|---------|
+| **No page transitions** | P0 | Route changes are instant with no transition. Adding a 200ms fade or slide between pages would dramatically increase the premium feel. `framer-motion` is already installed but unused. |
+| **No staggered list animations** | P1 | Card grids, stat cards, and sidebar items all appear instantly. Staggering entrance by 50ms per item creates a "cascade" effect that feels expensive. |
+| **No skeleton → content transition** | P1 | When data loads, skeletons snap to content. A 200ms cross-fade would be smoother. |
+| **No chart animations** | P2 | Recharts charts appear fully rendered. Entry animations (lines drawing, bars growing, pie segments expanding) are built-in to Recharts but not enabled. |
+| **Missing transition on sidebar collapse** | P2 | The sidebar width transition exists via Radix but could be smoother with explicit `transition-[width] duration-200 ease-out`. |
+
+#### Recommendations
+1. **Page transitions**: Wrap `Route` children in `<AnimatePresence>` and `<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>`.
+2. **Staggered card entrances**: Use `motion.div` with `variants` and `staggerChildren: 0.05` on card grids.
+3. **Chart animations**: Enable `isAnimationActive={true}` and `animationDuration={800}` on Recharts components. Use `animationEasing="ease-out"`.
+4. **Easing curves**: Standardize on `cubic-bezier(0.16, 1, 0.3, 1)` (ease-out-expo) for entrances and `cubic-bezier(0.4, 0, 0.2, 1)` (standard Material) for exits. Add these as Tailwind config keyframes.
+
+---
+
+### 2.6 Sound & Audio Feedback
+
+#### Current State
+There is **no UI sound system** in the platform. The only audio is via Spotify embedded iframes for music playback. No hover sounds, click sounds, success chimes, or notification tones exist.
+
+#### Recommendations (P2 — Nice-to-Have)
+1. **Sound design library**: Create a small set of 5-7 sounds: `click.mp3` (subtle tap), `success.mp3` (short ascending tone), `error.mp3` (soft descending tone), `notification.mp3` (chime), `command.mp3` (sci-fi beep for CMD actions), `toggle.mp3` (switch sound).
+2. **Implementation**: Use `Howler.js` (lightweight, handles Web Audio API edge cases). Create a `useSounds()` hook with volume control and a global mute toggle stored in localStorage.
+3. **Trigger points**: CMD button click, successful form save, error toast, notification arrival, sidebar toggle.
+4. **Brand alignment**: Sounds should match the cyber-tech aesthetic — think short, clean, electronic tones. Blue actions get higher-pitched tones, red actions get sharper clicks.
+5. **Accessibility**: Always respect `prefers-reduced-motion` — disable sounds when this is set.
+
+---
+
+### 2.7 Additional Premium Checks
+
+#### Accessibility
+| Check | Status | Notes |
+|-------|--------|-------|
+| ARIA labels on interactive elements | Partial | Platform header icons have labels. Many buttons throughout CMD pages lack `aria-label`. |
+| Focus ring visibility | Needs work | 1px ring on dark backgrounds is hard to see. Increase to 2px with offset. |
+| `prefers-reduced-motion` | Missing | Zero support. All `animate-*` classes should be wrapped in `motion-safe:` variants. |
+| Screen reader flow | Partial | Dialog close buttons have `sr-only` text. Page structure lacks `<main>`, `<nav>`, `<aside>` landmark elements in many places. |
+| Color contrast | Good | Off-white on near-black exceeds 4.5:1. Muted-foreground (`55% lightness` in dark mode) may be borderline — verify with contrast checker. |
+| Keyboard navigation | Partial | Tab order works. Arrow keys in menus missing. Skip-to-content link missing. |
+
+#### Mobile Responsiveness
+| Check | Status | Notes |
+|-------|--------|-------|
+| Landing page | Good | Hero stacks vertically, grid collapses to single column. |
+| Store page | Good | Product grid responsive from 4 → 2 → 1 columns. |
+| CMD dashboard | Needs work | `max-w-5xl` constrains layout. Some stat grids use `md:grid-cols-4` which is too many columns on small tablets. |
+| News page | Good | Sidebar hides on mobile, grid collapses. |
+| Profile page | Untested | MySpace-style customization may not adapt well to mobile. |
+
+#### Performance
+| Check | Status | Notes |
+|-------|--------|-------|
+| Lazy loading | Partial | Images lack `loading="lazy"`. Pages are not code-split. |
+| CLS prevention | Good | Skeleton loaders maintain layout during data fetch. |
+| Bundle size | Unknown | `framer-motion` is installed but unused — tree-shaking should handle this, but verify. |
+| Image optimization | Missing | No `<picture>` elements, no WebP fallbacks, no responsive `srcset`. Product images and hero images could benefit from optimization. |
+
+#### Error States & Empty States
+| Check | Status | Notes |
+|-------|--------|-------|
+| 404 page | Basic | AlertCircle icon + "404 Page Not Found" text in a card. Functional but bland — could be branded with the SEVCO aesthetic (dark background, gradient text, "Return to base" CTA). |
+| Error boundaries | Missing | No React ErrorBoundary wrapping the app. An unhandled render error will white-screen the entire app. |
+| Empty states | Inconsistent | Some pages (Hosting) have dedicated empty components. Others show nothing or generic "No results". A shared `<EmptyState icon={...} title="..." description="..." action={...}>` component would unify this. |
+| Toast system | Good | Radix-based, animated, functional. Consider adding toast "variants" (success = green left border, error = red left border). |
+
+---
+
+## 3. Visual Mockup Prompts
+
+For any major suggested changes, here are ready-to-use prompts that preserve the current aesthetic:
+
+**CMD Dashboard with sparklines and trends:**
+> "Dark mode admin dashboard UI, near-black background (#0a0a12), card grid with 4 stat cards showing large white metric numbers, small green/red trend arrows, inline sparkline mini-charts with electric blue line, subtle card borders (rgba 255,255,255,0.08), Inter font, minimal, premium command center aesthetic, 16:9 aspect ratio"
+
+**Branded 404 page:**
+> "Dark mode 404 error page, near-black background with subtle grid pattern, large glitch-effect '404' text in electric blue gradient, 'Lost in the system' subtitle in light gray, red 'Return to Base' button, minimal sci-fi aesthetic matching a tech platform command center, Inter font"
+
+**Page transition animation:**
+> "UI animation reference: dark mode web app page transition, content fades in from 0 to 100% opacity over 200ms while sliding up 8px, staggered card grid entrance with 50ms delay between items, smooth ease-out-expo curve, premium minimal aesthetic"
+
+---
+
+## 4. Implementation Roadmap
+
+### P0 — Critical (Week 1)
+| Item | Effort | Impact |
+|------|--------|--------|
+| Add `prefers-reduced-motion` support via `motion-safe:` Tailwind variant | 2h | Accessibility compliance |
+| Add React ErrorBoundary wrapping the app | 1h | Prevents white-screen crashes |
+| Increase focus ring to 2px with offset across all interactive elements | 2h | WCAG 2.2 AA compliance |
+| Add social proof section to Services page | 3h | Conversion uplift |
+
+### P1 — High Priority (Week 2-3)
+| Item | Effort | Impact |
+|------|--------|--------|
+| Page transitions with framer-motion | 4h | Premium feel, major UX upgrade |
+| Staggered card entrance animations | 3h | Visual polish across all grids |
+| CMD breadcrumbs | 2h | Navigation clarity |
+| Widen CMD layout to `max-w-7xl` | 1h | Better use of screen space |
+| StatCard trend indicators and sparklines | 4h | Dashboard intelligence |
+| Unify border-radius scale in Tailwind config | 2h | Visual consistency |
+| Shared `<EmptyState>` component | 2h | Consistent empty states |
+| Sidebar active indicator bar | 1h | Scannability |
+| Branded 404 page | 2h | Polish |
+| Add `loading="lazy"` to images | 1h | Performance |
+
+### P2 — Nice-to-Have (Week 4+)
+| Item | Effort | Impact |
+|------|--------|--------|
+| UI sound system with Howler.js | 8h | Delight factor |
+| Chart entry animations | 2h | Dashboard polish |
+| Skeleton → content cross-fade | 2h | Smoother loading |
+| Product image dark-mode containers | 2h | Store visual consistency |
+| Pricing tables on Services page | 4h | Conversion intent |
+| Skip-to-content link | 1h | Accessibility |
+| Semantic chart color tokens | 1h | Design system completeness |
+| Toast variants (colored left borders) | 1h | Visual feedback clarity |
+
+---
+
+## 5. Updated Design System Doc Snippet
+
+```
+SEVCO Design System v2.0 — Token Reference
+
+COLORS (HSL, dark mode primary)
+──────────────────────────────────────────
+Background:      222 20% 8%     (#141820)
+Surface/Card:    222 18% 11%    (#1a1f2a)
+Surface Hover:   rgba(255,255,255, 0.04)
+Surface Active:  rgba(255,255,255, 0.09)
+Border:          220 14% 18%    (#282d38)
+Text Primary:    210 20% 92%    (#e4e8ed)
+Text Secondary:  220 10% 55%    (#818994)
+Primary/Blue:    225 65% 58%    (#4e7ae8)
+Destructive/Red: 0 62% 50%     (#cf3333)
+Success/Green:   160 60% 45%   (#2eb88a)
+Warning/Amber:   30 80% 60%    (#e8a033)
+
+TYPOGRAPHY
+──────────────────────────────────────────
+Sans:   Inter (variable weight)
+Serif:  Source Serif 4 (editorial content)
+Mono:   JetBrains Mono (code, metrics)
+Scale:  xs/sm/base/lg/xl/2xl/3xl/4xl
+
+SPACING (base unit: 4px)
+──────────────────────────────────────────
+Tight:      12px (gap-3)   — within cards
+Standard:   16px (gap-4)   — card grids
+Relaxed:    24px (gap-6)   — section gaps
+Section:    32px (gap-8)   — major sections
+Page:       48px (gap-12)  — page sections
+
+BORDER RADIUS
+──────────────────────────────────────────
+sm:    3px    — small badges, tags
+md:    6px    — inputs, buttons
+lg:    9px    — small cards, dropdowns
+xl:    16px   — standard cards (ADD THIS)
+2xl:   24px   — hero images only
+
+ELEVATION (hover/active system)
+──────────────────────────────────────────
+Level 1:   rgba(255,255,255, 0.04)  — hover
+Level 2:   rgba(255,255,255, 0.09)  — active/toggle
+
+SHADOWS (dark mode)
+──────────────────────────────────────────
+2xs → 2xl progressive scale
+Dark mode uses 2-3x higher alpha values
+
+ANIMATION
+──────────────────────────────────────────
+Duration Fast:    150ms   — hover states
+Duration Normal:  200ms   — page transitions, fades
+Duration Slow:    300ms   — modals, complex panels
+Easing Enter:     cubic-bezier(0.16, 1, 0.3, 1)
+Easing Exit:      cubic-bezier(0.4, 0, 0.2, 1)
+Stagger:          50ms between items
+
+BRAND GRADIENTS (by section)
+──────────────────────────────────────────
+Landing:   Red → Warm Amber blobs
+Store:     Red → Yellow gradient title
+Music:     Blue → Navy gradient
+Projects:  Green → Teal gradient
+Services:  Minimal (no gradient hero)
+
+STATUS COLORS (RGB, non-token)
+──────────────────────────────────────────
+Online:    rgb(34 197 94)    — green
+Away:      rgb(245 158 11)   — amber
+Busy:      rgb(239 68 68)    — red
+Offline:   rgb(156 163 175)  — gray
+```
+
+---
+
+### Design System Consistency
+
+> File: `design-system-consistency.md`
+
+# Design System Consistency
+
+## What & Why
+The design system has several inconsistencies: border-radius varies between 9px (Tailwind config) and 16-24px (hardcoded on marketing pages), spacing rhythm isn't enforced, there's no shared EmptyState component, the 404 page is generic, and chart colors lack semantic naming. These fixes will unify the visual language across the platform.
+
+## Done looks like
+- Tailwind config includes `xl: 1rem` (16px) border-radius token; marketing page cards standardized to `rounded-xl`
+- A shared `<EmptyState>` component exists with icon, title, description, and optional action button — used consistently across pages with empty data
+- 404 page is fully branded: dark background, gradient "404" text, "Lost in the system" subtitle, "Return to base" red CTA button, matching the SEVCO cyber-tech aesthetic
+- Chart semantic tokens added: `--chart-success`, `--chart-warning`, `--chart-danger` in both light and dark mode
+- Toast system enhanced with variant-colored left borders: green for success, red for error, yellow for warning
+- Images across the platform use `loading="lazy"` for performance
+
+## Out of scope
+- Replacing all 650+ rounded-* instances (only standardize the high-impact marketing page cards and new components)
+- Full spacing audit of every component (establish the scale, document it, apply to new code)
+- Image format optimization (WebP, srcset — requires build pipeline changes)
+
+## Tasks
+1. **Add `rounded-xl` token** — Add `xl: "1rem"` to borderRadius in tailwind.config.ts. Update marketing page cards (landing platform grid, store category cards, music album cards, project cards) from `rounded-2xl`/`rounded-3xl` to `rounded-xl` for consistency.
+2. **Create shared EmptyState component** — Build a reusable `<EmptyState icon={LucideIcon} title={string} description={string} action?={ReactNode}>` component. Replace ad-hoc empty states in news, gallery, messages, hosting, and search pages.
+3. **Branded 404 page** — Redesign not-found.tsx with the SEVCO dark aesthetic: near-black background, large gradient "404" text (blue/red), descriptive subtitle, "Return Home" red button, and the same animated blob background from the landing page.
+4. **Semantic chart tokens** — Add `--chart-success`, `--chart-warning`, `--chart-danger` CSS variables in both `:root` and `.dark` blocks. Map them in the Tailwind config chart colors object.
+5. **Toast variants** — Update the toast component to accept a `variant` prop (success, error, warning, info). Add a 3px left border colored by variant (green, red, yellow, blue).
+6. **Lazy loading images** — Add `loading="lazy"` to `<img>` tags across product cards, article cards, gallery items, and hero images. Exclude above-the-fold hero images.
+
+## Relevant files
+- `tailwind.config.ts`
+- `client/src/index.css`
+- `client/src/pages/not-found.tsx`
+- `client/src/pages/landing.tsx`
+- `client/src/pages/store-page.tsx`
+- `client/src/pages/gallery-page.tsx`
+- `client/src/pages/news-page.tsx`
+- `client/src/pages/messages-page.tsx`
+- `client/src/components/ui/toast.tsx`
+- `client/src/components/ui/toaster.tsx`
+- `client/src/components/news-article-card.tsx`
+
+---
+
+### Fix Inbound Email Body & Attachments
+
+> File: `email-body-fix.md`
+
+# Fix Inbound Email Body & Attachments
+
+## What & Why
+
+Resend's `email.received` webhook only sends metadata (email_id, from, to, subject) — it does NOT include the email body (`html`/`text`) or attachment content. The Resend API also returns 404 for inbound email retrieval (`GET /emails/:id` is outbound-only). This means every received email shows "(empty message)" in the reading pane, and attachments show 0 B with no download link.
+
+The fix requires switching to Resend's **Inbound Email Routing** feature. When an Inbound Route is configured in Resend's dashboard, Resend POSTs the full email content (html, text, and base64-encoded attachments) directly to the endpoint — this is a different, richer payload than the webhook notification.
+
+If the Inbound Route payload still lacks body content, fall back to parsing the raw MIME payload using the `mailparser` library, which can extract HTML, text, and inline/attached images from the raw email data.
+
+## Done looks like
+
+- Inbound emails display their full text and HTML body content in the reading pane (no more "(empty message)")
+- Inline images from emails are visible in the email body
+- Attachments show correct file sizes and are downloadable
+- Existing webhook security (Svix signature verification) continues to work for non-inbound-route webhooks
+- The inbound route endpoint gracefully handles both the old webhook format and the new inbound route format
+
+## Out of scope
+
+- Outbound email (sending) changes
+- Email threading / conversation view
+- Draft auto-save
+
+## Tasks
+
+1. **Add inbound route endpoint** — Create a new POST endpoint `/api/email/inbound-route` (or update the existing `/api/email/inbound`) that accepts Resend's Inbound Route payload format, which includes full html, text, and attachment data. Parse sender, recipients, subject, html body, text body, and attachments from the richer payload.
+
+2. **Store attachment content** — When the inbound route payload includes attachment data (base64-encoded content), upload it to Supabase Storage and store the public URL in the email attachments array so attachments are downloadable.
+
+3. **Fix email body display** — Update the email reading pane so it renders the HTML body when available (already working via `safeHtml`), and removes the misleading "(empty message)" fallback when there is content. Ensure inline images (CID references) are resolved to their stored URLs.
+
+4. **Backfill guidance** — Add a startup log message noting which emails have empty bodies so the admin knows which historical emails were affected by the old webhook-only approach.
+
+5. **Deploy and configure** — After deploying, the admin must configure an Inbound Route in Resend's dashboard (Settings → Inbound) pointing the sevco.us domain to the production `/api/email/inbound` endpoint URL.
+
+## Relevant files
+
+- `server/email.ts:128-202`
+- `server/routes.ts`
+- `client/src/components/email-read-view.tsx:195-234`
+- `server/emailClient.ts`
+- `shared/schema.ts`
+- `server/storage.ts`
+
+---
+
+### Fix Email Body via Resend Receiving API
+
+> File: `email-fetch-body-via-receiving-api.md`
+
+# Fix Email Body via Resend Receiving API
+
+## What & Why
+
+Resend's `email.received` webhook intentionally sends only metadata (email_id, from, to, subject) — not the email body or attachments. Per the official Resend documentation, after receiving the webhook you must call:
+- `resend.emails.receiving.get(email_id)` — returns full html and text body
+- `resend.emails.receiving.attachments.list({ emailId })` — returns attachment metadata with download URLs
+
+The current code tries to read body content directly from the webhook payload (which is always empty) and has a MIME fallback that never triggers. The fix is to add these two API calls after receiving the webhook notification.
+
+## Done looks like
+
+- Inbound emails display their full HTML/text body in the reading pane (no more "(empty message)")
+- Inline images and attachments are visible and downloadable
+- The existing webhook Svix signature verification continues to work
+- The misleading "Inbound Route" setup instructions are removed from startup since they're not needed
+
+## Out of scope
+
+- Email threading / conversation view
+- Outbound email changes
+- Draft auto-save
+
+## Tasks
+
+1. **Add Resend Receiving API calls to processInboundEmail** — After extracting the email_id from the webhook payload, call `resend.emails.receiving.get(email_id)` to fetch html and text body, and `resend.emails.receiving.attachments.list({ emailId })` to get attachments with download URLs. Download each attachment, base64 encode it, and upload to Supabase Storage. Use the fetched body content instead of the empty webhook fields.
+
+2. **Remove Inbound Route setup code** — Remove the `setupInboundRoute()` function from `server/emailClient.ts` and its call from `server/index.ts` since it's not needed — the official approach uses the webhook + receiving API, not a separate inbound route.
+
+3. **Keep MIME fallback as safety net** — The existing `mailparser` MIME fallback should remain as a safety net but only trigger if the Receiving API call fails.
+
+4. **Verify webhook signature approach matches docs** — The official docs show using `resend.webhooks.verify()` from the SDK instead of manual Svix HMAC. Consider switching to the SDK method for cleaner verification.
+
+## Relevant files
+
+- `server/email.ts:157-270`
+- `server/emailClient.ts:206-232`
+- `server/emailClient.ts:67-71`
+- `server/routes.ts:5043-5120`
+- `server/index.ts:16,194`
+- `client/src/components/email-read-view.tsx:195-234`
+
+---
+
+### Fix X Feed: Broken Handles + 400 Search Errors
+
+> File: `fix-x-feed-errors.md`
+
+# Fix X Feed: Broken Handles + 400 Search Errors
+
+## What & Why
+
+Three interconnected bugs are causing the X feed to return no posts anywhere on the platform.
+
+**Bug 1 — Wrong social handles stored in platform settings:**  
+`social.x.handles` is set to `"sevco,sevelovesyou"`. The handle `sevco` does not exist on X. The handle `sevelovesyou` is **suspended** on X (confirmed by X API error response in logs). The correct handle for the home page social feed is `sevelovesu` (which matches the stored social link `https://x.com/sevelovesu`). This causes `/api/social/x/feed` to always return an empty array.
+
+**Bug 2 — Category name mismatch causes invalid X search query:**  
+`getCategoryXQuery()` in `server/x-api.ts` looks up the category name in a hardcoded `CATEGORY_QUERIES` map using `categoryName.toLowerCase()`. The DB category is named `"Music & Entertainment"`, which normalizes to `"music & entertainment"` — a key that doesn't exist in the map (which only has `"music"`). The function then falls back to wrapping the DB's raw search query `"SEVCO music OR music industry"` directly as an X API query. This query hits the X Recent Search endpoint and returns a `400 Bad Request` because it's not valid X query syntax. The same issue would occur for any category name that doesn't exactly match a map key.
+
+**Bug 3 — 400 errors are logged without the response body:**  
+When X returns a 400, the code only logs the HTTP status line (`400 Bad Request`), not the JSON error body X provides. This hides the actual reason for failures.
+
+## Done looks like
+
+- The home page "Live from X" sidebar shows real posts from `@sevelovesu`
+- The `/api/news/x-feed` endpoint stops logging `400 Bad Request` and returns X posts for all news categories
+- When X search does fail, the server logs include the full error body from X so the root cause is visible
+- Category name matching is resilient to special characters, ampersands, and multi-word names (e.g. "Music & Entertainment" → uses the "music" query)
+
+## Out of scope
+
+- Changing which X handles are displayed — just fix the stored data and query logic
+- X API tier upgrades or streaming
+
+## Tasks
+
+1. **Fix stored `social.x.handles` setting:** Add a startup migration in `server/index.ts` that updates the `platform_settings` row for key `social.x.handles` — but only if its current value contains `sevelovesyou` — to `sevelovesu`. This is a one-time data correction. Also update any `social.x.handles` default values in CMD settings UI to show `sevelovesu`.
+
+2. **Fix `getCategoryXQuery` category name matching:** Update the key lookup to normalize the category name more aggressively before checking `CATEGORY_QUERIES` — strip everything except letters (remove `&`, spaces, dashes, etc.), then check if any map key is contained within the normalized name (e.g. `"musicentertainment".includes("music")` → true). Fall back to the existing behavior only if no map key matches.
+
+3. **Log X API error response body:** In `searchTweets()` and `fetchUserTweets()` in `server/x-api.ts`, when the response is not OK, parse and log the response JSON body (not just status text) so the actual X error message appears in logs.
+
+4. **Validate fallback queries before sending to X:** In `getCategoryXQuery()`, if the fallback query is a plain natural-language string (no `#`, `from:`, `OR` operators), wrap individual words in the query as proper X search terms — or more simply, when no CATEGORY_QUERIES match is found, default to a broad safe query using the category name as a hashtag (e.g. `#music -is:retweet lang:en`) rather than passing the raw RSS search string to X.
+
+## Relevant files
+
+- `server/x-api.ts:16-40` (CATEGORY_QUERIES map + getCategoryXQuery)
+- `server/x-api.ts:200-220` (searchTweets error handling)
+- `server/x-api.ts:110-120` (fetchUserTweets error handling)
+- `server/index.ts` (startup migrations)
+- `server/routes.ts:5415-5425` (social x feed route)
+
+---
+
+### Grok-Powered News Page Upgrade
+
+> File: `grok-news-page.md`
+
+# Grok-Powered News Page Upgrade
+
+## What & Why
+Transform the public `/news` page into a premium, AI-powered news experience using xAI Grok capabilities. The page should showcase Grok's tool calling (web_search, x_search), streaming responses, Grok Imagine image generation, and structured outputs — adapted to the existing React + Vite + Express stack (not Next.js). All xAI API calls go through Express server routes (never expose keys client-side). Features are gated by the CMD AI Settings toggles from the companion task.
+
+## Done looks like
+- **Hero section** displays the top trending story with a large Grok-generated image (via Grok Imagine), headline, AI summary, and category tag
+- **News grid** shows article cards with: headline, Grok-generated 2-line summary, AI-generated thumbnail (or source image fallback), source, timestamp, category badge, engagement stats
+- **Sidebar** includes:
+  - "Trending on X" panel showing live X search results with brief Grok commentary
+  - Quick category filter buttons
+  - "Ask Grok" mini-chat input where users can ask natural language questions about current news (streams responses)
+- **Article detail modal** (click any card) shows:
+  - Full Grok-generated deep summary with structured key insights (bullet points)
+  - Related X posts (via x_search tool call)
+  - "Generate custom illustration" button (Grok Imagine on-demand)
+  - "Ask Grok about this story" streaming chat
+- **Global search bar** accepts natural language queries ("What's happening with AI regulation?") — Grok uses tool calling to search web + X and returns curated results
+- **"AI Daily Briefing" floating button** generates a beautiful, structured daily newsletter-style summary using Grok reasoning + tool calling, presented in a modal
+- All AI features respect CMD toggle settings (disabled features hide their UI)
+- Excellent loading states with skeletons, streaming text animation, and error handling
+- Mobile responsive with condensed layout
+- SEO metadata and Open Graph tags for the news page
+
+## Out of scope
+- Vision capabilities (analyzing uploaded images)
+- User accounts/auth changes
+- Grok agent memory/conversation history persistence
+
+## Tasks
+1. **Grok server integration layer** — Create a dedicated `server/grok-news.ts` module with functions for: summarizeArticle (streaming), generateNewsImage (Grok Imagine), searchNews (web_search + x_search tool calling), generateDailyBriefing, and askGrokAboutArticle. All functions check CMD AI settings before executing. Use structured JSON output mode for consistent response shapes.
+2. **Hero section with AI image** — Redesign the top of the news page with a full-width hero featuring the top story. On page load, fetch the top trending article and display its Grok-generated image (cached), headline, and AI summary.
+3. **Enhanced article cards** — Update news-article-card.tsx to display AI-generated thumbnails (with graceful fallback to source images), short AI summaries, and engagement metrics.
+4. **Article detail modal** — Build a rich modal that opens on card click showing: full AI summary with key insights bullets, related X posts panel, "Generate illustration" button, and a streaming "Ask Grok" chat about the article.
+5. **Sidebar: Trending on X + Ask Grok chat** — Add a sidebar panel with live trending X results (Grok commentary) and a mini-chat input for natural language news queries with streaming responses.
+6. **Natural language search** — Upgrade the search bar to send queries to Grok with web_search + x_search tools, returning curated article results with AI-generated summaries.
+7. **AI Daily Briefing** — Add a floating action button that triggers Grok to generate a comprehensive daily news briefing using tool calling, displayed in a beautifully formatted modal with sections by category.
+8. **Settings-gated UI** — Wire all AI features to check the CMD news AI settings endpoint, hiding disabled features and showing appropriate fallbacks.
+9. **Loading states and polish** — Add skeleton loaders for AI content, streaming text animation for Grok responses, error boundaries for failed AI calls, and mobile-responsive layout adjustments.
+
+## Relevant files
+- `client/src/pages/news-page.tsx`
+- `client/src/components/news-article-card.tsx`
+- `client/src/components/news-bento-grid.tsx`
+- `client/src/components/news-editorial.tsx`
+- `server/routes.ts:4580-4720`
+- `server/x-api.ts`
+- `server/news.ts`
+- `server/index.ts`
+- `shared/schema.ts`
+
+---
+
+### Hide Tools Dropdown for Signed-Out Users
+
+> File: `hide-tools-dropdown-signed-out.md`
+
+# Hide Tools Dropdown for Signed-Out Users
+
+## What & Why
+The "Tools" nav item (desktop dropdown + mobile collapsible) is currently visible to users who are not signed in. Since all items inside it require authentication, the button should simply not appear for signed-out visitors.
+
+## Done looks like
+- Signed-out users do not see a "Tools" button in the desktop nav bar
+- Signed-out users do not see a "Tools" entry in the mobile drawer
+- Signed-in users continue to see the Tools dropdown exactly as before
+
+## Out of scope
+- Changes to any other nav items
+- Changes to what items appear inside the Tools dropdown for specific roles
+
+## Tasks
+1. In the desktop nav, wrap `<ToolsDropdown>` so it only renders when a user is signed in.
+2. In the mobile drawer, wrap the entire Tools `<Collapsible>` block so it only renders when a user is signed in.
+
+## Relevant files
+- `client/src/components/platform-header.tsx:734-741`
+- `client/src/components/platform-header.tsx:1018-1050`
+
+---
+
+### Inbound Email Diagnostic Tool
+
+> File: `inbound-email-diagnostics.md`
+
+# Inbound Email Diagnostic Tool
+
+## What & Why
+Users at `@sevco.us` addresses (like `seve@sevco.us`) aren't receiving emails in their inbox. There's no easy way to tell whether the issue is a missing user, wrong role, misconfigured webhook secret, or something else. This adds an admin-only diagnostic panel to the Command Center settings page that surfaces exactly what's wrong and lets an admin simulate an inbound email to any `@sevco.us` address to confirm it works end-to-end.
+
+## Done looks like
+- In the Command Center settings page, there is a new "Inbound Email" section below the existing outbound email diagnostics panel
+- An admin can type a `@sevco.us` address (e.g. `seve@sevco.us`) and run a status check that reports:
+  - Whether the user account exists
+  - What their role is and whether it qualifies for inbound email (client, partner, staff, executive, or admin)
+  - Whether the `RESEND_WEBHOOK_SECRET` environment variable is configured
+- An admin can click "Simulate Inbound Email" to inject a test email directly into that user's inbox, bypassing the webhook entirely
+- The test email shows up in the user's Messages inbox immediately if everything is configured correctly
+- Clear pass/fail indicators (green checkmarks and red X marks) are shown for each status item
+
+## Out of scope
+- Fixing DNS/MX records or Resend dashboard configuration (those are external)
+- Any changes to how real inbound emails are received or processed
+- Outbound email diagnostics (already exists)
+
+## Tasks
+1. **Backend status endpoint** — Add `GET /api/admin/inbound-email-status?address=seve@sevco.us` that looks up the user by the username portion, checks their role against the client+ list, and reports whether `RESEND_WEBHOOK_SECRET` is set. Returns a structured JSON response with each check as a pass/fail field.
+
+2. **Backend simulate endpoint** — Add `POST /api/admin/inbound-email-simulate` that accepts a `@sevco.us` address and calls `processInboundEmail` directly with a synthetic test payload (subject: "Inbound Email Test", body with a timestamp). Admin-only, no webhook signature required.
+
+3. **Frontend diagnostic UI** — Add an "Inbound Email" subsection inside the existing `EmailDiagnosticsPanel` in `command-settings.tsx` with an address input, a "Check Status" button showing per-item pass/fail badges, and a "Simulate Inbound Email" button. Match the style of the existing outbound test panel.
+
+## Relevant files
+- `server/email.ts`
+- `server/routes.ts:4957-4993`
+- `client/src/pages/command-settings.tsx:617-700`
+
+---
+
+### Fix Inbox: Svix Secret Decoding + Refresh Button
+
+> File: `inbox-fix-and-refresh.md`
+
+# Fix Inbox: Svix Secret Decoding + Refresh Button
+
+## What & Why
+Two related inbox issues:
+
+**1. Inbound emails never arrive (signature rejection)**
+The `RESEND_WEBHOOK_SECRET` supplied by Resend is a Svix-format key with a `whsec_` prefix and a base64-encoded body. The current `verifyResendWebhookSignature` function passes the raw secret string directly as the HMAC key, but Svix signing requires stripping `whsec_` and then base64-decoding the remainder before using it as the HMAC key. Every inbound email is therefore rejected with an invalid-signature warning and never stored.
+
+**2. No way to manually refresh the inbox**
+The inbox has a 30-second auto-refresh but no manual refresh button. Users have no way to immediately check for new mail without waiting.
+
+## Done looks like
+- Emails sent to any `user@sevco.us` address arrive in the recipient's Inbox within seconds
+- A refresh icon button appears in the Inbox toolbar; clicking it immediately fetches new messages and folder counts
+- The refresh button shows a spinning state while loading
+
+## Out of scope
+- Any changes to the MX record or Resend dashboard configuration (already done)
+- Redesigning the messages page layout
+
+## Tasks
+1. **Fix webhook secret decoding** — In `verifyResendWebhookSignature`, strip the `whsec_` prefix from the secret and base64-decode it before passing it as the HMAC key, matching the actual Svix signing spec. Add a log line on successful signature verification so it's easy to confirm in production.
+
+2. **Add Refresh button to inbox toolbar** — In the messages page, add a `RefreshCw` icon button next to the folder/compose toolbar. Wire it to the existing `refetchEmails` and `refetchCounts` functions. Show a spinning animation (via `animate-spin`) while either query is loading.
+
+## Relevant files
+- `server/email.ts:195-243`
+- `client/src/pages/messages-page.tsx:149-165,510-530`
+
+---
+
+### Marketing Page Upgrades
+
+> File: `marketing-page-upgrades.md`
+
+# Marketing Page Upgrades
+
+## What & Why
+Marketing pages lack social proof (no testimonials, client logos, or trust indicators), hero CTAs don't have clear primary/secondary visual hierarchy, product images can clash with the dark theme, and there are no urgency/scarcity signals on the store. These are conversion-impacting gaps for a platform selling services and products.
+
+## Done looks like
+- Services page has a social proof section below the hero: "Trusted by X+ clients" with placeholder logo spots (admin-manageable via platform settings)
+- All hero sections have clear CTA hierarchy: primary button is filled red (`bg-destructive`), secondary is ghost/outline with subtle white border
+- Store product cards wrap images in dark containers (`bg-muted/50 rounded-lg p-4`) so white-background product images don't clash with the dark theme
+- Store product cards show stock indicator badges ("In Stock", "Low Stock", "Sold Out") when quantity data is available
+- Services page categories have accent-colored left borders for visual grouping
+- Landing page hero CTAs differentiated: "Explore" gets the red primary treatment, secondary CTA gets outline
+
+## Out of scope
+- Pricing tables (requires business decision on pricing model)
+- Sale/discount badge system
+- A/B testing infrastructure
+- Testimonial CRUD in CMD (use static placeholder data first)
+
+## Tasks
+1. **Social proof section** — Add a "Trusted by teams and creators" strip below the Services page hero with placeholder company/project logos (or text badges) in a horizontal row with `opacity-60` treatment. Make content admin-editable via a platform setting.
+2. **CTA hierarchy fix** — Audit all hero sections (landing, store, music, projects, services) and ensure primary CTA uses `variant="destructive"` (filled red) and secondary uses `variant="outline"` with `border-white/20` styling.
+3. **Product image containers** — Wrap store product card images in a `bg-muted/50 rounded-lg` container to create a dark-mode-friendly frame. Ensure aspect ratios remain consistent.
+4. **Stock indicator badges** — Add "In Stock" (green), "Low Stock" (amber), "Sold Out" (red) badges to product cards based on inventory quantity. Show on hover or always for low/out-of-stock items.
+5. **Services category borders** — Add accent-colored left borders (3px) to service category sections using each category's assigned color.
+
+## Relevant files
+- `client/src/pages/services-listing.tsx`
+- `client/src/pages/landing.tsx`
+- `client/src/pages/store-page.tsx`
+- `client/src/pages/music-page.tsx`
+- `client/src/pages/projects-page.tsx`
+
+---
+
+### Navigation & Sidebar Enhancements
+
+> File: `navigation-sidebar-enhancements.md`
+
+# Navigation & Sidebar Enhancements
+
+## What & Why
+The navigation system needs refinements: CMD sidebar active items lack a left-edge accent bar for quick scanning, the top nav has no tablet-specific collapse behavior (7 items can get cramped at 768-1024px), and deep CMD sub-sections like Finance and AI Agents have nested pages not reflected in the sidebar structure.
+
+## Done looks like
+- Active sidebar items in both Wiki and CMD sidebars have a 3px left-edge accent bar (red for CMD, blue for Wiki) in addition to the background highlight
+- At the tablet breakpoint (768-1024px), the top navigation collapses to show only the logo, search, and a hamburger menu that reveals all nav items in a slide-over panel. The CMD button remains always visible.
+- CMD sidebar has collapsible sub-groups under "Operations" and "Content" sections with chevron expand indicators for deep pages (Finance sub-tabs, News, AI Agents)
+- Dropdown menus support arrow-key navigation between items for keyboard accessibility
+
+## Out of scope
+- Mega-menu redesigns
+- Navigation search/command palette (already exists as a separate feature)
+- Mobile-specific navigation overhaul (mobile sheet sidebar already works)
+
+## Tasks
+1. **Sidebar active indicator bar** — Add a `before:` pseudo-element to active sidebar items: `before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[3px] before:rounded-full` with `before:bg-destructive` for CMD and `before:bg-primary` for Wiki.
+2. **Tablet nav collapse** — Add a breakpoint between `md` and `lg` (or use `lg:hidden`) to collapse the top nav items into a hamburger menu at 768-1024px. Keep the CMD button, search, and user avatar visible. The hamburger opens the same Sheet component used on mobile.
+3. **CMD sidebar sub-groups** — Add collapsible `Collapsible` components for Operations sub-items (Finance tabs, Support) and Content sub-items (News, Gallery, Media). Use a small chevron icon that rotates on expand.
+4. **Arrow-key navigation in dropdowns** — Verify that Radix DropdownMenu already handles arrow keys (it should natively). If the custom dropdown components bypass Radix, add roving tabindex support.
+
+## Relevant files
+- `client/src/components/command-sidebar.tsx`
+- `client/src/components/app-sidebar.tsx`
+- `client/src/components/platform-header.tsx`
+- `client/src/components/ui/sidebar.tsx`
+
+---
+
+### News: AI Summaries + Enhanced Wikify 💫
+
+> File: `news-ai-summaries-wikify.md`
+
+# News: AI Summaries + Enhanced Wikify 💫
+
+## What & Why
+
+Two AI-powered upgrades that make the SEVCO news experience genuinely differentiated from generic news aggregators:
+
+**1. AI Article Summaries (powered by Grok via OpenRouter)**  
+Every news article gets an AI-generated 2–3 sentence summary. Instead of showing the source's truncated description (which is often just SEO metadata), Grok reads the article's key content and writes a clear, editorial-style summary. These are cached by article URL so repeat loads don't re-call the API. Summaries appear in an expandable panel on article cards (click "Summary" toggle) or on hover in a tooltip for compact cards.
+
+**2. Enhanced Wikify 💫 (AI-powered draft generation)**  
+The existing Wikify button opens a dialog pre-filled with just the article title + description. This upgrade makes Grok actually read the article (via its URL) and write a complete wiki article draft in markdown — with a proper intro, structured sections, a "Key Points" list, and a sources section. The staff member reviews and edits before submitting. This turns a 10-minute manual wiki-writing task into a 30-second review task.
+
+**Note:** The Wikify button already exists on all news article cards for staff+ users. This task upgrades the quality of what that button produces.
+
+## Done looks like
+
+- On every article card (medium and large variants), a "Summary ✦" expand toggle appears below the description. Clicking it fetches and shows the Grok-generated summary (with a spinner while loading, then a smooth expand animation).
+- The summary API is cached — the same article URL always returns the same summary instantly after the first load.
+- The Wikify dialog shows a "Generate with AI 🤖" button at the top. Clicking it calls the backend, which fetches the article HTML, passes it to Grok, and returns a structured wiki markdown draft. The dialog pre-fills with this draft. Staff can edit before submitting.
+- If Grok is unavailable (no key, rate limit), the dialog falls back gracefully to the existing manual pre-fill behavior.
+
+## Out of scope
+
+- Wikify for social feed posts (this task is news articles only — social Wikify is a different component)
+- Changing who can see the Wikify button (still staff+ only)
+- Persistent DB storage of summaries (in-memory cache per server instance is sufficient)
+
+## Tasks
+
+1. **Summary API endpoint**: Add `GET /api/news/summary?url={encodedUrl}` to `server/routes.ts`. Backend fetches the article page HTML (using `fetch`), extracts body text (strip HTML tags), trims to ~3000 chars, then calls Grok via OpenRouter (`openai` compat, model `x-ai/grok-3-mini`) with a prompt: "Summarize this article in 2-3 sentences in an editorial style." Cache responses in a server-side `Map<url, summary>` (TTL: 1 hour). Return `{ summary: string }`.
+
+2. **AI Wikify endpoint**: Add `POST /api/news/wikify-ai` to `server/routes.ts`. Accepts `{ url, title }`. Fetches and parses the article HTML, passes cleaned text to Grok with a prompt instructing it to write a well-structured wiki article in markdown format (intro paragraph, ## Key Points bullet list, ## Background section, ## Sources section). Return `{ markdown: string, wikititle: string }`.
+
+3. **Summary UI on article cards**: In `client/src/components/news-article-card.tsx`, add a "Summary ✦" toggle button to `medium` and `large` variants. On first click, call `/api/news/summary?url=...` using React Query. Show a spinner in place of summary text while loading. Once loaded, animate the summary in with a smooth `max-h` transition. A small "✦ AI" badge marks it as AI-generated.
+
+4. **Enhanced Wikify dialog**: In `client/src/components/wikify-dialog.tsx`, add a "✨ Generate with AI" button at the top of the form. When clicked, it calls `POST /api/news/wikify-ai` (mutation via `apiRequest`), shows a skeleton loader while Grok writes the draft, then populates the title and content fields with the AI-generated markdown. Include a subtle "AI-generated draft — please review" notice. Preserve the existing manual mode for cases where the AI fails.
+
+5. **OpenRouter integration**: Re-use the existing `OPENROUTER_API_KEY` environment variable (already set). Use the `fetch`-based OpenAI-compat call pattern already established in the codebase for news image generation (`server/routes.ts`). Model: `x-ai/grok-3-mini` for summaries (fast + cheap), `x-ai/grok-3` for wikify drafts (needs more depth).
+
+## Relevant files
+
+- `client/src/components/news-article-card.tsx`
+- `client/src/components/wikify-dialog.tsx`
+- `server/routes.ts` (news routes and existing AI image generation pattern to re-use)
+- `OPENROUTER_API_KEY` secret (already configured)
+
+---
+
+### Fix News Feed: Restart + Error Resilience
+
+> File: `news-feed-fix.md`
+
+# Fix News Feed: Restart + Error Resilience
+
+## What & Why
+The news editorial section ("What's happening") on the home page shows "No articles available right now." Two contributing causes:
+
+1. **App crash (immediate)**: Recent task merges left a port conflict (EADDRINUSE 5000). The workflow is currently failed. Restarting it is the first priority.
+
+2. **Error resilience gap**: The `/api/news/x-feed` route wraps everything in a single try-catch. If `getPlatformSettings()` or `fetchCategoryNewsFromX()` throws, the whole response becomes `{ message: "..." }`. The client uses `data = []` as the default, so any 500 silently shows "No articles." The route should be hardened to always return a valid array even if parts of it fail.
+
+## Done looks like
+- App is running (workflow green)
+- The news editorial section on the home page shows articles from RSS/Google News
+- Even if X API fails or platform settings error occurs, RSS articles still appear
+- The browser console shows no unhandled errors on the news route
+
+## Out of scope
+- Adding new news categories
+- Changing the visual layout of the news section
+
+## Tasks
+1. **Restart the app** — Restart the `Start application` workflow. Confirm it comes up clean with no port conflicts.
+
+2. **Harden the news x-feed route** — In the `/api/news/x-feed` handler, wrap `getPlatformSettings()` and `fetchCategoryNewsFromX()` in individual try-catches so failures in one source (e.g. X API, DB settings read) don't prevent RSS articles from being returned. The response should always be an array, never a 500 in normal operation.
+
+3. **Verify news feed loads** — After restart, confirm the home page news section shows articles for each configured category.
+
+## Relevant files
+- `server/routes.ts:4567-4687`
+- `client/src/components/news-editorial.tsx:367-395`
+- `client/src/pages/landing.tsx:199-259`
+
+---
+
+### News Quality, Layout & Home Section Fixes
+
+> File: `news-fixes-home-sources.md`
+
+# News Quality, Layout & Home Section Fixes
+
+## What & Why
+Three targeted fixes after the News page launch:
+1. **Home page news section** — the existing `NewsEditorial` on the landing page needs to be more condensed (fewer articles, tighter layout) with a prominent "View All News" button linking to `/news`
+2. **News page layout** — centering issues from underfilled `grid-cols-6` grids; "small" article cards are too tiny (no description, `text-xs` type)
+3. **Source quality** — Articles are dominated by Lokmattimes and similar low-quality foreign syndicators. No domain/source blocklist exists. Need to filter these out server-side and expose the blocklist as an admin control in CMD News.
+
+## Done looks like
+- **Home page news section**: Shows max 4–6 articles in a 2-column editorial layout (large hero + secondary cards), no swimlanes or sidebar, with a visible "View All News →" button at the bottom that links to `/news`. Section title says "News & Now" and takes ≤ a screen's height.
+- **News page layout**: Grid sections use `grid-cols-2 md:grid-cols-3 lg:grid-cols-4` (not 6) so articles fill the space cleanly. "small" card variant shows at least 1 line of description and uses `text-sm` for titles. Overall page feels balanced and centered.
+- **Source quality**: A hardcoded `BLOCKED_SOURCES` set in `server/news.ts` filters out known spam/low-quality syndicators (lokmattimes, indiaglitz, masala, filmibeat, pinkvilla, dnaindia, etc.) by matching the article's `source` field. An admin-editable "Blocked Sources" textarea in CMD News → X Feed tab saves additional blocked source names to platform_settings and applies them at fetch time. Quality English-language sources appear consistently.
+
+## Out of scope
+- Replacing Google News RSS with a paid API (GNews API key config already exists in CMD)
+- News content moderation / AI filtering of article quality
+- User-level source preferences
+
+## Tasks
+1. **Server-side source blocklist** — Add a hardcoded `BLOCKED_SOURCES` Set of known low-quality publisher names to `server/news.ts`. Filter articles where the source name matches any blocked entry (case-insensitive, partial match). Also read `news.rss.blockedSources` from platform_settings and merge it into the filter at fetch time.
+2. **CMD News blocked sources UI** — Add a "Blocked Sources" textarea in the CMD News → X Feed tab (or a dedicated Sources sub-section) where admins can enter comma-separated source names to block. Save to `news.rss.blockedSources` platform setting. Existing blocked accounts list stays separate (that's for X handles).
+3. **News page grid layout fix** — Change `CategorySwimLane` grid from `lg:grid-cols-6` to `lg:grid-cols-4` and use `justify-start` on the grid so articles left-align cleanly instead of centering with gaps. Adjust bento grid to fill correctly with fewer items.
+4. **Small card size upgrade** — In `news-article-card.tsx`, increase the "small" variant: use `text-sm` for title (not `text-xs`), show 1-line description (`line-clamp-1`), and use a `16/9` aspect ratio image (not `4/3` which is too portrait). "compact" variant also gets a slightly larger title.
+5. **Home page news section condensed** — Update the `NewsEditorial` usage in `landing.tsx` to pass a `condensed` prop (or create a `NewsEditorialCondensed` wrapper) that: limits articles to 5, hides swimlanes, hides AI sidebar, and renders a "View All News →" button at the bottom linking to `/news`. The section stays within one viewport height.
+
+## Relevant files
+- `server/news.ts`
+- `server/routes.ts`
+- `client/src/pages/landing.tsx`
+- `client/src/components/news-editorial.tsx`
+- `client/src/pages/news-page.tsx`
+- `client/src/components/news-article-card.tsx`
+- `client/src/components/news-bento-grid.tsx`
+- `client/src/pages/command-news.tsx`
+
+---
+
+### News page enhancements & trending API
+
+> File: `news-page-enhancements.md`
+
+# News page enhancements & trending API
+
+## What & Why
+Add "News" to the SEVCO dropdown navigation, build two new trending API endpoints powered by X API + Grok AI enrichment, and update the news page layout with a trending topics sidebar and refined editorial card design.
+
+## Done looks like
+- "News" link appears in the SEVCO dropdown menu at `/news` with a Newspaper icon
+- `/api/trending-news` returns X trending stories enriched with Grok AI blurbs (2-sentence editorial + 1-sentence insight), cached 5 minutes in-memory
+- `/api/trending-topics` returns live trending topics from X API (WOEID 23424977 for US)
+- News page has a right sidebar showing "Trending Topics on X" pulled from `/api/trending-topics`
+- Each news card displays: thumbnail (or placeholder), headline, short AI summary (max 2 lines), category tag, timestamp, source, and an expandable "AI Insight" section powered by Grok
+- Hero section displays the #1 trending story with large image/background, headline, hook, and an "AI Insight" badge
+- Each article card has a "Wikify" button (using the existing wikify-dialog)
+- Layout: 3-4 column grid on desktop, 2 on tablet, 1 on mobile (responsive Tailwind grid)
+- Dark mode by default styling
+
+## Out of scope
+- Changes to the CMD news management page
+- Changes to RSS/GNews aggregation logic
+- User news preferences or bookmarks (already exist)
+- News AI sidebar "Ask Grok" feature (already exists)
+
+## Tasks
+1. Add "News" entry to the SEVCO `HomeDropdown` items array in `platform-header.tsx` with Newspaper icon, href `/news`, and description "Latest news & trends".
+2. Create `/api/trending-topics` route in `server/routes.ts` — call X API `GET https://api.x.com/2/trends/by/woeid/23424977` with Bearer token, return JSON. Add 5-minute in-memory cache.
+3. Create `/api/trending-news` route in `server/routes.ts` — call X API news search endpoint for trending topics, then for each story call xAI Grok (`https://api.x.ai/v1/chat/completions`, model `grok-3-mini`) with a neutral editorial blurb prompt. Cache full response 5 minutes. Return array of `{ id, headline, hook, summary, aiBlurb, aiInsight, timestamp, category, thumbnail }`.
+4. Add a `TrendingTopicsSidebar` component to the news page that fetches `/api/trending-topics` and renders a vertical list of trending topic names, each clickable to filter/search news by that topic.
+5. Update `NewsArticleCard` to include: category tag badge, source label, an "AI Insight" expand/collapse button that shows the Grok-generated insight text, and a "Wikify" button (using existing `WikifyDialog`).
+6. Update the news page hero section to integrate trending news data — show the #1 story from `/api/trending-news` with AI Insight badge displayed prominently.
+7. Refactor the news page main grid to use responsive Tailwind classes: `grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4` with the trending sidebar occupying the right column on desktop.
+
+## Relevant files
+- `client/src/components/platform-header.tsx:250-294`
+- `client/src/pages/news-page.tsx`
+- `client/src/components/news-article-card.tsx`
+- `client/src/components/wikify-dialog.tsx`
+- `server/routes.ts:4477-5462`
+- `server/x-api.ts`
+- `server/grok-news.ts`
+
+---
+
+### News Page UX Overhaul
+
+> File: `news-page-ux-overhaul.md`
+
+# News Page UX Overhaul
+
+## What & Why
+
+The `/news` page has solid bones but needs several UX improvements to compete with leading news aggregators (Flipboard, Google News, Apple News). This task adds the features that make the difference between a decent news page and one people return to daily.
+
+**Features being added:**
+- **Trending hashtag bar** — A horizontally-scrollable strip at the top showing the top hashtags extracted from recently fetched X posts
+- **Global search** — A search input that queries across all active news categories simultaneously
+- **Breaking news banner** — A red pinned strip showing the single highest-engagement article or X post from the last 2 hours
+- **Read time estimates** — Calculate and display estimated reading time ("~3 min") on all article cards
+- **Source logos/favicons** — Display site favicons or known-source logos (e.g., Verge, Billboard) beside the source name on cards
+- **Infinite scroll** — Category swimlanes auto-load more articles as the user scrolls instead of requiring "Load more" clicks
+- **Bookmarks / Read Later** — A bookmark icon on every article card. Saved articles persist to a new `user_news_bookmarks` DB table. A "Bookmarks" tab appears on `/news` for logged-in users.
+- **Category following** — Users can follow/unfollow news categories. Followed categories appear at the top of the swimlane stack (stored in `user_news_preferences` table).
+
+## Done looks like
+
+- Top of `/news` shows a horizontal scrollable strip of trending hashtags (e.g., "#AI", "#newmusic") with click-to-search functionality
+- A search bar near the top of `/news` allows searching across all categories; results appear inline below the search bar
+- A red "Breaking" banner at the very top of the page (above everything) shows the top story if there is one with high engagement in the last 2 hours
+- Every article card (all variants: large, medium, small, compact) shows "~X min read" and a favicon/logo for the source
+- Swimlanes auto-load when the user scrolls to the bottom of a lane
+- A bookmark icon (hollow → filled on hover/saved) appears on every card; clicking saves/unsaves the article
+- Logged-in users see a "Saved" tab in the category nav that shows their bookmarked articles
+- Category swimlane headers show a "Follow" button; followed categories float to the top of the page; the state persists across sessions
+
+## Out of scope
+
+- AI-generated summaries (separate task)
+- Per-category X query configuration (separate task)
+- Changes to the home page editorial section
+
+## Tasks
+
+1. **DB schema + migrations**: Add two new tables to `shared/schema.ts`:
+   - `user_news_bookmarks(id, userId, articleUrl, articleTitle, articleImage, articleSource, articleCategory, createdAt)`
+   - `user_news_preferences(id, userId, followedCategoryIds integer[], createdAt)`
+   Add `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` startup migrations in `server/index.ts`.
+
+2. **Bookmark API endpoints**: Add `GET /api/news/bookmarks`, `POST /api/news/bookmarks`, and `DELETE /api/news/bookmarks/:id` routes. Auth required.
+
+3. **Category following API**: Add `GET /api/news/preferences` and `PUT /api/news/preferences` (accepts `{ followedCategoryIds: number[] }`) routes. Auth required.
+
+4. **Trending hashtag bar**: In `news-page.tsx`, after fetching the primary category's X feed from `/api/news/x-feed`, extract hashtags from post text using regex (`/#\w+/g`), count occurrences, take top 15, and render them as a horizontally-scrollable `Badge` strip at the top of the page. Clicking a hashtag appends it to the global search.
+
+5. **Global news search**: Add a search input at the top of `/news`. On submit (or debounced typing), call `/api/news/feed?query={search}&limit=20` and display results in a full-width results panel above the normal swimlanes. Show a "Clear search" button.
+
+6. **Breaking news banner**: Add a new `/api/news/breaking` endpoint that returns the single highest-engagement item (likes+retweets for X posts, or newest for RSS) from the past 2 hours across all enabled categories. Render it as a pinned red strip at the very top of `/news` with a "BREAKING" badge, source, headline, and a "→" link.
+
+7. **Read time estimates**: In `news-article-card.tsx`, add a utility function `estimateReadTime(text)` = `Math.max(1, Math.ceil(wordCount / 200))`. Display as "~N min read" in a small muted badge on every card variant.
+
+8. **Source favicon**: In `news-article-card.tsx`, extract the domain from the article URL and render `<img src="https://www.google.com/s2/favicons?domain={domain}&sz=16" />` beside the source name.
+
+9. **Infinite scroll**: In `news-page.tsx`, replace the "Load more" button in `CategorySwimLane` with an IntersectionObserver sentinel div. When the sentinel enters the viewport, auto-increment the displayed count. Keep the existing manual fallback.
+
+10. **Bookmark + follow UI**: Add a bookmark `Heart`/`Bookmark` icon to every `NewsArticleCard` variant (top-right corner overlay). Wire to bookmark API. Add a "Follow / Following" toggle to each `CategorySwimLane` header. Show a "Saved" tab in the top category nav bar. Reorder swimlanes so followed categories appear first.
+
+## Relevant files
+
+- `client/src/pages/news-page.tsx`
+- `client/src/components/news-article-card.tsx`
+- `client/src/components/news-bento-grid.tsx`
+- `shared/schema.ts:870-882`
+- `server/routes.ts` (news routes section)
+- `server/storage.ts`
+- `server/index.ts` (startup migrations)
+
+---
+
+### Fix News Feed: X API Operator + Cache + App Restart
+
+> File: `news-x-fix.md`
+
+# Fix News Feed: X API Operator + Cache + App Restart
+
+## What & Why
+The "What's happening" news editorial section shows "No articles available right now" due to three layered problems:
+
+**1. Port conflict crash (EADDRINUSE)**
+The workflow is currently FAILED. Restart it first.
+
+**2. X API 400 Bad Request from `has:images` operator**
+When `imageMode = "images_only"` (the default platform setting), `getCategoryXQuery` appends `has:images min_faves:10` to every X API search query. The `has:images` operator is only available on the X API Pro/Elevated tier — the basic tier returns a 400 for it, silently killing all X post results.
+Fix: change `has:images` to `has:media` in `getCategoryXQuery`, which is supported on more X API tiers. `has:media` covers images, GIFs, and videos — still a useful signal and far more broadly compatible.
+
+**3. Silent error caching in news-editorial queryFn**
+The `fetch(...).then((r) => r.json())` call in the news editorial query doesn't check `r.ok`. If the server returns a 500 (or the server is temporarily down), the query resolves with an error object `{ message: "..." }` or throws. TanStack Query then caches this state for the 10-minute `staleTime`, so even when the server recovers, the component stays empty until the stale window expires.
+Fix: add `if (!r.ok) throw new Error(...)` before `.json()`, and drop `staleTime` from 10 minutes to 2 minutes so stale data refreshes more quickly.
+
+## Done looks like
+- App is running (workflow green, no port conflicts)
+- The "What's happening" section shows RSS news articles for each category
+- X posts appear when a valid `X_BEARER_TOKEN` is configured and the query doesn't use unsupported operators
+- Refreshing the page always fetches fresh news within 2 minutes
+
+## Out of scope
+- Upgrading the X API tier
+- Changing the `imageMode` platform default
+
+## Tasks
+1. **Restart the app** — Restart the `Start application` workflow and confirm it comes up clean.
+
+2. **Fix `has:images` → `has:media`** — In `getCategoryXQuery` in `server/x-api.ts`, change the `has:images` operator to `has:media`. This is a one-word change that removes the paid-tier restriction.
+
+3. **Fix news-editorial queryFn error handling** — In `client/src/components/news-editorial.tsx`, add `if (!r.ok) throw new Error(...)` to the articles `queryFn` before parsing JSON. Drop `staleTime` to 2 minutes (2 * 60 * 1000).
+
+4. **Verify** — Confirm news articles load on the home page for each active category.
+
+## Relevant files
+- `server/x-api.ts:27-35`
+- `client/src/components/news-editorial.tsx:367-375`
+
+---
+
+### News: Per-Category X Query + Handle Switching
+
+> File: `news-x-per-category-handles.md`
+
+# News: Per-Category X Query + Handle Switching
+
+## What & Why
+
+Two tightly-coupled improvements to the X integration in the news system:
+
+1. **Per-category X query**: The X search query for each news category is currently hardcoded in `server/x-api.ts` (the `CATEGORY_QUERIES` map). Admins cannot change the hashtags/handles for a category without code changes. Adding an optional `xQuery` column to `news_categories` lets admins configure exactly what X searches for per category — custom hashtags like `#sevco OR #sevelovesyou`, or specific handles like `from:pitchfork OR from:billboard`.
+
+2. **Handle switching**: On both the home page editorial X feed and the `/news` page, users should see a list of the X handles (or hashtag topics) that are contributing to the feed and be able to click one to filter the visible posts to just that source. Think of it like the category tab bar but for sources.
+
+## Done looks like
+
+- In CMD → News, each news category has a new optional "X Search Query" field below the existing "Search Query" field. When filled, the backend uses this custom query for X instead of the hardcoded defaults.
+- The CMD field shows placeholder text like `#music OR from:billboard OR from:pitchfork` with a tooltip explaining valid syntax.
+- On the home page editorial X sidebar and the `/news` X feed sections, extracted @handles appear as small clickable chips. Clicking a chip filters the visible X posts to only those from that handle. Clicking again deselects (shows all).
+- The existing X feed controls (trusted accounts, blocked accounts, min engagement, image mode, source type) continue to work.
+
+## Out of scope
+
+- Replacing the home page social feed (`social.x.handles`) — this task only touches the news editorial X feed
+- AI-generated summaries (separate task)
+- Bookmarks (separate task)
+
+## Tasks
+
+1. **Schema + migration**: Add an optional `xQuery text` column to the `news_categories` table. Add a startup migration `ALTER TABLE news_categories ADD COLUMN IF NOT EXISTS x_query TEXT` in `server/index.ts`. Update `shared/schema.ts` and storage interface accordingly.
+
+2. **Backend X query routing**: In `server/x-api.ts`, update `getCategoryXQuery()` to accept the category's `xQuery` from the database as the highest-priority source. If set, use it verbatim (still appending `-is:retweet lang:en` safety filters). Fall back to CATEGORY_QUERIES map, then to the category's general search query.
+
+3. **CMD per-category X Query field**: In `client/src/pages/command-news.tsx`, add an "X Search Query" text input to each category's edit form. Label it clearly, add a placeholder showing valid syntax, and save it to the new `xQuery` field via PATCH `/api/news/categories/:id`.
+
+4. **Handle extraction + chip UI**: In `client/src/components/news-editorial.tsx` (home) and `client/src/pages/news-page.tsx` (news page), extract unique `@handles` from fetched X post author fields. Render them as small clickable `Badge` chips (e.g., "@billboard", "@verge"). Store selected handle in local state. Filter displayed X posts client-side to those whose author matches. Include an "All" chip to reset.
+
+5. **Backend `/api/news/categories/:id` PATCH**: Ensure the existing PATCH route accepts and stores the new `xQuery` field.
+
+## Relevant files
+
+- `shared/schema.ts:870-882`
+- `server/x-api.ts:16-55`
+- `server/index.ts` (startup migrations section)
+- `server/routes.ts` (news categories CRUD, `/api/news/x-feed`)
+- `server/storage.ts`
+- `client/src/pages/command-news.tsx`
+- `client/src/components/news-editorial.tsx`
+- `client/src/pages/news-page.tsx`
+
+---
+
+### Bug Fixes 10 — Wiki Sidebar, CMD Search, Messages Chat Input, Mobile UI
+
+> File: `t100-bug-fixes-10.md`
+
+# Bug Fixes 10 — Wiki Sidebar, CMD Search, Messages Chat Input, Mobile UI
+
+## Fix 1: Wiki Sidebar — "SEVCO WIKI — Updated..." → "Wiki"
+
+`client/src/components/app-sidebar.tsx` line 121:
+```jsx
+SEVCO WIKI{lastUpdatedLabel ? ` — Updated ${lastUpdatedLabel}` : ""}
+```
+Change to just:
+```jsx
+Wiki
+```
+The planet icon is already shown beside it. The "Updated" timestamp clutters the header and causes overflow. Remove entirely.
+
+## Fix 2: Wiki Sidebar — "Encyclopedia for sevco.us" overhangs when minimized
+
+Line 289: `Encyclopedia for sevco.us` text appears in the sidebar footer/description area.
+When the sidebar is in icon-only (collapsed) mode, this text overhangs because it's not hidden.
+
+Fix: Wrap the text `<span>` with `group-data-[collapsible=icon]:hidden` class, same pattern used in other collapsed-state text throughout the sidebar.
+
+## Fix 3: Wiki Home Page — Title "SEVCO Wiki" → "Wiki"
+
+`client/src/pages/wiki-home.tsx` (and the route component wrapping it):
+- Line 50: `title="SEVCO Wiki — Knowledge Base"` → `title="Wiki — SEVCO"`
+- Line 57: `<h1>SEVCO Wiki</h1>` → `<h1>Wiki</h1>`
+- The subtitle below the h1: If it says "Knowledge base for sevco.us" or similar, change to a clean tagline. Since the user's intended subtitle was cut off in their message, remove the subtitle entirely (the title "Wiki" is self-explanatory in context).
+
+## Fix 4: CMD Settings Search — Doesn't Work Across Tabs
+
+**Root cause**: The `cardVisible()` function correctly hides/shows cards, but tabs still only show their own tab's content. When a user searches for "email" while on the Display tab, the email-related cards (which live in the Integrations tab) stay invisible — only the currently active tab's cards are visible at all.
+
+**Fix**: When `searchQuery` is non-empty, bypass the tab system entirely. Instead of rendering `<TabsContent>` only for the active tab, render ALL tab contents simultaneously as a flat stacked list, with `cardVisible()` filtering. Show a "Searching across all settings..." indicator below the search bar. When `searchQuery` is cleared, restore normal tab behavior.
+
+Implementation:
+```jsx
+{searchQuery ? (
+  // Flat "all results" mode — show all cards from all tabs, filtered
+  <div className="space-y-6">
+    <p className="text-xs text-muted-foreground">Showing results across all settings</p>
+    {/* All tab content rendered in one flat list */}
+    {displayTabCards}
+    {themeTabCards}
+    {navigationTabCards}
+    {analyticsTabCards}
+    {integrationsTabCards}
+    {advancedTabCards}
+  </div>
+) : (
+  // Normal tab behavior
+  <Tabs ...>...</Tabs>
+)}
+```
+
+If factoring all cards out into separate variables is too complex given the file size, an alternative approach: Keep the Tabs, but when `searchQuery` is non-empty, set all tabs' content as visible (use a state variable `activeTab` that becomes `"all"` when searching). Each `TabsContent` always renders its children (not conditionally hidden) when `activeTab === "all"`. A small visual divider labels each former-tab section.
+
+## Fix 5: Messages Page — Chat Channel Has No Input Box
+
+`client/src/pages/messages-page.tsx`: When `selectedChannel` is set (user clicked a channel in the sidebar), the right panel shows messages but there is no text input or send button to compose a new chat message.
+
+**Fix**: Add a chat compose bar at the bottom of the channel thread view:
+
+```jsx
+{selectedChannel && (
+  <div className="border-t p-3 flex gap-2">
+    <Input
+      placeholder={`Message #${selectedChannel.name}…`}
+      value={chatInput}
+      onChange={(e) => setChatInput(e.target.value)}
+      onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendChatMessage()}
+      data-testid="input-chat-message"
+    />
+    <Button onClick={handleSendChatMessage} disabled={!chatInput.trim() || sendingChat} size="icon">
+      <Send className="h-4 w-4" />
+    </Button>
+  </div>
+)}
+```
+
+Add state: `const [chatInput, setChatInput] = useState("")`
+Add state: `const [sendingChat, setSendingChat] = useState(false)`
+
+`handleSendChatMessage()` sends `POST /api/chat/channels/:id/messages` with `{ content: chatInput }`, then invalidates the channel messages query and clears the input.
+
+Check the existing chat API endpoint — it likely uses `POST /api/chat/channels/:id/messages` with a `content` field. Confirm from `server/routes.ts` and match exactly.
+
+## Fix 6: Mobile Messages/Chat UI — Responsiveness
+
+Current issues:
+- Sidebar (48px wide column) is too narrow on mobile; combined with email list and read panel it runs off screen
+- No way to close/return from the chat channel thread view on mobile
+- Email compose modal likely not full-screen on mobile
+
+**Fixes**:
+
+**A. Three-panel → single panel on mobile**: On mobile (< md), only ONE panel is visible at a time: sidebar → list → read panel. The current `mobileView` state only tracks "list" | "read" but the sidebar is always shown. Change so that on mobile:
+  - Default: show sidebar only (folder/channel navigation)
+  - After clicking a folder/channel: show email/message list
+  - After clicking an email/message: show read view
+  - Each step has a visible `← Back` button in the header
+
+**B. Sidebar width on mobile**: The sidebar `w-48` is fine on desktop but on mobile should be `w-full` when it's the only visible panel, then hidden when list is shown.
+
+**C. Close chat channel on mobile**: When viewing a channel thread on mobile, add a `← Back to Channels` button in the chat thread header (visible md:hidden) that clears `selectedChannel` and returns to the list panel.
+
+**D. Email compose**: Ensure the `EmailComposeModal` uses `DialogContent className="max-w-full sm:max-w-2xl mx-2 sm:mx-auto"` so it doesn't overflow on small screens.
+
+## Done looks like
+- Wiki sidebar header just says "Wiki" (no "SEVCO WIKI" or update timestamp)
+- "Encyclopedia for sevco.us" is hidden when wiki sidebar is collapsed
+- Wiki home page h1 says "Wiki" only, title tag updated
+- CMD Settings search box, when typed in, shows matching cards from ALL tabs (not just the active one), with a clear label that it's cross-tab results
+- Typing "email" in CMD search shows the email/Resend card even when you're on the Display tab
+- Clicking a chat channel in Messages opens the thread AND shows a text input to send new messages
+- Sending a chat message works and the message appears in the thread
+- On mobile, the Messages page is single-panel with Back buttons at each level
+- Email compose dialog doesn't overflow on small screens
+
+## Files
+- `client/src/components/app-sidebar.tsx`
+- `client/src/pages/wiki-home.tsx`
+- `client/src/pages/command-settings.tsx`
+- `client/src/pages/messages-page.tsx`
+- `client/src/components/email-compose-modal.tsx`
+
+---
+
+### Task #118 — Fix homepage layout (marquee overflow) + restart app
+
+> File: `t118-homepage-layout-fix.md`
+
+# Task #118 — Fix homepage layout (marquee overflow) + restart app
+
+## Bug: Horizontal overflow caused by marquee ticker in NewsEditorial
+
+### Root cause
+`client/src/components/news-editorial.tsx` — the `BreakingTicker` component renders:
+```tsx
+<div className="relative flex items-center overflow-hidden bg-red-700/90 ...">
+  <div className="shrink-0 ...">BREAKING</div>
+  <div className="flex-1 overflow-hidden">
+    <div className="flex gap-10 whitespace-nowrap animate-marquee">
+      {[...items, ...items].map(...)}  {/* doubled items, very wide */}
+    </div>
+  </div>
+</div>
+```
+
+The inner `animate-marquee` div is `whitespace-nowrap` and contains ALL article titles doubled
+(~16 articles). Its computed width is potentially thousands of pixels. The CSS animation
+translates it `translateX(-50%)` — leftward. While the immediate parent has `overflow-hidden`,
+CSS transforms can escape `overflow-hidden` in some browser rendering paths when there is no
+explicit containing block for the transform context.
+
+Additionally, the marquee `<style>` tag is inserted at the bottom of the component JSX as a
+sibling of the wrapper div, which can cause style bleed.
+
+### Fix A — Add overflow-x-hidden to the NewsEditorial outer container
+```tsx
+// Before:
+<div className="bg-[#08080f] text-white border-y border-white/[0.06]">
+// After:
+<div className="bg-[#08080f] text-white border-y border-white/[0.06] overflow-x-hidden">
+```
+This guarantees any overflow from the marquee is clipped at the component boundary.
+
+### Fix B — Move `<style>` tag inside the root div
+The `<style>` tag that defines the `marquee` keyframe is currently a sibling of the main div
+(outside it). Move it inside the outer container div to avoid any style/render ordering issue.
+
+### Fix C — Ensure the BreakingTicker's flex-1 overflow wrapper is a proper containing block
+Add `relative` to the `flex-1 overflow-hidden` wrapper so the transform creates a stacking context:
+```tsx
+// Before:
+<div className="flex-1 overflow-hidden">
+// After:
+<div className="flex-1 overflow-hidden relative">
+```
+
+Apply all three fixes together.
+
+### Restart the app
+After applying the fix, restart the "Start application" workflow to confirm the app comes back up cleanly and the homepage renders correctly.
+
+## Files changed
+- `client/src/components/news-editorial.tsx` — overflow-x-hidden + relative on inner wrapper + move style tag
+
+## No DB changes, no migration needed
+
+---
+
+### Mobile Badge & Email Inbox Fixes
+
+> File: `t119-mobile-badge-email-inbox-fixes.md`
+
+# Mobile Badge & Email Inbox Fixes
+
+## What & Why
+Two bugs need to be resolved:
+1. Logged-in users have no way to view their profile or sign out on mobile — the user badge and sign-out button are hidden below the `sm` breakpoint and the mobile drawer has no equivalent.
+2. Inbound emails to `@sevco.us` addresses are silently rejected because the webhook signature check returns `false` if `RESEND_WEBHOOK_SECRET` is missing or misconfigured, and the raw body fallback produces a different value from what Resend actually signed — so no emails ever land in users' inboxes.
+
+## Done looks like
+- On mobile, opening the hamburger menu shows the logged-in user's role badge and name, links to Profile and Account, and a Sign Out option at the bottom of the drawer.
+- Inbound emails sent to a valid `user@sevco.us` address appear in that user's inbox.
+- If `RESEND_WEBHOOK_SECRET` is not set, the webhook logs a warning but still processes the email (rather than rejecting it), so the inbox continues to work even without a configured secret.
+- Webhook signature verification still works and logs correctly when the secret IS set.
+
+## Out of scope
+- Redesigning the desktop header or user menu.
+- Changing the email storage schema or folder structure.
+- Outbound email changes.
+
+## Tasks
+1. **Mobile user section in drawer** — In the mobile drawer (inside `PlatformHeader`), add a bottom section visible only to logged-in users that shows the role badge and display name, links to Profile and Account, and a Sign Out button. Mirror the same items from the desktop `DropdownMenuContent` but lay them out as drawer rows.
+
+2. **Fix inbound email webhook** — Update `/api/email/inbound` so that when `RESEND_WEBHOOK_SECRET` is not set, the request is still processed (with a warning logged) rather than rejected. Additionally, ensure the raw body capture works correctly for Resend's inbound content type — if `req.rawBody` is not a Buffer, fall back gracefully without corrupting the body used for signature verification. Add structured logging at each decision point (secret missing, signature mismatch, recipient matched/skipped) to make future debugging easier.
+
+## Relevant files
+- `client/src/components/platform-header.tsx:828-907,1060-1086`
+- `server/routes.ts:4931-4959`
+- `server/email.ts:120-186,195-250`
+- `server/index.ts:75-109`
+
+---
+
+### RBAC & Role Permission System
+
+> File: `task-1.md`
+
+---
+title: RBAC & Role Permission System
+---
+# RBAC & Role Permission System
+
+## What & Why
+Add a role-based access control system to the platform. Every user gets one of six roles: Admin, Executive, Staff, Partner, Client, or User. Roles control what each person can see and do across the platform — for example, only Admins and Executives can access the wiki review queue and publish articles, while Admins, Executives, Staff, and Partners can create new articles. This is the foundation that all future platform features build on.
+
+## Done looks like
+- The users table has a `role` field with an enum of: admin, executive, staff, partner, client, user. Default role is "user".
+- Backend middleware enforces role requirements on protected API routes (e.g., creating articles, accessing the review queue).
+- A `usePermission` hook on the frontend returns whether the current user can perform a given action.
+- The wiki UI hides or disables "New Article" for Client and User roles, and hides "Review Queue" for everyone except Admin and Executive.
+- An admin can update any user's role via the account management API (PATCH /api/users/:id/role).
+- Role is included in the session/user object returned by GET /api/user.
+
+## Out of scope
+- A full admin UI for managing all users (that comes with the Dashboard task)
+- Permissions for non-wiki sections (those are defined per-section as they are built)
+
+## Tasks
+1. **Schema & migration** — Add a `role` text column (with enum values) to the users table, defaulting to "user". Run the DB push.
+
+2. **Backend permission middleware** — Create a `requireRole(...roles)` Express middleware factory. Apply it to wiki routes: article creation requires staff+, review queue access requires admin/executive.
+
+3. **Auth update** — Include the `role` field in the user object returned by GET /api/user, POST /api/login, and POST /api/register. Add PATCH /api/users/:id/role (admin only) to allow role changes.
+
+4. **Frontend permission hook** — Create a `usePermission(action)` hook (or map of capabilities) derived from the current user's role. Expose helper booleans like `canCreateArticle`, `canAccessReviewQueue`, `canPublishArticles`.
+
+5. **Wiki UI permission gates** — Hide or disable the "New Article" sidebar link and editor access for Client/User roles. Hide the "Review Queue" link and page for non-admin/executive roles. Show a "Not authorized" message if a restricted route is accessed directly.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/auth.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+- `client/src/hooks/use-auth.tsx`
+- `client/src/components/app-sidebar.tsx`
+- `client/src/pages/review-queue.tsx`
+- `client/src/App.tsx`
+
+---
+
+### Platform Shell & Global Navigation
+
+> File: `task-2.md`
+
+---
+title: Platform Shell & Global Navigation
+---
+# Platform Shell & Global Navigation
+
+## What & Why
+Wrap the wiki (and future apps) inside a top-level SEVCO Platform shell. This means a persistent global header bar at the top of the screen that carries SEVCO branding, an app-switcher for navigating between platform sections (Home, Wiki, Music, Store, Projects, Dashboard), and the user menu (avatar, role badge, sign out). The wiki keeps its existing left sidebar when active. All other sections use the global header only, without a secondary sidebar.
+
+## Done looks like
+- A global header is visible on all authenticated platform pages, sitting above everything else.
+- The header shows the SEVCO wordmark/logo on the left, the app-switcher navigation in the center (or left after the logo), and the user avatar + role badge + sign-out on the right.
+- Clicking each app nav item routes to: `/` (Home), `/wiki` (Wiki hub), `/music` (Music), `/store` (Store), `/projects` (Projects), `/dashboard` (Dashboard).
+- The wiki section still shows its collapsible sidebar (for article navigation, categories, etc.) when the user is anywhere under `/wiki`.
+- Non-wiki sections (Music, Store, Projects, Dashboard, Home landing) render without the wiki sidebar.
+- The active app is visually highlighted in the global nav.
+- The layout is responsive — on mobile, the app-switcher collapses into a menu.
+- Stub/placeholder pages are created for Music (`/music`), Store (`/store`), Projects (`/projects`), and Dashboard (`/dashboard`) so all nav links work immediately.
+- The `/` route now renders the new platform Landing Page (stub is fine — a real one comes in a later task).
+- The existing home page logic moves to `/wiki` as the wiki hub entry point.
+
+## Out of scope
+- Content for Music, Store, Projects, Dashboard pages (those come in their own tasks)
+- Any permission-gating of nav items (that is handled by the RBAC task)
+
+## Tasks
+1. **Routing restructure** — Update App.tsx to add routes for `/wiki` (wiki home), `/music`, `/store`, `/projects`, `/dashboard`. Move the current `/` home to `/wiki`. Add new `/` as a landing page stub.
+
+2. **Global header component** — Build a `PlatformHeader` component with SEVCO logo, app-switcher links, and a user info area (username, role badge, sign-out). Use the existing design tokens (primary color, dark mode).
+
+3. **Shell layout update** — Update `AppShell` so the global header sits at the very top. The wiki sidebar only renders when the current route is under `/wiki/*`. Non-wiki sections render with just the global header and a content area below.
+
+4. **App-switcher active state** — Highlight the current app in the header nav based on the active route prefix.
+
+5. **Stub pages** — Create minimal placeholder pages for `/music`, `/store`, `/projects`, `/dashboard`, and the new `/` landing page so all navigation links resolve without errors.
+
+6. **Update existing internal links** — Update any links in the wiki sidebar or pages that point to `/` (old home) to point to `/wiki` or the correct new paths.
+
+## Relevant files
+- `client/src/App.tsx`
+- `client/src/components/app-sidebar.tsx`
+- `client/src/pages/home.tsx`
+- `client/src/hooks/use-auth.tsx`
+
+---
+
+### Public Access + Mega-Menu Navigation (Task #22)
+
+> File: `task-22.md`
+
+---
+title: Public access + Mega-menu navigation
+---
+# Public Access + Mega-Menu Navigation (Task #22)
+
+  ## Origin / Request
+  "I dont want to require sign in on landing, some pages will be public facing marketing pages... I would also like to update the menu with some dropdowns"
+
+  ## Summary
+  Two foundational changes that all other tasks depend on:
+  1. Remove the auth guard from public-facing pages (Home, Wiki, Store, Music, Projects and their read-only sub-pages)
+  2. Replace the flat nav bar with a multi-level mega-menu matching the Vercel-style dropdown design
+
+  ---
+
+  ## Part 1 — Public Access
+
+  Remove ProtectedRoute from the following routes in App.tsx (leave them in a plain Route):
+  - / (landing/home)
+  - /wiki, /wiki/:slug
+  - /music, /music/artists, /music/artists/:slug, /music/albums/:slug
+  - /store, /store/products/:slug
+  - /projects, /projects/:slug
+  - /listen (new, future task)
+  - /services (new, future task)
+  - /contact (new, future task)
+  - /about (redirect or wiki link, future task)
+  - /jobs, /jobs/:slug (new, future task)
+
+  Keep ProtectedRoute on:
+  - /edit/:slug, /new (article editing)
+  - /review (review queue)
+  - /account, /profile
+  - /store/products/new, /store/stats, /store/success, /store/cancel
+  - /music/artists/new, /music/albums/new
+  - /command/* (admin center)
+  - /projects/new, /projects/:slug/edit
+
+  Update PlatformHeader: currently the nav items link to protected pages. After this change, public users (not logged in) should see the nav and be able to browse. Hide management actions (like "Add Article", "Add Product") from unauthenticated users — these are already role-gated in individual pages, but double-check.
+
+  Also update ProtectedRoute: currently it redirects to /auth on any unauthenticated access. After this change, only truly protected routes should redirect.
+
+  ---
+
+  ## Part 2 — Mega-Menu Navigation
+
+  Replace the current flat APP_NAV list in platform-header.tsx with a multi-level dropdown mega-menu. Reference: Vercel.com Products dropdown — grouped items with icon + title + description, no border, clean white panel.
+
+  ### Navigation Structure
+
+  **Home** (dropdown)
+  - About → /wiki/company-overview (existing wiki article)
+  - Wiki → /wiki
+  - Contact → /contact (new page, Task #23)
+  - Account → /account
+  - Profile → /profile (new page, Task #24)
+  - Jobs → /jobs (new page, Task #25)
+
+  **Store** (dropdown, links to /store with category filter param)
+  - All Products → /store
+  - Collections → /store (section header, not a link)
+    - Apparel → /store?category=Apparel
+    - Games → /store?category=Games
+    - Grocery → /store?category=Grocery
+    - Health → /store?category=Health
+    - Music → /store?category=Music
+    - Books → /store?category=Books
+
+  **Services** (dropdown, Vercel mega-menu style)
+  - Links to /services (new page, Task #26)
+  - Show 6-8 placeholder service items grouped by category with icons
+  - Use lucide-react icons for each item
+
+  **Music** (dropdown)
+  - SEVCO RECORDS → /music (existing, will be redesigned in Task #27)
+  - Listen → /listen (new page, Task #27)
+  - Artists → /music/artists
+  - Playlists → /music/playlists (new page, Task #27)
+  - Submit → /music/submit (new page, Task #27)
+
+  **CMD** → /command (only visible to admin/executive/staff, no dropdown — keep as-is)
+
+  ### Mega-menu component design
+  - Use Radix UI NavigationMenu (already available via shadcn/ui) — it's built for this exact pattern
+  - Full-width panel drops down from header
+  - Services dropdown: 2-3 column grid layout like Vercel
+  - Home + Store + Music dropdowns: simple vertical list with icon, title, optional description
+  - Mobile: collapse all to a hamburger with accordion-style expandable sections
+  - Public users (logged out): show Home, Store, Services, Music dropdowns — hide CMD entirely
+  - Logged-in users: show all including CMD (if eligible role)
+
+  ### Store URL filter
+  Update store-page.tsx to read a `?category=` query param from the URL and pre-set the activeCategory filter on load. This makes the Store dropdown links functional without any backend changes.
+
+  ---
+
+  ## Relevant files
+  - client/src/App.tsx — remove ProtectedRoute from public routes
+  - client/src/components/platform-header.tsx — full mega-menu rewrite
+  - client/src/components/protected-route.tsx — no changes needed
+  - client/src/pages/store-page.tsx — read ?category= query param
+
+  ## Done looks like
+  - Visiting /wiki, /store, /music, /projects without being logged in shows the page (no redirect to /auth)
+  - Header shows mega-menu dropdowns on hover/click
+  - Store dropdown category links filter the store correctly
+  - Mobile hamburger works with expandable sections
+  - CMD link hidden from logged-out and partner/client/user roles
+
+---
+
+### Home Page Redesign + Contact Page (Task #23)
+
+> File: `task-23.md`
+
+---
+title: Home page redesign + Contact page
+---
+# Home Page Redesign + Contact Page (Task #23)
+
+  ## Origin / Request
+  "The Home page will be more of a landing/marketing page for all things SEVCO... a new Contact page with an email form for support/inquiries, general contact information for SEVCO and the discord invite link"
+
+  ## Blocked by
+  Task #22 (public access + mega-menu) must merge first.
+
+  ## Summary
+  Redesign the home/landing page into a proper marketing page and build a new Contact page.
+
+  ---
+
+  ## Part 1 — Home Page Redesign (/
+
+  The current / route renders a landing page. Redesign it as a full marketing page covering all SEVCO verticals.
+
+  ### Sections (top to bottom):
+  1. **Hero** — Bold SEVCO wordmark + planet icon, tagline, two CTAs ("Explore the Wiki", "Shop the Store")
+  2. **Platform grid** — 4-6 cards showcasing Wiki, Store, Music, Projects, Services with brief descriptions and icons
+  3. **SEVCO RECORDS spotlight** — short music section with "Listen Now" CTA linking to /listen
+  4. **Store preview** — Featured/latest products (call GET /api/store/products, show first 4)
+  5. **Latest from the Wiki** — call GET /api/articles/recent, show 3 article cards
+  6. **Community/Join CTA** — Discord invite, Sign Up button (shown only to logged-out users)
+
+  Design: clean, editorial. Use existing SEVCO brand assets (planet icon, wordmark). Dark mode compatible.
+  The page should look great to a visitor who has never heard of SEVCO.
+
+  ---
+
+  ## Part 2 — Contact Page (/contact)
+
+  New public page at /contact.
+
+  ### Content:
+  1. **Page header** — "Get in Touch" heading + brief intro
+  2. **Contact form** — Name, Email, Subject (select: Support / Business Inquiry / Press / Other), Message. On submit: POST to a new backend endpoint POST /api/contact which sends an email to a configurable address using the existing Resend email client. Return success/error message inline.
+  3. **General contact info** — Discord invite link (with Discord icon from react-icons/si), social media links (Instagram @sevelovesyou, X @sevelovesu, TikTok @sevelovesu) matching the existing wiki Contact article
+  4. **Discord card** — Prominent "Join our Discord" card with SiDiscord icon and the invite link
+
+  ### Backend:
+  - POST /api/contact (public endpoint, no auth required)
+  - Validate: name (required), email (required, valid format), subject (required), message (required, min 10 chars)
+  - Rate limit: simple check — max 3 submissions per IP per hour (use an in-memory Map, reset every hour)
+  - Send email via existing sendVerificationEmail pattern in server/emailClient.ts — add a new sendContactEmail(name, email, subject, message) function that sends to a hardcoded address (use noreply@sevco.us as from, send TO sevco contact address — use hello@sevco.us as the recipient, or make it configurable via env var CONTACT_EMAIL)
+
+  ## Relevant files
+  - client/src/pages/landing-page.tsx (existing, redesign in place)
+  - client/src/pages/contact-page.tsx (new)
+  - client/src/App.tsx (register /contact as public route)
+  - server/emailClient.ts (add sendContactEmail function)
+  - server/routes.ts (add POST /api/contact)
+
+  ## Done looks like
+  - / shows the new SEVCO marketing page (no login required)
+  - /contact shows contact form, social links, Discord card
+  - Submitting the form sends an email and shows a success message
+  - Both pages work for logged-out visitors
+
+---
+
+### Profile Page with MySpace-Style Customization (Task #24)
+
+> File: `task-24.md`
+
+---
+title: Profile page with MySpace-style customization
+---
+# Profile Page with MySpace-Style Customization (Task #24)
+
+  ## Origin / Request
+  "a new Profile page that functions with accounts like a typical profile but, has the customization features like 'old myspace'"
+
+  ## Blocked by
+  Task #22 (public access + mega-menu) must merge first.
+
+  ## Summary
+  Build a public-facing user profile page at /profile/:username (viewable by anyone) with per-user customization — custom background, accent color, profile photo URL, bio, and social links. The /profile route (no username) shows the logged-in user's own profile in edit mode.
+
+  ---
+
+  ## Schema changes (shared/schema.ts)
+  Add new columns to the users table:
+  - displayName: text (already exists, use it)
+  - bio: text (already exists, use it)
+  - avatarUrl: text (nullable) — profile photo URL
+  - profileBgColor: text (nullable) — hex color for profile background
+  - profileAccentColor: text (nullable) — hex color for accent elements
+  - profileBgImageUrl: text (nullable) — optional background image URL
+  - socialLinks: jsonb (nullable) — { instagram, twitter, tiktok, discord, website }
+
+  Run db:push after schema update.
+
+  ---
+
+  ## Pages
+
+  ### /profile (own profile — requires auth, shows edit mode)
+  - Shows the logged-in user's profile with an "Edit Profile" panel
+  - Edit fields: Display Name, Bio, Avatar URL (with preview), Background Color picker, Accent Color picker, Background Image URL, Social Links (5 fields)
+  - Save via PATCH /api/profile (auth required)
+  - Live preview of customization changes as user edits
+
+  ### /profile/:username (public profile)
+  - Public, no auth required
+  - Displays: avatar (or planet icon fallback), display name, username, role badge, bio, social links
+  - Background and accent colors applied from user's settings
+  - Shows user's recent wiki contributions (GET /api/articles?author=username if available, else hide section)
+  - If viewing own profile: shows "Edit Profile" button
+
+  ---
+
+  ## Backend
+  - GET /api/profile/:username — public, returns user profile fields (exclude password, tokens)
+  - PATCH /api/profile — auth required, validates and updates profile fields
+    - Validate avatarUrl and profileBgImageUrl as URLs if provided
+    - Sanitize bio (strip HTML)
+
+  ## Relevant files
+  - shared/schema.ts — add profile columns
+  - server/storage.ts — add getUserByUsername (may already exist), updateUserProfile
+  - server/routes.ts — add GET /api/profile/:username and PATCH /api/profile
+  - client/src/pages/profile-page.tsx (new)
+  - client/src/pages/profile-edit-page.tsx (or inline edit panel)
+  - client/src/App.tsx — /profile and /profile/:username routes
+
+  ## Done looks like
+  - /profile (logged in) shows your profile with editable fields
+  - /profile/severin shows a public profile with SEVCO branding
+  - Background color, accent color, avatar all apply visually
+  - Social links show with correct icons
+  - Visiting /profile logged-out shows the page (no redirect)
+
+---
+
+### Jobs Page — Listings, Details & Applications (Task #25)
+
+> File: `task-25.md`
+
+---
+title: Jobs board — listings, details & applications
+---
+# Jobs Page — Listings, Details & Applications (Task #25)
+
+  ## Origin / Request
+  "a Jobs page where new available contracts/jobs are listed when they become available, users can apply and view job details page for every position as long as they have a SEVCO account"
+
+  ## Blocked by
+  Task #22 (public access + mega-menu) must merge first.
+
+  ## Summary
+  Build a jobs board with public listing page, individual job detail pages, and an application form for logged-in users. Admin/exec can post and manage jobs from the Command Center.
+
+  ---
+
+  ## Schema changes (shared/schema.ts)
+
+  ### jobs table
+  - id: integer PK
+  - title: text notNull
+  - slug: text notNull unique
+  - type: text notNull (Contract / Part-time / Full-time / Freelance)
+  - department: text (Engineering / Design / Music / Operations / Marketing)
+  - location: text (Remote / On-site / Hybrid)
+  - description: text (markdown content)
+  - requirements: text (markdown)
+  - compensation: text (optional, e.g. "Negotiable" or "$50-80/hr")
+  - status: text default 'open' (open / closed / draft)
+  - createdAt: timestamp
+
+  ### jobApplications table
+  - id: integer PK
+  - jobId: integer FK → jobs.id
+  - userId: varchar FK → users.id
+  - coverLetter: text
+  - portfolioUrl: text (optional)
+  - status: text default 'pending' (pending / reviewing / accepted / rejected)
+  - createdAt: timestamp
+
+  Run db:push after schema changes.
+
+  ---
+
+  ## Pages
+
+  ### /jobs (public listing page)
+  - Shows all open jobs grouped by department or listed with type/location badges
+  - Each job card: title, type badge, department, location, brief description excerpt
+  - Filter by type and department (client-side)
+  - "View Details" button → /jobs/:slug
+  - Logged-out users see jobs but "Apply" prompts them to sign in
+
+  ### /jobs/:slug (public job detail page)
+  - Full job description (rendered markdown)
+  - Requirements section
+  - Compensation, type, location, department tags
+  - Apply button (only for logged-in users with a SEVCO account)
+  - If already applied: show "Application Submitted" status
+
+  ### Application form (modal or inline on /jobs/:slug for logged-in users)
+  - Cover letter textarea (required, min 50 chars)
+  - Portfolio URL (optional)
+  - Submit → POST /api/jobs/:id/apply
+
+  ---
+
+  ## Backend (server/routes.ts + storage.ts)
+  - GET /api/jobs — public, returns open jobs
+  - GET /api/jobs/:slug — public, returns job detail
+  - POST /api/jobs/:id/apply — auth required, creates application (one per user per job)
+  - GET /api/jobs/:id/applications — admin/exec only, returns all applications for a job
+  - POST /api/jobs — admin/exec only, create job
+  - PATCH /api/jobs/:id — admin/exec only, update job
+  - DELETE /api/jobs/:id — admin/exec only, delete job
+
+  ## Command Center integration
+  Add a "Jobs" section to command-sidebar.tsx and a command-jobs.tsx page (admin/exec only) that lists all jobs with status toggles and application counts.
+
+  ## Seed data
+  Seed 2-3 placeholder job listings on first run (gate on jobs table being empty) so the page isn't blank.
+
+  ## Relevant files
+  - shared/schema.ts — jobs + jobApplications tables
+  - server/storage.ts — job CRUD + application methods
+  - server/routes.ts — job API endpoints
+  - client/src/pages/jobs-page.tsx (new)
+  - client/src/pages/job-detail-page.tsx (new)
+  - client/src/pages/command-jobs.tsx (new, admin management)
+  - client/src/components/command-sidebar.tsx (add Jobs link)
+  - client/src/App.tsx — /jobs and /jobs/:slug routes (public), /command/jobs (protected)
+
+  ## Done looks like
+  - /jobs shows open positions (no login required to view)
+  - /jobs/:slug shows full job detail
+  - Logged-in users can apply; applying twice shows "already applied"
+  - Admin can post, edit, and close jobs from the Command Center
+
+---
+
+### Services Page + Mega-Menu (Task #26)
+
+> File: `task-26.md`
+
+---
+title: Services page + mega-menu content
+---
+# Services Page + Mega-Menu (Task #26)
+
+  ## Origin / Request
+  "A new menu dropdown called 'Services' which links to a comprehensive services page. Services will be divided into the same categories as the wiki, add some placeholder services with icons in the dropdown just like the Vercel.com landing page mega-menu"
+
+  ## Blocked by
+  Task #22 (public access + mega-menu) must merge first.
+
+  ## Summary
+  Build a comprehensive Services page at /services and populate the Services mega-menu dropdown (scaffolded in Task #22) with real grouped service items and icons.
+
+  ---
+
+  ## Services Page (/services)
+
+  Public page, no auth required.
+
+  ### Layout
+  Full-width marketing page similar to Vercel's Products page:
+  1. **Hero** — "What We Do" heading, short SEVCO services overview paragraph
+  2. **Service categories** — Each wiki category maps to a service section:
+     - Company (company-level services/consulting)
+     - Operations (operational services)
+     - Sales (sales support)
+     - Design (design/creative services)
+     - Engineering (technical/dev services)
+     - Support (support services)
+     - Marketing (marketing/content)
+  3. Each category section has: category heading + 3-4 service cards
+  4. Each service card: icon (lucide-react), service name, 1-line description
+  5. CTA at the bottom: "Interested in working with us?" → links to /contact
+
+  ### Placeholder services (examples, can be refined later)
+  Use wiki category names as groupings:
+  - **Engineering**: Platform Development, API Integration, Technical Consulting, Custom Automation
+  - **Design**: Brand Identity, UI/UX Design, Motion Graphics, Design Systems
+  - **Marketing**: Content Strategy, Social Media Management, Growth Consulting, Campaign Creative
+  - **Operations**: Project Management, Process Optimization, Vendor Management, Reporting
+  - **Sales**: Sales Strategy, Partnership Development, Pricing Consulting
+  - **Support**: Dedicated Support, SLA Management, Onboarding
+
+  ---
+
+  ## Mega-menu dropdown content (updates to Task #22's scaffold)
+
+  The Services dropdown should show a 2-3 column Vercel-style panel:
+  - Column 1: Engineering + Design services (2 items each with icon + name + tagline)
+  - Column 2: Marketing + Operations services  
+  - Column 3: Sales + Support services
+  - "View all services →" link at the bottom of the panel
+
+  Each item in the dropdown: icon (20px) | Service Name (bold) | One-line tagline
+
+  ---
+
+  ## Relevant files
+  - client/src/pages/services-page.tsx (new)
+  - client/src/components/platform-header.tsx (update Services dropdown items — Task #22 creates the shell, this fills the content)
+  - client/src/App.tsx — /services public route
+
+  ## Done looks like
+  - /services shows a clean, well-organized services marketing page
+  - Services dropdown shows grouped items with icons like Vercel's mega-menu
+  - All services link appropriately to the full /services page
+  - Page is fully public (no auth required)
+
+---
+
+### Music Expansion — SEVCO RECORDS, Listen, Playlists, Submit (Task #27)
+
+> File: `task-27.md`
+
+---
+title: Music expansion — SEVCO RECORDS, Listen, Playlists, Submit
+---
+# Music Expansion — SEVCO RECORDS, Listen, Playlists, Submit (Task #27)
+
+  ## Origin / Request
+  "Under Music: a SEVCO RECORDS marketing page, a Listen page [short slug for bio link], an Artists page, a Playlists page with playlist submission form, and a Submit page where anyone can submit their music to SEVCO RECORDS"
+
+  ## Blocked by
+  Task #22 (public access + mega-menu) must merge first.
+
+  ## Summary
+  Expand the music section with new marketing and community pages. The existing /music page will be redesigned into the SEVCO RECORDS label marketing page. New pages: /listen (bio link), /music/playlists, /music/submit.
+
+  ---
+
+  ## Part 1 — /music redesign (SEVCO RECORDS marketing page)
+
+  Redesign the existing music-page.tsx into a full SEVCO RECORDS label marketing page:
+  - Hero: "SEVCO RECORDS" in large display type with the violet gradient treatment, record label tagline
+  - "Our Artists" section — grid of artist cards (from existing /api/music/artists)
+  - "Latest Releases" section — album cards (from existing /api/music/albums)
+  - "Submit Your Music" CTA → /music/submit
+  - "Listen Now" CTA → /listen
+  - "Our Playlists" teaser → /music/playlists
+
+  ---
+
+  ## Part 2 — /listen (short bio-link page)
+
+  Short slug, designed as a standalone link-in-bio page for social media.
+
+  Layout: centered, minimal, SEVCO RECORDS branded
+  - Planet icon + SEVCO RECORDS wordmark
+  - Prominent music streaming links as large buttons (Spotify, Apple Music, SoundCloud, YouTube Music) — these will be placeholder links initially, configurable via environment or a settings table
+  - "View All Artists" → /music/artists
+  - "Submit Music" → /music/submit
+  - Social media links row
+
+  No auth required. This is the page that goes in the Instagram bio.
+
+  ---
+
+  ## Part 3 — /music/playlists
+
+  ### Schema additions (shared/schema.ts)
+  New playlists table:
+  - id: integer PK
+  - title: text notNull
+  - slug: text notNull unique
+  - description: text
+  - platform: text (Spotify / Apple Music / YouTube / SoundCloud)
+  - playlistUrl: text notNull (external link)
+  - coverImageUrl: text (optional)
+  - isOfficial: boolean default true
+  - createdAt: timestamp
+
+  ### New musicSubmissions table (used by both Playlists and Submit pages)
+  - id: integer PK  
+  - submitterName: text notNull
+  - submitterEmail: text notNull
+  - userId: varchar FK → users.id (nullable, set if logged in)
+  - artistName: text notNull
+  - trackTitle: text notNull
+  - trackUrl: text notNull (SoundCloud, Spotify, YouTube, etc.)
+  - genre: text
+  - notes: text (optional)
+  - type: text default 'label' (label / playlist — which submission form it came from)
+  - status: text default 'pending' (pending / reviewed / accepted / rejected)
+  - createdAt: timestamp
+
+  Run db:push.
+
+  ### Playlists page (/music/playlists)
+  Public page:
+  - Grid of official SEVCO RECORDS playlists with cover image, title, platform badge
+  - Each card links to the external playlist
+  - "Suggest Your Music to Our Playlists" section at the bottom with a submission form
+  - Submission form: Artist Name, Track Title, Track URL, Genre (select), Notes (optional)
+  - POST /api/music/submissions (type: 'playlist') — no auth required (name + email collected in form)
+
+  Seed 2-3 placeholder playlists so the page isn't empty.
+
+  ---
+
+  ## Part 4 — /music/submit (SEVCO RECORDS A&R submission)
+
+  Public page but requires a SEVCO account to submit (shows sign-up prompt if logged out).
+
+  Page sections:
+  - Header: "Submit to SEVCO RECORDS" with brief description of what the label looks for
+  - What we're looking for: genre preferences, quality standards (placeholder copy)
+  - Submission form (logged-in users only):
+    - Artist Name, Track Title, Track URL (required)
+    - Genre, Notes
+    - Agreement checkbox: "I confirm this is original content and I own the rights"
+  - POST /api/music/submissions (type: 'label')
+  - Success: "Your submission has been received. We'll be in touch if it's a fit."
+
+  ## Backend
+  - GET /api/music/playlists — public
+  - POST /api/music/playlists — admin/exec only
+  - POST /api/music/submissions — public (playlist submissions) or auth required (label submissions, enforce in route)
+  - GET /api/music/submissions — admin/exec only (view all submissions)
+
+  ## Command Center
+  Add basic submissions view to command-store or a new command-music.tsx (admin/exec) showing pending submissions with status update capability.
+
+  ## Relevant files
+  - shared/schema.ts — playlists + musicSubmissions tables
+  - server/storage.ts — playlist + submission CRUD
+  - server/routes.ts — music playlist + submission endpoints
+  - client/src/pages/music-page.tsx (redesign as SEVCO RECORDS marketing page)
+  - client/src/pages/listen-page.tsx (new, at /listen)
+  - client/src/pages/music-playlists-page.tsx (new)
+  - client/src/pages/music-submit-page.tsx (new)
+  - client/src/App.tsx — new routes: /listen (public, registered BEFORE /wiki etc), /music/playlists, /music/submit
+
+  ## Done looks like
+  - /music is a polished SEVCO RECORDS label page
+  - /listen is a clean bio-link page ready to go in Instagram bio
+  - /music/playlists shows playlists + submission form
+  - /music/submit shows A&R submission form (requires SEVCO account)
+  - Submissions visible to admin in Command Center
+
+---
+
+### Projects Mega-Menu + Project & Service Marketing Pages (Task #28)
+
+> File: `task-28.md`
+
+---
+title: Projects mega-menu + Project & Service marketing pages
+---
+# Projects Mega-Menu + Project & Service Marketing Pages (Task #28)
+
+  ## Origin / Request
+  "I would also like to add a dropdown to Projects with a similar mega-menu design to services, here will be things like SPHERE, SEVClaw, Minecraft but please also add some placeholder projects so we can see the menu at work, also create a system for making public detail pages/marketing pages for every project and service"
+
+  ## Blocked by
+  Task #22 (Public access + Mega-menu navigation) — must merge first (builds the nav shell this extends)
+  Task #26 (Services page) — must merge first (provides the /services foundation this extends with detail pages)
+
+  ## Summary
+  Three things:
+  1. Add a Projects dropdown to the mega-menu (extending Task #22's nav shell)
+  2. Build a rich public marketing page system for individual projects (/projects/:slug redesigned)
+  3. Build individual service marketing pages (/services/:slug)
+  Seed named placeholder projects so the menu and pages are immediately populated.
+
+  ---
+
+  ## Part 1 — Schema Additions (shared/schema.ts)
+
+  ### Extend the projects table with marketing fields
+  Add new optional columns to the existing projects table (all nullable so existing rows are unaffected):
+  - heroImageUrl: text (optional full-width hero image)
+  - logoUrl: text (optional project logo/icon URL)  
+  - longDescription: text (markdown — detailed about/mission content for the marketing page)
+  - tags: text().array() (tech stack, genre, or topic tags — e.g. ["Minecraft", "Game", "Community"])
+  - category: text (Game / Platform / App / Label / Media / Other — for grouping in the dropdown)
+  - featured: boolean default false (whether to feature in the mega-menu)
+  - launchDate: text (optional, e.g. "2024" or "Coming Soon")
+  - galleryUrls: text().array() (optional screenshot/artwork URLs for the marketing page)
+
+  ### New services table (shared/schema.ts)
+  - id: integer PK generatedAlwaysAsIdentity
+  - name: text notNull
+  - slug: text notNull unique
+  - category: text notNull (Engineering / Design / Marketing / Operations / Sales / Support)
+  - tagline: text (one-liner shown in mega-menu dropdown)
+  - description: text (markdown, full service description for the detail page)
+  - iconName: text (lucide-react icon name, e.g. "Code2", "Palette", "Megaphone")
+  - status: text default 'active' (active / archived)
+  - featured: boolean default false (whether to show in the mega-menu)
+  - createdAt: timestamp defaultNow
+
+  Run db:push after schema changes.
+
+  ---
+
+  ## Part 2 — Seed Data
+
+  ### Seed placeholder projects (in server/seed.ts, gate on projects count === 0)
+  1. **SPHERE** — category: Platform, status: active, featured: true
+     - tagline: "The SEVCO ecosystem platform"
+     - tags: ["Platform", "Web", "Community"]
+  2. **SEVClaw** — category: App, status: in-development, featured: true
+     - tagline: "Creative tools for the SEVCO community"
+     - tags: ["App", "Creative", "Tools"]
+  3. **Minecraft** — category: Game, status: active, featured: true
+     - tagline: "The official SEVCO Minecraft community"
+     - tags: ["Game", "Community", "Minecraft"]
+  4. **SEVCO Records** — category: Label, status: active, featured: true
+     - tagline: "Independent music label and A&R"
+     - tags: ["Music", "Label", "A&R"]
+  5. **SEV Store** — category: Platform, status: active, featured: false
+     - tagline: "The SEVCO merchandise and digital store"
+     - tags: ["Store", "E-commerce"]
+
+  ### Seed placeholder services (in server/seed.ts, gate on services count === 0)
+  Seed 12-15 services across all 6 categories:
+  - Engineering (3): Platform Development, API Integration, Technical Consulting
+  - Design (3): Brand Identity, UI/UX Design, Creative Direction
+  - Marketing (3): Content Strategy, Social Media, Growth Consulting
+  - Operations (2): Project Management, Process Optimization
+  - Sales (2): Partnership Development, Sales Strategy
+  - Support (2): Dedicated Support, Onboarding
+
+  ---
+
+  ## Part 3 — Projects Mega-Menu Dropdown
+
+  Add a "Projects" item to the mega-menu in platform-header.tsx (Task #22 builds the nav shell, this extends it).
+
+  ### Design: same Vercel mega-menu panel style as Services
+  - Panel shows featured projects (where featured = true) with icon/logo, name, tagline
+  - Use project category badge color-coded with a small dot
+  - Grouped loosely: "Active" projects at top, "In Development" below with a subtle badge
+  - "View all projects →" link to /projects at the bottom
+  - If logoUrl exists: show it (small 24px square); otherwise show a category-colored dot/icon
+  - Max 6 items in dropdown to keep it clean
+
+  ### Nav position
+  Insert between "Music" and "CMD" in the nav order:
+  Home | Store | Services | Projects | Music | CMD
+
+  ---
+
+  ## Part 4 — Project Marketing Pages (/projects/:slug redesign)
+
+  Redesign the existing project-detail.tsx into a polished public marketing page. Keep the same route (/projects/:slug) but transform the layout:
+
+  ### New layout sections:
+  1. **Hero** — Full-width hero (heroImageUrl if set, else gradient with category color), project name in display type, tagline/description, status badge, website CTA button
+  2. **About** — longDescription rendered as markdown (react-markdown or simple paragraph blocks)
+  3. **Tags / Tech** — tag pills row
+  4. **Gallery** — if galleryUrls has items: horizontal scroll image strip
+  5. **Team Lead** — if set: "Led by [teamLead]" with a person icon
+  6. **Related Wiki** — if relatedWikiSlugs set: cards linking to wiki articles
+  7. **Other SEVCO Projects** — 3-card row of other featured projects (cross-promotion)
+  8. **CTA** — "Learn more" / "Visit site" button + "Back to all projects" link
+
+  ### Public access
+  /projects/:slug should be public (Task #22 handles removing the auth guard).
+  Management actions (Edit, Delete) remain visible only to admin/exec/staff via role check — same as current implementation, just now the page itself is publicly accessible.
+
+  ---
+
+  ## Part 5 — Service Detail Pages (/services/:slug)
+
+  ### Backend
+  - GET /api/services — public, returns all active services
+  - GET /api/services/:slug — public, returns single service detail
+  - POST /api/services — admin/exec only, create service
+  - PATCH /api/services/:slug — admin/exec only, update service
+  - DELETE /api/services/:slug — admin/exec only, delete service
+
+  Add corresponding methods to IStorage + DatabaseStorage in server/storage.ts.
+
+  ### Service detail page (/services/:slug)
+  New public page client/src/pages/service-detail-page.tsx:
+  1. **Hero** — Service name, category badge, tagline, icon (rendered large from iconName)
+  2. **Description** — Full markdown description
+  3. **What's included** — placeholder bullet points (can be part of the description markdown)
+  4. **CTA** — "Interested in this service?" → links to /contact
+  5. **Other services in this category** — 3-card row of related services
+
+  ### Services listing page updates (/services from Task #26)
+  Each service card on the /services listing page should now link to /services/:slug (detail page).
+
+  ---
+
+  ## Admin management
+  Add services management to the Command Center:
+  - command-sidebar.tsx: add "Services" link (admin/exec only)
+  - client/src/pages/command-services.tsx: table of all services with edit/delete + "Add Service" button
+  - Service form: name, slug (auto-generated), category (select), tagline, description (textarea), iconName, status, featured toggle
+
+  Similarly for projects — the existing /command/projects or the edit page already handles this, but update it to include the new fields (heroImageUrl, logoUrl, longDescription, tags, category, featured, launchDate, galleryUrls).
+
+  ---
+
+  ## Routing additions (App.tsx)
+  - /services/:slug — public (add BEFORE the /services base route if slug route is more specific)
+  - /projects/:slug — already exists, remove ProtectedRoute (handled by Task #22)
+  - /command/services — protected (admin/exec)
+
+  ---
+
+  ## Relevant files
+  - shared/schema.ts — extend projects table + new services table
+  - server/storage.ts — service CRUD methods + extended project fields
+  - server/routes.ts — service API endpoints
+  - server/seed.ts — seed placeholder projects + services
+  - client/src/components/platform-header.tsx — add Projects dropdown to mega-menu
+  - client/src/pages/project-detail.tsx — full redesign as marketing page
+  - client/src/pages/service-detail-page.tsx (new)
+  - client/src/pages/services-page.tsx — update cards to link to /services/:slug (from Task #26)
+  - client/src/pages/command-services.tsx (new admin management)
+  - client/src/components/command-sidebar.tsx — add Services link
+  - client/src/App.tsx — /services/:slug route
+
+  ## Done looks like
+  - Projects dropdown appears in the mega-menu showing SPHERE, SEVClaw, Minecraft, etc.
+  - /projects/sphere loads a polished marketing page with hero, description, gallery
+  - /services/brand-identity loads a service detail page with full description and contact CTA
+  - /services listing page links to individual service pages
+  - Admin can manage services from the Command Center
+  - New projects seeded and visible in the menu immediately
+
+---
+
+### Platform Landing Page & Dashboard
+
+> File: `task-3.md`
+
+---
+title: Landing Page & Dashboard
+---
+# Platform Landing Page & Dashboard
+
+## What & Why
+Build two key entry-point pages for the SEVCO Platform. The Landing Page (`/`) is the first thing users see after logging in — it gives a high-level view of the platform with quick-access cards to each section, recent activity, and a welcome message. The Dashboard (`/dashboard`) is a role-aware analytics and management view showing different metrics and tools depending on who is logged in (Admins see everything, Executives see business KPIs, Staff/Partners see their own activity).
+
+## Done looks like
+- The `/` landing page greets the user by name, shows the six platform app cards (Wiki, Music, Store, Projects, Dashboard + Account), and displays recent wiki activity.
+- The landing page app cards respect role permissions — sections the user cannot access are greyed out or hidden.
+- The `/dashboard` page shows stats relevant to the user's role:
+  - **Admin**: total users by role, total articles, pending reviews, platform-wide activity.
+  - **Executive**: key business metrics — article count, project count, active users.
+  - **Staff/Partner**: their own recent contributions (articles created/edited).
+  - **Client/User**: a simplified "welcome" dashboard with links to content they can access.
+- Dashboard data is fetched from real API endpoints (stats that already exist, plus new user-count endpoint).
+- Both pages use the platform shell (global header, no wiki sidebar).
+
+## Out of scope
+- Real-time notifications or live activity feeds
+- Charts/graphs (counts and text summaries are sufficient for now)
+- Music, Store, or Project-specific stats (those come with their own tasks)
+
+## Tasks
+1. **Landing page** — Build the `/` page with a greeting, platform app cards grid (linking to each section), and a "Recent Activity" panel showing the last 5 wiki articles updated. Cards are role-aware (disabled/hidden for restricted sections).
+
+2. **Dashboard API** — Add a `/api/dashboard` endpoint that returns role-filtered stats: article counts, pending reviews, user counts (admin only), and the current user's recent contributions.
+
+3. **Dashboard page** — Build the `/dashboard` page with role-aware stat cards and a "My Recent Activity" panel. Admins see a user management table with role editing; Executives see business KPIs; Staff/Partners see their contributions.
+
+## Relevant files
+- `client/src/App.tsx`
+- `client/src/pages/home.tsx`
+- `server/routes.ts`
+- `server/storage.ts`
+- `shared/schema.ts`
+
+---
+
+### Bug Fixes & Quick UI Wins
+
+> File: `task-30.md`
+
+---
+title: Bug fixes & quick UI wins
+---
+# Bug Fixes & Quick UI Wins
+
+## What & Why
+Fix a collection of small bugs and polish issues reported by the user — permissions errors, session bugs, layout problems, and navigation polish. These are all self-contained fixes that don't require new schemas or major feature work.
+
+## Done looks like
+- Music submission no longer returns 401 when a logged-in user tries to submit — the session check is fixed to use Passport's `req.user` instead of `req.session.userId`
+- Job listing PATCH and DELETE routes in CMD work for both admin and executive roles — the `requireRole` call is fixed to spread the array correctly
+- Featured job cards on the Jobs page have proper spacing between them (not cramped)
+- Cart icon appears in the platform header nav, opens the existing cart drawer when clicked
+- Footer "Contact" link in the bottom-right policy bar is moved to the last position in the list and links to `/contact` instead of a wiki article
+- Home page hero: SEVCO wordmark logo is removed (redundant with menu bar), planet icon is larger, logos display in black on light backgrounds and white on dark backgrounds using `dark:invert`
+- Account page (`/account`) no longer shows the wiki sidebar — `WIKI_PREFIXES` is updated to exclude `/account`
+
+## Out of scope
+- Any new database tables or schema changes
+- Profile banner image editing (separate task)
+- Footer sitemap restructure (separate task)
+
+## Tasks
+1. **Fix music submission 401** — Replace `req.session?.userId` check in the `/api/music/submissions` POST route with `req.isAuthenticated()` and `req.user?.id` to align with Passport's session model.
+
+2. **Fix job route permissions** — In `server/routes.ts`, change `requireRole(CAN_MANAGE_JOBS)` to `requireRole(...CAN_MANAGE_JOBS)` (spread) for PATCH and DELETE job routes so the role array is correctly unpacked.
+
+3. **Jobs page card spacing** — Add appropriate gap/margin between featured job cards on the public Jobs page so they are not cramped.
+
+4. **Cart icon in header** — Add a cart icon button to `platform-header.tsx` that opens the existing `CartDrawer`. Show a badge with item count when cart is non-empty.
+
+5. **Footer contact link fix** — Move the "Contact" link to last in the bottom policy bar and point it to `/contact`.
+
+6. **Home hero cleanup** — Remove the SEVCO wordmark from the hero section, increase the planet icon size, and ensure logos use `dark:invert` so they display correctly in both light and dark modes.
+
+7. **Account page sidebar fix** — Remove `/account` from `WIKI_PREFIXES` in `App.tsx` so the wiki sidebar no longer appears on the account settings page.
+
+## Relevant files
+- `server/routes.ts:1150-1175,1255-1270`
+- `client/src/App.tsx:61`
+- `client/src/components/platform-header.tsx`
+- `client/src/components/platform-footer.tsx`
+- `client/src/pages/landing.tsx`
+- `client/src/pages/jobs-page.tsx`
+- `client/src/components/cart-drawer.tsx`
+- `client/src/hooks/use-cart.tsx`
+
+---
+
+### Profile & User Admin Enhancements
+
+> File: `task-31.md`
+
+---
+title: Profile & user admin enhancements
+---
+# Profile & User Admin Enhancements
+
+## What & Why
+Extend the profile system so users can personalize their banner image, add a Profile shortcut to the account dropdown, and give admins the ability to change any user's username from CMD.
+
+## Done looks like
+- A "Profile" link appears in the user dropdown (top-right of the platform header) for logged-in users, linking to their own profile at `/profile/:username`
+- On a user's own profile page, an "Edit Banner" button lets them set a banner image URL, which is saved and displayed as the full-width background image at the top of the profile
+- In CMD → Users, admin users see a "Change Username" action for each user row that opens a small inline form or modal — on save, the username is updated in the DB and reflected everywhere
+- The `users` table retains the same structure; `username` is already a column; only a new PATCH route or extension of the existing user update endpoint is needed
+
+## Out of scope
+- Profile photo (avatar) editing (not requested)
+- The social Feed or follow system (separate task)
+- File upload for banner — use a URL input (keep it simple)
+
+## Tasks
+1. **Profile link in header dropdown** — Add a "My Profile" link to the authenticated user dropdown menu in `platform-header.tsx` that navigates to `/profile/{username}`.
+
+2. **Banner image editing on profile** — Add a `bannerImageUrl` column to the `users` table (via `db:push`). On the user's own profile page, show an "Edit Banner" button that opens a URL input; save via a PATCH to the existing `/api/user` or a new route. Display the banner across the top of the profile.
+
+3. **Admin username change in CMD** — In the CMD Users page, add a "Change Username" option per user row (admin only). Wire it to a PATCH endpoint that updates the username, enforcing uniqueness.
+
+## Relevant files
+- `client/src/components/platform-header.tsx`
+- `client/src/pages/profile-page.tsx`
+- `client/src/pages/command-users.tsx`
+- `server/routes.ts`
+- `shared/schema.ts`
+- `server/storage.ts`
+
+---
+
+### Footer Redesign & Social Links Admin
+
+> File: `task-32.md`
+
+---
+title: Footer redesign & social links admin
+---
+# Footer Redesign & Social Links Admin
+
+## What & Why
+The footer sitemap is out of date and doesn't reflect the platform's current pages. Social links on the contact page have spacing issues. Admins also need the ability to manage the social link list (icon, label, URL) from CMD rather than hardcoding them — these changes apply both to the contact page's social section and the footer's "Follow Us" section.
+
+## Done looks like
+- Footer "Platform" sitemap section includes all current platform pages (Home, Wiki, Music, Listen, Store, Projects, Services, Jobs, Contact) organized to mirror the top mega-menu structure
+- Footer displays a "Connect" or similar section listing social links pulled from the DB (dynamic), with icon, label, and URL per entry
+- Contact page social cards have correct spacing and use the same dynamic social links from the DB
+- A new CMD page (admin/exec) lets authorized users add, edit, reorder, and delete social link entries — each with icon name (from `lucide-react` or `react-icons/si`), label, URL, and a `showInFooter` / `showOnContact` toggle
+- Footer link "Contact" is correctly linked to `/contact` and placed last in its list (or this is handled in Task #28)
+
+## Out of scope
+- Changing the font/branding of the footer beyond layout
+- Footer social icons for platforms not in the existing list
+
+## Tasks
+1. **Social links database table** — Add a `socialLinks` table to the schema with fields: `id`, `platform` (label), `url`, `iconName`, `displayOrder`, `showInFooter`, `showOnContact`. Seed with the current hardcoded social links. Run `db:push`.
+
+2. **API routes for social links** — Add GET `/api/social-links` (public), POST/PATCH/DELETE `/api/social-links/:id` (admin/exec only).
+
+3. **Footer sitemap update** — Restructure the footer's Platform nav to include all current pages, organized to mirror the top mega-menu. Pull social links dynamically from the API instead of hardcoding.
+
+4. **Contact page social card fix** — Fix the spacing/layout of social cards on the contact page and replace the hardcoded list with the dynamic social links from the API.
+
+5. **CMD social links management page** — Create `/command/social-links` with a table of all social link entries and inline add/edit/delete controls. Add it to the command sidebar (admin/exec only).
+
+## Relevant files
+- `client/src/components/platform-footer.tsx`
+- `client/src/pages/contact-page.tsx`
+- `client/src/components/command-sidebar.tsx`
+- `client/src/pages/command-store.tsx`
+- `server/routes.ts`
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/seed.ts`
+
+---
+
+### Store CMD — Product Creation
+
+> File: `task-33.md`
+
+---
+title: Store CMD — add product creation
+---
+# Store CMD — Product Creation
+
+## What & Why
+The Store tab in CMD currently only allows toggling stock status and deleting products. Admins and executives need to be able to create new products directly from CMD without needing developer access.
+
+## Done looks like
+- A "Add Product" button appears at the top of the CMD Store page (admin/exec only)
+- Clicking it opens a form (inline or dialog) with fields: Name, Slug (auto-generated from name), Description, Price, Category, Stock Status (available / unavailable / preorder), and optional Image URL
+- On submit, the product is created via the existing `POST /api/store/products` route and appears immediately in the product table
+- Form validates required fields and shows errors inline
+- Existing stock toggle and delete actions are preserved
+
+## Out of scope
+- Image file upload (URL input only for now)
+- Stripe product creation on add (can remain as-is — Stripe sync is already wired)
+- Bulk product import
+
+## Tasks
+1. **Add product creation form** — Build a dialog or drawer in `command-store.tsx` with all required product fields. Use the existing shadcn Form + react-hook-form pattern with zod validation from `insertProductSchema`.
+
+2. **Wire to existing POST endpoint** — On form submit, call `POST /api/store/products`, invalidate the products query cache, and close the form. Show a success toast and error handling.
+
+## Relevant files
+- `client/src/pages/command-store.tsx`
+- `shared/schema.ts`
+- `server/routes.ts`
+
+---
+
+### Music Player & Playlist CMD Editing
+
+> File: `task-34.md`
+
+---
+title: Music player & playlist CMD editing
+---
+# Music Player & Playlist CMD Editing
+
+## What & Why
+Add a persistent music player to the platform that matches the design language, and give admins the ability to manage official playlists (add, edit, delete) directly from CMD using real Spotify/Apple Music/SoundCloud URLs. The playlists section on the music page should expand to showcase official playlists prominently.
+
+## Done looks like
+- A persistent mini music player bar appears at the bottom of the screen (above the footer) when a playlist or track is actively playing — shows track name, artist, and playback controls (play/pause, next, previous, progress bar)
+- On the `/music` and `/music/playlists` pages, official playlists are displayed in a rich grid with platform badges (Spotify, Apple Music, SoundCloud), cover images, and a "Play" button that loads the playlist into the player or opens it in the native platform
+- For Spotify playlists, the player embeds the Spotify Web Player iframe when "Play" is clicked, providing full playback within the platform
+- For Apple Music and SoundCloud playlists, the "Play" button opens the link in a new tab (native app behavior)
+- In CMD → Music, admins (admin/exec) can add, edit, and delete official playlists — each entry has: Title, Platform (Spotify/Apple Music/SoundCloud/YouTube Music), Playlist URL, Cover Image URL, and an "Official" toggle
+- Submitted track pitches remain visible in the existing submissions table
+
+## Out of scope
+- Spotify Web API authentication (OAuth) — use embed iframes for playback, not raw Spotify API
+- Per-track audio file hosting
+- Mobile native app playback
+
+## Tasks
+1. **Playlist grid expansion** — Redesign the Official Playlists section on `/music` and `/music/playlists` into a rich card grid showing cover image, title, platform badge, and a Play/Open button.
+
+2. **Spotify embed player** — When a user clicks "Play" on a Spotify playlist, show an embedded Spotify iframe player in a slide-up panel or persistent bottom bar, sized to fit the platform.
+
+3. **Non-Spotify platform handling** — For Apple Music and SoundCloud entries, the Play/Open button navigates to the external URL in a new tab with appropriate branding.
+
+4. **CMD playlist management** — Extend the existing CMD Music page to include a second tab or section for managing Official Playlists — add/edit/delete entries with all playlist fields. Wire to existing API routes.
+
+## Relevant files
+- `client/src/pages/music-page.tsx`
+- `client/src/pages/music-playlists-page.tsx`
+- `client/src/pages/command-music.tsx`
+- `server/routes.ts:1234-1250`
+- `shared/schema.ts`
+- `client/src/App.tsx`
+
+---
+
+### Wiki Article Archive System
+
+> File: `task-35.md`
+
+---
+title: Wiki article archive system
+---
+# Wiki Article Archive System
+
+## What & Why
+Currently, deleting a wiki article is permanent. Admins should instead be able to archive articles, which hides them from the public wiki but preserves them in a staff-only "Archive" section where they can be edited and republished.
+
+## Done looks like
+- The "Delete" action in the wiki is replaced by (or renamed to) "Archive" — articles are moved to `status: "archived"` rather than removed from the DB
+- A new "Archive" section appears in the wiki sidebar (visible to staff, executive, admin only) listing all archived articles
+- Archived articles are not visible in public wiki listings, search results, or category pages
+- Staff can open any archived article, edit it, and republish it (changing status back to `published` or to `pending` for review)
+- The review queue is unaffected — only published/draft articles go through review; archived ones skip directly to staff editing
+
+## Out of scope
+- Hard deletion capability (not in scope — users keep archive instead)
+- Automatic archival after inactivity
+- Public "tombstone" pages for archived articles (just disappear from public view)
+
+## Tasks
+1. **Add "archived" status** — Ensure the `status` column in the `articles` table includes "archived" as a valid value (it may already be an enum — check and extend if needed via `db:push`). Update any queries that list articles to exclude `archived` from public-facing routes.
+
+2. **Replace delete with archive** — In the Article View and Article Editor, replace the "Delete" button with "Archive". Update the backend route to set `status: "archived"` instead of removing the row. Remove or gate the hard-delete route.
+
+3. **Archive section in wiki sidebar** — Add an "Archive" nav group to the wiki sidebar (staff/exec/admin only) that lists archived articles fetched from a new `/api/articles?status=archived` endpoint.
+
+4. **Archived article editing & republishing** — When a staff member opens an archived article, show an "Edit" and "Republish" button. Republishing sets the status back to `published` (or `pending` if the user lacks publish rights).
+
+## Relevant files
+- `shared/schema.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+- `client/src/components/app-sidebar.tsx`
+- `client/src/pages/article-view.tsx`
+- `client/src/pages/article-editor.tsx`
+- `client/src/hooks/use-permission.ts`
+
+---
+
+### Version System & Changelog Update
+
+> File: `task-36.md`
+
+---
+title: Version system & changelog update
+---
+# Version System & Changelog Update
+
+## What & Why
+Introduce a structured version numbering system for platform updates. Each Changelog entry gets a version label (e.g., v1.4.2). The current version is displayed in the footer, derived from the most recent published Changelog entry. Also update the Changelog with all the work done in the current and preceding sessions (Tasks #22–#27 and the new tasks in this batch).
+
+## Done looks like
+- Each Changelog entry has a `version` field (e.g., "1.0.0", "1.4.2") shown alongside the entry title and date
+- The footer displays the current platform version (e.g., "v1.4.2 — Mar 25 2026") pulled from the latest Changelog entry via API — no hardcoding
+- The CMD Changelog page shows the version field when creating/editing entries, with a suggested next version auto-filled based on the current latest
+- The Changelog is updated with well-organized entries covering all work done across sessions: platform launch, mega-menu, home page, contact, profile, jobs, services, music expansion, and the new features from this update batch (once they land)
+- Version format follows semantic versioning (MAJOR.MINOR.PATCH) with a brief explanation of what each number means in the CMD interface
+
+## Out of scope
+- Automated version bumping via CI/CD
+- Git tag integration
+- Changelog RSS feed
+
+## Tasks
+1. **Add version field to changelog schema** — Add a `version` varchar column to the `changelogs` table. Run `db:push`. Update the insert schema and storage methods.
+
+2. **Version display in footer** — Add a new public GET `/api/changelog/latest` route that returns the most recent published changelog entry. Update the footer to fetch and display the version and date.
+
+3. **CMD changelog versioning UI** — In the CMD Changelog create/edit form, add a `version` input with auto-suggested next version based on the latest entry. Show version badge on each entry row.
+
+4. **Seed current changelog entries** — Add well-organized changelog entries for all work done to date: v0.1.0 (initial wiki MVP), v0.2.0 (platform shell + auth), v0.3.0 (store + stripe), v1.0.0 (home page + mega-menu + contact + profile + jobs), v1.1.0 (services + music SEVCO RECORDS), v1.2.0 (the current batch of features). Use real dates and brief, user-readable descriptions.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+- `server/seed.ts`
+- `client/src/components/platform-footer.tsx`
+- `client/src/pages/command-changelog.tsx`
+
+---
+
+### Social Feed — Posts, Follows & Timelines
+
+> File: `task-37.md`
+
+---
+title: Social feed — posts, follows & timelines
+---
+# Social Feed — Posts, Follows & Timelines
+
+## What & Why
+Add a Twitter/X-style social layer to the platform so registered users can post updates, follow each other, like and reply to posts. A new "Feed" page aggregates posts from people the user follows. Each user's profile page shows their personal timeline of posts.
+
+## Done looks like
+- A "Feed" link appears in the Home dropdown menu (registered users only)
+- `/feed` page shows a chronological timeline of posts from users the current user follows, plus the user's own posts — with a "New Post" composer at the top
+- Posts support: text content (up to ~500 chars), optional image URL, timestamp, like count, reply count
+- Clicking the like heart increments the count; clicking reply expands an inline reply thread
+- On any user's public profile page (`/profile/:username`), a "Posts" tab shows that user's timeline of posts
+- A "Follow / Unfollow" button on profile pages lets authenticated users follow/unfollow — follower and following counts appear on the profile
+- Users who are not registered (not logged in) see a prompt to sign up when visiting `/feed` or trying to follow
+- Posts are real-time via page refresh (no WebSockets needed for MVP)
+
+## Out of scope
+- Direct messaging
+- Hashtags or trending topics
+- Post media upload (URL input only)
+- Notifications / push alerts
+- Retweet/reblog (not requested)
+
+## Tasks
+1. **Schema: posts, likes, follows** — Add `posts` (id, authorId, content, imageUrl, createdAt), `postLikes` (postId, userId), `postReplies` (id, postId, authorId, content, createdAt), and `userFollows` (followerId, followingId) tables. Run `db:push`.
+
+2. **API routes** — Add RESTful routes: GET/POST `/api/posts`, GET `/api/posts/:id/replies`, POST `/api/posts/:id/replies`, POST/DELETE `/api/posts/:id/like`, GET `/api/users/:username/posts`, POST/DELETE `/api/users/:username/follow`, GET `/api/users/:username/followers`, GET `/api/users/:username/following`.
+
+3. **Feed page** — Build `/feed` page with a composer (textarea + submit), infinite-scroll or paginated timeline of followed users' posts, like/reply interactions. Show sign-in prompt if unauthenticated.
+
+4. **Profile timeline tab** — Add a "Posts" tab to the profile page showing that user's posts chronologically with like and reply counts. Show follow/unfollow button for other users' profiles (logged-in required).
+
+5. **Follow counts on profile** — Display follower and following counts on profile pages; clicking them opens a simple list of who follows/is followed.
+
+6. **Header Feed link** — Add "Feed" to the Home/platform dropdown in the header, visible only to authenticated users.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+- `client/src/App.tsx`
+- `client/src/pages/profile-page.tsx`
+- `client/src/components/platform-header.tsx`
+
+---
+
+### Notes Tool — Personal & Collaborative
+
+> File: `task-38.md`
+
+---
+title: Notes tool — personal & collaborative
+---
+# Notes Tool — Personal & Collaborative
+
+## What & Why
+Add an Apple Notes-style notes tool to the platform for registered users. Users can create personal notes, collaborate on shared notes with other members, and optionally attach notes to projects or wiki articles for context.
+
+## Done looks like
+- A "Notes" section is accessible from the platform navigation (e.g., under the Home dropdown or as its own nav item)
+- `/notes` page shows the user's notes in a two-pane layout: a list/sidebar on the left and a rich text editor on the right — visually similar to Apple Notes
+- Users can create, rename, edit, and delete their own notes; content auto-saves as they type
+- Notes can be marked as "Shared" and a collaborator can be invited by username — shared notes appear in both users' notes lists and both can edit
+- When viewing a project (`/projects/:slug`) or wiki article, a "Attach Note" button lets the user link an existing note to that resource — the note then appears in a "Notes" panel on that page for the user who attached it
+- Notes are private by default; only the owner and explicitly invited collaborators can read or edit
+- Unauthenticated users visiting `/notes` see a prompt to sign in
+
+## Out of scope
+- Rich text formatting beyond basic markdown (bold, italic, lists, headers)
+- Real-time collaborative editing (last-write-wins is fine for MVP)
+- Note attachments / file uploads
+- Note sharing with external people (platform users only)
+- Full-text search across note content (can be a follow-up)
+
+## Tasks
+1. **Schema** — Add `notes` (id, ownerId, title, content, isShared, createdAt, updatedAt), `noteCollaborators` (noteId, userId), `noteAttachments` (noteId, resourceType enum "project"/"article", resourceId) tables. Run `db:push`.
+
+2. **API routes** — Add CRUD routes for notes (GET/POST/PATCH/DELETE `/api/notes`, GET `/api/notes/:id`), collaborator management (POST/DELETE `/api/notes/:id/collaborators`), and attachment routes (POST/DELETE `/api/notes/:id/attachments`).
+
+3. **Notes page layout** — Build the `/notes` two-pane layout: sidebar note list (search, new note button, note titles with timestamps) and main editor area (title input + textarea with auto-save via debounced mutation). Show sign-in prompt if unauthenticated.
+
+4. **Note collaboration** — On each note, an "Invite" button (owner only) lets the user type a username to add as a collaborator. Collaborators see the note in their list with a "Shared" badge. Remove collaborator option for owner.
+
+5. **Attach notes to projects/articles** — Add an "Attach Note" sidebar panel on project detail pages and wiki article pages. Shows the user's notes as a searchable list; selecting one creates a `noteAttachment` record. Attached notes display in the panel (read-only in context).
+
+6. **Header navigation** — Add "Notes" to the platform header navigation (e.g., under the Home or user dropdown), visible to authenticated users only. Add the `/notes` route to `App.tsx`.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+- `client/src/App.tsx`
+- `client/src/components/platform-header.tsx`
+- `client/src/pages/projects-page.tsx`
+- `client/src/pages/article-view.tsx`
+
+---
+
+### Music Page — SEVCO RECORDS
+
+> File: `task-4.md`
+
+---
+title: Music Page — SEVCO RECORDS
+---
+# Music Page — SEVCO RECORDS
+
+## What & Why
+Build the Music section (`/music`) for SEVCO RECORDS, the platform's record company. This gives users a place to browse and discover artists, albums, and releases from the SEVCO catalog. The section is visible to all roles but content creation (adding artists, albums) is limited to Admin, Executive, and Staff.
+
+## Done looks like
+- `/music` shows a browsable catalog with featured artists and latest releases.
+- `/music/artists` lists all artists with name, genre tags, and a cover image placeholder.
+- `/music/artists/:slug` shows an artist detail page with bio, discography (albums list), and links to associated wiki articles.
+- `/music/albums/:slug` shows an album detail page with title, artist, release year, and track listing.
+- Admin/Executive/Staff users see an "Add Artist" and "Add Album" button; others do not.
+- A simple form allows authorized users to create artists and albums (name, slug, bio/description, genre, release year for albums).
+- All pages use the global platform header with no wiki sidebar.
+
+## Out of scope
+- Audio playback or streaming
+- Integration with external music services (Spotify, Apple Music)
+- Image uploads (placeholder images only for now)
+- Full CRUD editing UI (create only for now; edit/delete in a future task)
+
+## Tasks
+1. **Schema & storage** — Add `artists` (id, name, slug, bio, genres array) and `albums` (id, artistId, title, slug, releaseYear, trackList jsonb) tables. Add storage methods and API routes for CRUD (create, list, get by slug).
+
+2. **Music hub page** — Build `/music` with a header banner, a featured artists grid, and a "Latest Releases" section, pulling from the new API.
+
+3. **Artist & album detail pages** — Build `/music/artists/:slug` and `/music/albums/:slug` with their respective detail layouts, linking to each other.
+
+4. **Create forms** — Add role-gated "Add Artist" and "Add Album" forms (modal or separate page) accessible only to Admin, Executive, and Staff.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/routes.ts`
+- `client/src/App.tsx`
+
+---
+
+### Store / Marketplace Section
+
+> File: `task-5.md`
+
+---
+title: Store / Marketplace Section
+---
+# Store / Marketplace Section
+
+## What & Why
+Build the Store section (`/store`) — a product marketplace for SEVCO merchandise and offerings. Visitors can browse products by category. Admin, Executive, and Staff can manage listings. This gives SEVCO a unified place to display and manage everything they sell, consistent with the platform's design language.
+
+## Done looks like
+- `/store` shows a catalog grid of product listings organized by category.
+- `/store/products/:slug` shows a product detail page with title, description, price, category, and an image placeholder.
+- Products can be filtered by category using tabs or a sidebar filter.
+- Admin/Executive/Staff see an "Add Product" button; other roles do not.
+- A create product form captures: name, slug, description, price, category, and stock status (available / sold out).
+- All pages use the global platform header with no wiki sidebar.
+
+## Out of scope
+- Shopping cart and checkout (no payment processing in this task)
+- Inventory management
+- Image uploads (placeholder images only)
+- Order management
+
+## Tasks
+1. **Schema & storage** — Add `products` (id, name, slug, description, price, categoryName, stockStatus, createdAt) table. Add storage methods and API routes for list, get by slug, and create.
+
+2. **Store hub page** — Build `/store` with a product grid, category filter tabs, and a loading/empty state.
+
+3. **Product detail page** — Build `/store/products/:slug` with a detail layout showing all product fields and a "Back to Store" link.
+
+4. **Create product form** — Add a role-gated "Add Product" form (modal or page) for Admin, Executive, and Staff. Include all fields from the schema.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/routes.ts`
+- `client/src/App.tsx`
+
+---
+
+### Projects Page — SEVCO Companies & Ventures
+
+> File: `task-6.md`
+
+---
+title: Projects Page — SEVCO Ventures
+---
+# Projects Page — SEVCO Companies & Ventures
+
+## What & Why
+Build the Projects section (`/projects`) to showcase all of SEVCO's active companies, businesses, and ventures. This gives the team and partners a clear overview of what's in the SEVCO portfolio, with status tracking and links to related wiki articles. Clients and Users can view projects; Admin, Executive, and Staff can create and edit them.
+
+## Done looks like
+- `/projects` shows a grid or list of all SEVCO projects/companies with name, description, status badge (Active, In Development, Archived), and category/type tag.
+- `/projects/:slug` shows a project detail page with: full description, status, website link, team lead, related wiki articles (linked by slug), and key info fields.
+- Projects can be filtered by status (Active, In Development, Archived).
+- Admin/Executive/Staff see an "Add Project" button; other roles see the list read-only.
+- A create/edit form captures: name, slug, description, status, type (Company / Record Label / Brand / Initiative / Other), website URL, team lead name, and related wiki article slugs.
+- All pages use the global platform header with no wiki sidebar.
+
+## Out of scope
+- File attachments or document uploads
+- Team member management (beyond a simple "team lead" text field)
+- Time tracking or task management within a project
+
+## Tasks
+1. **Schema & storage** — Add `projects` (id, name, slug, description, status, type, websiteUrl, teamLead, relatedWikiSlugs array, createdAt) table. Add storage methods and API routes for list, get by slug, create, and update.
+
+2. **Projects hub page** — Build `/projects` with a filterable grid layout, status badges, and type tags.
+
+3. **Project detail page** — Build `/projects/:slug` with a full detail layout, wiki article links panel, and an "Edit" button for authorized roles.
+
+4. **Create & edit form** — Add role-gated forms for creating and editing projects. Include all schema fields.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/routes.ts`
+- `client/src/App.tsx`
+
+---
+
+### Bug Fixes & Polish Bundle 2
+
+> File: `task-70.md`
+
+---
+title: Bug fixes bundle: store pills, chat X, project routing, auth form, brand colors, changelog
+---
+# Bug Fixes & Polish Bundle 2
+
+## What & Why
+Six targeted fixes and one changelog update addressing issues found after the recent feature merge wave.
+
+## Done looks like
+- Store page no longer shows the orange pill filter buttons (All / Engineering / Music / etc.) below the category banner cards — the banner cards themselves already act as filters; removing the redundant pill row declutters the page
+- Chat sheet has only one X/close button (the built-in one from SheetContent); the manual duplicate close button inside the SheetHeader has been removed
+- Navigating to `/projects/new` no longer matches the `:slug` route and shows "project not found"; the `/projects/new` route is registered before `/projects/:slug` in App.tsx so the specific path wins
+- Auth form inputs accept keyboard input; the root cause (likely a focus-trap or pointer-events issue from an overlapping element or CSS rule) is diagnosed and fixed
+- Brand colors (main, secondary, accent, highlight) display correctly in the About page brand section; the CSS variable injection in PlatformColorInjector is verified and any timing/specificity issue fixed
+- A new Changelog entry is added in CMD for the recent work (Tasks #62–69): platform improvements including bug fixes, Minecraft page, chat, Finance, Staff, Support, Media, and marketing page redesigns
+
+## Out of scope
+- Redesigning the store filter experience
+- Changing the chat sheet layout beyond fixing the duplicate button
+
+## Tasks
+1. **Remove store pill filters** — Delete the `flex flex-wrap gap-2` pill filter row (All + category pills) from `store-page.tsx`. The category banner cards above already handle filtering.
+
+2. **Fix chat double X** — Remove the manual `<Button>` close button from the `SheetHeader` in `chat-sheet.tsx`. The `SheetContent` already renders an absolute-positioned X button automatically.
+
+3. **Fix project routing** — In `App.tsx`, move the `/projects/new` route registration to appear before `/projects/:slug` so the static path takes priority over the dynamic one.
+
+4. **Fix auth form typing** — Investigate and fix the issue preventing keyboard input in the auth form. Check for: overlapping elements with `pointer-events: none/all`, z-index stacking issues, focus traps from chat or search components that persist across navigation. Fix whatever prevents the inputs from receiving focus.
+
+5. **Fix brand colors on About page** — Debug the `PlatformColorInjector` to ensure CSS variables are injected before the About page renders its swatches. If fallback values still don't show, check the `var()` syntax and that `PRIMARY_COLORS` fallback strings use valid `hsl()` format.
+
+6. **Add changelog entry** — Add a new entry in CMD Changelog via the `POST /api/changelog` endpoint (or directly via storage): version 1.3.0, category "feature", title "Platform Expansion: Minecraft, Chat, Finance, Staff, Support, Media", summarizing the recent task wave.
+
+## Relevant files
+- `client/src/pages/store-page.tsx`
+- `client/src/components/chat-sheet.tsx`
+- `client/src/App.tsx`
+- `client/src/pages/auth-page.tsx`
+- `client/src/pages/about-page.tsx`
+- `client/src/App.tsx` (PlatformColorInjector)
+- `server/routes.ts` (changelog endpoint)
+
+---
+
+### Minecraft as a Project + CMD Minecraft Admin Tab
+
+> File: `task-71.md`
+
+---
+title: Minecraft as a project + CMD Minecraft admin tab
+---
+# Minecraft as a Project + CMD Minecraft Admin Tab
+
+## What & Why
+The Minecraft page currently lives under the Services menu, which is the wrong home. It should be a SEVCO Project — visible in the Projects section — and the server details (IPs, descriptions, voting links) that are currently hardcoded in the page should be editable by admins in CMD.
+
+## Done looks like
+
+### Navigation
+- Minecraft is removed from the Services mega-menu footer and mobile Services section
+- A "Minecraft" project exists in the Projects page; clicking it navigates to `/minecraft` (the Minecraft marketing page acts as the project's detail view)
+- The Minecraft project is seeded in the DB on first run (or via migration): name="Minecraft", slug="minecraft", type="Game Server", status="active", websiteUrl="/minecraft"
+- In `project-detail.tsx`, if a project has `type === "Game Server"` and a `websiteUrl` starting with `/`, the page automatically redirects to that URL instead of rendering the standard detail layout
+
+### CMD Minecraft tab
+- A new "Minecraft" item in the CMD sidebar (Content group, admin only)
+- The tab at `/command/minecraft` shows a list of current servers with:
+  - Server name, host/IP, description, game mode (Survival, Creative, etc.)
+  - Vote links (list of { label, url })
+  - Enable/disable toggle (hidden servers don't show on the Minecraft page)
+- "Add Server" creates a new server record; clicking a server opens an edit sheet
+- "Delete" button with confirmation removes a server
+
+### Minecraft page reads from DB
+- The hardcoded `SERVERS` constant in `minecraft-page.tsx` is replaced by a `GET /api/minecraft/servers` endpoint call
+- The status polling endpoint remains as `GET /api/minecraft/status?host=X`
+
+## Schema additions
+`minecraft_servers` table:
+- `id` serial PK
+- `name` text
+- `host` text (e.g., smp.sevco.us)
+- `description` text nullable
+- `gameMode` text nullable (e.g., "Survival", "Creative")
+- `voteLinks` jsonb (array of `{ label: string, url: string }`)
+- `enabled` boolean default true
+- `sortOrder` integer default 0
+- `createdAt` timestamp
+
+## Backend additions
+- `GET /api/minecraft/servers` — public; returns enabled servers ordered by sortOrder
+- `POST /api/minecraft/servers` — admin only; creates a server
+- `PATCH /api/minecraft/servers/:id` — admin only; updates a server
+- `DELETE /api/minecraft/servers/:id` — admin only; removes a server
+- Seed 2 default servers on first run if table is empty
+
+## Out of scope
+- Server analytics or player history
+- Multiple Minecraft page themes
+
+## Relevant files
+- `client/src/pages/minecraft-page.tsx`
+- `client/src/components/platform-header.tsx` (remove from Services dropdown)
+- `client/src/pages/project-detail.tsx` (redirect for Game Server type)
+- `client/src/components/command-sidebar.tsx`
+- `client/src/App.tsx`
+- New: `client/src/pages/command-minecraft.tsx`
+- `shared/schema.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+
+---
+
+### Platform-Wide Hover Tooltips
+
+> File: `task-72.md`
+
+---
+title: Platform-wide hover tooltips on icons and buttons
+---
+# Platform-Wide Hover Tooltips
+
+## What & Why
+Many icon-only buttons across the platform (nav icons, CMD action buttons, sidebar items in icon-collapsed mode, etc.) give no indication of their function on hover. Adding tooltips improves discoverability and accessibility.
+
+## Done looks like
+- All icon-only buttons in the platform header nav (search, cart, chat, notifications, theme toggle, user avatar trigger) show a tooltip on hover describing their function
+- All icon-only buttons in the CMD sidebar (when collapsed to icon mode) show the item label as a tooltip
+- All icon-only action buttons in CMD pages show descriptive tooltips (e.g., "Edit", "Delete", "Copy URL", "Upload", "Save")
+- All icon-only buttons in the wiki sidebar show their label as a tooltip
+- The Tooltip component used is the shadcn/ui `Tooltip` from `@/components/ui/tooltip`
+- Tooltips appear below or beside the element with a short delay (default shadcn behavior)
+- No tooltip is added to buttons that already have a visible text label
+
+## Implementation approach
+- Use `TooltipProvider` (already expected to wrap the app in App.tsx or at a high level), `Tooltip`, `TooltipTrigger`, `TooltipContent` from `@/components/ui/tooltip`
+- If `TooltipProvider` is not already wrapping the app, add it in App.tsx
+- Priority order for tooltip placement:
+  1. Platform header nav icons (highest impact, most visible)
+  2. CMD sidebar icon-collapsed mode items (already have labels but need tooltips when collapsed)
+  3. CMD page action buttons (Edit, Delete, Copy, etc.)
+  4. Wiki sidebar action buttons
+
+## Out of scope
+- Adding tooltips to form labels or non-interactive elements
+- Custom tooltip animations or styling beyond shadcn defaults
+
+## Relevant files
+- `client/src/components/platform-header.tsx`
+- `client/src/components/command-sidebar.tsx`
+- `client/src/components/app-sidebar.tsx`
+- `client/src/App.tsx` (TooltipProvider)
+- `client/src/components/ui/tooltip.tsx`
+- CMD pages with action buttons (command-media.tsx, command-support.tsx, etc.)
+
+---
+
+### Hero Logo Upload + Brand Assets Preview
+
+> File: `task-73.md`
+
+---
+title: Hero logo upload + Brand Assets logo preview
+---
+# Hero Logo Upload + Brand Assets Preview
+
+## What & Why
+Admins currently cannot change the planet icon shown in the Hero section — it's hardcoded. The Brand Assets section in CMD shows blank preview boxes for logo assets. Both items improve the CMS/admin UX significantly.
+
+## Done looks like
+
+### Hero logo upload (CMD Display)
+- The Hero Editor in CMD > Display has a new "Platform Logo" field above the background image section
+- The field uses `FileUploadWithFallback` to upload an image to the `brand-assets` Supabase bucket under the path `platform-logo/logo`
+- The uploaded URL is saved to the `platform.logoUrl` setting key
+- The landing page (`landing.tsx`) reads `platform.logoUrl` from the platform settings query (via `usePlatformSettings`) and renders the uploaded logo; if no logo is set, it falls back to the hardcoded planet icon import
+- The platform header and any other places that render the planet icon also use the dynamic logo URL
+
+### Brand Assets logo preview
+- In the Brand Assets section of CMD Display, when an asset has `assetType === "logo"` and a `fileUrl`, the asset card uses that `fileUrl` as its preview image (`<img src={asset.fileUrl} alt={asset.name} />`)
+- If the asset has no `fileUrl` or `assetType !== "logo"`, it falls back to the current placeholder icon
+- The About page brand assets section also uses the `fileUrl` as the preview for logo-type assets
+
+### Brand colors on About page
+- Investigate and confirm whether `color.brand.*` entries exist in the DB
+- If they exist but aren't rendering, fix the CSS variable injection timing (inject before first paint or re-render the About page when settings load)
+- Add a loading state to the About page brand colors section so it waits for platform settings before rendering the swatches
+
+## Implementation notes
+- `usePlatformSettings` hook already exists or can be created as a wrapper around `useQuery({ queryKey: ['/api/platform-settings'] })`
+- The landing page already has access to the settings from PlatformColorInjector in App.tsx; extend the same query to export the logo URL
+- Brand Assets cards: the `BrandAsset` type from the DB has a `fileUrl` column; use it directly for logo-type assets
+
+## Relevant files
+- `client/src/pages/command-display.tsx` (Hero editor section, Brand Assets section)
+- `client/src/pages/landing.tsx` (reads platform.logoUrl)
+- `client/src/pages/about-page.tsx` (brand assets preview + brand colors)
+- `client/src/App.tsx` (PlatformColorInjector)
+- `shared/schema.ts` (brand_assets table, platform_settings table)
+
+---
+
+### Services Mega-Menu Reorganization
+
+> File: `task-74.md`
+
+---
+title: Services mega-menu reorganization
+---
+# Services Mega-Menu Reorganization
+
+## What & Why
+The Services mega-menu currently groups services into generic categories (Engineering, Design, Marketing, Operations, Sales, Support) that were placeholders. The user wants every service properly categorized under the correct headings matching SEVCO's real service offerings.
+
+## Done looks like
+- The Services dropdown mega-menu groups are updated to match SEVCO's actual service categories
+- Each category has an appropriate Lucide icon
+- The layout stays three columns (or adjusts to fit the new categories cleanly)
+- Existing service records in the DB are updated to match the new category names
+- The mobile Services menu reflects the same categories
+- The Minecraft link has been removed from the footer links section (handled in Task #71); the footer links section now shows: Hosting, Domains, View all services
+
+## New category structure
+Based on SEVCO's known service portfolio, the updated categories should be:
+
+**Column 1:**
+- **Creative** — Design, branding, content creation (icon: Sparkles or Palette)
+- **Technology** — Software dev, platforms, apps (icon: Code2)
+
+**Column 2:**
+- **Marketing** — Social media, campaigns, growth (icon: Megaphone)
+- **Business** — Consulting, strategy, operations (icon: Briefcase)
+
+**Column 3:**
+- **Media** — Music production, recording, distribution (icon: Music)
+- **Support** — Client services, help desk (icon: LifeBuoy or HeadphonesIcon)
+
+Each category shows up to 3 services from the DB. The "Browse all" footer link remains.
+
+## Implementation approach
+- Update `SERVICE_COLUMN_GROUPS` constant in `platform-header.tsx` with new category names and icons
+- Update the mobile services section to use the same categories
+- Provide DB seed or admin instructions for re-categorizing existing service records
+- Show a "No services in this category yet" placeholder when a category has 0 items rather than hiding the header
+
+## Out of scope
+- Changing the visual design of the mega-menu itself (cards, fonts, spacing)
+- Adding subcategories
+- Reordering the Services page listing
+
+## Relevant files
+- `client/src/components/platform-header.tsx` (SERVICE_COLUMN_GROUPS constant, ServicesDropdown, mobile menu)
+
+---
+
+### Finance — Subscriptions Tab
+
+> File: `task-75.md`
+
+---
+title: Finance CMD — Subscriptions tab
+---
+# Finance — Subscriptions Tab
+
+## What & Why
+SEVCO needs to track its corporate subscriptions (SaaS tools, services, renewals) in one place. A new Subscriptions sub-tab in CMD > Finance gives a centralized view of all recurring costs with due dates and a total monthly cost summary.
+
+## Done looks like
+- CMD > Finance has a new "Subscriptions" tab alongside the existing Accounting/Invoices/Budgets/Calculator sub-tabs
+- The Subscriptions tab shows a table of SEVCO's corporate subscriptions:
+  - Name, category (e.g., Software, Services, Hosting, Media, Other), amount, billing cycle (monthly/annually/quarterly), next due date, status (active/cancelled/paused)
+  - Monthly equivalent cost (for annual plans: amount / 12, for quarterly: amount / 3)
+- A "Total monthly cost" card at the top summarizes the sum of all active subscription monthly equivalents
+- "Add Subscription" button opens a form sheet with all fields
+- Each row has Edit and Delete actions
+- Subscriptions are sorted by next due date (soonest first)
+- Overdue subscriptions (next due date < today) are highlighted in red/amber
+
+## Schema additions
+`subscriptions` table:
+- `id` serial PK
+- `name` text (e.g., "Adobe Creative Cloud")
+- `category` text (Software/Services/Hosting/Media/Other)
+- `amount` numeric (e.g., 54.99)
+- `billingCycle` text (monthly/annually/quarterly)
+- `nextDueDate` date
+- `status` text default "active" (active/cancelled/paused)
+- `notes` text nullable
+- `websiteUrl` text nullable
+- `createdAt` timestamp
+
+## Backend additions
+- `GET /api/finance/subscriptions` — admin/executive; returns all subscriptions ordered by nextDueDate
+- `POST /api/finance/subscriptions` — admin/executive; creates subscription
+- `PATCH /api/finance/subscriptions/:id` — admin/executive; updates subscription
+- `DELETE /api/finance/subscriptions/:id` — admin/executive; removes subscription
+
+## Frontend
+- New `SubscriptionsTab` component inside `client/src/pages/command-finance.tsx`
+- Summary card: "Total Monthly Cost: $X,XXX.XX" using monthly equivalents of all active subs
+- Table with name, category badge, amount, cycle, next due (colored red if overdue), status badge, actions
+- Add/Edit uses a Sheet with a form (react-hook-form + zod)
+- Due date shown as relative (e.g., "In 12 days" or "3 days overdue")
+
+## Out of scope
+- Automatic renewal notifications/emails
+- Credit card tracking
+- Connecting to real subscription APIs (Stripe billing portal, etc.)
+
+## Relevant files
+- `shared/schema.ts`
+- `server/routes.ts`
+- `server/storage.ts`
+- `client/src/pages/command-finance.tsx`
+
+---
+
+### Fix Invoice Email + Support Reply Email (Resend)
+
+> File: `task-76.md`
+
+---
+title: Fix invoice email + support reply via Resend
+---
+# Fix Invoice Email + Support Reply Email (Resend)
+
+## What & Why
+Two email-sending features in CMD are broken: the "Send Invoice" button in Finance and the "Reply" function in the Support ticket viewer. Both use the Resend integration. The code appears structurally correct; the bug is likely a runtime credential or domain configuration issue.
+
+## Done looks like
+- Clicking "Send Invoice" on a Finance invoice that has a client email address successfully sends a professional HTML invoice email to the client and updates the invoice status to `sent`
+- Replying to a contact submission from CMD > Support successfully sends a reply email to the original submitter and marks the submission as replied
+- Both actions show a success toast on completion and an error toast with the specific error message if it fails
+- Error messages in the UI are informative enough to diagnose config issues (e.g., "Resend API key not found — check the Resend integration")
+
+## Investigation steps
+1. Check the actual runtime error from the server logs when either endpoint is called — the error is currently swallowed or not shown to the user
+2. Verify the Resend connector returns a valid API key from `getCredentials()` in `emailClient.ts` — add defensive logging
+3. Confirm `sevco.us` is verified in the Resend dashboard (required for outbound from `noreply@sevco.us`)
+4. If the connector API call fails, fall back to `process.env.RESEND_API_KEY` as a secondary source
+5. Improve error messages returned from the endpoint so they surface in the frontend toast
+
+## Known code structure
+- `server/emailClient.ts` → `sendInvoiceEmail(invoice)` and `sendContactReplyEmail(email, name, subject, body)`
+- `server/routes.ts` → `POST /api/finance/invoices/:id/send` and `POST /api/contact-submissions/:id/reply`
+- Frontend: invoice send button in `command-finance.tsx`, reply form in `command-support.tsx`
+- Resend credentials fetched via Replit Connector API at `https://${hostname}/api/v2/connection?connector_names=resend`
+
+## Fix approach
+- Add a try/catch inside `getCredentials()` that logs the exact error and falls back to `process.env.RESEND_API_KEY`
+- In both route handlers, return the specific Resend error in the 500 response body (not just "Failed to send email")
+- In the frontend, display the error message from the response body in the toast
+- If credential retrieval fails entirely, return a clear 503 "Email service not configured" error
+
+## Out of scope
+- Redesigning email templates
+- Adding email tracking/open analytics
+- Changing the from address
+
+## Relevant files
+- `server/emailClient.ts`
+- `server/routes.ts` (invoice send + contact reply endpoints)
+- `client/src/pages/command-finance.tsx`
+- `client/src/pages/command-support.tsx`
+
+---
+
+### task email fix
+
+> File: `task-email-fix.md`
+
+---
+  title: Fix email verification links + inbound email reception
+  ---
+  # Email Fixes — Verification Links + Inbound Email
+
+  ## Problem 1: Verification email links are broken
+
+  ### Root cause
+  `getBaseUrl()` in `server/emailClient.ts` falls through to `REPLIT_DEPLOYMENT_URL`
+  (a `.replit.app` URL) because `SITE_URL` is not set. Verification links land on
+  the wrong domain; session cookies and the custom domain don't align.
+
+  ### Fix
+  Add `SITE_URL=https://sevco.us` as a Replit secret using the environment-secrets skill.
+  No code change is needed — `getBaseUrl()` already checks this first.
+
+  ---
+
+  ## Problem 2: Inbound emails rejected (no emails received in @sevco.us inboxes)
+
+  ### Root cause A — RESEND_WEBHOOK_SECRET not set
+  `verifyResendWebhookSignature()` hard-returns `false` when the secret is missing:
+  ```ts
+  if (!secret) { return false; }   // → 401 on every inbound webhook
+  ```
+  Add `RESEND_WEBHOOK_SECRET` as a Replit secret (value comes from Resend dashboard →
+  your inbound route → "Signing Secret").
+
+  ### Root cause B — raw body not captured in Express middleware
+  The webhook signature is computed over the **raw** request bytes. The route uses:
+  ```ts
+  const rawBody: Buffer = (req as any).rawBody ?? Buffer.from(JSON.stringify(req.body));
+  ```
+  If `req.rawBody` is not set, it falls back to re-serializing the already-parsed body,
+  which may differ in whitespace/ordering from what Resend signed → signature mismatch.
+
+  #### Code fix — server/index.ts
+  Before the `express.json()` middleware, intercept the inbound-webhook route to capture raw bytes:
+  ```ts
+  // Capture raw body for Resend inbound webhook signature verification
+  app.use("/api/email/inbound", (req: any, _res, next) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    req.on("end", () => {
+      req.rawBody = Buffer.concat(chunks);
+      next();
+    });
+  });
+  ```
+  This MUST be placed before the global `express.json()` call so it runs on the raw stream.
+
+  ### Root cause C — Resend signature format mismatch (potential)
+  Resend inbound webhooks may prefix the signature header with `v1,`.
+  Update `verifyResendWebhookSignature()` to strip any prefix:
+  ```ts
+  export function verifyResendWebhookSignature(rawBody: Buffer, signatureHeader: string | undefined): boolean {
+    const secret = process.env.RESEND_WEBHOOK_SECRET;
+    if (!secret) {
+      console.warn("[email] RESEND_WEBHOOK_SECRET not set");
+      return false;
+    }
+    if (!signatureHeader) return false;
+
+    // Resend may send "v1,<hex>" — strip the prefix
+    const sig = signatureHeader.includes(",") ? signatureHeader.split(",").pop()! : signatureHeader;
+
+    const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+    try {
+      return crypto.timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(sig, "hex"));
+    } catch {
+      return false;
+    }
+  }
+  ```
+
+  ---
+
+  ## Manual steps required (cannot be done by code — user must do these)
+
+  ### A. Set secrets in Replit (Platform Settings → Secrets)
+  1. `SITE_URL` = `https://sevco.us`
+  2. `RESEND_WEBHOOK_SECRET` = (copy from Resend dashboard → Inbound → your route → Signing Secret)
+
+  ### B. Resend Dashboard setup
+  1. Go to resend.com → Inbound
+  2. Create (or confirm) an inbound route:
+     - Catch address: `*@sevco.us`
+     - Endpoint: `https://sevco.us/api/email/inbound`
+  3. Copy the "Signing Secret" → paste into Replit as `RESEND_WEBHOOK_SECRET`
+
+  ### C. DNS — MX record for sevco.us
+  Add this MX record at your domain registrar (e.g. Cloudflare, GoDaddy):
+    `sevco.us   MX   10   inbound.resend.com`
+  This routes incoming @sevco.us mail to Resend for processing.
+
+  Note: sevco.us must already be a verified sending domain in Resend
+  (SPF + DKIM records present) for inbound routing to work.
+
+  ---
+
+  ## CMD — Email Setup wizard (optional enhancement)
+  Add a new "Email" tab to CMD → Platform Settings that shows:
+  - ✅/❌ RESEND_WEBHOOK_SECRET set
+  - ✅/❌ SITE_URL set  
+  - The exact DNS records to add (MX, SPF, DKIM) with copy buttons
+  - The inbound webhook URL to paste in Resend dashboard
+  - A "Send test email" button (already exists)
+  This gives admins visibility without having to read code comments.
+
+  ---
+
+  ## Files to change (code fixes)
+  - `server/index.ts` — raw body capture middleware for /api/email/inbound
+  - `server/email.ts` — fix verifyResendWebhookSignature to strip v1, prefix
+  - `client/src/pages/command-settings.tsx` — optional: new Email tab with setup status
+
+  ## Secrets to add (via environment-secrets skill)
+  - `SITE_URL` = `https://sevco.us`
+  - `RESEND_WEBHOOK_SECRET` = (provided by user from Resend dashboard)
+
+---
+
+### task finance projects sync
+
+> File: `task-finance-projects-sync.md`
+
+---
+  title: Sync Finance with Projects — retire financeProjects table, link transactions to projects.id
+  ---
+  # Finance / Projects Sync
+
+  ## Goal
+  Make the Projects from the main Projects page the same projects tracked in Finance.
+  Currently Finance has a separate `finance_projects` table. Retire it and link
+  `financeTransactions.projectId` to `projects.id` instead.
+
+  ---
+
+  ## Schema changes
+
+  ### Add budget + financialStatus to projects table
+  ```ts
+  // In shared/schema.ts — extend projects table
+  budget: real("budget"),                          // optional project budget
+  financialStatus: text("financial_status"),       // "on_budget" | "over_budget" | "not_set"
+  isPublicBudget: boolean("is_public_budget").default(false), // show budget card publicly
+  ```
+
+  ### runStartupMigrations (server/index.ts)
+  ```sql
+  ALTER TABLE projects ADD COLUMN IF NOT EXISTS budget real;
+  ALTER TABLE projects ADD COLUMN IF NOT EXISTS financial_status text DEFAULT 'not_set';
+  ALTER TABLE projects ADD COLUMN IF NOT EXISTS is_public_budget boolean DEFAULT false;
+  ```
+
+  Note: `financeTransactions.projectId` already exists — it just needs to reference
+  `projects.id` instead of `finance_projects.id`. No column change needed, just update
+  the UI + routes to use the main projects table when populating the project dropdown.
+
+  ---
+
+  ## Backend changes
+
+  ### server/routes.ts — finance transactions project dropdown
+  When fetching the project list for the "Add Transaction" form, return projects from
+  `projects` table (GET /api/projects, already exists) instead of finance_projects.
+
+  ### Deprecate finance-projects routes
+  Keep `finance_projects` table in DB (don't drop it — avoids migration issues), but:
+  - Remove the Finance Projects tab/section from the CMD Finance page
+  - Replace with a "Projects" view that shows projects from `projects` table with
+    their aggregated financial data (sum of income vs sum of expenses per project_id)
+
+  ### New storage methods
+  - `getProjectFinancialSummary(projectId)` — returns { totalIncome, totalExpenses, balance } 
+    by querying financeTransactions WHERE project_id = projectId
+
+  ---
+
+  ## Frontend changes
+
+  ### CMD Finance page (command-finance.tsx)
+  - **Transaction form project dropdown**: Change to fetch from `/api/projects` instead of `/api/finance/projects`
+    Display as `{project.name}` with `{project.status}` badge
+  - **Remove "Finance Projects" tab** (the separate budget tracking tab)
+  - **Add "Projects" summary view** showing a table of all projects with:
+    Budget | Total Income | Total Expenses | Net | Status
+
+  ### Projects detail page (project-detail-page.tsx or similar)
+  Add an optional "Budget" card at the bottom of the page:
+  - Only visible when: `project.isPublicBudget === true` (for public visitors)
+    OR always visible to staff+
+  - Card shows: Budget (from projects.budget), Total Income, Total Expenses, Net
+  - Admins can toggle `isPublicBudget` and set the budget from the project edit form
+
+  ### Project edit/create form
+  Add fields: Budget (number input), Make budget public (toggle)
+
+  ---
+
+  ## Migration safety
+  - Keep `finance_projects` table in DB — do NOT drop it (avoids migration failures)
+  - The `financeTransactions.project_id` column already exists; no column rename needed
+  - Old finance_project records stay in DB but are no longer surfaced in UI
+  - New transactions will use `projects.id` as the projectId value
+
+---
+
+### task nav hover text fix
+
+> File: `task-nav-hover-text-fix.md`
+
+---
+  title: Fix nav dropdown hover text color — child elements override parent hover color
+  ---
+  # Nav Dropdown Hover Text Color Fix
+
+  ## Root cause
+  Every hoverable nav dropdown item has this pattern:
+
+  ```jsx
+  <div className="... hover:text-[hsl(var(--nav-sub-accent-foreground))]">   {/* parent */}
+    <Icon className="text-muted-foreground" />                               {/* child — explicit color */}
+    <p className="text-foreground">{label}</p>                               {/* child — explicit color */}
+    <p className="text-muted-foreground">{desc}</p>                          {/* child — explicit color */}
+  </div>
+  ```
+
+  The parent's `hover:text-*` sets the inherited text color on hover, but CSS inheritance is
+  overridden by the children's own explicit `text-foreground` / `text-muted-foreground` classes.
+  Result: the "Sub Menu Text" Platform Setting has no visible effect on child text/icons.
+
+  ## Fix — use Tailwind `group` pattern across all dropdown panels
+
+  For every hoverable item div in all six dropdown functions:
+  HomeDropdown, StoreDropdown, ServicesDropdown, MusicDropdown, ProjectsDropdown, ToolsDropdown
+
+  ### Pattern to apply
+  1. Add `group` to the hoverable parent div
+  2. On each child: add `group-hover:text-[hsl(var(--nav-sub-accent-foreground))]`
+     alongside the existing explicit text-color class
+
+  ```jsx
+  <div className="... group hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))]">
+    <Icon className="text-muted-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
+    <div>
+      <p className="text-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">{label}</p>
+      <p className="text-muted-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">{desc}</p>
+    </div>
+  </div>
+  ```
+
+  ## Files to change
+  - `client/src/components/platform-header.tsx` — all six dropdown panel item rows
+    (HomeDropdown lines ~239, StoreDropdown ~283/297, ServicesDropdown ~355/364/395,
+     MusicDropdown ~457, ProjectsDropdown ~513/538, ToolsDropdown ~621)
+
+  No backend changes needed. No schema changes needed.
+
+---
+
+### task quick fixes
+
+> File: `task-quick-fixes.md`
+
+---
+  title: Sticky nav fix, Notes editor overhaul, X trending sort
+  ---
+  # Quick Fixes — Sticky Nav + Notes + X Trending
+
+  ## 1. Sticky navigation bar fix
+
+  ### Root cause
+  App.tsx wraps the entire layout (including PlatformHeader) in a div with `overflow-x-hidden`.
+  Per CSS spec, setting overflow-x:hidden without overflow-y:hidden causes the browser to implicitly
+  set overflow-y:auto, making the element a scroll container. Sticky positioning only works relative
+  to the nearest scroll container — so the header sticks to the outer div (which fills the screen),
+  making it appear non-sticky to the user when content scrolls inside.
+
+  ### Fix (App.tsx line 658)
+  Change `overflow-x-hidden` → `overflow-x-clip` on the outer AppShell wrapper div.
+  `overflow-x: clip` visually clips overflow without creating a scroll container, preserving sticky.
+  ```diff
+  - <div className="flex flex-col min-h-screen w-full overflow-x-hidden">
+  + <div className="flex flex-col min-h-screen w-full overflow-x-clip">
+  ```
+  Also update `index.css`: change `html, body { overflow-x: hidden }` → `overflow-x: clip` for
+  the same reason (html overflow-x:hidden makes the viewport the scroll container instead of <html>,
+  which shifts window.scrollY behavior in some browsers).
+
+  ---
+
+  ## 2. Notes editor fixes
+
+  ### 2a. Move formatting toolbar out of RichTextEditor into the notes header bar
+
+  Current layout:
+    [Header bar: color dots | (spacer) | pin | collaborators | share]
+    [Note content: title input | RichTextEditor (toolbar inside it) | editor content]
+
+  Desired layout:
+    [Header bar: color dots | (spacer) | Bold Italic Underline … formatting buttons | pin | collaborators | share]
+    [Note content: title input | editor content only (no internal toolbar)]
+
+  Implementation:
+  1. Add a prop to RichTextEditor: `showToolbar?: boolean` (default true for backward compat).
+     When false, skip rendering the toolbar div inside the editor.
+  2. Extract toolbar rendering into a separate exported component:
+     `export function RichTextToolbar({ editor }: { editor: Editor | null })`
+     containing all the bold/italic/heading/list/link buttons.
+  3. In notes-page.tsx, pass the editor instance up via a new `onEditorReady` callback prop on RichTextEditor.
+     Store the editor ref in the notes page state.
+  4. Render `<RichTextToolbar editor={editorRef} />` in the notes header bar between the
+     color picker spacer and the pin/collaborators/share buttons (replace the `<div className="flex-1"/>`
+     spacer with the toolbar, then push pin/collabs/share to the far right with a new spacer).
+  5. Pass `showToolbar={false}` to RichTextEditor in notes-page.tsx.
+
+  ### 2b. Note scrolling
+  The editor content area is already `overflow-y-auto` but the TipTap EditorContent renders without
+  a fixed height. Fix: ensure the editor area div has `min-h-0` and that the parent flex column
+  properly contains the scroll. Also set the TipTap prose content `min-h-[1px]` instead of
+  `min-h-[280px]` to allow the flex container to control height.
+
+  ### 2c. Suppress hyphen→bullet auto-conversion
+  TipTap StarterKit adds an inputRule that converts `- ` to a bullet list. User wants hyphens
+  to stay as hyphens. Fix:
+  ```ts
+  // In rich-text-editor.tsx — configure StarterKit to remove bulletList inputRules
+  import BulletList from "@tiptap/extension-bullet-list";
+
+  const NoBulletListInputRule = BulletList.extend({
+    addInputRules() { return []; }  // disable "- " → bullet conversion
+  });
+
+  // In useEditor extensions:
+  StarterKit.configure({ bulletList: false }),  // disable built-in
+  NoBulletListInputRule,  // add back without inputRules
+  ```
+
+  ### 2d. Line spacing control
+  Add a line-height selector to the RichTextToolbar.
+  Use TipTap's `@tiptap/extension-text-style` + a custom LineHeight extension:
+  ```ts
+  import TextStyle from "@tiptap/extension-text-style";
+  const LineHeight = TextStyle.extend({
+    addAttributes() {
+      return { lineHeight: { default: null, renderHTML: attrs => attrs.lineHeight ? { style: `line-height:${attrs.lineHeight}` } : {} } };
+    },
+    addCommands() {
+      return { setLineHeight: (lh: string) => ({ chain }) => chain().updateAttributes('textStyle', { lineHeight: lh }).run() };
+    },
+  });
+  ```
+  Toolbar button: small dropdown with options Compact (1.2), Normal (1.5), Relaxed (1.8), Double (2.0).
+
+  ---
+
+  ## 3. X News — show trending posts
+
+  Currently the x-feed route returns posts sorted by most recent. User wants most trending
+  (highest engagement: likes + retweets + replies) to surface first.
+
+  ### Fix in server/routes.ts x-feed route
+  After fetching X articles, sort by engagement score descending before returning:
+  ```ts
+  xArticles.sort((a, b) =>
+    ((b.likeCount ?? 0) + (b.retweetCount ?? 0) + (b.replyCount ?? 0)) -
+    ((a.likeCount ?? 0) + (a.retweetCount ?? 0) + (a.replyCount ?? 0))
+  );
+  ```
+
+  Also update the X search query to add a minimum engagement filter (`min_faves:10`) so
+  only posts with at least some engagement are fetched (reduces noise):
+  In `getCategoryXQuery` in x-api.ts, append `min_faves:10` to the base query when
+  `imagesOnly` is true (image posts must also have some traction).
+
+  Optionally expose a "Sort X By" setting in CMD X Feed Controls:
+  - "Trending" (default) — sort by likes+retweets descending
+  - "Recent" — return as-is from X API
+
+  ---
+
+  ## Files to change
+  - `client/src/App.tsx` — overflow-x-clip on outer div
+  - `client/src/index.css` — overflow-x: clip on html, body
+  - `client/src/components/rich-text-editor.tsx` — extract RichTextToolbar, showToolbar prop,
+    NoBulletListInputRule, LineHeight extension, min-h fix
+  - `client/src/pages/notes-page.tsx` — render RichTextToolbar in header bar, store editor ref,
+    showToolbar={false} on RichTextEditor
+  - `server/routes.ts` — sort xArticles by engagement score desc
+  - `server/x-api.ts` — append min_faves:10 to getCategoryXQuery
+
+---
+
+### task seo settings
+
+> File: `task-seo-settings.md`
+
+---
+  title: Optimization category in Platform Settings — per-page SEO/GEO metadata
+  ---
+  # Optimization (SEO/GEO) in Platform Settings
+
+  ## Goal
+  Add an "Optimization" category to the CMD Platform Settings page where admins can configure
+  SEO and GEO (generative engine optimization) metadata for every page of the platform.
+
+  ## Platform Settings — new "Optimization" tab
+
+  ### UI structure
+  A new tab "Optimization" in CMD → Platform Settings alongside Theme, General, Integrations, etc.
+  Contains a page list on the left and a metadata form on the right.
+
+  Pages to cover (with their route slugs):
+    home, wiki, music, store, projects, contact, profile, jobs, services, feed, notes,
+    gallery, hosting, minecraft, news, messages, about, finance, ai, tools
+
+  For each page, editable fields:
+  1. **Page Title** — overrides the default title passed to PageHead; stored as `seo.page.{slug}.title`
+  2. **Meta Description** — 155-char description; `seo.page.{slug}.description`
+  3. **OG Image URL** — social sharing image; `seo.page.{slug}.ogImage`
+  4. **Keywords** — comma-separated; rendered as `<meta name="keywords">`; `seo.page.{slug}.keywords`
+  5. **No-Index Toggle** — prevents search indexing; `seo.page.{slug}.noIndex`
+  6. **Structured Data** — optional JSON-LD snippet; `seo.page.{slug}.jsonLd`
+
+  ### GEO settings (site-wide)
+  Also add a "GEO" sub-section for Generative Engine Optimization:
+  - **Brand Voice** — short paragraph describing the company voice for AI summaries
+    stored as `seo.geo.brandVoice`
+  - **Key Facts** — bullet list of key facts about the business (AI citation optimization)
+    stored as `seo.geo.keyFacts`
+  - These are injected into a hidden `<script type="application/ld+json">` on every page.
+
+  ### Implementation details
+
+  **Reading settings on frontend (PageHead)**
+  Update `PageHead` component to also accept settings from a React context or TanStack Query.
+  Add a `usePlatformSeoSettings` hook that fetches platform settings and returns a lookup by slug.
+  Each page component can call `const seo = usePlatformSeoSettings("wiki")` and pass the
+  overrides to `<PageHead title={seo.title || defaultTitle} description={seo.description || defaultDesc} />`.
+  Or: wrap PageHead to auto-merge — pass `slug` prop to PageHead and let it internally query.
+
+  Simpler pattern: Update PageHead to accept a `slug` prop. When slug is present, PageHead
+  internally calls `useQuery({ queryKey: ['/api/platform-settings'] })` (already cached globally)
+  and merges any `seo.page.{slug}.*` overrides on top of the props passed to it.
+
+  **Storage**: All settings stored in existing `platform_settings` key-value table — NO schema changes.
+  **Save**: PATCH /api/platform-settings (existing endpoint) with all seo.page.* keys as an object.
+
+  ## Files to change
+  - `client/src/pages/command-settings.tsx` — new "Optimization" tab with page list + form
+  - `client/src/components/page-head.tsx` — accept slug prop, merge platform seo settings
+  - (optionally) each page: add `slug` prop to `<PageHead>` call — or do it lazily in PageHead
+
+---
+
+### task tasks tool
+
+> File: `task-tasks-tool.md`
+
+---
+  title: Tasks tool — personal to-do lists + Staff Tasks with project assignment
+  ---
+  # Tasks Tool
+
+  ## Goal
+  Add a "Tasks" entry to the Tools dropdown. Each user gets their own private task list.
+  Staff+ also see a shared "Staff Tasks" board where tasks can be assigned to projects.
+
+  ---
+
+  ## Schema changes (shared/schema.ts + runStartupMigrations)
+
+  ### userTasks table (personal tasks)
+  ```ts
+  export const userTasks = pgTable("user_tasks", {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    userId: varchar("user_id").notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    completed: boolean("completed").notNull().default(false),
+    pinned: boolean("pinned").notNull().default(false),
+    priority: text("priority").notNull().default("normal"), // "low" | "normal" | "high" | "urgent"
+    dueDate: text("due_date"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  });
+  ```
+
+  ### staffTasks table (shared staff tasks)
+  ```ts
+  export const staffTasks = pgTable("staff_tasks", {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    title: text("title").notNull(),
+    description: text("description"),
+    completed: boolean("completed").notNull().default(false),
+    priority: text("priority").notNull().default("normal"),
+    dueDate: text("due_date"),
+    createdById: varchar("created_by_id").notNull(),
+    assigneeId: varchar("assignee_id"),       // assigned user (staff member)
+    projectId: integer("project_id"),          // links to projects.id
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  });
+  ```
+
+  ### runStartupMigrations (server/index.ts) — ADD COLUMN IF NOT EXISTS
+  ```sql
+  CREATE TABLE IF NOT EXISTS user_tasks (
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id varchar NOT NULL,
+    title text NOT NULL,
+    description text,
+    completed boolean NOT NULL DEFAULT false,
+    pinned boolean NOT NULL DEFAULT false,
+    priority text NOT NULL DEFAULT 'normal',
+    due_date text,
+    created_at timestamp DEFAULT now() NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS staff_tasks (
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    title text NOT NULL,
+    description text,
+    completed boolean NOT NULL DEFAULT false,
+    priority text NOT NULL DEFAULT 'normal',
+    due_date text,
+    created_by_id varchar NOT NULL,
+    assignee_id varchar,
+    project_id integer,
+    created_at timestamp DEFAULT now() NOT NULL
+  );
+  ```
+
+  ---
+
+  ## Backend (server/storage.ts + server/routes.ts)
+
+  ### Storage interface methods
+  - getUserTasks(userId), createUserTask(data), updateUserTask(id, userId, data), deleteUserTask(id, userId)
+  - getStaffTasks(), createStaffTask(data), updateStaffTask(id, data), deleteStaffTask(id)
+
+  ### Routes
+  ```
+  GET    /api/tasks           — personal tasks for current user
+  POST   /api/tasks           — create personal task
+  PATCH  /api/tasks/:id       — update personal task (only owner)
+  DELETE /api/tasks/:id       — delete personal task (only owner)
+
+  GET    /api/tasks/staff     — all staff tasks (staff+ only)
+  POST   /api/tasks/staff     — create staff task (staff+ only)
+  PATCH  /api/tasks/staff/:id — update staff task (staff+ only)
+  DELETE /api/tasks/staff/:id — delete staff task (staff+ only)
+  ```
+
+  ---
+
+  ## Frontend
+
+  ### Tools dropdown (platform-header.tsx)
+  Add "Tasks" item (CheckSquare icon) linking to /tools/tasks.
+  Position it at the top of the dropdown (it's a primary tool).
+
+  ### New page: client/src/pages/tasks-page.tsx
+  Two-panel layout:
+  - Left panel: "My Tasks" list (personal)
+  - Right panel (staff+ only): "Staff Tasks" with project filter
+
+  **My Tasks panel:**
+  - Create task form (title, priority, due date)
+  - List with checkboxes, pin toggle, delete
+  - Grouped: Pinned, Today Due, Upcoming, Completed (collapsible)
+  - Quick add: hit Enter to add task inline
+
+  **Staff Tasks panel (staff+ role only):**
+  - Kanban-style or list view grouped by: Unassigned / Assigned to me / By project
+  - Filter by project dropdown (shows projects from /api/projects)
+  - Create task form with: title, description, priority, due date, assignee (user lookup), project (dropdown)
+  - Each task card: title, assignee avatar, project badge, priority badge, due date, complete button
+  - Staff tasks persist across all staff accounts — visible to everyone with staff+ role
+
+  ### App.tsx — register route
+  ```tsx
+  <Route path="/tools/tasks" component={TasksPage} />
+  ```
+
+  ---
+
+  ## RBAC
+  - Personal tasks: any logged-in user
+  - Staff Tasks section (read): staff, executive, admin
+  - Staff Tasks (create/edit/delete): staff, executive, admin
+  - Assign to project: staff+
+
+---
+
+### UI Sound System
+
+> File: `ui-sound-system.md`
+
+# UI Sound System
+
+## What & Why
+The platform has no UI sound feedback. Adding subtle, sci-fi/cyber-themed audio cues for key interactions will enhance the "command center" feel — especially in the CMD dashboard. Sounds must be optional (mute toggle), lightweight, and never annoying.
+
+## Done looks like
+- A `useSounds()` hook provides functions to play short audio cues: `playClick()`, `playSuccess()`, `playError()`, `playNotification()`, `playCommand()`, `playToggle()`
+- Sound files are small (< 5KB each), stored as base64 in the hook or as tiny MP3/WAV files in the assets folder
+- A global mute toggle exists in the user's account/profile settings and persists to localStorage
+- Sounds fire on: CMD button click, successful form save (toast success), error toast, notification arrival, sidebar toggle, theme switch
+- Sound is disabled when `prefers-reduced-motion` is set
+- Volume is low by default (~20-30%) to be ambient, not intrusive
+- Uses Howler.js for reliable cross-browser audio playback with sprite support
+
+## Out of scope
+- Custom sound upload by users
+- Spatial audio or 3D sound effects
+- Background music or ambient soundscapes
+- Sound for every single interaction (only key moments)
+
+## Tasks
+1. **Install Howler.js and create sound hook** — Install howler package. Create a `useSounds()` hook that initializes a Howl sprite with 6 short sound effects. Include a `soundEnabled` state synced to localStorage. Respect `prefers-reduced-motion`.
+2. **Source or generate sound effects** — Create/source 6 short sounds (< 1 second each): click (subtle tap), success (ascending chime), error (descending tone), notification (gentle ping), command (sci-fi beep), toggle (switch click). Package as a single sprite file.
+3. **Wire sounds to interactions** — Add sound triggers to: CMD button click in platform-header, toast success/error appearances in toaster, sidebar toggle in sidebar provider, and theme switch in theme toggle.
+4. **Mute toggle UI** — Add a volume/mute icon toggle to the account page or as a small icon in the platform header. Store preference in localStorage.
+
+## Relevant files
+- `client/src/components/platform-header.tsx`
+- `client/src/components/ui/toaster.tsx`
+- `client/src/components/ui/sidebar.tsx`
+- `client/src/pages/account-page.tsx`
+
+---
+
+### X-Powered Editorial News Redesign
+
+> File: `x-news-editorial-redesign.md`
+
+# X-Powered Editorial News Redesign
+
+## What & Why
+Replace the current news bento/swimlane layout and the separate X feed section on the homepage with a single unified, ultra-modern editorial news hub. News content will be sourced directly from the X API (v2 search) by category — pulling real posts from verified news accounts and category-relevant trending searches — merged with the platform's existing X handle feeds. The visual design should rival premium editorial networks like Bloomberg, The Verge, or BBC News.
+
+## Done looks like
+- The homepage news area is one unified "News & Now" block — no more separate X feed section below it
+- News content is pulled live from X by category (Technology, Music, Gaming, etc.) using the existing X Bearer Token, using `search/recent` with curated queries per category (e.g. `from:verge OR from:wired #tech -is:retweet lang:en has:links`)
+- A breaking news ticker scrolls across the top of the section with the latest X news headlines
+- A hero "lead story" card dominates the top — large image/text with source, handle, and engagement metrics
+- Category tabs let the user switch between categories without page reload; content updates instantly
+- A two-column or three-column editorial grid shows secondary stories with thumbnails, source tags, and timestamps
+- A "Live from X" sidebar or column shows the real-time @sevco / @sevelovesyou handle feed integrated within the same block
+- If the X API is not configured or returns no results, it gracefully falls back to the existing GNews/RSS feed
+- Admins can still manage categories and the X API key from the Command Center as before
+
+## Out of scope
+- X API trending topics endpoint (v1.1 `trends/place`) — X API v2 search is the mechanism used
+- Full article body fetching / scraping beyond og:image
+- Separate dedicated news page (this is homepage only)
+- Changing existing CMD news admin settings
+
+## Tasks
+1. **X category news backend** — Add a `fetchCategoryNewsFromX(category, query, limit)` function in `server/x-api.ts` that constructs curated X search queries per category (e.g. Technology → `(#tech OR #AI OR from:verge OR from:wired) -is:retweet lang:en has:links`). Add a new route `GET /api/news/x-feed?category=<name>&limit=<n>` in `server/routes.ts` that returns merged X results alongside existing GNews/RSS articles for that category, with the X posts flagged as `source: "x"` so the frontend can style them distinctly.
+
+2. **Editorial layout component** — Build a new `client/src/components/news-editorial.tsx` component. It should include: a horizontally scrolling breaking-news ticker at the top populated from the first few articles; a tabbed category bar (tabs = all enabled news categories); a hero lead story (first result, large format with backdrop image, source handle, engagement count); a responsive multi-column secondary story grid (3 columns desktop, 2 tablet, 1 mobile) with compact article cards showing thumbnail, title, source badge (X post vs news article), and timestamp; and a "Live from X" narrow column on the right side showing the @handle feed tweets (reusing existing `/api/social/x/feed` data). The design target is dark editorial — dense but elegant, editorial white-on-dark typography, subtle accent colors per category, glassmorphism card surfaces.
+
+3. **Landing page integration** — In `client/src/pages/landing.tsx`, remove the separate `section-x-feed` block and the `section-news` block. Replace them both with a single `<NewsEditorial />` section that takes `newsCategories` as props. Wire in the new `/api/news/x-feed` query using TanStack Query with per-category caching. Retain the `showNewsSection` / `showXFeedSection` visibility setting logic (if either is enabled, show the unified block).
+
+## Relevant files
+- `server/x-api.ts`
+- `server/news.ts`
+- `server/routes.ts`
+- `client/src/pages/landing.tsx`
+- `client/src/components/news-bento-grid.tsx`
+- `client/src/components/news-article-card.tsx`
+
+---
+

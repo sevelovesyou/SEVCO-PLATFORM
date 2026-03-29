@@ -93,6 +93,7 @@ import CommandNews from "@/pages/command-news";
 import NewsPage from "@/pages/news-page";
 import WikifyToolPage from "@/pages/wikify-tool-page";
 import ToolsPage from "@/pages/tools-page";
+import PlatformPage from "@/pages/platform-page";
 import MessagesPage from "@/pages/messages-page";
 import FullscreenChatPage from "@/pages/fullscreen-chat-page";
 import { FloatingChatProvider } from "@/contexts/floating-chat-context";
@@ -173,6 +174,7 @@ function Router() {
       <Route path="/contact" component={ContactPage} />
       <Route path="/feed" component={() => <Redirect to="/" />} />
       <Route path="/changelog" component={ChangelogPage} />
+      <Route path="/platform" component={PlatformPage} />
       <Route path="/jobs" component={JobsPage} />
       <Route path="/jobs/:slug" component={JobsDetailPage} />
       <Route path="/news" component={NewsPage} />

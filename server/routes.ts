@@ -2132,6 +2132,45 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/internal/changelog-entry", async (req, res) => {
+    try {
+      const secret = process.env.WIKI_AUTO_ARTICLE_SECRET;
+      if (!secret) {
+        return res.status(503).json({ message: "Internal endpoint not configured" });
+      }
+      const provided = req.headers["x-internal-secret"];
+      if (provided !== secret) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { title, description, category, version } = req.body;
+      if (!title || !description || !category || !version) {
+        return res.status(400).json({ message: "title, description, category, and version are required" });
+      }
+
+      const validCategories = ["feature", "fix", "improvement", "other"];
+      const safeCategory = validCategories.includes(category) ? category : "other";
+
+      const existing = await storage.getChangelog();
+      const titleExists = existing.some((e) => e.title === title);
+      if (titleExists) {
+        return res.json({ action: "skipped", message: "Entry with this title already exists" });
+      }
+
+      const entry = await storage.createChangelogEntry({
+        title,
+        description: description.slice(0, 500),
+        category: safeCategory,
+        version,
+        wikiSlug: null,
+      });
+
+      return res.json({ action: "created", entry });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.post("/api/internal/wiki-article", async (req, res) => {
     try {
       const secret = process.env.WIKI_AUTO_ARTICLE_SECRET;

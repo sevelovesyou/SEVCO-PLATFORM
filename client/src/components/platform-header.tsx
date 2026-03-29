@@ -257,12 +257,13 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
 
   const items = [
     { label: "Home",         href: "/",        icon: Home,                    desc: "Go to landing page",             show: true },
-    { label: "About",        href: "/about",   icon: BookOpen,                desc: "Learn about SEVCO",              show: true },
-    { label: "Wiki",         href: "/wiki",    icon: BookOpen,                desc: "Internal knowledge base",        show: true },
-    { label: "Contact",      href: "/contact", icon: Mail,                    desc: "Get in touch",                   show: true },
-    { label: "Jobs",         href: "/jobs",    icon: Users,                   desc: "Open positions",                 show: true },
-    { label: "News",         href: "/news",    icon: LucideIcons.Newspaper,   desc: "Latest news & trends",           show: true },
-    { label: "Account",      href: "/account", icon: User,                    desc: "Manage your profile",            show: true },
+    { label: "About",          href: "/about",     icon: BookOpen,                  desc: "Learn about SEVCO",              show: true },
+    { label: "Wiki",           href: "/wiki",     icon: BookOpen,                  desc: "Internal knowledge base",        show: true },
+    { label: "Platform Updates", href: "/platform", icon: LucideIcons.Zap,          desc: "Features, fixes & changelog",    show: true },
+    { label: "Contact",        href: "/contact",  icon: Mail,                      desc: "Get in touch",                   show: true },
+    { label: "Jobs",           href: "/jobs",     icon: Users,                     desc: "Open positions",                 show: true },
+    { label: "News",           href: "/news",     icon: LucideIcons.Newspaper,     desc: "Latest news & trends",           show: true },
+    { label: "Account",        href: "/account",  icon: User,                      desc: "Manage your profile",            show: true },
   ].filter((item) => item.show);
 
   return (

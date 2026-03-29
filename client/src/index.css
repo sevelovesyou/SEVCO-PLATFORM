@@ -273,3 +273,7 @@ html, body {
   --sidebar-accent-foreground: var(--nav-sub-accent-foreground);
 }
 
+.cmd-sidebar [data-active="true"][data-slot="sidebar-menu-button"]::before {
+  background: hsl(var(--destructive)) !important;
+}
+

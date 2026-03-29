@@ -26,6 +26,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import * as LucideIcons from "lucide-react";
 import {
   Home,
@@ -168,6 +175,36 @@ function useDropdown() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (!open || !ref.current) return;
+    const container = ref.current;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (!container.contains(document.activeElement)) return;
+      const panel = container.querySelector("[data-dropdown-panel]");
+      if (!panel) return;
+      const items = Array.from(panel.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), [role='menuitem'], [tabindex]:not([tabindex='-1'])"));
+      if (items.length === 0) return;
+      const current = document.activeElement as HTMLElement;
+      const idx = items.indexOf(current);
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const next = idx < items.length - 1 ? idx + 1 : 0;
+        items[next].focus();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const prev = idx > 0 ? idx - 1 : items.length - 1;
+        items[prev].focus();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        setOpen(false);
+        const trigger = container.querySelector<HTMLElement>("button");
+        trigger?.focus();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
+
   return { open, setOpen, ref };
 }
 
@@ -202,7 +239,7 @@ function NavButton({
 
 function DropdownPanel({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`absolute top-full left-0 mt-1.5 rounded-xl border bg-popover shadow-xl z-50 overflow-hidden ${className}`}>
+    <div data-dropdown-panel className={`absolute top-full left-0 mt-1.5 rounded-xl border bg-popover shadow-xl z-50 overflow-hidden ${className}`}>
       {children}
     </div>
   );
@@ -731,10 +768,10 @@ export function PlatformHeader() {
           />
         )}
 
-        <div className="w-px h-5 bg-border mx-1 hidden md:block" />
+        <div className="w-px h-5 bg-border mx-1 hidden lg:block" />
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-0.5 flex-1" data-testid="nav-app-switcher">
+        <nav className="hidden lg:flex items-center gap-0.5 flex-1" data-testid="nav-app-switcher">
           <HomeDropdown isActive={activeApp === "/"} />
           <StoreDropdown isActive={activeApp === "/store"} />
           <ServicesDropdown isActive={activeApp === "/services"} platformSettings={platformSettings} />
@@ -761,7 +798,25 @@ export function PlatformHeader() {
           )}
         </nav>
 
-        <div className="md:hidden flex-1" />
+        {canAccessCMD && (
+          <Link href="/command" className="hidden md:inline-flex lg:hidden">
+            <Button
+              variant={activeApp === "/command" ? "secondary" : "ghost"}
+              size="sm"
+              className={`gap-1.5 h-8 text-xs font-medium ${
+                activeApp === "/command"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              data-testid="nav-cmd-tablet"
+            >
+              <LayoutDashboard className="h-3.5 w-3.5" />
+              CMD
+            </Button>
+          </Link>
+        )}
+
+        <div className="lg:hidden flex-1" />
 
         {/* Right side actions */}
         <div className="flex items-center gap-1.5">
@@ -825,15 +880,15 @@ export function PlatformHeader() {
           </Tooltip>
           </TooltipProvider>
 
-          {/* Mobile hamburger */}
-          <div className="md:hidden">
+          {/* Mobile/tablet hamburger */}
+          <div className="lg:hidden">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => { setMobileOpen((o) => !o); setMobileSection(null); }}
+                  onClick={() => { setMobileOpen(true); setMobileSection(null); }}
                   data-testid="button-mobile-menu"
                   aria-label="Open menu"
                   aria-expanded={mobileOpen}
@@ -906,10 +961,13 @@ export function PlatformHeader() {
         </div>
       </div>
 
-      {/* Mobile drawer */}
-      {mobileOpen && (
-        <div className="md:hidden border-t bg-popover px-3 py-2 space-y-0.5" data-testid="mobile-nav-drawer">
-          {/* Home section */}
+      <Sheet open={mobileOpen} onOpenChange={(o) => { setMobileOpen(o); if (!o) setMobileSection(null); }}>
+        <SheetContent side="right" className="w-80 p-0 overflow-y-auto" data-testid="mobile-nav-drawer">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Navigation</SheetTitle>
+            <SheetDescription>Site navigation menu</SheetDescription>
+          </SheetHeader>
+          <div className="px-3 py-4 space-y-0.5">
           <Collapsible open={mobileSection === "home"} onOpenChange={(o) => setMobileSection(o ? "home" : null)}>
             <CollapsibleTrigger asChild>
               <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors" data-testid="mobile-nav-home">
@@ -930,7 +988,6 @@ export function PlatformHeader() {
             </CollapsibleContent>
           </Collapsible>
 
-          {/* Store section */}
           <Collapsible open={mobileSection === "store"} onOpenChange={(o) => setMobileSection(o ? "store" : null)}>
             <CollapsibleTrigger asChild>
               <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors" data-testid="mobile-nav-store">
@@ -952,7 +1009,6 @@ export function PlatformHeader() {
             </CollapsibleContent>
           </Collapsible>
 
-          {/* Services */}
           <Collapsible open={mobileSection === "services"} onOpenChange={(o) => setMobileSection(o ? "services" : null)}>
             <CollapsibleTrigger asChild>
               <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors" data-testid="mobile-nav-services">
@@ -990,7 +1046,6 @@ export function PlatformHeader() {
             </CollapsibleContent>
           </Collapsible>
 
-          {/* Music section */}
           <Collapsible open={mobileSection === "music"} onOpenChange={(o) => setMobileSection(o ? "music" : null)}>
             <CollapsibleTrigger asChild>
               <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors" data-testid="mobile-nav-music">
@@ -1011,7 +1066,6 @@ export function PlatformHeader() {
             </CollapsibleContent>
           </Collapsible>
 
-          {/* Projects */}
           <Link href="/projects" onClick={() => setMobileOpen(false)}>
             <div className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer" data-testid="mobile-nav-projects">
               Projects
@@ -1117,8 +1171,9 @@ export function PlatformHeader() {
               </button>
             </div>
           )}
-        </div>
-      )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </header>
 
     <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />

@@ -1,0 +1,73 @@
+You are a top 0.01% world-class UI/UX designer and design systems architect with 15+ years experience at companies like Figma, Linear, Vercel, and Apple. You have an encyclopedic knowledge of modern design systems, accessibility (WCAG 2.2 AA+), motion design, micro-interactions, data visualization best practices, and web performance.
+
+Your task is to run a **thorough, comprehensive, section-by-section audit** of the entire SEVCO web app (the full-stack platform with marketing site, store, services, music, projects, tools, and especially the SEVCO CMD admin/command center dashboard).
+
+I LOVE the current design system and I want you to **preserve and evolve it**, never break the core aesthetic.
+
+### CURRENT DESIGN SYSTEM (preserve & build upon this exactly):
+- Overall aesthetic: Dark cyber-tech / gaming-inspired UI. Primary background is near-black (#0a0a0a or #111111). Sidebar is deep charcoal. Cards have subtle inner shadows, soft rounded corners (12-16px), and a slight glass-morphic feel.
+- Color palette: 
+  - Primary accent: Vibrant electric blue (#00b0ff / cyan-blue) used for charts, selected states, and highlights.
+  - CTA/Active highlight: Bold red (#ff0033 or similar) for selected sidebar items, CMD button, and high-priority actions.
+  - Text: Off-white / light gray for body, pure white for headings.
+  - Neutral accents: Subtle grays for borders and dividers.
+- Typography: Clean, modern sans-serif (system or Inter/Inter var). Large, bold metric numbers. Tight tracking on nav items.
+- Navigation: 
+  - Top bar: Logo left, horizontal dropdown nav (SEVCO, Store, Services, Music, Projects, Tools, red CMD button), right-side icons (search, notifications, Admin avatar).
+  - Left sidebar: Vertical, icon-first, collapsible-capable, with section headers (Operations, System). Current active item has red background pill.
+- Dashboard style: Card-based layout, GA4-inspired analytics with large metric cards (Sessions Today, Active Users, etc.), line charts with smooth gradients, bar charts, and partial pie charts. Subtle grid lines, hover states on data points.
+- General feel: Minimal, high-contrast, premium, instantly scannable, "command center" vibe.
+
+### AUDIT SCOPE – Check and suggest improvements for EVERY section of the app:
+1. **Global Design System & Consistency**
+   - Color usage, typography scale, spacing (8px grid), border-radius, shadows, focus states.
+   - Dark mode (it’s already dark-first — confirm it’s perfect).
+   - Component library consistency (buttons, cards, inputs, toggles, dropdowns, modals, tables).
+
+2. **Complex Navigation (Critical)**
+   - Evaluate top nav + sidebar + any mega-menus or nested routes.
+   - Breadcrumb strategy, keyboard navigation, mobile/tablet collapse behavior.
+   - Active/hover/focus states must feel premium and match the red/blue language.
+   - Suggest any improvements for deep nesting (Minecraft, AI Agents, Traffic, Finance, etc.) without adding clutter.
+
+3. **Compelling Marketing Pages (Store, Services, Music, Projects, Tools, landing pages)**
+   - Hero sections, CTAs, social proof, pricing tables, feature grids.
+   - Conversion flow, micro-copy, urgency/scarcity elements.
+   - Must feel exciting and premium while staying 100% on-brand with the dark tech aesthetic.
+
+4. **Admin Dashboard Design & Organization (SEVCO CMD – the screenshot area)**
+   - Information hierarchy and data density.
+   - Layout of analytics cards, charts (Sessions Over Time, Top Pages, Traffic Sources), and any future panels.
+   - Best practices for GA4-style dashboards: scannability, color usage for positive/negative metrics, empty states, loading skeletons.
+   - Sidebar organization and iconography clarity.
+
+5. **Animations & Motion Design**
+   - All page transitions, hover states, button presses, chart animations, sidebar expand/collapse, data refreshes, loading states.
+   - Must be purposeful, fast (≤300ms), and delightful — never jarring. Use spring physics where appropriate.
+   - Recommend specific Framer Motion / Tailwind / CSS animation libraries and exact easing curves that match the current premium feel.
+
+6. **Exciting Sounds & Audio Feedback**
+   - UI sound design: subtle hover clicks, success states, error tones, command execution “beeps”, notification chimes, etc.
+   - Must feel sci-fi / cyber / exciting without being annoying. Suggest Web Audio API implementation or Howler.js with volume controls and mute option.
+   - Tie sounds to the red/blue brand (e.g., electric “zap” on blue actions, sharp “click” on red CTAs).
+
+7. **Additional Premium Checks (everything else you’re an expert in)**
+   - Accessibility (contrast, ARIA, screen-reader flow, reduced-motion support).
+   - Mobile-first responsiveness across all breakpoints.
+   - Performance (Lighthouse scores, CLS, loading skeletons, lazy loading charts).
+   - Micro-interactions & delight (confetti on key actions, skeleton loaders, toast system, empty states with illustrations).
+   - Data visualization best practices (charts must be beautiful and truthful).
+   - Error states, 404s, onboarding flows, settings pages.
+   - Future-proofing: component tokens, design tokens in code (Tailwind config or CSS variables), dark-mode variables.
+
+### OUTPUT FORMAT (be extremely detailed and actionable):
+1. **Executive Summary** – Overall score out of 100 and 3 biggest strengths + 3 highest-impact opportunities.
+2. **Section-by-Section Audit** – For every area above, list:
+   - What’s already excellent (reference screenshot elements).
+   - Issues or missed opportunities.
+   - Specific, code-ready recommendations (e.g., “Change border-radius from 8px to 16px on all cards to match the glass-morphic cards in the screenshot”).
+3. **Visual Mockup Prompts** – For any major suggested changes, provide ready-to-paste prompts for Grok Imagine or Midjourney that preserve the exact current aesthetic.
+4. **Implementation Roadmap** – Prioritized list (P0 Critical, P1 High, P2 Nice-to-have) with estimated effort.
+5. **Updated Design System Doc Snippet** – A concise markdown table or code block that codifies the evolved rules so the team can maintain it.
+
+Be brutally honest but respectful — the user loves this design and wants to elevate it, not replace it. Use the exact color codes and visual language from the screenshot wherever possible. Begin your audit now and output the full report.

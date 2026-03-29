@@ -6,12 +6,29 @@ import {
   Code2, Plug, Lightbulb, Palette, MousePointer2, Sparkles,
   FileText, Share2, TrendingUp, ClipboardList, Settings2,
   Handshake, Target, BookOpen, HeadphonesIcon,
-  Server, Globe,
+  Server, Globe, Shield,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Service } from "@shared/schema";
+
+const CATEGORY_BORDER_COLORS: Record<string, string> = {
+  Technology: "border-l-blue-500",
+  Creative:   "border-l-blue-600",
+  Marketing:  "border-l-red-700",
+  Business:   "border-l-green-500",
+  Media:      "border-l-yellow-500",
+  Support:    "border-l-pink-500",
+};
+
+const DEFAULT_SOCIAL_PROOF_ITEMS = [
+  "Enterprise Teams",
+  "Startups",
+  "Indie Creators",
+  "Agencies",
+  "Open-Source Projects",
+];
 
 const ICON_MAP: Record<string, React.ElementType> = {
   Code2, Plug, Lightbulb, Palette, MousePointer2, Sparkles,
@@ -68,6 +85,51 @@ export default function ServicesListingPage() {
           <p className="text-lg text-muted-foreground max-w-2xl">
             From engineering and design to marketing and operations — the SEVCO team brings expertise across every discipline.
           </p>
+          <div className="flex flex-wrap items-center gap-3 mt-4">
+            <Link href="/services">
+              <Button variant="destructive" size="lg" className="font-semibold gap-2 px-6" data-testid="button-services-primary-cta">
+                <ArrowRight className="h-4 w-4" />
+                View All Services
+              </Button>
+            </Link>
+            <Link href="/contact">
+              <Button variant="outline" size="lg" className="border-white/20 font-semibold gap-2 px-6" data-testid="button-services-secondary-cta">
+                Get in Touch
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Social Proof */}
+        <div className="mb-12 py-6 border-y border-border/40" data-testid="section-social-proof">
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="flex items-center gap-2 shrink-0">
+              <Shield className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {platformSettings["services.socialProof.heading"] || "Trusted by teams and creators"}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {(() => {
+                let items = DEFAULT_SOCIAL_PROOF_ITEMS;
+                if (platformSettings["services.socialProof.items"]) {
+                  try {
+                    const parsed = JSON.parse(platformSettings["services.socialProof.items"]);
+                    if (Array.isArray(parsed) && parsed.length > 0 && parsed.every((v: unknown) => typeof v === "string")) items = parsed;
+                  } catch {}
+                }
+                return items.map((item: string) => (
+                  <span
+                    key={item}
+                    className="inline-flex items-center px-3 py-1.5 rounded-full bg-muted/50 text-xs font-medium text-muted-foreground opacity-60"
+                    data-testid={`social-proof-badge-${item.toLowerCase().replace(/\s+/g, "-")}`}
+                  >
+                    {item}
+                  </span>
+                ));
+              })()}
+            </div>
+          </div>
         </div>
 
         {isLoading && (
@@ -124,8 +186,9 @@ export default function ServicesListingPage() {
         {!isLoading && Object.entries(grouped).map(([category, items]) => {
           const styles = CATEGORY_STYLES[category] ?? CATEGORY_STYLES.Technology;
           const accentStyle = servicesAccentHsl ? { color: `hsl(${servicesAccentHsl})` } : undefined;
+          const borderColor = CATEGORY_BORDER_COLORS[category] ?? "border-l-border";
           return (
-            <div key={category} className="mb-10">
+            <div key={category} className={`mb-10 border-l-[3px] pl-4 ${borderColor}`}>
               <div className="flex items-center gap-3 mb-4">
                 <h2
                   className={`text-sm font-semibold uppercase tracking-wider ${accentStyle ? "" : styles.accent}`}

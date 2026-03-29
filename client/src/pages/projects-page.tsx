@@ -322,7 +322,8 @@ export default function ProjectsPage() {
             <Link href="/contact">
               <Button
                 size="lg"
-                className="bg-green-600 hover:bg-green-500 text-white font-semibold gap-2"
+                variant="destructive"
+                className="font-semibold gap-2"
                 data-testid="button-pitch-project"
               >
                 Pitch a Project
@@ -332,8 +333,8 @@ export default function ProjectsPage() {
             <Link href="/contact">
               <Button
                 size="lg"
-                variant="ghost"
-                className="text-foreground/70 hover:text-foreground border border-border font-semibold gap-2"
+                variant="outline"
+                className="border-white/20 font-semibold gap-2"
                 data-testid="button-learn-contribute"
               >
                 Learn to Contribute

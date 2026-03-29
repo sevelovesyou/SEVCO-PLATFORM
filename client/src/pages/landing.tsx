@@ -113,19 +113,21 @@ function ProductCard({ product }: { product: Product }) {
         className="group rounded-xl border bg-white/[0.03] border-white/8 hover:bg-white/[0.06] hover:border-white/15 transition-all duration-200 overflow-hidden cursor-pointer"
         data-testid={`card-product-${product.id}`}
       >
-        <div className="aspect-square bg-muted/40 overflow-hidden">
-          {product.imageUrl && !imgError ? (
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              onError={() => setImgError(true)}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <ShoppingBag className="h-10 w-10 text-muted-foreground/30" />
-            </div>
-          )}
+        <div className="aspect-square overflow-hidden">
+          <div className="w-full h-full bg-muted/50 rounded-lg p-3">
+            {product.imageUrl && !imgError ? (
+              <img
+                src={product.imageUrl}
+                alt={product.name}
+                className="w-full h-full object-cover rounded-md group-hover:scale-105 transition-transform duration-500"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center rounded-md">
+                <ShoppingBag className="h-10 w-10 text-muted-foreground/30" />
+              </div>
+            )}
+          </div>
         </div>
         <div className="p-3">
           <p className="text-xs font-semibold text-foreground truncate">{product.name}</p>
@@ -334,7 +336,8 @@ export default function Landing() {
             <Link href={btn1Url}>
               <Button
                 size="lg"
-                className={btn1Color ? "hover:opacity-90 text-white font-semibold gap-2 px-6 shadow-lg" : "bg-red-700 hover:bg-red-600 text-white font-semibold gap-2 px-6 shadow-lg"}
+                variant="destructive"
+                className={btn1Color ? "hover:opacity-90 text-white font-semibold gap-2 px-6 shadow-lg" : "font-semibold gap-2 px-6 shadow-lg"}
                 style={btn1Color ? { backgroundColor: btn1Color, borderColor: btn1Color, color: "#fff" } : undefined}
                 data-testid="button-hero-primary"
               >
@@ -345,8 +348,8 @@ export default function Landing() {
             <Link href={btn2Url}>
               <Button
                 size="lg"
-                variant="ghost"
-                className="text-white/70 hover:text-white hover:bg-white/10 border border-white/10 font-semibold gap-2 px-6"
+                variant="outline"
+                className="text-white/70 hover:text-white hover:bg-white/10 border border-white/20 font-semibold gap-2 px-6"
                 style={btn2Color ? { backgroundColor: btn2Color, borderColor: btn2Color, color: "#fff" } : undefined}
                 data-testid="button-hero-secondary"
               >

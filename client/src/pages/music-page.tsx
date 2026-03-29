@@ -201,13 +201,13 @@ export default function MusicPage() {
             </p>
             <div className="flex flex-wrap gap-3">
               <Link href="/listen">
-                <Button variant="secondary" className="gap-2" data-testid="button-listen-now">
+                <Button variant="destructive" className="gap-2 font-semibold" data-testid="button-listen-now">
                   <Headphones className="h-4 w-4" />
                   Listen Now
                 </Button>
               </Link>
               <Link href="/music/submit">
-                <Button variant="outline" className="gap-2 border-white/20 text-white hover:bg-white/10" data-testid="button-submit-music">
+                <Button variant="outline" className="gap-2 border-white/20 text-white hover:bg-white/10 font-semibold" data-testid="button-submit-music">
                   <Send className="h-4 w-4" />
                   Submit Your Music
                 </Button>

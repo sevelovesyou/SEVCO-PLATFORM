@@ -54,29 +54,55 @@ function ProductImageArea({ product, onAddToCart }: { product: Product; onAddToC
   const palette = getCategoryPalette(product.categoryName);
   const initial = product.name.charAt(0).toUpperCase();
 
+  const lowStock = product.stockStatus === "low_stock";
+
   return (
-    <div className="relative aspect-square overflow-hidden bg-muted/40 rounded-t-xl">
-      {product.imageUrl && !imgError ? (
-        <img
-          src={product.imageUrl}
-          alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={() => setImgError(true)}
-        />
-      ) : (
-        <div className={`w-full h-full flex flex-col items-center justify-center gap-2 ${palette.bg}`}>
-          <span className={`text-5xl font-black tracking-tight ${palette.text} opacity-40`}>{initial}</span>
-          <Package className={`h-6 w-6 ${palette.text} opacity-20`} />
-        </div>
-      )}
+    <div className="relative aspect-square overflow-hidden rounded-t-xl">
+      <div className="w-full h-full bg-muted/50 rounded-lg p-4">
+        {product.imageUrl && !imgError ? (
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="w-full h-full object-cover rounded-md transition-transform duration-500 group-hover:scale-105"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className={`w-full h-full flex flex-col items-center justify-center gap-2 rounded-md ${palette.bg}`}>
+            <span className={`text-5xl font-black tracking-tight ${palette.text} opacity-40`}>{initial}</span>
+            <Package className={`h-6 w-6 ${palette.text} opacity-20`} />
+          </div>
+        )}
+      </div>
 
       {soldOut && (
         <div className="absolute top-3 left-3">
           <span
             data-testid={`badge-sold-out-${product.id}`}
-            className="bg-black/80 text-white text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-sm"
+            className="bg-red-600 text-white text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-sm"
           >
             Sold Out
+          </span>
+        </div>
+      )}
+
+      {lowStock && !soldOut && (
+        <div className="absolute top-3 left-3">
+          <span
+            data-testid={`badge-low-stock-${product.id}`}
+            className="bg-amber-500 text-black text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-sm"
+          >
+            Low Stock
+          </span>
+        </div>
+      )}
+
+      {!soldOut && !lowStock && (
+        <div className="absolute top-3 left-3">
+          <span
+            data-testid={`badge-in-stock-${product.id}`}
+            className="bg-green-600 text-white text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-sm"
+          >
+            In Stock
           </span>
         </div>
       )}
@@ -486,7 +512,8 @@ export default function StorePage() {
           <Link href="/contact">
             <Button
               size="lg"
-              className="bg-red-700 hover:bg-red-600 text-white font-semibold gap-2"
+              variant="destructive"
+              className="font-semibold gap-2"
               data-testid="button-store-contact"
             >
               Get in Touch

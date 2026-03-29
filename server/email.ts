@@ -205,17 +205,15 @@ export interface WebhookHeaders {
   resendSignature?: string;
 }
 
+const SVIX_TIMESTAMP_TOLERANCE_SECONDS = 300;
+
 export function verifyResendWebhookSignature(rawBody: Buffer, headers: WebhookHeaders): boolean {
   const secret = process.env.RESEND_WEBHOOK_SECRET;
   if (!secret) {
-    console.warn("[email] RESEND_WEBHOOK_SECRET not set — skipping signature verification and allowing request");
-    return true;
+    console.error("[email] RESEND_WEBHOOK_SECRET not set — rejecting webhook request (fail-closed)");
+    return false;
   }
 
-  // Resend uses Svix-style webhook signing
-  // Signed content: "{svix-id}.{svix-timestamp}.{rawBody}"
-  // Signature: base64(HMAC-SHA256(secret, signedContent)), prefixed with "v1,"
-  // The secret has a "whsec_" prefix; strip it and base64-decode the remainder before use
   const secretBytes = secret.startsWith("whsec_")
     ? Buffer.from(secret.slice(6), "base64")
     : Buffer.from(secret);
@@ -223,6 +221,13 @@ export function verifyResendWebhookSignature(rawBody: Buffer, headers: WebhookHe
   const { svixId, svixTimestamp, svixSignature } = headers;
 
   if (svixId && svixTimestamp && svixSignature) {
+    const ts = parseInt(svixTimestamp, 10);
+    const now = Math.floor(Date.now() / 1000);
+    if (isNaN(ts) || Math.abs(now - ts) > SVIX_TIMESTAMP_TOLERANCE_SECONDS) {
+      console.warn(`[email] Svix timestamp out of tolerance: ts=${svixTimestamp}, now=${now}, diff=${Math.abs(now - ts)}s`);
+      return false;
+    }
+
     try {
       const signedContent = `${svixId}.${svixTimestamp}.${rawBody.toString()}`;
       const expected = crypto
@@ -230,7 +235,6 @@ export function verifyResendWebhookSignature(rawBody: Buffer, headers: WebhookHe
         .update(signedContent)
         .digest("base64");
 
-      // svix-signature may contain multiple space-separated "v1,<sig>" entries
       const signatures = svixSignature.split(" ");
       for (const sig of signatures) {
         const b64 = sig.startsWith("v1,") ? sig.slice(3) : sig;
@@ -249,7 +253,6 @@ export function verifyResendWebhookSignature(rawBody: Buffer, headers: WebhookHe
     }
   }
 
-  // Fallback: legacy resend-signature header (raw HMAC hex)
   const { resendSignature } = headers;
   if (!resendSignature) return false;
   const sig = resendSignature.includes(",") ? resendSignature.split(",").pop()! : resendSignature;

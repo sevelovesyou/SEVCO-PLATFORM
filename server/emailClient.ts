@@ -80,6 +80,10 @@ export async function checkEmailCredentials(): Promise<void> {
   }
 }
 
+export async function getResendClient(): Promise<Resend> {
+  return getUncachableResendClient();
+}
+
 async function resendSend(resend: Resend, payload: Parameters<Resend['emails']['send']>[0]) {
   const { data, error } = await resend.emails.send(payload);
   if (error) {
@@ -200,33 +204,6 @@ ${verifyUrl}
 This link expires in 24 hours.`;
 }
 
-export async function setupInboundRoute(): Promise<void> {
-  try {
-    const baseUrl = getBaseUrl();
-    const inboundSecret = process.env.RESEND_INBOUND_SECRET || process.env.RESEND_WEBHOOK_SECRET;
-    
-    if (!inboundSecret) {
-      console.warn("[emailClient] No RESEND_INBOUND_SECRET or RESEND_WEBHOOK_SECRET set — inbound routes cannot receive email body content");
-      return;
-    }
-
-    const inboundUrl = `${baseUrl}/api/email/inbound?secret=${encodeURIComponent(inboundSecret)}`;
-    console.log(`[emailClient] ========================================`);
-    console.log(`[emailClient] SETUP: Configure Resend Inbound Route`);
-    console.log(`[emailClient] ========================================`);
-    console.log(`[emailClient] To receive email body content, configure a Resend Inbound Route:`);
-    console.log(`[emailClient] 1. Go to https://resend.com/settings (your Resend dashboard)`);
-    console.log(`[emailClient] 2. Click "Inbound" (or "Email Routing")`);
-    console.log(`[emailClient] 3. Add a route for domain: sevco.us`);
-    console.log(`[emailClient] 4. Set the forward URL to:`);
-    console.log(`[emailClient]    ${inboundUrl}`);
-    console.log(`[emailClient] 5. Save and test by sending an email to any user@sevco.us address`);
-    console.log(`[emailClient] Without this, received emails will show "(empty message)" because the webhook notification does not include body content.`);
-    console.log(`[emailClient] ========================================`);
-  } catch (err: any) {
-    console.error(`[emailClient] Error in setupInboundRoute: ${err?.message ?? err}`);
-  }
-}
 
 const CONTACT_EMAIL = process.env.CONTACT_EMAIL || "hello@sevco.us";
 

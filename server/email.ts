@@ -23,6 +23,8 @@ import type { User } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { uploadBuffer } from "./supabase";
 import { simpleParser } from "mailparser";
+import { getResendClient } from "./emailClient";
+import type { GetReceivingEmailResponseSuccess, AttachmentData } from "resend";
 
 const CLIENT_PLUS_ROLES = ["client", "partner", "staff", "executive", "admin"];
 
@@ -169,8 +171,71 @@ export async function processInboundEmail(payload: ResendInboundPayload): Promis
 
   console.log(`[email] processInboundEmail — email_id=${email_id}, from=${fromAddress}, to=${JSON.stringify(toAddresses)}, subject=${subject}, bodyHtml=${payloadHtml.length}ch, bodyText=${payloadText.length}ch, attachments=${rawAttachments.length}`);
 
+  if (email_id && !payloadHtml && !payloadText) {
+    console.log(`[email] Body fields empty — calling Resend Receiving API for email_id=${email_id}`);
+    try {
+      const resend = await getResendClient();
+
+      const emailResult = await resend.emails.receiving.get(email_id);
+
+      if (emailResult.error) {
+        console.warn("[email] Receiving API get() error:", emailResult.error.message);
+      } else if (emailResult.data) {
+        const receivedData: GetReceivingEmailResponseSuccess = emailResult.data;
+        payloadHtml = receivedData.html ?? "";
+        payloadText = receivedData.text ?? "";
+        console.log(`[email] Receiving API body — html=${payloadHtml.length}ch, text=${payloadText.length}ch`);
+
+        if (receivedData.attachments.length > 0) {
+          const attListResult = await resend.emails.receiving.attachments.list({ emailId: email_id });
+          if (attListResult.error) {
+            console.warn("[email] Receiving API attachments.list() error:", attListResult.error.message);
+          } else if (attListResult.data) {
+            const attItems: AttachmentData[] = attListResult.data.data;
+            console.log(`[email] Receiving API — ${attItems.length} attachment(s) with download URLs`);
+            rawAttachments = await Promise.all(
+              attItems.map(async (a, idx) => {
+                if (a.download_url) {
+                  try {
+                    const resp = await fetch(a.download_url);
+                    if (resp.ok) {
+                      const buffer = Buffer.from(await resp.arrayBuffer());
+                      const base64Content = buffer.toString("base64");
+                      console.log(`[email] Downloaded attachment "${a.filename ?? idx}" — ${buffer.length} bytes`);
+                      return {
+                        filename: a.filename ?? `attachment_${idx}`,
+                        content_type: a.content_type,
+                        content: base64Content,
+                        content_id: a.content_id ?? undefined,
+                        size: a.size,
+                      };
+                    } else {
+                      console.warn(`[email] Attachment download failed (${resp.status}) for "${a.filename ?? idx}"`);
+                    }
+                  } catch (dlErr: unknown) {
+                    const msg = dlErr instanceof Error ? dlErr.message : String(dlErr);
+                    console.warn(`[email] Attachment download threw for "${a.filename ?? idx}":`, msg);
+                  }
+                }
+                return {
+                  filename: a.filename ?? `attachment_${idx}`,
+                  content_type: a.content_type,
+                  content_id: a.content_id ?? undefined,
+                  size: a.size,
+                };
+              })
+            );
+          }
+        }
+      }
+    } catch (apiErr: unknown) {
+      const msg = apiErr instanceof Error ? apiErr.message : String(apiErr);
+      console.warn("[email] Receiving API calls failed:", msg);
+    }
+  }
+
   if (!payloadHtml && !payloadText && payload.raw) {
-    console.log("[email] Body fields empty — attempting MIME fallback parse from raw payload");
+    console.log("[email] Body still empty — attempting MIME fallback parse from raw payload");
     try {
       const rawSource = payload.raw;
       let parseInput: string | Buffer;
@@ -337,7 +402,7 @@ export async function logEmptyBodyEmails(): Promise<void> {
       );
     const count = Number(result[0]?.count ?? 0);
     if (count > 0) {
-      console.warn(`[email] BACKFILL NOTICE: ${count} inbound email(s) have empty bodies — these were received via the old webhook-only approach which did not include email content. New emails received via the Inbound Route will include full body content.`);
+      console.warn(`[email] BACKFILL NOTICE: ${count} inbound email(s) have empty bodies — these were received before the Receiving API fix. New inbound emails will fetch body content via resend.emails.receiving.get().`);
     } else {
       console.log("[email] All inbound emails have body content — no backfill needed.");
     }

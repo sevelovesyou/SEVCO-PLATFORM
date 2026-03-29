@@ -10,7 +10,7 @@ import { setGNewsApiKeyFromDb } from "./news";
 import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
-import { checkEmailCredentials, setupInboundRoute } from "./emailClient";
+import { checkEmailCredentials } from "./emailClient";
 import { logEmptyBodyEmails } from "./email";
 import { pool } from "./db";
 
@@ -188,7 +188,6 @@ async function initStripe() {
   await storage.seedSocialLinksIfEmpty().catch((err) => console.error("Social links seed error:", err));
   await storage.migrateSocialLinksShowOnListen().catch((err) => console.error("Social links listen migration error:", err));
   await checkEmailCredentials().catch((err) => console.warn("[email] Startup credential check failed:", err?.message ?? err));
-  await setupInboundRoute().catch((err) => console.warn("[email] Inbound route setup failed:", err?.message ?? err));
   logEmptyBodyEmails().catch((err) => console.warn("[email] Backfill check error:", err?.message ?? err));
   runWikiSeed().catch((err) => console.error("Wiki seed error:", err));
   // Seed default X (Twitter) handles for SEVCO social feed

@@ -92,6 +92,7 @@ import CommandTraffic from "@/pages/command-traffic";
 import CommandNews from "@/pages/command-news";
 import NewsPage from "@/pages/news-page";
 import WikifyToolPage from "@/pages/wikify-tool-page";
+import ToolsPage from "@/pages/tools-page";
 import MessagesPage from "@/pages/messages-page";
 import FullscreenChatPage from "@/pages/fullscreen-chat-page";
 import { FloatingChatProvider } from "@/contexts/floating-chat-context";
@@ -264,6 +265,7 @@ function Router() {
       <Route path="/notes" component={NotesPage} />
       <Route path="/tools/tasks" component={() => <ProtectedRoute><TasksPage /></ProtectedRoute>} />
       <Route path="/wikify" component={() => <ProtectedRoute requiredRole={["partner", "staff", "executive", "admin"]}><WikifyToolPage /></ProtectedRoute>} />
+      <Route path="/tools" component={ToolsPage} />
       <Route path="/gallery" component={GalleryPage} />
       <Route path="/command/gallery" component={() => (
         <ProtectedRoute requiredRole="admin">

@@ -315,7 +315,7 @@ export default function WikifyToolPage() {
         <div className="text-center">
           <h2 className="text-lg font-semibold">Partner+ Access Required</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            The Wikify Tool is available to Partner, Staff, Executive, and Admin roles.
+            Wikify is available to Partner, Staff, Executive, and Admin roles.
           </p>
         </div>
         <Button variant="outline" asChild>
@@ -332,7 +332,7 @@ export default function WikifyToolPage() {
         <div className="flex items-center gap-2.5">
           <Wand2 className="h-5 w-5 text-primary" />
           <div>
-            <h1 className="text-sm font-semibold leading-tight">Wikify Tool</h1>
+            <h1 className="text-sm font-semibold leading-tight">Wikify</h1>
             <p className="text-xs text-muted-foreground">Bulk AI wiki article generator</p>
           </div>
         </div>

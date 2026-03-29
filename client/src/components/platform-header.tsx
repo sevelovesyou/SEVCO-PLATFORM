@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import { usePermission } from "@/hooks/use-permission";
 import { useCart } from "@/hooks/use-cart";
 import { useQuery } from "@tanstack/react-query";
@@ -80,6 +81,8 @@ import {
   MessageCircle,
   Megaphone,
   CheckSquare,
+  Wand2,
+  Lock,
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { ChatSheet } from "@/components/chat-sheet";
@@ -256,7 +259,7 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
     { label: "Home",         href: "/",        icon: Home,                    desc: "Go to landing page",             show: true },
     { label: "About",        href: "/about",   icon: BookOpen,                desc: "Learn about SEVCO",              show: true },
     { label: "Wiki",         href: "/wiki",    icon: BookOpen,                desc: "Internal knowledge base",        show: true },
-    { label: "Wikify Tool",  href: "/wikify",  icon: LucideIcons.Wand2,       desc: "Bulk AI wiki article generator", show: canCreateArticle },
+    { label: "Wikify",       href: "/wikify",  icon: LucideIcons.Wand2,       desc: "Bulk AI wiki article generator", show: canCreateArticle },
     { label: "Contact",      href: "/contact", icon: Mail,                    desc: "Get in touch",                   show: true },
     { label: "Jobs",         href: "/jobs",    icon: Users,                   desc: "Open positions",                 show: true },
     { label: "News",         href: "/news",    icon: LucideIcons.Newspaper,   desc: "Latest news & trends",           show: true },
@@ -617,6 +620,8 @@ function ProjectsDropdown({ isActive }: { isActive: boolean }) {
 function ToolsDropdown({ isActive }: { isActive: boolean }) {
   const { open, setOpen, ref } = useDropdown();
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
   const CLIENT_PLUS_ROLES = ["client", "partner", "staff", "executive", "admin"];
   const isClientPlus = !!(user && CLIENT_PLUS_ROLES.includes(user.role));
 
@@ -627,16 +632,23 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
   });
   const unreadEmailCount = isClientPlus ? (folderCounts?.unreadInbox ?? 0) : 0;
 
-  const items = [
-    ...(user ? [
-      { label: "Tasks",   href: "/tools/tasks", icon: CheckSquare, desc: "Personal to-do list & staff board" },
-      { label: "Notes",   href: "/notes",   icon: StickyNote, desc: "Personal & shared notes" },
-      { label: "Gallery", href: "/gallery", icon: Images,     desc: "Quick-copy images for your profile" },
-    ] : []),
-    ...(isClientPlus ? [
-      { label: "Email",   href: "/messages", icon: Mail,      desc: `${user?.username}@sevco.us inbox` },
-    ] : []),
+  const allItems = [
+    { label: "Notes",   href: "/notes",        icon: StickyNote,   desc: "Personal & shared notes",               requiredRoles: ["user","client","partner","staff","executive","admin"] },
+    { label: "Tasks",   href: "/tools/tasks",  icon: CheckSquare,  desc: "Personal to-do list & staff board",     requiredRoles: ["user","client","partner","staff","executive","admin"] },
+    { label: "Gallery", href: "/gallery",      icon: Images,       desc: "Quick-copy images for your profile",    requiredRoles: ["user","client","partner","staff","executive","admin"] },
+    { label: "Email",   href: "/messages",     icon: Mail,         desc: `${user?.username ?? "your"}@sevco.us`,  requiredRoles: ["client","partner","staff","executive","admin"] },
+    { label: "Wikify",  href: "/wikify",       icon: Wand2,        desc: "Bulk AI wiki article generator",        requiredRoles: ["partner","staff","executive","admin"] },
   ];
+
+  const handleClick = (item: typeof allItems[number]) => {
+    setOpen(false);
+    if (!user) { navigate("/auth"); return; }
+    if (!item.requiredRoles.includes(user.role)) {
+      toast({ title: "Upgrade required", description: "This tool requires a higher account tier.", variant: "destructive" });
+      return;
+    }
+    navigate(item.href);
+  };
 
   return (
     <div className="relative" ref={ref}>
@@ -657,11 +669,14 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
       {open && (
         <DropdownPanel className="w-64">
           <div className="p-2">
-            {items.map((item) => (
-              <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
-                <div
-                  className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
+            {allItems.map((item) => {
+              const locked = !!(user && !item.requiredRoles.includes(user.role));
+              return (
+                <button
+                  key={item.href}
+                  className="w-full text-left flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
                   data-testid={`dropdown-tools-${item.label.toLowerCase()}`}
+                  onClick={() => handleClick(item)}
                 >
                   <item.icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
                   <div className="flex-1 min-w-0">
@@ -672,14 +687,17 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
                           {unreadEmailCount > 99 ? "99+" : unreadEmailCount}
                         </span>
                       )}
+                      {locked && <Lock className="h-3 w-3 text-muted-foreground/60 ml-auto" />}
                     </div>
                     <p className="text-[11px] text-muted-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">{item.desc}</p>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </button>
+              );
+            })}
             <div className="mt-1 pt-1.5 border-t border-border/60 px-3 pb-1">
-              <p className="text-[10px] text-muted-foreground/60 italic">More tools coming soon</p>
+              <Link href="/tools" onClick={() => setOpen(false)} data-testid="dropdown-tools-view-all">
+                <p className="text-[10px] text-muted-foreground/60 italic hover:text-muted-foreground transition-colors">View all tools →</p>
+              </Link>
             </div>
           </div>
         </DropdownPanel>
@@ -692,7 +710,8 @@ export function PlatformHeader() {
   const { user, logout } = useAuth();
   const { role, canCreateArticle: canWikify } = usePermission();
   const { openCart, itemCount } = useCart();
-  const [location] = useLocation();
+  const { toast } = useToast();
+  const [location, navigate] = useLocation();
   const { data: platformSettings } = useQuery<Record<string, string>>({
     queryKey: ["/api/platform-settings"],
     staleTime: 300000,
@@ -744,7 +763,7 @@ export function PlatformHeader() {
     { label: "Home",         href: "/" },
     { label: "About",        href: "/about" },
     { label: "Wiki",         href: "/wiki" },
-    ...(canWikify ? [{ label: "Wikify Tool", href: "/wikify" }] : []),
+    ...(canWikify ? [{ label: "Wikify", href: "/wikify" }] : []),
     ...(user ? [{ label: "Notes", href: "/notes" }] : []),
     { label: "Contact",      href: "/contact" },
     { label: "Jobs",         href: "/jobs" },
@@ -785,7 +804,7 @@ export function PlatformHeader() {
           <ServicesDropdown isActive={activeApp === "/services"} platformSettings={platformSettings} />
           <MusicDropdown isActive={activeApp === "/music"} />
           <ProjectsDropdown isActive={activeApp === "/projects"} />
-          {user && <ToolsDropdown isActive={activeApp === "/notes" || activeApp === "/gallery" || activeApp === "/messages" || activeApp === "/tools"} />}
+          <ToolsDropdown isActive={activeApp === "/notes" || activeApp === "/gallery" || activeApp === "/messages" || activeApp === "/tools"} />
 
           {canAccessCMD && (
             <Link href="/command">
@@ -1100,7 +1119,7 @@ export function PlatformHeader() {
             </div>
           </Link>
 
-          {user && <Collapsible open={mobileSection === "tools"} onOpenChange={(o) => setMobileSection(o ? "tools" : null)}>
+          <Collapsible open={mobileSection === "tools"} onOpenChange={(o) => setMobileSection(o ? "tools" : null)}>
             <CollapsibleTrigger asChild>
               <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors" data-testid="mobile-nav-tools">
                 Tools
@@ -1109,35 +1128,39 @@ export function PlatformHeader() {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="pl-4 space-y-0.5 py-1">
-                {user && (
-                  <>
-                    <Link href="/tools/tasks" onClick={() => setMobileOpen(false)}>
-                      <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-tools-tasks">
-                        Tasks
-                      </div>
-                    </Link>
-                    <Link href="/notes" onClick={() => setMobileOpen(false)}>
-                      <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-tools-notes">
-                        Notes
-                      </div>
-                    </Link>
-                    <Link href="/gallery" onClick={() => setMobileOpen(false)}>
-                      <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-tools-gallery">
-                        Gallery
-                      </div>
-                    </Link>
-                    {["client", "partner", "staff", "executive", "admin"].includes(user.role) && (
-                      <Link href="/messages" onClick={() => setMobileOpen(false)}>
-                        <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-tools-email">
-                          Email
-                        </div>
-                      </Link>
-                    )}
-                  </>
-                )}
+                {[
+                  { label: "Notes",   href: "/notes",        testId: "mobile-nav-tools-notes",   requiredRoles: ["user","client","partner","staff","executive","admin"] },
+                  { label: "Tasks",   href: "/tools/tasks",  testId: "mobile-nav-tools-tasks",   requiredRoles: ["user","client","partner","staff","executive","admin"] },
+                  { label: "Gallery", href: "/gallery",      testId: "mobile-nav-tools-gallery", requiredRoles: ["user","client","partner","staff","executive","admin"] },
+                  { label: "Email",   href: "/messages",     testId: "mobile-nav-tools-email",   requiredRoles: ["client","partner","staff","executive","admin"] },
+                  { label: "Wikify",  href: "/wikify",       testId: "mobile-nav-tools-wikify",  requiredRoles: ["partner","staff","executive","admin"] },
+                ].map((item) => (
+                  <button
+                    key={item.href}
+                    className="w-full text-left px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer flex items-center justify-between"
+                    data-testid={item.testId}
+                    onClick={() => {
+                      setMobileOpen(false);
+                      if (!user) { navigate("/auth"); return; }
+                      if (!item.requiredRoles.includes(user.role)) {
+                        toast({ title: "Upgrade required", description: "This tool requires a higher account tier.", variant: "destructive" });
+                        return;
+                      }
+                      navigate(item.href);
+                    }}
+                  >
+                    {item.label}
+                    {user && !item.requiredRoles.includes(user.role) && <Lock className="h-3 w-3 text-muted-foreground/50" />}
+                  </button>
+                ))}
+                <Link href="/tools" onClick={() => setMobileOpen(false)}>
+                  <div className="px-3 py-2 text-[11px] text-muted-foreground/60 italic hover:text-muted-foreground transition-colors cursor-pointer" data-testid="mobile-nav-tools-view-all">
+                    View all tools →
+                  </div>
+                </Link>
               </div>
             </CollapsibleContent>
-          </Collapsible>}
+          </Collapsible>
 
           {canAccessCMD && (
             <Link href="/command" onClick={() => setMobileOpen(false)}>

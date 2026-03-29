@@ -92,7 +92,7 @@ export function AppSidebar() {
     { title: "Search", url: "/search", icon: Search, show: true },
     { title: "Changelog", url: "/changelog", icon: ScrollText, show: true },
     { title: "New Article", url: "/new", icon: Plus, show: canCreateArticle },
-    { title: "Wikify Tool", url: "/wikify", icon: Wand2, show: canCreateArticle },
+    { title: "Wikify", url: "/wikify", icon: Wand2, show: canCreateArticle },
     { title: "Review Queue", url: "/review", icon: Shield, show: canAccessReviewQueue },
     { title: "Archive", url: "/wiki/archive", icon: Archive, show: canAccessArchive },
   ].filter((item) => item.show);

@@ -69,6 +69,8 @@ async function runStartupMigrations() {
   await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS budget real;`);
   await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS financial_status text DEFAULT 'not_set';`);
   await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS is_public_budget boolean DEFAULT false;`);
+  // Task #140 — Per-category X query
+  await pool.query(`ALTER TABLE news_categories ADD COLUMN IF NOT EXISTS x_query TEXT;`);
   console.log("[startup] migrations applied");
 }
 

@@ -21,6 +21,7 @@ import type { NewsArticle } from "@/components/news-article-card";
 const categorySchema = z.object({
   name: z.string().min(1, "Name is required"),
   query: z.string().min(1, "Query is required"),
+  xQuery: z.string().optional(),
   accentColor: z.string().optional(),
   displayOrder: z.coerce.number().int().default(0),
   enabled: z.boolean().default(true),
@@ -41,11 +42,12 @@ function CategoryDialog({ open, onClose, editing }: CategoryDialogProps) {
       ? {
           name: editing.name,
           query: editing.query,
+          xQuery: editing.xQuery || "",
           accentColor: editing.accentColor || "",
           displayOrder: editing.displayOrder,
           enabled: editing.enabled,
         }
-      : { name: "", query: "", accentColor: "#6b7280", displayOrder: 0, enabled: true },
+      : { name: "", query: "", xQuery: "", accentColor: "#6b7280", displayOrder: 0, enabled: true },
   });
 
   const mutation = useMutation({
@@ -87,6 +89,17 @@ function CategoryDialog({ open, onClose, editing }: CategoryDialogProps) {
             {form.formState.errors.query && (
               <p className="text-xs text-destructive">{form.formState.errors.query.message}</p>
             )}
+          </div>
+          <div className="space-y-1.5">
+            <Label>X Search Query <span className="text-[10px] text-muted-foreground font-normal ml-1">(optional)</span></Label>
+            <Input
+              {...form.register("xQuery")}
+              placeholder="#music OR from:billboard OR from:pitchfork"
+              data-testid="input-category-xquery"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Custom X search query for this category. Supports hashtags, handles (<code className="bg-muted px-0.5 rounded">from:handle</code>), and OR logic. Overrides the default per-category X query when set.
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">

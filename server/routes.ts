@@ -4648,7 +4648,7 @@ export async function registerRoutes(
       console.error("[news/x-feed] Failed to load platform settings, using defaults:", settingsErr.message);
     }
 
-    let cat: { name: string; query: string; accentColor?: string } | undefined;
+    let cat: { name: string; query: string; xQuery?: string | null; accentColor?: string | null } | undefined;
     try {
       const cats = await storage.getNewsCategories(true);
       cat = cats.find((c) => c.name.toLowerCase() === categoryName.toLowerCase()) ?? cats[0];
@@ -4670,6 +4670,7 @@ export async function registerRoutes(
           allowedAccounts,
           blockedAccounts,
           minEngagement,
+          customXQuery: cat?.xQuery ?? null,
         });
 
         const ai_generate_candidates: Array<{ text: string; link: string; idx: number }> = [];

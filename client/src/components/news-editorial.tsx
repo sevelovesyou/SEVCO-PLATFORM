@@ -354,6 +354,7 @@ export function NewsEditorial({
   xEnabled = false,
 }: NewsEditorialProps) {
   const [activeCatId, setActiveCatId] = useState<number | null>(null);
+  const [selectedHandle, setSelectedHandle] = useState<string | null>(null);
 
   const activeCategory =
     newsCategories.find((c) => c.id === activeCatId) ?? newsCategories[0] ?? null;
@@ -363,6 +364,10 @@ export function NewsEditorial({
       setActiveCatId(newsCategories[0].id);
     }
   }, [newsCategories, activeCatId]);
+
+  useEffect(() => {
+    setSelectedHandle(null);
+  }, [activeCatId]);
 
   const { data: articles = [], isLoading: articlesLoading } = useQuery<EditorialArticle[]>({
     queryKey: ["/api/news/x-feed", activeCategory?.name, 15],
@@ -388,6 +393,17 @@ export function NewsEditorial({
     staleTime: 10 * 60 * 1000,
   });
 
+  const xArticles = articles.filter((a) => a.sourceType === "x");
+  const uniqueXHandles = Array.from(
+    new Set(xArticles.map((a) => a.authorHandle).filter((h): h is string => !!h))
+  );
+
+  const filteredArticles = selectedHandle
+    ? articles.filter((a) =>
+        a.sourceType !== "x" || a.authorHandle === selectedHandle
+      )
+    : articles;
+
   if (newsCategories.length === 0) return null;
 
   if (articlesLoading && !articles.length) {
@@ -395,9 +411,9 @@ export function NewsEditorial({
   }
 
   const accentColor = activeCategory?.accentColor ?? undefined;
-  const heroArticle = articles[0] ?? null;
-  const secondaryArticles = articles.slice(1, 4);
-  const gridArticles = articles.slice(4, 13);
+  const heroArticle = filteredArticles[0] ?? null;
+  const secondaryArticles = filteredArticles.slice(1, 4);
+  const gridArticles = filteredArticles.slice(4, 13);
 
   return (
     <div
@@ -436,6 +452,37 @@ export function NewsEditorial({
             onSelect={(id) => setActiveCatId(id)}
           />
         )}
+
+        {/* X source handle chips */}
+        {uniqueXHandles.length > 0 && (
+          <div className="flex items-center gap-1.5 mt-3 flex-wrap" data-testid="news-handle-chips">
+            <button
+              onClick={() => setSelectedHandle(null)}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all border ${
+                selectedHandle === null
+                  ? "bg-white/15 border-white/30 text-white"
+                  : "bg-transparent border-white/10 text-white/40 hover:text-white/60"
+              }`}
+              data-testid="chip-handle-all"
+            >
+              All
+            </button>
+            {uniqueXHandles.map((handle) => (
+              <button
+                key={handle}
+                onClick={() => setSelectedHandle(selectedHandle === handle ? null : handle)}
+                className={`px-2.5 py-1 rounded-full text-[10px] font-mono transition-all border ${
+                  selectedHandle === handle
+                    ? "bg-white/15 border-white/30 text-white"
+                    : "bg-transparent border-white/10 text-white/40 hover:text-white/60"
+                }`}
+                data-testid={`chip-handle-${handle}`}
+              >
+                {handle}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Main grid */}
@@ -445,7 +492,7 @@ export function NewsEditorial({
             <Skeleton className="md:col-span-1 lg:col-span-2 md:row-span-2 h-72 rounded-2xl" />
             {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
           </div>
-        ) : articles.length === 0 ? (
+        ) : filteredArticles.length === 0 ? (
           <p className="text-sm text-white/40 py-10 text-center">No articles available right now.</p>
         ) : (
           <div className="flex gap-5 flex-col lg:flex-row">

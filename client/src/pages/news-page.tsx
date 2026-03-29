@@ -6,8 +6,10 @@ import { NewsBentoGrid } from "@/components/news-bento-grid";
 import { NewsArticleCard, type NewsArticle } from "@/components/news-article-card";
 import { useEffect, useState } from "react";
 import type { NewsCategory } from "@shared/schema";
+import type { EditorialArticle } from "@/components/news-editorial";
 import { formatDistanceToNow } from "date-fns";
 import { Link, useLocation } from "wouter";
+import { SiX } from "react-icons/si";
 
 function ArticleSkeleton() {
   return <Skeleton className="w-full h-48 rounded-xl" />;
@@ -134,13 +136,18 @@ function CategorySwimLane({ category }: CategorySwimLaneProps) {
 
 function CategoryFilteredView({ categoryId, categories }: { categoryId: string; categories: NewsCategory[] }) {
   const category = categories.find((c) => String(c.id) === categoryId);
+  const [selectedHandle, setSelectedHandle] = useState<string | null>(null);
 
-  const { data: articles, isLoading } = useQuery<NewsArticle[]>({
-    queryKey: ["/api/news/feed", category?.query, 20],
+  useEffect(() => {
+    setSelectedHandle(null);
+  }, [categoryId]);
+
+  const { data: xFeedArticles, isLoading } = useQuery<EditorialArticle[]>({
+    queryKey: ["/api/news/x-feed", category?.name, 20],
     queryFn: () =>
-      fetch(`/api/news/feed?query=${encodeURIComponent(category!.query)}&limit=20`).then((r) => r.json()),
+      fetch(`/api/news/x-feed?category=${encodeURIComponent(category!.name)}&limit=20`).then((r) => r.json()),
     enabled: !!category,
-    staleTime: 15 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
   });
 
   if (!category) {
@@ -151,8 +158,18 @@ function CategoryFilteredView({ categoryId, categories }: { categoryId: string; 
     );
   }
 
-  const heroArticle = articles?.[0];
-  const restArticles = articles?.slice(1) ?? [];
+  const allArticles = xFeedArticles ?? [];
+  const xOnlyArticles = allArticles.filter((a) => a.sourceType === "x");
+  const uniqueXHandles = Array.from(
+    new Set(xOnlyArticles.map((a) => a.authorHandle).filter((h): h is string => !!h))
+  );
+
+  const filteredArticles = selectedHandle
+    ? allArticles.filter((a) => a.sourceType !== "x" || a.authorHandle === selectedHandle)
+    : allArticles;
+
+  const heroArticle = filteredArticles[0];
+  const restArticles = filteredArticles.slice(1);
 
   return (
     <div className="space-y-6">
@@ -170,10 +187,44 @@ function CategoryFilteredView({ categoryId, categories }: { categoryId: string; 
         </div>
       </div>
 
+      {/* X handle filter chips */}
+      {uniqueXHandles.length > 0 && (
+        <div className="flex items-center gap-1.5 flex-wrap" data-testid="news-page-handle-chips">
+          <span className="text-xs text-muted-foreground flex items-center gap-1 mr-1">
+            <SiX className="h-3 w-3" /> Sources:
+          </span>
+          <button
+            onClick={() => setSelectedHandle(null)}
+            className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all border ${
+              selectedHandle === null
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-transparent border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+            }`}
+            data-testid="chip-handle-all"
+          >
+            All
+          </button>
+          {uniqueXHandles.map((handle) => (
+            <button
+              key={handle}
+              onClick={() => setSelectedHandle(selectedHandle === handle ? null : handle)}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-mono transition-all border ${
+                selectedHandle === handle
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-transparent border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+              }`}
+              data-testid={`chip-handle-${handle}`}
+            >
+              {handle}
+            </button>
+          ))}
+        </div>
+      )}
+
       {isLoading ? (
         <Skeleton className="w-full h-72 rounded-2xl" />
       ) : heroArticle ? (
-        <HeroSection article={heroArticle} />
+        <HeroSection article={{ ...heroArticle, imageUrl: heroArticle.imageUrl ?? null }} />
       ) : null}
 
       {isLoading ? (
@@ -185,7 +236,7 @@ function CategoryFilteredView({ categoryId, categories }: { categoryId: string; 
           {restArticles.map((article) => (
             <NewsArticleCard
               key={article.link}
-              article={article}
+              article={{ ...article, imageUrl: article.imageUrl ?? null }}
               variant="medium"
               accentColor={category.accentColor || undefined}
               categoryLabel={category.name}

@@ -871,6 +871,7 @@ export const newsCategories = pgTable("news_categories", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   name: text("name").notNull(),
   query: text("query").notNull(),
+  xQuery: text("x_query"),
   accentColor: text("accent_color"),
   displayOrder: integer("display_order").notNull().default(0),
   enabled: boolean("enabled").notNull().default(true),

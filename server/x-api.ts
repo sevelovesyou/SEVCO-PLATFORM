@@ -24,9 +24,14 @@ const CATEGORY_QUERIES: Record<string, string> = {
   politics: "(#politics OR #news OR #government OR from:reuters OR from:apnews) -is:retweet lang:en has:links",
 };
 
-export function getCategoryXQuery(categoryName: string, fallbackQuery?: string, imagesOnly?: boolean): string {
-  const key = categoryName.toLowerCase();
-  const base = CATEGORY_QUERIES[key] || fallbackQuery || `(${categoryName}) -is:retweet lang:en`;
+export function getCategoryXQuery(categoryName: string, fallbackQuery?: string, imagesOnly?: boolean, customXQuery?: string | null): string {
+  let base: string;
+  if (customXQuery) {
+    base = `(${customXQuery}) -is:retweet lang:en`;
+  } else {
+    const key = categoryName.toLowerCase();
+    base = CATEGORY_QUERIES[key] || fallbackQuery || `(${categoryName}) -is:retweet lang:en`;
+  }
   if (imagesOnly) {
     const withImages = base.includes("has:media") ? base : `${base} has:media`;
     return `${withImages} min_faves:10`;
@@ -43,9 +48,10 @@ export async function fetchCategoryNewsFromX(
     allowedAccounts?: string[];
     blockedAccounts?: string[];
     minEngagement?: number;
+    customXQuery?: string | null;
   }
 ): Promise<Tweet[]> {
-  const xQuery = getCategoryXQuery(category, query, options?.imagesOnly);
+  const xQuery = getCategoryXQuery(category, query, options?.imagesOnly, options?.customXQuery);
   let finalQuery = xQuery;
 
   if (options?.allowedAccounts && options.allowedAccounts.length > 0) {

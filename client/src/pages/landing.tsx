@@ -206,7 +206,7 @@ export default function Landing() {
     queryKey: ["/api/social/x/status"],
   });
 
-  const xHandles = (settings["social.x.handles"] || "sevco,sevelovesyou")
+  const xHandles = (settings["social.x.handles"] || "sevelovesu")
     .split(",").map((h: string) => h.trim()).filter(Boolean);
   const xMaxTweets = parseInt(settings["social.x.maxTweets"] ?? "12") || 12;
 

@@ -29,8 +29,22 @@ export function getCategoryXQuery(categoryName: string, fallbackQuery?: string, 
   if (customXQuery) {
     base = `(${customXQuery}) -is:retweet lang:en`;
   } else {
-    const key = categoryName.toLowerCase();
-    base = CATEGORY_QUERIES[key] || fallbackQuery || `(${categoryName}) -is:retweet lang:en`;
+    const normalized = categoryName.toLowerCase().replace(/[^a-z]/g, "");
+    const matchedKey = Object.keys(CATEGORY_QUERIES).find((key) => normalized.includes(key));
+    if (matchedKey) {
+      base = CATEGORY_QUERIES[matchedKey];
+    } else if (fallbackQuery) {
+      const isValidXQuery = /[#@]|OR\s|AND\s|from:|is:|has:|lang:/.test(fallbackQuery);
+      if (isValidXQuery) {
+        base = fallbackQuery;
+      } else {
+        const safeTag = normalized || categoryName.replace(/\s+/g, "").toLowerCase();
+        base = `(#${safeTag}) -is:retweet lang:en`;
+      }
+    } else {
+      const safeTag = normalized || categoryName.replace(/\s+/g, "").toLowerCase();
+      base = `(#${safeTag}) -is:retweet lang:en`;
+    }
   }
   if (imagesOnly) {
     const withImages = base.includes("has:media") ? base : `${base} has:media`;
@@ -113,7 +127,8 @@ export async function fetchUserTweets(handle: string, limit: number = 10): Promi
     );
 
     if (!userRes.ok) {
-      console.error(`[x-api] Failed to fetch user ${cleanHandle}: ${userRes.status} ${userRes.statusText}`);
+      const errBody = await userRes.json().catch(() => null);
+      console.error(`[x-api] Failed to fetch user ${cleanHandle}: ${userRes.status} ${userRes.statusText}`, errBody);
       return [];
     }
 
@@ -215,7 +230,8 @@ export async function searchTweets(query: string, limit: number = 6): Promise<Tw
     );
 
     if (!res.ok) {
-      console.error(`[x-api] Failed to search tweets: ${res.status} ${res.statusText}`);
+      const errBody = await res.json().catch(() => null);
+      console.error(`[x-api] Failed to search tweets: ${res.status} ${res.statusText}`, errBody);
       return [];
     }
 

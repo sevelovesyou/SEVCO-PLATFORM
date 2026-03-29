@@ -215,7 +215,9 @@ async function initStripe() {
       const currentSettings = await storage.getPlatformSettings();
       const toSeed: Record<string, string> = {};
       if (!currentSettings["social.x.handles"]) {
-        toSeed["social.x.handles"] = "sevco,sevelovesyou";
+        toSeed["social.x.handles"] = "sevelovesu";
+      } else if (currentSettings["social.x.handles"].includes("sevelovesyou")) {
+        toSeed["social.x.handles"] = "sevelovesu";
       }
       if (!currentSettings["social.x.enabled"]) {
         toSeed["social.x.enabled"] = "true";
@@ -225,6 +227,7 @@ async function initStripe() {
       }
       if (Object.keys(toSeed).length > 0) {
         await storage.setPlatformSettings(toSeed);
+        console.log("[x-seed] X handles settings updated:", toSeed);
       }
     } catch (err: any) {
       console.warn("[x-seed] Failed to seed X handles:", err?.message ?? err);

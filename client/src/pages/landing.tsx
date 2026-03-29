@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { StaggerGrid, StaggerItem } from "@/components/stagger-grid";
+import { useState, useEffect, useRef } from "react";
+import { StaggerGrid } from "@/components/stagger-grid";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -12,10 +12,12 @@ import * as LucideIcons from "lucide-react";
 import {
   BookOpen, ShoppingBag, Music, Folder, Briefcase,
   ArrowRight, Users, Star, ChevronRight, Pin,
-  Zap, Globe, Layers,
+  Zap, Globe, Layers, CheckCircle, Code2,
+  Palette, BarChart3, Megaphone, Camera, Building2,
+  TrendingUp, ExternalLink, Newspaper,
 } from "lucide-react";
-import { SiDiscord } from "react-icons/si";
-import type { Article, Product, FeedPost } from "@shared/schema";
+import { SiDiscord, SiSpotify, SiApplemusic } from "react-icons/si";
+import type { Article, Product, FeedPost, Project } from "@shared/schema";
 import type { NewsCategory } from "@shared/schema";
 import { NewsEditorial } from "@/components/news-editorial";
 import { formatDistanceToNow } from "date-fns";
@@ -106,16 +108,37 @@ function toBool(val: string | undefined): boolean {
   return val !== "false";
 }
 
+function useIntersectionObserver(options?: IntersectionObserverInit) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+        observer.disconnect();
+      }
+    }, { threshold: 0.1, ...options });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return { ref, isVisible };
+}
+
 function ProductCard({ product }: { product: Product }) {
   const [imgError, setImgError] = useState(false);
   return (
     <Link href={`/store/products/${product.slug}`}>
       <div
-        className="group rounded-xl border bg-white/[0.03] border-white/8 hover:bg-white/[0.06] hover:border-white/15 transition-all duration-200 overflow-hidden cursor-pointer"
+        className="group relative rounded-xl border bg-white/[0.04] border-white/10 hover:bg-white/[0.08] hover:border-red-500/40 hover:shadow-[0_0_24px_0_rgba(190,0,0,0.18)] transition-all duration-300 overflow-hidden cursor-pointer"
         data-testid={`card-product-${product.id}`}
+        style={{ backdropFilter: "blur(12px)" }}
       >
         <div className="aspect-square overflow-hidden">
-          <div className="w-full h-full bg-muted/50 rounded-lg p-3">
+          <div className="w-full h-full bg-white/[0.03] p-3">
             {product.imageUrl && !imgError ? (
               <img
                 src={product.imageUrl}
@@ -126,14 +149,14 @@ function ProductCard({ product }: { product: Product }) {
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center rounded-md">
-                <ShoppingBag className="h-10 w-10 text-muted-foreground/30" />
+                <ShoppingBag className="h-10 w-10 text-white/20" />
               </div>
             )}
           </div>
         </div>
         <div className="p-3">
-          <p className="text-xs font-semibold text-foreground truncate">{product.name}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-xs font-semibold text-white truncate">{product.name}</p>
+          <p className="text-xs text-white/50 mt-0.5">
             ${(product.price / 100).toFixed(2)}
           </p>
         </div>
@@ -164,6 +187,34 @@ function ArticleCard({ article }: { article: Article }) {
   );
 }
 
+const SERVICE_ICONS = [
+  { icon: Code2, label: "Dev", color: "#3b82f6" },
+  { icon: Palette, label: "Design", color: "#6366f1" },
+  { icon: Megaphone, label: "Marketing", color: "#3b82f6" },
+  { icon: Camera, label: "Media", color: "#0ea5e9" },
+  { icon: BarChart3, label: "Analytics", color: "#3b82f6" },
+  { icon: Building2, label: "Strategy", color: "#6366f1" },
+];
+
+const PROJECT_STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+  active:      { bg: "bg-green-500/15",   text: "text-green-400",   dot: "bg-green-400" },
+  "in progress": { bg: "bg-yellow-500/15", text: "text-yellow-400",  dot: "bg-yellow-400" },
+  planned:     { bg: "bg-blue-500/15",    text: "text-blue-400",    dot: "bg-blue-400" },
+  archived:    { bg: "bg-white/10",       text: "text-white/50",    dot: "bg-white/30" },
+};
+
+type FeedPostWithAuthor = FeedPost & {
+  author: { username: string; displayName: string | null; avatarUrl: string | null } | null;
+};
+
+interface NewsItem {
+  title: string;
+  link: string;
+  source?: string;
+  pubDate?: string;
+  category?: string;
+  description?: string;
+}
 
 export default function Landing() {
   const { user } = useAuth();
@@ -180,9 +231,9 @@ export default function Landing() {
     queryKey: ["/api/platform-settings"],
   });
 
-  type FeedPostWithAuthor = FeedPost & {
-    author: { username: string; displayName: string | null; avatarUrl: string | null } | null;
-  };
+  const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({
+    queryKey: ["/api/projects"],
+  });
 
   const { data: pinnedFeedPosts = [] } = useQuery<FeedPostWithAuthor[]>({
     queryKey: ["/api/feed?pinned=true&limit=1"],
@@ -205,6 +256,11 @@ export default function Landing() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: newsFeed = [] } = useQuery<NewsItem[]>({
+    queryKey: ["/api/news/feed/all"],
+    staleTime: 5 * 60 * 1000,
+  });
+
   interface XStatus { configured: boolean; handle?: string }
   const { data: xStatus } = useQuery<XStatus>({
     queryKey: ["/api/social/x/status"],
@@ -218,18 +274,28 @@ export default function Landing() {
 
   const recentArticles = articles.filter((a) => a.status === "published").slice(0, 3);
   const featuredProducts = products.slice(0, 4);
+  const featuredProjects = projects.slice(0, 6);
 
   const heroBgUrl = settings["hero.backgroundImageUrl"] ?? "";
   const heroText = settings["hero.text"] || DEFAULT_HERO_TEXT;
-  const btn1Label = settings["hero.button1.label"] || DEFAULT_BTN1_LABEL;
-  const btn1Url = settings["hero.button1.url"] || DEFAULT_BTN1_URL;
-  const btn1IconName = settings["hero.button1.icon"];
+  const heroOverlayOpacity = settings["hero.overlayOpacity"] ? parseInt(settings["hero.overlayOpacity"]) / 100 : 0.7;
+
   const btn1Color = settings["hero.button1.color"];
+  const btn2Color = settings["hero.button2.color"];
+  const btn1IconName = settings["hero.button1.icon"];
+  const btn2IconName = settings["hero.button2.icon"];
+
+  const hasCustomBtn1 = !!(settings["hero.button1.label"] || settings["hero.button1.url"]);
+
+  const btn1Label = hasCustomBtn1
+    ? (settings["hero.button1.label"] || DEFAULT_BTN1_LABEL)
+    : (user ? "Go to Platform" : "Sign Up Free");
+  const btn1Url = hasCustomBtn1
+    ? (settings["hero.button1.url"] || DEFAULT_BTN1_URL)
+    : (user ? "/dashboard" : "/auth");
+
   const btn2Label = settings["hero.button2.label"] || DEFAULT_BTN2_LABEL;
   const btn2Url = settings["hero.button2.url"] || DEFAULT_BTN2_URL;
-  const btn2IconName = settings["hero.button2.icon"];
-  const btn2Color = settings["hero.button2.color"];
-  const heroOverlayOpacity = settings["hero.overlayOpacity"] ? parseInt(settings["hero.overlayOpacity"]) / 100 : 0.7;
 
   let whySevcoPills = DEFAULT_WHY_SEVCO_PILLS;
   if (settings["home.iconPills"]) {
@@ -254,6 +320,10 @@ export default function Landing() {
   const showPlatformGrid = toBool(settings["section.platformGrid.visible"]);
   const showRecordsSpotlight = toBool(settings["section.recordsSpotlight.visible"]);
   const showStorePreview = toBool(settings["section.storePreview.visible"]);
+  const showServicesShowstopper = toBool(settings["section.servicesShowstopper.visible"]);
+  const showProjectsShowstopper = toBool(settings["section.projectsShowstopper.visible"]);
+  const showNewsTeaser = toBool(settings["section.newsTeaser.visible"]);
+  const showSignupCta = toBool(settings["section.signupCta.visible"]);
   const showWikiLatest = toBool(settings["section.wikiLatest.visible"]);
   const showCommunityCta = toBool(settings["section.communityCta.visible"]);
   const showBulletin = toBool(settings["section.bulletin.visible"]);
@@ -261,6 +331,16 @@ export default function Landing() {
   const showNewsSection = toBool(settings["section.news.visible"]);
   const showXFeedSection = settings["section.xFeed.visible"] !== "false";
   const xEnabled = settings["social.x.enabled"] !== "false";
+
+  const storeRef = useIntersectionObserver();
+  const servicesRef = useIntersectionObserver();
+  const projectsRef = useIntersectionObserver();
+  const recordsRef = useIntersectionObserver();
+  const featurePillsRef = useIntersectionObserver();
+  const newsTeaserRef = useIntersectionObserver();
+  const signupCtaRef = useIntersectionObserver();
+
+  const newsTeaserItems = newsFeed.slice(0, 3);
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden" data-page="landing">
@@ -279,9 +359,10 @@ export default function Landing() {
           "sameAs": [],
         }}
       />
-      {/* ── HERO ── */}
+
+      {/* ── HERO — glassmorphism + aurora blobs ── */}
       <section
-        className="relative overflow-hidden bg-[#0a0a12] text-white"
+        className="relative overflow-hidden bg-[#07070f] text-white min-h-[90vh] flex items-center"
         style={heroBgUrl ? {
           backgroundImage: `url(${heroBgUrl})`,
           backgroundSize: "cover",
@@ -289,98 +370,236 @@ export default function Landing() {
         } : undefined}
         data-testid="section-hero"
       >
-        {/* Animated gradient blobs */}
+        {/* Aurora blobs */}
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute -top-28 -left-36 w-[600px] h-[600px] rounded-full bg-red-800/20 blur-[120px] motion-safe:animate-[pulse_8s_ease-in-out_infinite]" />
-          <div className="absolute -bottom-28 -right-36 w-[500px] h-[500px] rounded-full bg-green-600/15 blur-[120px] motion-safe:animate-[pulse_10s_ease-in-out_infinite_2s]" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] rounded-full bg-amber-600/10 blur-[100px] motion-safe:animate-[pulse_12s_ease-in-out_infinite_4s]" />
+          <div className="absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full bg-red-700/25 blur-[140px] motion-safe:animate-[pulse_8s_ease-in-out_infinite]" />
+          <div className="absolute -bottom-32 -right-40 w-[600px] h-[600px] rounded-full bg-indigo-600/20 blur-[140px] motion-safe:animate-[pulse_10s_ease-in-out_infinite_2s]" />
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[300px] rounded-full bg-red-900/15 blur-[100px] motion-safe:animate-[pulse_12s_ease-in-out_infinite_4s]" />
         </div>
 
         {/* Subtle grid overlay */}
         <div
-          className="absolute inset-0 pointer-events-none opacity-[0.04]"
+          className="absolute inset-0 pointer-events-none opacity-[0.03]"
           style={{
             backgroundImage:
               "linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
+            backgroundSize: "56px 56px",
           }}
           aria-hidden="true"
         />
 
-        {heroBgUrl && <div className="absolute inset-0 bg-[#0a0a12] pointer-events-none" style={{ opacity: heroOverlayOpacity }} />}
+        {heroBgUrl && <div className="absolute inset-0 bg-[#07070f] pointer-events-none" style={{ opacity: heroOverlayOpacity }} />}
 
-        <div className="relative z-10 max-w-6xl mx-auto px-6 py-24 md:py-36 flex flex-col items-center text-center gap-6">
-          <div className="flex items-center gap-4">
-            {/*
-             * Protective container for the hero logo — overflow-visible and p-1 prevent clipping.
-             * DO NOT add overflow-hidden here or reduce the padding.
-             */}
-            <div className="overflow-visible p-1 shrink-0">
-              <img
-                src={settings["hero.logoUrl"] || settings["platform.logoUrl"] || planetIconWhite}
-                alt="SEVCO"
-                className="h-28 w-28 md:h-36 md:w-36 object-contain"
-                data-testid="img-planet-hero"
-              />
+        <div className="relative z-10 max-w-6xl mx-auto px-6 py-20 md:py-32 w-full">
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+            {/* Left — headline + CTAs */}
+            <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left gap-6">
+              <div className="overflow-visible p-1 shrink-0">
+                <img
+                  src={settings["hero.logoUrl"] || settings["platform.logoUrl"] || planetIconWhite}
+                  alt="SEVCO"
+                  className="h-20 w-20 md:h-24 md:w-24 object-contain"
+                  data-testid="img-planet-hero"
+                />
+              </div>
+
+              <div>
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4 leading-[1.1]">
+                  {/* Word-by-word staggered reveal animation */}
+                  {["A", "creative", "community", "platform", "built", "by", "creators,", "for", "creators."].map((word, i) => {
+                    const isRedWord = i === 0 || i >= 6;
+                    const isWhiteWord = i >= 3 && i <= 5;
+                    return (
+                      <span
+                        key={i}
+                        className="inline-block mr-[0.25em]"
+                        style={{
+                          opacity: 0,
+                          animation: `wordReveal 0.5s ease forwards`,
+                          animationDelay: `${i * 0.08}s`,
+                          ...(isRedWord ? {
+                            background: "linear-gradient(135deg, #ff3333 0%, #cc0000 50%, #ff6666 100%)",
+                            WebkitBackgroundClip: "text",
+                            WebkitTextFillColor: "transparent",
+                            backgroundClip: "text",
+                          } : isWhiteWord ? {
+                            color: "rgba(255,255,255,0.92)",
+                          } : {
+                            color: "rgba(255,255,255,0.92)",
+                          }),
+                        }}
+                      >
+                        {word}
+                      </span>
+                    );
+                  })}
+                </h1>
+                <p className="text-white/50 text-base md:text-lg max-w-lg leading-relaxed">
+                  {heroText}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                {/* Button 1 — always shown, defaults to Sign Up / Go to Platform for logged-in users */}
+                <Link href={btn1Url}>
+                  <Button
+                    size="lg"
+                    variant="destructive"
+                    className={btn1Color ? "hover:opacity-90 text-white font-semibold gap-2 px-7 shadow-lg shadow-red-900/30" : "font-semibold gap-2 px-7 shadow-lg shadow-red-900/30 bg-red-600 hover:bg-red-500 text-white border-0"}
+                    style={btn1Color ? { backgroundColor: btn1Color, borderColor: btn1Color, color: "#fff" } : undefined}
+                    data-testid="button-hero-primary"
+                  >
+                    <Btn1Icon className="h-4 w-4" />
+                    {btn1Label}
+                  </Button>
+                </Link>
+                {/* Button 2 — always shown */}
+                <Link href={btn2Url}>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="text-white/70 hover:text-white hover:bg-white/10 border border-white/20 font-semibold gap-2 px-6"
+                    style={btn2Color ? { backgroundColor: btn2Color, borderColor: btn2Color, color: "#fff" } : undefined}
+                    data-testid="button-hero-secondary"
+                  >
+                    <Btn2Icon className="h-4 w-4" />
+                    {btn2Label}
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Right — floating frosted-glass preview card */}
+            <div className="hidden lg:flex flex-col gap-3 shrink-0 w-72">
+              {/* Tilted frosted card */}
+              <div
+                className="rounded-2xl border border-white/10 p-5 motion-safe:animate-[float_6s_ease-in-out_infinite]"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  backdropFilter: "blur(20px)",
+                  WebkitBackdropFilter: "blur(20px)",
+                  transform: "rotate(-2deg)",
+                  boxShadow: "0 24px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06)",
+                }}
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-10 w-10 rounded-xl bg-red-600/20 flex items-center justify-center">
+                    <ShoppingBag className="h-5 w-5 text-red-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white">SEV Store</p>
+                    <p className="text-[11px] text-white/40">Latest drop available</p>
+                  </div>
+                  <Badge className="ml-auto bg-red-600/20 text-red-300 border-red-500/20 text-[10px]">New</Badge>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[Music, Folder, Briefcase].map((Icon, i) => (
+                    <div key={i} className="aspect-square rounded-lg bg-white/[0.04] border border-white/[0.07] flex items-center justify-center">
+                      <Icon className="h-5 w-5 text-white/30" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div
+                className="rounded-2xl border border-white/10 p-4 motion-safe:animate-[float_6s_ease-in-out_infinite_1.5s]"
+                style={{
+                  background: "rgba(255,255,255,0.03)",
+                  backdropFilter: "blur(20px)",
+                  WebkitBackdropFilter: "blur(20px)",
+                  transform: "rotate(1.5deg)",
+                  boxShadow: "0 16px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05)",
+                }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-7 w-7 rounded-lg bg-blue-600/20 flex items-center justify-center">
+                    <Music className="h-3.5 w-3.5 text-blue-400" />
+                  </div>
+                  <p className="text-xs font-semibold text-white">SEVCO RECORDS</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-green-400 motion-safe:animate-pulse" />
+                  <p className="text-[11px] text-white/50">Streaming now</p>
+                </div>
+              </div>
             </div>
           </div>
-          <div>
-            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-3 leading-tight">
-              <span className="bg-gradient-to-r from-red-600 via-red-400 to-green-400 bg-clip-text text-transparent">
-                Everything SEVCO.
-              </span>
-            </h1>
-            <p className="text-white/60 text-base md:text-lg max-w-xl mx-auto leading-relaxed">
-              {heroText}
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center gap-3 mt-2">
-            <Link href={btn1Url}>
-              <Button
-                size="lg"
-                variant="destructive"
-                className={btn1Color ? "hover:opacity-90 text-white font-semibold gap-2 px-6 shadow-lg" : "font-semibold gap-2 px-6 shadow-lg"}
-                style={btn1Color ? { backgroundColor: btn1Color, borderColor: btn1Color, color: "#fff" } : undefined}
-                data-testid="button-hero-primary"
-              >
-                <Btn1Icon className="h-4 w-4" />
-                {btn1Label}
-              </Button>
-            </Link>
-            <Link href={btn2Url}>
-              <Button
-                size="lg"
-                variant="outline"
-                className="text-white/70 hover:text-white hover:bg-white/10 border border-white/20 font-semibold gap-2 px-6"
-                style={btn2Color ? { backgroundColor: btn2Color, borderColor: btn2Color, color: "#fff" } : undefined}
-                data-testid="button-hero-secondary"
-              >
-                <Btn2Icon className="h-4 w-4" />
-                {btn2Label}
-              </Button>
-            </Link>
-          </div>
         </div>
+
+        {/* Bottom fade to next section */}
+        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[#07070f] to-transparent pointer-events-none" />
       </section>
 
-      {/* ── WHY SEVCO — FEATURE PILLS ── */}
+      {/* Float animation keyframes */}
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(-2deg); }
+          50% { transform: translateY(-10px) rotate(-2deg); }
+        }
+        @keyframes float2 {
+          0%, 100% { transform: translateY(0px) rotate(1.5deg); }
+          50% { transform: translateY(-8px) rotate(1.5deg); }
+        }
+        @keyframes equalizer1 {
+          0%, 100% { height: 10px; }
+          50% { height: 28px; }
+        }
+        @keyframes equalizer2 {
+          0%, 100% { height: 24px; }
+          50% { height: 12px; }
+        }
+        @keyframes equalizer3 {
+          0%, 100% { height: 16px; }
+          33% { height: 30px; }
+          66% { height: 8px; }
+        }
+        @keyframes equalizer4 {
+          0%, 100% { height: 20px; }
+          40% { height: 10px; }
+          70% { height: 28px; }
+        }
+        @keyframes equalizer5 {
+          0%, 100% { height: 14px; }
+          30% { height: 26px; }
+          60% { height: 8px; }
+        }
+        @keyframes slide-fade-up {
+          from { opacity: 0; transform: translateY(24px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes wordReveal {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-in-view {
+          animation: slide-fade-up 0.6s ease forwards;
+        }
+      `}</style>
+
+      {/* ── FEATURE PILLS ── */}
       <section
-        className="relative overflow-hidden bg-[#0f0f1a] border-y border-white/5 px-4 py-5"
+        ref={featurePillsRef.ref}
+        className="relative overflow-hidden bg-[#0a0a14] border-y border-white/5 px-4 py-5"
         data-testid="section-feature-pills"
       >
         <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-6 md:gap-10">
-          {whySevcoPills.map((pill) => {
+          {whySevcoPills.map((pill, i) => {
             const PillIcon = getLucideIcon(pill.icon);
             const accentColor = pill.color || "#BE0000";
             const inner = (
               <div
-                className="flex items-center gap-2.5 cursor-pointer"
+                className="flex items-center gap-2.5 cursor-pointer group"
                 data-testid={`feature-pill-${pill.label.toLowerCase()}`}
+                style={{
+                  opacity: featurePillsRef.isVisible ? 1 : 0,
+                  transform: featurePillsRef.isVisible ? "translateY(0)" : "translateY(12px)",
+                  transition: `opacity 0.5s ease ${i * 0.07}s, transform 0.5s ease ${i * 0.07}s`,
+                }}
               >
-                <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg" style={{ backgroundColor: `${accentColor}26` }}>
+                <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg group-hover:scale-110 transition-transform" style={{ backgroundColor: `${accentColor}26` }}>
                   {PillIcon ? <PillIcon className="h-4 w-4" style={{ color: accentColor }} /> : null}
                 </div>
-                <p className="text-xs font-semibold text-white/80">{pill.label}</p>
+                <p className="text-xs font-semibold text-white/70 group-hover:text-white/90 transition-colors">{pill.label}</p>
               </div>
             );
             const href = pill.href || "/";
@@ -578,7 +797,7 @@ export default function Landing() {
         </section>
       )}
 
-      {/* ── NEWS & NOW — condensed editorial hub ── */}
+      {/* ── NEWS & NOW ── */}
       {(showNewsSection || showXFeedSection) && newsCategories.length > 0 && (
         <NewsEditorial
           newsCategories={newsCategories}
@@ -589,25 +808,319 @@ export default function Landing() {
         />
       )}
 
-      {/* ── SEVCO RECORDS SPOTLIGHT ── */}
+      {/* ──────────────────────────────────────────────────────────────── */}
+      {/* SHOWSTOPPER #1 — STORE (dark red aurora, glassmorphic cards) */}
+      {/* ──────────────────────────────────────────────────────────────── */}
+      {showStorePreview && (
+        <section
+          ref={storeRef.ref}
+          className="relative overflow-hidden bg-[#0d0407] text-white"
+          data-testid="section-store-showstopper"
+        >
+          {/* Red aurora */}
+          <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+            <div className="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full bg-red-900/30 blur-[130px] motion-safe:animate-[pulse_9s_ease-in-out_infinite]" />
+            <div className="absolute -bottom-32 right-0 w-[500px] h-[500px] rounded-full bg-red-800/20 blur-[120px] motion-safe:animate-[pulse_11s_ease-in-out_infinite_3s]" />
+          </div>
+
+          <div className={`relative z-10 max-w-6xl mx-auto px-6 py-20 md:py-28 transition-all duration-700 ${storeRef.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+              <div>
+                <Badge className="mb-4 bg-red-600/20 text-red-300 border-red-500/20 text-xs font-semibold uppercase tracking-wider">
+                  SEV Store
+                </Badge>
+                <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
+                  Shop the latest drops.
+                </h2>
+                <p className="text-white/50 text-sm leading-relaxed max-w-md">
+                  Exclusive SEVCO merchandise — apparel, accessories, and limited-edition items from the universe.
+                </p>
+              </div>
+              <div className="flex gap-3 shrink-0">
+                <Link href="/store">
+                  <Button
+                    size="sm"
+                    className="bg-red-600 hover:bg-red-500 text-white font-semibold gap-2"
+                    data-testid="button-store-shop-now"
+                  >
+                    <ShoppingBag className="h-3.5 w-3.5" />
+                    Shop Now
+                  </Button>
+                </Link>
+                <Link href="/wiki/store-shopping-guide">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-white/60 hover:text-white hover:bg-white/10 border border-white/10 gap-1"
+                    data-testid="button-store-learn-more"
+                  >
+                    Learn More <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {prodLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="aspect-square w-full rounded-xl bg-white/5" />
+                ))}
+              </div>
+            ) : featuredProducts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="h-16 w-16 rounded-2xl bg-red-600/10 flex items-center justify-center mb-4">
+                  <ShoppingBag className="h-8 w-8 text-red-400/50" />
+                </div>
+                <p className="text-sm text-white/30">Products coming soon.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {featuredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────────── */}
+      {/* SHOWSTOPPER #2 — SERVICES (dark blue aurora, split layout) */}
+      {/* ──────────────────────────────────────────────────────────────── */}
+      {showServicesShowstopper && (
+        <section
+          ref={servicesRef.ref}
+          className="relative overflow-hidden bg-[#040810] text-white"
+          data-testid="section-services-showstopper"
+        >
+          {/* Blue aurora */}
+          <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+            <div className="absolute -top-40 right-0 w-[700px] h-[700px] rounded-full bg-blue-900/25 blur-[140px] motion-safe:animate-[pulse_10s_ease-in-out_infinite]" />
+            <div className="absolute bottom-0 -left-32 w-[500px] h-[500px] rounded-full bg-indigo-900/20 blur-[120px] motion-safe:animate-[pulse_8s_ease-in-out_infinite_2s]" />
+          </div>
+
+          <div className={`relative z-10 max-w-6xl mx-auto px-6 py-20 md:py-28 transition-all duration-700 ${servicesRef.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+            <div className="grid lg:grid-cols-2 gap-14 items-center">
+              {/* Left — copy */}
+              <div>
+                <Badge className="mb-4 bg-blue-600/20 text-blue-300 border-blue-500/20 text-xs font-semibold uppercase tracking-wider">
+                  SEVCO Services
+                </Badge>
+                <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-4 leading-tight">
+                  World-class work,<br />
+                  <span style={{ color: "#3b82f6" }}>built for creators.</span>
+                </h2>
+                <p className="text-white/50 text-sm leading-relaxed mb-6 max-w-md">
+                  Engineering, design, marketing, and media — SEVCO partners with brands and creators to build the things that matter.
+                </p>
+                <ul className="space-y-2 mb-8">
+                  {["Full-Stack Engineering", "Brand & UI Design", "Marketing & Growth", "Media Production"].map((item) => (
+                    <li key={item} className="flex items-center gap-2 text-sm text-white/60">
+                      <CheckCircle className="h-4 w-4 text-blue-400 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex gap-3">
+                  <Link href="/services">
+                    <Button
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-500 text-white font-semibold gap-2"
+                      data-testid="button-services-cta"
+                    >
+                      <Briefcase className="h-3.5 w-3.5" />
+                      Work with us
+                    </Button>
+                  </Link>
+                  <Link href="/wiki/services-guide">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-white/60 hover:text-white hover:bg-white/10 border border-white/10 gap-1"
+                      data-testid="button-services-learn-more"
+                    >
+                      Learn More <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Right — animated service icon grid */}
+              <div className="grid grid-cols-3 gap-4">
+                {SERVICE_ICONS.map(({ icon: Icon, label, color }, i) => (
+                  <div
+                    key={label}
+                    className="rounded-2xl border border-white/[0.08] p-5 flex flex-col items-center gap-3 hover:border-blue-500/30 hover:shadow-[0_0_20px_0_rgba(59,130,246,0.12)] transition-all duration-300 group"
+                    style={{
+                      background: "rgba(255,255,255,0.03)",
+                      backdropFilter: "blur(12px)",
+                      animationDelay: `${i * 0.1}s`,
+                    }}
+                    data-testid={`card-service-icon-${label.toLowerCase()}`}
+                  >
+                    <div
+                      className="h-12 w-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+                      style={{ backgroundColor: `${color}20` }}
+                    >
+                      <Icon className="h-6 w-6" style={{ color }} />
+                    </div>
+                    <p className="text-xs font-semibold text-white/60 group-hover:text-white/80 transition-colors">{label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────────── */}
+      {/* SHOWSTOPPER #3 — PROJECTS (dark green aurora, bento grid) */}
+      {/* ──────────────────────────────────────────────────────────────── */}
+      {showProjectsShowstopper && (
+        <section
+          ref={projectsRef.ref}
+          className="relative overflow-hidden bg-[#040c06] text-white"
+          data-testid="section-projects-showstopper"
+        >
+          {/* Green aurora */}
+          <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+            <div className="absolute -top-40 left-0 w-[700px] h-[700px] rounded-full bg-green-900/20 blur-[140px] motion-safe:animate-[pulse_11s_ease-in-out_infinite]" />
+            <div className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full bg-emerald-900/15 blur-[120px] motion-safe:animate-[pulse_9s_ease-in-out_infinite_3s]" />
+          </div>
+
+          <div className={`relative z-10 max-w-6xl mx-auto px-6 py-20 md:py-28 transition-all duration-700 ${projectsRef.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+              <div>
+                <Badge className="mb-4 bg-green-600/20 text-green-300 border-green-500/20 text-xs font-semibold uppercase tracking-wider">
+                  SEVCO Ventures
+                </Badge>
+                <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
+                  Building the future,<br />
+                  <span style={{ color: "#22c55e" }}>one venture at a time.</span>
+                </h2>
+                <p className="text-white/50 text-sm leading-relaxed max-w-md">
+                  A portfolio of companies, initiatives, and bold ideas — incubated and operated by the SEVCO team.
+                </p>
+              </div>
+              <div className="flex gap-3 shrink-0">
+                <Link href="/projects">
+                  <Button
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-500 text-white font-semibold gap-2"
+                    data-testid="button-projects-explore"
+                  >
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    Explore Ventures
+                  </Button>
+                </Link>
+                <Link href="/wiki/projects-ventures-guide">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-white/60 hover:text-white hover:bg-white/10 border border-white/10 gap-1"
+                    data-testid="button-projects-learn-more"
+                  >
+                    Learn More <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {projectsLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-32 rounded-xl bg-white/5" />
+                ))}
+              </div>
+            ) : featuredProjects.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="h-16 w-16 rounded-2xl bg-green-600/10 flex items-center justify-center mb-4">
+                  <Folder className="h-8 w-8 text-green-400/50" />
+                </div>
+                <p className="text-sm text-white/30">Ventures coming soon.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {featuredProjects.map((project) => {
+                  const statusKey = (project.status || "active").toLowerCase();
+                  const statusStyle = PROJECT_STATUS_COLORS[statusKey] || PROJECT_STATUS_COLORS["active"];
+                  return (
+                    <Link key={project.id} href={`/projects/${project.slug}`}>
+                      <div
+                        className="group rounded-xl border border-white/[0.08] p-5 hover:border-green-500/30 hover:shadow-[0_0_24px_0_rgba(34,197,94,0.1)] transition-all duration-300 cursor-pointer h-full"
+                        style={{
+                          background: "rgba(255,255,255,0.03)",
+                          backdropFilter: "blur(12px)",
+                        }}
+                        data-testid={`card-project-${project.id}`}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-3">
+                          <div className="h-9 w-9 rounded-lg bg-green-600/15 flex items-center justify-center shrink-0">
+                            <Folder className="h-4.5 w-4.5 text-green-400" style={{ height: "1.125rem", width: "1.125rem" }} />
+                          </div>
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyle.bg} ${statusStyle.text}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${statusStyle.dot}`} />
+                            {project.status || "Active"}
+                          </span>
+                        </div>
+                        <h3 className="text-sm font-bold text-white mb-1 group-hover:text-green-300 transition-colors">{project.name}</h3>
+                        <p className="text-xs text-white/40 line-clamp-2 leading-relaxed">
+                          {project.description || project.type}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────────── */}
+      {/* SEVCO RECORDS SPOTLIGHT — upgraded with equalizer */}
+      {/* ──────────────────────────────────────────────────────────────── */}
       {showRecordsSpotlight && (
-        <section className="relative overflow-hidden bg-gradient-to-br from-blue-950 via-blue-900 to-blue-900">
+        <section
+          ref={recordsRef.ref}
+          className="relative overflow-hidden bg-gradient-to-br from-blue-950 via-[#040815] to-blue-950"
+          data-testid="section-records-spotlight"
+        >
           <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
             <div className="absolute -bottom-16 -left-20 w-[400px] h-[400px] rounded-full bg-blue-600/15 blur-[100px] motion-safe:animate-[pulse_9s_ease-in-out_infinite]" />
             <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-indigo-500/10 blur-[80px] motion-safe:animate-[pulse_11s_ease-in-out_infinite_3s]" />
           </div>
-          <div className="relative max-w-6xl mx-auto px-6 py-14 md:py-20 flex flex-col md:flex-row md:items-center gap-8">
+
+          <div className={`relative max-w-6xl mx-auto px-6 py-14 md:py-20 flex flex-col md:flex-row md:items-center gap-8 transition-all duration-700 ${recordsRef.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
             <div className="flex-1">
-              <Badge className="mb-4 bg-blue-600/30 text-blue-200 border-blue-400/30 text-xs font-semibold uppercase tracking-wider">
-                SEVCO RECORDS
-              </Badge>
+              <div className="flex items-center gap-2 mb-4">
+                <Badge className="bg-blue-600/30 text-blue-200 border-blue-400/30 text-xs font-semibold uppercase tracking-wider">
+                  SEVCO RECORDS
+                </Badge>
+                <Badge className="bg-yellow-500/15 text-yellow-300 border-yellow-400/20 text-xs font-semibold">
+                  ✦ Spotlight
+                </Badge>
+              </div>
               <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 tracking-tight">
                 Independent music, built for artists.
               </h2>
-              <p className="text-blue-200/80 text-sm leading-relaxed max-w-lg">
+              <p className="text-blue-200/70 text-sm leading-relaxed max-w-lg mb-5">
                 SEVCO RECORDS is our label — discovering and developing artists across every genre, with distribution, promotion, and creative support from day one.
               </p>
-              <div className="flex gap-3 mt-6">
+
+              {/* Streaming platform pills */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-600/10 border border-green-500/20">
+                  <SiSpotify className="h-3.5 w-3.5 text-green-400" />
+                  <span className="text-[11px] font-semibold text-green-300">Spotify</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+                  <SiApplemusic className="h-3.5 w-3.5 text-pink-400" />
+                  <span className="text-[11px] font-semibold text-white/60">Apple Music</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
                 <Link href="/music">
                   <Button
                     size="sm"
@@ -628,56 +1141,184 @@ export default function Landing() {
                     Browse Artists
                   </Button>
                 </Link>
+                <Link href="/wiki/records-music-guide">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-white/50 hover:text-white hover:bg-white/10 gap-1"
+                    data-testid="button-records-learn-more"
+                  >
+                    Learn More <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </Link>
               </div>
             </div>
-            <div className="hidden md:flex items-center justify-center">
-              <div className="h-40 w-40 rounded-xl bg-white/[0.03] border border-blue-400/20 flex items-center justify-center">
-                <Music className="h-20 w-20 text-blue-300/60" />
+
+            {/* Equalizer visual */}
+            <div className="hidden md:flex items-end justify-center gap-1.5 h-36 shrink-0 pr-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="w-4 rounded-t-sm bg-gradient-to-t from-blue-600 to-blue-300"
+                  style={{
+                    animation: `equalizer${i} ${0.6 + i * 0.1}s ease-in-out infinite alternate`,
+                    height: `${[10, 24, 16, 20, 14][i - 1]}px`,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────────── */}
+      {/* NEWS TEASER STRIP */}
+      {/* ──────────────────────────────────────────────────────────────── */}
+      {showNewsTeaser && (
+        <section
+          ref={newsTeaserRef.ref}
+          className="relative overflow-hidden bg-[#09090f] border-y border-white/5"
+          data-testid="section-news-teaser"
+        >
+          <div className={`max-w-6xl mx-auto px-6 py-12 transition-all duration-700 ${newsTeaserRef.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                  <Newspaper className="h-4 w-4 text-yellow-400" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-yellow-400/80">Latest News</p>
+                  <h2 className="text-lg font-bold text-foreground">From the creator economy.</h2>
+                </div>
+              </div>
+              <Link href="/news">
+                <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" data-testid="link-view-all-news">
+                  View All News <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </div>
+
+            {/* Horizontal scrolling headline strip */}
+            <div className="relative overflow-x-auto scrollbar-none" style={{ WebkitOverflowScrolling: "touch" }}>
+              <div className="flex gap-4 pb-2 min-w-min">
+                {newsTeaserItems.length === 0
+                  ? Array.from({ length: 3 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="flex-shrink-0 w-72 rounded-xl border border-border/40 p-4"
+                        data-testid={`card-news-teaser-${i}`}
+                      >
+                        <Skeleton className="h-3 w-16 mb-3" />
+                        <Skeleton className="h-4 w-full mb-1.5" />
+                        <Skeleton className="h-4 w-3/4" />
+                      </div>
+                    ))
+                  : newsTeaserItems.map((item, i) => (
+                      <a
+                        key={i}
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group flex-shrink-0 w-72 rounded-xl border border-border/40 bg-white/[0.02] hover:bg-white/[0.04] hover:border-yellow-500/20 p-4 transition-all duration-200 cursor-pointer block"
+                        data-testid={`card-news-teaser-${i}`}
+                      >
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          {item.category && (
+                            <Badge className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20 text-[10px] font-semibold">
+                              {item.category}
+                            </Badge>
+                          )}
+                          {item.source && (
+                            <span className="text-[10px] font-semibold uppercase tracking-widest text-yellow-400/60 flex items-center gap-1">
+                              <ExternalLink className="h-3 w-3" />
+                              {item.source}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm font-semibold text-foreground line-clamp-3 group-hover:text-yellow-300/90 transition-colors leading-snug">
+                          {item.title}
+                        </p>
+                        {item.pubDate && (
+                          <p className="text-[10px] text-muted-foreground mt-3">
+                            {new Date(item.pubDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          </p>
+                        )}
+                      </a>
+                    ))
+                }
               </div>
             </div>
           </div>
         </section>
       )}
 
-
-      {/* ── STORE PREVIEW ── */}
-      {showStorePreview && (
-        <section className="overflow-hidden max-w-6xl mx-auto px-6 py-16 md:py-20">
-          <div className="flex items-end justify-between mb-8">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">SEV Store</p>
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Shop the latest.</h2>
-            </div>
-            <Link href="/store">
-              <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" data-testid="link-view-all-products">
-                View all <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-            </Link>
+      {/* ──────────────────────────────────────────────────────────────── */}
+      {/* SIGN-UP CTA PANEL (hidden for logged-in users) */}
+      {/* ──────────────────────────────────────────────────────────────── */}
+      {showSignupCta && !user && (
+        <section
+          ref={signupCtaRef.ref}
+          className="relative overflow-hidden bg-[#080810] text-white"
+          data-testid="section-signup-cta"
+        >
+          <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+            <div className="absolute top-0 left-1/4 w-[500px] h-[500px] rounded-full bg-red-900/20 blur-[130px] motion-safe:animate-[pulse_9s_ease-in-out_infinite]" />
+            <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full bg-indigo-900/15 blur-[110px] motion-safe:animate-[pulse_11s_ease-in-out_infinite_4s]" />
           </div>
-          {prodLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="rounded-xl overflow-hidden">
-                  <Skeleton className="aspect-square w-full" />
-                  <div className="p-3">
-                    <Skeleton className="h-3 w-3/4 mb-1.5" />
-                    <Skeleton className="h-3 w-1/3" />
+
+          <div className={`relative z-10 max-w-5xl mx-auto px-6 py-20 md:py-28 transition-all duration-700 ${signupCtaRef.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <Badge className="mb-4 bg-red-600/20 text-red-300 border-red-500/20 text-xs font-semibold uppercase tracking-wider">
+                  Join SEVCO
+                </Badge>
+                <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-4 leading-tight">
+                  One account.<br />
+                  <span style={{ color: "#ef4444" }}>Everything unlocked.</span>
+                </h2>
+                <p className="text-white/50 text-sm leading-relaxed mb-6">
+                  Create a free SEVCO account and get instant access to the full platform — store, music, wiki, news, projects, and more.
+                </p>
+                <Link href="/auth">
+                  <Button
+                    size="lg"
+                    className="bg-red-600 hover:bg-red-500 text-white font-semibold gap-2 shadow-lg shadow-red-900/30"
+                    data-testid="button-signup-cta-create-account"
+                  >
+                    <Star className="h-4 w-4" />
+                    Create Free Account
+                  </Button>
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { icon: Music, label: "SEVCO RECORDS", desc: "Stream & discover music", color: "#3b82f6" },
+                  { icon: ShoppingBag, label: "SEV Store", desc: "Shop exclusive drops", color: "#ef4444" },
+                  { icon: Folder, label: "Ventures", desc: "Follow active projects", color: "#22c55e" },
+                  { icon: Newspaper, label: "News Feed", desc: "AI-curated creator news", color: "#eab308" },
+                  { icon: Users, label: "Community", desc: "Connect with creators", color: "#6366f1" },
+                  { icon: BookOpen, label: "Wiki", desc: "Platform knowledge base", color: "#3b82f6" },
+                ].map(({ icon: Icon, label, desc, color }) => (
+                  <div
+                    key={label}
+                    className="rounded-xl border border-white/[0.07] p-4"
+                    style={{
+                      background: "rgba(255,255,255,0.03)",
+                      backdropFilter: "blur(12px)",
+                    }}
+                    data-testid={`card-signup-feature-${label.toLowerCase().replace(/\s+/g, "-")}`}
+                  >
+                    <div className="h-8 w-8 rounded-lg flex items-center justify-center mb-2" style={{ backgroundColor: `${color}20` }}>
+                      <Icon className="h-4 w-4" style={{ color }} />
+                    </div>
+                    <p className="text-xs font-bold text-white mb-0.5">{label}</p>
+                    <p className="text-[11px] text-white/40 leading-tight">{desc}</p>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          ) : featuredProducts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <ShoppingBag className="h-12 w-12 text-muted-foreground/20 mb-3" />
-              <p className="text-sm text-muted-foreground">Products coming soon.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {featuredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          )}
+          </div>
         </section>
       )}
 
@@ -718,7 +1359,7 @@ export default function Landing() {
         </section>
       )}
 
-      {/* ── COMMUNITY CTA ── */}
+      {/* ── COMMUNITY CTA — glassmorphic upgrade ── */}
       {showCommunityCta && (
         <section className="relative overflow-hidden bg-gradient-to-br from-blue-900/60 via-background to-blue-900/30 border-t border-white/5 px-6 py-20 md:py-28 text-center">
           <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
@@ -727,7 +1368,10 @@ export default function Landing() {
           </div>
           <div className="relative z-10 max-w-xl mx-auto">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="h-10 w-10 rounded-xl bg-indigo-500/15 flex items-center justify-center">
+              <div
+                className="h-10 w-10 rounded-xl flex items-center justify-center"
+                style={{ background: "rgba(99,102,241,0.15)", backdropFilter: "blur(8px)" }}
+              >
                 <SiDiscord className="h-5 w-5 text-indigo-400" />
               </div>
               <Badge className="bg-indigo-500/15 text-indigo-400 border-indigo-500/20 text-xs font-semibold">
@@ -759,7 +1403,7 @@ export default function Landing() {
                     size="lg"
                     variant="ghost"
                     className="text-white/70 hover:text-white hover:bg-white/10 border border-white/10 font-semibold gap-2"
-                    data-testid="button-sign-up"
+                    data-testid="button-community-sign-up"
                   >
                     <Star className="h-4 w-4" />
                     Create Account

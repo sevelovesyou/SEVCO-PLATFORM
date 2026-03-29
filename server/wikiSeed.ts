@@ -4672,6 +4672,503 @@ GET /api/news/feed?query=X&limit=20 — public — fetches and returns parsed RS
 
 ARTICLE_DATA.push(...NEW_ARTICLES);
 
+// ─────────────────────────────────────────────────────────
+// Platform User Guide Articles (general category)
+// ─────────────────────────────────────────────────────────
+const PLATFORM_ARTICLES: ArticleData[] = [
+  {
+    slug: "getting-started",
+    title: "Getting Started with SEVCO",
+    summary: "A complete guide to creating your account, understanding user roles, and navigating the SEVCO platform.",
+    tags: ["getting-started", "onboarding", "guide", "platform"],
+    infoboxData: { "Category": "General", "Audience": "New Users" },
+    content: `# Getting Started with SEVCO
+
+Welcome to SEVCO — a creative community platform built by creators, for creators. This guide will walk you through creating your account, understanding the platform, and getting the most out of everything SEVCO has to offer.
+
+## Creating Your Account
+
+1. Visit [sevco.us](https://sevco.us) and click **Sign Up Free** in the hero section or the top navigation.
+2. Enter your desired username, email address, and a secure password.
+3. Check your email inbox for a verification link and click it to activate your account.
+4. You're in! Your account starts with the **User** role, which gives you access to the store, music, wiki, and community features.
+
+## Understanding User Roles
+
+SEVCO uses a six-tier role system to manage platform access:
+
+| Role | Access Level |
+|---|---|
+| **User** | Standard access — shop, browse music, read wiki, join community |
+| **Client** | Client portal access and project visibility |
+| **Partner** | Partner-level resources and collaboration tools |
+| **Staff** | Internal tools, wiki editing, and content management |
+| **Executive** | Financial reports, advanced settings, and exec dashboard |
+| **Admin** | Full platform control — all settings, all users, all data |
+
+Most new accounts are **User** role. Role upgrades are granted by the SEVCO team for partners and collaborators.
+
+## Navigating the Platform
+
+The top navigation bar is your command center. Here's what you'll find:
+
+- **Home** — The main landing page with platform highlights, news, and featured content
+- **Wiki** — The SEVCO knowledge base — guides, documentation, and platform history
+- **Store** — The SEV Store — merchandise, exclusive drops, and SEVCO products
+- **Music** — SEVCO RECORDS — artists, albums, and music discovery
+- **Projects** — SEVCO Ventures — active companies and initiatives
+- **Services** — What we build for partners — engineering, design, and marketing
+- **News** — AI-powered news curated from across the creator economy
+
+## Your Profile
+
+Once logged in, click your avatar in the top-right corner to access your profile settings. You can update your display name, avatar, and notification preferences from there.
+
+## Getting Help
+
+If you need help, the SEVCO Wiki is your first stop. Search for any topic using the search bar at the top of the [Wiki page](/wiki). You can also join the community on Discord via the Community link in the navigation.
+
+## What's Next?
+
+- [Browse the Store](/store) — check out the latest SEVCO merchandise
+- [Discover Music](/music) — explore SEVCO RECORDS artists and releases
+- [Explore Projects](/projects) — see what SEVCO Ventures is building
+- [Read the Platform Overview](/wiki/platform-overview) — a deeper look at every platform feature`,
+  },
+  {
+    slug: "platform-overview",
+    title: "SEVCO Platform Overview",
+    summary: "A comprehensive map of all SEVCO platform apps, features, and the creator ecosystem that ties them together.",
+    tags: ["platform", "overview", "ecosystem", "guide"],
+    infoboxData: { "Category": "General", "Audience": "All Users" },
+    content: `# SEVCO Platform Overview
+
+SEVCO is a vertically integrated creative platform — not just one product, but an interconnected ecosystem of apps, services, and communities all built with creators in mind. This article maps out every major component.
+
+## The Ecosystem
+
+### 🎵 SEVCO RECORDS
+Our in-house music label and distribution platform. SEVCO RECORDS discovers, develops, and distributes independent artists across all genres.
+- Browse artists and albums at [/music](/music)
+- Stream or save tracks directly to Spotify and Apple Music
+- Submit your demo for label consideration
+- Learn more: [SEVCO RECORDS — Music Platform](/wiki/records-music-guide)
+
+### 🛍️ SEV Store
+The official SEVCO merchandise and product store. From exclusive drops to everyday apparel, the store supports creators and fans alike.
+- Shop at [/store](/store)
+- Cart, checkout, and Stripe-powered payments built in
+- Guest checkout available — no account required
+- Learn more: [SEVCO Store — Shopping Guide](/wiki/store-shopping-guide)
+
+### 💼 SEVCO Services
+SEVCO offers professional services to partners and clients — engineering, design, marketing, and more.
+- Browse available services at [/services](/services)
+- Request quotes and manage projects through the client portal
+- Learn more: [SEVCO Services — Work With Us](/wiki/services-guide)
+
+### 🏗️ SEVCO Ventures (Projects)
+An active portfolio of companies, initiatives, and ventures incubated or operated by SEVCO.
+- View all active ventures at [/projects](/projects)
+- Each project has a dedicated detail page with status, team lead, and links
+- Learn more: [SEVCO Ventures & Projects](/wiki/projects-ventures-guide)
+
+### 📰 SEVCO News
+An AI-powered news hub pulling in the latest from across the creator economy, music industry, and tech space.
+- Read the latest at [/news](/news)
+- Powered by Grok AI and curated X/Twitter sources
+- Learn more: [AI-Powered News](/wiki/news-ai-guide)
+
+### 📚 SEVCO Wiki
+The platform's internal knowledge base — you're reading it right now. Documentation, guides, engineering history, and platform tutorials all live here.
+- Browse categories at [/wiki](/wiki)
+- Search any topic in the search bar above
+- Learn more: [SEVCO Wiki Guide](/wiki/wiki-guide)
+
+### 👥 Community
+The SEVCO community lives on Discord, the SEVCO Feed, and across social platforms. Join the conversation, get early access, and connect with the team.
+- [Join Discord](https://discord.gg/sevco)
+- Follow us on X/Twitter, Instagram, and YouTube
+
+## How It All Fits Together
+
+Every part of the SEVCO ecosystem is connected through a shared user account system. Once you're logged in, your profile, preferences, and purchase history follow you across every app. Staff and partners have access to the Command Center — our internal admin hub that powers every setting you see on the platform.
+
+## Platform Roadmap
+
+SEVCO is actively evolving. The wiki is updated with every major platform release, and the engineering task history can be browsed in the Engineering category. Check the [Changelog](/changelog) for the latest version notes.`,
+  },
+  {
+    slug: "store-shopping-guide",
+    title: "SEVCO Store — Shopping Guide",
+    summary: "How to browse, add items to your cart, and checkout securely through the SEV Store.",
+    tags: ["store", "shopping", "checkout", "guide", "products"],
+    infoboxData: { "Category": "General", "Audience": "Shoppers" },
+    content: `# SEVCO Store — Shopping Guide
+
+The SEV Store is where SEVCO brings its creative universe to life through merchandise, exclusive drops, and products. This guide covers everything you need to know to shop with confidence.
+
+## Browsing the Store
+
+Visit [/store](/store) to see the full product catalog. Products are organized by category — use the filter pills at the top of the page to narrow by category (Apparel, Accessories, Digital, etc.).
+
+Each product card shows:
+- **Product name** and **price**
+- **Stock status** — "In Stock" or "Out of Stock"
+- **Category badge** for quick identification
+
+Click any product card to open the full detail page with description, available sizes/variants, and high-resolution photos.
+
+## Adding to Your Cart
+
+On any product detail page, select your size or variant (if applicable) and click **Add to Cart**. The cart drawer slides in from the right showing:
+- All items in your cart with quantities
+- Line-item totals
+- Cart subtotal
+
+You can adjust quantities or remove items directly in the cart drawer.
+
+## Checking Out
+
+Click **Checkout** in the cart drawer to proceed. SEVCO uses **Stripe** for secure payment processing — you'll be taken to a Stripe-hosted checkout page where you can:
+- Enter your shipping address
+- Choose a shipping method
+- Pay with any major credit/debit card, Apple Pay, or Google Pay
+
+**No account required** — guest checkout is fully supported. If you're logged in, your order will be linked to your account and visible in your order history.
+
+## After Your Purchase
+
+After a successful payment you'll be redirected to the SEVCO order confirmation page. You'll also receive a confirmation email at the address you provided during checkout.
+
+## Order Status & Returns
+
+For questions about your order status or returns, contact the SEVCO team via the [Contact page](/contact) or reach out on Discord. Include your order confirmation number for fastest service.
+
+## Stock & Drops
+
+Limited-edition drops sell out fast. Follow SEVCO on social media and join the Discord to get early access and drop notifications. Keep an eye on the [SEVCO News](/news) section for upcoming release announcements.
+
+## Seller Information
+
+All products in the SEV Store are sold by SEVCO LLC. Pricing is displayed in USD. Applicable taxes are calculated at checkout.`,
+  },
+  {
+    slug: "services-guide",
+    title: "SEVCO Services — Work With Us",
+    summary: "An overview of professional services offered by SEVCO — engineering, design, marketing, and partner program details.",
+    tags: ["services", "partner", "engineering", "design", "guide"],
+    infoboxData: { "Category": "General", "Audience": "Clients & Partners" },
+    content: `# SEVCO Services — Work With Us
+
+SEVCO isn't just a platform — we're a team of builders. Through SEVCO Services, we partner with brands, creators, and companies to deliver world-class engineering, design, and marketing work.
+
+## What We Offer
+
+Browse available services at [/services](/services). Current service categories include:
+
+### Engineering & Development
+- Full-stack web application development
+- API design and integrations
+- Mobile app development
+- Platform architecture and DevOps
+- AI/ML feature integration
+
+### Design & Creative
+- Brand identity and logo design
+- UI/UX design for web and mobile
+- Motion graphics and video production
+- Social media asset creation
+
+### Marketing & Growth
+- Content strategy and creation
+- Social media management
+- Influencer and partnership marketing
+- Analytics and performance reporting
+
+### Media & Production
+- Podcast production
+- Video editing and post-production
+- Photography and digital asset creation
+
+## The Partner Program
+
+Brands and agencies that work with SEVCO regularly can apply for **Partner status** on the platform. Partners receive:
+- A dedicated client portal with project tracking
+- Priority support and dedicated account management
+- Co-marketing opportunities with SEVCO's audience
+- Access to exclusive Partner-only resources in the wiki
+
+## Getting a Quote
+
+To start a project or request pricing:
+1. Visit [/services](/services) and browse available service offerings
+2. Click the service you're interested in and review the description
+3. Use the contact form or reach out via the [Contact page](/contact) to start the conversation
+4. Our team will respond within 2 business days with availability and a preliminary quote
+
+## What to Expect
+
+Every SEVCO project follows a structured process:
+1. **Discovery** — we learn your goals, audience, and constraints
+2. **Proposal** — we send a scoped proposal with timeline and pricing
+3. **Execution** — regular check-ins and updates throughout delivery
+4. **Launch & Handoff** — we deliver final assets and provide documentation
+
+## Partner Testimonials
+
+SEVCO has worked with artists, brands, and creators across music, fashion, gaming, and digital media. Reach out to hear about past work and case studies.
+
+## Contact
+
+Ready to work together? Start at [/contact](/contact) or jump into the Discord and introduce yourself.`,
+  },
+  {
+    slug: "projects-ventures-guide",
+    title: "SEVCO Ventures & Projects",
+    summary: "An overview of SEVCO's active ventures and project portfolio — how they work, their statuses, and how to get involved.",
+    tags: ["projects", "ventures", "portfolio", "guide"],
+    infoboxData: { "Category": "General", "Audience": "All Users" },
+    content: `# SEVCO Ventures & Projects
+
+SEVCO is more than a platform — it's a venture studio. The Projects section at [/projects](/projects) showcases all active SEVCO ventures: companies we operate, initiatives we run, and ideas we're building from the ground up.
+
+## What Are SEVCO Ventures?
+
+A SEVCO Venture is any company, product, or initiative that SEVCO is actively operating or incubating. These range from:
+- **Music ventures** — SEVCO RECORDS, artist management, and production companies
+- **Tech ventures** — software products and platform businesses
+- **Media ventures** — content channels, podcasts, and creative studios
+- **Agency ventures** — service businesses across design, engineering, and marketing
+
+## Project Statuses
+
+Every project in the portfolio carries a status badge:
+
+| Status | Meaning |
+|---|---|
+| **Active** | Fully operational and generating activity |
+| **In Progress** | Under active development or build-out |
+| **Planned** | Scoped and scheduled but not yet started |
+| **Archived** | Completed or paused — visible for reference |
+
+## Browsing Projects
+
+Visit [/projects](/projects) to see the full portfolio grid. Each project card shows the name, type, status, and a short description. Click any project to open its detail page, which includes:
+- Full description and background
+- Team lead and key contacts
+- Website and social links (where public)
+- Related wiki articles
+
+## Collaboration & Investment
+
+SEVCO is open to collaboration on ventures that align with our creative mission. If you're interested in partnering on a project, contributing skills, or exploring investment opportunities, reach out via [/contact](/contact).
+
+## Following Along
+
+Even if you're not directly involved, you can follow SEVCO ventures through:
+- The Projects page at [/projects](/projects)
+- The SEVCO Feed on the home page for team updates
+- The [SEVCO News](/news) section for press and announcements
+- Discord for real-time community discussion
+
+## Starting a Venture with SEVCO
+
+Have an idea? SEVCO is always looking for the next great creator-economy venture. If you want to pitch a concept or explore an incubation partnership, start the conversation at [/contact](/contact) or on Discord.`,
+  },
+  {
+    slug: "records-music-guide",
+    title: "SEVCO RECORDS — Music Platform",
+    summary: "How to discover artists, listen to music, explore albums, and submit your demo to SEVCO RECORDS.",
+    tags: ["music", "records", "artists", "albums", "guide"],
+    infoboxData: { "Category": "General", "Audience": "Music Fans & Artists" },
+    content: `# SEVCO RECORDS — Music Platform
+
+SEVCO RECORDS is the music arm of SEVCO — an independent label and music discovery platform built for artists and fans who believe music should be free from the gatekeepers.
+
+## Discovering Music
+
+Visit [/music](/music) to browse the SEVCO RECORDS catalog. The music hub features:
+- **Featured Artists** — spotlighted creators at the top of the page
+- **Artist Grid** — the full roster, browsable by genre and name
+- **Latest Releases** — newest albums and singles from the label
+
+## Artist Pages
+
+Click any artist to view their full profile, including:
+- Artist biography and background
+- Full discography with album covers
+- Links to streaming platforms (Spotify, Apple Music, etc.)
+- Social media links
+
+## Albums & Tracks
+
+Each album has its own detail page with the tracklist and release information. From album pages you can:
+- View the full track listing
+- Jump to the artist's streaming profile
+- Discover related artists on the roster
+
+## Streaming Integration
+
+SEVCO RECORDS releases are distributed to all major streaming platforms. Look for **Spotify** and **Apple Music** buttons on artist and album pages to listen directly in your preferred streaming app.
+
+## Submitting Your Demo
+
+Are you an artist looking for a home? SEVCO RECORDS accepts demo submissions from independent artists. Here's how:
+1. Visit [/music/submit](/music/submit)
+2. Fill in your artist name, contact email, genre, and a link to your best track (SoundCloud, Spotify, etc.)
+3. Add a short message introducing yourself and your sound
+4. Hit **Submit** — our A&R team reviews all submissions
+
+Submissions are reviewed on a rolling basis. We respond to artists whose sound aligns with the SEVCO vision.
+
+## For Artists on the Roster
+
+If you're already signed or affiliated with SEVCO RECORDS, contact the team to set up your artist profile, upload album art, and link your streaming profiles. Staff members can manage your page in the Command Center.
+
+## The SEVCO RECORDS Mission
+
+Independent music deserves an independent platform. SEVCO RECORDS is committed to fair artist partnerships, transparent royalty structures, and building an audience that values craft over trends. We sign artists we believe in — and we build alongside them.
+
+Follow us and stay up to date on new releases, events, and signings via the [SEVCO News](/news) page and our social channels.`,
+  },
+  {
+    slug: "news-ai-guide",
+    title: "AI-Powered News",
+    summary: "How SEVCO's news system works — AI curation, Grok-powered sourcing, X feed integration, and the Wikify feature.",
+    tags: ["news", "ai", "grok", "x-feed", "wikify", "guide"],
+    infoboxData: { "Category": "General", "Audience": "All Users" },
+    content: `# AI-Powered News
+
+SEVCO's news system is not a blog — it's a live, AI-curated intelligence feed pulling from the most relevant sources in the creator economy, music industry, and tech world. Visit [/news](/news) to explore.
+
+## How News Is Sourced
+
+The SEVCO News feed aggregates headlines from two main sources:
+
+### X/Twitter Integration
+SEVCO monitors curated X (Twitter) accounts and hashtags relevant to our ecosystem. This includes music industry accounts, tech journalists, creator economy commentators, and SEVCO's own official handles. Posts are pulled in real-time and displayed in the X Feed on the homepage and news page.
+
+### AI Curation via Grok
+Our news categories are powered by **Grok AI**, which searches the web for the latest articles on configurable query terms. Each news category in the system corresponds to a search query (e.g., "independent music label", "creator economy trends") that Grok uses to surface relevant headlines.
+
+## The News Page
+
+At [/news](/news) you'll find:
+- **Hero Story** — the top curated news item for the day
+- **Category Rows** — horizontally scrollable swimlanes organized by topic
+- **X/Twitter Feed** — real-time posts from SEVCO and curated accounts
+
+Click any headline to open the original source article in a new tab.
+
+## Category Configuration
+
+News categories are configured by SEVCO admins in the Command Center. Each category has:
+- A display name (shown on the news page)
+- A search query (sent to the Grok AI to find relevant articles)
+- Display order (controls where it appears on the news page)
+
+This means news content is always fresh — every page load pulls the latest headlines.
+
+## The Wikify Feature
+
+Staff members can convert any news article into a SEVCO Wiki article using the **Wikify** button on the news page. Clicking Wikify pre-fills the Wiki article editor with:
+- The article title
+- A summary based on the headline
+- The source content (where available) as the starting body
+
+The draft is saved and can then be edited and published to the Wiki by any staff member.
+
+## Staying Current
+
+- Bookmark [/news](/news) for daily creator economy updates
+- Follow SEVCO on X/Twitter for real-time posts
+- Join the Discord to discuss the latest headlines with the community
+- Subscribe to the SEVCO newsletter (coming soon) for weekly digests`,
+  },
+  {
+    slug: "wiki-guide",
+    title: "SEVCO Wiki Guide",
+    summary: "How to navigate the wiki, search for articles, understand categories, and contribute through the revision system.",
+    tags: ["wiki", "guide", "search", "categories", "revisions"],
+    infoboxData: { "Category": "General", "Audience": "All Users" },
+    content: `# SEVCO Wiki Guide
+
+The SEVCO Wiki is the platform's knowledge base — where guides, documentation, engineering history, and platform tutorials all live. You're reading it right now. This guide explains how the wiki works and how you can get the most out of it.
+
+## Navigating the Wiki
+
+The wiki is organized into **categories**, each covering a broad area:
+
+| Category | What's Inside |
+|---|---|
+| **General** | Platform guides, onboarding, and user documentation |
+| **Engineering** | Technical task history, architecture notes, and API docs |
+| **Operations** | Internal processes, workflows, and team guidelines |
+| **Design** | Brand guidelines, design system notes, and UX patterns |
+| **Sales** | Sales playbooks and partner resources |
+| **Support** | Support procedures and FAQs |
+
+Browse categories from the [Wiki landing page](/wiki). The sidebar on the left (or the dropdown on mobile) shows the category tree.
+
+## Searching the Wiki
+
+Use the **search bar** at the top of the wiki sidebar or the search icon in the header to search all articles by title or content. The search returns ranked results — click any result to jump directly to the article.
+
+## Reading Articles
+
+Articles are written in Markdown and rendered into formatted pages with:
+- **Headings** for section navigation
+- **Tables** for structured information
+- **Code blocks** for technical content
+- **Links** to other platform pages and external sources
+- **Infobox** — a summary panel on the right side of key articles with at-a-glance data
+
+At the bottom of each article, you'll find:
+- **Citations** — sources referenced in the article
+- **Related Articles** — automatically generated cross-links to related content
+- **Revision History** — a log of all edits and updates
+
+## Contributing to the Wiki
+
+All logged-in users can submit edits to existing articles. Here's how the revision workflow works:
+
+1. Open any article and click the **Edit** button (appears when logged in)
+2. Make your changes in the markdown editor
+3. Click **Submit for Review**
+
+Your changes are saved as a **pending revision**. Staff members will review and approve (or request changes to) your submission. Approved revisions are merged into the live article immediately.
+
+**Staff members and above** can publish articles directly without the pending review step.
+
+## Creating New Articles
+
+Staff+ can create new articles from the Wiki landing page or via the **New Article** button in the Command Center. When creating an article:
+- Choose a **category** that best fits the content
+- Write a clear **summary** (shown on the wiki index and in search results)
+- Add relevant **tags** to improve discoverability
+- Set status to **Published** when ready to go live (or **Draft** to save without publishing)
+
+## Article Best Practices
+
+- Use clear, descriptive headings (H2 and H3 for sections and sub-sections)
+- Keep summaries under 100 words
+- Link to related platform pages using markdown links (e.g., \`[/store](/store)\`)
+- Add an infobox for reference-style articles (people, projects, releases)
+- Tag articles with relevant keywords for search discoverability
+
+## Need Help?
+
+If you can't find what you're looking for, ask in the [Discord](https://discord.gg/sevco) or submit a request to the SEVCO team via [/contact](/contact).`,
+  },
+];
+
+async function getGeneralCategoryId(): Promise<number> {
+  const rows = await db.select({ id: categories.id }).from(categories).where(eq(categories.slug, "general"));
+  if (!rows.length) throw new Error("General category not found — cannot seed platform wiki articles");
+  return rows[0].id;
+}
+
 export async function runWikiSeed() {
   console.log("Starting wiki seed — updating all Engineering articles...");
   const categoryId = await getEngineeringCategoryId();
@@ -4756,4 +5253,59 @@ export async function runWikiSeed() {
     }
   }
   console.log(`Changelog — Updated ${clUpdated} entries with wikiSlug links`);
+
+  // ── Platform guide articles (general category) ──────────────────────────
+  console.log("\nSeeding platform guide wiki articles...");
+  let genCategoryId: number | null = null;
+  try {
+    genCategoryId = await getGeneralCategoryId();
+  } catch (err: any) {
+    console.error("Could not find general category — skipping platform articles:", err.message);
+    return;
+  }
+
+  let pUpdated = 0;
+  let pCreated = 0;
+  let pErrors = 0;
+
+  for (const article of PLATFORM_ARTICLES) {
+    try {
+      const existing = await db.select({ id: articles.id }).from(articles).where(eq(articles.slug, article.slug));
+      if (existing.length > 0) {
+        await db.update(articles)
+          .set({
+            title: article.title,
+            content: article.content,
+            summary: article.summary,
+            tags: article.tags,
+            infoboxData: article.infoboxData,
+            infoboxType: "general" as const,
+            status: "published",
+            categoryId: genCategoryId,
+          })
+          .where(eq(articles.slug, article.slug));
+        pUpdated++;
+        process.stdout.write(`U`);
+      } else {
+        await db.insert(articles).values({
+          slug: article.slug,
+          title: article.title,
+          content: article.content,
+          summary: article.summary,
+          tags: article.tags,
+          infoboxData: article.infoboxData,
+          infoboxType: "general" as const,
+          status: "published",
+          categoryId: genCategoryId,
+        });
+        pCreated++;
+        process.stdout.write(`C`);
+      }
+    } catch (err: any) {
+      console.error(`\nError on platform article ${article.slug}: ${err.message}`);
+      pErrors++;
+    }
+  }
+
+  console.log(`\nPlatform Articles — Updated: ${pUpdated}, Created: ${pCreated}, Errors: ${pErrors}`);
 }

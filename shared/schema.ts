@@ -875,6 +875,8 @@ export const newsCategories = pgTable("news_categories", {
   accentColor: text("accent_color"),
   displayOrder: integer("display_order").notNull().default(0),
   enabled: boolean("enabled").notNull().default(true),
+  featured: boolean("featured").notNull().default(false),
+  pinned: boolean("pinned").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

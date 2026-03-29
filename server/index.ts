@@ -71,6 +71,9 @@ async function runStartupMigrations() {
   await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS is_public_budget boolean DEFAULT false;`);
   // Task #140 — Per-category X query
   await pool.query(`ALTER TABLE news_categories ADD COLUMN IF NOT EXISTS x_query TEXT;`);
+  // Task #144 — Featured and pinned categories
+  await pool.query(`ALTER TABLE news_categories ADD COLUMN IF NOT EXISTS featured BOOLEAN DEFAULT false;`);
+  await pool.query(`ALTER TABLE news_categories ADD COLUMN IF NOT EXISTS pinned BOOLEAN DEFAULT false;`);
   // Task #141 — News page UX overhaul
   await pool.query(`CREATE TABLE IF NOT EXISTS user_news_bookmarks (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,

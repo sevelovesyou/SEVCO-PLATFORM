@@ -4522,6 +4522,153 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/news/ai-settings", requireAuth, requireRole("admin"), async (_req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      const aiSettings = {
+        summariesEnabled: settings["news.ai.summariesEnabled"] === "true",
+        imageGenEnabled: settings["news.ai.imageGenEnabled"] === "true",
+        dailyBriefingEnabled: settings["news.ai.dailyBriefingEnabled"] === "true",
+        askGrokEnabled: settings["news.ai.askGrokEnabled"] === "true",
+        breakingDetectionEnabled: settings["news.ai.breakingDetectionEnabled"] === "true",
+        grokModel: settings["news.ai.grokModel"] || "x-ai/grok-3-mini",
+        summaryStyle: settings["news.ai.summaryStyle"] || "concise",
+        imagePromptTemplate: settings["news.ai.imagePromptTemplate"] || "",
+        maxRequestsPerHour: parseInt(settings["news.ai.maxRequestsPerHour"] || "60") || 60,
+      };
+      res.json(aiSettings);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put("/api/news/ai-settings", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const body = req.body;
+      const allowedModels = ["x-ai/grok-3-mini", "x-ai/grok-3", "x-ai/grok-3-mini-fast", "x-ai/grok-2", "openai/gpt-4o-mini", "openai/gpt-4o", "anthropic/claude-3.5-sonnet"];
+      const allowedStyles = ["concise", "detailed", "editorial", "bullet"];
+
+      if (body.grokModel !== undefined && !allowedModels.includes(String(body.grokModel))) {
+        return res.status(400).json({ message: `Invalid model. Allowed: ${allowedModels.join(", ")}` });
+      }
+      if (body.summaryStyle !== undefined && !allowedStyles.includes(String(body.summaryStyle))) {
+        return res.status(400).json({ message: `Invalid style. Allowed: ${allowedStyles.join(", ")}` });
+      }
+      if (body.maxRequestsPerHour !== undefined) {
+        const val = Number(body.maxRequestsPerHour);
+        if (!Number.isFinite(val) || val < 1 || val > 1000) {
+          return res.status(400).json({ message: "maxRequestsPerHour must be between 1 and 1000." });
+        }
+      }
+
+      const entries: Record<string, string> = {};
+      if (body.summariesEnabled !== undefined) entries["news.ai.summariesEnabled"] = String(body.summariesEnabled);
+      if (body.imageGenEnabled !== undefined) entries["news.ai.imageGenEnabled"] = String(body.imageGenEnabled);
+      if (body.dailyBriefingEnabled !== undefined) entries["news.ai.dailyBriefingEnabled"] = String(body.dailyBriefingEnabled);
+      if (body.askGrokEnabled !== undefined) entries["news.ai.askGrokEnabled"] = String(body.askGrokEnabled);
+      if (body.breakingDetectionEnabled !== undefined) entries["news.ai.breakingDetectionEnabled"] = String(body.breakingDetectionEnabled);
+      if (body.grokModel !== undefined) entries["news.ai.grokModel"] = String(body.grokModel);
+      if (body.summaryStyle !== undefined) entries["news.ai.summaryStyle"] = String(body.summaryStyle);
+      if (body.imagePromptTemplate !== undefined) entries["news.ai.imagePromptTemplate"] = String(body.imagePromptTemplate);
+      if (body.maxRequestsPerHour !== undefined) entries["news.ai.maxRequestsPerHour"] = String(Math.round(Number(body.maxRequestsPerHour)));
+      await storage.setPlatformSettings(entries);
+      const settings = await storage.getPlatformSettings();
+      res.json({
+        summariesEnabled: settings["news.ai.summariesEnabled"] === "true",
+        imageGenEnabled: settings["news.ai.imageGenEnabled"] === "true",
+        dailyBriefingEnabled: settings["news.ai.dailyBriefingEnabled"] === "true",
+        askGrokEnabled: settings["news.ai.askGrokEnabled"] === "true",
+        breakingDetectionEnabled: settings["news.ai.breakingDetectionEnabled"] === "true",
+        grokModel: settings["news.ai.grokModel"] || "x-ai/grok-3-mini",
+        summaryStyle: settings["news.ai.summaryStyle"] || "concise",
+        imagePromptTemplate: settings["news.ai.imagePromptTemplate"] || "",
+        maxRequestsPerHour: parseInt(settings["news.ai.maxRequestsPerHour"] || "60") || 60,
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/news/analytics", requireAuth, requireRole("admin"), async (_req, res) => {
+    try {
+      const cats = await storage.getNewsCategories();
+      const settings = await storage.getPlatformSettings();
+
+      const bookmarkCounts: Record<string, number> = {};
+      const topBookmarked: Array<{ title: string; url: string; count: number }> = [];
+
+      const allUsers = await storage.getAllUsers();
+      for (const u of allUsers) {
+        const bookmarks = await storage.getNewsBookmarks(u.id);
+        for (const b of bookmarks) {
+          bookmarkCounts[b.articleCategory || "Uncategorized"] = (bookmarkCounts[b.articleCategory || "Uncategorized"] || 0) + 1;
+          const existing = topBookmarked.find(t => t.url === b.articleUrl);
+          if (existing) {
+            existing.count++;
+          } else {
+            topBookmarked.push({ title: b.articleTitle, url: b.articleUrl, count: 1 });
+          }
+        }
+      }
+
+      topBookmarked.sort((a, b) => b.count - a.count);
+
+      const enabledCategories = cats.filter(c => c.enabled).length;
+      const totalCategories = cats.length;
+      const featuredCategories = cats.filter(c => c.featured).length;
+      const pinnedCategories = cats.filter(c => c.pinned).length;
+
+      const categoryStats = cats.map(c => ({
+        id: c.id,
+        name: c.name,
+        enabled: c.enabled,
+        featured: c.featured,
+        pinned: c.pinned,
+        bookmarks: bookmarkCounts[c.name] || 0,
+      }));
+
+      const aiSummariesEnabled = settings["news.ai.summariesEnabled"] === "true";
+      const aiImageGenEnabled = settings["news.ai.imageGenEnabled"] === "true";
+      const sourceType = settings["news.x.sourceType"] || "both";
+
+      const statsDate = settings["news.stats.date"] || "";
+      const today = new Date().toISOString().slice(0, 10);
+      const isToday = statsDate === today;
+      const aiSummariesGeneratedToday = isToday ? (parseInt(settings["news.stats.aiSummariesToday"] || "0") || 0) : 0;
+      const aiImagesGeneratedToday = isToday ? (parseInt(settings["news.stats.aiImagesToday"] || "0") || 0) : 0;
+      const articlesFetchedRss = isToday ? (parseInt(settings["news.stats.articlesFetchedRss"] || "0") || 0) : 0;
+      const articlesFetchedX = isToday ? (parseInt(settings["news.stats.articlesFetchedX"] || "0") || 0) : 0;
+
+      const mostReadCategories = [...categoryStats]
+        .sort((a, b) => b.bookmarks - a.bookmarks)
+        .slice(0, 5);
+
+      res.json({
+        totalCategories,
+        enabledCategories,
+        featuredCategories,
+        pinnedCategories,
+        categoryStats,
+        topBookmarked: topBookmarked.slice(0, 10),
+        mostReadCategories,
+        aiSummariesEnabled,
+        aiImageGenEnabled,
+        sourceType,
+        articlesFetchedBySource: {
+          rss: articlesFetchedRss,
+          x: articlesFetchedX,
+          total: articlesFetchedRss + articlesFetchedX,
+        },
+        aiOperationsToday: {
+          summaries: aiSummariesGeneratedToday,
+          images: aiImagesGeneratedToday,
+        },
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/news/feed", async (req, res) => {
     try {
       const query = String(req.query.query ?? "");
@@ -4583,6 +4730,50 @@ export async function registerRoutes(
   const newsSummaryCache = new Map<string, { summary: string; cachedAt: number }>();
   const NEWS_SUMMARY_CACHE_TTL_MS = 60 * 60 * 1000;
 
+  const statsCounterDate = { date: "" };
+  async function incrementNewsStat(key: string, amount = 1) {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      if (statsCounterDate.date !== today) {
+        statsCounterDate.date = today;
+        await storage.setPlatformSetting("news.stats.aiSummariesToday", "0");
+        await storage.setPlatformSetting("news.stats.aiImagesToday", "0");
+        await storage.setPlatformSetting("news.stats.articlesFetchedRss", "0");
+        await storage.setPlatformSetting("news.stats.articlesFetchedX", "0");
+        await storage.setPlatformSetting("news.stats.date", today);
+      }
+      const settings = await storage.getPlatformSettings();
+      const current = parseInt(settings[key] || "0") || 0;
+      await storage.setPlatformSetting(key, String(current + amount));
+    } catch {}
+  }
+
+  const aiRateLimit = { count: 0, resetAt: 0 };
+  function checkAiRateLimit(maxPerHour: number): boolean {
+    const now = Date.now();
+    if (now > aiRateLimit.resetAt) {
+      aiRateLimit.count = 0;
+      aiRateLimit.resetAt = now + 60 * 60 * 1000;
+    }
+    if (aiRateLimit.count >= maxPerHour) return false;
+    aiRateLimit.count++;
+    return true;
+  }
+
+  app.put("/api/news/categories/reorder", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const { order } = req.body as { order?: Array<{ id: number; displayOrder: number }> };
+      if (!Array.isArray(order)) return res.status(400).json({ message: "order array required" });
+      for (const item of order) {
+        await storage.updateNewsCategory(item.id, { displayOrder: item.displayOrder });
+      }
+      const cats = await storage.getNewsCategories();
+      res.json(cats);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
   app.get("/api/news/summary", async (req, res) => {
     const url = String(req.query.url ?? "").trim();
     if (!url) return res.status(400).json({ message: "url param required" });
@@ -4596,6 +4787,26 @@ export async function registerRoutes(
     if (!apiKey) return res.status(503).json({ message: "AI service not configured." });
 
     try {
+      const settings = await storage.getPlatformSettings();
+      const summariesEnabled = settings["news.ai.summariesEnabled"] === "true";
+      if (!summariesEnabled) return res.status(403).json({ message: "AI summaries are disabled." });
+
+      const maxRequestsPerHour = parseInt(settings["news.ai.maxRequestsPerHour"] || "60") || 60;
+      if (!checkAiRateLimit(maxRequestsPerHour)) {
+        return res.status(429).json({ message: "AI rate limit exceeded. Try again later." });
+      }
+
+      const grokModel = settings["news.ai.grokModel"] || "x-ai/grok-3-mini";
+      const summaryStyle = settings["news.ai.summaryStyle"] || "concise";
+
+      const stylePrompts: Record<string, string> = {
+        concise: "Summarize this article in 2-3 sentences. Be concise and informative.",
+        detailed: "Provide a detailed summary of this article in 4-5 sentences, covering key points and context.",
+        editorial: "Summarize this article in 2-3 sentences in an editorial style. Be concise and informative.",
+        bullet: "Summarize this article as 3-5 bullet points. Be concise and informative.",
+      };
+      const prompt = stylePrompts[summaryStyle] || stylePrompts.concise;
+
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
       const pageRes = await fetch(url, {
@@ -4625,11 +4836,11 @@ export async function registerRoutes(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "x-ai/grok-3-mini",
+          model: grokModel,
           messages: [
             {
               role: "user",
-              content: `Summarize this article in 2-3 sentences in an editorial style. Be concise and informative.\n\n${articleText}`,
+              content: `${prompt}\n\n${articleText}`,
             },
           ],
           max_tokens: 150,
@@ -4646,6 +4857,7 @@ export async function registerRoutes(
       if (!summary) return res.status(502).json({ message: "AI returned empty summary." });
 
       newsSummaryCache.set(url, { summary, cachedAt: Date.now() });
+      incrementNewsStat("news.stats.aiSummariesToday");
       res.json({ summary });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -4660,6 +4872,9 @@ export async function registerRoutes(
     if (!apiKey) return res.status(503).json({ message: "AI service not configured." });
 
     try {
+      const settings = await storage.getPlatformSettings();
+      const grokModel = settings["news.ai.grokModel"] || "x-ai/grok-3";
+
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
       const pageRes = await fetch(url, {
@@ -4691,7 +4906,7 @@ export async function registerRoutes(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "x-ai/grok-3",
+          model: grokModel,
           messages: [{ role: "user", content: prompt }],
           max_tokens: 1000,
         }),
@@ -4716,11 +4931,13 @@ export async function registerRoutes(
   const aiImageCache = new Map<string, { url: string; generatedAt: number }>();
   const AI_IMAGE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
-  async function generateImageForPost(text: string, link: string): Promise<string | null> {
+  async function generateImageForPost(text: string, link: string, promptTemplate?: string): Promise<string | null> {
     const cached = aiImageCache.get(link);
     if (cached && Date.now() - cached.generatedAt < AI_IMAGE_CACHE_TTL_MS) return cached.url;
 
-    const prompt = `editorial news thumbnail for: ${text.slice(0, 200)}`;
+    const prompt = promptTemplate
+      ? promptTemplate.replace(/\{topic\}/gi, text.slice(0, 200)).replace(/\{\{text\}\}/gi, text.slice(0, 200))
+      : `editorial news thumbnail for: ${text.slice(0, 200)}`;
     try {
       if (process.env.XAI_API_KEY) {
         const xaiRes = await fetch("https://api.x.ai/v1/images/generations", {
@@ -4753,6 +4970,8 @@ export async function registerRoutes(
   app.get("/api/news/x-feed", async (req, res) => {
     const categoryName = String(req.query.category ?? "");
     const limit = Math.min(parseInt(String(req.query.limit ?? "10")), 20);
+    const isAdmin = req.isAuthenticated?.() && (req.user as any)?.role === "admin";
+    const xQueryOverride = isAdmin && req.query.xQueryOverride ? String(req.query.xQueryOverride) : null;
 
     if (!categoryName) {
       return res.status(400).json({ message: "category param required" });
@@ -4763,6 +4982,9 @@ export async function registerRoutes(
     let allowedAccounts: string[] = [];
     let blockedAccounts: string[] = [];
     let minEngagement = 0;
+    let globalImageGenEnabled = true;
+    let categoryAiImageEnabled = true;
+    let imagePromptTemplate = "";
 
     try {
       const settings = await storage.getPlatformSettings();
@@ -4777,17 +4999,30 @@ export async function registerRoutes(
       blockedAccounts = blockedAccountsRaw
         ? blockedAccountsRaw.split(",").map((h) => h.trim()).filter(Boolean)
         : [];
+      globalImageGenEnabled = settings["news.ai.imageGenEnabled"] === "true";
+      imagePromptTemplate = settings["news.ai.imagePromptTemplate"] || "";
     } catch (settingsErr: any) {
       console.error("[news/x-feed] Failed to load platform settings, using defaults:", settingsErr.message);
     }
 
-    let cat: { name: string; query: string; xQuery?: string | null; accentColor?: string | null } | undefined;
+    let cat: { id: number; name: string; query: string; xQuery?: string | null; accentColor?: string | null } | undefined;
     try {
       const cats = await storage.getNewsCategories(true);
       cat = cats.find((c) => c.name.toLowerCase() === categoryName.toLowerCase()) ?? cats[0];
+      if (cat) {
+        try {
+          const catSettings = await storage.getPlatformSettings();
+          const catKey = `news.category.${cat.id}.aiImageGen`;
+          categoryAiImageEnabled = catSettings[catKey] !== "false";
+        } catch {}
+      }
     } catch (catErr: any) {
       console.error("[news/x-feed] Failed to load news categories:", catErr.message);
     }
+
+    const effectiveImageMode = (!globalImageGenEnabled || !categoryAiImageEnabled) && imageMode === "ai_generate"
+      ? "images_only"
+      : imageMode;
 
     const xConfigured = isXConfigured();
     let xArticles: Array<{
@@ -4799,19 +5034,19 @@ export async function registerRoutes(
     if (xConfigured && cat && sourceType !== "rss_only") {
       try {
         const tweets = await fetchCategoryNewsFromX(categoryName, cat?.query ?? categoryName, limit, {
-          imagesOnly: imageMode === "images_only",
+          imagesOnly: effectiveImageMode === "images_only",
           allowedAccounts,
           blockedAccounts,
           minEngagement,
-          customXQuery: cat?.xQuery ?? null,
+          customXQuery: xQueryOverride || cat?.xQuery || null,
         });
 
         const ai_generate_candidates: Array<{ text: string; link: string; idx: number }> = [];
         const mapped = tweets.map((t, idx) => {
           let imageUrl: string | null = null;
-          if (imageMode !== "none") {
+          if (effectiveImageMode !== "none") {
             imageUrl = t.mediaUrl;
-            if (!imageUrl && imageMode === "ai_generate") {
+            if (!imageUrl && effectiveImageMode === "ai_generate") {
               ai_generate_candidates.push({ text: t.text, link: t.url, idx });
             }
           }
@@ -4830,11 +5065,11 @@ export async function registerRoutes(
           };
         });
 
-        if (imageMode === "ai_generate" && ai_generate_candidates.length > 0) {
+        if (effectiveImageMode === "ai_generate" && ai_generate_candidates.length > 0) {
           const toGenerate = ai_generate_candidates.slice(0, 5);
           try {
             const generated = await Promise.all(
-              toGenerate.map((c) => generateImageForPost(c.text, c.link))
+              toGenerate.map((c) => generateImageForPost(c.text, c.link, imagePromptTemplate || undefined))
             );
             toGenerate.forEach((c, i) => {
               if (generated[i]) mapped[c.idx].imageUrl = generated[i];
@@ -4849,6 +5084,9 @@ export async function registerRoutes(
           ((a.likeCount ?? 0) + (a.retweetCount ?? 0) + (a.replyCount ?? 0))
         );
         xArticles = mapped;
+        incrementNewsStat("news.stats.articlesFetchedX", mapped.length);
+        const xAiGenCount = mapped.filter((m, i) => ai_generate_candidates.some(c => c.idx === i) && m.imageUrl).length;
+        if (xAiGenCount > 0) incrementNewsStat("news.stats.aiImagesToday", xAiGenCount);
       } catch (xErr: any) {
         console.error("[news/x-feed] X API fetch failed, falling back to RSS only:", xErr.message);
       }
@@ -4865,12 +5103,13 @@ export async function registerRoutes(
         const rssArticles = await fetchNewsArticles(query, limit);
         const rssMapped = rssArticles.map((a) => ({
           ...a,
-          imageUrl: imageMode === "none" ? null : a.imageUrl,
+          imageUrl: effectiveImageMode === "none" ? null : a.imageUrl,
           sourceType: "rss" as const,
         }));
 
-        if (imageMode === "ai_generate") {
-          const rssAiCandidates = rssMapped
+        let rssAiCandidates: Array<{ text: string; link: string; idx: number }> = [];
+        if (effectiveImageMode === "ai_generate") {
+          rssAiCandidates = rssMapped
             .map((a, idx) => (!a.imageUrl ? { text: a.title || a.description, link: a.link, idx } : null))
             .filter((c): c is { text: string; link: string; idx: number } => c !== null)
             .slice(0, 5);
@@ -4878,7 +5117,7 @@ export async function registerRoutes(
           if (rssAiCandidates.length > 0) {
             try {
               const generated = await Promise.all(
-                rssAiCandidates.map((c) => generateImageForPost(c.text, c.link))
+                rssAiCandidates.map((c) => generateImageForPost(c.text, c.link, imagePromptTemplate || undefined))
               );
               rssAiCandidates.forEach((c, i) => {
                 if (generated[i]) rssMapped[c.idx].imageUrl = generated[i];
@@ -4890,6 +5129,11 @@ export async function registerRoutes(
         }
 
         rssTagged = rssMapped;
+        incrementNewsStat("news.stats.articlesFetchedRss", rssMapped.length);
+        const rssAiGenCount = rssMapped.filter((m, idx) =>
+          rssAiCandidates?.some(c => c.idx === idx) && m.imageUrl
+        ).length;
+        if (rssAiGenCount > 0) incrementNewsStat("news.stats.aiImagesToday", rssAiGenCount);
       } catch (rssErr: any) {
         console.error("[news/x-feed] RSS fetch failed:", rssErr.message);
       }
@@ -4901,6 +5145,11 @@ export async function registerRoutes(
 
   app.get("/api/news/breaking", async (_req, res) => {
     try {
+      const settings = await storage.getPlatformSettings();
+      if (settings["news.ai.breakingDetectionEnabled"] !== "true") {
+        return res.json(null);
+      }
+
       const cats = await storage.getNewsCategories(true);
       if (cats.length === 0) return res.json(null);
 

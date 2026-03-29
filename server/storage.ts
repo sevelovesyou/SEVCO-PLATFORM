@@ -235,6 +235,7 @@ export interface IStorage {
 
   getPlatformSettings(): Promise<Record<string, string>>;
   setPlatformSettings(entries: Record<string, string>): Promise<void>;
+  setPlatformSetting(key: string, value: string): Promise<void>;
   searchAll(query: string, isStaff: boolean, limit: number): Promise<SearchAllResult>;
 
   getBrandAssets(isPublic?: boolean): Promise<BrandAsset[]>;
@@ -1461,6 +1462,13 @@ export class DatabaseStorage implements IStorage {
         .values({ key, value })
         .onConflictDoUpdate({ target: platformSettings.key, set: { value } });
     }
+  }
+
+  async setPlatformSetting(key: string, value: string): Promise<void> {
+    await db
+      .insert(platformSettings)
+      .values({ key, value })
+      .onConflictDoUpdate({ target: platformSettings.key, set: { value } });
   }
 
   async getSpotifyArtists(): Promise<SpotifyArtist[]> {

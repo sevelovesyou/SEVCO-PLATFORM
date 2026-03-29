@@ -77,7 +77,7 @@ function TrackPlayButton({ submissionId }: { submissionId: number }) {
       className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
       data-testid={`button-play-track-${submissionId}`}
     >
-      {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+      {loading ? <Loader2 className="h-3 w-3 motion-safe:animate-spin" /> : <Play className="h-3 w-3" />}
       {loading ? "Loading..." : "Play File"}
     </button>
   );
@@ -639,7 +639,7 @@ function AddArtistDialog({ open, onClose }: { open: boolean; onClose: () => void
               onKeyDown={(e) => e.key === "Enter" && handlePreview()}
             />
             <Button variant="outline" onClick={handlePreview} disabled={!input || previewing} data-testid="button-preview-artist">
-              {previewing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              {previewing ? <RefreshCw className="h-4 w-4 motion-safe:animate-spin" /> : <Search className="h-4 w-4" />}
             </Button>
           </div>
 
@@ -872,7 +872,7 @@ function AddTrackDialog({ open, playlistId, onClose }: { open: boolean; playlist
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
             <Button variant="outline" onClick={handleSearch} disabled={!query || searching} data-testid="button-search-track">
-              {searching ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              {searching ? <RefreshCw className="h-4 w-4 motion-safe:animate-spin" /> : <Search className="h-4 w-4" />}
             </Button>
           </div>
           {results.length > 0 && (

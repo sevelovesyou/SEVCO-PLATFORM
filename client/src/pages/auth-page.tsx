@@ -307,7 +307,7 @@ export default function AuthPage() {
                       disabled={isLoginSubmitting}
                       data-testid="button-auth-submit"
                     >
-                      {isLoginSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {isLoginSubmitting && <Loader2 className="mr-2 h-4 w-4 motion-safe:animate-spin" />}
                       Sign In
                     </Button>
                   </form>
@@ -413,7 +413,7 @@ export default function AuthPage() {
                       disabled={isRegisterSubmitting}
                       data-testid="button-auth-submit"
                     >
-                      {isRegisterSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {isRegisterSubmitting && <Loader2 className="mr-2 h-4 w-4 motion-safe:animate-spin" />}
                       Create Account
                     </Button>
                   </form>

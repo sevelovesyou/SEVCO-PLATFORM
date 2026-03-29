@@ -198,7 +198,7 @@ function ArticleSummaryPanel({ articleUrl }: { articleUrl: string }) {
       >
         {isFetching ? (
           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground py-1">
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Loader2 className="h-3 w-3 motion-safe:animate-spin" />
             <span>Generating summary…</span>
           </div>
         ) : isError ? (

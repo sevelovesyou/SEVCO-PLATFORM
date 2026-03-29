@@ -749,6 +749,7 @@ export function PlatformHeader() {
     <header
       className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm"
       data-testid="platform-header"
+      role="banner"
     >
       <div className="flex h-12 items-center gap-2 px-3">
         <Link href="/" className="shrink-0">
@@ -771,7 +772,7 @@ export function PlatformHeader() {
         <div className="w-px h-5 bg-border mx-1 hidden lg:block" />
 
         {/* Desktop nav */}
-        <nav className="hidden lg:flex items-center gap-0.5 flex-1" data-testid="nav-app-switcher">
+        <nav className="hidden lg:flex items-center gap-0.5 flex-1" aria-label="Main navigation" data-testid="nav-app-switcher">
           <HomeDropdown isActive={activeApp === "/"} />
           <StoreDropdown isActive={activeApp === "/store"} />
           <ServicesDropdown isActive={activeApp === "/services"} platformSettings={platformSettings} />
@@ -967,7 +968,7 @@ export function PlatformHeader() {
             <SheetTitle>Navigation</SheetTitle>
             <SheetDescription>Site navigation menu</SheetDescription>
           </SheetHeader>
-          <div className="px-3 py-4 space-y-0.5">
+          <nav className="px-3 py-4 space-y-0.5" aria-label="Mobile navigation">
           <Collapsible open={mobileSection === "home"} onOpenChange={(o) => setMobileSection(o ? "home" : null)}>
             <CollapsibleTrigger asChild>
               <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors" data-testid="mobile-nav-home">
@@ -1171,7 +1172,7 @@ export function PlatformHeader() {
               </button>
             </div>
           )}
-          </div>
+          </nav>
         </SheetContent>
       </Sheet>
     </header>

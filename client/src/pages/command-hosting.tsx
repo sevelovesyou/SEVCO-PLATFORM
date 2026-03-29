@@ -232,7 +232,7 @@ export default function CommandHosting() {
           disabled={isFetching}
           data-testid="button-vps-refresh"
         >
-          <RefreshCw className={`h-3 w-3 ${isFetching ? "animate-spin" : ""}`} />
+          <RefreshCw className={`h-3 w-3 ${isFetching ? "motion-safe:animate-spin" : ""}`} />
           Refresh
         </Button>
       </div>

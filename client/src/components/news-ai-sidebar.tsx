@@ -70,7 +70,7 @@ function TrendingOnXPanel({ categoryName, aiSettings }: { categoryName?: string;
         </div>
         <span className="text-sm font-bold">Trending on X</span>
         <span className="ml-auto flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+          <span className="h-1.5 w-1.5 rounded-full bg-green-500 motion-safe:animate-pulse" />
           <span className="text-[10px] text-muted-foreground">Live</span>
         </span>
       </div>
@@ -124,7 +124,7 @@ function TrendingOnXPanel({ categoryName, aiSettings }: { categoryName?: string;
 
       {commentaryLoading && (
         <div className="flex items-center gap-1.5 mt-2 text-[10px] text-primary/60">
-          <Loader2 className="h-2.5 w-2.5 animate-spin" />
+          <Loader2 className="h-2.5 w-2.5 motion-safe:animate-spin" />
           <span>Grok analyzing trends...</span>
         </div>
       )}
@@ -136,7 +136,7 @@ function StreamingText({ text }: { text: string }) {
   return (
     <span className="inline">
       {text}
-      <span className="inline-block w-1.5 h-3 bg-primary/60 animate-pulse ml-0.5 align-middle" />
+      <span className="inline-block w-1.5 h-3 bg-primary/60 motion-safe:animate-pulse ml-0.5 align-middle" />
     </span>
   );
 }
@@ -195,7 +195,7 @@ function AskGrokPanel({ aiSettings }: { aiSettings: NewsAiSettings }) {
           {isStreaming && !streamedAnswer && (
             <div className="text-xs">
               <div className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 bg-muted border">
-                <Loader2 className="h-3 w-3 animate-spin" />
+                <Loader2 className="h-3 w-3 motion-safe:animate-spin" />
                 <span>Thinking...</span>
               </div>
             </div>

@@ -152,7 +152,7 @@ export default function CommandMinecraft() {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+          <div className="motion-safe:animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
         </div>
       ) : servers.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">

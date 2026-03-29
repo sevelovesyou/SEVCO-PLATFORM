@@ -177,7 +177,7 @@ export function WikifyDialog({ open, onClose, article, postTitle, postContent, p
               {aiWikifyMutation.isPending ? (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-primary font-medium">
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
                     Generating AI wiki draft…
                   </div>
                   <Skeleton className="h-3 w-full" />
@@ -257,7 +257,7 @@ export function WikifyDialog({ open, onClose, article, postTitle, postContent, p
             <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
             <Button type="submit" disabled={createMutation.isPending} data-testid="button-wikify-submit">
               {createMutation.isPending ? (
-                <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Creating…</>
+                <><Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin mr-1.5" />Creating…</>
               ) : "Create Wiki Article"}
             </Button>
           </DialogFooter>

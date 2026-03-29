@@ -108,7 +108,7 @@ export function DailyBriefingFab({ aiSettings }: DailyBriefingProps) {
         className="fixed bottom-6 right-6 z-40 flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 group"
         data-testid="daily-briefing-fab"
       >
-        <Sparkles className="h-4 w-4 group-hover:animate-pulse" />
+        <Sparkles className="h-4 w-4 group-hover:motion-safe:animate-pulse" />
         <span className="text-sm font-semibold hidden sm:inline">AI Daily Briefing</span>
         <span className="text-sm font-semibold sm:hidden">Briefing</span>
       </button>

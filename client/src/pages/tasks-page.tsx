@@ -272,7 +272,7 @@ function MyTasksPanel() {
           className="h-8 text-sm"
           data-testid="input-quick-add-task"
         />
-        {createMutation.isPending && <Loader2 className="h-4 w-4 animate-spin shrink-0 mt-2 text-muted-foreground" />}
+        {createMutation.isPending && <Loader2 className="h-4 w-4 motion-safe:animate-spin shrink-0 mt-2 text-muted-foreground" />}
       </div>
 
       {isLoading ? (
@@ -347,7 +347,7 @@ function MyTasksPanel() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)} data-testid="button-cancel-task">Cancel</Button>
             <Button onClick={handleAddSubmit} disabled={!newTitle.trim() || createMutation.isPending} data-testid="button-submit-task">
-              {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              {createMutation.isPending ? <Loader2 className="h-4 w-4 motion-safe:animate-spin mr-1" /> : null}
               Add Task
             </Button>
           </DialogFooter>
@@ -755,7 +755,7 @@ function StaffTasksPanel() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)} data-testid="button-cancel-staff-task">Cancel</Button>
             <Button onClick={handleAddSubmit} disabled={!newTitle.trim() || createMutation.isPending} data-testid="button-submit-staff-task">
-              {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              {createMutation.isPending ? <Loader2 className="h-4 w-4 motion-safe:animate-spin mr-1" /> : null}
               Add Task
             </Button>
           </DialogFooter>

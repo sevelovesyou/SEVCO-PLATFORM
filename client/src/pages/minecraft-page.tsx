@@ -61,7 +61,7 @@ function ServerStatus({ host }: { host: string }) {
   if (isLoading) {
     return (
       <div className="flex items-center gap-2" data-testid={`status-loading-${host}`}>
-        <div className="w-2 h-2 rounded-full bg-white/20 animate-pulse" />
+        <div className="w-2 h-2 rounded-full bg-white/20 motion-safe:animate-pulse" />
         <span className="text-xs text-white/40">Checking…</span>
       </div>
     );
@@ -148,9 +148,9 @@ export default function MinecraftPage() {
       >
         {/* Animated gradient blobs */}
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute -top-24 -left-32 w-[600px] h-[600px] rounded-full bg-emerald-700/25 blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />
-          <div className="absolute -bottom-24 -right-32 w-[500px] h-[500px] rounded-full bg-green-700/20 blur-[120px] animate-[pulse_10s_ease-in-out_infinite_2s]" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] rounded-full bg-lime-700/10 blur-[100px] animate-[pulse_12s_ease-in-out_infinite_4s]" />
+          <div className="absolute -top-24 -left-32 w-[600px] h-[600px] rounded-full bg-emerald-700/25 blur-[120px] motion-safe:animate-[pulse_8s_ease-in-out_infinite]" />
+          <div className="absolute -bottom-24 -right-32 w-[500px] h-[500px] rounded-full bg-green-700/20 blur-[120px] motion-safe:animate-[pulse_10s_ease-in-out_infinite_2s]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] rounded-full bg-lime-700/10 blur-[100px] motion-safe:animate-[pulse_12s_ease-in-out_infinite_4s]" />
         </div>
 
         {/* Subtle grid overlay */}

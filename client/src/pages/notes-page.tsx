@@ -876,7 +876,7 @@ export default function NotesPage() {
                 <div className="flex items-center gap-2">
                   {saveStatus === "saving" && (
                     <span className="text-[10px] text-muted-foreground flex items-center gap-1" data-testid="status-saving">
-                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                      <Loader2 className="h-2.5 w-2.5 motion-safe:animate-spin" />
                       Saving…
                     </span>
                   )}

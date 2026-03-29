@@ -19,6 +19,7 @@ import { useEffect, useRef } from "react";
 import { hexToHsl } from "@/lib/colorUtils";
 import { isClientPlus } from "@/lib/permissions";
 import { useToast } from "@/hooks/use-toast";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
@@ -126,7 +127,7 @@ function ClientPlusRoute({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full min-h-[200px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <div className="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
@@ -642,13 +643,26 @@ function AppShell() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <div className="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
 
   if (isAuthPage) {
-    return <Router />;
+    return (
+      <>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:text-sm focus:font-medium focus:shadow-lg"
+          data-testid="link-skip-to-content"
+        >
+          Skip to content
+        </a>
+        <main id="main-content">
+          <Router />
+        </main>
+      </>
+    );
   }
 
   const showWikiSidebar = !!user && isWikiRoute(location);
@@ -658,12 +672,20 @@ function AppShell() {
     <SidebarProvider
       style={{ "--sidebar-width": "16rem", "--sidebar-width-icon": "3rem" } as React.CSSProperties}
     >
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:text-sm focus:font-semibold focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        data-testid="link-skip-to-content"
+      >
+        Skip to main content
+      </a>
       <div className="flex flex-col min-h-screen w-full overflow-x-clip">
         <PlatformHeader />
         <div className="flex flex-1 min-w-0 overflow-hidden">
           {showWikiSidebar && <AppSidebar />}
           {showCommandSidebar && <CommandSidebar />}
           <main
+            id="main-content"
             className="flex-1 min-w-0 flex flex-col"
             style={{ paddingBottom: activePlaylist ? "220px" : undefined }}
           >
@@ -682,25 +704,27 @@ function AppShell() {
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="dark">
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <CartProvider>
-            <SpotifyPlayerProvider>
-              <FloatingChatProvider>
-                <TooltipProvider>
-                  <DynamicHead />
-                  <PlatformColorInjector />
-                  <AppShell />
-                  <FloatingChatWindows />
-                  <Toaster />
-                </TooltipProvider>
-              </FloatingChatProvider>
-            </SpotifyPlayerProvider>
-          </CartProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider defaultTheme="dark">
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <CartProvider>
+              <SpotifyPlayerProvider>
+                <FloatingChatProvider>
+                  <TooltipProvider>
+                    <DynamicHead />
+                    <PlatformColorInjector />
+                    <AppShell />
+                    <FloatingChatWindows />
+                    <Toaster />
+                  </TooltipProvider>
+                </FloatingChatProvider>
+              </SpotifyPlayerProvider>
+            </CartProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

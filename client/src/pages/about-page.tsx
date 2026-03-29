@@ -270,7 +270,7 @@ export default function AboutPage() {
             {assetsLoading ? (
               <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="border border-border rounded-xl p-4 animate-pulse space-y-3">
+                  <div key={i} className="border border-border rounded-xl p-4 motion-safe:animate-pulse space-y-3">
                     <div className="h-24 bg-muted rounded-lg" />
                     <div className="h-3 bg-muted rounded w-3/4" />
                     <div className="h-3 bg-muted rounded w-1/2" />

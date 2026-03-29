@@ -281,7 +281,7 @@ function GA4Dashboard({ propertyId }: { propertyId: string }) {
                 Property ID: <span className="font-mono text-foreground">{propertyId}</span>
                 {realtimeQ.data && (
                   <span className="ml-3 inline-flex items-center gap-1 text-green-600 dark:text-green-400">
-                    <span className="h-1.5 w-1.5 bg-green-500 rounded-full inline-block animate-pulse" />
+                    <span className="h-1.5 w-1.5 bg-green-500 rounded-full inline-block motion-safe:animate-pulse" />
                     {realtimeQ.data.activeUsers} active now
                   </span>
                 )}
@@ -301,7 +301,7 @@ function GA4Dashboard({ propertyId }: { propertyId: string }) {
                 </button>
               ))}
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={refetchAll} title="Refresh" data-testid="button-refresh-analytics">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={refetchAll} title="Refresh" aria-label="Refresh analytics" data-testid="button-refresh-analytics">
               <RefreshCw className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -604,7 +604,7 @@ export default function CommandTraffic() {
   if (isLoading || ga4StatusLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <div className="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }

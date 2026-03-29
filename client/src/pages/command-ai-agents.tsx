@@ -354,7 +354,7 @@ export default function CommandAiAgentsPage() {
       {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3].map((i) => (
-            <Card key={i} className="animate-pulse">
+            <Card key={i} className="motion-safe:animate-pulse">
               <CardContent className="p-4 h-28" />
             </Card>
           ))}

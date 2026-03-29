@@ -208,7 +208,7 @@ export default function AccountPage() {
                   disabled={updateMutation.isPending}
                   data-testid="button-save-profile"
                 >
-                  {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 motion-safe:animate-spin" />}
                   Save Changes
                 </Button>
               </div>
@@ -268,7 +268,7 @@ export default function AccountPage() {
                 title={!user?.hasPassword ? "Cannot disconnect — this is your only login method" : undefined}
                 data-testid="button-disconnect-x"
               >
-                {disconnectMutation.isPending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                {disconnectMutation.isPending && <Loader2 className="mr-2 h-3.5 w-3.5 motion-safe:animate-spin" />}
                 Disconnect
               </Button>
             ) : (

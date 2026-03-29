@@ -290,9 +290,9 @@ export default function Landing() {
       >
         {/* Animated gradient blobs */}
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute -top-28 -left-36 w-[600px] h-[600px] rounded-full bg-red-800/20 blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />
-          <div className="absolute -bottom-28 -right-36 w-[500px] h-[500px] rounded-full bg-green-600/15 blur-[120px] animate-[pulse_10s_ease-in-out_infinite_2s]" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] rounded-full bg-amber-600/10 blur-[100px] animate-[pulse_12s_ease-in-out_infinite_4s]" />
+          <div className="absolute -top-28 -left-36 w-[600px] h-[600px] rounded-full bg-red-800/20 blur-[120px] motion-safe:animate-[pulse_8s_ease-in-out_infinite]" />
+          <div className="absolute -bottom-28 -right-36 w-[500px] h-[500px] rounded-full bg-green-600/15 blur-[120px] motion-safe:animate-[pulse_10s_ease-in-out_infinite_2s]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] rounded-full bg-amber-600/10 blur-[100px] motion-safe:animate-[pulse_12s_ease-in-out_infinite_4s]" />
         </div>
 
         {/* Subtle grid overlay */}
@@ -592,8 +592,8 @@ export default function Landing() {
       {showRecordsSpotlight && (
         <section className="relative overflow-hidden bg-gradient-to-br from-blue-950 via-blue-900 to-blue-900">
           <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-            <div className="absolute -bottom-16 -left-20 w-[400px] h-[400px] rounded-full bg-blue-600/15 blur-[100px] animate-[pulse_9s_ease-in-out_infinite]" />
-            <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-indigo-500/10 blur-[80px] animate-[pulse_11s_ease-in-out_infinite_3s]" />
+            <div className="absolute -bottom-16 -left-20 w-[400px] h-[400px] rounded-full bg-blue-600/15 blur-[100px] motion-safe:animate-[pulse_9s_ease-in-out_infinite]" />
+            <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-indigo-500/10 blur-[80px] motion-safe:animate-[pulse_11s_ease-in-out_infinite_3s]" />
           </div>
           <div className="relative max-w-6xl mx-auto px-6 py-14 md:py-20 flex flex-col md:flex-row md:items-center gap-8">
             <div className="flex-1">
@@ -721,8 +721,8 @@ export default function Landing() {
       {showCommunityCta && (
         <section className="relative overflow-hidden bg-gradient-to-br from-blue-900/60 via-background to-blue-900/30 border-t border-white/5 px-6 py-20 md:py-28 text-center">
           <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-            <div className="absolute top-0 left-1/4 w-[400px] h-[400px] rounded-full bg-indigo-600/10 blur-[100px] animate-[pulse_10s_ease-in-out_infinite]" />
-            <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] rounded-full bg-blue-700/10 blur-[80px] animate-[pulse_8s_ease-in-out_infinite_3s]" />
+            <div className="absolute top-0 left-1/4 w-[400px] h-[400px] rounded-full bg-indigo-600/10 blur-[100px] motion-safe:animate-[pulse_10s_ease-in-out_infinite]" />
+            <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] rounded-full bg-blue-700/10 blur-[80px] motion-safe:animate-[pulse_8s_ease-in-out_infinite_3s]" />
           </div>
           <div className="relative z-10 max-w-xl mx-auto">
             <div className="flex items-center justify-center gap-3 mb-4">

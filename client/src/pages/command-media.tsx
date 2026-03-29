@@ -253,7 +253,7 @@ export default function CommandMedia() {
       {isLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="border border-border rounded-lg overflow-hidden animate-pulse">
+            <div key={i} className="border border-border rounded-lg overflow-hidden motion-safe:animate-pulse">
               <div className="h-28 bg-muted" />
               <div className="p-2 space-y-1.5">
                 <div className="h-2.5 bg-muted rounded w-3/4" />

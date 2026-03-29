@@ -167,8 +167,9 @@ function Sidebar({
 
   if (collapsible === "none") {
     return (
-      <div
+      <aside
         data-slot="sidebar"
+        aria-label="Sidebar"
         className={cn(
           "bg-sidebar text-sidebar-foreground flex h-full w-[var(--sidebar-width)] flex-col",
           className
@@ -176,7 +177,7 @@ function Sidebar({
         {...props}
       >
         {children}
-      </div>
+      </aside>
     )
   }
 
@@ -206,13 +207,14 @@ function Sidebar({
   }
 
   return (
-    <div
+    <aside
       className="group peer text-sidebar-foreground hidden md:block"
       data-state={state}
       data-collapsible={state === "collapsed" ? collapsible : ""}
       data-variant={variant}
       data-side={side}
       data-slot="sidebar"
+      aria-label="Sidebar"
     >
       {/* This is what handles the sidebar gap on desktop */}
       <div
@@ -249,7 +251,7 @@ function Sidebar({
           {children}
         </div>
       </div>
-    </div>
+    </aside>
   )
 }
 

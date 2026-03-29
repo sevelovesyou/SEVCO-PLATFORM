@@ -1168,7 +1168,7 @@ function SubscriptionsTab() {
           </TableHeader>
           <TableBody>
             {isLoading && (
-              <TableRow><TableCell colSpan={7}><div className="h-8 bg-muted/40 rounded animate-pulse" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={7}><div className="h-8 bg-muted/40 rounded motion-safe:animate-pulse" /></TableCell></TableRow>
             )}
             {!isLoading && subs.length === 0 && (
               <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground text-sm py-8">No subscriptions yet. Click "Add Subscription" to get started.</TableCell></TableRow>

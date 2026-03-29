@@ -1841,6 +1841,7 @@ export default function CommandSettings() {
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Clear search"
             className="absolute right-1 h-7 w-7 text-muted-foreground hover:text-foreground"
             onClick={() => setSearchQuery("")}
             data-testid="button-clear-search"
@@ -3338,7 +3339,7 @@ export default function CommandSettings() {
                   {brandLoading ? (
                     <div className="space-y-2">
                       {[1, 2, 3].map((i) => (
-                        <div key={i} className="h-12 bg-muted animate-pulse rounded-lg" />
+                        <div key={i} className="h-12 bg-muted motion-safe:animate-pulse rounded-lg" />
                       ))}
                     </div>
                   ) : brandAssets.length === 0 ? (
@@ -3899,7 +3900,7 @@ function HostingSection() {
                 data-testid="button-refresh-vps"
                 aria-label="Refresh"
               >
-                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+                <RefreshCw className={`h-4 w-4 ${isFetching ? "motion-safe:animate-spin" : ""}`} />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Refresh</TooltipContent>

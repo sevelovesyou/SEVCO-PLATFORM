@@ -293,7 +293,7 @@ export function RichTextToolbar({ editor, uploading, onImageButtonClick }: {
             title="Upload image"
             data-testid="rte-image"
           >
-            {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5" />}
+            {uploading ? <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin" /> : <ImageIcon className="h-3.5 w-3.5" />}
           </ToolbarButton>
         </>
       )}

@@ -538,7 +538,7 @@ export function NewsEditorial({
                   </div>
                   <span className="text-xs font-bold text-white/60 uppercase tracking-widest">Live from X</span>
                   <span className="ml-auto flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-400 motion-safe:animate-pulse" />
                     <span className="text-[10px] text-white/30 font-medium">Live</span>
                   </span>
                 </div>
@@ -594,6 +594,11 @@ export function NewsEditorial({
         }
         .animate-marquee {
           animation: marquee linear infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .animate-marquee {
+            animation: none;
+          }
         }
       `}</style>
     </div>

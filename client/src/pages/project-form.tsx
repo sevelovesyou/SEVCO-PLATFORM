@@ -876,9 +876,9 @@ export function ProjectEditPage() {
   if (isLoading) {
     return (
       <div className="max-w-xl mx-auto p-4 md:p-6 space-y-4">
-        <div className="h-5 w-20 bg-muted rounded animate-pulse" />
-        <div className="h-8 w-1/2 bg-muted rounded animate-pulse" />
-        <div className="h-64 bg-muted rounded-xl animate-pulse" />
+        <div className="h-5 w-20 bg-muted rounded motion-safe:animate-pulse" />
+        <div className="h-8 w-1/2 bg-muted rounded motion-safe:animate-pulse" />
+        <div className="h-64 bg-muted rounded-xl motion-safe:animate-pulse" />
       </div>
     );
   }

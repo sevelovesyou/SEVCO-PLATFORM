@@ -274,7 +274,7 @@ export default function MessagesPage() {
               data-testid="button-refresh-inbox"
               title="Refresh"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${emailsFetching || countsFetching ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-3.5 w-3.5 ${emailsFetching || countsFetching ? "motion-safe:animate-spin" : ""}`} />
             </Button>
             <Button
               variant="ghost"

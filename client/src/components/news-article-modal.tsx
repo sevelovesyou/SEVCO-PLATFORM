@@ -20,7 +20,7 @@ function StreamingText({ text }: { text: string }) {
   return (
     <span className="inline">
       {text}
-      <span className="inline-block w-1.5 h-4 bg-primary/60 animate-pulse ml-0.5 align-middle" />
+      <span className="inline-block w-1.5 h-4 bg-primary/60 motion-safe:animate-pulse ml-0.5 align-middle" />
     </span>
   );
 }
@@ -240,7 +240,7 @@ export function ArticleDetailModal({ article, onClose, aiSettings }: ArticleModa
                 className="gap-1.5 text-xs"
                 data-testid="button-generate-illustration"
               >
-                {imageMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ImagePlus className="h-3 w-3" />}
+                {imageMutation.isPending ? <Loader2 className="h-3 w-3 motion-safe:animate-spin" /> : <ImagePlus className="h-3 w-3" />}
                 {imageMutation.isPending ? "Generating..." : "Generate Custom Illustration"}
               </Button>
               {imageMutation.isError && <span className="text-xs text-destructive">Generation failed</span>}
@@ -285,7 +285,7 @@ export function ArticleDetailModal({ article, onClose, aiSettings }: ArticleModa
                   {isAsking && !streamedAnswer && (
                     <div className="text-sm">
                       <div className="inline-block rounded-lg px-3 py-2 bg-muted border">
-                        <Loader2 className="h-3 w-3 animate-spin inline" /> Thinking...
+                        <Loader2 className="h-3 w-3 motion-safe:animate-spin inline" /> Thinking...
                       </div>
                     </div>
                   )}

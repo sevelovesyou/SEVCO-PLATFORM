@@ -148,7 +148,7 @@ function BreakingBanner() {
 
   return (
     <div className="w-full bg-red-600 text-white px-4 py-2.5 flex items-center gap-3 rounded-xl" data-testid="breaking-news-banner">
-      <Zap className="h-4 w-4 shrink-0 animate-pulse" />
+      <Zap className="h-4 w-4 shrink-0 motion-safe:animate-pulse" />
       <Badge className="bg-white text-red-600 text-[10px] font-bold px-2 py-0.5 shrink-0 hover:bg-white">BREAKING</Badge>
       {breaking.source && <span className="text-xs font-semibold shrink-0 opacity-90">{breaking.source}</span>}
       <p className="text-sm font-medium line-clamp-1 flex-1">{breaking.title}</p>
@@ -233,7 +233,7 @@ function AiSearchResults({ query, aiSettings }: { query: string; aiSettings: New
     return (
       <div className="border rounded-xl p-4 bg-primary/5 mb-4">
         <div className="flex items-center gap-2 text-sm text-primary">
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
           <Sparkles className="h-3.5 w-3.5" />
           <span>Grok is analyzing your query…</span>
         </div>

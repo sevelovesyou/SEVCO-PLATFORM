@@ -6,9 +6,9 @@ export default function NotFound() {
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center bg-[#0a0a12] text-white overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-        <div className="absolute -top-28 -left-36 w-[600px] h-[600px] rounded-full bg-red-800/20 blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />
-        <div className="absolute -bottom-28 -right-36 w-[500px] h-[500px] rounded-full bg-blue-600/15 blur-[120px] animate-[pulse_10s_ease-in-out_infinite_2s]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] rounded-full bg-blue-800/10 blur-[100px] animate-[pulse_12s_ease-in-out_infinite_4s]" />
+        <div className="absolute -top-28 -left-36 w-[600px] h-[600px] rounded-full bg-red-800/20 blur-[120px] motion-safe:animate-[pulse_8s_ease-in-out_infinite]" />
+        <div className="absolute -bottom-28 -right-36 w-[500px] h-[500px] rounded-full bg-blue-600/15 blur-[120px] motion-safe:animate-[pulse_10s_ease-in-out_infinite_2s]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] rounded-full bg-blue-800/10 blur-[100px] motion-safe:animate-[pulse_12s_ease-in-out_infinite_4s]" />
       </div>
 
       <div

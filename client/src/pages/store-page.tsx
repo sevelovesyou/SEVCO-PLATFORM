@@ -320,8 +320,8 @@ export default function StorePage() {
       >
         {/* Animated gradient blobs */}
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute -top-20 -left-28 w-[500px] h-[500px] rounded-full bg-red-800/20 blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />
-          <div className="absolute -bottom-20 -right-28 w-[400px] h-[400px] rounded-full bg-amber-500/15 blur-[100px] animate-[pulse_10s_ease-in-out_infinite_2s]" />
+          <div className="absolute -top-20 -left-28 w-[500px] h-[500px] rounded-full bg-red-800/20 blur-[120px] motion-safe:animate-[pulse_8s_ease-in-out_infinite]" />
+          <div className="absolute -bottom-20 -right-28 w-[400px] h-[400px] rounded-full bg-amber-500/15 blur-[100px] motion-safe:animate-[pulse_10s_ease-in-out_infinite_2s]" />
         </div>
 
         {/* Subtle grid overlay */}
@@ -495,8 +495,8 @@ export default function StorePage() {
         data-testid="section-store-cta"
       >
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute top-0 left-1/3 w-[400px] h-[300px] rounded-full bg-red-800/10 blur-[100px] animate-[pulse_9s_ease-in-out_infinite]" />
-          <div className="absolute bottom-0 right-1/3 w-[300px] h-[200px] rounded-full bg-amber-500/10 blur-[80px] animate-[pulse_11s_ease-in-out_infinite_2s]" />
+          <div className="absolute top-0 left-1/3 w-[400px] h-[300px] rounded-full bg-red-800/10 blur-[100px] motion-safe:animate-[pulse_9s_ease-in-out_infinite]" />
+          <div className="absolute bottom-0 right-1/3 w-[300px] h-[200px] rounded-full bg-amber-500/10 blur-[80px] motion-safe:animate-[pulse_11s_ease-in-out_infinite_2s]" />
         </div>
         <div className="relative z-10 max-w-xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight mb-3 text-foreground">

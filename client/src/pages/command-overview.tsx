@@ -497,7 +497,7 @@ function LatestChangelogCard({ entry, isLoading, onRefresh }: { entry: Changelog
             disabled={isLoading}
             data-testid="button-refresh-changelog"
           >
-            <RefreshCw className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-3 w-3 ${isLoading ? "motion-safe:animate-spin" : ""}`} />
             Refresh
           </Button>
         )}

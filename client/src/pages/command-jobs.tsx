@@ -333,7 +333,7 @@ function ApplicationsPanel({ job, onClose }: { job: Job; onClose: () => void }) 
 
       {isLoading ? (
         <div className="space-y-2">
-          {[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-lg bg-muted animate-pulse" />)}
+          {[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-lg bg-muted motion-safe:animate-pulse" />)}
         </div>
       ) : !applications?.length ? (
         <div className="text-center py-10 text-muted-foreground">
@@ -457,7 +457,7 @@ function AllApplicantsList({ jobs }: { jobs: Job[] | undefined }) {
 
       {isLoading ? (
         <div className="space-y-2">
-          {[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}
+          {[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-xl bg-muted motion-safe:animate-pulse" />)}
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
@@ -633,7 +633,7 @@ export default function CommandJobs() {
 
       {isLoading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />)}
+          {[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-xl bg-muted motion-safe:animate-pulse" />)}
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">

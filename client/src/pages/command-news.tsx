@@ -179,7 +179,7 @@ function CategoryDialog({ open, onClose, editing }: CategoryDialogProps) {
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={mutation.isPending} data-testid="button-save-category">
-              {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+              {mutation.isPending ? <Loader2 className="h-4 w-4 motion-safe:animate-spin" /> : "Save"}
             </Button>
           </DialogFooter>
         </form>
@@ -220,7 +220,7 @@ function PreviewDialog({ open, onClose, category }: PreviewDialogProps) {
         <div className="mt-2">
           {isLoading ? (
             <div className="flex items-center justify-center py-12 gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
               <span className="text-sm">Fetching live feed…</span>
             </div>
           ) : !articles?.length ? (
@@ -307,7 +307,7 @@ function ApiSettingsCard() {
       <div className="flex items-center gap-2">
         {statusLoading ? (
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Checking status…
+            <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin" /> Checking status…
           </span>
         ) : apiStatus?.hasKey ? (
           <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
@@ -350,7 +350,7 @@ function ApiSettingsCard() {
               disabled={saveKeyMutation.isPending}
               data-testid="button-save-api-key"
             >
-              {saveKeyMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
+              {saveKeyMutation.isPending ? <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin" /> : "Save"}
             </Button>
           </div>
           <p className="text-[11px] text-muted-foreground">
@@ -443,7 +443,7 @@ function XFeedTab() {
 
         {isLoading ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading settings…
+            <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin" /> Loading settings…
           </div>
         ) : (
           <form onSubmit={form.handleSubmit((d) => saveMutation.mutate(d))} className="space-y-4">
@@ -553,7 +553,7 @@ function XFeedTab() {
               disabled={saveMutation.isPending}
               data-testid="button-save-xfeed-settings"
             >
-              {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+              {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin mr-1.5" /> : null}
               Save X Feed Settings
             </Button>
           </form>
@@ -590,7 +590,7 @@ function CategoryXQueryEditor() {
     return (
       <Card className="p-4">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading categories…
+          <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin" /> Loading categories…
         </div>
       </Card>
     );
@@ -680,7 +680,7 @@ function CategoryXQueryRow({
               disabled={isSaving}
               data-testid={`button-xquery-save-${category.id}`}
             >
-              {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+              {isSaving ? <Loader2 className="h-3 w-3 motion-safe:animate-spin" /> : "Save"}
             </Button>
           )}
         </div>
@@ -738,7 +738,7 @@ function XQueryPreviewDialog({
         <div className="mt-2">
           {isLoading ? (
             <div className="flex items-center justify-center py-12 gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
               <span className="text-sm">Fetching X feed preview…</span>
             </div>
           ) : !articles?.length ? (
@@ -874,7 +874,7 @@ function AISettingsTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12 gap-2 text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
         <span className="text-sm">Loading AI settings…</span>
       </div>
     );
@@ -1078,7 +1078,7 @@ function AISettingsTab() {
         className="gap-1.5"
         data-testid="button-save-ai-settings"
       >
-        {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+        {saveMutation.isPending ? <Loader2 className="h-4 w-4 motion-safe:animate-spin" /> : <Sparkles className="h-4 w-4" />}
         Save AI Settings
       </Button>
     </div>
@@ -1109,7 +1109,7 @@ function AnalyticsTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12 gap-2 text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
         <span className="text-sm">Loading analytics…</span>
       </div>
     );
@@ -1381,6 +1381,7 @@ function SortableCategoryRow({
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Preview feed"
             className="h-7 w-7 text-muted-foreground hover:text-foreground"
             onClick={onPreview}
             data-testid={`button-preview-${cat.id}`}
@@ -1391,6 +1392,7 @@ function SortableCategoryRow({
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Edit category"
             className="h-7 w-7 text-muted-foreground hover:text-foreground"
             onClick={onEdit}
             data-testid={`button-edit-${cat.id}`}
@@ -1401,6 +1403,7 @@ function SortableCategoryRow({
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Delete category"
             className="h-7 w-7 text-muted-foreground hover:text-destructive"
             onClick={onDelete}
             data-testid={`button-delete-${cat.id}`}
@@ -1571,7 +1574,7 @@ function CategoriesTab() {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12 gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
           <span className="text-sm">Loading categories…</span>
         </div>
       ) : !categories?.length ? (

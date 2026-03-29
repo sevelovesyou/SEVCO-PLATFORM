@@ -484,7 +484,7 @@ function NavSettingsTab({ categories }: { categories: string[] }) {
   if (isLoading) {
     return (
       <div className="space-y-3">
-        {[1, 2, 3].map((i) => <div key={i} className="h-10 rounded-xl bg-muted animate-pulse" />)}
+        {[1, 2, 3].map((i) => <div key={i} className="h-10 rounded-xl bg-muted motion-safe:animate-pulse" />)}
       </div>
     );
   }
@@ -671,7 +671,7 @@ export default function CommandServices() {
           {isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />
+                <div key={i} className="h-16 rounded-xl bg-muted motion-safe:animate-pulse" />
               ))}
             </div>
           ) : total === 0 ? (

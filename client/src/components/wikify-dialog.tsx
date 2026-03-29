@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { BookOpen, Loader2 } from "lucide-react";
+import { BookOpen, Loader2, Sparkles } from "lucide-react";
 import type { NewsArticle } from "@/components/news-article-card";
 import { Link } from "wouter";
 
@@ -54,6 +55,7 @@ type WikifyDialogProps = WikifyDialogArticleProps | WikifyDialogPostProps;
 export function WikifyDialog({ open, onClose, article, postTitle, postContent, postContext }: WikifyDialogProps) {
   const { toast } = useToast();
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
+  const [aiDraftNotice, setAiDraftNotice] = useState(false);
 
   const defaultTitle = article ? article.title : (postTitle ?? "");
   const defaultContent = article
@@ -66,6 +68,27 @@ export function WikifyDialog({ open, onClose, article, postTitle, postContent, p
       title: defaultTitle,
       categorySlug: "general",
       content: defaultContent,
+    },
+  });
+
+  const aiWikifyMutation = useMutation({
+    mutationFn: async () => {
+      if (!article) throw new Error("AI Wikify only available for news articles");
+      const res = await apiRequest("POST", "/api/news/wikify-ai", { url: article.link, title: article.title });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "Unknown error" }));
+        throw new Error((err as any).message ?? "AI generation failed");
+      }
+      return res.json() as Promise<{ markdown: string; wikititle: string }>;
+    },
+    onSuccess: (data) => {
+      form.setValue("title", data.wikititle);
+      form.setValue("content", data.markdown);
+      setAiDraftNotice(true);
+      toast({ title: "AI draft ready", description: "Review and edit the generated content before publishing." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "AI generation failed", description: err.message + " — using manual mode.", variant: "destructive" });
     },
   });
 
@@ -104,6 +127,7 @@ export function WikifyDialog({ open, onClose, article, postTitle, postContent, p
 
   function handleClose() {
     setCreatedSlug(null);
+    setAiDraftNotice(false);
     form.reset();
     onClose();
   }
@@ -148,6 +172,41 @@ export function WikifyDialog({ open, onClose, article, postTitle, postContent, p
           onSubmit={form.handleSubmit((data) => createMutation.mutate(data))}
           className="space-y-4"
         >
+          {article && (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+              {aiWikifyMutation.isPending ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-primary font-medium">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Generating AI wiki draft…
+                  </div>
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-4/5" />
+                  <Skeleton className="h-3 w-3/5" />
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-xs text-muted-foreground">
+                    {aiDraftNotice
+                      ? <span className="text-amber-600 dark:text-amber-400 font-medium">✦ AI-generated draft — please review before publishing</span>
+                      : "Let AI read the article and write a structured wiki draft for you."}
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={aiDraftNotice ? "outline" : "default"}
+                    onClick={() => aiWikifyMutation.mutate()}
+                    data-testid="button-wikify-ai-generate"
+                    className="shrink-0 gap-1.5"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {aiDraftNotice ? "Regenerate" : "✨ Generate with AI"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="space-y-1.5">
             <Label htmlFor="wikify-title">Title</Label>
             <Input

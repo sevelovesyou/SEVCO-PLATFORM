@@ -4580,6 +4580,139 @@ export async function registerRoutes(
     }
   });
 
+  const newsSummaryCache = new Map<string, { summary: string; cachedAt: number }>();
+  const NEWS_SUMMARY_CACHE_TTL_MS = 60 * 60 * 1000;
+
+  app.get("/api/news/summary", async (req, res) => {
+    const url = String(req.query.url ?? "").trim();
+    if (!url) return res.status(400).json({ message: "url param required" });
+
+    const cached = newsSummaryCache.get(url);
+    if (cached && Date.now() - cached.cachedAt < NEWS_SUMMARY_CACHE_TTL_MS) {
+      return res.json({ summary: cached.summary });
+    }
+
+    const apiKey = process.env.OPENROUTER_API_KEY ?? "";
+    if (!apiKey) return res.status(503).json({ message: "AI service not configured." });
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const pageRes = await fetch(url, {
+        signal: controller.signal,
+        headers: { "User-Agent": "SEVCO-News-Bot/1.0" },
+      }).catch(() => null);
+      clearTimeout(timeout);
+
+      let articleText = "";
+      if (pageRes && pageRes.ok) {
+        const html = await pageRes.text();
+        articleText = html
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
+          .replace(/<[^>]+>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 3000);
+      }
+
+      if (!articleText) return res.status(422).json({ message: "Could not extract article content." });
+
+      const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "x-ai/grok-3-mini",
+          messages: [
+            {
+              role: "user",
+              content: `Summarize this article in 2-3 sentences in an editorial style. Be concise and informative.\n\n${articleText}`,
+            },
+          ],
+          max_tokens: 150,
+        }),
+      });
+
+      if (!aiRes.ok) {
+        const errText = await aiRes.text();
+        return res.status(502).json({ message: `AI error: ${errText.slice(0, 200)}` });
+      }
+
+      const aiData = await aiRes.json() as { choices?: Array<{ message?: { content?: string } }> };
+      const summary = aiData?.choices?.[0]?.message?.content?.trim() ?? "";
+      if (!summary) return res.status(502).json({ message: "AI returned empty summary." });
+
+      newsSummaryCache.set(url, { summary, cachedAt: Date.now() });
+      res.json({ summary });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/news/wikify-ai", requireAuth, async (req, res) => {
+    const { url, title } = req.body as { url?: string; title?: string };
+    if (!url || !title) return res.status(400).json({ message: "url and title are required" });
+
+    const apiKey = process.env.OPENROUTER_API_KEY ?? "";
+    if (!apiKey) return res.status(503).json({ message: "AI service not configured." });
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const pageRes = await fetch(url, {
+        signal: controller.signal,
+        headers: { "User-Agent": "SEVCO-News-Bot/1.0" },
+      }).catch(() => null);
+      clearTimeout(timeout);
+
+      let articleText = "";
+      if (pageRes && pageRes.ok) {
+        const html = await pageRes.text();
+        articleText = html
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
+          .replace(/<[^>]+>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 4000);
+      }
+
+      const prompt = articleText
+        ? `You are a professional wiki editor. Based on the following article about "${title}", write a complete wiki article in markdown format. Include:\n- An intro paragraph summarizing the topic\n- ## Key Points section with 4-6 bullet points\n- ## Background section with context\n- ## Sources section listing the original article\n\nArticle content:\n${articleText}\n\nOriginal URL: ${url}\n\nWrite the wiki article now:`
+        : `You are a professional wiki editor. Write a complete wiki article in markdown format about: "${title}". Include:\n- An intro paragraph\n- ## Key Points section with 4-6 bullet points\n- ## Background section\n- ## Sources section\n\nMake it informative and encyclopedic.`;
+
+      const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "x-ai/grok-3",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 1000,
+        }),
+      });
+
+      if (!aiRes.ok) {
+        const errText = await aiRes.text();
+        return res.status(502).json({ message: `AI error: ${errText.slice(0, 200)}` });
+      }
+
+      const aiData = await aiRes.json() as { choices?: Array<{ message?: { content?: string } }> };
+      const markdown = aiData?.choices?.[0]?.message?.content?.trim() ?? "";
+      if (!markdown) return res.status(502).json({ message: "AI returned empty content." });
+
+      const wikititle = title.replace(/\b\w/g, (c) => c.toUpperCase());
+      res.json({ markdown, wikititle });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   const aiImageCache = new Map<string, { url: string; generatedAt: number }>();
   const AI_IMAGE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 

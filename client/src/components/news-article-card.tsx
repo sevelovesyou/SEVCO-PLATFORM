@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
-import { BookOpen, ExternalLink, Bookmark } from "lucide-react";
+import { BookOpen, ExternalLink, Bookmark, Sparkles, Loader2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePermission } from "@/hooks/use-permission";
@@ -163,6 +163,58 @@ function SourceWithFavicon({ article }: { article: NewsArticle }) {
   );
 }
 
+function ArticleSummaryPanel({ articleUrl }: { articleUrl: string }) {
+  const [open, setOpen] = useState(false);
+
+  const { data, isFetching, isError } = useQuery<{ summary: string }>({
+    queryKey: ["/api/news/summary", articleUrl],
+    queryFn: () => fetch(`/api/news/summary?url=${encodeURIComponent(articleUrl)}`).then((r) => {
+      if (!r.ok) throw new Error("Failed to fetch summary");
+      return r.json();
+    }),
+    enabled: open,
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+  });
+
+  return (
+    <div className="mt-1.5">
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((v) => !v); }}
+        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors group"
+        data-testid="button-summary-toggle"
+      >
+        <Sparkles className="h-2.5 w-2.5 text-primary/70" />
+        <span className="font-medium">Summary ✦</span>
+        <ChevronDown className={`h-2.5 w-2.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${open ? "max-h-40 opacity-100 mt-1.5" : "max-h-0 opacity-0"}`}
+        data-testid="panel-summary"
+      >
+        {isFetching ? (
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground py-1">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>Generating summary…</span>
+          </div>
+        ) : isError ? (
+          <p className="text-[10px] text-destructive py-1">Could not generate summary for this article.</p>
+        ) : data?.summary ? (
+          <div className="rounded-md bg-primary/5 border border-primary/10 px-2.5 py-2">
+            <p className="text-[11px] text-foreground leading-relaxed">{data.summary}</p>
+            <span className="inline-flex items-center gap-0.5 mt-1 text-[9px] text-primary/60 font-medium">
+              <Sparkles className="h-2 w-2" />
+              AI
+            </span>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function NewsArticleCard({ article, variant = "medium", accentColor, categoryLabel }: NewsArticleCardProps) {
   const { role } = usePermission();
   const [wikifyOpen, setWikifyOpen] = useState(false);
@@ -225,6 +277,7 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
   }
 
   const imageHeightClass = variant === "large" ? "aspect-[16/7]" : variant === "medium" ? "aspect-video" : "aspect-[4/3]";
+  const showSummary = variant === "large" || variant === "medium";
 
   return (
     <>
@@ -266,6 +319,8 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
               <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{article.description}</p>
             )}
           </a>
+
+          {showSummary && <ArticleSummaryPanel articleUrl={article.link} />}
 
           <div className="flex items-center justify-between mt-2">
             <span className="text-[11px] text-muted-foreground flex items-center gap-1 min-w-0">

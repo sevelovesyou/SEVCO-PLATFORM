@@ -1,5 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import { BookOpen, ExternalLink, Bookmark, Sparkles, Loader2, ChevronDown, TrendingUp, Eye } from "lucide-react";
+import { SiX } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePermission } from "@/hooks/use-permission";
@@ -20,6 +21,12 @@ export type NewsArticle = {
   aiImageUrl?: string | null;
   aiBlurb?: string;
   aiInsight?: string;
+  grokSummary?: string;
+  authorHandle?: string;
+  likeCount?: number;
+  retweetCount?: number;
+  replyCount?: number;
+  sourceType?: "x";
   category?: string;
 };
 
@@ -147,6 +154,19 @@ function useCardAiImage(article: NewsArticle) {
   return { displayUrl, aiImageUrl, isGenerating, handleImageError };
 }
 
+function getGradientPlaceholder(title: string): string {
+  const colors = [
+    ["#1a1a2e", "#16213e"], ["#0f3460", "#1a1a2e"], ["#16213e", "#0f3460"],
+    ["#1b1b2f", "#162447"], ["#2b2d42", "#1a1a2e"],
+  ];
+  const idx = title.length % colors.length;
+  const [c1, c2] = colors[idx];
+  const label = title.slice(0, 60).replace(/"/g, "'").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200' viewBox='0 0 400 200'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='${encodeURIComponent(c1)}'/%3E%3Cstop offset='1' stop-color='${encodeURIComponent(c2)}'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='200' fill='url(%23g)'/%3E%3Ctext x='200' y='85' text-anchor='middle' fill='%23ffffff22' font-size='11' font-family='sans-serif' font-weight='bold'%3EX%3C/text%3E%3Ctext x='200' y='115' text-anchor='middle' fill='%23ffffff70' font-size='12' font-family='sans-serif'%3E${encodeURIComponent(label)}%3C/text%3E%3C/svg%3E`;
+}
+
+const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200' viewBox='0 0 400 200'%3E%3Crect width='400' height='200' fill='%231a1a2e'/%3E%3C/svg%3E";
+
 function formatRelativeTime(pubDate: string): string {
   try {
     const date = new Date(pubDate);
@@ -163,14 +183,6 @@ function estimateReadTime(text: string): number {
   return Math.max(1, Math.ceil(wordCount / 200));
 }
 
-function getFaviconUrl(url: string): string | null {
-  try {
-    const domain = new URL(url).hostname;
-    return `https://www.google.com/s2/favicons?domain=${domain}&sz=16`;
-  } catch {
-    return null;
-  }
-}
 
 type CardVariant = "large" | "medium" | "small" | "compact";
 
@@ -274,18 +286,11 @@ function BookmarkButton({ article, categoryLabel, size = "sm" }: { article: News
 }
 
 function SourceWithFavicon({ article }: { article: NewsArticle }) {
-  const faviconUrl = getFaviconUrl(article.link);
+  const handle = article.authorHandle;
   return (
     <span className="flex items-center gap-1 min-w-0">
-      {faviconUrl && (
-        <img
-          src={faviconUrl}
-          alt=""
-          className="h-3 w-3 rounded-sm shrink-0 object-contain"
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-        />
-      )}
-      <span className="truncate">{article.source}</span>
+      <SiX className="h-2.5 w-2.5 shrink-0 opacity-60" />
+      <span className="truncate">{handle || article.source}</span>
     </span>
   );
 }
@@ -338,6 +343,20 @@ function ArticleSummaryPanel({ articleUrl }: { articleUrl: string }) {
           </div>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+function GrokSummaryBadge({ summary }: { summary: string }) {
+  return (
+    <div className="mt-1.5 rounded-md bg-primary/5 border border-primary/10 px-2.5 py-1.5" data-testid="panel-grok-summary">
+      <div className="flex items-start gap-1.5">
+        <Sparkles className="h-2.5 w-2.5 text-primary/70 mt-0.5 shrink-0" />
+        <p className="text-[11px] text-foreground leading-relaxed">{summary}</p>
+      </div>
+      <span className="inline-flex items-center gap-0.5 mt-0.5 text-[9px] text-primary/60 font-medium">
+        Grok AI
+      </span>
     </div>
   );
 }
@@ -411,7 +430,11 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
                   onError={handleImageError}
                 />
               ) : (
-                <ImageSkeleton />
+                <img
+                  src={getGradientPlaceholder(article.title)}
+                  alt={article.title}
+                  className="w-full h-full object-cover"
+                />
               )}
               {isGenerating && !displayUrl && (
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -474,7 +497,11 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
                 onError={handleImageError}
               />
             ) : (
-              <ImageSkeleton className={imageHeightClass} />
+              <img
+                src={getGradientPlaceholder(article.title)}
+                alt={article.title}
+                className="w-full h-full object-cover"
+              />
             )}
           </a>
           {isGenerating && !displayUrl && (
@@ -520,7 +547,11 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
             )}
           </a>
 
-          {showSummary && <ArticleSummaryPanel articleUrl={article.link} />}
+          {article.grokSummary ? (
+            <GrokSummaryBadge summary={article.grokSummary} />
+          ) : (
+            showSummary && <ArticleSummaryPanel articleUrl={article.link} />
+          )}
 
           <AiInsightPanel article={article} />
 

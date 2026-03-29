@@ -14,8 +14,8 @@ import {
 } from "./middleware/permissions";
 import type { Role, InsertJob, InsertArticle } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema, updateUserTaskSchema, updateStaffTaskSchema, insertUserTaskSchema, insertStaffTaskSchema } from "@shared/schema";
-import { fetchNewsArticles, fetchGoogleNewsRSS, setGNewsApiKeyFromDb, setBlockedSourcesFromDb } from "./news";
-import { getNewsAiSettings, getMaxRequestsPerHour, getApiConfig, summarizeArticle as grokSummarize, generateNewsImage as grokImage, generateNewsImageUnchecked as grokImageUnchecked, askGrokAboutArticle, searchNewsWithGrok, generateDailyBriefing, generateTrendingCommentary, streamSummarizeArticle, streamAskGrok } from "./grok-news";
+import { fetchNewsArticles, generateGrokSummaryForTweet } from "./news";
+import { getNewsAiSettings, getMaxRequestsPerHour, getApiConfig, summarizeArticle as grokSummarize, generateNewsImage as grokImage, askGrokAboutArticle, searchNewsWithGrok, generateDailyBriefing, generateTrendingCommentary, streamSummarizeArticle, streamAskGrok } from "./grok-news";
 import { fetchUserTweets, searchTweets, isXConfigured, fetchCategoryNewsFromX } from "./x-api";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { sendContactEmail, sendContactReplyEmail, sendInvoiceEmail, sendTestEmail } from "./emailClient";
@@ -4636,14 +4636,12 @@ export async function registerRoutes(
 
       const aiSummariesEnabled = settings["news.ai.summariesEnabled"] === "true";
       const aiImageGenEnabled = settings["news.ai.imageGenEnabled"] === "true";
-      const sourceType = settings["news.x.sourceType"] || "both";
 
       const statsDate = settings["news.stats.date"] || "";
       const today = new Date().toISOString().slice(0, 10);
       const isToday = statsDate === today;
       const aiSummariesGeneratedToday = isToday ? (parseInt(settings["news.stats.aiSummariesToday"] || "0") || 0) : 0;
       const aiImagesGeneratedToday = isToday ? (parseInt(settings["news.stats.aiImagesToday"] || "0") || 0) : 0;
-      const articlesFetchedRss = isToday ? (parseInt(settings["news.stats.articlesFetchedRss"] || "0") || 0) : 0;
       const articlesFetchedX = isToday ? (parseInt(settings["news.stats.articlesFetchedX"] || "0") || 0) : 0;
 
       const mostReadCategories = [...categoryStats]
@@ -4660,11 +4658,11 @@ export async function registerRoutes(
         mostReadCategories,
         aiSummariesEnabled,
         aiImageGenEnabled,
-        sourceType,
+        sourceType: "x_only",
         articlesFetchedBySource: {
-          rss: articlesFetchedRss,
+          rss: 0,
           x: articlesFetchedX,
-          total: articlesFetchedRss + articlesFetchedX,
+          total: articlesFetchedX,
         },
         aiOperationsToday: {
           summaries: aiSummariesGeneratedToday,
@@ -4681,14 +4679,6 @@ export async function registerRoutes(
       const query = String(req.query.query ?? "");
       const limit = Math.min(parseInt(String(req.query.limit ?? "10")), 20);
       if (!query) return res.status(400).json({ message: "query param required" });
-      try {
-        const settings = await storage.getPlatformSettings();
-        const blockedSourcesRaw = settings["news.rss.blockedSources"] ?? "";
-        const dbBlockedSources = blockedSourcesRaw
-          ? blockedSourcesRaw.split(",").map((s: string) => s.trim()).filter(Boolean)
-          : [];
-        setBlockedSourcesFromDb(dbBlockedSources);
-      } catch {}
       const articles = await fetchNewsArticles(query, limit);
       const needsImage = articles.filter((a) => !a.imageUrl).slice(0, 10);
       if (needsImage.length > 0) {
@@ -4712,27 +4702,12 @@ export async function registerRoutes(
 
   app.get("/api/news/api-status", requireAuth, requireRole("admin"), async (_req, res) => {
     try {
-      const settings = await storage.getPlatformSettings();
-      const dbKey = settings["news.gNewsApiKey"] || null;
-      if (dbKey) setGNewsApiKeyFromDb(dbKey);
-      const hasEnvKey = !!process.env.GNEWS_API_KEY;
-      const hasDbKey = !!dbKey;
+      const xConfigured = !!process.env.X_BEARER_TOKEN;
       res.json({
-        usingGNews: hasEnvKey || hasDbKey,
-        source: hasEnvKey ? "env" : hasDbKey ? "db" : "none",
-        hasKey: hasEnvKey || hasDbKey,
+        usingX: xConfigured,
+        source: xConfigured ? "x" : "none",
+        hasKey: xConfigured,
       });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  app.put("/api/news/api-key", requireAuth, requireRole("admin"), async (req, res) => {
-    try {
-      const { gNewsApiKey } = req.body as { gNewsApiKey?: string };
-      await storage.setPlatformSettings({ "news.gNewsApiKey": gNewsApiKey ?? "" });
-      setGNewsApiKeyFromDb(gNewsApiKey || null);
-      res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -4750,22 +4725,44 @@ export async function registerRoutes(
           if (arr[i]) interleaved.push(arr[i]);
         }
       }
-      const sliced = interleaved.slice(0, 20);
-      const needsImage = sliced.filter((a) => !a.imageUrl).slice(0, 10);
-      if (needsImage.length > 0) {
+
+      const aiSettings = await getNewsAiSettings().catch(() => null);
+      if (aiSettings?.searchEnabled && cats.length > 0) {
         try {
-          const generated = await Promise.allSettled(
-            needsImage.map((a) => grokImageUnchecked(`editorial news thumbnail for: ${a.title}`, `feed-all-${a.link}`))
+          const primaryQuery = cats[0].query;
+          const grokResult = await searchNewsWithGrok(primaryQuery);
+          const grokArticles = await Promise.all(
+            grokResult.liveResults.map(async (r) => {
+              let imageUrl: string | null = null;
+              if (aiSettings.imagesEnabled) {
+                imageUrl = await grokImage(r.title, `grok-live:${r.url}`).catch(() => null);
+              }
+              return {
+                title: r.title,
+                link: r.url,
+                description: r.snippet || r.title,
+                pubDate: new Date().toISOString(),
+                source: "xAI Grok",
+                imageUrl,
+                sourceType: "x" as const,
+                grokSummary: r.snippet || undefined,
+              };
+            })
           );
-          needsImage.forEach((a, i) => {
-            const result = generated[i];
-            if (result.status === "fulfilled" && result.value) {
-              a.imageUrl = result.value;
-            }
-          });
-        } catch {}
+
+          const merged: unknown[] = [];
+          const maxMergeLen = Math.max(interleaved.length, grokArticles.length);
+          for (let i = 0; i < maxMergeLen; i++) {
+            if (interleaved[i]) merged.push(interleaved[i]);
+            if (grokArticles[i]) merged.push(grokArticles[i]);
+          }
+          res.json(merged.slice(0, 20));
+          return;
+        } catch {
+        }
       }
-      res.json(sliced);
+
+      res.json(interleaved.slice(0, 20));
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -4782,7 +4779,6 @@ export async function registerRoutes(
         statsCounterDate.date = today;
         await storage.setPlatformSetting("news.stats.aiSummariesToday", "0");
         await storage.setPlatformSetting("news.stats.aiImagesToday", "0");
-        await storage.setPlatformSetting("news.stats.articlesFetchedRss", "0");
         await storage.setPlatformSetting("news.stats.articlesFetchedX", "0");
         await storage.setPlatformSetting("news.stats.date", today);
       }
@@ -5414,7 +5410,6 @@ export async function registerRoutes(
     }
 
     let imageMode: "images_only" | "ai_generate" | "none" = "images_only";
-    let sourceType: "both" | "rss_only" | "x_only" = "both";
     let allowedAccounts: string[] = [];
     let blockedAccounts: string[] = [];
     let minEngagement = 0;
@@ -5425,7 +5420,6 @@ export async function registerRoutes(
     try {
       const settings = await storage.getPlatformSettings();
       imageMode = (settings["news.x.imageMode"] ?? "images_only") as typeof imageMode;
-      sourceType = (settings["news.x.sourceType"] ?? "both") as typeof sourceType;
       const allowedAccountsRaw = settings["news.x.allowedAccounts"] ?? "";
       const blockedAccountsRaw = settings["news.x.blockedAccounts"] ?? "";
       minEngagement = parseInt(settings["news.x.minEngagement"] ?? "0") || 0;
@@ -5437,11 +5431,6 @@ export async function registerRoutes(
         : [];
       globalImageGenEnabled = settings["news.ai.imageGenEnabled"] === "true";
       imagePromptTemplate = settings["news.ai.imagePromptTemplate"] || "";
-      const blockedSourcesRaw = settings["news.rss.blockedSources"] ?? "";
-      const dbBlockedSources = blockedSourcesRaw
-        ? blockedSourcesRaw.split(",").map((s: string) => s.trim()).filter(Boolean)
-        : [];
-      setBlockedSourcesFromDb(dbBlockedSources);
     } catch (settingsErr: any) {
       console.error("[news/x-feed] Failed to load platform settings, using defaults:", settingsErr.message);
     }
@@ -5469,10 +5458,11 @@ export async function registerRoutes(
     let xArticles: Array<{
       title: string; link: string; description: string;
       pubDate: string; source: string; imageUrl: string | null; sourceType: "x";
+      grokSummary?: string;
       authorHandle?: string; likeCount?: number; retweetCount?: number; replyCount?: number;
     }> = [];
 
-    if (xConfigured && cat && sourceType !== "rss_only") {
+    if (xConfigured && cat) {
       try {
         const tweets = await fetchCategoryNewsFromX(categoryName, cat?.query ?? categoryName, limit, {
           imagesOnly: effectiveImageMode === "images_only",
@@ -5496,6 +5486,7 @@ export async function registerRoutes(
             source: t.authorName,
             imageUrl,
             sourceType: "x" as const,
+            grokSummary: undefined as string | undefined,
             authorHandle: t.authorHandle,
             likeCount: t.likeCount,
             retweetCount: t.retweetCount,
@@ -5517,6 +5508,19 @@ export async function registerRoutes(
           }
         }
 
+        const xFeedAiSettings = await getNewsAiSettings().catch(() => null);
+        if (xFeedAiSettings?.summariesEnabled) {
+          try {
+            const summaryJobs = mapped.slice(0, 6).map(async (article, idx) => {
+              const summary = await generateGrokSummaryForTweet(article.description, `xfeed:${article.link}`).catch(() => null);
+              if (summary) mapped[idx].grokSummary = summary;
+            });
+            await Promise.allSettled(summaryJobs);
+          } catch (summaryErr: any) {
+            console.error("[news/x-feed] Grok summary generation failed:", summaryErr.message);
+          }
+        }
+
         mapped.sort((a, b) =>
           ((b.likeCount ?? 0) + (b.retweetCount ?? 0) + (b.replyCount ?? 0)) -
           ((a.likeCount ?? 0) + (a.retweetCount ?? 0) + (a.replyCount ?? 0))
@@ -5526,56 +5530,11 @@ export async function registerRoutes(
         const xAiGenCount = mapped.filter((m, i) => ai_generate_candidates.some(c => c.idx === i) && m.imageUrl).length;
         if (xAiGenCount > 0) incrementNewsStat("news.stats.aiImagesToday", xAiGenCount);
       } catch (xErr: any) {
-        console.error("[news/x-feed] X API fetch failed, falling back to RSS only:", xErr.message);
+        console.error("[news/x-feed] X API fetch failed:", xErr.message);
       }
     }
 
-    const query = cat?.query ?? categoryName;
-    let rssTagged: Array<{
-      title: string; link: string; description: string;
-      pubDate: string; source: string; imageUrl: string | null; sourceType: "rss";
-    }> = [];
-
-    if (sourceType !== "x_only") {
-      try {
-        const rssArticles = await fetchNewsArticles(query, limit);
-        const rssMapped = rssArticles.map((a) => ({
-          ...a,
-          sourceType: "rss" as const,
-        }));
-
-        const rssAiCandidates: Array<{ text: string; link: string; idx: number }> = [];
-        rssMapped.forEach((a, idx) => {
-          if (!a.imageUrl) rssAiCandidates.push({ text: a.title || a.description, link: a.link, idx });
-        });
-
-        const toGenerate = rssAiCandidates.slice(0, 10);
-        if (toGenerate.length > 0) {
-          try {
-            const generated = await Promise.all(
-              toGenerate.map((c) => generateImageForPost(c.text, c.link, imagePromptTemplate || undefined))
-            );
-            toGenerate.forEach((c, i) => {
-              if (generated[i]) rssMapped[c.idx].imageUrl = generated[i];
-            });
-          } catch (imgErr: any) {
-            console.error("[news/x-feed] AI image generation for RSS failed:", imgErr.message);
-          }
-        }
-
-        rssTagged = rssMapped;
-        incrementNewsStat("news.stats.articlesFetchedRss", rssMapped.length);
-        const rssAiGenCount = rssMapped.filter((m, idx) =>
-          rssAiCandidates?.some(c => c.idx === idx) && m.imageUrl
-        ).length;
-        if (rssAiGenCount > 0) incrementNewsStat("news.stats.aiImagesToday", rssAiGenCount);
-      } catch (rssErr: any) {
-        console.error("[news/x-feed] RSS fetch failed:", rssErr.message);
-      }
-    }
-
-    const merged = [...xArticles, ...rssTagged].slice(0, limit + 5);
-    res.json(merged);
+    res.json(xArticles.slice(0, limit + 5));
   });
 
   app.get("/api/news/breaking", async (_req, res) => {
@@ -5605,9 +5564,9 @@ export async function registerRoutes(
         }
       };
 
+      const xConfigured = isXConfigured();
       for (const cat of cats) {
         try {
-          const xConfigured = isXConfigured();
           if (xConfigured) {
             try {
               const tweets = await fetchCategoryNewsFromX(cat.name, cat.query, 20, {
@@ -5632,16 +5591,6 @@ export async function registerRoutes(
                     });
                   }
                 } catch {}
-              }
-            } catch {}
-          }
-
-          const articles = await fetchNewsArticles(cat.query, 10);
-          for (const article of articles) {
-            try {
-              const d = new Date(article.pubDate).getTime();
-              if (d >= twoHoursAgo) {
-                updateBest({ ...article, engagement: 0 });
               }
             } catch {}
           }

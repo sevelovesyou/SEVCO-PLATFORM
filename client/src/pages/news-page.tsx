@@ -167,7 +167,8 @@ function HeroSection({ article, aiSettings, onImageGenerated }: { article: NewsA
     if (!isNaN(d.getTime())) relativeTime = formatDistanceToNow(d, { addSuffix: true });
   } catch {}
 
-  const displayImage = aiImageUrl || article.imageUrl || null;
+  const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='400' viewBox='0 0 1200 400'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231a1a2e'/%3E%3Cstop offset='1' stop-color='%230f3460'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1200' height='400' fill='url(%23g)'/%3E%3C/svg%3E";
+  const displayImage = aiImageUrl || article.imageUrl || PLACEHOLDER;
 
   return (
     <div className="relative w-full rounded-2xl overflow-hidden border bg-card group" data-testid="news-hero">
@@ -606,13 +607,12 @@ function CategoryFilteredView({ categoryId, categories }: { categoryId: string; 
   }
 
   const allArticles = xFeedArticles ?? [];
-  const xOnlyArticles = allArticles.filter((a) => a.sourceType === "x");
   const uniqueXHandles = Array.from(
-    new Set(xOnlyArticles.map((a) => a.authorHandle).filter((h): h is string => !!h))
+    new Set(allArticles.map((a) => a.authorHandle).filter((h): h is string => !!h))
   );
 
   const filteredArticles = selectedHandle
-    ? allArticles.filter((a) => a.sourceType !== "x" || a.authorHandle === selectedHandle)
+    ? allArticles.filter((a) => a.authorHandle === selectedHandle)
     : allArticles;
 
   const heroArticle = filteredArticles[0];

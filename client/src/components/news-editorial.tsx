@@ -19,7 +19,7 @@ export type EditorialArticle = {
   pubDate: string;
   source: string;
   imageUrl: string | null;
-  sourceType?: "x" | "rss";
+  sourceType?: "x";
   authorHandle?: string;
   likeCount?: number;
   retweetCount?: number;
@@ -50,21 +50,11 @@ function formatTime(dateStr: string): string {
   }
 }
 
-function SourceBadge({ article, accentColor }: { article: EditorialArticle; accentColor?: string }) {
-  if (article.sourceType === "x") {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-white/90 border border-white/15">
-        <SiX className="h-2.5 w-2.5" />
-        X Post
-      </span>
-    );
-  }
+function SourceBadge({ article }: { article: EditorialArticle; accentColor?: string }) {
   return (
-    <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-white/90 border border-white/10"
-      style={{ backgroundColor: accentColor ? `${accentColor}33` : "rgba(255,255,255,0.08)" }}
-    >
-      {article.source || "News"}
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-white/90 border border-white/15">
+      <SiX className="h-2.5 w-2.5" />
+      {article.authorHandle || article.source || "X Post"}
     </span>
   );
 }
@@ -136,7 +126,7 @@ function HeroCard({ article, accentColor }: { article: EditorialArticle; accentC
         <h2 className="text-lg md:text-2xl font-black text-white leading-tight group-hover:text-red-300 transition-colors line-clamp-3 mb-3">
           {article.title}
         </h2>
-        {article.description && article.sourceType !== "x" && (
+        {article.description && (
           <p className="text-sm text-white/60 line-clamp-2 mb-3 leading-relaxed">{article.description}</p>
         )}
         <div className="flex items-center gap-4 text-[11px] text-white/40">
@@ -397,15 +387,12 @@ export function NewsEditorial({
     staleTime: 10 * 60 * 1000,
   });
 
-  const xArticles = articles.filter((a) => a.sourceType === "x");
   const uniqueXHandles = Array.from(
-    new Set(xArticles.map((a) => a.authorHandle).filter((h): h is string => !!h))
+    new Set(articles.map((a) => a.authorHandle).filter((h): h is string => !!h))
   );
 
   const filteredArticles = selectedHandle
-    ? articles.filter((a) =>
-        a.sourceType !== "x" || a.authorHandle === selectedHandle
-      )
+    ? articles.filter((a) => a.authorHandle === selectedHandle)
     : articles;
 
   if (newsCategories.length === 0) return null;

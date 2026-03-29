@@ -112,7 +112,7 @@ function CategoryDialog({ open, onClose, editing }: CategoryDialogProps) {
           <div className="space-y-1.5">
             <Label>Search Query</Label>
             <Input {...form.register("query")} placeholder="music industry OR entertainment news" data-testid="input-category-query" />
-            <p className="text-[11px] text-muted-foreground">Used as the Google News RSS search term.</p>
+            <p className="text-[11px] text-muted-foreground">Used as the X search term for this category's news feed.</p>
             {form.formState.errors.query && (
               <p className="text-xs text-destructive">{form.formState.errors.query.message}</p>
             )}
@@ -265,45 +265,18 @@ function PreviewDialog({ open, onClose, category }: PreviewDialogProps) {
   );
 }
 
-const apiKeySchema = z.object({
-  gNewsApiKey: z.string(),
-});
-type ApiKeyForm = z.infer<typeof apiKeySchema>;
-
 function ApiSettingsCard() {
-  const { toast } = useToast();
-  const [showKey, setShowKey] = useState(false);
-
-  const { data: apiStatus, isLoading: statusLoading, refetch: refetchStatus } = useQuery<{ usingGNews: boolean; source: string; hasKey: boolean }>({
+  const { data: apiStatus, isLoading: statusLoading } = useQuery<{ usingX: boolean; source: string; hasKey: boolean }>({
     queryKey: ["/api/news/api-status"],
     staleTime: 30000,
   });
 
-  const form = useForm<ApiKeyForm>({
-    resolver: zodResolver(apiKeySchema),
-    defaultValues: { gNewsApiKey: "" },
-  });
-
-  const saveKeyMutation = useMutation({
-    mutationFn: (data: ApiKeyForm) =>
-      apiRequest("PUT", "/api/news/api-key", { gNewsApiKey: data.gNewsApiKey }).then((r) => r.json()),
-    onSuccess: () => {
-      toast({ title: "API key saved" });
-      form.reset({ gNewsApiKey: "" });
-      refetchStatus();
-    },
-    onError: (err: Error) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    },
-  });
-
   return (
-    <Card className="p-4 space-y-4" data-testid="card-api-settings">
+    <Card className="p-4 space-y-3" data-testid="card-api-settings">
       <div className="flex items-center gap-2">
         <Key className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-semibold">API Settings</h3>
+        <h3 className="text-sm font-semibold">Source Status</h3>
       </div>
-
       <div className="flex items-center gap-2">
         {statusLoading ? (
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -312,72 +285,26 @@ function ApiSettingsCard() {
         ) : apiStatus?.hasKey ? (
           <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
             <CheckCircle2 className="h-3.5 w-3.5" />
-            Using GNews API — images included
+            X API connected — real-time posts and images
           </span>
         ) : (
           <span className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
             <XCircle className="h-3.5 w-3.5" />
-            Using Google News RSS — no images
+            X API not configured — set X_BEARER_TOKEN
           </span>
         )}
       </div>
-
-      <form onSubmit={form.handleSubmit((d) => saveKeyMutation.mutate(d))} className="space-y-3">
-        <div className="space-y-1.5">
-          <Label className="text-xs">GNews API Key</Label>
-          <div className="flex gap-2">
-            <Input
-              type={showKey ? "text" : "password"}
-              placeholder="Enter your GNews API key…"
-              className="text-sm flex-1"
-              data-testid="input-gnews-api-key"
-              {...form.register("gNewsApiKey")}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="shrink-0 text-xs"
-              onClick={() => setShowKey((v) => !v)}
-              data-testid="button-toggle-key-visibility"
-            >
-              {showKey ? "Hide" : "Show"}
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              className="shrink-0 text-xs"
-              disabled={saveKeyMutation.isPending}
-              data-testid="button-save-api-key"
-            >
-              {saveKeyMutation.isPending ? <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin" /> : "Save"}
-            </Button>
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Get a free key at{" "}
-            <a
-              href="https://gnews.io"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline inline-flex items-center gap-0.5"
-              data-testid="link-gnews"
-            >
-              gnews.io <ExternalLink className="h-2.5 w-2.5" />
-            </a>{" "}
-            (100 req/day free tier). When set, articles will include real images.
-          </p>
-        </div>
-      </form>
+      <p className="text-[11px] text-muted-foreground">
+        All news is sourced exclusively from X (formerly Twitter) and xAI Grok. Set the <code className="bg-muted px-0.5 rounded">X_BEARER_TOKEN</code> environment variable to enable live X post fetching.
+      </p>
     </Card>
   );
 }
 
 const xFeedSettingsSchema = z.object({
   imageMode: z.enum(["images_only", "ai_generate", "none"]),
-  sourceType: z.enum(["both", "rss_only", "x_only"]),
   allowedAccounts: z.string(),
   blockedAccounts: z.string(),
-  blockedSources: z.string(),
   minEngagement: z.coerce.number().int().min(0).default(0),
 });
 type XFeedSettingsForm = z.infer<typeof xFeedSettingsSchema>;
@@ -394,19 +321,15 @@ function XFeedTab() {
     resolver: zodResolver(xFeedSettingsSchema),
     defaultValues: {
       imageMode: "images_only",
-      sourceType: "both",
       allowedAccounts: "",
       blockedAccounts: "",
-      blockedSources: "",
       minEngagement: 0,
     },
     values: settings
       ? {
           imageMode: (settings["news.x.imageMode"] as XFeedSettingsForm["imageMode"]) || "images_only",
-          sourceType: (settings["news.x.sourceType"] as XFeedSettingsForm["sourceType"]) || "both",
           allowedAccounts: settings["news.x.allowedAccounts"] || "",
           blockedAccounts: settings["news.x.blockedAccounts"] || "",
-          blockedSources: settings["news.rss.blockedSources"] || "",
           minEngagement: parseInt(settings["news.x.minEngagement"] || "0") || 0,
         }
       : undefined,
@@ -416,10 +339,8 @@ function XFeedTab() {
     mutationFn: (data: XFeedSettingsForm) =>
       apiRequest("PUT", "/api/platform-settings", {
         "news.x.imageMode": data.imageMode,
-        "news.x.sourceType": data.sourceType,
         "news.x.allowedAccounts": data.allowedAccounts,
         "news.x.blockedAccounts": data.blockedAccounts,
-        "news.rss.blockedSources": data.blockedSources,
         "news.x.minEngagement": String(data.minEngagement),
       }).then((r) => r.json()),
     onSuccess: () => {
@@ -447,46 +368,28 @@ function XFeedTab() {
           </div>
         ) : (
           <form onSubmit={form.handleSubmit((d) => saveMutation.mutate(d))} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Image Mode</Label>
-                <Select
-                  value={form.watch("imageMode")}
-                  onValueChange={(v) => form.setValue("imageMode", v as XFeedSettingsForm["imageMode"])}
-                >
-                  <SelectTrigger data-testid="select-image-mode" className="text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="images_only">Images Only (default)</SelectItem>
-                    <SelectItem value="ai_generate">AI Generate</SelectItem>
-                    <SelectItem value="none">No Images (fastest)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-[11px] text-muted-foreground">
-                  "Images Only" fetches only X posts with attached photos. "AI Generate" creates editorial thumbnails for posts without images via Grok Imagine.
-                </p>
-              </div>
+            <div className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2 text-[11px] text-primary/80 font-medium">
+              All news content is sourced exclusively from X (Twitter) and enriched by xAI Grok. No RSS or GNews sources.
+            </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs">Source Type</Label>
-                <Select
-                  value={form.watch("sourceType")}
-                  onValueChange={(v) => form.setValue("sourceType", v as XFeedSettingsForm["sourceType"])}
-                >
-                  <SelectTrigger data-testid="select-source-type" className="text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="both">Both (RSS + X posts)</SelectItem>
-                    <SelectItem value="rss_only">RSS Only</SelectItem>
-                    <SelectItem value="x_only">X Only</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-[11px] text-muted-foreground">
-                  Control whether the feed shows RSS articles, X posts, or both.
-                </p>
-              </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Image Mode</Label>
+              <Select
+                value={form.watch("imageMode")}
+                onValueChange={(v) => form.setValue("imageMode", v as XFeedSettingsForm["imageMode"])}
+              >
+                <SelectTrigger data-testid="select-image-mode" className="text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="images_only">Images Only (default)</SelectItem>
+                  <SelectItem value="ai_generate">AI Generate</SelectItem>
+                  <SelectItem value="none">No Images (fastest)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                "Images Only" fetches only X posts with attached photos. "AI Generate" creates editorial thumbnails for posts without images via Grok Imagine.
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -514,20 +417,6 @@ function XFeedTab() {
               />
               <p className="text-[11px] text-muted-foreground">
                 Comma-separated X handles to always exclude from results.
-              </p>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">Blocked RSS Sources</Label>
-              <Textarea
-                {...form.register("blockedSources")}
-                placeholder="e.g. lokmattimes, indiaglitz, masala"
-                rows={2}
-                className="text-sm resize-none"
-                data-testid="textarea-blocked-sources"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Comma-separated source names (partial match, case-insensitive) to filter out from RSS feeds. These stack on top of the built-in blocklist.
               </p>
             </div>
 
@@ -1152,13 +1041,9 @@ function AnalyticsTab() {
       <Card className="p-4 space-y-3" data-testid="card-articles-by-source">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold">Articles Fetched by Source</h3>
+          <h3 className="text-sm font-semibold">Articles Fetched Today</h3>
         </div>
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="rounded-lg bg-muted/50 p-3">
-            <p className="text-lg font-bold tabular-nums">{analytics.articlesFetchedBySource.rss}</p>
-            <p className="text-[11px] text-muted-foreground">RSS</p>
-          </div>
+        <div className="grid grid-cols-2 gap-3 text-center">
           <div className="rounded-lg bg-muted/50 p-3">
             <p className="text-lg font-bold tabular-nums">{analytics.articlesFetchedBySource.x}</p>
             <p className="text-[11px] text-muted-foreground">X Posts</p>
@@ -1280,8 +1165,8 @@ function AnalyticsTab() {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
           <div className="rounded-lg bg-muted/50 p-3">
-            <p className="text-muted-foreground mb-1">Source Type</p>
-            <p className="font-medium capitalize">{analytics.sourceType.replace("_", " ")}</p>
+            <p className="text-muted-foreground mb-1">Source</p>
+            <p className="font-medium">X / xAI Only</p>
           </div>
           <div className="rounded-lg bg-muted/50 p-3">
             <p className="text-muted-foreground mb-1">AI Summaries</p>
@@ -1535,7 +1420,7 @@ function CategoriesTab() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Newspaper className="h-5 w-5 text-primary" />
-          <p className="text-sm text-muted-foreground">Manage news feed categories and RSS queries.</p>
+          <p className="text-sm text-muted-foreground">Manage news feed categories and X search queries.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button

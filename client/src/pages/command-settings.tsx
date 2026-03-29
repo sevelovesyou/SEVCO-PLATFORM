@@ -706,6 +706,162 @@ function EmailDiagnosticsPanel() {
 }
 
 // ─────────────────────────────────────────────────────────
+// Inbound Email Diagnostics Panel
+// ─────────────────────────────────────────────────────────
+function InboundEmailDiagnosticsPanel() {
+  const { toast } = useToast();
+  const [address, setAddress] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [simulating, setSimulating] = useState(false);
+  const [status, setStatus] = useState<{
+    userExists: boolean;
+    userRole: string | null;
+    roleQualifies: boolean;
+    webhookConfigured: boolean;
+  } | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
+
+  const handleCheckStatus = async () => {
+    if (!address) {
+      toast({ title: "Address required", description: "Enter a @sevco.us address to check.", variant: "destructive" });
+      return;
+    }
+    setChecking(true);
+    setStatus(null);
+    setStatusError(null);
+    try {
+      const res = await apiRequest("GET", `/api/admin/inbound-email-status?address=${encodeURIComponent(address)}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setStatusError(data.message ?? "Status check failed");
+      } else {
+        setStatus(data);
+      }
+    } catch (err: any) {
+      setStatusError(err?.message ?? "Status check failed");
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const handleSimulate = async () => {
+    if (!address) {
+      toast({ title: "Address required", description: "Enter a @sevco.us address to simulate.", variant: "destructive" });
+      return;
+    }
+    setSimulating(true);
+    try {
+      const res = await apiRequest("POST", "/api/admin/inbound-email-simulate", { address });
+      const data = await res.json();
+      if (data.success !== false) {
+        toast({ title: "Simulation successful", description: data.message });
+      } else {
+        toast({ title: "Simulation failed", description: data.message, variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Simulation failed", description: err?.message ?? "Unknown error", variant: "destructive" });
+    } finally {
+      setSimulating(false);
+    }
+  };
+
+  const StatusRow = ({ pass, label }: { pass: boolean; label: string }) => (
+    <div className="flex items-center gap-2 text-sm">
+      {pass ? (
+        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+      ) : (
+        <X className="h-4 w-4 text-destructive shrink-0" />
+      )}
+      <span className={pass ? "text-green-800 dark:text-green-300" : "text-destructive"}>{label}</span>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <Label htmlFor="input-inbound-address">@sevco.us Address</Label>
+        <div className="flex gap-2">
+          <Input
+            id="input-inbound-address"
+            data-testid="input-inbound-address"
+            type="email"
+            placeholder="seve@sevco.us"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleCheckStatus()}
+          />
+          <Button
+            onClick={handleCheckStatus}
+            disabled={checking}
+            data-testid="button-check-inbound-status"
+            size="sm"
+            variant="outline"
+          >
+            {checking ? "Checking…" : "Check Status"}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Checks whether a @sevco.us address is configured to receive inbound email.
+        </p>
+      </div>
+
+      {statusError && (
+        <div
+          data-testid="text-inbound-status-error"
+          className="flex items-start gap-2 p-3 rounded-lg border text-sm bg-destructive/10 border-destructive/30"
+        >
+          <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+          <span className="text-destructive">{statusError}</span>
+        </div>
+      )}
+
+      {status && (
+        <div
+          data-testid="div-inbound-status-results"
+          className="p-3 rounded-lg border border-border bg-muted/40 space-y-2"
+        >
+          <StatusRow
+            pass={status.userExists}
+            label={status.userExists ? `User account exists` : "User account not found"}
+          />
+          <StatusRow
+            pass={status.roleQualifies}
+            label={
+              status.userRole
+                ? `Role: ${status.userRole} — ${status.roleQualifies ? "qualifies for inbound email" : "does not qualify for inbound email"}`
+                : "No role assigned"
+            }
+          />
+          <StatusRow
+            pass={status.webhookConfigured}
+            label={status.webhookConfigured ? "RESEND_WEBHOOK_SECRET is configured" : "RESEND_WEBHOOK_SECRET is not set"}
+          />
+        </div>
+      )}
+
+      <Button
+        onClick={handleSimulate}
+        disabled={simulating}
+        data-testid="button-simulate-inbound-email"
+        size="sm"
+      >
+        {simulating ? (
+          <>Simulating…</>
+        ) : (
+          <>
+            <Mail className="h-4 w-4 mr-1" />
+            Simulate Inbound Email
+          </>
+        )}
+      </Button>
+      <p className="text-xs text-muted-foreground">
+        Injects a test email directly into the user's inbox without going through the webhook, confirming end-to-end delivery.
+      </p>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
 // Color Picker Row (reusable)
 // ─────────────────────────────────────────────────────────
 function ColorPickerRow({
@@ -2692,7 +2848,7 @@ export default function CommandSettings() {
           {/* ════════════ INTEGRATIONS ════════════ */}
           <TabsContent value="integrations" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "integrations") ? "none" : "block" }}>
               {/* Email Diagnostics */}
-              <Card data-search-label="email diagnostics Resend test email integration" className={cardVisible("email diagnostics Resend test email integration") ? "" : "hidden"}>
+              <Card data-search-label="email diagnostics Resend test email integration inbound email sevco.us" className={cardVisible("email diagnostics Resend test email integration inbound email sevco.us") ? "" : "hidden"}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Mail className="h-5 w-5" />
@@ -2702,8 +2858,16 @@ export default function CommandSettings() {
                     {highlight("Send a test email to verify the Resend integration is working end-to-end.")}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <EmailDiagnosticsPanel />
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Outbound Email</p>
+                    <EmailDiagnosticsPanel />
+                  </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Inbound Email</p>
+                    <InboundEmailDiagnosticsPanel />
+                  </div>
                 </CardContent>
               </Card>
 

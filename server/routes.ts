@@ -4419,6 +4419,59 @@ export async function registerRoutes(
     }
   });
 
+  // ── Inbound Email Diagnostics ─────────────────────────────────────────
+  app.get("/api/admin/inbound-email-status", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const address = (req.query.address as string) ?? "";
+      const match = address.match(/^(.+)@sevco\.us$/i);
+      if (!match) {
+        return res.status(400).json({ message: "Address must be a @sevco.us address" });
+      }
+      const username = match[1].toLowerCase();
+      const user = await storage.getUserByUsername(username);
+      const userExists = !!user;
+      const userRole = user?.role ?? null;
+      const roleQualifies = userRole ? isClientPlus(userRole) : false;
+      const webhookConfigured = !!process.env.RESEND_WEBHOOK_SECRET;
+      res.json({ userExists, userRole, roleQualifies, webhookConfigured });
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message ?? "Status check failed" });
+    }
+  });
+
+  app.post("/api/admin/inbound-email-simulate", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const { address } = req.body;
+      if (!address || typeof address !== "string") {
+        return res.status(400).json({ message: "Address is required" });
+      }
+      const match = address.match(/^(.+)@sevco\.us$/i);
+      if (!match) {
+        return res.status(400).json({ message: "Address must be a @sevco.us address" });
+      }
+      const username = match[1].toLowerCase();
+      const targetUser = await storage.getUserByUsername(username);
+      if (!targetUser) {
+        return res.status(404).json({ success: false, message: `No user account found for ${username}@sevco.us` });
+      }
+      if (!isClientPlus(targetUser.role)) {
+        return res.status(403).json({ success: false, message: `User ${username} has role "${targetUser.role}" which does not qualify for inbound email (requires client, partner, staff, executive, or admin)` });
+      }
+      const timestamp = new Date().toISOString();
+      await processInboundEmail({
+        email_id: `simulate-${Date.now()}`,
+        from: "diagnostics@sevco.us",
+        to: [`${username}@sevco.us`],
+        subject: "Inbound Email Test",
+        text: `This is a simulated inbound email sent at ${timestamp} to confirm end-to-end delivery is working.`,
+        html: `<p>This is a simulated inbound email sent at <strong>${timestamp}</strong> to confirm end-to-end delivery is working.</p>`,
+      });
+      res.json({ success: true, message: `Simulated inbound email delivered to ${username}@sevco.us` });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err?.message ?? "Simulation failed" });
+    }
+  });
+
   // ── News Categories ──────────────────────────────────────────────────
   app.get("/api/news", async (_req, res) => {
     try {

@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import type { Role } from "@shared/schema";
 
-export function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: Role }) {
+export function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: Role | Role[] }) {
   const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -25,12 +25,15 @@ export function ProtectedRoute({ children, requiredRole }: { children: React.Rea
     return null;
   }
 
-  if (requiredRole && user.role !== requiredRole) {
-    return (
-      <div className="flex items-center justify-center h-full min-h-[200px]">
-        <p className="text-sm text-muted-foreground">You don't have permission to access this page.</p>
-      </div>
-    );
+  if (requiredRole) {
+    const allowed = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+    if (!allowed.includes(user.role as Role)) {
+      return (
+        <div className="flex items-center justify-center h-full min-h-[200px]">
+          <p className="text-sm text-muted-foreground">You don't have permission to access this page.</p>
+        </div>
+      );
+    }
   }
 
   return <>{children}</>;

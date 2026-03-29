@@ -91,12 +91,13 @@ import CommandAiAgents from "@/pages/command-ai-agents";
 import CommandTraffic from "@/pages/command-traffic";
 import CommandNews from "@/pages/command-news";
 import NewsPage from "@/pages/news-page";
+import WikifyToolPage from "@/pages/wikify-tool-page";
 import MessagesPage from "@/pages/messages-page";
 import FullscreenChatPage from "@/pages/fullscreen-chat-page";
 import { FloatingChatProvider } from "@/contexts/floating-chat-context";
 import { FloatingChatWindows } from "@/components/floating-chat-window";
 
-const WIKI_PREFIXES = ["/wiki", "/edit/", "/new/", "/search", "/review", "/category/"];
+const WIKI_PREFIXES = ["/wiki", "/edit/", "/new/", "/search", "/review", "/category/", "/wikify"];
 const COMMAND_PREFIXES = ["/command"];
 
 function isWikiRoute(location: string): boolean {
@@ -262,6 +263,7 @@ function Router() {
       <Route path="/domains" component={DomainsPage} />
       <Route path="/notes" component={NotesPage} />
       <Route path="/tools/tasks" component={() => <ProtectedRoute><TasksPage /></ProtectedRoute>} />
+      <Route path="/wikify" component={() => <ProtectedRoute requiredRole={["partner", "staff", "executive", "admin"]}><WikifyToolPage /></ProtectedRoute>} />
       <Route path="/gallery" component={GalleryPage} />
       <Route path="/command/gallery" component={() => (
         <ProtectedRoute requiredRole="admin">

@@ -24,6 +24,7 @@ import { Resend } from "resend";
 import bcrypt from "bcryptjs";
 import * as hostinger from "./hostinger";
 import { registerSpotifyRoutes } from "./spotify";
+import { registerWikifyToolRoutes } from "./wikify-tool";
 import {
   getGA4Status,
   getRealtimeActiveUsers,
@@ -3267,6 +3268,7 @@ export async function registerRoutes(
   });
 
   registerSpotifyRoutes(app);
+  registerWikifyToolRoutes(app);
 
   app.get("/api/meta", async (_req, res) => {
     try {

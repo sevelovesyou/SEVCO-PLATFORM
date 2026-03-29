@@ -145,7 +145,7 @@ function buildServiceColumnGroups(services: Service[], categoryOrder?: string[])
   return groups;
 }
 
-const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/"];
+const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/category/", "/wikify"];
 
 function getActiveApp(location: string): string {
   if (location === "/") return "/";
@@ -250,16 +250,18 @@ function DropdownPanel({ children, className = "" }: { children: React.ReactNode
 function HomeDropdown({ isActive }: { isActive: boolean }) {
   const { open, setOpen, ref } = useDropdown();
   const { user } = useAuth();
+  const { canCreateArticle } = usePermission();
 
   const items = [
-    { label: "Home",       href: "/",        icon: Home,        desc: "Go to landing page",             authRequired: false },
-    { label: "About",      href: "/about",   icon: BookOpen,    desc: "Learn about SEVCO",              authRequired: false },
-    { label: "Wiki",       href: "/wiki",    icon: BookOpen,    desc: "Internal knowledge base",        authRequired: false },
-    { label: "Contact",    href: "/contact", icon: Mail,        desc: "Get in touch",                   authRequired: false },
-    { label: "Jobs",       href: "/jobs",    icon: Users,       desc: "Open positions",                 authRequired: false },
-    { label: "News",       href: "/news",    icon: LucideIcons.Newspaper, desc: "Latest news & trends",   authRequired: false },
-    { label: "Account",    href: "/account", icon: User,        desc: "Manage your profile",            authRequired: false },
-  ];
+    { label: "Home",         href: "/",        icon: Home,                    desc: "Go to landing page",             show: true },
+    { label: "About",        href: "/about",   icon: BookOpen,                desc: "Learn about SEVCO",              show: true },
+    { label: "Wiki",         href: "/wiki",    icon: BookOpen,                desc: "Internal knowledge base",        show: true },
+    { label: "Wikify Tool",  href: "/wikify",  icon: LucideIcons.Wand2,       desc: "Bulk AI wiki article generator", show: canCreateArticle },
+    { label: "Contact",      href: "/contact", icon: Mail,                    desc: "Get in touch",                   show: true },
+    { label: "Jobs",         href: "/jobs",    icon: Users,                   desc: "Open positions",                 show: true },
+    { label: "News",         href: "/news",    icon: LucideIcons.Newspaper,   desc: "Latest news & trends",           show: true },
+    { label: "Account",      href: "/account", icon: User,                    desc: "Manage your profile",            show: true },
+  ].filter((item) => item.show);
 
   return (
     <div className="relative" ref={ref}>
@@ -688,7 +690,7 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
 
 export function PlatformHeader() {
   const { user, logout } = useAuth();
-  const { role } = usePermission();
+  const { role, canCreateArticle: canWikify } = usePermission();
   const { openCart, itemCount } = useCart();
   const [location] = useLocation();
   const { data: platformSettings } = useQuery<Record<string, string>>({
@@ -739,13 +741,14 @@ export function PlatformHeader() {
     { label: "Submit",        href: "/music/submit" },
   ];
   const homeItems = [
-    { label: "Home",      href: "/" },
-    { label: "About",     href: "/about" },
-    { label: "Wiki",      href: "/wiki" },
+    { label: "Home",         href: "/" },
+    { label: "About",        href: "/about" },
+    { label: "Wiki",         href: "/wiki" },
+    ...(canWikify ? [{ label: "Wikify Tool", href: "/wikify" }] : []),
     ...(user ? [{ label: "Notes", href: "/notes" }] : []),
-    { label: "Contact",   href: "/contact" },
-    { label: "Jobs",      href: "/jobs" },
-    { label: "Account",   href: "/account" },
+    { label: "Contact",      href: "/contact" },
+    { label: "Jobs",         href: "/jobs" },
+    { label: "Account",      href: "/account" },
   ];
 
   return (

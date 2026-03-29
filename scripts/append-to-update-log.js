@@ -7,7 +7,7 @@
  * 2. Creates a structured changelog entry via the internal API.
  *
  * Usage:
- *   node scripts/append-to-update-log.js <path-to-plan-file.md>
+ *   node scripts/append-to-update-log.js <path-to-plan-file.md> [taskRef] [taskTitle]
  */
 
 import { readFileSync, appendFileSync, existsSync } from "fs";
@@ -15,9 +15,11 @@ import { basename } from "path";
 import { request } from "http";
 
 const planFilePath = process.argv[2];
+const taskRef = process.argv[3] || null;
+const taskTitleArg = process.argv[4] || null;
 
 if (!planFilePath) {
-  console.error("Usage: node scripts/append-to-update-log.js <path-to-task-plan.md>");
+  console.error("Usage: node scripts/append-to-update-log.js <path-to-task-plan.md> [taskRef] [taskTitle]");
   process.exit(1);
 }
 
@@ -40,16 +42,22 @@ function extractTitle(text) {
     const m = line.match(/^#\s+(.+)/);
     if (m) return m[1].trim();
   }
+  const fm = text.match(/^---[\s\S]*?title:\s*(.+?)[\s\S]*?---/m);
+  if (fm) return fm[1].trim();
   return fileName.replace(/-/g, " ");
 }
 
 function extractSection(text, sectionName) {
-  const regex = new RegExp(`^##\\s+${sectionName}$`, "im");
-  const match = regex.exec(text);
-  if (!match) return null;
-  const start = match.index + match[0].length;
-  const nextSection = text.slice(start).search(/^##\s/m);
-  const end = nextSection === -1 ? text.length : start + nextSection;
+  const sectionRegex = /^##\s+(.+)$/gm;
+  const positions = [];
+  let m;
+  while ((m = sectionRegex.exec(text)) !== null) {
+    positions.push({ name: m[1].trim(), start: m.index + m[0].length });
+  }
+  const idx = positions.findIndex((p) => p.name === sectionName);
+  if (idx === -1) return null;
+  const start = positions[idx].start;
+  const end = idx + 1 < positions.length ? positions[idx + 1].start - positions[idx + 1].name.length - 4 : text.length;
   return text.slice(start, end).trim();
 }
 
@@ -69,7 +77,7 @@ function autoIncrementVersion(latest) {
   return parts.join(".");
 }
 
-const title = extractTitle(raw);
+const title = taskTitleArg || extractTitle(raw);
 const whySection = extractSection(raw, "What & Why");
 const description = whySection
   ? whySection.split("\n")[0].replace(/^[-*]\s*/, "").trim()

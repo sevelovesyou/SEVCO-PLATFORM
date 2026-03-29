@@ -9,7 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Zap, Wrench, TrendingUp, MoreHorizontal, ArrowRight,
-  Search, X, CheckCircle2, Activity,
+  Search, X, CheckCircle2, Activity, ChevronDown, Radio,
+  Rocket, Settings, Package,
 } from "lucide-react";
 import { SiX } from "react-icons/si";
 import { formatDistanceToNow } from "date-fns";
@@ -44,6 +45,14 @@ function formatDate(dateStr: string | Date) {
   });
 }
 
+function formatDateFull(dateStr: string | Date) {
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 function formatRelative(dateStr: string | Date) {
   try {
     return formatDistanceToNow(new Date(dateStr), { addSuffix: true });
@@ -63,13 +72,13 @@ function AnimatedCounter({ target, duration = 1800 }: { target: number; duration
       if (entry.isIntersecting && !started.current) {
         started.current = true;
         const start = performance.now();
-        function step(now: number) {
+        const step = (now: number) => {
           const t = Math.min((now - start) / duration, 1);
           const eased = 1 - Math.pow(1 - t, 3);
           setCount(Math.floor(eased * target));
           if (t < 1) requestAnimationFrame(step);
           else setCount(target);
-        }
+        };
         requestAnimationFrame(step);
         observer.disconnect();
       }
@@ -224,9 +233,9 @@ export default function PlatformPage() {
         {!user && (
           <p className="text-xs text-white/30 mb-10">
             Already have an account?{" "}
-            <a href="/auth" className="text-white/50 hover:text-white transition-colors underline underline-offset-2">
+            <Link href="/auth" className="text-white/60 hover:text-white underline underline-offset-2 transition-colors" data-testid="link-signin">
               Sign in →
-            </a>
+            </Link>
           </p>
         )}
 
@@ -469,7 +478,6 @@ export default function PlatformPage() {
                 </Button>
               </a>
             </div>
-            <p className="text-[11px] text-white/25">No credit card required. Free tier available.</p>
           </div>
         </section>
       )}

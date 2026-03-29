@@ -141,8 +141,9 @@ export function PlatformFooter() {
         { label: "Home",      path: "/" },
         { label: "Wiki",      path: "/wiki" },
         { label: "Feed",      path: "/feed" },
+        { label: "Changelog",        path: "/changelog" },
         { label: "Platform Updates", path: "/platform" },
-        { label: "About",     path: "/about" },
+        { label: "About",            path: "/about" },
       ],
     },
     {

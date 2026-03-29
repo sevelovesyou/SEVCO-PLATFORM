@@ -1,7 +1,7 @@
 # SEVCO Platform — Complete Development Update Log
 
 > Every Replit Agent task plan reproduced verbatim. Zero omissions.
-> Main tasks: 128 | Appendix: 63
+> Main tasks: 128 | Appendix: 63 | Total: 192
 > Platform: sevco.us | Last compiled: 2026-03-29
 
 ---
@@ -209,6 +209,7 @@
 
 ## Task Log
 
+<a name="task-1"></a>
 ### #1 — RBAC & Role Permission System
 
 > File: `rbac-role-system.md`
@@ -251,6 +252,7 @@ Add a role-based access control system to the platform. Every user gets one of s
 - `client/src/pages/review-queue.tsx`
 - `client/src/App.tsx`
 
+<a name="task-2"></a>
 ---
 
 ### #2 — Platform Shell & Global Navigation
@@ -297,6 +299,7 @@ Wrap the wiki (and future apps) inside a top-level SEVCO Platform shell. This me
 - `client/src/pages/home.tsx`
 - `client/src/hooks/use-auth.tsx`
 
+<a name="task-3"></a>
 ---
 
 ### #3 — Platform Landing Page & Dashboard
@@ -338,6 +341,7 @@ Build two key entry-point pages for the SEVCO Platform. The Landing Page (`/`) i
 - `server/storage.ts`
 - `shared/schema.ts`
 
+<a name="task-4"></a>
 ---
 
 ### #4 — Music Page — SEVCO RECORDS
@@ -379,6 +383,7 @@ Build the Music section (`/music`) for SEVCO RECORDS, the platform's record comp
 - `server/routes.ts`
 - `client/src/App.tsx`
 
+<a name="task-5"></a>
 ---
 
 ### #5 — Store / Marketplace Section
@@ -419,6 +424,7 @@ Build the Store section (`/store`) — a product marketplace for SEVCO merchandi
 - `server/routes.ts`
 - `client/src/App.tsx`
 
+<a name="task-6"></a>
 ---
 
 ### #6 — Projects Page — SEVCO Companies & Ventures
@@ -458,6 +464,7 @@ Build the Projects section (`/projects`) to showcase all of SEVCO's active compa
 - `server/routes.ts`
 - `client/src/App.tsx`
 
+<a name="task-7"></a>
 ---
 
 ### #7 — Logo & Favicon Update
@@ -508,6 +515,7 @@ Replace all placeholder logos, icons, and the favicon throughout the SEVCO platf
 - `attached_assets/SEVCO_planet_icon_white_1774331331138.png`
 - `attached_assets/SEVCO_App_Icon_-_Artboard_58_1774331354613.jpg`
 
+<a name="task-8"></a>
 ---
 
 ### #8 — Logo Display Fix
@@ -556,6 +564,7 @@ Simplest reliable implementation: import only the black version of each asset, s
 - `attached_assets/SEVCO_Logo_Black_1774331197327.png`
 - `attached_assets/SEVCO_planet_icon_black_1774331331137.png`
 
+<a name="task-9"></a>
 ---
 
 ### #9 — Prevent Logo Skewing on Resize
@@ -584,6 +593,7 @@ When the browser window is resized to narrow widths, the logo images can stretch
 - `client/src/pages/auth-page.tsx`
 - `client/src/pages/landing.tsx`
 
+<a name="task-10"></a>
 ---
 
 ### #10 — Platform Footer
@@ -639,6 +649,7 @@ Add a platform-level footer to the SEVCO platform that mirrors the branding and 
 - `client/src/components/platform-header.tsx`
 - `attached_assets/SEVCO_planet_icon_black_1774331331137.png`
 
+<a name="task-11"></a>
 ---
 
 ### #11 — Platform Polish & Dashboard Changelog
@@ -701,6 +712,7 @@ A batch of polish fixes collected from a review of the platform, plus a new Dash
 - `server/routes.ts`
 - `attached_assets/SEVCO_Logo_Black_1774331197327.png`
 
+<a name="task-12"></a>
 ---
 
 ### #12 — Fix Production Authentication (401 on POST)
@@ -729,6 +741,7 @@ A batch of polish fixes collected from a review of the platform, plus a new Dash
   ## Relevant files
   - `server/index.ts`
   - `server/auth.ts:14-30`
+<a name="task-13"></a>
 
 ---
 
@@ -778,6 +791,7 @@ A batch of polish fixes collected from a review of the platform, plus a new Dash
   - `client/src/pages/store-product-form.tsx`
   - `client/src/pages/dashboard-page.tsx`
   - `client/src/App.tsx`
+<a name="task-14"></a>
 
 ---
 
@@ -826,6 +840,7 @@ A batch of polish fixes collected from a review of the platform, plus a new Dash
   - `client/src/App.tsx`
   - `server/routes.ts`
   - `shared/schema.ts:150-159`
+<a name="task-15"></a>
 
 ---
 
@@ -869,6 +884,7 @@ A batch of polish fixes collected from a review of the platform, plus a new Dash
   - `shared/schema.ts:150-159`
   - `client/src/pages/dashboard-page.tsx`
   - `client/src/App.tsx`
+<a name="task-16"></a>
 
 ---
 
@@ -915,6 +931,7 @@ A batch of polish fixes collected from a review of the platform, plus a new Dash
   - `shared/schema.ts:150-159`
   - `server/routes.ts:548-579`
   - `server/storage.ts`
+<a name="task-17"></a>
 
 ---
 
@@ -959,6 +976,7 @@ Every time a task is merged in this Replit project, a detailed Engineering wiki 
 - `server/seed.ts`
 - `.local/tasks/store-redesign.md`
 
+<a name="task-18"></a>
 ---
 
 ### #18 — Remove sidebar Account button; link username/badge
@@ -989,6 +1007,7 @@ The wiki sidebar has a dedicated "Account" nav item that is redundant. Users sho
 - `client/src/components/app-sidebar.tsx`
 - `client/src/components/platform-header.tsx`
 
+<a name="task-19"></a>
 ---
 
 ### #19 — Auth Page Copy Tweak
@@ -1012,6 +1031,7 @@ The wiki sidebar has a dedicated "Account" nav item that is redundant. Users sho
 
   ## Relevant files
   - `client/src/pages/auth-page.tsx:69-76`
+<a name="task-20"></a>
 
 ---
 
@@ -1092,6 +1112,7 @@ The wiki sidebar has a dedicated "Account" nav item that is redundant. Users sho
   - Staff cannot create, edit, or delete products (admin/exec only)
   - CMD nav link hidden from partners, clients, and plain users
   - Navigating to /command as a partner redirects away
+<a name="task-21"></a>
 
 ---
 
@@ -1197,6 +1218,7 @@ The wiki sidebar has a dedicated "Account" nav item that is redundant. Users sho
   - Logging in without verifying shows a clear error with a resend option
   - Founder account and any pre-existing seeded users are auto-marked verified on server start
   - Resend link works and is debounced to prevent spam
+<a name="task-22"></a>
 
 ---
 
@@ -1309,6 +1331,7 @@ The wiki sidebar has a dedicated "Account" nav item that is redundant. Users sho
   - Store dropdown category links filter the store correctly
   - Mobile hamburger works with expandable sections
   - CMD link hidden from logged-out and partner/client/user roles
+<a name="task-23"></a>
 
 ---
 
@@ -1374,6 +1397,7 @@ The wiki sidebar has a dedicated "Account" nav item that is redundant. Users sho
   - /contact shows contact form, social links, Discord card
   - Submitting the form sends an email and shows a success message
   - Both pages work for logged-out visitors
+<a name="task-24"></a>
 
 ---
 
@@ -1445,6 +1469,7 @@ The wiki sidebar has a dedicated "Account" nav item that is redundant. Users sho
   - Background color, accent color, avatar all apply visually
   - Social links show with correct icons
   - Visiting /profile logged-out shows the page (no redirect)
+<a name="task-25"></a>
 
 ---
 
@@ -1546,6 +1571,7 @@ The wiki sidebar has a dedicated "Account" nav item that is redundant. Users sho
   - /jobs/:slug shows full job detail
   - Logged-in users can apply; applying twice shows "already applied"
   - Admin can post, edit, and close jobs from the Command Center
+<a name="task-26"></a>
 
 ---
 
@@ -1618,6 +1644,7 @@ The wiki sidebar has a dedicated "Account" nav item that is redundant. Users sho
   - Services dropdown shows grouped items with icons like Vercel's mega-menu
   - All services link appropriately to the full /services page
   - Page is fully public (no auth required)
+<a name="task-27"></a>
 
 ---
 
@@ -1746,6 +1773,7 @@ The wiki sidebar has a dedicated "Account" nav item that is redundant. Users sho
   - /music/playlists shows playlists + submission form
   - /music/submit shows A&R submission form (requires SEVCO account)
   - Submissions visible to admin in Command Center
+<a name="task-28"></a>
 
 ---
 
@@ -1929,6 +1957,7 @@ The wiki sidebar has a dedicated "Account" nav item that is redundant. Users sho
   - /services listing page links to individual service pages
   - Admin can manage services from the Command Center
   - New projects seeded and visible in the menu immediately
+<a name="task-29"></a>
 
 ---
 
@@ -1960,6 +1989,7 @@ The Projects dropdown in the platform header has a different visual style from t
 ## Relevant files
 - `client/src/components/platform-header.tsx:355-460`
 
+<a name="task-30"></a>
 ---
 
 ### #30 — Bug Fixes & Quick UI Wins
@@ -2010,6 +2040,7 @@ Fix a collection of small bugs and polish issues reported by the user — permis
 - `client/src/components/cart-drawer.tsx`
 - `client/src/hooks/use-cart.tsx`
 
+<a name="task-31"></a>
 ---
 
 ### #31 — Profile & User Admin Enhancements
@@ -2047,6 +2078,7 @@ Extend the profile system so users can personalize their banner image, add a Pro
 - `shared/schema.ts`
 - `server/storage.ts`
 
+<a name="task-32"></a>
 ---
 
 ### #32 — Footer Redesign & Social Links Admin
@@ -2090,6 +2122,7 @@ The footer sitemap is out of date and doesn't reflect the platform's current pag
 - `server/storage.ts`
 - `server/seed.ts`
 
+<a name="task-33"></a>
 ---
 
 ### #33 — Store CMD — Product Creation
@@ -2123,6 +2156,7 @@ The Store tab in CMD currently only allows toggling stock status and deleting pr
 - `shared/schema.ts`
 - `server/routes.ts`
 
+<a name="task-34"></a>
 ---
 
 ### #34 — Music Player & Playlist CMD Editing
@@ -2164,6 +2198,7 @@ Add a persistent music player to the platform that matches the design language, 
 - `shared/schema.ts`
 - `client/src/App.tsx`
 
+<a name="task-35"></a>
 ---
 
 ### #35 — Wiki Article Archive System
@@ -2205,6 +2240,7 @@ Currently, deleting a wiki article is permanent. Admins should instead be able t
 - `client/src/pages/article-editor.tsx`
 - `client/src/hooks/use-permission.ts`
 
+<a name="task-36"></a>
 ---
 
 ### #36 — Version System & Changelog Update
@@ -2245,6 +2281,7 @@ Introduce a structured version numbering system for platform updates. Each Chang
 - `client/src/components/platform-footer.tsx`
 - `client/src/pages/command-changelog.tsx`
 
+<a name="task-37"></a>
 ---
 
 ### #37 — Social Feed — Posts, Follows & Timelines
@@ -2294,6 +2331,7 @@ Add a Twitter/X-style social layer to the platform so registered users can post 
 - `client/src/pages/profile-page.tsx`
 - `client/src/components/platform-header.tsx`
 
+<a name="task-38"></a>
 ---
 
 ### #38 — Notes Tool — Personal & Collaborative
@@ -2343,6 +2381,7 @@ Add an Apple Notes-style notes tool to the platform for registered users. Users 
 - `client/src/pages/projects-page.tsx`
 - `client/src/pages/article-view.tsx`
 
+<a name="task-39"></a>
 ---
 
 ### #39 — Nav & Platform Housekeeping
@@ -2390,6 +2429,7 @@ A collection of navigation improvements, bug fixes, and platform-wide text corre
 - `attached_assets/SEVCO_App_Icon_-_SEVCO_App_Icon_2_(1)_1771523059981.png`
 - `client/src/components/platform-footer.tsx`
 
+<a name="task-40"></a>
 ---
 
 ### #40 — CMD Restructure, Fixes & Overview Refresh
@@ -2436,6 +2476,7 @@ Several Command Center improvements: merging redundant music management tabs, su
 - `server/routes.ts`
 - `server/storage.ts`
 
+<a name="task-41"></a>
 ---
 
 ### #41 — Hostinger API — Hosting CMD & Domains Page
@@ -2478,6 +2519,7 @@ Integrate the Hostinger API to give admins a Hosting management section in CMD a
 - `client/src/App.tsx`
 - `shared/schema.ts`
 
+<a name="task-42"></a>
 ---
 
 ### #42 — Engineering Wiki Articles & Changelog Update
@@ -2516,6 +2558,7 @@ Back-fill individual wiki articles for every completed task (#1–#38), add time
 - `client/src/pages/changelog-page.tsx`
 - `client/src/App.tsx`
 
+<a name="task-43"></a>
 ---
 
 ### #43 — Bug fixes & navigation polish
@@ -2554,6 +2597,7 @@ Resolves several reported issues and small navigation gaps from the recent featu
 - `client/src/pages/command-overview.tsx`
 - `client/src/pages/changelog-page.tsx`
 
+<a name="task-44"></a>
 ---
 
 ### #44 — Project social links + About page
@@ -2595,6 +2639,7 @@ Projects need their own social links so visitors can follow a project on X, Inst
 - `client/src/components/platform-header.tsx`
 - `client/src/App.tsx`
 
+<a name="task-45"></a>
 ---
 
 ### #45 — Listen page social links in CMD
@@ -2632,6 +2677,7 @@ The Music Listen page (`/music/listen`) currently has hardcoded social and strea
 - `client/src/pages/command-social-links.tsx`
 - `client/src/pages/music-listen-page.tsx`
 
+<a name="task-46"></a>
 ---
 
 ### #46 — CMD Display tab — platform presentation controls
@@ -2688,6 +2734,7 @@ Implement settings as a `platform_settings` table with `key` (text, primary key)
 - `client/src/App.tsx`
 - `client/index.html`
 
+<a name="task-47"></a>
 ---
 
 ### #47 — Platform-wide search
@@ -2729,6 +2776,7 @@ Users need a way to find anything across the platform — wiki articles, project
 - `server/storage.ts`
 - `client/src/App.tsx`
 
+<a name="task-48"></a>
 ---
 
 ### #48 — Bug fixes: Hostinger API, CMD nav title, global cart drawer
@@ -2770,6 +2818,7 @@ Users need a way to find anything across the platform — wiki articles, project
 - `client/src/App.tsx`
 - Any `CommandPageLayout` wrapper component
 
+<a name="task-49"></a>
 ---
 
 ### #49 — CMD enhancements: edit social links, Resources tab, Recent Notes widget
@@ -2829,6 +2878,7 @@ Users need a way to find anything across the platform — wiki articles, project
 - `client/src/pages/command-social-links.tsx`
 - `client/src/App.tsx`
 
+<a name="task-50"></a>
 ---
 
 ### #50 — Home Bulletin, Footer sitemap, Profile/Account cross-links, Store stats cleanup
@@ -2893,6 +2943,7 @@ The existing social icons row stays at the bottom. Platform version stays. "sevc
 - `client/src/App.tsx`
 - `server/routes.ts`
 
+<a name="task-51"></a>
 ---
 
 ### #51 — Gallery page + Tools dropdown in nav
@@ -2956,6 +3007,7 @@ Task #57 (Supabase Storage setup) must be merged first — this task uses the `<
 - `client/src/components/file-upload.tsx` (from Task #57)
 - `client/src/App.tsx`
 
+<a name="task-52"></a>
 ---
 
 ### #52 — Brand section on About page + CMD brand assets management
@@ -3012,6 +3064,7 @@ SEVCO needs a public-facing Brand section on the About page where visitors can d
 - `client/src/components/file-upload.tsx` (from Task #57)
 - `client/src/App.tsx`
 
+<a name="task-53"></a>
 ---
 
 ### #53 — SEVCO Hosting landing page
@@ -3069,6 +3122,7 @@ Four service cards with icons, names, descriptions, and a "From $X/mo" price hin
 - `client/src/components/platform-header.tsx`
 - `client/src/App.tsx`
 
+<a name="task-54"></a>
 ---
 
 ### #54 — Project/Service icon editing + placeholder store products
@@ -3131,6 +3185,7 @@ Seed 6–8 representative placeholder products across different categories using
 - `client/src/components/platform-header.tsx`
 - `client/src/App.tsx`
 
+<a name="task-55"></a>
 ---
 
 ### #55 — Spotify integration in CMD Music tab
@@ -3209,6 +3264,7 @@ The existing CMD Music page gains a third tab: **Spotify** (alongside Submission
 - `client/src/pages/command-music.tsx`
 - `client/src/App.tsx`
 
+<a name="task-56"></a>
 ---
 
 ### #56 — Wiki articles + changelog entries for tasks #43–55
@@ -3237,6 +3293,7 @@ Each completed task should have a wiki article in the Engineering category and a
 - `client/src/pages/command-changelog.tsx`
 - `client/src/pages/changelog-page.tsx`
 
+<a name="task-57"></a>
 ---
 
 ### #57 — Supabase Storage setup + file uploads (profiles, music submissions, gallery, brand assets)
@@ -3317,6 +3374,7 @@ Tasks #51 (Gallery) and #52 (Brand assets) should be executed AFTER this task is
 - `client/src/pages/music-submit-page.tsx`
 - `client/src/pages/command-music.tsx`
 
+<a name="task-58"></a>
 ---
 
 ### #58 — Bug Fixes: Sidebar, Music Crash, Nav, Changelog
@@ -3357,6 +3415,7 @@ Five targeted bug fixes: the CMD sidebar disappears entirely when collapsed inst
 - `client/src/components/platform-header.tsx`
 - `server/storage.ts`
 
+<a name="task-59"></a>
 ---
 
 ### #59 — Display Tab Expansions, File Uploads & Services Page
@@ -3408,6 +3467,7 @@ The Display tab is also missing a footer tagline editor and a hero overlay opaci
 - `client/src/components/file-upload.tsx`
 - `server/routes.ts`
 
+<a name="task-60"></a>
 ---
 
 ### #60 — Platform Color Editor in CMD Display Tab
@@ -3448,6 +3508,7 @@ Admins currently cannot change the platform's visual color scheme without editin
 - `client/src/index.css`
 - `server/routes.ts`
 
+<a name="task-61"></a>
 ---
 
 ### #61 — Notes: Share & Export to External Apps
@@ -3481,6 +3542,7 @@ Notes currently has no way to get content out of the platform. Users should be a
 ## Relevant files
 - `client/src/pages/notes-page.tsx`
 
+<a name="task-62"></a>
 ---
 
 ### #62 — Bug Fixes & Polish Bundle
@@ -3528,6 +3590,7 @@ Six targeted fixes and one organizational improvement: Google search prepends a 
 - `client/src/pages/store-page.tsx`
 - `client/src/pages/project-detail.tsx`
 
+<a name="task-63"></a>
 ---
 
 ### #63 — Brand Colors (4) + Media Library Tab in CMD + CDN Upload Everywhere
@@ -3575,6 +3638,7 @@ Three related media/branding improvements:
 - `server/supabase.ts`
 - Various pages with URL inputs (user profile, product form, wiki form, artist form, gallery)
 
+<a name="task-64"></a>
 ---
 
 ### #64 — Marketing Landing Page Redesigns (Home, Store, Projects)
@@ -3627,6 +3691,7 @@ The Hosting page uses a premium "SaaS/tech marketing" visual language — animat
 - `client/src/pages/projects-page.tsx`
 - `client/src/pages/hosting-page.tsx` (reference implementation)
 
+<a name="task-65"></a>
 ---
 
 ### #65 — Support Tab in CMD (Contact Form Submission Management)
@@ -3680,6 +3745,7 @@ New table: `contact_submissions`
 - `client/src/components/command-sidebar.tsx`
 - New page: `client/src/pages/command-support.tsx`
 
+<a name="task-66"></a>
 ---
 
 ### #66 — Members Chat (Direct Messages + Channels + CMD Moderation Log)
@@ -3757,6 +3823,7 @@ Use a 5-second polling interval (`refetchInterval: 5000`) with TanStack Query to
 - New: `client/src/components/chat-sheet.tsx`
 - New: `client/src/pages/command-chat-log.tsx`
 
+<a name="task-67"></a>
 ---
 
 ### #67 — Minecraft Marketing Page
@@ -3803,6 +3870,7 @@ const SERVERS = [
 - `client/src/components/platform-header.tsx` (nav link)
 - `server/routes.ts` (status proxy)
 
+<a name="task-68"></a>
 ---
 
 ### #68 — Finance Tab in CMD
@@ -3885,6 +3953,7 @@ Five sub-tabs within the Finance page:
 - New: `client/src/pages/command-finance.tsx`
 - `server/emailClient.ts` (invoice send)
 
+<a name="task-69"></a>
 ---
 
 ### #69 — Staff Tab in CMD (Staff Directory + Org Chart)
@@ -3945,6 +4014,7 @@ Admins need a dedicated staff view inside CMD — a clean staff directory and a 
 - `client/src/components/command-sidebar.tsx`
 - New: `client/src/pages/command-staff.tsx`
 
+<a name="task-70"></a>
 ---
 
 ### #70 — Bug Fixes & Polish Bundle 2
@@ -3990,6 +4060,7 @@ Six targeted fixes and one changelog update addressing issues found after the re
 - `client/src/App.tsx` (PlatformColorInjector)
 - `server/routes.ts` (changelog endpoint)
 
+<a name="task-71"></a>
 ---
 
 ### #71 — Minecraft as a Project + CMD Minecraft Admin Tab
@@ -4056,6 +4127,7 @@ The Minecraft page currently lives under the Services menu, which is the wrong h
 - `server/routes.ts`
 - `server/storage.ts`
 
+<a name="task-72"></a>
 ---
 
 ### #72 — Platform-Wide Hover Tooltips
@@ -4097,6 +4169,7 @@ Many icon-only buttons across the platform (nav icons, CMD action buttons, sideb
 - `client/src/components/ui/tooltip.tsx`
 - CMD pages with action buttons (command-media.tsx, command-support.tsx, etc.)
 
+<a name="task-73"></a>
 ---
 
 ### #73 — Hero Logo Upload + Brand Assets Preview
@@ -4139,6 +4212,7 @@ Admins currently cannot change the planet icon shown in the Hero section — it'
 - `client/src/App.tsx` (PlatformColorInjector)
 - `shared/schema.ts` (brand_assets table, platform_settings table)
 
+<a name="task-74"></a>
 ---
 
 ### #74 — Services Mega-Menu Reorganization
@@ -4189,6 +4263,7 @@ Each category shows up to 3 services from the DB. The "Browse all" footer link r
 ## Relevant files
 - `client/src/components/platform-header.tsx` (SERVICE_COLUMN_GROUPS constant, ServicesDropdown, mobile menu)
 
+<a name="task-75"></a>
 ---
 
 ### #75 — Finance — Subscriptions Tab
@@ -4248,6 +4323,7 @@ SEVCO needs to track its corporate subscriptions (SaaS tools, services, renewals
 - `server/storage.ts`
 - `client/src/pages/command-finance.tsx`
 
+<a name="task-76"></a>
 ---
 
 ### #76 — Fix Invoice Email + Support Reply Email (Resend)
@@ -4295,6 +4371,7 @@ Two email-sending features in CMD are broken: the "Send Invoice" button in Finan
 - `client/src/pages/command-finance.tsx`
 - `client/src/pages/command-support.tsx`
 
+<a name="task-77"></a>
 ---
 
 ### #77 — AI Chat Agents / Bots in Platform Chat (Plan)
@@ -4397,6 +4474,7 @@ Users should be able to converse with AI models (GPT-4o, Claude, Mistral, image 
 - `client/src/components/command-sidebar.tsx`
 - `client/src/App.tsx`
 
+<a name="task-78"></a>
 ---
 
 ### #78 — CMD Settings Tab Consolidation
@@ -4445,6 +4523,7 @@ Consolidate the three separate Command Center navigation items — Display, Soci
 - `server/storage.ts`
 - `shared/schema.ts`
 
+<a name="task-79"></a>
 ---
 
 ### #79 — Dynamic Brand Color Theming
@@ -4482,6 +4561,7 @@ The platform currently has hardcoded purple/orange accent colors baked into `ind
 - `client/src/pages/command-display.tsx:150-200`
 - `client/src/index.css`
 
+<a name="task-80"></a>
 ---
 
 ### #80 — CMD Traffic Analytics Tab
@@ -4520,6 +4600,7 @@ Add a "Traffic" tab to the Command Center so admins can monitor platform traffic
 - `server/storage.ts`
 - `shared/schema.ts`
 
+<a name="task-81"></a>
 ---
 
 ### #81 — Bug Fixes Bundle 4 — Logo / Upload / Changelog
@@ -4567,6 +4648,7 @@ Three targeted bug fixes and a changelog update:
 - `server/routes.ts:1698-1800`
 - `client/src/pages/command-changelog.tsx`
 
+<a name="task-82"></a>
 ---
 
 ### #82 — Bug Fixes 5 — Services, Emails, Nav Color
@@ -4612,6 +4694,7 @@ Three targeted bug fixes:
 - `client/src/App.tsx:325-395`
 - `client/src/pages/command-settings.tsx`
 
+<a name="task-83"></a>
 ---
 
 ### #83 — Extended Platform Color Settings
@@ -4655,6 +4738,7 @@ The platform currently supports 4 brand colors (main, secondary, accent, highlig
 - `client/src/pages/wiki-page.tsx`
 - `client/src/lib/colorUtils.ts`
 
+<a name="task-84"></a>
 ---
 
 ### #84 — Admin Content: Platform Cards + Service Categories
@@ -4696,6 +4780,7 @@ Two admin content management features:
 - `server/routes.ts:1888-1935`
 - `server/storage.ts:787-800`
 
+<a name="task-85"></a>
 ---
 
 ### #85 — Full Site Audit & Fixes
@@ -4761,6 +4846,7 @@ Based on a code review of the current codebase, expected findings include:
 - `server/routes.ts`
 - `server/static.ts`
 
+<a name="task-86"></a>
 ---
 
 ### #86 — Google Analytics 4 Integration
@@ -4852,6 +4938,7 @@ The GA4 Data API requires a **service account** (not an API key). The executor m
 - `client/index.html`
 - `package.json`
 
+<a name="task-87"></a>
 ---
 
 ### #87 — Fix Registration Verification Emails
@@ -4891,6 +4978,7 @@ Users who register are never receiving the verification email sent via Resend. T
 - `server/auth.ts:68-214`
 - `client/src/pages/auth-page.tsx`
 
+<a name="task-88"></a>
 ---
 
 ### #88 — Bug Fixes 6 — Nav Color, Project Icons, Email URL
@@ -4954,6 +5042,7 @@ Add `SITE_URL` as a documented env variable. In deployed production, `REPLIT_DEP
 - `server/emailClient.ts` — getBaseUrl()
 - `server/routes.ts` — project seeding (set SEVCO RECORDS linkUrl)
 
+<a name="task-89"></a>
 ---
 
 ### #89 — News Page — Curated Feed + Wikify
@@ -5076,6 +5165,7 @@ New table `news_categories`:
 - `client/src/components/platform-header.tsx` — add News to nav
 - `client/src/components/command-sidebar.tsx` — add News tab to sidebar
 
+<a name="task-90"></a>
 ---
 
 ### #90 — Engineering Wiki — Comprehensive Documentation Update
@@ -5165,6 +5255,7 @@ GET /api/news/feed?query=X&limit=10 — public — returns parsed RSS articles (
 - `client/src/components/` — all shared components
 - Git log for commit messages per task
 
+<a name="task-91"></a>
 ---
 
 ### #91 — Bug Fixes 7 — Wiki Menu on /news, Planet Logo, Wiki Seed
@@ -5209,6 +5300,7 @@ Alternatively, if startup-time seeding is too slow, call the HTTP endpoint once 
 - `server/wikiSeed.ts` — seed function
 - `server/routes.ts` — /api/admin/run-wiki-seed endpoint
 
+<a name="task-92"></a>
 ---
 
 ### #92 — News Improvements — Images, Layout, More Articles, Wikify Icon
@@ -5319,6 +5411,7 @@ Add handling in `news-page.tsx` for a `?category` query param:
 - `client/src/pages/feed-page.tsx` — wikify on posts
 - `client/src/pages/command-news.tsx` — API key setting
 
+<a name="task-93"></a>
 ---
 
 ### #93 — Nav Color Controls (4 settings) + Per-Page Button Colors
@@ -5465,6 +5558,7 @@ A small preview strip shows the button appearance in real time using the chosen 
 - `client/src/pages/music-page.tsx` — button color wrapper div
 - `client/src/pages/news-page.tsx` — button color wrapper div
 
+<a name="task-94"></a>
 ---
 
 ### #94 — Bug Fixes 8 + Quick Wins
@@ -5520,6 +5614,7 @@ The news swimlanes currently show 6 articles (limit=6). Increase the default fet
 - `client/src/pages/command-settings.tsx`
 - `client/src/pages/command-overview.tsx`
 
+<a name="task-95"></a>
 ---
 
 ### #95 — Dynamic Services Nav + Notes Inline Screenshots + Shared Display Settings
@@ -5613,6 +5708,7 @@ The user's intent is that "Display Settings" should feel like a shared system-le
 - `client/src/components/command-sidebar.tsx`
 - `server/routes.ts` — platformSettings + upload endpoint
 
+<a name="task-96"></a>
 ---
 
 ### #96 — CMD Settings Redesign — Organized Colors, Live Preview, Global Search, Tailwind Theming
@@ -5737,6 +5833,7 @@ The swatch grid shows these 11 colors for one-click selection on any color picke
 - `client/src/index.css` — default variable definitions to reference
 - `server/routes.ts` — no new routes needed (use existing platformSettings endpoint)
 
+<a name="task-97"></a>
 ---
 
 ### #97 — SEVCO Email Client — Unified Messaging with Resend
@@ -5936,6 +6033,7 @@ getEmailFolderCounts(userId: number): Promise<Record<string, number>>
 - `client/src/components/platform-header.tsx` — Email nav link (Client+ only)
 - `client/src/App.tsx` — /messages route registration + guard
 
+<a name="task-98"></a>
 ---
 
 ### #98 — Bug Fixes 9 — Notes Editor, Messages Chat Routing, Admin Username
@@ -6098,6 +6196,7 @@ Apply same validation in server-side `insertUserSchema`.
 - `server/routes.ts` (seed + username validation)
 - `shared/schema.ts` (username regex validation)
 
+<a name="task-99"></a>
 ---
 
 ### #99 — Notes Editor Final Fix
@@ -6165,6 +6264,8 @@ And remove `lastExternalValueRef` too. The editor is initialized once on mount (
 - `client/src/pages/notes-page.tsx` (2 changes: onSuccess + key prop)
 - `client/src/components/rich-text-editor.tsx` (remove useEffect + lastExternalValueRef)
 
+<a name="task-100"></a>
+<a name="task-101"></a>
 ---
 
 ### #100 — X.com OAuth Sign-In
@@ -6342,6 +6443,7 @@ Add to CMD Settings → Display → Section Visibility:
 - `server/routes.ts` — new /api/social/x/* routes
 - `client/src/pages/command-settings.tsx` — X API settings section
 
+<a name="task-103"></a>
 ---
 
 ### #102 — Grok Model Support for AI Agents
@@ -6470,6 +6572,7 @@ Add `XAI_API_KEY` to the list of recognized secrets. The user will need to add t
 - `server/routes.ts` — provider routing logic (xai/ vs default OpenRouter)
 - `client/src/pages/command-settings.tsx` — XAI_API_KEY status row
 
+<a name="task-104"></a>
 ---
 
 ### #103 — CRITICAL: Production Database Migration — Add x_id Column
@@ -6533,6 +6636,7 @@ Implement Option A. The change is 4 lines and the redeploy will fix production i
 ## Files
 - `server/index.ts` — add runStartupMigrations() call before app starts
 
+<a name="task-105"></a>
 ---
 
 ### #104 — Task #105 — Wire X/Twitter Secrets & Verify Features
@@ -6585,6 +6689,7 @@ OAuth 2.0 for sign-in and Bearer Token for feed reads only.
 - Home page X section loads (or gracefully states no handles configured yet)
 - `/auth` → clicking "Sign in with X" initiates OAuth flow without 503 error
 
+<a name="task-106"></a>
 ---
 
 ### #105 — Task #106 — Fix X OAuth Callback URL (localhost → sevco.us)
@@ -6641,6 +6746,7 @@ This makes the callback URL always correct in production even without BASE_URL b
 - `server/auth.ts` — update BASE_URL fallback logic (line 74)
 - Replit Secrets — add `BASE_URL=https://sevco.us`
 
+<a name="task-107"></a>
 ---
 
 ### #106 — Task #107 — Connect X Account for Legacy Users (Account Page)
@@ -6748,6 +6854,7 @@ note: "Signed in via X — your X account is your login." and disable the discon
 - If two users try to link the same X account, the second gets a clear error toast
 - POST /api/auth/twitter/disconnect returns 200; user's xId becomes null in DB
 
+<a name="task-108"></a>
 ---
 
 ### #107 — Task #108 — Bug Fixes 11: CMD Settings Search + Notes Toolbar + Notes Save
@@ -6893,6 +7000,7 @@ notes toolbar area so the user can confirm saves are happening. Show "Saving..."
 - `client/src/components/rich-text-editor.tsx` — Bug 2 fix (sticky toolbar), Bug 3 fix (onChange ref)
 - `client/src/pages/notes-page.tsx` — Bug 3 fix (memoize handleContentChange, saved indicator)
 
+<a name="task-109"></a>
 ---
 
 ### #108 — Task #109 — X Feed: SEVCO Account Timelines + More Tweets on Home Page
@@ -7025,6 +7133,7 @@ many tweets appear per account.
 - `client/src/pages/landing.tsx` — 2-column timeline layout with handle headers
 - `client/src/pages/command-settings.tsx` — pre-fill handles input, add maxTweets input
 
+<a name="task-110"></a>
 ---
 
 ### #109 — Task #110 — Profile Page: Bug Fixes + Customization Expansion
@@ -7201,6 +7310,7 @@ New nullable columns to add to `users` table:
 - `client/src/pages/profile-page.tsx` — view + edit form for all new fields
 - `client/src/pages/command-settings.tsx` — Bug B (search bar)
 
+<a name="task-111"></a>
 ---
 
 ### #110 — Task #111 — Notes: Save-on-Unmount Fix + Replace Bear with X Post
@@ -7348,6 +7458,7 @@ with an ellipsis. Users will see the character count in X's composer.
 ## Files
 - `client/src/pages/notes-page.tsx` — save-on-unmount (Fixes A+B+C) + X Post button
 
+<a name="task-112"></a>
 ---
 
 ### #111 — Task #112 — xAI: Latest Models + Grok Imagine + OpenRouter Fallback
@@ -7566,6 +7677,7 @@ Add a similar `x.ai (OR)` or `Grok↗` badge for `x-ai/` models (OpenRouter Grok
 
 ## No DB changes — no startup migrations needed
 
+<a name="task-113"></a>
 ---
 
 ### #112 — Fullscreen & Floating Chat Windows
@@ -7606,6 +7718,7 @@ Enhance the chat experience with three new modes: a fullscreen focused chat view
 - `shared/schema.ts`
 - `server/routes.ts`
 
+<a name="task-114"></a>
 ---
 
 ### #113 — Protect Planet Logo From Clipping
@@ -7642,6 +7755,7 @@ The SEVCO planet logo repeatedly gets a small chunk clipped off when surrounding
 - `client/src/pages/music-listen-page.tsx`
 - `client/src/pages/landing.tsx`
 
+<a name="task-116"></a>
 ---
 
 ### #114 — Task #116 — Fix chat-sheet.tsx merge conflict + hero button color settings
@@ -7658,19 +7772,12 @@ This crashes the TypeScript compiler and brings the whole app down.
 
 ### The conflict (lines 564–589):
 ```
-<<<<<<< HEAD
   {/* Task #112 version: image detection, then raw text */}
   {(() => {
     const imgMatch = !isUser && msg.content.startsWith("![") && ...;
     if (imgMatch) { return <img .../>; }
     return <div ...>{msg.content}</div>;
   })()}
-=======
-  {/* Task #113 version: always use AiMessageRenderer for markdown */}
-  <div ...>
-    {isUser ? msg.content : <AiMessageRenderer content={msg.content} />}
-  </div>
->>>>>>> 22fbbd1
 ```
 
 ### Resolution: combine both — image detection takes priority, AiMessageRenderer for text
@@ -7700,7 +7807,7 @@ This crashes the TypeScript compiler and brings the whole app down.
 })()}
 ```
 
-Remove the conflict markers (`<<<<<<< HEAD`, `=======`, `>>>>>>> 22fbbd1`) entirely.
+<a name="task-117"></a>
 Restart the workflow after fixing to confirm the app starts cleanly.
 
 ---
@@ -7963,6 +8070,7 @@ After replacement, run a grep for `orange-` and `violet-`/`purple-` across clien
 the results should be zero (or near-zero for truly intentional one-off uses).
 No TS errors should be introduced (these are only className string changes).
 
+<a name="task-118"></a>
 ---
 
 ### #116 — Task #118 — Fix homepage layout (marquee overflow) + restart app
@@ -8032,6 +8140,7 @@ After applying the fix, restart the "Start application" workflow to confirm the 
 
 ---
 
+<a name="task-119"></a>
 ### #117 — task 119
 
 > File: `task-119.md`
@@ -8082,6 +8191,7 @@ After applying the fix, restart the "Start application" workflow to confirm the 
   - `client/src/pages/landing.tsx` — landing page root div overflow-x-hidden
 
   ## No DB changes, no migration needed
+<a name="task-120"></a>
 
 ---
 
@@ -8198,6 +8308,7 @@ After applying the fix, restart the "Start application" workflow to confirm the 
   - `client/src/components/platform-footer.tsx` — overflow-x-hidden (Fix 7)
 
   ## No DB changes, no migrations needed
+<a name="task-121"></a>
 
 ---
 
@@ -8358,6 +8469,7 @@ After applying the fix, restart the "Start application" workflow to confirm the 
   - `client/src/pages/command-news.tsx` — XFeedControlsCard component
 
   ## No DB schema changes — all settings in platform_settings key-value store
+<a name="task-132"></a>
 
 ---
 
@@ -8393,6 +8505,7 @@ Additionally, the chat message renderer should render agent-returned images with
 - `client/src/components/chat-sheet.tsx`
 - `server/routes.ts:4157-4189`
 
+<a name="task-154"></a>
 ---
 
 ### #121 — Sidebar navigation cleanup
@@ -8428,6 +8541,7 @@ Three sidebar UX improvements requested by the user:
 - `client/src/components/ui/sidebar.tsx:480`
 - `client/src/index.css:285-292`
 
+<a name="task-155"></a>
 ---
 
 ### #122 — Remove RSS, switch news to X/xAI only
@@ -8471,6 +8585,7 @@ The news system currently pulls from Google News RSS / GNews API, resulting in a
 - `client/src/pages/news-page.tsx`
 - `client/src/pages/command-news.tsx`
 
+<a name="task-156"></a>
 ---
 
 ### #123 — Beautiful Images for All News Articles
@@ -8511,6 +8626,7 @@ Many news articles currently fall back to a generic gray "SEVCO News" SVG placeh
 - `client/src/pages/news-page.tsx:108-167`
 - `client/src/hooks/use-news-ai.ts:1-20`
 
+<a name="task-157"></a>
 ---
 
 ### #124 — CMD News Admin Controls
@@ -8555,6 +8671,7 @@ Expand the Command Center News page (`/command/news`) with comprehensive admin c
 - `client/src/pages/command-settings.tsx`
 - `server/storage.ts`
 
+<a name="task-158"></a>
 ---
 
 ### #125 — Home page redesign + platform Wiki docs
@@ -8623,6 +8740,7 @@ Each showstopper section on the home page has a "Learn More →" ghost link poin
 - `server/routes.ts` (POST /api/articles for article creation)
 - `shared/schema.ts` (Article, Product types)
 
+<a name="task-159"></a>
 ---
 
 ### #126 — Wikify Tool Page — Bulk wiki article generator
@@ -8725,6 +8843,7 @@ The Grok system prompt must instruct:
 - `server/grok-news.ts` (xAI API call pattern to reuse)
 - `shared/schema.ts` (Article, Category types)
 
+<a name="task-160"></a>
 ---
 
 ### #127 — Tools Marketing Page + Navigation Updates
@@ -8885,6 +9004,7 @@ Note: Keep the unread email badge logic — it only shows when `isClientPlus` is
 - Changing role/permissions logic on the backend
 - Adding new backend endpoints
 
+<a name="task-161"></a>
 ---
 
 ### #128 — SEVCO Platform Updates Page — Changelog Overhaul + Update Log + Auto-Update System
@@ -13121,6 +13241,233 @@ Replace the current news bento/swimlane layout and the separate X feed section o
 - `client/src/pages/landing.tsx`
 - `client/src/components/news-bento-grid.tsx`
 - `client/src/components/news-article-card.tsx`
+
+---
+
+## Task — task-161
+> Merged: 2026-03-29
+
+---
+title: Platform Updates page + changelog overhaul + update log compilation + auto-update on merge
+---
+# SEVCO Platform Updates Page — Changelog Overhaul + Update Log + Auto-Update System
+
+## What & Why
+
+The SEVCO platform has a basic `/changelog` page that's manually maintained and not visually compelling. Meanwhile we need a comprehensive development update log compiled from 160+ task plan files. This task merges both needs into one system:
+
+1. **Redesign `/changelog` → `/platform`** — A beautiful public-facing "Platform Updates" marketing page with hero, featured update spotlights, full searchable timeline, and prominent sign-up/sign-in CTAs (including X sign-in). Goal: convert visitors into accounts.
+
+2. **Compile the initial `SEVCO_UPDATE_LOG.md`** — A complete markdown file in the project root with all 160+ task plan files reproduced verbatim, organized chronologically, with zero information omitted.
+
+3. **Auto-populate changelog from task plan files** — Extend `scripts/post-merge.sh` to call a new `scripts/append-to-update-log.js` script that: (a) appends the task to `SEVCO_UPDATE_LOG.md`, AND (b) auto-creates a structured changelog entry in the database from the plan file content.
+
+---
+
+## Part 1 — `/platform` Marketing Changelog Page
+
+### Route
+- **New route:** `/platform` — publicly accessible (no auth required)
+- **Old route:** `/changelog` should redirect to `/platform` (or both work, with `/platform` being the marketing version)
+- Add `/platform` to `client/src/App.tsx` routing
+
+### Page structure
+
+#### Section 1 — Hero
+Dark glassmorphism hero (consistent with landing page and tools page style):
+- **Headline:** "SEVCO is always evolving." (or similar short punchy statement)
+- **Subheadline:** "We ship constantly. Every new feature, fix, and improvement — documented here. Join us to use it all."
+- **Two CTAs side by side:**
+  - Primary (red): "Create Free Account" → `/auth?mode=register`
+  - Secondary (outline with X icon): "Sign in with X" → `/api/auth/twitter`
+- Small note below CTAs: "Already have an account? [Sign in →]"
+- **Stats bar** (3–4 animated counters, derived from changelog data):
+  - "[N] Updates shipped" — count of all changelog entries
+  - "[N] New features" — count of category=feature entries
+  - "[N] Fixes & improvements" — count of fix+improvement entries
+  - "Actively maintained" — static badge
+- Aurora background blobs (matching brand: deep red, indigo, emerald)
+
+#### Section 2 — Featured Updates Spotlight
+Auto-curated from the 3–5 most recent `category=feature` changelog entries.
+- **Heading:** "What's New" with a "Live" badge (green pulsing dot)
+- Display as horizontal scroll of glassmorphic feature cards:
+  - Each card: version badge (e.g., `v2.4.1`), category badge ("Feature"), title, 2-line description truncated, date ("3 days ago" relative), "Learn More →" link to wiki article if `wikiSlug` exists
+  - Hover: card lifts, border glows
+- Below cards: "See all [N] updates ↓" link scrolls to the timeline
+
+#### Section 3 — Searchable Timeline
+The full changelog, rendered as a beautiful vertical timeline:
+- **Search bar** at the top: real-time client-side filter by title or description text
+- **Category filter pills**: All | Features | Fixes | Improvements | Other (toggle, multi-select)
+- **Timeline entries** grouped by year (2024, 2025, 2026...) with a sticky year label on the left
+- Each entry:
+  - Left: date (month day) + connecting timeline dot + vertical line
+  - Right: version badge (`v1.x.x`), category badge (color-coded: Feature=blue, Fix=red, Improvement=amber, Other=grey), title (bold), description (full text, not truncated), "Read more →" link if wikiSlug exists
+  - Subtle glassmorphic card treatment: `bg-white/[0.03] border border-white/[0.06] rounded-xl px-5 py-4`
+- Empty state when search has no results: "No updates matching '[query]'" with clear button
+
+#### Section 4 — Sign-up CTA (bottom)
+Full-width dark panel before the footer:
+- Headline: "Everything above is just the beginning."
+- Body: "New features ship every week. Sign up free to use the Wiki, Store, Music, AI Tools, Email — everything. Or jump in instantly with your X account."
+- **Two CTAs:**
+  - Primary: "Get Started Free" → `/auth?mode=register`
+  - Secondary with X icon: "Continue with X" → `/api/auth/twitter`
+- Fine print: "No credit card required. Free tier available."
+- Hide this section if user is already logged in (`user` from `useAuth`)
+
+### Data source
+Reads from `GET /api/changelog` (existing endpoint, returns all entries ordered by `createdAt` desc).
+
+No new backend endpoints needed for the page itself — all data already exists.
+
+### Navigation
+- Add "Platform" or "Updates" link somewhere visible for public users:
+  - In `platform-footer.tsx` bottom link row alongside existing links
+  - In the SEVCO home dropdown (`platform-header.tsx`) — add "What's New" or "Platform Updates" entry below "About"
+- The old `/changelog` page can remain as-is for backward compat, or redirect; the new `/platform` page is the marketing face
+
+---
+
+## Part 2 — `SEVCO_UPDATE_LOG.md` Initial Compilation
+
+A file at `SEVCO_UPDATE_LOG.md` in the project root containing every task plan file reproduced verbatim. No information omitted.
+
+### Structure
+```
+# SEVCO Platform — Complete Development Update Log
+
+> Every Replit Agent task plan reproduced verbatim. Zero omissions.
+> Total tasks: [count] | Platform: sevco.us | Last updated: [date]
+
+---
+
+## Table of Contents
+- [#1 — RBAC & Role Permission System](#1)
+...
+
+---
+
+## Task Log
+
+### #1 — RBAC & Role Permission System
+> Merged: [date]
+
+[full contents of rbac-role-system.md]
+
+---
+...
+
+## Appendix — Additional Tasks & Fixes
+[unmatched plan files]
+```
+
+### Task-to-file mapping (for the compiler to use)
+
+**Named by topic (#1–#29):**
+- #1 → `rbac-role-system.md`, #2 → `platform-shell.md`, #3 → `landing-and-dashboard.md`, #4 → `music-page.md`, #5 → `store-page.md`, #6 → `projects-page.md`, #7 → `logo-favicon-update.md`, #8 → `logo-display-fix.md`, #9 → `logo-no-skew.md`, #10 → `platform-footer.md`, #11 → `platform-polish-and-changelog.md`, #12 → `fix-production-auth.md`, #13 → `stripe-checkout-cart.md`, #14 → `command-center.md`, #15 → `store-analytics.md`, #16 → `store-redesign.md`, #17 → `auto-wiki-engineering-articles.md`, #18 → `sidebar-account-cleanup.md`, #19 → `auth-copy-tweak.md`, #20 → `pre-publish-fixes.md`, #21 → `email-verification.md`, #22 → `public-access-mega-menu.md`, #23 → `home-contact-pages.md`, #24 → `profile-page.md`, #25 → `jobs-page.md`, #26 → `services-page.md`, #27 → `music-expansion.md`, #28 → `projects-megamenu-marketing.md`, #29 → `projects-dropdown-style-fix.md`
+
+**Prefixed with old offset (#30–#100):**
+- #30→`t28-bug-fixes-quick-wins.md`, #31→`t29-profile-user-enhancements.md`, #32→`t30-footer-social-links-admin.md`, #33→`t31-store-cmd-product-creation.md`, #34→`t32-music-player-playlist-cmd.md`, #35→`t33-wiki-archive.md`, #36→`t34-version-system-changelog.md`, #37→`t35-social-feed.md`, #38→`t36-notes-tool.md`, #39→`t39-nav-platform-housekeeping.md`, #40→`t40-cmd-restructure.md`, #41→`t41-hostinger-domains.md`, #42→`t42-engineering-articles-changelog.md`, #43→`t43-bug-fixes-nav-polish.md`, #44→`t44-project-social-links-about-page.md`, #45→`t45-listen-page-social-links-cmd.md`, #46→`t46-cmd-display-tab.md`, #47→`t47-platform-search.md`, #48→`t48-bug-fixes.md`, #49→`t49-cmd-enhancements.md`, #50→`t50-home-bulletin-footer-store-cleanup.md`, #51→`t51-gallery-tools-dropdown.md`, #52→`t52-brand-section-about.md`, #53→`t53-hosting-landing-page.md`, #54→`t54-project-service-icons-placeholder-products.md`, #55→`t55-spotify-integration.md`, #56→`t56-wiki-articles-changelog.md`, #57→`t57-supabase-storage.md`, #58→`t58-bug-fixes-2.md`, #59→`t59-display-tab-uploads-services.md`, #60→`t60-platform-colors.md`, #61→`t61-notes-export.md`, #62→`t62-bugs-polish.md`, #63→`t63-brand-colors-media-cdn.md`, #64→`t64-marketing-pages.md`, #65→`t65-support-tab-cmd.md`, #66→`t66-members-chat.md`, #67→`t67-minecraft-page.md`, #68→`t68-finance-tab-cmd.md`, #69→`t69-staff-tab-cmd.md`, #70→`t70-bugs-polish2.md`, #71→`t71-minecraft-project-cmd.md`, #72→`t72-hover-tooltips.md`, #73→`t73-hero-logo-brand-assets.md`, #74→`t74-services-menu-reorganization.md`, #75→`t75-finance-subscriptions.md`, #76→`t76-email-fix.md`, #77→`t77-ai-chat-agents.md`, #78→`t78-cmd-settings-tab.md`, #79→`t79-brand-color-theming.md`, #80→`t80-traffic-tab-cmd.md`, #81→`t81-bug-fixes-4.md`, #82→`t82-bug-fixes-5.md`, #83→`t83-extended-color-settings.md`, #84→`t84-admin-content-management.md`, #85→`t85-site-audit.md`, #86→`t86-google-analytics.md`, #87→`t87-registration-email-fix.md`, #88→`t88-bug-fixes-6.md`, #89→`t89-news-page.md`, #90→`t90-wiki-changelog-comprehensive.md`, #91→`t91-bug-fixes-7.md`, #92→`t92-news-improvements.md`, #93→`t93-nav-and-button-colors.md`, #94→`t94-bug-fixes-8.md`, #95→`t95-services-notes-display.md`, #96→`t96-settings-redesign.md`, #97→`t97-email-client.md`, #98→`t98-notes-fixes.md`, #99→`t99-notes-editor-final-fix.md`, #100→`t100-x-oauth-signin.md`
+
+**Direct task number mapping (#101+):**
+- #101→`t101-home-consolidation-x-api.md`, #103→`t103-grok-agent-models.md`, #104→`t104-production-db-migration.md`, #105→`t105-x-secrets-setup.md`, #106→`t106-fix-x-oauth-callback-url.md`, #107→`t107-link-x-account.md`, #108→`t108-bug-fixes-11.md`, #109→`t109-x-feed-improvements.md`, #110→`t110-profile-overhaul.md`, #111→`t111-notes-save-x-post.md`, #112→`t112-grok-models-imagine.md`, #113→`t113-fullscreen-floating-chat.md`, #114→`t114-protect-planet-logo.md`, #116→`t116-chat-conflict-hero-button-color.md`, #117→`t117-brand-color-palette-replacement.md`, #118→`task-118.md`, #119→`task-119.md`, #120→`task-120.md`, #121→`task-121.md`, #132→`t132-grok-imagine-error-image-rendering.md`, #154→`sidebar-cleanup.md`, #155→`news-x-only-migration.md`, #156→`beautiful-news-images.md`, #157→`cmd-news-controls.md`, #158→`home-page-redesign-wiki-docs.md`, #159→`wikify-tool-page.md`, #160→`tools-marketing-page.md`, #161→this file
+
+**Appendix (unmatched files):**
+`accessibility-error-handling.md`, `animation-motion-system.md`, `chat-overlap-fix.md`, `cmd-dashboard-polish.md`, `dark-mode-default.md`, `design-audit-report.md`, `design-system-consistency.md`, `email-body-fix.md`, `email-fetch-body-via-receiving-api.md`, `fix-x-feed-errors.md`, `grok-news-page.md`, `hide-tools-dropdown-signed-out.md`, `inbound-email-diagnostics.md`, `inbox-fix-and-refresh.md`, `marketing-page-upgrades.md`, `navigation-sidebar-enhancements.md`, `news-ai-summaries-wikify.md`, `news-feed-fix.md`, `news-fixes-home-sources.md`, `news-page-enhancements.md`, `news-page-ux-overhaul.md`, `news-x-fix.md`, `news-x-per-category-handles.md`, `task-email-fix.md`, `task-finance-projects-sync.md`, `task-nav-hover-text-fix.md`, `task-quick-fixes.md`, `task-seo-settings.md`, `task-tasks-tool.md`, `ui-sound-system.md`, `x-news-editorial-redesign.md`
+
+---
+
+## Part 3 — Auto-Update System (post-merge.sh + new script)
+
+### New file: `scripts/append-to-update-log.js`
+
+Runs after every task merge. Does two things:
+
+**A) Appends to `SEVCO_UPDATE_LOG.md`:**
+- Reads the plan file
+- Checks if the task ref is already in the log (idempotent)
+- Appends a new section with date and full plan content
+
+**B) Auto-creates a changelog DB entry via the API:**
+- Parses the plan file to extract:
+  - `title`: the first `# Heading` in the file
+  - `description`: the content of the `## What & Why` section (first 500 chars)
+  - `category`: auto-detected:
+    - Contains "fix", "bug", "crash", "error" → `fix`
+    - Contains "redesign", "overhaul", "new", "add", "create", "build" → `feature`
+    - Contains "improve", "enhance", "update", "upgrade", "polish" → `improvement`
+    - Otherwise → `other`
+  - `version`: auto-increments from latest changelog entry (patch bump: `1.x.y` → `1.x.y+1`)
+  - `wikiSlug`: null (wiki article is created separately by `create-wiki-article.js`)
+- Posts to `POST /api/changelog` using a server-to-server call (needs to run as admin)
+- The script needs to call the local API — use `http://localhost:5000/api/changelog` with a secret internal token OR write directly to the DB using the same `DATABASE_URL` env var
+- **Preferred approach**: Write directly to DB using `@neondatabase/serverless` (already a project dependency) to avoid needing an auth token
+
+**Script signature:**
+```
+node scripts/append-to-update-log.js <planFilePath> [taskRef] [taskTitle]
+```
+
+### Updated `scripts/post-merge.sh`:
+```bash
+#!/bin/bash
+set -e
+npm install
+npm run db:push
+
+LATEST_TASK=$(ls -t .local/tasks/*.md 2>/dev/null | head -1)
+if [ -n "$LATEST_TASK" ]; then
+  echo "Creating wiki article from task plan: $LATEST_TASK"
+  node scripts/create-wiki-article.js "$LATEST_TASK" || true
+  echo "Appending to update log and changelog: $LATEST_TASK"
+  node scripts/append-to-update-log.js "$LATEST_TASK" || true
+else
+  echo "No task plan files found."
+fi
+```
+
+The `|| true` keeps merges non-blocking if the script fails.
+
+---
+
+## Files to create/modify
+
+| File | Action |
+|---|---|
+| `client/src/pages/platform-page.tsx` | NEW — Platform Updates marketing page |
+| `client/src/App.tsx` | Add `/platform` route (public, no auth required) |
+| `client/src/components/platform-header.tsx` | Add "What's New" link to SEVCO home dropdown |
+| `client/src/components/platform-footer.tsx` | Add "Platform Updates" link in footer links |
+| `scripts/append-to-update-log.js` | NEW — auto-appends to log + creates changelog DB entry |
+| `scripts/post-merge.sh` | Extend to call append-to-update-log.js |
+| `SEVCO_UPDATE_LOG.md` | NEW — compiled from all 190 plan files |
+
+The existing `/changelog` page (`changelog-page.tsx`) can remain as-is. The new `/platform` page is the marketing face; `/changelog` stays as a simpler internal reference.
+
+---
+
+## Important requirements
+
+- **Marketing goal**: every visitor to `/platform` should feel motivated to sign up or log in. The X sign-in CTA must be visible and prominent (not buried).
+- **Zero information loss** in `SEVCO_UPDATE_LOG.md` — every word from every plan file reproduced verbatim.
+- The auto-update script must be idempotent — running twice with the same task creates only one changelog entry and one log section.
+- The `|| true` in post-merge.sh keeps merges non-blocking.
+- All interactive elements on the page need `data-testid` attributes.
+- Dark mode first, consistent with landing.tsx glassmorphism style.
+- The page must work fully for logged-out visitors (no auth dependency for the changelog data).
+- The featured "What's New" spotlight must pull from actual DB data (not hardcoded), so it auto-updates as new entries are added.
+
+## Relevant existing files
+- `client/src/pages/changelog-page.tsx` — existing changelog (reference for data shape)
+- `client/src/pages/landing.tsx` — glassmorphism style reference
+- `client/src/pages/tools-page.tsx` — marketing card style reference (just created in #160)
+- `client/src/pages/auth-page.tsx` — X sign-in button implementation (`/api/auth/twitter`)
+- `server/routes.ts` lines 1857–1896 — changelog API endpoints
+- `scripts/create-wiki-article.js` — reference for post-merge script pattern
+- `shared/schema.ts` lines 296–304 — changelog DB schema
+
 
 ---
 

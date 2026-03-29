@@ -10,5 +10,5 @@ if [ -n "$LATEST_TASK" ]; then
   echo "Appending to update log and changelog: $LATEST_TASK"
   node scripts/append-to-update-log.js "$LATEST_TASK" || true
 else
-  echo "No task plan files found, skipping wiki article and update log."
+  echo "No task plan files found."
 fi

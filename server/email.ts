@@ -109,12 +109,20 @@ export interface ResendInboundPayload {
   html?: string;
   text?: string;
   attachments?: Array<{
+    id?: string;
     filename?: string;
     content_type?: string;
+    content_disposition?: string;
+    content_id?: string;
     url?: string;
     size?: number;
   }>;
   headers?: Record<string, string>;
+}
+
+function extractEmailAddress(raw: string): string {
+  const angleMatch = raw.match(/<([^>]+)>/);
+  return (angleMatch ? angleMatch[1] : raw).trim().toLowerCase();
 }
 
 export async function processInboundEmail(payload: ResendInboundPayload): Promise<void> {
@@ -130,18 +138,20 @@ export async function processInboundEmail(payload: ResendInboundPayload): Promis
     reply_to: replyTo,
   } = payload;
 
+  console.log(`[email] processInboundEmail — email_id=${email_id}, from=${fromAddress}, to=${JSON.stringify(toAddresses)}, subject=${subject}`);
 
   const attachments = rawAttachments.map((a) => ({
     filename: a.filename ?? "",
     contentType: a.content_type ?? "",
-    url: a.url ?? "",
+    url: a.url ?? (a.id ? `resend:attachment:${a.id}` : ""),
     size: a.size ?? 0,
   }));
 
   for (const recipient of toAddresses) {
-    const match = recipient.match(/^(.+?)@sevco\.us$/i);
+    const addr = extractEmailAddress(recipient);
+    const match = addr.match(/^(.+?)@sevco\.us$/i);
     if (!match) {
-      console.log(`[email] Recipient ${recipient} is not a @sevco.us address — skipping`);
+      console.log(`[email] Recipient ${recipient} (parsed: ${addr}) is not a @sevco.us address — skipping`);
       continue;
     }
     const username = match[1].toLowerCase();

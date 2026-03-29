@@ -5036,7 +5036,17 @@ export async function registerRoutes(
       }
 
       console.log("[email/inbound] Signature check passed — processing payload");
-      const payload = req.body;
+      const body = req.body;
+      const eventType = body?.type;
+      console.log("[email/inbound] Event type:", eventType);
+
+      if (eventType && eventType !== "email.received") {
+        console.log(`[email/inbound] Ignoring non-inbound event: ${eventType}`);
+        return res.status(200).json({ received: true, ignored: true });
+      }
+
+      const payload = body?.data ?? body;
+      console.log("[email/inbound] Payload keys:", Object.keys(payload || {}));
       await processInboundEmail(payload);
       res.status(200).json({ received: true });
     } catch (err: any) {

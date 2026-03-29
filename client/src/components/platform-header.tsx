@@ -83,6 +83,8 @@ import {
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { ChatSheet } from "@/components/chat-sheet";
+import { useSounds } from "@/hooks/use-sounds";
+import { Volume2, VolumeX } from "lucide-react";
 import type { Project, Service } from "@shared/schema";
 
 function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
@@ -705,6 +707,7 @@ export function PlatformHeader() {
   const [mobileSection, setMobileSection] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const { soundEnabled, toggleSound, playClick } = useSounds();
 
   const { data: allServices = [] } = useQuery<Service[]>({
     queryKey: ["/api/services"],
@@ -947,10 +950,30 @@ export function PlatformHeader() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => { toggleSound(); playClick(); }}
+                aria-label={soundEnabled ? "Mute sounds" : "Unmute sounds"}
+                data-testid="button-sound-toggle"
+              >
+                {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              </Button>
               <ThemeToggle />
             </>
           ) : (
             <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => { toggleSound(); playClick(); }}
+                aria-label={soundEnabled ? "Mute sounds" : "Unmute sounds"}
+                data-testid="button-sound-toggle-guest"
+              >
+                {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              </Button>
               <ThemeToggle />
               <Link href="/auth">
                 <Button size="sm" className="h-8 text-xs" data-testid="button-sign-in">

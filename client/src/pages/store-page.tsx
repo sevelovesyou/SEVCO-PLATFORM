@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { StaggerGrid, StaggerItem } from "@/components/stagger-grid";
 import { useQuery } from "@tanstack/react-query";
 import { PageHead } from "@/components/page-head";
 import { Link, useSearch } from "wouter";
@@ -481,11 +482,13 @@ export default function StorePage() {
             ) : undefined}
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8">
+          <StaggerGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8">
             {filtered.map((product) => (
-              <ProductCard key={product.id} product={product} onAddToCart={() => addItem(product)} accentHsl={storeAccentHsl} />
+              <StaggerItem key={product.id}>
+                <ProductCard product={product} onAddToCart={() => addItem(product)} accentHsl={storeAccentHsl} />
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerGrid>
         )}
       </div>
 

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { StaggerGrid, StaggerItem } from "@/components/stagger-grid";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermission } from "@/hooks/use-permission";
 import { Card } from "@/components/ui/card";
@@ -324,6 +325,9 @@ function StoreStatsPreview() {
                   outerRadius={36}
                   paddingAngle={2}
                   dataKey="value"
+                  isAnimationActive={true}
+                  animationDuration={800}
+                  animationEasing="ease-out"
                 >
                   {donutData.map((entry) => (
                     <Cell
@@ -798,13 +802,13 @@ function AdminOverview({ data, summary, summaryLoading, userId, onRefreshSummary
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
           Platform Stats
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          <StatCard label="Articles" value={data.stats.totalArticles} icon={FileText} testId="stat-articles" color="text-primary" trend={{ direction: "up", percentage: 12 }} sparklineData={[3, 5, 4, 7, 6, 8, 9]} />
-          <StatCard label="Revisions" value={data.stats.totalRevisions} icon={Clock} testId="stat-revisions" trend={{ direction: "up", percentage: 8 }} sparklineData={[10, 12, 9, 14, 13, 15, 18]} />
-          <StatCard label="Pending Reviews" value={data.stats.pendingReviews} icon={Shield} testId="stat-pending" color="text-yellow-600 dark:text-yellow-400" trend={{ direction: "down", percentage: 5 }} sparklineData={[8, 6, 7, 5, 4, 3, 2]} />
-          <StatCard label="Citations" value={data.stats.totalCitations} icon={LinkIcon} testId="stat-citations" trend={{ direction: "up", percentage: 3 }} sparklineData={[20, 22, 21, 23, 24, 25, 27]} />
-          <StatCard label="Users" value={data.stats.totalUsers} icon={Users} testId="stat-users" color="text-green-600 dark:text-green-400" trend={{ direction: "up", percentage: 15 }} sparklineData={[40, 42, 45, 48, 50, 53, 58]} />
-        </div>
+        <StaggerGrid className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <StaggerItem><StatCard label="Articles" value={data.stats.totalArticles} icon={FileText} testId="stat-articles" color="text-primary" trend={{ direction: "up", percentage: 12 }} sparklineData={[3, 5, 4, 7, 6, 8, 9]} /></StaggerItem>
+          <StaggerItem><StatCard label="Revisions" value={data.stats.totalRevisions} icon={Clock} testId="stat-revisions" trend={{ direction: "up", percentage: 8 }} sparklineData={[10, 12, 9, 14, 13, 15, 18]} /></StaggerItem>
+          <StaggerItem><StatCard label="Pending Reviews" value={data.stats.pendingReviews} icon={Shield} testId="stat-pending" color="text-yellow-600 dark:text-yellow-400" trend={{ direction: "down", percentage: 5 }} sparklineData={[8, 6, 7, 5, 4, 3, 2]} /></StaggerItem>
+          <StaggerItem><StatCard label="Citations" value={data.stats.totalCitations} icon={LinkIcon} testId="stat-citations" trend={{ direction: "up", percentage: 3 }} sparklineData={[20, 22, 21, 23, 24, 25, 27]} /></StaggerItem>
+          <StaggerItem><StatCard label="Users" value={data.stats.totalUsers} icon={Users} testId="stat-users" color="text-green-600 dark:text-green-400" trend={{ direction: "up", percentage: 15 }} sparklineData={[40, 42, 45, 48, 50, 53, 58]} /></StaggerItem>
+        </StaggerGrid>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">

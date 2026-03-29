@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react"
 import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
@@ -7,9 +8,27 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
+import { useSounds } from "@/hooks/use-sounds"
 
 export function Toaster() {
   const { toasts } = useToast()
+  const { playSuccess, playError } = useSounds()
+  const prevCountRef = useRef(0)
+
+  useEffect(() => {
+    if (toasts.length > prevCountRef.current) {
+      const latest = toasts[toasts.length - 1]
+      if (latest) {
+        const v = (latest as any).variant
+        if (v === "destructive" || v === "error") {
+          playError()
+        } else {
+          playSuccess()
+        }
+      }
+    }
+    prevCountRef.current = toasts.length
+  }, [toasts.length, playSuccess, playError])
 
   return (
     <ToastProvider>

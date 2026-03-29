@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { StaggerGrid, StaggerItem } from "@/components/stagger-grid";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -443,7 +444,7 @@ export default function Landing() {
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">The Platform</p>
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Everything SEVCO, in one place.</h2>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <StaggerGrid className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {(() => {
               const cardAccentHsl = settings["home.cardAccentColor"];
               const accentStyle = cardAccentHsl ? {
@@ -502,7 +503,7 @@ export default function Landing() {
                 </Link>
               ));
             })()}
-          </div>
+          </StaggerGrid>
         </section>
       )}
 

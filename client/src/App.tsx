@@ -20,6 +20,7 @@ import { hexToHsl } from "@/lib/colorUtils";
 import { isClientPlus } from "@/lib/permissions";
 import { useToast } from "@/hooks/use-toast";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { AnimatedPage } from "@/components/animated-page";
 
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
@@ -690,7 +691,9 @@ function AppShell() {
             style={{ paddingBottom: activePlaylist ? "220px" : undefined }}
           >
             <div className="flex-1">
-              <Router />
+              <AnimatedPage key={location}>
+                <Router />
+              </AnimatedPage>
             </div>
             <PlatformFooter />
           </main>

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { StaggerGrid, StaggerItem } from "@/components/stagger-grid";
 import { useQuery } from "@tanstack/react-query";
 import { PageHead } from "@/components/page-head";
 import { Link } from "wouter";
@@ -292,11 +293,13 @@ export default function ProjectsPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <StaggerGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map((project) => (
-              <ProjectCard key={project.id} project={project} />
+              <StaggerItem key={project.id}>
+                <ProjectCard project={project} />
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerGrid>
         )}
       </div>
 

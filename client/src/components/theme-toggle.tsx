@@ -1,6 +1,7 @@
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Sun, Moon } from "lucide-react";
+import { useSounds } from "@/hooks/use-sounds";
 import {
   Tooltip,
   TooltipContent,
@@ -10,6 +11,7 @@ import {
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
+  const { playToggle } = useSounds();
 
   return (
     <TooltipProvider delayDuration={400}>
@@ -18,7 +20,7 @@ export function ThemeToggle() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            onClick={() => { setTheme(theme === "dark" ? "light" : "dark"); playToggle(); }}
             data-testid="button-theme-toggle"
             aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >

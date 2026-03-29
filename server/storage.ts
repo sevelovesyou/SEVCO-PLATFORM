@@ -37,6 +37,8 @@ import {
   type AiAgent, type InsertAiAgent,
   type AiMessage, type InsertAiMessage,
   type NewsCategory, type InsertNewsCategory,
+  type UserNewsBookmark, type InsertUserNewsBookmark,
+  type UserNewsPreferences,
   type Email, type InsertEmail,
   type UserTask, type InsertUserTask, type UpdateUserTask,
   type StaffTask, type InsertStaffTask, type UpdateStaffTask,
@@ -53,6 +55,8 @@ import {
   subscriptions,
   aiAgents, aiMessages,
   newsCategories,
+  userNewsBookmarks,
+  userNewsPreferences,
   emails,
   userTasks,
   staffTasks,
@@ -343,6 +347,13 @@ export interface IStorage {
   createStaffTask(data: InsertStaffTask & { createdById: string }): Promise<StaffTask>;
   updateStaffTask(id: number, data: UpdateStaffTask): Promise<StaffTask | undefined>;
   deleteStaffTask(id: number): Promise<boolean>;
+
+  getNewsBookmarks(userId: string): Promise<UserNewsBookmark[]>;
+  createNewsBookmark(data: InsertUserNewsBookmark): Promise<UserNewsBookmark>;
+  deleteNewsBookmark(id: number, userId: string): Promise<boolean>;
+
+  getNewsPreferences(userId: string): Promise<UserNewsPreferences | undefined>;
+  upsertNewsPreferences(userId: string, followedCategoryIds: number[]): Promise<UserNewsPreferences>;
 }
 
 export type SearchResultItem = {
@@ -2225,6 +2236,35 @@ export class DatabaseStorage implements IStorage {
   async deleteStaffTask(id: number): Promise<boolean> {
     const result = await db.delete(staffTasks).where(eq(staffTasks.id, id)).returning({ id: staffTasks.id });
     return result.length > 0;
+  }
+
+  async getNewsBookmarks(userId: string): Promise<UserNewsBookmark[]> {
+    return db.select().from(userNewsBookmarks).where(eq(userNewsBookmarks.userId, userId)).orderBy(desc(userNewsBookmarks.createdAt));
+  }
+
+  async createNewsBookmark(data: InsertUserNewsBookmark): Promise<UserNewsBookmark> {
+    const [bookmark] = await db.insert(userNewsBookmarks).values(data).returning();
+    return bookmark;
+  }
+
+  async deleteNewsBookmark(id: number, userId: string): Promise<boolean> {
+    const result = await db.delete(userNewsBookmarks).where(and(eq(userNewsBookmarks.id, id), eq(userNewsBookmarks.userId, userId))).returning({ id: userNewsBookmarks.id });
+    return result.length > 0;
+  }
+
+  async getNewsPreferences(userId: string): Promise<UserNewsPreferences | undefined> {
+    const [prefs] = await db.select().from(userNewsPreferences).where(eq(userNewsPreferences.userId, userId));
+    return prefs || undefined;
+  }
+
+  async upsertNewsPreferences(userId: string, followedCategoryIds: number[]): Promise<UserNewsPreferences> {
+    const existing = await this.getNewsPreferences(userId);
+    if (existing) {
+      const [updated] = await db.update(userNewsPreferences).set({ followedCategoryIds }).where(eq(userNewsPreferences.userId, userId)).returning();
+      return updated;
+    }
+    const [created] = await db.insert(userNewsPreferences).values({ userId, followedCategoryIds }).returning();
+    return created;
   }
 }
 

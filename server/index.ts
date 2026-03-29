@@ -71,6 +71,23 @@ async function runStartupMigrations() {
   await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS is_public_budget boolean DEFAULT false;`);
   // Task #140 — Per-category X query
   await pool.query(`ALTER TABLE news_categories ADD COLUMN IF NOT EXISTS x_query TEXT;`);
+  // Task #141 — News page UX overhaul
+  await pool.query(`CREATE TABLE IF NOT EXISTS user_news_bookmarks (
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    article_url text NOT NULL,
+    article_title text NOT NULL,
+    article_image text,
+    article_source text,
+    article_category text,
+    created_at timestamp DEFAULT now() NOT NULL
+  );`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS user_news_preferences (
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id varchar NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    followed_category_ids integer[] NOT NULL DEFAULT '{}',
+    created_at timestamp DEFAULT now() NOT NULL
+  );`);
   console.log("[startup] migrations applied");
 }
 

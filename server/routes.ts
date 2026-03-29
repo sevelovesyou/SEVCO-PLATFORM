@@ -4766,6 +4766,139 @@ export async function registerRoutes(
     res.json(merged);
   });
 
+  app.get("/api/news/breaking", async (_req, res) => {
+    try {
+      const cats = await storage.getNewsCategories(true);
+      if (cats.length === 0) return res.json(null);
+
+      const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+
+      type BreakingCandidate = {
+        title: string; link: string; description: string;
+        pubDate: string; source: string; imageUrl: string | null;
+        engagement: number;
+      };
+
+      let bestItem: BreakingCandidate | null = null;
+
+      const updateBest = (candidate: BreakingCandidate) => {
+        if (!bestItem || candidate.engagement > bestItem.engagement ||
+          (candidate.engagement === bestItem.engagement && new Date(candidate.pubDate) > new Date(bestItem.pubDate))) {
+          bestItem = candidate;
+        }
+      };
+
+      for (const cat of cats) {
+        try {
+          const xConfigured = isXConfigured();
+          if (xConfigured) {
+            try {
+              const tweets = await fetchCategoryNewsFromX(cat.name, cat.query, 20, {
+                imagesOnly: false,
+                allowedAccounts: [],
+                blockedAccounts: [],
+                minEngagement: 0,
+              });
+              for (const tweet of tweets) {
+                try {
+                  const d = new Date(tweet.createdAt).getTime();
+                  if (d >= twoHoursAgo) {
+                    const engagement = (tweet.likeCount ?? 0) + (tweet.retweetCount ?? 0) + (tweet.replyCount ?? 0);
+                    updateBest({
+                      title: tweet.text.slice(0, 140),
+                      link: tweet.url,
+                      description: tweet.text,
+                      pubDate: tweet.createdAt,
+                      source: tweet.authorName,
+                      imageUrl: tweet.mediaUrl ?? null,
+                      engagement,
+                    });
+                  }
+                } catch {}
+              }
+            } catch {}
+          }
+
+          const articles = await fetchNewsArticles(cat.query, 10);
+          for (const article of articles) {
+            try {
+              const d = new Date(article.pubDate).getTime();
+              if (d >= twoHoursAgo) {
+                updateBest({ ...article, engagement: 0 });
+              }
+            } catch {}
+          }
+        } catch {}
+      }
+
+      res.json(bestItem);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/news/bookmarks", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const bookmarks = await storage.getNewsBookmarks(userId);
+      res.json(bookmarks);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/news/bookmarks", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { articleUrl, articleTitle, articleImage, articleSource, articleCategory } = req.body as {
+        articleUrl: string; articleTitle: string; articleImage?: string;
+        articleSource?: string; articleCategory?: string;
+      };
+      if (!articleUrl || !articleTitle) return res.status(400).json({ message: "articleUrl and articleTitle required" });
+      const existing = await storage.getNewsBookmarks(userId);
+      const alreadyBookmarked = existing.find((b) => b.articleUrl === articleUrl);
+      if (alreadyBookmarked) return res.json(alreadyBookmarked);
+      const bookmark = await storage.createNewsBookmark({ userId, articleUrl, articleTitle, articleImage: articleImage ?? null, articleSource: articleSource ?? null, articleCategory: articleCategory ?? null });
+      res.status(201).json(bookmark);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/news/bookmarks/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const id = parseInt(req.params.id);
+      const ok = await storage.deleteNewsBookmark(id, userId);
+      if (!ok) return res.status(404).json({ message: "Bookmark not found" });
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/news/preferences", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const prefs = await storage.getNewsPreferences(userId);
+      res.json(prefs ?? { followedCategoryIds: [] });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put("/api/news/preferences", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { followedCategoryIds } = req.body as { followedCategoryIds: number[] };
+      if (!Array.isArray(followedCategoryIds)) return res.status(400).json({ message: "followedCategoryIds must be an array" });
+      const prefs = await storage.upsertNewsPreferences(userId, followedCategoryIds);
+      res.json(prefs);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   const CLIENT_PLUS_ROLES: Role[] = ["client", "partner", "staff", "executive", "admin"];
 
   app.get("/api/email/address", requireAuth, (req, res) => {

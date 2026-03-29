@@ -882,6 +882,32 @@ export const insertNewsCategorySchema = createInsertSchema(newsCategories).omit(
 export type NewsCategory = typeof newsCategories.$inferSelect;
 export type InsertNewsCategory = z.infer<typeof insertNewsCategorySchema>;
 
+export const userNewsBookmarks = pgTable("user_news_bookmarks", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  articleUrl: text("article_url").notNull(),
+  articleTitle: text("article_title").notNull(),
+  articleImage: text("article_image"),
+  articleSource: text("article_source"),
+  articleCategory: text("article_category"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserNewsBookmarkSchema = createInsertSchema(userNewsBookmarks).omit({ id: true, createdAt: true });
+export type UserNewsBookmark = typeof userNewsBookmarks.$inferSelect;
+export type InsertUserNewsBookmark = z.infer<typeof insertUserNewsBookmarkSchema>;
+
+export const userNewsPreferences = pgTable("user_news_preferences", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: varchar("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  followedCategoryIds: integer("followed_category_ids").array().notNull().default(sql`'{}'::integer[]`),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserNewsPreferencesSchema = createInsertSchema(userNewsPreferences).omit({ id: true, createdAt: true });
+export type UserNewsPreferences = typeof userNewsPreferences.$inferSelect;
+export type InsertUserNewsPreferences = z.infer<typeof insertUserNewsPreferencesSchema>;
+
 export const emails = pgTable("emails", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),

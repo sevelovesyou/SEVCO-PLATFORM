@@ -13912,3 +13912,32 @@ No schema changes needed. All existing fields cover the requirements.
 
 ---
 
+## Task — card-height-hover-clip-fix
+> Merged: 2026-03-30
+
+# Fix: What's New card heights non-uniform + hover clip
+
+## What & Why
+Two visual bugs on the "What's New" feature cards (both `/platform` spotlight and landing page home section):
+1. Cards are different heights because content length varies
+2. Top of card is clipped on hover because the parent container has no room for the 2px lift
+
+## Fixes
+
+### `client/src/pages/platform-page.tsx` — FeatureCard component (line ~98)
+- Add `flex flex-col` to the outer card div so the content fills height
+- Wrap the bottom row (date + link) in a `<div className="mt-auto pt-3 flex items-center justify-between">` so it always pins to the bottom
+- Change the scroll container `pb-2` → `py-3` (or `py-2 pt-3`) so there is vertical breathing room for the -translate-y-0.5 hover lift
+
+### `client/src/pages/landing.tsx` — What's New card grid (line ~787–825)
+- Add `h-full flex flex-col` to the card div (the one with data-testid `card-whats-new-{id}`) so grid items are uniform height
+- Wrap the bottom content (relative date + "Read more" link) in a `<div className="mt-auto pt-2 ...">` to pin to bottom
+- Add `pt-3` to the grid container div so there's room for the translate lift at the top row
+
+## Files
+- `client/src/pages/platform-page.tsx`
+- `client/src/pages/landing.tsx`
+
+
+---
+

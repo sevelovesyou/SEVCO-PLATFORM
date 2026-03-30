@@ -13941,3 +13941,144 @@ Two visual bugs on the "What's New" feature cards (both `/platform` spotlight an
 
 ---
 
+## Task — platform-source-unification
+> Merged: 2026-03-30
+
+# Task #165 — Unify Platform history source: wiki articles → /platform, CMD, Home
+
+## Problem
+- `/platform` reads from the `changelog` DB table (~22 old manually-seeded entries)
+- `/category/sevco-platform` already has all 191 correct task-history wiki articles
+- "What's New" on home and "Latest Release" in CMD are also reading from the wrong source
+- `/changelog` is a redundant public page (now `/platform` replaces it)
+
+## Solution
+Add a single `GET /api/platform-history` endpoint that reads wiki articles from the
+`sevco-platform` category and formats them for display. All three consumers
+(platform page, landing page, CMD overview) switch to this endpoint.
+
+---
+
+## Implementation
+
+### 1. `server/routes.ts` — New endpoint `GET /api/platform-history`
+
+```
+GET /api/platform-history
+  optional query param: ?limit=N (defaults to all)
+```
+
+Logic:
+1. `storage.getCategoryBySlug("sevco-platform")` — get the category
+2. `storage.getArticlesByCategory(cat.id)` — get all articles
+3. For each article:
+   - `version` = `(article.infoboxData as any)?.Version ?? null`
+   - `category` = keyword-detect from `article.title` (lowercase):
+       - contains "fix" or "patch" or "hotfix" or "bug" → "fix"
+       - contains "improv" or "update" or "optim" or "refactor" → "improvement"
+       - else → "feature"
+   - `description` = `article.summary ?? ""`
+   - `slug` = `article.slug`
+4. Sort by `article.createdAt` descending (newest first)
+5. If `?limit=N` supplied, slice to N
+6. Return JSON array
+
+Response shape:
+```json
+[{
+  "id": 1,
+  "title": "Task #1 — RBAC & Role Permission System",
+  "description": "Added a role-based access control system...",
+  "version": "v0.1.0",
+  "category": "feature",
+  "slug": "platform-task-001",
+  "createdAt": "2024-01-01T00:00:00.000Z"
+}]
+```
+
+---
+
+### 2. `client/src/pages/platform-page.tsx`
+
+Currently queries `/api/changelog` → change to `/api/platform-history`
+
+Data mapping update:
+- `entry.description` stays (now from article.summary)
+- `entry.wikiSlug` → `entry.slug` (the article is the wiki page)
+- `entry.version` stays
+- `entry.category` stays
+- `entry.createdAt` stays
+
+"What's New" spotlight: still takes 5 newest (first 5 from API which is ordered newest-first)
+
+Timeline: all entries from API
+
+---
+
+### 3. `client/src/pages/landing.tsx`
+
+- Rename section heading "What's New" → "Platform Updates"
+- Rename `data-testid="text-whats-new-heading"` → `data-testid="text-platform-updates-heading"`
+- Rename `data-testid="section-whats-new"` → `data-testid="section-platform-updates"`
+- Change query from `/api/changelog` to `/api/platform-history`
+- Keep `changelogEntries.slice(0, 3)` logic (still show top 3)
+- Update "View all" link text if it mentions "updates" count: `changelogEntries.length` still works
+- In card rendering: update `entry.wikiSlug` → `entry.slug` for the "Read more" link href
+
+---
+
+### 4. `client/src/pages/command-overview.tsx`
+
+The "Latest Release" card (`LatestChangelogCard`) currently uses `summary.latestChangelog`
+from the dashboard summary API. Update this component to instead fetch from
+`GET /api/platform-history?limit=1` directly on the CMD overview page.
+
+Steps:
+- Add a new `useQuery` for `/api/platform-history?limit=1` returning the first entry
+- Type it as the new response shape (id, title, description, version, category, slug, createdAt)
+- Feed that data into the existing `LatestChangelogCard` component (which already accepts a
+  `ChangelogEntry`-shaped prop) — the mapping is 1:1 since we already expose the same fields
+
+Do NOT remove `latestChangelog` from the summary — other CMD tabs may use it. Simply
+supplement the overview card to read from the new source.
+
+---
+
+### 5. `client/src/App.tsx`
+
+Change line 177:
+```
+<Route path="/changelog" component={ChangelogPage} />
+```
+to:
+```
+<Route path="/changelog">
+  {() => { useEffect(() => { window.location.replace("/platform"); }, []); return null; }}
+</Route>
+```
+
+Or simpler — import `Redirect` from wouter if available, or use a functional component wrapper:
+```tsx
+const ChangelogRedirect = () => {
+  const [, navigate] = useLocation();
+  useEffect(() => { navigate("/platform"); }, []);
+  return null;
+};
+```
+Then replace the ChangelogPage route with `<Route path="/changelog" component={ChangelogRedirect} />`.
+
+Keep the import of `CommandChangelog` and the `/command/changelog` route unchanged.
+The `ChangelogPage` import can be removed once the redirect is in place.
+
+---
+
+## Files Changed
+- `server/routes.ts` (new endpoint)
+- `client/src/pages/platform-page.tsx` (new data source)
+- `client/src/pages/landing.tsx` (rename + new data source)
+- `client/src/pages/command-overview.tsx` (new query for Latest Release)
+- `client/src/App.tsx` (redirect /changelog → /platform)
+
+
+---
+

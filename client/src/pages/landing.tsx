@@ -14,10 +14,10 @@ import {
   ArrowRight, Users, Star, ChevronRight, Pin,
   Zap, Globe, Layers, CheckCircle, Code2,
   Palette, BarChart3, Megaphone, Camera, Building2,
-  TrendingUp, ExternalLink, Newspaper,
+  TrendingUp, ExternalLink, Newspaper, Wrench, MoreHorizontal,
 } from "lucide-react";
 import { SiDiscord, SiSpotify, SiApplemusic } from "react-icons/si";
-import type { Article, Product, FeedPost, Project } from "@shared/schema";
+import type { Article, Product, FeedPost, Project, Changelog, ChangelogCategory } from "@shared/schema";
 import type { NewsCategory } from "@shared/schema";
 import { NewsEditorial } from "@/components/news-editorial";
 import { formatDistanceToNow } from "date-fns";
@@ -107,6 +107,19 @@ const DEFAULT_BTN2_URL = "/store";
 function toBool(val: string | undefined): boolean {
   return val !== "false";
 }
+
+const CHANGELOG_CATEGORY_META: Record<ChangelogCategory, {
+  label: string;
+  bg: string;
+  text: string;
+  border: string;
+  icon: React.ElementType;
+}> = {
+  feature:     { label: "Feature",     bg: "bg-blue-500/10",   text: "text-blue-400",   border: "border-blue-500/20",   icon: Zap },
+  fix:         { label: "Fix",         bg: "bg-red-500/10",    text: "text-red-400",    border: "border-red-500/20",    icon: Wrench },
+  improvement: { label: "Improvement", bg: "bg-green-500/10",  text: "text-green-400",  border: "border-green-500/20",  icon: TrendingUp },
+  other:       { label: "Other",       bg: "bg-white/5",       text: "text-white/40",   border: "border-white/10",      icon: MoreHorizontal },
+};
 
 function useIntersectionObserver(options?: IntersectionObserverInit) {
   const ref = useRef<HTMLDivElement>(null);
@@ -261,6 +274,10 @@ export default function Landing() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: changelogEntries = [], isLoading: changelogLoading } = useQuery<Changelog[]>({
+    queryKey: ["/api/changelog"],
+  });
+
   interface XStatus { configured: boolean; handle?: string }
   const { data: xStatus } = useQuery<XStatus>({
     queryKey: ["/api/social/x/status"],
@@ -318,6 +335,7 @@ export default function Landing() {
   const Btn2Icon = getLucideIcon(btn2IconName) || ShoppingBag;
 
   const showPlatformGrid = toBool(settings["section.platformGrid.visible"]);
+  const showWhatsNew = toBool(settings["section.whatsNew.visible"]);
   const showRecordsSpotlight = toBool(settings["section.recordsSpotlight.visible"]);
   const showStorePreview = toBool(settings["section.storePreview.visible"]);
   const showServicesShowstopper = toBool(settings["section.servicesShowstopper.visible"]);
@@ -723,6 +741,111 @@ export default function Landing() {
               ));
             })()}
           </StaggerGrid>
+        </section>
+      )}
+
+      {/* ── WHAT'S NEW ── */}
+      {showWhatsNew && (changelogLoading || changelogEntries.length > 0) && (
+        <section className="bg-[#07070f] py-14 sm:py-16" data-testid="section-whats-new">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6">
+            {/* Heading row */}
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-bold text-white" data-testid="text-whats-new-heading">What's New</h2>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/10 px-2.5 py-0.5 text-[11px] font-medium text-green-400">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+                  </span>
+                  Live
+                </span>
+              </div>
+              <Link href="/platform" data-testid="link-view-all-updates">
+                <span className="text-sm text-white/40 hover:text-white/70 transition-colors cursor-pointer">
+                  View all {changelogEntries.length > 0 ? changelogEntries.length : ""} updates →
+                </span>
+              </Link>
+            </div>
+
+            {/* Cards */}
+            {changelogLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Skeleton className="h-5 w-20 rounded-full" />
+                      <Skeleton className="h-5 w-14 rounded-full" />
+                      <Skeleton className="h-4 w-16 ml-auto" />
+                    </div>
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-3 w-full mb-1" />
+                    <Skeleton className="h-3 w-4/5" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {changelogEntries.slice(0, 3).map((entry) => {
+                  const meta = CHANGELOG_CATEGORY_META[entry.category];
+                  const CategoryIcon = meta.icon;
+                  const relativeDate = (() => {
+                    try {
+                      return formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true });
+                    } catch {
+                      return "";
+                    }
+                  })();
+                  return (
+                    <div
+                      key={entry.id}
+                      className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-5 hover:bg-white/[0.06] hover:border-white/[0.12] hover:-translate-y-0.5 hover:shadow-xl transition-all duration-200"
+                      data-testid={`card-whats-new-${entry.id}`}
+                    >
+                      {/* Row 1: badges + date */}
+                      <div className="flex items-center gap-2 mb-3 flex-wrap">
+                        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${meta.bg} ${meta.text} ${meta.border}`}>
+                          <CategoryIcon className="h-3 w-3" />
+                          {meta.label}
+                        </span>
+                        {entry.version && (
+                          <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-mono text-white/50">
+                            v{entry.version}
+                          </span>
+                        )}
+                        <span className="ml-auto text-[11px] text-white/30 whitespace-nowrap">{relativeDate}</span>
+                      </div>
+                      {/* Row 2: title */}
+                      <p className="text-sm font-semibold text-white leading-snug mb-2">{entry.title}</p>
+                      {/* Row 3: description */}
+                      <p className="text-xs text-white/50 line-clamp-2 mb-3">{entry.description}</p>
+                      {/* Row 4: read more */}
+                      {entry.wikiSlug && (
+                        <Link href={`/wiki/${entry.wikiSlug}`}>
+                          <span className="text-xs text-white/40 hover:text-white/70 transition-colors cursor-pointer">Read more →</span>
+                        </Link>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Footer row */}
+            {!changelogLoading && (
+              <div className="mt-8 flex justify-center">
+                <Link href="/platform">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-white/10 text-white/60 hover:text-white hover:border-white/20 bg-transparent"
+                    data-testid="button-view-all-platform"
+                  >
+                    View all {changelogEntries.length > 0 ? changelogEntries.length : ""} platform updates →
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
         </section>
       )}
 

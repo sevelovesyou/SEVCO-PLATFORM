@@ -95,7 +95,7 @@ function FeatureCard({ entry }: { entry: Changelog }) {
   const IconComp = meta.icon;
   return (
     <div
-      className="flex-shrink-0 w-72 bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 hover:bg-white/[0.07] hover:border-white/[0.14] hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-default"
+      className="flex-shrink-0 w-72 flex flex-col bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 hover:bg-white/[0.07] hover:border-white/[0.14] hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-default"
       data-testid={`card-feature-${entry.id}`}
     >
       <div className="flex items-center gap-2 mb-3">
@@ -115,7 +115,7 @@ function FeatureCard({ entry }: { entry: Changelog }) {
       <p className="text-xs text-white/50 leading-relaxed line-clamp-3 mb-3" data-testid={`text-feature-desc-${entry.id}`}>
         {entry.description}
       </p>
-      <div className="flex items-center justify-between">
+      <div className="mt-auto pt-3 flex items-center justify-between">
         <span className="text-[10px] text-white/30">{formatRelative(entry.createdAt)}</span>
         {entry.wikiSlug && (
           <Link href={`/wiki/${entry.wikiSlug}`}>
@@ -305,7 +305,7 @@ export default function PlatformPage() {
               ))}
             </div>
           ) : (
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10 snap-x snap-mandatory">
+            <div className="flex gap-4 overflow-x-auto py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10 snap-x snap-mandatory">
               {featureSpotlight.map((entry) => (
                 <div key={entry.id} className="snap-start">
                   <FeatureCard entry={entry} />

@@ -784,7 +784,7 @@ export default function Landing() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-3">
                 {changelogEntries.slice(0, 3).map((entry) => {
                   const meta = CHANGELOG_CATEGORY_META[entry.category];
                   const CategoryIcon = meta.icon;
@@ -798,7 +798,7 @@ export default function Landing() {
                   return (
                     <div
                       key={entry.id}
-                      className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-5 hover:bg-white/[0.06] hover:border-white/[0.12] hover:-translate-y-0.5 hover:shadow-xl transition-all duration-200"
+                      className="h-full flex flex-col bg-white/[0.04] border border-white/[0.07] rounded-2xl p-5 hover:bg-white/[0.06] hover:border-white/[0.12] hover:-translate-y-0.5 hover:shadow-xl transition-all duration-200"
                       data-testid={`card-whats-new-${entry.id}`}
                     >
                       {/* Row 1: badges + date */}
@@ -819,11 +819,13 @@ export default function Landing() {
                       {/* Row 3: description */}
                       <p className="text-xs text-white/50 line-clamp-2 mb-3">{entry.description}</p>
                       {/* Row 4: read more */}
-                      {entry.wikiSlug && (
-                        <Link href={`/wiki/${entry.wikiSlug}`}>
-                          <span className="text-xs text-white/40 hover:text-white/70 transition-colors cursor-pointer">Read more →</span>
-                        </Link>
-                      )}
+                      <div className="mt-auto pt-2">
+                        {entry.wikiSlug && (
+                          <Link href={`/wiki/${entry.wikiSlug}`}>
+                            <span className="text-xs text-white/40 hover:text-white/70 transition-colors cursor-pointer">Read more →</span>
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

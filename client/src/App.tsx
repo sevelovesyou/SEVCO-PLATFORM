@@ -151,6 +151,7 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/wiki" component={Home} />
       <Route path="/wiki/archive" component={() => <ProtectedRoute><WikiArchivePage /></ProtectedRoute>} />
+      <Route path="/wiki/engineering/platform" component={() => <Redirect to="/category/sevco-platform" />} />
       <Route path="/wiki/:slug" component={ArticleView} />
       <Route path="/search" component={SearchPage} />
       <Route path="/category/:slug" component={CategoryView} />

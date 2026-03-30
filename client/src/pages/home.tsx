@@ -14,6 +14,7 @@ import {
   Shield,
   FolderOpen,
   TrendingUp,
+  Layers,
 } from "lucide-react";
 import type { Article, Category } from "@shared/schema";
 
@@ -163,6 +164,23 @@ export default function Home() {
             Categories
           </h2>
           <div className="flex flex-col gap-3">
+            <Link href="/category/sevco-platform">
+              <Card
+                className="p-3 hover-elevate active-elevate-2 cursor-pointer overflow-visible border-primary/20 bg-primary/5"
+                data-testid="card-category-sevco-platform"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-primary shrink-0" />
+                    <div>
+                      <h3 className="text-sm font-medium">SEVCO Platform</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Complete platform development history — 191+ tasks documented</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                </div>
+              </Card>
+            </Link>
             {catLoading
               ? Array.from({ length: 4 }).map((_, i) => (
                   <Card key={i} className="p-3 overflow-visible">
@@ -170,7 +188,7 @@ export default function Home() {
                     <Skeleton className="h-3 w-3/4" />
                   </Card>
                 ))
-              : categories?.map((cat) => (
+              : categories?.filter((cat) => cat.slug !== "sevco-platform").map((cat) => (
                   <Link key={cat.id} href={`/category/${cat.slug}`}>
                     <Card
                       className="p-3 hover-elevate active-elevate-2 cursor-pointer overflow-visible"

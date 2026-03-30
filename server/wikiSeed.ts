@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { articles, categories, changelog } from "../shared/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, not, like } from "drizzle-orm";
 
 async function getEngineeringCategoryId(): Promise<number> {
   const rows = await db.select({ id: categories.id }).from(categories).where(eq(categories.slug, "engineering"));
@@ -5246,7 +5246,10 @@ export async function runWikiSeed() {
     try {
       const result = await db.update(changelog)
         .set({ wikiSlug })
-        .where(eq(changelog.version, version));
+        .where(and(
+          eq(changelog.version, version),
+          not(like(changelog.wikiSlug!, "platform-task-%"))
+        ));
       clUpdated++;
     } catch (err: any) {
       console.error(`Changelog update error for v${version}: ${err.message}`);

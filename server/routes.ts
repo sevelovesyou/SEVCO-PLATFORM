@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { readFileSync } from "fs";
+import { readFileSync, existsSync, statSync, readdirSync } from "fs";
 import { z } from "zod";
 import { storage } from "./storage";
 import {
@@ -933,13 +933,32 @@ async function linkChangelogToWikiArticles() {
     "1.2.0": "eng-task-36-version-system-changelog",
   };
 
+  let updated = 0;
   for (const entry of entries) {
+    // Fix Task #N entries that have wrong (non-platform-task-*) wiki slugs
+    if (entry.title.startsWith("Task #") && entry.wikiSlug && !entry.wikiSlug.startsWith("platform-task-")) {
+      const match = entry.title.match(/^Task #(\d+)/);
+      if (match) {
+        const num = parseInt(match[1]);
+        if (num >= 1 && num <= 191) {
+          const correctSlug = `platform-task-${String(num).padStart(3, "0")}`;
+          await storage.updateChangelogEntry(entry.id, { wikiSlug: correctSlug });
+          updated++;
+        }
+      }
+      continue;
+    }
+    // Set slug for milestone entries that don't have one yet
     if (entry.wikiSlug) continue;
     if (!entry.version) continue;
     const slug = versionToSlug[entry.version];
     if (slug) {
       await storage.updateChangelogEntry(entry.id, { wikiSlug: slug });
+      updated++;
     }
+  }
+  if (updated > 0) {
+    console.log(`Changelog — Updated ${updated} entries with wikiSlug links`);
   }
 }
 
@@ -1099,6 +1118,369 @@ async function seedTaskChangelogEntries() {
   }
 }
 
+const PLATFORM_ORDERED_FILES = [
+  "rbac-role-system.md",
+  "platform-shell.md",
+  "landing-and-dashboard.md",
+  "music-page.md",
+  "store-page.md",
+  "projects-page.md",
+  "logo-favicon-update.md",
+  "logo-display-fix.md",
+  "logo-no-skew.md",
+  "platform-footer.md",
+  "platform-polish-and-changelog.md",
+  "fix-production-auth.md",
+  "stripe-checkout-cart.md",
+  "command-center.md",
+  "store-analytics.md",
+  "store-redesign.md",
+  "auto-wiki-engineering-articles.md",
+  "sidebar-account-cleanup.md",
+  "auth-copy-tweak.md",
+  "pre-publish-fixes.md",
+  "email-verification.md",
+  "public-access-mega-menu.md",
+  "home-contact-pages.md",
+  "profile-page.md",
+  "jobs-page.md",
+  "services-page.md",
+  "music-expansion.md",
+  "projects-megamenu-marketing.md",
+  "projects-dropdown-style-fix.md",
+  "t28-bug-fixes-quick-wins.md",
+  "t29-profile-user-enhancements.md",
+  "t30-footer-social-links-admin.md",
+  "t31-store-cmd-product-creation.md",
+  "t32-music-player-playlist-cmd.md",
+  "t33-wiki-archive.md",
+  "t34-version-system-changelog.md",
+  "t35-social-feed.md",
+  "t36-notes-tool.md",
+  "t39-nav-platform-housekeeping.md",
+  "t40-cmd-restructure.md",
+  "t41-hostinger-domains.md",
+  "t42-engineering-articles-changelog.md",
+  "t43-bug-fixes-nav-polish.md",
+  "t44-project-social-links-about-page.md",
+  "t45-listen-page-social-links-cmd.md",
+  "t46-cmd-display-tab.md",
+  "t47-platform-search.md",
+  "t48-bug-fixes.md",
+  "t49-cmd-enhancements.md",
+  "t50-home-bulletin-footer-store-cleanup.md",
+  "t51-gallery-tools-dropdown.md",
+  "t52-brand-section-about.md",
+  "t53-hosting-landing-page.md",
+  "t54-project-service-icons-placeholder-products.md",
+  "t55-spotify-integration.md",
+  "t56-wiki-articles-changelog.md",
+  "t57-supabase-storage.md",
+  "t58-bug-fixes-2.md",
+  "t59-display-tab-uploads-services.md",
+  "t60-platform-colors.md",
+  "t61-notes-export.md",
+  "t62-bugs-polish.md",
+  "t63-brand-colors-media-cdn.md",
+  "t64-marketing-pages.md",
+  "t65-support-tab-cmd.md",
+  "t66-members-chat.md",
+  "t67-minecraft-page.md",
+  "t68-finance-tab-cmd.md",
+  "t69-staff-tab-cmd.md",
+  "t70-bugs-polish2.md",
+  "t71-minecraft-project-cmd.md",
+  "t72-hover-tooltips.md",
+  "t73-hero-logo-brand-assets.md",
+  "t74-services-menu-reorganization.md",
+  "t75-finance-subscriptions.md",
+  "t76-email-fix.md",
+  "t77-ai-chat-agents.md",
+  "t78-cmd-settings-tab.md",
+  "t79-brand-color-theming.md",
+  "t80-traffic-tab-cmd.md",
+  "t81-bug-fixes-4.md",
+  "t82-bug-fixes-5.md",
+  "t83-extended-color-settings.md",
+  "t84-admin-content-management.md",
+  "t85-site-audit.md",
+  "t86-google-analytics.md",
+  "t87-registration-email-fix.md",
+  "t88-bug-fixes-6.md",
+  "t89-news-page.md",
+  "t90-wiki-changelog-comprehensive.md",
+  "t91-bug-fixes-7.md",
+  "t92-news-improvements.md",
+  "t93-nav-and-button-colors.md",
+  "t94-bug-fixes-8.md",
+  "t95-services-notes-display.md",
+  "t96-settings-redesign.md",
+  "t97-email-client.md",
+  "t98-notes-fixes.md",
+  "t99-notes-editor-final-fix.md",
+  "t100-x-oauth-signin.md",
+  "t101-home-consolidation-x-api.md",
+  "t103-grok-agent-models.md",
+  "t104-production-db-migration.md",
+  "t105-x-secrets-setup.md",
+  "t106-fix-x-oauth-callback-url.md",
+  "t107-link-x-account.md",
+  "t108-bug-fixes-11.md",
+  "t109-x-feed-improvements.md",
+  "t110-profile-overhaul.md",
+  "t111-notes-save-x-post.md",
+  "t112-grok-models-imagine.md",
+  "t113-fullscreen-floating-chat.md",
+  "t114-protect-planet-logo.md",
+  "t116-chat-conflict-hero-button-color.md",
+  "t117-brand-color-palette-replacement.md",
+  "task-118.md",
+  "task-119.md",
+  "task-120.md",
+  "task-121.md",
+  "t132-grok-imagine-error-image-rendering.md",
+  "sidebar-cleanup.md",
+  "news-x-only-migration.md",
+  "beautiful-news-images.md",
+  "cmd-news-controls.md",
+  "home-page-redesign-wiki-docs.md",
+  "wikify-tool-page.md",
+  "tools-marketing-page.md",
+  "compile-update-log.md",
+];
+
+function taskNumToVersion(taskNum: number): string {
+  if (taskNum <= 29)  return `0.${taskNum}.0`;
+  if (taskNum <= 100) return `1.${taskNum - 29}.0`;
+  if (taskNum <= 160) return `2.${taskNum - 100}.0`;
+  return `3.${taskNum - 160}.0`;
+}
+
+function detectPlatformCategory(text: string): "feature" | "fix" | "improvement" | "other" {
+  const lower = text.toLowerCase();
+  if (/\bfix\b|\bbug\b|\bcrash\b|\berror\b/.test(lower)) return "fix";
+  if (/\bnew\b|\badd(ed)?\b|\bcreate\b|\bbuild|\bredesign\b|\boverhaul\b/.test(lower)) return "feature";
+  if (/\bimprov|\benhance|\bupdat|\bpolish|\brefine\b/.test(lower)) return "improvement";
+  return "other";
+}
+
+function extractPlatformTitle(content: string, fallback: string): string {
+  const fm = content.match(/^---[\s\S]*?title:\s*(.+?)[\s\S]*?---/m);
+  if (fm) return fm[1].trim().replace(/^['"]|['"]$/g, "");
+  for (const line of content.split("\n")) {
+    const m = line.match(/^#\s+(.+)/);
+    if (m) return m[1].trim();
+  }
+  return fallback;
+}
+
+function extractPlatformSummary(content: string): string {
+  const whyMatch = content.match(/##\s+What\s*&\s*Why\s*\n+([\s\S]*?)(?:\n##|\n---|\z)/);
+  if (whyMatch) {
+    const lines = whyMatch[1].split("\n").map((l) => l.trim()).filter(Boolean);
+    if (lines.length > 0) return lines[0].replace(/^[-*]\s*/, "").slice(0, 300);
+  }
+  const lines = content.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#") && !l.startsWith("---") && !l.startsWith(">"));
+  return (lines[0] || "").slice(0, 300);
+}
+
+// Static appendix: files not in PLATFORM_ORDERED_FILES, sorted alphabetically, excluding meta files
+// This list is deterministic — it is the canonical corpus of platform task history as of task #163
+const PLATFORM_APPENDIX_FILES = [
+  "accessibility-error-handling.md",
+  "animation-motion-system.md",
+  "chat-overlap-fix.md",
+  "cmd-dashboard-polish.md",
+  "dark-mode-default.md",
+  "design-audit-report.md",
+  "design-system-consistency.md",
+  "email-body-fix.md",
+  "email-fetch-body-via-receiving-api.md",
+  "fix-x-feed-errors.md",
+  "grok-news-page.md",
+  "hide-tools-dropdown-signed-out.md",
+  "inbound-email-diagnostics.md",
+  "inbox-fix-and-refresh.md",
+  "marketing-page-upgrades.md",
+  "navigation-sidebar-enhancements.md",
+  "news-ai-summaries-wikify.md",
+  "news-feed-fix.md",
+  "news-fixes-home-sources.md",
+  "news-page-enhancements.md",
+  "news-page-ux-overhaul.md",
+  "news-x-fix.md",
+  "news-x-per-category-handles.md",
+  "t100-bug-fixes-10.md",
+  "t119-mobile-badge-email-inbox-fixes.md",
+  "task-1.md",
+  "task-2.md",
+  "task-22.md",
+  "task-23.md",
+  "task-24.md",
+  "task-25.md",
+  "task-26.md",
+  "task-27.md",
+  "task-28.md",
+  "task-3.md",
+  "task-30.md",
+  "task-31.md",
+  "task-32.md",
+  "task-33.md",
+  "task-34.md",
+  "task-35.md",
+  "task-36.md",
+  "task-37.md",
+  "task-38.md",
+  "task-4.md",
+  "task-5.md",
+  "task-6.md",
+  "task-70.md",
+  "task-71.md",
+  "task-72.md",
+  "task-73.md",
+  "task-74.md",
+  "task-75.md",
+  "task-76.md",
+  "task-email-fix.md",
+  "task-finance-projects-sync.md",
+  "task-nav-hover-text-fix.md",
+  "task-quick-fixes.md",
+  "task-seo-settings.md",
+  "task-tasks-tool.md",
+  "ui-sound-system.md",
+  "whats-new-home-section.md",
+  "x-news-editorial-redesign.md",
+];
+
+// Canonical 191-task corpus: 128 ordered + 63 appendix
+const ALL_PLATFORM_FILES_191 = [...PLATFORM_ORDERED_FILES, ...PLATFORM_APPENDIX_FILES];
+
+async function seedAllTasksToChangelog() {
+  try {
+    const TASKS_DIR = ".local/tasks";
+    const ALL_PLATFORM_FILES = ALL_PLATFORM_FILES_191;
+
+    // Startup guard: all 191 platform task articles AND 191 linked changelog entries must exist.
+    // Using >= 191 (strict) to prevent permanently skipping when one entry failed on a prior run.
+    // We check three sentinel slugs for fast article corpus validation, then count changelog links.
+    const [p001, p100, p191] = await Promise.all([
+      storage.getArticleBySlug("platform-task-001"),
+      storage.getArticleBySlug("platform-task-100"),
+      storage.getArticleBySlug("platform-task-191"),
+    ]);
+    const existingAll = await storage.getChangelog();
+    const platformTaskEntries = existingAll.filter(
+      (e) => e.title.startsWith("Task #") && e.wikiSlug?.startsWith("platform-task-")
+    );
+    if (p001 && p100 && p191 && platformTaskEntries.length >= 191) {
+      // Seeding is complete; fix any changelog entries still missing platform-task cross-link
+      for (const entry of existingAll.filter(
+        (e) => e.title.startsWith("Task #") && (!e.wikiSlug || !e.wikiSlug.startsWith("platform-task-"))
+      )) {
+        const match = entry.title.match(/^Task #(\d+)/);
+        if (match) {
+          const num = parseInt(match[1]);
+          if (num >= 1 && num <= 191) {
+            const slug = `platform-task-${String(num).padStart(3, "0")}`;
+            await storage.updateChangelogEntry(entry.id, { wikiSlug: slug });
+          }
+        }
+      }
+      console.log(
+        `[seedAllTasksToChangelog] Skipped bulk seed (platform-task-001/100/191 exist; ${platformTaskEntries.length}/191 linked changelog entries)`
+      );
+      return;
+    }
+    // Log what's missing to aid debugging when seeder needs to run
+    const linkedNums = new Set(platformTaskEntries.map((e) => {
+      const m = e.title.match(/^Task #(\d+)/); return m ? parseInt(m[1]) : null;
+    }).filter(Boolean));
+    const missing = Array.from({ length: 191 }, (_, i) => i + 1).filter((n) => !linkedNums.has(n));
+    if (missing.length > 0) {
+      console.log(`[seedAllTasksToChangelog] Missing ${missing.length} changelog entries: tasks #${missing.slice(0, 10).join(", ")}${missing.length > 10 ? "..." : ""}`);
+    }
+    const existing = existingAll;
+
+    let platformCat = await storage.getCategoryBySlug("sevco-platform");
+    if (!platformCat) {
+      platformCat = await storage.createCategory({
+        name: "SEVCO Platform",
+        slug: "sevco-platform",
+        description: "Complete SEVCO Platform development history — every task plan, every feature, every fix, in chronological order.",
+        icon: "layers",
+      });
+    }
+
+    const existingTitles = new Set(existing.map((e) => e.title));
+
+    for (let idx = 0; idx < ALL_PLATFORM_FILES.length; idx++) {
+      try {
+        const filename = ALL_PLATFORM_FILES[idx];
+        const taskNum = idx + 1;
+        const filePath = `${TASKS_DIR}/${filename}`;
+
+        if (!existsSync(filePath)) continue;
+
+        const content = readFileSync(filePath, "utf8");
+        const title = extractPlatformTitle(content, filename.replace(".md", "").replace(/-/g, " "));
+        const fullTitle = `Task #${taskNum} — ${title}`;
+        const summary = extractPlatformSummary(content);
+        const category = detectPlatformCategory(content);
+        const version = taskNumToVersion(taskNum);
+        const wikiSlug = `platform-task-${String(taskNum).padStart(3, "0")}`;
+
+        const mtime = statSync(filePath).mtime;
+
+        let changelogEntry = existing.find((e) => e.title === fullTitle);
+        if (!changelogEntry && !existingTitles.has(fullTitle)) {
+          changelogEntry = await storage.createChangelogEntryWithDate(
+            { title: fullTitle, description: summary.slice(0, 500) || `Platform task #${taskNum}`, category, version, wikiSlug: null },
+            mtime,
+          );
+          existingTitles.add(fullTitle);
+        }
+
+        const existingArticle = await storage.getArticleBySlug(wikiSlug);
+        let articleId: number;
+        if (existingArticle) {
+          await storage.updateArticle(existingArticle.id, {
+            title: fullTitle,
+            content,
+            summary: summary.slice(0, 300) || null,
+            tags: ["platform-history", `task-${String(taskNum).padStart(3, "0")}`, "engineering"],
+            status: "published",
+            infoboxData: { Task: `#${taskNum}`, Version: `v${version}`, Tool: "Replit Agent" },
+          });
+          articleId = existingArticle.id;
+        } else {
+          const article = await storage.createArticle({
+            title: fullTitle,
+            slug: wikiSlug,
+            content,
+            summary: summary.slice(0, 300) || null,
+            categoryId: platformCat.id,
+            status: "published",
+            infoboxType: "general",
+            infoboxData: { Task: `#${taskNum}`, Version: `v${version}`, Tool: "Replit Agent" },
+            tags: ["platform-history", `task-${String(taskNum).padStart(3, "0")}`, "engineering"],
+          });
+          articleId = article.id;
+        }
+
+        if (changelogEntry && (!changelogEntry.wikiSlug || !changelogEntry.wikiSlug.startsWith("platform-task-"))) {
+          await storage.updateChangelogEntry(changelogEntry.id, { wikiSlug });
+        }
+      } catch (err: any) {
+        console.warn(`[seedAllTasksToChangelog] Error processing task #${idx + 1}: ${err.message}`);
+      }
+    }
+
+    console.log(`[seedAllTasksToChangelog] Done — processed ${ALL_PLATFORM_FILES.length} tasks (${PLATFORM_ORDERED_FILES.length} ordered + ${PLATFORM_APPENDIX_FILES.length} appendix)`);
+  } catch (err: any) {
+    console.warn(`[seedAllTasksToChangelog] Fatal error: ${err.message}`);
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -1114,7 +1496,12 @@ export async function registerRoutes(
   seedEngineeringWikiArticles()
     .then(() => updateEngineeringArticleVersions())
     .catch(console.error);
+  // seedTaskChangelogEntries adds milestone-style entries (tasks 43–55) with eng-task-* slugs.
+  // seedAllTasksToChangelog is the canonical seeder for all 191 platform tasks with platform-task-* slugs.
+  // Both run idempotently (dedupe by exact title), so milestone entries and task entries coexist
+  // as complementary representations: milestones are brief summaries; task entries are full docs.
   seedTaskChangelogEntries().catch(console.error);
+  seedAllTasksToChangelog().catch(console.error);
   seedMinecraftServers().catch(console.error);
   seedMinecraftProject().catch(console.error);
   seedRecordsProject().catch(console.error);
@@ -2143,7 +2530,7 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const { title, description, category, version } = req.body;
+      const { title, description, category, version, wikiSlug } = req.body;
       if (!title || !description || !category || !version) {
         return res.status(400).json({ message: "title, description, category, and version are required" });
       }
@@ -2152,8 +2539,12 @@ export async function registerRoutes(
       const safeCategory = validCategories.includes(category) ? category : "other";
 
       const existing = await storage.getChangelog();
-      const titleExists = existing.some((e) => e.title === title);
-      if (titleExists) {
+      const existingEntry = existing.find((e) => e.title === title);
+      if (existingEntry) {
+        if (wikiSlug && !existingEntry.wikiSlug) {
+          const updated = await storage.updateChangelogEntry(existingEntry.id, { wikiSlug });
+          return res.json({ action: "linked", entry: updated });
+        }
         return res.json({ action: "skipped", message: "Entry with this title already exists" });
       }
 
@@ -2162,7 +2553,7 @@ export async function registerRoutes(
         description: description.slice(0, 500),
         category: safeCategory,
         version,
-        wikiSlug: null,
+        wikiSlug: wikiSlug || null,
       });
 
       return res.json({ action: "created", entry });
@@ -2182,14 +2573,15 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const { title, slug, summary, content, tags } = req.body;
+      const { title, slug, summary, content, tags, categorySlug } = req.body;
       if (!title || !slug || !content) {
         return res.status(400).json({ message: "title, slug, and content are required" });
       }
 
-      const engineeringCat = await storage.getCategoryBySlug("engineering");
+      const targetCategorySlug = categorySlug || "engineering";
+      const engineeringCat = await storage.getCategoryBySlug(targetCategorySlug);
       if (!engineeringCat) {
-        return res.status(500).json({ message: "Engineering category not found" });
+        return res.status(500).json({ message: `Category '${targetCategorySlug}' not found` });
       }
 
       let peter = await storage.getUserByUsername("Peter");

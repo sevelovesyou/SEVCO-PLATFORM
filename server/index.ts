@@ -93,6 +93,18 @@ async function runStartupMigrations() {
   await pool.query(`UPDATE news_categories SET query = 'music industry OR new music OR music news' WHERE query = 'SEVCO music OR music industry';`);
   await pool.query(`UPDATE news_categories SET query = 'technology AI startups OR tech news' WHERE query = 'technology startup AI';`);
   await pool.query(`UPDATE news_categories SET query = 'business entrepreneurship startups OR business news' WHERE query = 'business entrepreneurship startup';`);
+  // Task #163 — Fix changelog entries that have wrong (non-platform-task-*) wiki slugs
+  // Corrects any Task #N — ... entries that were cross-linked to the wrong wiki article slug
+  await pool.query(`
+    UPDATE changelog
+    SET wiki_slug = 'platform-task-' || LPAD(
+      REGEXP_REPLACE(title, '^Task #([0-9]+) — .*', '\\1'),
+      3, '0'
+    )
+    WHERE title ~ '^Task #[0-9]+ — '
+      AND wiki_slug IS NOT NULL
+      AND wiki_slug NOT LIKE 'platform-task-%';
+  `);
   console.log("[startup] migrations applied");
 }
 

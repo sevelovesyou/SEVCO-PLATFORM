@@ -14,7 +14,17 @@ import {
 } from "lucide-react";
 import { SiX } from "react-icons/si";
 import { formatDistanceToNow } from "date-fns";
-import type { Changelog, ChangelogCategory } from "@shared/schema";
+import type { ChangelogCategory } from "@shared/schema";
+
+interface PlatformHistoryEntry {
+  id: number;
+  title: string;
+  description: string;
+  version: string | null;
+  category: string;
+  slug: string;
+  createdAt: string;
+}
 
 const CATEGORY_META: Record<ChangelogCategory, {
   label: string;
@@ -90,7 +100,7 @@ function AnimatedCounter({ target, duration = 1800 }: { target: number; duration
   return <span ref={ref}>{count}</span>;
 }
 
-function FeatureCard({ entry }: { entry: Changelog }) {
+function FeatureCard({ entry }: { entry: PlatformHistoryEntry }) {
   const meta = CATEGORY_META[entry.category as ChangelogCategory] ?? CATEGORY_META.other;
   const IconComp = meta.icon;
   return (
@@ -117,8 +127,8 @@ function FeatureCard({ entry }: { entry: Changelog }) {
       </p>
       <div className="mt-auto pt-3 flex items-center justify-between">
         <span className="text-[10px] text-white/30">{formatRelative(entry.createdAt)}</span>
-        {entry.wikiSlug && (
-          <Link href={`/wiki/${entry.wikiSlug}`}>
+        {entry.slug && (
+          <Link href={`/wiki/${entry.slug}`}>
             <span className="inline-flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 font-medium transition-colors" data-testid={`link-feature-wiki-${entry.id}`}>
               Read more <ArrowRight className="h-2.5 w-2.5" />
             </span>
@@ -134,8 +144,8 @@ export default function PlatformPage() {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<ChangelogCategory | "all">("all");
 
-  const { data: entries, isLoading } = useQuery<Changelog[]>({
-    queryKey: ["/api/changelog"],
+  const { data: entries, isLoading } = useQuery<PlatformHistoryEntry[]>({
+    queryKey: ["/api/platform-history"],
   });
 
   const featureSpotlight = useMemo(() => {
@@ -158,7 +168,7 @@ export default function PlatformPage() {
   }, [entries, search, activeFilter]);
 
   const grouped = useMemo(() => {
-    return filteredEntries.reduce<Record<string, Changelog[]>>((acc, entry) => {
+    return filteredEntries.reduce<Record<string, PlatformHistoryEntry[]>>((acc, entry) => {
       const year = new Date(entry.createdAt).getFullYear().toString();
       if (!acc[year]) acc[year] = [];
       acc[year].push(entry);
@@ -437,8 +447,8 @@ export default function PlatformPage() {
                           <p className="text-xs text-white/50 leading-relaxed" data-testid={`text-entry-desc-${entry.id}`}>
                             {entry.description}
                           </p>
-                          {entry.wikiSlug && (
-                            <Link href={`/wiki/${entry.wikiSlug}`}>
+                          {entry.slug && (
+                            <Link href={`/wiki/${entry.slug}`}>
                               <span className="inline-flex items-center gap-1 mt-2 text-[11px] text-blue-400 hover:text-blue-300 font-medium transition-colors" data-testid={`link-entry-wiki-${entry.id}`}>
                                 Read more <ArrowRight className="h-2.5 w-2.5" />
                               </span>

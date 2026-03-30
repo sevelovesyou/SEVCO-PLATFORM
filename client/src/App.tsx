@@ -72,7 +72,6 @@ import CommandSettings from "@/pages/command-settings";
 import DomainsPage from "@/pages/domains-page";
 import NotesPage from "@/pages/notes-page";
 import TasksPage from "@/pages/tasks-page";
-import ChangelogPage from "@/pages/changelog-page";
 import ServiceDetailPage from "@/pages/service-detail-page";
 import ServicesListingPage from "@/pages/services-listing";
 import WikiArchivePage from "@/pages/wiki-archive-page";
@@ -174,7 +173,7 @@ function Router() {
       <Route path="/minecraft" component={MinecraftPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/feed" component={() => <Redirect to="/" />} />
-      <Route path="/changelog" component={ChangelogPage} />
+      <Route path="/changelog" component={() => <Redirect to="/platform" />} />
       <Route path="/platform" component={PlatformPage} />
       <Route path="/jobs" component={JobsPage} />
       <Route path="/jobs/:slug" component={JobsDetailPage} />

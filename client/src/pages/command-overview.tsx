@@ -793,10 +793,10 @@ function RecentNotesWidget({ userId }: { userId: string }) {
   );
 }
 
-function AdminOverview({ data, summary, summaryLoading, userId, onRefreshSummary }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean; userId: string; onRefreshSummary?: () => void }) {
+function AdminOverview({ data, summary, summaryLoading, userId, latestPlatformEntry, onRefreshSummary }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean; userId: string; latestPlatformEntry?: ChangelogEntry | null; onRefreshSummary?: () => void }) {
   return (
     <div className="flex flex-col gap-6">
-      <LatestChangelogCard entry={summary?.latestChangelog} isLoading={summaryLoading} onRefresh={onRefreshSummary} />
+      <LatestChangelogCard entry={latestPlatformEntry ?? summary?.latestChangelog} isLoading={summaryLoading} onRefresh={onRefreshSummary} />
 
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
@@ -879,10 +879,10 @@ function AdminOverview({ data, summary, summaryLoading, userId, onRefreshSummary
   );
 }
 
-function ExecutiveOverview({ data, summary, summaryLoading, userId, onRefreshSummary }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean; userId: string; onRefreshSummary?: () => void }) {
+function ExecutiveOverview({ data, summary, summaryLoading, userId, latestPlatformEntry, onRefreshSummary }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean; userId: string; latestPlatformEntry?: ChangelogEntry | null; onRefreshSummary?: () => void }) {
   return (
     <div className="flex flex-col gap-6">
-      <LatestChangelogCard entry={summary?.latestChangelog} isLoading={summaryLoading} onRefresh={onRefreshSummary} />
+      <LatestChangelogCard entry={latestPlatformEntry ?? summary?.latestChangelog} isLoading={summaryLoading} onRefresh={onRefreshSummary} />
 
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
@@ -919,7 +919,7 @@ function ExecutiveOverview({ data, summary, summaryLoading, userId, onRefreshSum
   );
 }
 
-function StaffOverview({ data, summary, summaryLoading, onRefreshSummary }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean; onRefreshSummary?: () => void }) {
+function StaffOverview({ data, summary, summaryLoading, latestPlatformEntry, onRefreshSummary }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean; latestPlatformEntry?: ChangelogEntry | null; onRefreshSummary?: () => void }) {
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -936,7 +936,7 @@ function StaffOverview({ data, summary, summaryLoading, onRefreshSummary }: { da
         <StoreStatsPreview />
       </div>
 
-      <LatestChangelogCard entry={summary?.latestChangelog} isLoading={summaryLoading} onRefresh={onRefreshSummary} />
+      <LatestChangelogCard entry={latestPlatformEntry ?? summary?.latestChangelog} isLoading={summaryLoading} onRefresh={onRefreshSummary} />
 
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
@@ -995,6 +995,16 @@ function ClientOverview({ user }: { user: { username: string; displayName?: stri
   );
 }
 
+interface PlatformHistoryEntry {
+  id: number;
+  title: string;
+  description: string;
+  version: string | null;
+  category: string;
+  slug: string;
+  createdAt: string;
+}
+
 export default function CommandOverview() {
   const { user } = useAuth();
   const { role } = usePermission();
@@ -1010,6 +1020,24 @@ export default function CommandOverview() {
     enabled: isStaffOrAbove,
     staleTime: 30 * 1000,
   });
+
+  const { data: platformHistoryData, isLoading: platformHistoryLoading } = useQuery<PlatformHistoryEntry[]>({
+    queryKey: ["/api/platform-history", 1],
+    queryFn: () => fetch("/api/platform-history?limit=1").then((r) => r.json()),
+    enabled: isStaffOrAbove,
+    staleTime: 60 * 1000,
+  });
+
+  const latestPlatformEntry: ChangelogEntry | null = platformHistoryData?.[0]
+    ? {
+        id: platformHistoryData[0].id,
+        title: platformHistoryData[0].title,
+        version: platformHistoryData[0].version,
+        category: platformHistoryData[0].category,
+        description: platformHistoryData[0].description,
+        createdAt: platformHistoryData[0].createdAt,
+      }
+    : null;
 
   const isClientOrUser = role === "client" || role === "user";
 
@@ -1032,9 +1060,9 @@ export default function CommandOverview() {
 
   return (
     <>
-      {role === "admin" && <AdminOverview data={data} summary={summary} summaryLoading={summaryLoading} userId={user?.id ?? ""} onRefreshSummary={() => refetchSummary()} />}
-      {role === "executive" && <ExecutiveOverview data={data} summary={summary} summaryLoading={summaryLoading} userId={user?.id ?? ""} onRefreshSummary={() => refetchSummary()} />}
-      {role === "staff" && <StaffOverview data={data} summary={summary} summaryLoading={summaryLoading} onRefreshSummary={() => refetchSummary()} />}
+      {role === "admin" && <AdminOverview data={data} summary={summary} summaryLoading={summaryLoading || platformHistoryLoading} userId={user?.id ?? ""} latestPlatformEntry={latestPlatformEntry} onRefreshSummary={() => refetchSummary()} />}
+      {role === "executive" && <ExecutiveOverview data={data} summary={summary} summaryLoading={summaryLoading || platformHistoryLoading} userId={user?.id ?? ""} latestPlatformEntry={latestPlatformEntry} onRefreshSummary={() => refetchSummary()} />}
+      {role === "staff" && <StaffOverview data={data} summary={summary} summaryLoading={summaryLoading || platformHistoryLoading} latestPlatformEntry={latestPlatformEntry} onRefreshSummary={() => refetchSummary()} />}
       {isClientOrUser && <ClientOverview user={{ username: user?.username ?? "", displayName: user?.displayName }} />}
     </>
   );

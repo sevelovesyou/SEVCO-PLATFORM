@@ -17,7 +17,7 @@ import {
   TrendingUp, ExternalLink, Newspaper, Wrench, MoreHorizontal,
 } from "lucide-react";
 import { SiDiscord, SiSpotify, SiApplemusic } from "react-icons/si";
-import type { Article, Product, FeedPost, Project, Changelog, ChangelogCategory } from "@shared/schema";
+import type { Article, Product, FeedPost, Project, ChangelogCategory } from "@shared/schema";
 import type { NewsCategory } from "@shared/schema";
 import { NewsEditorial } from "@/components/news-editorial";
 import { formatDistanceToNow } from "date-fns";
@@ -274,8 +274,18 @@ export default function Landing() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: changelogEntries = [], isLoading: changelogLoading } = useQuery<Changelog[]>({
-    queryKey: ["/api/changelog"],
+  interface PlatformHistoryEntry {
+    id: number;
+    title: string;
+    description: string;
+    version: string | null;
+    category: string;
+    slug: string;
+    createdAt: string;
+  }
+
+  const { data: changelogEntries = [], isLoading: changelogLoading } = useQuery<PlatformHistoryEntry[]>({
+    queryKey: ["/api/platform-history"],
   });
 
   interface XStatus { configured: boolean; handle?: string }
@@ -746,12 +756,12 @@ export default function Landing() {
 
       {/* ── WHAT'S NEW ── */}
       {showWhatsNew && (changelogLoading || changelogEntries.length > 0) && (
-        <section className="bg-[#07070f] py-14 sm:py-16" data-testid="section-whats-new">
+        <section className="bg-[#07070f] py-14 sm:py-16" data-testid="section-platform-updates">
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
             {/* Heading row */}
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
-                <h2 className="text-xl font-bold text-white" data-testid="text-whats-new-heading">What's New</h2>
+                <h2 className="text-xl font-bold text-white" data-testid="text-platform-updates-heading">Platform Updates</h2>
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/10 px-2.5 py-0.5 text-[11px] font-medium text-green-400">
                   <span className="relative flex h-1.5 w-1.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
@@ -820,8 +830,8 @@ export default function Landing() {
                       <p className="text-xs text-white/50 line-clamp-2 mb-3">{entry.description}</p>
                       {/* Row 4: read more */}
                       <div className="mt-auto pt-2">
-                        {entry.wikiSlug && (
-                          <Link href={`/wiki/${entry.wikiSlug}`}>
+                        {entry.slug && (
+                          <Link href={`/wiki/${entry.slug}`}>
                             <span className="text-xs text-white/40 hover:text-white/70 transition-colors cursor-pointer">Read more →</span>
                           </Link>
                         )}

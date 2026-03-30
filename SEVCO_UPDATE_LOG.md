@@ -13695,3 +13695,220 @@ The existing `/changelog` page (`changelog-page.tsx`) can remain as-is. The new 
 
 ---
 
+## Task — platform-task-history-full
+> Merged: 2026-03-30
+
+# Platform Task History — All 191 Tasks in Changelog + Wiki + Auto-Scripts
+
+## What & Why
+The `/platform` page currently shows only ~25 manually-entered changelog entries. The SEVCO Platform was actually built across 191 task plan files that are compiled into `SEVCO_UPDATE_LOG.md`. This task:
+
+1. Seeds all 191 task plan files into the changelog DB as structured entries with chronological versioning
+2. Creates a new "SEVCO Platform" wiki category and populates it with 191 numbered articles (one per task), each containing the full plan file content
+3. Cross-links every changelog entry to its wiki article via `wikiSlug`
+4. Updates `scripts/create-wiki-article.js` and `scripts/append-to-update-log.js` so all future task merges go into this new wiki category and produce cross-linked entries
+5. Adds a redirect so `/wiki/engineering/platform` → `/category/sevco-platform`
+
+After this task: the `/platform` page shows 191 entries in chronological order with proper versions, every entry links to its full wiki article, and the wiki has a complete numbered platform history at `/category/sevco-platform`.
+
+---
+
+## Part 1 — Changelog DB: Seed All 191 Tasks
+
+### Versioning scheme (chronologically sensible)
+The 191 tasks span 4 development phases — assign version numbers that convey the platform's maturity trajectory:
+
+| Phase | Tasks | Versions | Meaning |
+|---|---|---|---|
+| Foundation | #1–#29 | v0.1.0 → v0.29.0 | Alpha / pre-launch |
+| Growth | #30–#100 | v1.1.0 → v1.71.0 | Post-launch, major features |
+| Maturity | #101–#160 | v2.1.0 → v2.60.0 | Platform maturity |
+| Current | #161–#191 | v3.1.0 → v3.31.0 | Active development |
+
+Version formula:
+```javascript
+function taskNumToVersion(taskNum) {
+  if (taskNum <= 29)  return `0.${taskNum}.0`;
+  if (taskNum <= 100) return `1.${taskNum - 29}.0`;
+  if (taskNum <= 160) return `2.${taskNum - 100}.0`;
+  return `3.${taskNum - 160}.0`;
+}
+```
+
+### Category auto-detection (from plan file text)
+Same logic as `append-to-update-log.js`:
+- `/\bfix\b|\bbug\b|\bcrash\b|\berror\b/` → `fix`
+- `/\bnew\b|\badd(ed)?\b|\bcreate\b|\bbuild|\bredesign\b|\boverhaul\b/` → `feature`
+- `/\bimprov|\benhance|\bupdat|\bpolish|\brefine\b/` → `improvement`
+- Otherwise → `other`
+
+### Dates
+Use each task file's actual mtime (modification timestamp). This gives realistic dates based on when the task was actually written/merged.
+
+### Idempotency
+The seeding function checks the changelog count. If `changelog.length >= 100`, skip (already seeded). This prevents re-running on every server restart.
+
+### What about the existing 22–25 manual entries?
+Leave them in place — but they'll be superseded by the new entries which cover the full history. The new entries have the same or similar titles. On the `/platform` page, duplicates will appear since we're not deleting the old entries. Instead:
+- The seeding function should check for title-match deduplication before inserting
+- OR: add a `clearAndReseed` flag that wipes the old 8 seeded entries only (those from `seedChangelog()` which have hardcoded versions 0.1.0–1.8.1) and replaces them with the properly sourced ones
+- Recommended: detect existing entries by their version (versions 0.1.0, 0.2.0, 0.3.0, 1.0.0, 1.1.0, 1.2.0, 1.3.0 in the old seed are duplicates) and skip inserting task entries whose version matches an existing one
+
+Actually simplest: check by title. For each of the 191 tasks, if an entry with the same title already exists → skip.
+
+### Implementation location
+Add a new seeding function `seedAllTasksToChangelog()` in `server/routes.ts` that:
+1. Reads the ordered file list (same as `scripts/compile-update-log.js`)
+2. For each file, reads `.local/tasks/[filename]`, extracts title, description (from `## What & Why` section), detects category, assigns version, gets mtime
+3. Checks if title already exists → skip if yes
+4. Creates changelog entry with `storage.createChangelogEntryWithDate({ ..., createdAt: mtime })`
+5. After creating the changelog entry, also creates/updates the corresponding wiki article (see Part 2) and sets the `wikiSlug`
+
+Call `seedAllTasksToChangelog()` from the startup chain in `server/routes.ts` (alongside existing seed calls), with `|| true` for non-blocking.
+
+The `createChangelogEntryWithDate` method must accept a `createdAt` override. Check if this already exists in `server/storage.ts` (it does — `seedChangelogV181` uses it). If not, add it.
+
+---
+
+## Part 2 — Wiki: "SEVCO Platform" Category + 191 Articles
+
+### New category
+```typescript
+{
+  name: "SEVCO Platform",
+  slug: "sevco-platform",
+  description: "Complete SEVCO Platform development history — every task plan, every feature, every fix, in chronological order.",
+  icon: "layers"
+}
+```
+Create if not exists (check `storage.getCategoryBySlug("sevco-platform")`).
+
+### Article slugs — zero-padded for correct alphabetical sort order
+```
+platform-task-001  (Task #1)
+platform-task-002  (Task #2)
+...
+platform-task-099  (Task #99)
+platform-task-100  (Task #100)
+...
+platform-task-191  (Task #191)
+```
+Zero-pad to 3 digits so they sort correctly in the wiki category listing.
+
+### Article content — full plan file markdown
+Each article's content = the raw content of the plan file.
+
+Article structure:
+```
+title: "Task #1 — RBAC & Role Permission System"
+slug: "platform-task-001"
+categoryId: [sevco-platform category id]
+content: [full plan file markdown]
+summary: [first non-empty paragraph of plan file, or the ## What & Why first line]
+tags: ["platform-history", "task-001", "engineering"]
+status: "published"
+infoboxType: "general"
+infoboxData: { "Task": "#1", "Version": "v0.1.0", "Tool": "Replit Agent" }
+```
+
+### Idempotency
+Check article by slug before creating. If slug `platform-task-NNN` already exists → update content (so re-runs refresh the articles with latest plan content).
+
+### wikiSlug cross-link
+After creating/verifying each wiki article, update the corresponding changelog entry to set `wikiSlug = "platform-task-NNN"`.
+
+The seeding function in Part 1 handles this in one pass: create changelog entry → create wiki article → set `wikiSlug` on the changelog entry.
+
+---
+
+## Part 3 — Router: `/wiki/engineering/platform` redirect
+
+Add a route in `client/src/App.tsx`:
+```tsx
+<Route path="/wiki/engineering/platform" component={() => <Redirect to="/category/sevco-platform" />} />
+```
+This gives the user exactly the URL they requested.
+
+Also add the category link somewhere discoverable:
+- In the wiki home page (`client/src/pages/home.tsx`) — add "SEVCO Platform" as a featured category card
+- In the wiki sidebar or category grid
+
+---
+
+## Part 4 — Update Auto-Scripts
+
+### `scripts/create-wiki-article.js` — update target category
+Change the target from `engineering` to `sevco-platform`. New articles will go into the platform history category.
+
+BUT: this would break the existing engineering article creation that generates summaries for external consumption. Solution:
+- Keep the engineering category as the target for the general wiki article (for documentation purposes)
+- Also create a platform history entry in `sevco-platform` with the numbered slug
+- The `append-to-update-log.js` script (from Task #161) already handles the numbered approach via the seeding
+
+Actually: the simplest solution:
+1. `create-wiki-article.js` continues targeting `engineering` (no change — keeps existing behavior for documentation articles)
+2. The seeding function `seedAllTasksToChangelog()` runs on startup and creates/updates the `platform-task-NNN` articles in `sevco-platform` for ALL tasks
+3. When new tasks merge post-merge.sh → `append-to-update-log.js` → which creates the changelog entry → the seeding function on next restart picks up the new task file and creates its numbered article
+
+Wait, that means new articles only appear in `sevco-platform` after a server restart, not immediately. Better:
+- Update `append-to-update-log.js` to also POST to a new internal endpoint `/api/internal/platform-article` that creates the numbered `sevco-platform` wiki article immediately after merge
+
+OR simpler: add this to `append-to-update-log.js` directly — it already knows the task number (it can derive it from the count of files in `.local/tasks/`) and can compute the next `platform-task-NNN` slug.
+
+**Recommended**: Update `append-to-update-log.js` to:
+1. (existing) Append to `SEVCO_UPDATE_LOG.md`
+2. (existing) Create changelog entry via `/api/internal/changelog-entry`
+3. (new) Create wiki article via `/api/internal/wiki-article` with:
+   - `categorySlug: "sevco-platform"` (new param)
+   - `slug: "platform-task-NNN"` (computed from task count)
+   - `title: "Task #N — [title]"`
+
+Update `/api/internal/wiki-article` endpoint in `server/routes.ts` to accept an optional `categorySlug` param (default: "engineering").
+
+---
+
+## Part 5 — Storage layer additions
+
+Check `server/storage.ts`:
+- `createChangelogEntryWithDate` — already exists (used by existing seeders)
+- `updateChangelogEntry` — already exists (used by CMD)
+- May need: batch operations or just sequential creates within the seeding function
+
+No schema changes needed. All existing fields cover the requirements.
+
+---
+
+## Files to create/modify
+
+| File | Action |
+|---|---|
+| `server/routes.ts` | Add `seedAllTasksToChangelog()` function + call in startup chain; update `POST /api/internal/wiki-article` to accept optional `categorySlug` |
+| `server/storage.ts` | Verify `createChangelogEntryWithDate` accepts `createdAt` override — no change expected |
+| `client/src/App.tsx` | Add `/wiki/engineering/platform` redirect route |
+| `client/src/pages/home.tsx` | Add "SEVCO Platform" category card/link in the wiki home |
+| `scripts/append-to-update-log.js` | Add step 3: create `platform-task-NNN` wiki article in `sevco-platform` category with computed slug |
+
+---
+
+## Key requirements
+- All 191 tasks must appear on `/platform` page in chronological order (newest first via ORDER BY createdAt DESC)
+- Versions must be monotonically increasing: 0.1.0 → 0.29.0 → 1.1.0 → 1.71.0 → 2.1.0 → 2.60.0 → 3.1.0 → 3.31.0
+- Every entry must link to its wiki article (`wikiSlug` populated)
+- Wiki articles at `/wiki/platform-task-001` through `/wiki/platform-task-191`
+- Category at `/category/sevco-platform`, redirect from `/wiki/engineering/platform`
+- New task merges auto-create entries in both the changelog DB and the `sevco-platform` wiki category
+- Idempotent: running the seeder twice produces no duplicates
+- Non-blocking: all seeding wrapped in `|| true` / try-catch
+
+## Relevant files
+- `scripts/compile-update-log.js` — the ordered file list (copy the `ORDERED_FILES` array from here)
+- `server/routes.ts` lines 207–265, 356–380 — existing seeder patterns to follow
+- `server/storage.ts` line 875+ — existing changelog storage methods
+- `shared/schema.ts` — category, article, changelog schemas
+- `SEVCO_UPDATE_LOG.md` — already compiled, 191 files
+- `scripts/append-to-update-log.js` — update step 3 here
+- `client/src/pages/platform-page.tsx` — no changes needed; the page will auto-display all 191 entries once the DB is seeded
+
+
+---
+

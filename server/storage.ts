@@ -144,6 +144,7 @@ export interface IStorage {
   getProjectBySlug(slug: string): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: number, data: Partial<InsertProject>): Promise<Project>;
+  deleteProject(id: number): Promise<void>;
 
   getChangelog(): Promise<Changelog[]>;
   getLatestChangelogEntry(): Promise<Changelog | undefined>;
@@ -875,6 +876,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(projects.id, id))
       .returning();
     return updated;
+  }
+
+  async deleteProject(id: number): Promise<void> {
+    await db.delete(projects).where(eq(projects.id, id));
   }
 
   async getChangelog(): Promise<Changelog[]> {

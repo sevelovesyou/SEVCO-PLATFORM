@@ -45,6 +45,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   finance: "Finance",
   traffic: "Traffic",
   news: "News",
+  projects: "Projects",
   hosting: "Hosting",
   display: "Display",
   "social-links": "Social Links",

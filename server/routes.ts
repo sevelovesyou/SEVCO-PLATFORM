@@ -2223,6 +2223,17 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/projects/:id", requireAuth, requireRole(...CAN_MANAGE_PROJECTS), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid project id" });
+      await storage.deleteProject(id);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/projects/:id/financial-summary", async (req, res) => {
     try {
       const id = parseInt(req.params.id as string);

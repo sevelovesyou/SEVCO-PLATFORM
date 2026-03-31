@@ -31,6 +31,7 @@ import {
   Bot,
   BarChart2,
   Newspaper,
+  Folder,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -62,6 +63,7 @@ export function CommandSidebar() {
   const contentTopItems: NavItem[] = [
     ...(isAdmin || isExec ? [{ title: "Store", url: "/command/store", icon: ShoppingBag }] : []),
     ...(isAdmin || isExec ? [{ title: "Music", url: "/command/music", icon: Music }] : []),
+    ...(isAdmin || isExec || isStaff ? [{ title: "Projects", url: "/command/projects", icon: Folder }] : []),
   ];
 
   const contentSubGroups: NavSubGroup[] = [

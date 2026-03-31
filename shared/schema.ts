@@ -216,6 +216,7 @@ export const projects = pgTable("projects", {
   budget: real("budget"),
   financialStatus: text("financial_status").default("not_set"),
   isPublicBudget: boolean("is_public_budget").default(false),
+  displayOrder: integer("display_order").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

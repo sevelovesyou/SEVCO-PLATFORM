@@ -89,6 +89,7 @@ import CommandMinecraft from "@/pages/command-minecraft";
 import CommandAiAgents from "@/pages/command-ai-agents";
 import CommandTraffic from "@/pages/command-traffic";
 import CommandNews from "@/pages/command-news";
+import CommandProjects from "@/pages/command-projects";
 import NewsPage from "@/pages/news-page";
 import WikifyToolPage from "@/pages/wikify-tool-page";
 import ToolsPage from "@/pages/tools-page";
@@ -332,6 +333,13 @@ function Router() {
         <ProtectedRoute requiredRole="admin">
           <CommandPageLayout title="News" subtitle="Manage news feed categories and RSS queries">
             <CommandNews />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/projects" component={() => (
+        <ProtectedRoute>
+          <CommandPageLayout title="Projects" subtitle="Manage SEVCO projects and ventures">
+            <CommandProjects />
           </CommandPageLayout>
         </ProtectedRoute>
       )} />

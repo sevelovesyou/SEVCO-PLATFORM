@@ -21,7 +21,7 @@ import type { Article, Product, FeedPost, Project, ChangelogCategory } from "@sh
 import type { NewsCategory } from "@shared/schema";
 import { NewsEditorial } from "@/components/news-editorial";
 import { formatDistanceToNow } from "date-fns";
-import planetIconWhite from "@assets/sevco-planet-white.png";
+import planetIconWhite from "@assets/SEVCO_App_Icon_-_Artboard_71_1774998179682.png";
 
 function getLucideIcon(name: string | undefined): LucideIcons.LucideIcon | null {
   if (!name) return null;

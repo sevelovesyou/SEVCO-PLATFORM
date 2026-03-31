@@ -105,7 +105,6 @@ export function CommandSidebar() {
     ...(isAdmin ? [{ title: "Users", url: "/command/users", icon: Users }] : []),
     ...(isAdmin ? [{ title: "Staff", url: "/command/staff", icon: UsersRound }] : []),
     ...(isAdmin ? [{ title: "Traffic", url: "/command/traffic", icon: BarChart2 }] : []),
-    ...(isAdmin || isExec ? [{ title: "Platform Settings", url: "/command/settings", icon: Settings2 }] : []),
   ];
 
   const systemSubGroups: NavSubGroup[] = [
@@ -113,7 +112,7 @@ export function CommandSidebar() {
       label: "Monitoring",
       items: [
         ...(isAdmin ? [{ title: "Chat Log", url: "/command/chat-log", icon: MessageSquare }] : []),
-        ...(isAdmin ? [{ title: "AI Agents", url: "/command/ai-agents", icon: Bot }] : []),
+        ...(isAdmin ? [{ title: "Agents", url: "/command/ai-agents", icon: Bot }] : []),
       ].filter(Boolean),
     },
   ].filter((g) => g.items.length > 0);
@@ -221,8 +220,24 @@ export function CommandSidebar() {
         )}
       </SidebarContent>
 
-      <SidebarFooter className="p-3">
-        <div className="text-[10px] text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
+      <SidebarFooter className="p-3 border-t border-sidebar-border">
+        {(isAdmin || isExec) && (
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                tooltip="Platform Settings"
+                data-active={isActive("/command/settings")}
+              >
+                <Link href="/command/settings" data-testid="link-command-nav-platform-settings">
+                  <Settings2 className="h-4 w-4" />
+                  <span>Platform Settings</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        )}
+        <div className="text-[10px] text-muted-foreground text-center pt-1 group-data-[collapsible=icon]:hidden">
           Command Center
         </div>
       </SidebarFooter>

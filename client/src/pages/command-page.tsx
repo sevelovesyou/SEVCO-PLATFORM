@@ -41,7 +41,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   staff: "Staff",
   "chat-log": "Chat Log",
   minecraft: "Minecraft",
-  "ai-agents": "AI Agents",
+  "ai-agents": "Agents",
   finance: "Finance",
   traffic: "Traffic",
   news: "News",

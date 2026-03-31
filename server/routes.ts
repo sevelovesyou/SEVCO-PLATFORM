@@ -2343,6 +2343,49 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/users/:id/profile", requireAuth, requireRole("admin"), async (req: any, res) => {
+    try {
+      const { displayName, email, username } = req.body;
+      if (username !== undefined) {
+        if (typeof username !== "string" || username.trim().length < 2) {
+          return res.status(400).json({ message: "Username must be at least 2 characters" });
+        }
+        const trimmed = username.trim().toLowerCase().replace(/\s+/g, "_");
+        const existing = await storage.getUserByUsername(trimmed);
+        if (existing && existing.id !== req.params.id) {
+          return res.status(409).json({ message: "Username already taken" });
+        }
+        await storage.updateUsername(req.params.id, trimmed);
+      }
+      const profileData: { displayName?: string; email?: string } = {};
+      if (displayName !== undefined) profileData.displayName = displayName;
+      if (email !== undefined) profileData.email = email;
+      let result;
+      if (Object.keys(profileData).length > 0) {
+        result = await storage.updateUser(req.params.id, profileData);
+      } else {
+        result = await storage.getUser(req.params.id);
+      }
+      if (!result) return res.status(404).json({ message: "User not found" });
+      const { password: _, ...safe } = result;
+      res.json(safe);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/users/:id", requireAuth, requireRole("admin"), async (req: any, res) => {
+    try {
+      if (req.params.id === req.user.id) {
+        return res.status(403).json({ message: "You cannot delete your own account" });
+      }
+      await storage.deleteUser(req.params.id);
+      res.status(204).send();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/dashboard/summary", requireAuth, requireRole("admin", "executive", "staff"), async (req, res) => {
     try {
       const [

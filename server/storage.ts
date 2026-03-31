@@ -72,6 +72,7 @@ export interface IStorage {
   getUserByXId(xId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   createOAuthUser(data: CreateOAuthUser): Promise<User>;
+  deleteUser(id: string): Promise<void>;
   updateUser(id: string, data: UpdateUser): Promise<User>;
   updateUsername(id: string, username: string): Promise<User>;
   updateUserProfile(id: string, data: UpdateProfile): Promise<User>;
@@ -417,6 +418,10 @@ export class DatabaseStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
     return user;
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
   }
 
   async updateUser(id: string, data: UpdateUser): Promise<User> {

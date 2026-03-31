@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -16,7 +17,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, Pencil, Check, X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import { Shield, Pencil, Check, X, Trash2, SquarePen } from "lucide-react";
 import type { Role } from "@shared/schema";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -134,7 +152,7 @@ function ChangeUsernameInline({
             <Button
               variant="ghost"
               size="icon"
-                aria-label="Edit"
+              aria-label="Edit"
               className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={() => { setValue(currentUsername); setEditing(true); }}
               data-testid={`button-edit-username-${userId}`}
@@ -165,7 +183,7 @@ function ChangeUsernameInline({
         <TooltipTrigger asChild>
           <Button
             size="icon"
-              aria-label="Confirm"
+            aria-label="Confirm"
             variant="ghost"
             className="h-6 w-6 text-green-600"
             onClick={() => mutation.mutate(value)}
@@ -181,7 +199,7 @@ function ChangeUsernameInline({
         <TooltipTrigger asChild>
           <Button
             size="icon"
-              aria-label="Edit"
+            aria-label="Cancel"
             variant="ghost"
             className="h-6 w-6"
             onClick={() => setEditing(false)}
@@ -196,9 +214,172 @@ function ChangeUsernameInline({
   );
 }
 
+function EditUserDialog({
+  user,
+  open,
+  onClose,
+}: {
+  user: DashboardUser;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const { toast } = useToast();
+  const [username, setUsername] = useState(user.username);
+  const [displayName, setDisplayName] = useState(user.displayName ?? "");
+  const [email, setEmail] = useState(user.email ?? "");
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      apiRequest("PATCH", `/api/users/${user.id}/profile`, { username, displayName, email }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      toast({ title: "User profile updated" });
+      onClose();
+    },
+    onError: async (err: any) => {
+      const msg = await err.response?.json().then((d: any) => d.message).catch(() => "Failed to update user");
+      toast({ title: msg, variant: "destructive" });
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent data-testid="dialog-edit-user">
+        <DialogHeader>
+          <DialogTitle>Edit User</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-4 py-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit-username">Username</Label>
+            <Input
+              id="edit-username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              data-testid="input-edit-username"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit-displayname">Display Name</Label>
+            <Input
+              id="edit-displayname"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              data-testid="input-edit-displayname"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit-email">Email</Label>
+            <Input
+              id="edit-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              data-testid="input-edit-email"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={mutation.isPending}>
+            Cancel
+          </Button>
+          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending} data-testid="button-save-edit-user">
+            {mutation.isPending ? "Saving…" : "Save Changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type DeleteStep = "first" | "second";
+
+function DeleteUserDialog({
+  user,
+  open,
+  onClose,
+}: {
+  user: DashboardUser;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const { toast } = useToast();
+  const [step, setStep] = useState<DeleteStep>("first");
+  const [confirmInput, setConfirmInput] = useState("");
+
+  const mutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", `/api/users/${user.id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      toast({ title: "User deleted" });
+      onClose();
+    },
+    onError: async (err: any) => {
+      const msg = await err.response?.json().then((d: any) => d.message).catch(() => "Failed to delete user");
+      toast({ title: msg, variant: "destructive" });
+    },
+  });
+
+  function handleClose() {
+    setStep("first");
+    setConfirmInput("");
+    onClose();
+  }
+
+  return (
+    <AlertDialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
+      <AlertDialogContent data-testid={`dialog-delete-user-${user.id}`}>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete {user.username}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {step === "first"
+              ? "This cannot be undone. All their data will be removed."
+              : `Type "${user.username}" to confirm deletion.`}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        {step === "second" && (
+          <div className="py-2">
+            <Input
+              placeholder={user.username}
+              value={confirmInput}
+              onChange={(e) => setConfirmInput(e.target.value)}
+              data-testid="input-confirm-delete-username"
+              autoFocus
+            />
+          </div>
+        )}
+
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={handleClose}>Cancel</AlertDialogCancel>
+          {step === "first" ? (
+            <AlertDialogAction
+              onClick={() => setStep("second")}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Continue
+            </AlertDialogAction>
+          ) : (
+            <Button
+              variant="destructive"
+              onClick={() => mutation.mutate()}
+              disabled={confirmInput !== user.username || mutation.isPending}
+              data-testid="button-confirm-delete-user"
+            >
+              {mutation.isPending ? "Deleting…" : "Delete"}
+            </Button>
+          )}
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 export default function CommandUsers() {
   const { user } = useAuth();
   const { isAdmin } = usePermission();
+
+  const [editUser, setEditUser] = useState<DashboardUser | null>(null);
+  const [deleteUser, setDeleteUser] = useState<DashboardUser | null>(null);
 
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ["/api/dashboard"],
@@ -264,6 +445,7 @@ export default function CommandUsers() {
                   <th className="text-left p-3 text-xs font-medium text-muted-foreground hidden md:table-cell">Display Name</th>
                   <th className="text-left p-3 text-xs font-medium text-muted-foreground hidden md:table-cell">Email</th>
                   <th className="text-left p-3 text-xs font-medium text-muted-foreground">Role</th>
+                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -281,6 +463,42 @@ export default function CommandUsers() {
                     <td className="p-3">
                       <UserRoleSelect userId={u.id} currentRole={u.role} currentUserId={user?.id ?? ""} />
                     </td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              aria-label="Edit user"
+                              onClick={() => setEditUser(u)}
+                              data-testid={`button-edit-user-${u.id}`}
+                            >
+                              <SquarePen className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit profile</TooltipContent>
+                        </Tooltip>
+                        {u.id !== user?.id && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-destructive hover:text-destructive"
+                                aria-label="Delete user"
+                                onClick={() => setDeleteUser(u)}
+                                data-testid={`button-delete-user-${u.id}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete user</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -288,6 +506,22 @@ export default function CommandUsers() {
           </div>
         </Card>
       </div>
+
+      {editUser && (
+        <EditUserDialog
+          user={editUser}
+          open={true}
+          onClose={() => setEditUser(null)}
+        />
+      )}
+
+      {deleteUser && (
+        <DeleteUserDialog
+          user={deleteUser}
+          open={true}
+          onClose={() => setDeleteUser(null)}
+        />
+      )}
     </div>
   );
 }

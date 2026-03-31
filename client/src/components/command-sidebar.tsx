@@ -32,6 +32,7 @@ import {
   BarChart2,
   Newspaper,
   Folder,
+  Globe,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -107,6 +108,8 @@ export function CommandSidebar() {
     ...(isAdmin ? [{ title: "Users", url: "/command/users", icon: Users }] : []),
     ...(isAdmin ? [{ title: "Staff", url: "/command/staff", icon: UsersRound }] : []),
     ...(isAdmin ? [{ title: "Traffic", url: "/command/traffic", icon: BarChart2 }] : []),
+    ...(isAdmin || isExec ? [{ title: "Domains", url: "/command/domains", icon: Globe }] : []),
+    ...(isAdmin || isExec ? [{ title: "Platform Settings", url: "/command/settings", icon: Settings2 }] : []),
   ];
 
   const systemSubGroups: NavSubGroup[] = [

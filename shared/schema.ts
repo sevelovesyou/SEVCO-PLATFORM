@@ -935,3 +935,21 @@ export const emails = pgTable("emails", {
 export const insertEmailSchema = createInsertSchema(emails).omit({ id: true, createdAt: true });
 export type Email = typeof emails.$inferSelect;
 export type InsertEmail = z.infer<typeof insertEmailSchema>;
+
+export const domains = pgTable("domains", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  url: text("url"),
+  status: text("status").notNull().default("active"),
+  renewalDate: text("renewal_date"),
+  renewalPrice: text("renewal_price"),
+  hostingProvider: text("hosting_provider"),
+  purpose: text("purpose"),
+  projectId: integer("project_id").references(() => projects.id, { onDelete: "set null" }),
+  displayOrder: integer("display_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDomainSchema = createInsertSchema(domains).omit({ id: true, createdAt: true });
+export type InsertDomain = z.infer<typeof insertDomainSchema>;
+export type Domain = typeof domains.$inferSelect;

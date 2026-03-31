@@ -42,6 +42,7 @@ import {
   type Email, type InsertEmail,
   type UserTask, type InsertUserTask, type UpdateUserTask,
   type StaffTask, type InsertStaffTask, type UpdateStaffTask,
+  type Domain, type InsertDomain,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
@@ -58,11 +59,12 @@ import {
   userNewsBookmarks,
   userNewsPreferences,
   emails,
+  domains,
   userTasks,
   staffTasks,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, ilike, or, inArray } from "drizzle-orm";
+import { eq, desc, asc, and, sql, ilike, or, inArray } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -357,6 +359,12 @@ export interface IStorage {
 
   getNewsPreferences(userId: string): Promise<UserNewsPreferences | undefined>;
   upsertNewsPreferences(userId: string, followedCategoryIds: number[]): Promise<UserNewsPreferences>;
+
+  getDomains(): Promise<Domain[]>;
+  getDomain(id: number): Promise<Domain | undefined>;
+  createDomain(data: InsertDomain): Promise<Domain>;
+  updateDomain(id: number, data: Partial<InsertDomain>): Promise<Domain>;
+  deleteDomain(id: number): Promise<void>;
 }
 
 export type SearchResultItem = {
@@ -2283,6 +2291,29 @@ export class DatabaseStorage implements IStorage {
     }
     const [created] = await db.insert(userNewsPreferences).values({ userId, followedCategoryIds }).returning();
     return created;
+  }
+
+  async getDomains(): Promise<Domain[]> {
+    return db.select().from(domains).orderBy(asc(domains.displayOrder), asc(domains.name));
+  }
+
+  async getDomain(id: number): Promise<Domain | undefined> {
+    const [domain] = await db.select().from(domains).where(eq(domains.id, id));
+    return domain || undefined;
+  }
+
+  async createDomain(data: InsertDomain): Promise<Domain> {
+    const [domain] = await db.insert(domains).values(data).returning();
+    return domain;
+  }
+
+  async updateDomain(id: number, data: Partial<InsertDomain>): Promise<Domain> {
+    const [domain] = await db.update(domains).set(data).where(eq(domains.id, id)).returning();
+    return domain;
+  }
+
+  async deleteDomain(id: number): Promise<void> {
+    await db.delete(domains).where(eq(domains.id, id));
   }
 }
 

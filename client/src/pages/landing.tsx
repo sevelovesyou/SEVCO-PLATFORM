@@ -20,6 +20,7 @@ import { SiDiscord, SiSpotify, SiApplemusic } from "react-icons/si";
 import type { Article, Product, FeedPost, Project, ChangelogCategory } from "@shared/schema";
 import type { NewsCategory } from "@shared/schema";
 import { NewsEditorial } from "@/components/news-editorial";
+import { UserSnapshotPanel } from "@/components/user-snapshot-panel";
 import { formatDistanceToNow } from "date-fns";
 import planetIconWhite from "@assets/SEVCO_App_Icon_-_Artboard_71_1774998179682.png";
 
@@ -557,6 +558,18 @@ export default function Landing() {
         {/* Bottom fade to next section */}
         <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[#07070f] to-transparent pointer-events-none" />
       </section>
+
+      {/* ── USER SNAPSHOT — tasks, inbox, notes (logged-in only) ── */}
+      {user && (
+        <section className="bg-[#07070f] border-b border-white/[0.06] py-10" data-testid="section-user-snapshot">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6">
+            <div className="flex items-center gap-2 mb-5">
+              <h2 className="text-base font-semibold text-white">Your Workspace</h2>
+            </div>
+            <UserSnapshotPanel variant="dark" />
+          </div>
+        </section>
+      )}
 
       {/* Float animation keyframes */}
       <style>{`

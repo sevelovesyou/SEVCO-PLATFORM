@@ -44,6 +44,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import type { Role, Resource, Note } from "@shared/schema";
+import { UserSnapshotPanel } from "@/components/user-snapshot-panel";
 
 const ROLE_COLORS: Record<string, string> = {
   admin:     "bg-primary/10 text-primary border-primary/20",
@@ -1060,6 +1061,9 @@ export default function CommandOverview() {
 
   return (
     <>
+      <div className="mb-6" data-testid="section-user-snapshot-cmd">
+        <UserSnapshotPanel />
+      </div>
       {role === "admin" && <AdminOverview data={data} summary={summary} summaryLoading={summaryLoading || platformHistoryLoading} userId={user?.id ?? ""} latestPlatformEntry={latestPlatformEntry} onRefreshSummary={() => refetchSummary()} />}
       {role === "executive" && <ExecutiveOverview data={data} summary={summary} summaryLoading={summaryLoading || platformHistoryLoading} userId={user?.id ?? ""} latestPlatformEntry={latestPlatformEntry} onRefreshSummary={() => refetchSummary()} />}
       {role === "staff" && <StaffOverview data={data} summary={summary} summaryLoading={summaryLoading || platformHistoryLoading} latestPlatformEntry={latestPlatformEntry} onRefreshSummary={() => refetchSummary()} />}

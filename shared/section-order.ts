@@ -1,0 +1,16 @@
+export const DEFAULT_SECTION_ORDER: string[] = [
+  "bulletin",
+  "platformGrid",
+  "whatsNew",
+  "feed",
+  "news",
+  "recordsSpotlight",
+  "xFeed",
+  "storePreview",
+  "servicesShowstopper",
+  "projectsShowstopper",
+  "newsTeaser",
+  "wikiLatest",
+  "communityCta",
+  "signupCta",
+];

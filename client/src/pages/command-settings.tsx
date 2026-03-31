@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { DEFAULT_SECTION_ORDER } from "@shared/section-order";
 import { useState, useEffect, useRef } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -44,6 +45,7 @@ import {
 // ─────────────────────────────────────────────────────────
 const SECTION_KEYS = [
   { key: "section.platformGrid.visible", label: "Platform Grid", description: "The six platform section cards (Wiki, Store, Music, etc.)" },
+  { key: "section.whatsNew.visible", label: "What's New", description: "Platform Updates changelog cards — latest 3 entries with live badge" },
   { key: "section.feed.visible", label: "SEVCO Feed", description: "Latest community and official posts from the SEVCO team" },
   { key: "section.news.visible", label: "News — Top Stories", description: "Curated news bento grid and category swimlanes" },
   { key: "section.recordsSpotlight.visible", label: "RECORDS Spotlight", description: "The SEVCO RECORDS promotional section with purple gradient background" },
@@ -57,6 +59,10 @@ const SECTION_KEYS = [
   { key: "section.communityCta.visible", label: "Community CTA", description: "Discord join section at the bottom" },
   { key: "section.bulletin.visible", label: "Bulletin", description: "Pinned announcement post displayed near the top of the home page" },
 ];
+
+const SECTION_KEY_META: Record<string, { label: string; description: string }> = Object.fromEntries(
+  SECTION_KEYS.map((s) => [s.key.replace("section.", "").replace(".visible", ""), { label: s.label, description: s.description }])
+);
 
 const ASSET_TYPES = [
   { value: "logo", label: "Logo" },
@@ -1100,6 +1106,7 @@ export default function CommandSettings() {
   const [btn2Icon, setBtn2Icon] = useState("");
   const [btn2Color, setBtn2Color] = useState("");
   const [sectionVisibility, setSectionVisibility] = useState<Record<string, boolean>>({});
+  const [sectionOrder, setSectionOrder] = useState<string[]>(DEFAULT_SECTION_ORDER);
   const [faviconUrl, setFaviconUrl] = useState("");
   const [ogImageUrl, setOgImageUrl] = useState("");
   const [platformLogoUrl, setPlatformLogoUrl] = useState("");
@@ -1265,6 +1272,23 @@ export default function CommandSettings() {
       vis[s.key] = toBool(settings[s.key]);
     }
     setSectionVisibility(vis);
+
+    try {
+      const rawOrder = settings["section.order"];
+      const parsed = rawOrder ? JSON.parse(rawOrder) : null;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const deduped = [...new Set(parsed as string[])];
+        const merged = [
+          ...deduped.filter((k) => DEFAULT_SECTION_ORDER.includes(k)),
+          ...DEFAULT_SECTION_ORDER.filter((k) => !deduped.includes(k)),
+        ];
+        setSectionOrder(merged);
+      } else {
+        setSectionOrder(DEFAULT_SECTION_ORDER);
+      }
+    } catch {
+      setSectionOrder(DEFAULT_SECTION_ORDER);
+    }
 
     setLightPrimary(settings["color.light.primary"] || DEFAULT_COLORS.lightPrimary);
     setLightPrimaryFg(settings["color.light.primaryFg"] || "0 0% 100%");
@@ -1585,7 +1609,26 @@ export default function CommandSettings() {
     for (const [k, v] of Object.entries(sectionVisibility)) {
       entries[k] = String(v);
     }
+    entries["section.order"] = JSON.stringify(sectionOrder);
     mutation.mutate(entries);
+  }
+
+  function moveSectionUp(index: number) {
+    if (index === 0) return;
+    setSectionOrder((prev) => {
+      const next = [...prev];
+      [next[index - 1], next[index]] = [next[index], next[index - 1]];
+      return next;
+    });
+  }
+
+  function moveSectionDown(index: number) {
+    setSectionOrder((prev) => {
+      if (index >= prev.length - 1) return prev;
+      const next = [...prev];
+      [next[index], next[index + 1]] = [next[index + 1], next[index]];
+      return next;
+    });
   }
 
   function saveAssets() {
@@ -2070,28 +2113,55 @@ export default function CommandSettings() {
                   <CardDescription>{highlight("Toggle which sections appear on the public landing page.")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {SECTION_KEYS.map((section) => (
-                    <div key={section.key} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{highlight(section.label)}</p>
-                        <p className="text-xs text-muted-foreground">{highlight(section.description)}</p>
+                  {sectionOrder.map((sectionId, index) => {
+                    const meta = SECTION_KEY_META[sectionId];
+                    if (!meta) return null;
+                    const visKey = `section.${sectionId}.visible`;
+                    return (
+                      <div key={sectionId} className="flex items-center gap-2 py-2 border-b border-border/50 last:border-0">
+                        <div className="flex flex-col gap-0.5 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground disabled:opacity-20"
+                            disabled={index === 0}
+                            onClick={() => moveSectionUp(index)}
+                            data-testid={`button-section-up-${sectionId}`}
+                          >
+                            <ChevronUp className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground disabled:opacity-20"
+                            disabled={index === sectionOrder.length - 1}
+                            onClick={() => moveSectionDown(index)}
+                            data-testid={`button-section-down-${sectionId}`}
+                          >
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground">{highlight(meta.label)}</p>
+                          <p className="text-xs text-muted-foreground">{highlight(meta.description)}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {sectionVisibility[visKey] !== false ? (
+                            <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                          ) : (
+                            <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                          <Switch
+                            checked={sectionVisibility[visKey] !== false}
+                            onCheckedChange={(checked) =>
+                              setSectionVisibility((prev) => ({ ...prev, [visKey]: checked }))
+                            }
+                            data-testid={`switch-section-${visKey}`}
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {sectionVisibility[section.key] !== false ? (
-                          <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                        ) : (
-                          <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
-                        )}
-                        <Switch
-                          checked={sectionVisibility[section.key] !== false}
-                          onCheckedChange={(checked) =>
-                            setSectionVisibility((prev) => ({ ...prev, [section.key]: checked }))
-                          }
-                          data-testid={`switch-section-${section.key}`}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <div className="flex justify-end pt-2">
                     <Button onClick={saveSections} disabled={mutation.isPending} className="gap-2" data-testid="button-save-sections">
                       <Save className="h-3.5 w-3.5" />

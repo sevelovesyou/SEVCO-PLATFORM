@@ -14082,3 +14082,169 @@ The `ChangelogPage` import can be removed once the redirect is in place.
 
 ---
 
+## Task — cmd-domains-tab
+> Merged: 2026-03-31
+
+# Task #171 — Domains Management Tab in CMD
+
+## What
+A new CMD tab where Executive+ users can view and manage all SEVCO domains as cards,
+with fields: name, status, renewal date/price, hosting provider, purpose, linked project, and URL.
+
+---
+
+## Schema: `shared/schema.ts`
+
+New table `domains`:
+```ts
+export const domains = pgTable("domains", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),               // e.g. "sevco.us"
+  url: text("url"),                            // e.g. "https://sevco.us"
+  status: text("status").notNull().default("active"), // active | expiring | expired | pending | parked
+  renewalDate: text("renewal_date"),           // ISO date string "2026-12-01"
+  renewalPrice: text("renewal_price"),         // e.g. "$14.99/yr"
+  hostingProvider: text("hosting_provider"),   // e.g. "Cloudflare", "Namecheap", "Replit"
+  purpose: text("purpose"),                    // freeform description
+  projectId: integer("project_id").references(() => projects.id, { onDelete: "set null" }),
+  displayOrder: integer("display_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDomainSchema = createInsertSchema(domains).omit({ id: true, createdAt: true });
+export type InsertDomain = z.infer<typeof insertDomainSchema>;
+export type Domain = typeof domains.$inferSelect;
+```
+
+---
+
+## Storage: `server/storage.ts`
+
+Add to `IStorage` interface and implement:
+```ts
+getDomains(): Promise<Domain[]>
+getDomain(id: number): Promise<Domain | undefined>
+createDomain(data: InsertDomain): Promise<Domain>
+updateDomain(id: number, data: Partial<InsertDomain>): Promise<Domain>
+deleteDomain(id: number): Promise<void>
+```
+
+Implementations:
+- `getDomains()` → `db.select().from(domains).orderBy(asc(domains.displayOrder), asc(domains.name))`
+- `getDomain(id)` → single row by id
+- `createDomain(data)` → insert returning
+- `updateDomain(id, data)` → update where id returning
+- `deleteDomain(id)` → delete where id
+
+---
+
+## API Routes: `server/routes.ts`
+
+```
+GET  /api/domains         — authenticated, staff+
+POST /api/domains         — authenticated, executive+
+PATCH /api/domains/:id    — authenticated, executive+
+DELETE /api/domains/:id   — authenticated, executive+
+```
+
+Role constants: use `["admin", "executive"]` for write operations.
+
+All endpoints validate with zod (`insertDomainSchema` / `.partial()` for PATCH).
+
+---
+
+## CMD Page: `client/src/pages/command-domains.tsx`
+
+**Layout:**
+- `CommandPageLayout` wrapper, title "Domains", subtitle "All SEVCO domains and their status"
+- Top-right "+ Add Domain" button (executive+ only)
+- Card grid: `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`
+
+**Domain Card:**
+Each card shows:
+- **Status badge** (top-right corner): color-coded pill
+  - active → green
+  - expiring → yellow (bold if < 30 days to renewal)
+  - expired → red
+  - pending → blue
+  - parked → gray
+- **Domain name** (large, monospaced-ish)
+- **URL** (clickable link, opens in new tab, if set)
+- Divider line
+- Grid of metadata rows (icon + label + value):
+  - 🗓 Renewal: `renewalDate` + `renewalPrice` (e.g. "Dec 1, 2026 · $14.99/yr")
+  - 🏠 Hosting: `hostingProvider`
+  - 🎯 Purpose: `purpose` (truncated to 2 lines)
+  - 📁 Project: linked project name (look up from projects list), or "—"
+- Bottom action row (executive+ only): Edit (pencil) | Delete (trash)
+
+**Add/Edit Dialog:**
+shadcn `Dialog` with form:
+- Domain Name (required, e.g. "sevco.us")
+- URL
+- Status (Select: active / expiring / expired / pending / parked)
+- Renewal Date (date input or text "YYYY-MM-DD")
+- Renewal Price (text, e.g. "$14.99/yr")
+- Hosting Provider (text)
+- Purpose (textarea)
+- Project (Select from projects list, optional)
+- Display Order (number)
+
+On save: POST (create) or PATCH (update) → invalidate `/api/domains` → toast.
+
+**Delete Confirmation:**
+shadcn `AlertDialog`: "Remove [domain] from your domain list?"
+→ DELETE `/api/domains/:id` → invalidate → toast.
+
+**data-testids:**
+- `card-domain-${id}`
+- `button-add-domain`
+- `button-edit-domain-${id}`
+- `button-delete-domain-${id}`
+- `dialog-domain-form`
+- `input-domain-name`
+
+---
+
+## Sidebar: `client/src/components/command-sidebar.tsx`
+
+Add "Domains" to `systemTopItems` for admin + executive:
+```ts
+...(isAdmin || isExec ? [{ title: "Domains", url: "/command/domains", icon: Globe }] : []),
+```
+Import `Globe` from lucide-react.
+
+---
+
+## App.tsx
+
+Import `CommandDomains` and add route:
+```tsx
+<Route path="/command/domains" component={() => (
+  <CMDWrapper>
+    <CommandDomains />
+  </CMDWrapper>
+)} />
+```
+
+## `client/src/pages/command-page.tsx`
+
+Add to `SEGMENT_LABELS`:
+```ts
+domains: "Domains",
+```
+
+---
+
+## Files Changed
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/routes.ts`
+- `client/src/pages/command-domains.tsx` (new)
+- `client/src/components/command-sidebar.tsx`
+- `client/src/App.tsx`
+- `client/src/pages/command-page.tsx`
+
+
+---
+

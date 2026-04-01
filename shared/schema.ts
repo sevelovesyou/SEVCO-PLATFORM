@@ -868,6 +868,19 @@ export const insertAiMessageSchema = createInsertSchema(aiMessages).omit({ id: t
 export type AiMessage = typeof aiMessages.$inferSelect;
 export type InsertAiMessage = z.infer<typeof insertAiMessageSchema>;
 
+export const aiMessageFeedback = pgTable("ai_message_feedback", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  messageId: integer("message_id").notNull().references(() => aiMessages.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  agentId: integer("agent_id").notNull().references(() => aiAgents.id, { onDelete: "cascade" }),
+  vote: text("vote").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("ai_message_feedback_msg_user_idx").on(t.messageId, t.userId)]);
+
+export const insertAiMessageFeedbackSchema = createInsertSchema(aiMessageFeedback).omit({ id: true, createdAt: true });
+export type AiMessageFeedback = typeof aiMessageFeedback.$inferSelect;
+export type InsertAiMessageFeedback = z.infer<typeof insertAiMessageFeedbackSchema>;
+
 export const newsCategories = pgTable("news_categories", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   name: text("name").notNull(),

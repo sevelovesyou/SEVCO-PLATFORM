@@ -36,6 +36,7 @@ import {
   type Subscription, type InsertSubscription,
   type AiAgent, type InsertAiAgent,
   type AiMessage, type InsertAiMessage,
+  type AiMessageFeedback, type InsertAiMessageFeedback,
   type NewsCategory, type InsertNewsCategory,
   type UserNewsBookmark, type InsertUserNewsBookmark,
   type UserNewsPreferences,
@@ -54,7 +55,7 @@ import {
   financeProjects, financeTransactions, financeInvoices,
   minecraftServers,
   subscriptions,
-  aiAgents, aiMessages,
+  aiAgents, aiMessages, aiMessageFeedback,
   newsCategories,
   userNewsBookmarks,
   userNewsPreferences,
@@ -324,8 +325,11 @@ export interface IStorage {
   deleteAiAgent(id: number): Promise<void>;
 
   getAiMessages(agentId: number, userId: string): Promise<AiMessage[]>;
+  getAiMessageById(id: number): Promise<AiMessage | undefined>;
   createAiMessage(data: InsertAiMessage): Promise<AiMessage>;
+  deleteAiMessage(id: number, agentId: number, userId: string): Promise<void>;
   clearAiConversation(agentId: number, userId: string): Promise<void>;
+  upsertMessageFeedback(data: InsertAiMessageFeedback): Promise<AiMessageFeedback>;
 
   getNewsCategories(enabledOnly?: boolean): Promise<NewsCategory[]>;
   getNewsCategoryById(id: number): Promise<NewsCategory | undefined>;
@@ -2104,8 +2108,31 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async getAiMessageById(id: number): Promise<AiMessage | undefined> {
+    const [msg] = await db.select().from(aiMessages).where(eq(aiMessages.id, id));
+    return msg;
+  }
+
+  async deleteAiMessage(id: number, agentId: number, userId: string): Promise<void> {
+    await db.delete(aiMessages).where(
+      and(eq(aiMessages.id, id), eq(aiMessages.agentId, agentId), eq(aiMessages.userId, userId))
+    );
+  }
+
   async clearAiConversation(agentId: number, userId: string): Promise<void> {
     await db.delete(aiMessages).where(and(eq(aiMessages.agentId, agentId), eq(aiMessages.userId, userId)));
+  }
+
+  async upsertMessageFeedback(data: InsertAiMessageFeedback): Promise<AiMessageFeedback> {
+    const [result] = await db
+      .insert(aiMessageFeedback)
+      .values(data)
+      .onConflictDoUpdate({
+        target: [aiMessageFeedback.messageId, aiMessageFeedback.userId],
+        set: { vote: data.vote },
+      })
+      .returning();
+    return result;
   }
 
   async getNewsCategories(enabledOnly = false): Promise<NewsCategory[]> {

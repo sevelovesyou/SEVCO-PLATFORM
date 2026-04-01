@@ -4,7 +4,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { AiMessageRenderer } from "@/components/ai-message-renderer";
+import { AiMessageRenderer, useCodePreview, CodePreviewDrawer } from "@/components/ai-message-renderer";
+import { AiMessageActionBar } from "@/components/ai-message-action-bar";
+import { AgentComposer } from "@/components/agent-composer";
+import { ThinkingIndicator } from "@/components/thinking-indicator";
+import { useAgentStream } from "@/hooks/use-agent-stream";
+import { useToast } from "@/hooks/use-toast";
 import {
   X,
   Minus,
@@ -16,7 +21,7 @@ import {
   GripHorizontal,
 } from "lucide-react";
 import { useFloatingChat, type FloatingWindow } from "@/contexts/floating-chat-context";
-import type { AiMessage } from "@shared/schema";
+import type { AiAgent, AiMessage } from "@shared/schema";
 
 type ChatUserInfo = {
   id: string;
@@ -198,60 +203,58 @@ function FloatingDmContent({ otherUserId, otherUser }: { otherUserId: string; ot
 }
 
 function FloatingAiContent({
-  agentId,
-  agentName,
-  agentAvatarUrl,
-  modelSlug,
+  agent,
 }: {
-  agentId: number;
-  agentName: string;
-  agentAvatarUrl?: string | null;
-  modelSlug?: string | null;
+  agent: AiAgent;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [inlineError, setInlineError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const { streamingContent, isStreaming, send, regenerate } = useAgentStream(agent.id);
+  const { preview, openPreview, closePreview } = useCodePreview();
 
   const { data: messages = [] } = useQuery<AiMessage[]>({
-    queryKey: ["/api/ai/chat", agentId],
-    queryFn: () => fetch(`/api/ai/chat/${agentId}`).then((r) => r.json()),
+    queryKey: ["/api/ai/chat", agent.id],
+    queryFn: () => fetch(`/api/ai/chat/${agent.id}`).then((r) => r.json()),
   });
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, inlineError]);
-
-  const sendMutation = useMutation({
-    mutationFn: (message: string) =>
-      apiRequest("POST", `/api/ai/chat/${agentId}`, { message }),
-    onSuccess: () => {
-      setInlineError(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/ai/chat", agentId] });
-    },
-    onError: (e: Error) => {
-      setInlineError(e.message || "Something went wrong. Please try again.");
-    },
-  });
+  }, [messages.length, inlineError, streamingContent]);
 
   const clearMutation = useMutation({
-    mutationFn: () => apiRequest("DELETE", `/api/ai/chat/${agentId}/clear`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/ai/chat", agentId] }),
+    mutationFn: () => apiRequest("DELETE", `/api/ai/chat/${agent.id}/clear`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/ai/chat", agent.id] }),
   });
+
+  async function handleSend(content: string) {
+    setInlineError(null);
+    try {
+      await send(content);
+    } catch (e: any) {
+      setInlineError(e.message || "Something went wrong. Please try again.");
+    }
+  }
+
+  async function handleRegenerate(msgId: number) {
+    setInlineError(null);
+    try {
+      await regenerate(msgId);
+    } catch (e: any) {
+      setInlineError(e.message || "Regenerate failed.");
+    }
+  }
 
   return (
     <>
-      {modelSlug && (
-        <div className="px-2 py-1 border-b bg-muted/30">
-          <span className="text-[9px] text-muted-foreground font-mono">{modelSlug}</span>
-        </div>
-      )}
       <div className="flex-1 overflow-y-auto p-2 space-y-2 min-h-0">
         {messages.map((msg) => {
           const isUser = msg.role === "user";
           return (
-            <div key={msg.id} className={`flex gap-1.5 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+            <div key={msg.id} className={`flex gap-1.5 group ${isUser ? "flex-row-reverse" : "flex-row"}`}>
               {!isUser && (
-                agentAvatarUrl ? (
-                  <img src={agentAvatarUrl} alt={agentName} className="w-5 h-5 rounded-full object-cover shrink-0 mt-0.5" />
+                agent.avatarUrl ? (
+                  <img src={agent.avatarUrl} alt={agent.name} className="w-5 h-5 rounded-full object-cover shrink-0 mt-0.5" />
                 ) : (
                   <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
                     <Bot className="h-2.5 w-2.5 text-primary" />
@@ -260,28 +263,33 @@ function FloatingAiContent({
               )}
               <div className={`max-w-[80%] flex flex-col ${isUser ? "items-end" : "items-start"}`}>
                 <div className={`rounded-xl px-2.5 py-1.5 text-xs break-words ${isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
-                  {isUser ? msg.content : <AiMessageRenderer content={msg.content} />}
+                  {isUser ? msg.content : <AiMessageRenderer content={msg.content} onPreview={openPreview} />}
                 </div>
+                {!isUser && (
+                  <AiMessageActionBar
+                    messageId={msg.id}
+                    agentId={agent.id}
+                    content={msg.content}
+                    onRegenerate={handleRegenerate}
+                    compact
+                  />
+                )}
               </div>
             </div>
           );
         })}
-        {sendMutation.isPending && (
-          <div className="flex gap-1.5">
-            {agentAvatarUrl ? (
-              <img src={agentAvatarUrl} alt={agentName} className="w-5 h-5 rounded-full object-cover shrink-0 mt-0.5" />
-            ) : (
-              <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
-                <Bot className="h-2.5 w-2.5 text-primary" />
-              </div>
-            )}
-            <div className="bg-muted rounded-xl px-2.5 py-1.5 text-xs text-muted-foreground italic">Thinking…</div>
-          </div>
+        {isStreaming && (
+          <ThinkingIndicator
+            agentName={agent.name}
+            agentAvatarUrl={agent.avatarUrl}
+            streamingContent={streamingContent}
+            compact
+          />
         )}
-        {inlineError && !sendMutation.isPending && (
+        {inlineError && !isStreaming && (
           <div className="flex gap-1.5">
-            {agentAvatarUrl ? (
-              <img src={agentAvatarUrl} alt={agentName} className="w-5 h-5 rounded-full object-cover shrink-0 mt-0.5" />
+            {agent.avatarUrl ? (
+              <img src={agent.avatarUrl} alt={agent.name} className="w-5 h-5 rounded-full object-cover shrink-0 mt-0.5" />
             ) : (
               <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
                 <Bot className="h-2.5 w-2.5 text-primary" />
@@ -305,7 +313,14 @@ function FloatingAiContent({
           <Trash2 className="h-3 w-3" />
         </Button>
       </div>
-      <FloatingMessageComposer onSend={(c) => sendMutation.mutate(c)} disabled={sendMutation.isPending} />
+      <AgentComposer
+        agent={agent}
+        onSend={handleSend}
+        onClear={() => { if (confirm("Clear conversation?")) clearMutation.mutate(); }}
+        disabled={isStreaming}
+        compact
+      />
+      <CodePreviewDrawer preview={preview} onClose={closePreview} />
     </>
   );
 }
@@ -507,10 +522,7 @@ function SingleFloatingWindow({ win }: { win: FloatingWindow }) {
             )}
             {win.conversation.type === "aiAgent" && (
               <FloatingAiContent
-                agentId={win.conversation.agent.id}
-                agentName={win.conversation.agent.name}
-                agentAvatarUrl={win.conversation.agent.avatarUrl}
-                modelSlug={win.conversation.agent.modelSlug}
+                agent={win.conversation.agent}
               />
             )}
           </div>

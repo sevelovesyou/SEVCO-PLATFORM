@@ -16,7 +16,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { AiMessageRenderer } from "@/components/ai-message-renderer";
+import { AiMessageRenderer, useCodePreview, CodePreviewPanel } from "@/components/ai-message-renderer";
+import { AiMessageActionBar } from "@/components/ai-message-action-bar";
+import { AgentComposer } from "@/components/agent-composer";
+import { ThinkingIndicator } from "@/components/thinking-indicator";
+import { useAgentStream } from "@/hooks/use-agent-stream";
 import {
   Hash,
   MessageCircle,
@@ -302,6 +306,8 @@ function DmContent({ otherUser, onPopOut }: { otherUser: ChatUserInfo; onPopOut:
 function AiContent({ agent, onPopOut }: { agent: AiAgent; onPopOut: () => void }) {
   const { toast } = useToast();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { streamingContent, isStreaming, send, regenerate } = useAgentStream(agent.id);
+  const { preview, openPreview, closePreview } = useCodePreview();
 
   const { data: messages = [], isLoading } = useQuery<AiMessage[]>({
     queryKey: ["/api/ai/chat", agent.id],
@@ -310,115 +316,131 @@ function AiContent({ agent, onPopOut }: { agent: AiAgent; onPopOut: () => void }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
-
-  const sendMutation = useMutation({
-    mutationFn: (message: string) =>
-      apiRequest("POST", `/api/ai/chat/${agent.id}`, { message }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/ai/chat", agent.id] });
-    },
-    onError: (e: Error) => {
-      toast({ title: "AI Error", description: e.message, variant: "destructive" });
-    },
-  });
+  }, [messages.length, streamingContent]);
 
   const clearMutation = useMutation({
     mutationFn: () => apiRequest("DELETE", `/api/ai/chat/${agent.id}/clear`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/ai/chat", agent.id] }),
   });
 
+  async function handleSend(content: string) {
+    try {
+      await send(content);
+    } catch (e: any) {
+      toast({ title: "AI Error", description: e.message, variant: "destructive" });
+    }
+  }
+
+  async function handleRegenerate(msgId: number) {
+    try {
+      await regenerate(msgId);
+    } catch (e: any) {
+      toast({ title: "Regenerate failed", description: e.message, variant: "destructive" });
+    }
+  }
+
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 px-6 py-4 border-b shrink-0 bg-background">
-        {agent.avatarUrl ? (
-          <img src={agent.avatarUrl} alt={agent.name} className="w-8 h-8 rounded-full object-cover shrink-0" />
-        ) : (
-          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-            <Bot className="h-4 w-4 text-primary" />
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <h2 className="text-base font-semibold truncate">{agent.name}</h2>
-          <p className="text-sm text-muted-foreground">{agent.modelSlug}</p>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-          onClick={() => { if (confirm("Clear conversation history?")) clearMutation.mutate(); }}
-          data-testid={`button-fullscreen-ai-clear-${agent.id}`}
-          title="Clear conversation"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          onClick={onPopOut}
-          data-testid={`button-popout-ai-${agent.id}`}
-          title="Pop out into floating window"
-        >
-          <ExternalLink className="h-4 w-4" />
-        </Button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0" data-testid="fullscreen-ai-messages">
-        {isLoading && (
-          <div className="flex items-center justify-center h-20 text-muted-foreground text-sm">Loading…</div>
-        )}
-        {!isLoading && messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-32 text-muted-foreground gap-2">
-            <Bot className="h-8 w-8 opacity-30" />
-            <p className="text-sm">Start a conversation with {agent.name}</p>
-            {agent.description && <p className="text-xs text-center text-muted-foreground/70 max-w-xs">{agent.description}</p>}
-          </div>
-        )}
-        {messages.map((msg) => {
-          const isUser = msg.role === "user";
-          return (
-            <div key={msg.id} className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`} data-testid={`fullscreen-ai-msg-${msg.id}`}>
-              {!isUser && (
-                agent.avatarUrl ? (
-                  <img src={agent.avatarUrl} alt={agent.name} className="w-8 h-8 rounded-full object-cover shrink-0 mt-1" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-1">
-                    <Bot className="h-4 w-4 text-primary" />
-                  </div>
-                )
-              )}
-              <div className={`flex flex-col max-w-[75%] ${isUser ? "items-end" : "items-start"}`}>
-                <div className={`rounded-2xl px-4 py-2.5 text-sm break-words ${isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
-                  {isUser ? msg.content : <AiMessageRenderer content={msg.content} />}
-                </div>
-                <span className="text-[11px] text-muted-foreground mt-1 px-1">
-                  {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
-              </div>
+    <div className="flex h-full">
+      <div className={`flex flex-col ${preview ? "w-1/2" : "w-full"} h-full transition-all`}>
+        <div className="flex items-center gap-3 px-6 py-4 border-b shrink-0 bg-background">
+          {agent.avatarUrl ? (
+            <img src={agent.avatarUrl} alt={agent.name} className="w-8 h-8 rounded-full object-cover shrink-0" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+              <Bot className="h-4 w-4 text-primary" />
             </div>
-          );
-        })}
-        {sendMutation.isPending && (
-          <div className="flex gap-3">
-            {agent.avatarUrl ? (
-              <img src={agent.avatarUrl} alt={agent.name} className="w-8 h-8 rounded-full object-cover shrink-0 mt-1" />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-1">
-                <Bot className="h-4 w-4 text-primary" />
-              </div>
-            )}
-            <div className="bg-muted rounded-2xl px-4 py-2.5 text-sm text-muted-foreground italic">Thinking…</div>
+          )}
+          <div className="flex-1 min-w-0">
+            <h2 className="text-base font-semibold truncate">{agent.name}</h2>
+            <p className="text-sm text-muted-foreground">{agent.modelSlug}</p>
           </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+            onClick={() => { if (confirm("Clear conversation history?")) clearMutation.mutate(); }}
+            data-testid={`button-fullscreen-ai-clear-${agent.id}`}
+            title="Clear conversation"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={onPopOut}
+            data-testid={`button-popout-ai-${agent.id}`}
+            title="Pop out into floating window"
+          >
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+        </div>
 
-      <MessageComposer
-        onSend={(c) => sendMutation.mutate(c)}
-        disabled={sendMutation.isPending}
-        placeholder={`Message ${agent.name}…`}
-      />
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0" data-testid="fullscreen-ai-messages">
+          {isLoading && (
+            <div className="flex items-center justify-center h-20 text-muted-foreground text-sm">Loading…</div>
+          )}
+          {!isLoading && messages.length === 0 && !isStreaming && (
+            <div className="flex flex-col items-center justify-center h-32 text-muted-foreground gap-2">
+              <Bot className="h-8 w-8 opacity-30" />
+              <p className="text-sm">Start a conversation with {agent.name}</p>
+              {agent.description && <p className="text-xs text-center text-muted-foreground/70 max-w-xs">{agent.description}</p>}
+            </div>
+          )}
+          {messages.map((msg) => {
+            const isUser = msg.role === "user";
+            return (
+              <div key={msg.id} className={`flex gap-3 group ${isUser ? "flex-row-reverse" : "flex-row"}`} data-testid={`fullscreen-ai-msg-${msg.id}`}>
+                {!isUser && (
+                  agent.avatarUrl ? (
+                    <img src={agent.avatarUrl} alt={agent.name} className="w-8 h-8 rounded-full object-cover shrink-0 mt-1" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-1">
+                      <Bot className="h-4 w-4 text-primary" />
+                    </div>
+                  )
+                )}
+                <div className={`flex flex-col max-w-[75%] ${isUser ? "items-end" : "items-start"}`}>
+                  <div className={`rounded-2xl px-4 py-2.5 text-sm break-words ${isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+                    {isUser ? msg.content : <AiMessageRenderer content={msg.content} onPreview={openPreview} />}
+                  </div>
+                  {!isUser && (
+                    <AiMessageActionBar
+                      messageId={msg.id}
+                      agentId={agent.id}
+                      content={msg.content}
+                      onRegenerate={handleRegenerate}
+                    />
+                  )}
+                  <span className="text-[11px] text-muted-foreground mt-1 px-1">
+                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+          {isStreaming && (
+            <ThinkingIndicator
+              agentName={agent.name}
+              agentAvatarUrl={agent.avatarUrl}
+              streamingContent={streamingContent}
+            />
+          )}
+          <div ref={bottomRef} />
+        </div>
+
+        <AgentComposer
+          agent={agent}
+          onSend={handleSend}
+          onClear={() => { if (confirm("Clear conversation history?")) clearMutation.mutate(); }}
+          disabled={isStreaming}
+        />
+      </div>
+      {preview && (
+        <div className="w-1/2 h-full" style={{ minWidth: 300 }}>
+          <CodePreviewPanel preview={preview} onClose={closePreview} />
+        </div>
+      )}
     </div>
   );
 }

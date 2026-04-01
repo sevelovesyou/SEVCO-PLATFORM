@@ -4805,6 +4805,364 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/ai/chat/:agentId/stream", requireAuth, requireRole("admin", "executive"), async (req, res) => {
+    try {
+      const agentId = parseInt(req.params.agentId);
+      const user = req.user as any;
+      const { message } = req.body;
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ message: "message is required" });
+      }
+
+      const agent = await storage.getAiAgentById(agentId);
+      if (!agent) return res.status(404).json({ message: "Agent not found" });
+      if (!agent.enabled) return res.status(403).json({ message: "Agent is disabled" });
+
+      const modelSlug = agent.modelSlug;
+      let apiUrl: string;
+      let apiKey: string;
+      let modelName: string;
+      let extraHeaders: Record<string, string> = {};
+
+      if (modelSlug.startsWith("xai/")) {
+        apiUrl = "https://api.x.ai/v1/chat/completions";
+        apiKey = process.env.XAI_API_KEY ?? "";
+        modelName = modelSlug.replace("xai/", "");
+        if (!apiKey) {
+          return res.status(500).json({ message: "XAI_API_KEY is not configured." });
+        }
+      } else {
+        apiUrl = "https://openrouter.ai/api/v1/chat/completions";
+        apiKey = process.env.OPENROUTER_API_KEY ?? "";
+        modelName = modelSlug;
+        extraHeaders = { "HTTP-Referer": "https://sevco.us", "X-Title": "SEVCO Platform" };
+        if (!apiKey) {
+          return res.status(503).json({ message: "AI service not configured. Set OPENROUTER_API_KEY." });
+        }
+      }
+
+      const IMAGE_MODELS = ["grok-2-image-1212"];
+      if (modelSlug.startsWith("xai/") && IMAGE_MODELS.includes(modelName)) {
+        if (!process.env.XAI_API_KEY) {
+          return res.status(500).json({ message: "XAI_API_KEY is required for Grok Imagine." });
+        }
+        const imgRes = await fetch("https://api.x.ai/v1/images/generations", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${process.env.XAI_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ model: modelName, prompt: message, n: 1, response_format: "url" }),
+        });
+        if (!imgRes.ok) {
+          const errText = await imgRes.text();
+          return res.status(502).json({ message: `x.ai image error: ${errText}` });
+        }
+        const imgData = await imgRes.json() as any;
+        const imageUrl = imgData?.data?.[0]?.url;
+        if (!imageUrl) return res.status(502).json({ message: "No image URL returned from x.ai." });
+
+        await storage.createAiMessage({ agentId, userId: user.id, role: "user", content: message });
+        const assistantContent = `![Generated image](${imageUrl})`;
+        await storage.createAiMessage({ agentId, userId: user.id, role: "assistant", content: assistantContent });
+
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        res.write(`data: ${JSON.stringify({ token: assistantContent })}\n\n`);
+        res.write("data: [DONE]\n\n");
+        return res.end();
+      }
+
+      await storage.createAiMessage({ agentId, userId: user.id, role: "user", content: message });
+
+      const history = await storage.getAiMessages(agentId, user.id);
+      const contextMessages = history.slice(-20).map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          ...extraHeaders,
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages: [
+            { role: "system", content: agent.systemPrompt },
+            ...contextMessages,
+          ],
+          max_tokens: 1024,
+          stream: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+
+        if (modelSlug.startsWith("xai/")) {
+          let errObj: any = {};
+          try { errObj = JSON.parse(errText); } catch {}
+          const errMsg = (errObj?.error ?? "").toLowerCase();
+          const errCode = (errObj?.code ?? "").toLowerCase();
+          const isCreditsError = errMsg.includes("credits") || errMsg.includes("licenses") || errCode.includes("permission");
+
+          if (isCreditsError && process.env.OPENROUTER_API_KEY) {
+            const fallbackRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://sevco.us",
+                "X-Title": "SEVCO Platform",
+              },
+              body: JSON.stringify({
+                model: `x-ai/${modelName}`,
+                messages: [{ role: "system", content: agent.systemPrompt }, ...contextMessages],
+                max_tokens: 1024,
+                stream: true,
+              }),
+            });
+            if (fallbackRes.ok && fallbackRes.body) {
+              res.setHeader("Content-Type", "text/event-stream");
+              res.setHeader("Cache-Control", "no-cache");
+              res.setHeader("Connection", "keep-alive");
+
+              let fullContent = "";
+              const reader = fallbackRes.body.getReader();
+              const decoder = new TextDecoder();
+              let lineBuf = "";
+              try {
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  lineBuf += decoder.decode(value, { stream: true });
+                  const parts = lineBuf.split("\n");
+                  lineBuf = parts.pop() || "";
+                  for (const line of parts) {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith("data: ") && trimmed.slice(6) !== "[DONE]") {
+                      try {
+                        const parsed = JSON.parse(trimmed.slice(6));
+                        const token = parsed.choices?.[0]?.delta?.content || "";
+                        if (token) {
+                          fullContent += token;
+                          res.write(`data: ${JSON.stringify({ token })}\n\n`);
+                        }
+                      } catch {}
+                    }
+                  }
+                }
+              } catch {}
+              if (fullContent) {
+                await storage.createAiMessage({ agentId, userId: user.id, role: "assistant", content: fullContent });
+              }
+              res.write("data: [DONE]\n\n");
+              return res.end();
+            }
+          }
+          return res.status(502).json({ message: `x.ai error: ${errObj?.error ?? errText}` });
+        }
+        return res.status(502).json({ message: `OpenRouter error: ${errText}` });
+      }
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      let fullContent = "";
+      const reader = response.body?.getReader();
+      if (!reader) {
+        res.write(`data: ${JSON.stringify({ error: "No stream body" })}\n\n`);
+        return res.end();
+      }
+
+      const decoder = new TextDecoder();
+      let lineBuf = "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          lineBuf += decoder.decode(value, { stream: true });
+          const parts = lineBuf.split("\n");
+          lineBuf = parts.pop() || "";
+          for (const line of parts) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith("data: ") && trimmed.slice(6) !== "[DONE]") {
+              try {
+                const parsed = JSON.parse(trimmed.slice(6));
+                const token = parsed.choices?.[0]?.delta?.content || "";
+                if (token) {
+                  fullContent += token;
+                  res.write(`data: ${JSON.stringify({ token })}\n\n`);
+                }
+              } catch {}
+            }
+          }
+        }
+      } catch (streamErr: any) {
+        res.write(`data: ${JSON.stringify({ error: streamErr.message })}\n\n`);
+      }
+
+      if (fullContent) {
+        await storage.createAiMessage({ agentId, userId: user.id, role: "assistant", content: fullContent });
+      }
+      res.write("data: [DONE]\n\n");
+      res.end();
+    } catch (err: any) {
+      if (!res.headersSent) {
+        res.status(500).json({ message: err.message });
+      } else {
+        res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+        res.end();
+      }
+    }
+  });
+
+  app.post("/api/ai/chat/:agentId/messages/:messageId/regenerate", requireAuth, requireRole("admin", "executive"), async (req, res) => {
+    try {
+      const agentId = parseInt(req.params.agentId);
+      const messageId = parseInt(req.params.messageId);
+      const user = req.user as any;
+
+      const agent = await storage.getAiAgentById(agentId);
+      if (!agent) return res.status(404).json({ message: "Agent not found" });
+
+      const targetMsg = await storage.getAiMessageById(messageId);
+      if (!targetMsg || targetMsg.agentId !== agentId || targetMsg.userId !== user.id || targetMsg.role !== "assistant") {
+        return res.status(404).json({ message: "Message not found" });
+      }
+
+      await storage.deleteAiMessage(messageId, agentId, user.id);
+
+      const modelSlug = agent.modelSlug;
+      let apiUrl: string;
+      let apiKey: string;
+      let modelName: string;
+      let extraHeaders: Record<string, string> = {};
+
+      if (modelSlug.startsWith("xai/")) {
+        apiUrl = "https://api.x.ai/v1/chat/completions";
+        apiKey = process.env.XAI_API_KEY ?? "";
+        modelName = modelSlug.replace("xai/", "");
+        if (!apiKey) return res.status(500).json({ message: "XAI_API_KEY is not configured." });
+      } else {
+        apiUrl = "https://openrouter.ai/api/v1/chat/completions";
+        apiKey = process.env.OPENROUTER_API_KEY ?? "";
+        modelName = modelSlug;
+        extraHeaders = { "HTTP-Referer": "https://sevco.us", "X-Title": "SEVCO Platform" };
+        if (!apiKey) return res.status(503).json({ message: "AI service not configured." });
+      }
+
+      const history = await storage.getAiMessages(agentId, user.id);
+      const contextMessages = history.slice(-20).map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json", ...extraHeaders },
+        body: JSON.stringify({
+          model: modelName,
+          messages: [{ role: "system", content: agent.systemPrompt }, ...contextMessages],
+          max_tokens: 1024,
+          stream: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        return res.status(502).json({ message: `AI error: ${errText}` });
+      }
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      let fullContent = "";
+      const reader = response.body?.getReader();
+      if (!reader) {
+        res.write(`data: ${JSON.stringify({ error: "No stream body" })}\n\n`);
+        return res.end();
+      }
+
+      const decoder = new TextDecoder();
+      let lineBuf = "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          lineBuf += decoder.decode(value, { stream: true });
+          const parts = lineBuf.split("\n");
+          lineBuf = parts.pop() || "";
+          for (const line of parts) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith("data: ") && trimmed.slice(6) !== "[DONE]") {
+              try {
+                const parsed = JSON.parse(trimmed.slice(6));
+                const token = parsed.choices?.[0]?.delta?.content || "";
+                if (token) {
+                  fullContent += token;
+                  res.write(`data: ${JSON.stringify({ token })}\n\n`);
+                }
+              } catch {}
+            }
+          }
+        }
+      } catch (streamErr: any) {
+        res.write(`data: ${JSON.stringify({ error: streamErr.message })}\n\n`);
+      }
+
+      if (fullContent) {
+        await storage.createAiMessage({ agentId, userId: user.id, role: "assistant", content: fullContent });
+      }
+      res.write("data: [DONE]\n\n");
+      res.end();
+    } catch (err: any) {
+      if (!res.headersSent) {
+        res.status(500).json({ message: err.message });
+      } else {
+        res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+        res.end();
+      }
+    }
+  });
+
+  app.delete("/api/ai/chat/:agentId/messages/:messageId", requireAuth, requireRole("admin", "executive"), async (req, res) => {
+    try {
+      const agentId = parseInt(req.params.agentId);
+      const messageId = parseInt(req.params.messageId);
+      const user = req.user as any;
+      await storage.deleteAiMessage(messageId, agentId, user.id);
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/ai/chat/:agentId/messages/:messageId/feedback", requireAuth, requireRole("admin", "executive"), async (req, res) => {
+    try {
+      const agentId = parseInt(req.params.agentId);
+      const messageId = parseInt(req.params.messageId);
+      const user = req.user as any;
+      const { vote } = req.body;
+      if (!vote || !["up", "down"].includes(vote)) {
+        return res.status(400).json({ message: "vote must be 'up' or 'down'" });
+      }
+      const msg = await storage.getAiMessageById(messageId);
+      if (!msg || msg.agentId !== agentId || msg.userId !== user.id) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+      const result = await storage.upsertMessageFeedback({
+        messageId,
+        userId: user.id,
+        agentId,
+        vote,
+      });
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.delete("/api/ai/chat/:agentId/clear", requireAuth, requireRole("admin", "executive"), async (req, res) => {
     try {
       const agentId = parseInt(req.params.agentId);

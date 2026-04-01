@@ -35,7 +35,11 @@ import {
   ExternalLink,
 } from "lucide-react";
 import type { ChatChannel, User, AiAgent, AiMessage } from "@shared/schema";
-import { AiMessageRenderer } from "@/components/ai-message-renderer";
+import { AiMessageRenderer, useCodePreview, CodePreviewDrawer } from "@/components/ai-message-renderer";
+import { AiMessageActionBar } from "@/components/ai-message-action-bar";
+import { AgentComposer } from "@/components/agent-composer";
+import { ThinkingIndicator } from "@/components/thinking-indicator";
+import { useAgentStream } from "@/hooks/use-agent-stream";
 import { useFloatingChat } from "@/contexts/floating-chat-context";
 
 type ChatUserInfo = {
@@ -466,6 +470,8 @@ function CreateChannelDialog({
 function AiAgentView({ agent, onBack, onPopOut }: { agent: AiAgent; onBack: () => void; onPopOut?: () => void }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [inlineError, setInlineError] = useState<string | null>(null);
+  const { streamingContent, isStreaming, send, regenerate } = useAgentStream(agent.id);
+  const { preview, openPreview, closePreview } = useCodePreview();
 
   const { data: messages = [], isLoading } = useQuery<AiMessage[]>({
     queryKey: ["/api/ai/chat", agent.id],
@@ -474,24 +480,30 @@ function AiAgentView({ agent, onBack, onPopOut }: { agent: AiAgent; onBack: () =
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, inlineError]);
-
-  const sendMutation = useMutation({
-    mutationFn: (message: string) =>
-      apiRequest("POST", `/api/ai/chat/${agent.id}`, { message }),
-    onSuccess: () => {
-      setInlineError(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/ai/chat", agent.id] });
-    },
-    onError: (e: any) => {
-      setInlineError(e.message || "Something went wrong. Please try again.");
-    },
-  });
+  }, [messages.length, inlineError, streamingContent]);
 
   const clearMutation = useMutation({
     mutationFn: () => apiRequest("DELETE", `/api/ai/chat/${agent.id}/clear`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/ai/chat", agent.id] }),
   });
+
+  async function handleSend(content: string) {
+    setInlineError(null);
+    try {
+      await send(content);
+    } catch (e: any) {
+      setInlineError(e.message || "Something went wrong. Please try again.");
+    }
+  }
+
+  async function handleRegenerate(msgId: number) {
+    setInlineError(null);
+    try {
+      await regenerate(msgId);
+    } catch (e: any) {
+      setInlineError(e.message || "Regenerate failed.");
+    }
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -540,7 +552,7 @@ function AiAgentView({ agent, onBack, onPopOut }: { agent: AiAgent; onBack: () =
         {isLoading && (
           <div className="flex items-center justify-center h-20 text-muted-foreground text-sm">Loading…</div>
         )}
-        {!isLoading && messages.length === 0 && (
+        {!isLoading && messages.length === 0 && !isStreaming && (
           <div className="flex flex-col items-center justify-center h-20 text-muted-foreground text-sm gap-1">
             <Bot className="h-6 w-6 opacity-40" />
             <p>Start a conversation with {agent.name}</p>
@@ -550,7 +562,7 @@ function AiAgentView({ agent, onBack, onPopOut }: { agent: AiAgent; onBack: () =
         {messages.map((msg) => {
           const isUser = msg.role === "user";
           return (
-            <div key={msg.id} className={`flex gap-2 ${isUser ? "flex-row-reverse" : "flex-row"}`} data-testid={`ai-message-${msg.id}`}>
+            <div key={msg.id} className={`flex gap-2 group ${isUser ? "flex-row-reverse" : "flex-row"}`} data-testid={`ai-message-${msg.id}`}>
               {!isUser && (
                 agent.avatarUrl ? (
                   <img src={agent.avatarUrl} alt={agent.name} className="w-6 h-6 rounded-full object-cover shrink-0 mt-1" />
@@ -562,8 +574,17 @@ function AiAgentView({ agent, onBack, onPopOut }: { agent: AiAgent; onBack: () =
               )}
               <div className={`flex flex-col max-w-[80%] ${isUser ? "items-end" : "items-start"}`}>
                 <div className={`rounded-2xl px-3 py-2 text-sm break-words ${isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`} data-testid={isUser ? undefined : `ai-msg-content-${msg.id}`}>
-                  {isUser ? msg.content : <AiMessageRenderer content={msg.content} />}
+                  {isUser ? msg.content : <AiMessageRenderer content={msg.content} onPreview={openPreview} />}
                 </div>
+                {!isUser && (
+                  <AiMessageActionBar
+                    messageId={msg.id}
+                    agentId={agent.id}
+                    content={msg.content}
+                    onRegenerate={handleRegenerate}
+                    compact
+                  />
+                )}
                 <span className="text-[10px] text-muted-foreground mt-0.5 px-1">
                   {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </span>
@@ -571,19 +592,15 @@ function AiAgentView({ agent, onBack, onPopOut }: { agent: AiAgent; onBack: () =
             </div>
           );
         })}
-        {sendMutation.isPending && (
-          <div className="flex gap-2 flex-row">
-            {agent.avatarUrl ? (
-              <img src={agent.avatarUrl} alt={agent.name} className="w-6 h-6 rounded-full object-cover shrink-0 mt-1" />
-            ) : (
-              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-1">
-                <Bot className="h-3 w-3 text-primary" />
-              </div>
-            )}
-            <div className="bg-muted rounded-2xl px-3 py-2 text-sm text-muted-foreground italic">Thinking…</div>
-          </div>
+        {isStreaming && (
+          <ThinkingIndicator
+            agentName={agent.name}
+            agentAvatarUrl={agent.avatarUrl}
+            streamingContent={streamingContent}
+            compact
+          />
         )}
-        {inlineError && !sendMutation.isPending && (
+        {inlineError && !isStreaming && (
           <div className="flex gap-2 flex-row" data-testid="ai-inline-error">
             {agent.avatarUrl ? (
               <img src={agent.avatarUrl} alt={agent.name} className="w-6 h-6 rounded-full object-cover shrink-0 mt-1" />
@@ -600,7 +617,13 @@ function AiAgentView({ agent, onBack, onPopOut }: { agent: AiAgent; onBack: () =
         <div ref={bottomRef} />
       </div>
 
-      <MessageComposer onSend={(c) => sendMutation.mutate(c)} disabled={sendMutation.isPending} />
+      <AgentComposer
+        agent={agent}
+        onSend={handleSend}
+        onClear={() => { if (confirm("Clear conversation history?")) clearMutation.mutate(); }}
+        disabled={isStreaming}
+      />
+      <CodePreviewDrawer preview={preview} onClose={closePreview} />
     </div>
   );
 }

@@ -16021,3 +16021,413 @@ This is a pure pass-through — xAI results are fetched live and not persisted.
 
 ---
 
+## Task — fix-xai-responses-api
+> Merged: 2026-04-01
+
+# Task #186 — Fix xAI API: Responses API models, News feed, and Trending on X
+
+## Root Cause Summary
+
+The xAI API has two distinct endpoints with different compatible models:
+
+| Endpoint | Compatible Models |
+|----------|------------------|
+| `POST https://api.x.ai/v1/chat/completions` | `grok-3`, `grok-3-mini`, `grok-3-fast`, `grok-3-mini-fast` |
+| `POST https://api.x.ai/v1/responses` | `grok-4.20-reasoning`, `grok-4` (Responses API only) |
+
+**Three broken areas:**
+1. **X Search enrichment** — `/api/search/x-social` calls `/v1/responses` with `grok-3` (wrong model)
+2. **News feed headlines** — `server/news.ts` → `fetchNewsArticles()` → `searchTweets()` → requires `X_BEARER_TOKEN` (not configured, credits depleted)
+3. **Trending on X panel** — `/api/trending-topics` + `/api/trending-news` → `X_BEARER_TOKEN` (same issue)
+
+**The fix for 2 & 3:** Replace all `X_BEARER_TOKEN` / Twitter API calls in `server/x-api.ts` with xAI X Search (the same tool used in `/api/search/x-social`), since `XAI_API_KEY` IS configured and working.
+
+---
+
+## Step 0: Restart the server workflow (FIRST)
+
+```ts
+await restartWorkflow("Start application");
+```
+
+The server is crashed with EADDRINUSE after the last merge.
+
+---
+
+## Fix 1: X Search enrichment — use `grok-4.20-reasoning`
+
+In `server/routes.ts`, in the `GET /api/search/x-social` route (~line 1660):
+
+Change:
+```ts
+let xaiRes = await makeXSearchRequest("grok-3");
+// fallback to grok-3-mini
+```
+
+To:
+```ts
+let xaiRes = await makeXSearchRequest("grok-4.20-reasoning");
+// fallback to grok-4
+if (!xaiRes.ok) {
+  ...
+  xaiRes = await makeXSearchRequest("grok-4");
+}
+```
+
+---
+
+## Fix 2: Replace X_BEARER_TOKEN with xAI X Search in `server/x-api.ts`
+
+The entire `server/x-api.ts` module powers the news feed. Replace its implementation to use xAI X Search instead of the Twitter/X v2 API.
+
+### Helper: `callXaiSearch(query, limit)`
+
+Add a shared helper at the top of `server/x-api.ts`:
+
+```ts
+async function callXaiSearch(searchQuery: string, limit: number): Promise<Tweet[]> {
+  const apiKey = process.env.XAI_API_KEY;
+  if (!apiKey) return [];
+
+  try {
+    const res = await fetch("https://api.x.ai/v1/responses", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "grok-4.20-reasoning",
+        input: [{ role: "user", content: `Search X for recent posts about: ${searchQuery}` }],
+        tools: [{ type: "x_search" }],
+      }),
+    });
+
+    if (!res.ok) {
+      // Try fallback model
+      const fallbackRes = await fetch("https://api.x.ai/v1/responses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "grok-4",
+          input: [{ role: "user", content: `Search X for recent posts about: ${searchQuery}` }],
+          tools: [{ type: "x_search" }],
+        }),
+      });
+      if (!fallbackRes.ok) return [];
+      const data = await fallbackRes.json() as any;
+      return mapCitationsToTweets(data?.citations ?? [], limit);
+    }
+
+    const data = await res.json() as any;
+    return mapCitationsToTweets(data?.citations ?? [], limit);
+  } catch (err: any) {
+    console.error("[x-api] xAI X Search error:", err.message);
+    return [];
+  }
+}
+
+function mapCitationsToTweets(citations: any[], limit: number): Tweet[] {
+  return citations.slice(0, limit).map((c: any, i: number): Tweet => {
+    // Extract handle from URL: https://x.com/handle/status/123
+    const urlMatch = (c.url ?? "").match(/x\.com\/([^/]+)\/status\/(\d+)/);
+    const handle = urlMatch ? urlMatch[1] : `user_${i}`;
+    const tweetId = urlMatch ? urlMatch[2] : String(Date.now() + i);
+
+    return {
+      id: tweetId,
+      text: c.text ?? "",
+      authorId: handle,
+      authorName: (c.title ?? "").replace(" on X", "").trim() || `@${handle}`,
+      authorHandle: `@${handle}`,
+      authorAvatarUrl: null,
+      mediaUrl: null,
+      likeCount: 0,
+      retweetCount: 0,
+      replyCount: 0,
+      createdAt: new Date().toISOString(),
+      url: c.url ?? `https://x.com/${handle}/status/${tweetId}`,
+    };
+  }).filter(t => t.url);
+}
+```
+
+### Update `isXConfigured()`
+
+```ts
+export function isXConfigured(): boolean {
+  return !!(process.env.XAI_API_KEY || process.env.X_BEARER_TOKEN);
+}
+```
+
+### Update `searchTweets()`
+
+Replace the existing body that uses `X_BEARER_TOKEN` with:
+
+```ts
+export async function searchTweets(query: string, limit: number = 6): Promise<Tweet[]> {
+  // Prefer xAI X Search (XAI_API_KEY) over legacy X Bearer Token
+  if (process.env.XAI_API_KEY) {
+    const cacheKey = `xai:${query}:${limit}`;
+    const cached = getCachedTweets(cacheKey);
+    if (cached) return cached;
+    const tweets = await callXaiSearch(query, limit);
+    if (tweets.length > 0) setCachedTweets(cacheKey, tweets);
+    return tweets;
+  }
+
+  // Legacy fallback: X_BEARER_TOKEN
+  const bearerToken = process.env.X_BEARER_TOKEN;
+  if (!bearerToken) {
+    console.error("[x-api] Neither XAI_API_KEY nor X_BEARER_TOKEN is set.");
+    return [];
+  }
+  // ... existing X_BEARER_TOKEN implementation unchanged as fallback ...
+}
+```
+
+### Update `fetchUserTweets()`
+
+When no `X_BEARER_TOKEN`, fall back to xAI X Search for the user's handle:
+
+```ts
+export async function fetchUserTweets(handle: string, limit: number = 10): Promise<Tweet[]> {
+  if (process.env.XAI_API_KEY) {
+    const cleanHandle = handle.replace(/^@/, "");
+    return callXaiSearch(`from:${cleanHandle}`, limit);
+  }
+  // ... existing X_BEARER_TOKEN implementation ...
+}
+```
+
+---
+
+## Fix 3: Replace Twitter trending API with xAI X Search
+
+In `server/routes.ts`, update `GET /api/trending-topics` (~line 6059) and `GET /api/trending-news` (~line 6099):
+
+### `GET /api/trending-topics`
+
+Replace the Twitter `https://api.x.com/2/trends/...` call with:
+
+```ts
+app.get("/api/trending-topics", async (_req, res) => {
+  try {
+    const cacheKey = "trending-topics-us";
+    const cached = trendingTopicsCache.get(cacheKey);
+    if (cached && Date.now() - cached.cachedAt < TRENDING_CACHE_TTL) {
+      return res.json(cached.data);
+    }
+
+    const xaiKey = process.env.XAI_API_KEY;
+    if (!xaiKey) return res.json({ topics: [], source: "unavailable" });
+
+    // Use xAI X Search to find trending topics
+    const xaiRes = await fetch("https://api.x.ai/v1/responses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${xaiKey}` },
+      body: JSON.stringify({
+        model: "grok-4.20-reasoning",
+        input: [{ role: "user", content: "What are the top 10 trending topics on X right now in the US? List them as a JSON array of strings, nothing else." }],
+        tools: [{ type: "x_search" }],
+      }),
+    });
+
+    if (!xaiRes.ok) return res.json({ topics: [], source: "error" });
+
+    const data = await xaiRes.json() as any;
+    const outputText: string = data?.output_text ?? "";
+    
+    // Try to parse the JSON array from the response
+    let topicNames: string[] = [];
+    try {
+      const jsonMatch = outputText.match(/\[[\s\S]*?\]/);
+      if (jsonMatch) topicNames = JSON.parse(jsonMatch[0]);
+    } catch {
+      // Fallback: split by newlines and clean up
+      topicNames = outputText.split(/\n/).map((l: string) => l.replace(/^\d+[\.\)]\s*/, "").replace(/[#*"]/g, "").trim()).filter(Boolean).slice(0, 10);
+    }
+
+    const topics = topicNames.slice(0, 10).map((name: string, i: number) => ({
+      rank: i + 1,
+      name,
+      tweetCount: null,
+    }));
+
+    const result = { topics, source: "xai", fetchedAt: new Date().toISOString() };
+    trendingTopicsCache.set(cacheKey, { data: result, cachedAt: Date.now() });
+    res.json(result);
+  } catch (err: any) {
+    console.error("[trending-topics] Error:", err.message);
+    res.json({ topics: [], source: "error" });
+  }
+});
+```
+
+### `GET /api/trending-news`
+
+The existing `trending-news` route already falls back to `topicNames = ["breaking news", "technology", ...]` when no topics are available, and calls `searchTweets()` for each. Since Fix 2 makes `searchTweets()` use xAI when `XAI_API_KEY` is set, this route should work once Fix 2 is applied — minimal changes needed.
+
+Just remove the `if (bearerToken)` guard at the top so it always tries to get topics, whether via legacy API or new trending-topics call.
+
+---
+
+## Fix 4: Add grok-4 models to the agent dropdown
+
+In `client/src/pages/command-ai-agents.tsx`, update the `MODELS` array:
+
+```ts
+const MODELS = [
+  // OpenAI (via OpenRouter)
+  { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", group: "OpenAI" },
+  { value: "openai/gpt-4o",      label: "GPT-4o",      group: "OpenAI" },
+
+  // Anthropic (via OpenRouter)
+  { value: "anthropic/claude-3-haiku", label: "Claude 3 Haiku", group: "Anthropic" },
+
+  // Google (via OpenRouter)
+  { value: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash", group: "Google" },
+
+  // Grok 4 — x.ai Responses API (latest, uses XAI_API_KEY)
+  { value: "xai/grok-4.20-reasoning", label: "Grok 4.20 Reasoning", group: "Grok 4" },
+  { value: "xai/grok-4",              label: "Grok 4",               group: "Grok 4" },
+
+  // Grok 3 — x.ai chat completions (uses XAI_API_KEY)
+  { value: "xai/grok-3",           label: "Grok 3",           group: "Grok 3" },
+  { value: "xai/grok-3-fast",      label: "Grok 3 Fast",      group: "Grok 3" },
+  { value: "xai/grok-3-mini",      label: "Grok 3 Mini",      group: "Grok 3" },
+  { value: "xai/grok-3-mini-fast", label: "Grok 3 Mini Fast", group: "Grok 3" },
+
+  // Grok — via OpenRouter (uses OPENROUTER_API_KEY)
+  { value: "x-ai/grok-3",     label: "Grok 3",     group: "Grok (OpenRouter)" },
+  { value: "x-ai/grok-3-mini", label: "Grok 3 Mini", group: "Grok (OpenRouter)" },
+];
+```
+
+---
+
+## Fix 5: Route grok-4 models to Responses API in agent chat
+
+In `server/routes.ts`, all THREE chat routes (non-streaming ~4720, streaming ~4890, regenerate ~5060) need to detect grok-4 models and use the Responses API:
+
+```ts
+if (modelSlug.startsWith("xai/")) {
+  apiKey = process.env.XAI_API_KEY ?? "";
+  modelName = modelSlug.replace("xai/", ""); // e.g. "grok-3" or "grok-4.20-reasoning"
+  const isResponsesApiModel = modelName.startsWith("grok-4");
+  apiUrl = isResponsesApiModel
+    ? "https://api.x.ai/v1/responses"
+    : "https://api.x.ai/v1/chat/completions";
+  if (!apiKey) { return res.status(500).json({ ... }); }
+}
+```
+
+### Response parsing for Responses API
+
+The Responses API shape differs from Chat Completions. After getting the API response, branch on `isResponsesApiModel`:
+
+**Non-streaming:**
+```ts
+let assistantContent: string;
+if (isResponsesApiModel) {
+  assistantContent = responseData.output_text 
+    ?? responseData.output?.[0]?.content?.[0]?.text 
+    ?? "";
+} else {
+  assistantContent = responseData.choices?.[0]?.message?.content ?? "";
+}
+```
+
+**Streaming:**
+The Responses API streams SSE events with `type: "response.output_text.delta"` and a `delta` field (not `choices[0].delta.content`). In the streaming parsing loop, add a branch:
+
+```ts
+if (isResponsesApiModel) {
+  if (chunk.type === "response.output_text.delta" && chunk.delta) {
+    res.write(`data: ${JSON.stringify({ content: chunk.delta })}\n\n`);
+    buffer += chunk.delta;
+  }
+} else {
+  // existing Chat Completions delta parsing
+  const delta = chunk.choices?.[0]?.delta?.content;
+  if (delta) {
+    res.write(`data: ${JSON.stringify({ content: delta })}\n\n`);
+    buffer += delta;
+  }
+}
+```
+
+---
+
+## Verification
+
+After all changes, restart and test:
+
+```bash
+# 1. Test X Search enrichment
+curl "http://localhost:5000/api/search/x-social?q=artificial+intelligence" 2>/dev/null | \
+  node -e "const j=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));console.log('X Search posts:', j.posts?.length, j.error || 'OK')"
+
+# 2. Test trending topics
+curl "http://localhost:5000/api/trending-topics" 2>/dev/null | \
+  node -e "const j=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));console.log('Trending source:', j.source, 'topics:', j.topics?.length)"
+
+# 3. Test news feed for a category
+curl "http://localhost:5000/api/news/category/technology?limit=3" 2>/dev/null | \
+  node -e "const j=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));console.log('Articles:', Array.isArray(j) ? j.length : JSON.stringify(j).slice(0,100))"
+```
+
+
+  ---
+
+  ## Fix 6: Add xAI Docs MCP server to the project
+
+  The xAI docs MCP gives the agent and developer tooling direct access to xAI documentation.
+
+  - **Endpoint:** `https://docs.x.ai/api/mcp`  
+  - **Transport:** Streamable HTTP  
+  - **Auth:** None required (stateless, public)  
+  - **Tools exposed:** `list_doc_pages`, `get_doc_page`
+
+  To add it, create the skill directory and SKILL.md under `.local/mcp_skills/xai/`:
+
+  ```
+  .local/mcp_skills/xai/SKILL.md
+  ```
+
+  Content should describe the available tools so future agents know how to call them:
+  - `list_doc_pages` — returns all available xAI docs pages as a list of slugs
+  - `get_doc_page(slug)` — returns the markdown content of a specific doc page
+
+  The MCP server itself needs to be registered in Replit's agent MCP configuration.
+  Replit MCP config uses the format:
+  ```json
+  {
+    "name": "xai-docs",
+    "url": "https://docs.x.ai/api/mcp"
+  }
+  ```
+
+  This is added via Replit's Settings → Agent → MCP Servers UI.
+  The task agent should note this for the user and create the skill file stub.
+
+  ## Key Files
+- `server/routes.ts` — X Search route (~1660), trending routes (~6059, ~6099), 3 chat routes (~4720, ~4890, ~5060)
+- `server/x-api.ts` — Replace `searchTweets()`, `fetchUserTweets()`, `isXConfigured()` with xAI-based implementations
+- `client/src/pages/command-ai-agents.tsx` — MODELS array (~line 30)
+
+## Done Looks Like
+- Server starts cleanly after workflow restart
+- `/news` page shows real headlines in each category
+- "Trending on X" sidebar shows real trending topics
+- `/search?q=dogs` shows an "On X" section with real X posts
+- CMD → AI Agents: grok-4.20-reasoning and grok-4 appear in the model dropdown
+- Chatting with a grok-4.20-reasoning agent returns a real response
+- Chatting with a grok-3 agent still works (no regression)
+
+
+---
+

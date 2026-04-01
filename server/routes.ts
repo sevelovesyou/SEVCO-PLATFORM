@@ -1634,6 +1634,66 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/search/x-social", async (req, res) => {
+    const query = ((req.query.q as string) || "").trim();
+    if (!query || query.length < 2) return res.json({ posts: [], query });
+
+    const apiKey = process.env.XAI_API_KEY;
+    if (!apiKey) return res.json({ posts: [], query, error: "XAI_API_KEY not configured" });
+
+    const makeXSearchRequest = async (model: string) => {
+      return fetch("https://api.x.ai/v1/responses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          input: [{ role: "user", content: `Search X (Twitter) for recent posts about: ${query}` }],
+          tools: [{ type: "x_search" }],
+        }),
+      });
+    };
+
+    try {
+      let xaiRes = await makeXSearchRequest("grok-3");
+
+      // If model not found, fall back to grok-3-mini
+      if (!xaiRes.ok) {
+        const errText = await xaiRes.text();
+        const isModelNotFound = xaiRes.status === 404 || errText.toLowerCase().includes("model") || errText.toLowerCase().includes("not found");
+        if (isModelNotFound) {
+          console.warn("[x-search] grok-3 not available, falling back to grok-3-mini");
+          xaiRes = await makeXSearchRequest("grok-3-mini");
+        }
+        if (!xaiRes.ok) {
+          const fallbackErr = await xaiRes.text().catch(() => errText);
+          console.error("[x-search] API error:", xaiRes.status, fallbackErr);
+          return res.json({ posts: [], query, error: "X Search unavailable" });
+        }
+      }
+
+      const data = await xaiRes.json() as any;
+      const citations: any[] = data?.citations ?? [];
+
+      const posts = citations.slice(0, 8).map((c: any) => ({
+        url: c.url ?? "",
+        title: c.title ?? "",
+        text: c.text ?? "",
+        handle: (() => {
+          const match = (c.url ?? "").match(/x\.com\/([^/]+)\/status/);
+          return match ? `@${match[1]}` : (c.title ?? "").replace(" on X", "").trim();
+        })(),
+      })).filter((p: any) => p.url);
+
+      res.json({ posts, query });
+    } catch (err: any) {
+      console.error("[x-search] Error:", err.message);
+      res.json({ posts: [], query, error: "X Search failed" });
+    }
+  });
+
   app.get("/api/search", async (req, res) => {
     const query = ((req.query.q as string) || "").trim();
     const limit = Math.min(parseInt((req.query.limit as string) || "5"), 20);

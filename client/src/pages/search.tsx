@@ -19,6 +19,19 @@ import {
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 
+type XPost = {
+  url: string;
+  title: string;
+  text: string;
+  handle: string;
+};
+
+type XSearchResult = {
+  posts: XPost[];
+  query: string;
+  error?: string;
+};
+
 type SearchResultItem = {
   id: number;
   title: string;
@@ -61,6 +74,19 @@ export default function SearchPage() {
     setInputValue(q);
     setQuery(q);
   }, [location]);
+
+  const { data: xResults, isLoading: xLoading } = useQuery<XSearchResult>({
+    queryKey: ["/api/search/x-social", query],
+    queryFn: async () => {
+      if (!query || query.length < 2) return { posts: [], query };
+      const res = await fetch(`/api/search/x-social?q=${encodeURIComponent(query)}`, {
+        credentials: "include",
+      });
+      if (!res.ok) return { posts: [], query };
+      return res.json();
+    },
+    enabled: query.length >= 2,
+  });
 
   const { data: results, isLoading } = useQuery<SearchResults>({
     queryKey: ["/api/search", query, "full"],
@@ -204,6 +230,47 @@ export default function SearchPage() {
                   );
                 })}
               </div>
+
+              {/* X Social Results — shown after platform sections, before Google link */}
+              {(xLoading || (xResults?.posts && xResults.posts.length > 0)) && (
+                <section data-testid="section-search-x-social">
+                  <div className="flex items-center gap-2 mb-3">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-foreground shrink-0">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                    <h2 className="text-sm font-semibold text-foreground">On X</h2>
+                    {xLoading && <span className="text-xs text-muted-foreground">Searching X…</span>}
+                    {!xLoading && xResults?.posts?.length ? (
+                      <span className="text-xs text-muted-foreground">({xResults.posts.length})</span>
+                    ) : null}
+                  </div>
+                  {xLoading && (
+                    <div className="space-y-1.5">
+                      {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+                    </div>
+                  )}
+                  {!xLoading && xResults?.posts && xResults.posts.length > 0 && (
+                    <div className="space-y-1.5">
+                      {xResults.posts.map((post, i) => (
+                        <a
+                          key={i}
+                          href={post.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-start gap-3 px-4 py-3 rounded-xl border border-border hover:bg-muted/50 hover:border-border/80 transition-all cursor-pointer group"
+                          data-testid={`search-result-x-${i}`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-muted-foreground mb-0.5">{post.handle}</p>
+                            <p className="text-sm text-foreground line-clamp-2">{post.text}</p>
+                          </div>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors shrink-0 mt-1" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
 
               <div className="border-t border-border pt-6">
                 <button

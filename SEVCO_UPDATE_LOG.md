@@ -15412,3 +15412,119 @@ does not aggressively steal focus when opened:
 
 ---
 
+## Task — fix-compose-form-typing
+> Merged: 2026-04-01
+
+# Task #181 — Fix: Typing blocked in all compose email form fields
+
+## Exact Root Cause
+
+In `client/src/components/rich-email-editor.tsx`, lines 103–112:
+
+```ts
+useEffect(() => {
+  function handleClickOutside(e: MouseEvent) {
+    if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      editor?.commands.blur();   // ← THIS LINE BREAKS ALL OTHER INPUTS
+      setShowEmojis(false);
+    }
+  }
+  document.addEventListener("mousedown", handleClickOutside);
+  return () => document.removeEventListener("mousedown", handleClickOutside);
+}, [editor]);
+```
+
+### Why it breaks typing in Subject / To / CC fields
+
+When the user **clicks on the Subject input** (or any other field outside the Tiptap
+editor container):
+
+1. `mousedown` fires on the Subject input
+2. The `document`-level `handleClickOutside` runs — Subject is NOT inside `containerRef`
+3. `editor.commands.blur()` is called → this moves focus to `document.body`
+4. Radix UI's Dialog `FocusScope` (the dialog's focus trap) intercepts focus escaping
+   the dialog and **redirects it back inside the dialog** — but to the previous element,
+   not the Subject input the user clicked
+5. The browser's `click` event fires on Subject, but focus has already been seized by
+   the FocusScope redirect — Subject never gets focus
+6. Typing goes nowhere
+
+The `editor.commands.blur()` call is entirely unnecessary. When a user clicks another
+element, the browser naturally removes focus from the Tiptap editor. Explicitly calling
+`blur()` only creates this destructive race with Radix's FocusScope.
+
+### Scope
+- Only `rich-email-editor.tsx` has this pattern.
+- `rich-text-editor.tsx` (notes/wiki editor) has **no** `handleClickOutside` or `blur()`
+  calls — it is not affected.
+- The inline reply editor in `email-thread-view.tsx` does not use `RichEmailEditor` —
+  not affected.
+
+---
+
+## Fix — `client/src/components/rich-email-editor.tsx`
+
+Remove the `editor?.commands.blur()` call from `handleClickOutside`.
+The emoji picker close (`setShowEmojis(false)`) is still needed.
+
+**Change the handler from:**
+```ts
+function handleClickOutside(e: MouseEvent) {
+  if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+    editor?.commands.blur();
+    setShowEmojis(false);
+  }
+}
+```
+
+**To:**
+```ts
+function handleClickOutside(e: MouseEvent) {
+  if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+    setShowEmojis(false);
+  }
+}
+```
+
+Also remove `editor` from the `useEffect` dependency array (it's no longer used):
+```ts
+}, []); // was: }, [editor]);
+```
+
+---
+
+## Cleanup — `client/src/components/email-compose-modal.tsx`
+
+Remove dead code added in a prior fix attempt (ref was created but never attached to
+any DOM element, so it did nothing):
+
+Remove:
+```ts
+const firstInputRef = useRef<HTMLInputElement>(null);
+
+useEffect(() => {
+  if (open) {
+    setTimeout(() => firstInputRef.current?.focus(), 0);
+  }
+}, [open]);
+```
+
+The `autoFocus={true}` on the TagInput's internal input still works correctly and should
+be kept — it focuses the To field when the modal opens without causing any focus issues.
+
+---
+
+## Also: Restart workflow to clear EADDRINUSE crash
+
+The server workflow is currently crashed with `EADDRINUSE: address already in use 0.0.0.0:5000`
+from a stale Node.js process left over from the Task #180 merge. A workflow restart clears it.
+
+---
+
+## Files Changed
+- `client/src/components/rich-email-editor.tsx` (remove `editor.commands.blur()`)
+- `client/src/components/email-compose-modal.tsx` (remove dead `firstInputRef` code)
+
+
+---
+

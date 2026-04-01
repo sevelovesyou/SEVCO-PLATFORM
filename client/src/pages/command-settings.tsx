@@ -1190,8 +1190,8 @@ export default function CommandSettings() {
 
   // ── Typography state ──
   const FONT_OPTIONS = [
-    "Inter", "System UI", "Roboto", "Open Sans", "Lato", "Poppins", "Montserrat",
-    "Nunito", "Raleway", "Source Sans Pro", "Playfair Display", "Merriweather",
+    "Inter", "System UI", "Roboto", "Open Sans", "Poppins", "Montserrat",
+    "Playfair Display", "Merriweather",
     "Georgia", "serif", "monospace",
   ];
   const [headingFont, setHeadingFont] = useState("Inter");

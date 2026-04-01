@@ -623,8 +623,6 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const CLIENT_PLUS_ROLES = ["client", "partner", "staff", "executive", "admin"];
-  const isClientPlus = !!(user && CLIENT_PLUS_ROLES.includes(user.role));
 
   const allItems = [
     { label: "Notes",   href: "/notes",        icon: StickyNote,   desc: "Personal & shared notes",               requiredRoles: ["user","client","partner","staff","executive","admin"] },

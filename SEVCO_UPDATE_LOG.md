@@ -16431,3 +16431,56 @@ curl "http://localhost:5000/api/news/category/technology?limit=3" 2>/dev/null | 
 
 ---
 
+## Task — fix-domains-project-dropdown
+> Merged: 2026-04-01
+
+# Task #187 — Fix: CMD Domains "Linked Project" dropdown shows blank items
+
+## Root Cause
+`client/src/pages/command-domains.tsx` renders project SelectItems using `{p.title}`,
+but the `Project` type (from `shared/schema.ts`) uses `name`, not `title`.
+`p.title` is always `undefined`, so every project option renders as blank text.
+
+Projects ARE loading correctly from `GET /api/projects` — the issue is purely
+a field name mismatch introduced when the component was built.
+
+## Fix (2 lines only)
+
+**File:** `client/src/pages/command-domains.tsx`
+
+Line ~254 — SelectItem in the Linked Project dropdown:
+```tsx
+// BEFORE
+<SelectItem key={p.id} value={String(p.id)}>{p.title}</SelectItem>
+
+// AFTER
+<SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+```
+
+Line ~352 — `getProjectName()` helper function:
+```tsx
+// BEFORE
+return project?.title ?? "—";
+
+// AFTER
+return project?.name ?? "—";
+```
+
+## Also: restart the server (FIRST)
+The server is crashed with EADDRINUSE after the last merge. Restart the workflow
+before testing the fix.
+
+## Verification
+1. Open CMD → Domains
+2. Click "Add Domain" or edit an existing domain
+3. The "Linked Project" dropdown should now list all projects by name
+4. Selecting a project and saving should persist the `projectId` correctly
+
+## Done Looks Like
+- Linked Project dropdown shows all projects (SEVCO Platform, etc.) by name
+- Selecting a project and saving the domain stores the association
+- The domain card view shows the project name correctly
+
+
+---
+

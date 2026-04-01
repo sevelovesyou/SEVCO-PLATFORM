@@ -1657,16 +1657,13 @@ export async function registerRoutes(
     };
 
     try {
-      let xaiRes = await makeXSearchRequest("grok-3");
+      let xaiRes = await makeXSearchRequest("grok-4.20-reasoning");
 
-      // If model not found, fall back to grok-3-mini
+      // If model not found, fall back to grok-4
       if (!xaiRes.ok) {
         const errText = await xaiRes.text();
-        const isModelNotFound = xaiRes.status === 404 || errText.toLowerCase().includes("model") || errText.toLowerCase().includes("not found");
-        if (isModelNotFound) {
-          console.warn("[x-search] grok-3 not available, falling back to grok-3-mini");
-          xaiRes = await makeXSearchRequest("grok-3-mini");
-        }
+        console.warn("[x-search] grok-4.20-reasoning not available, falling back to grok-4");
+        xaiRes = await makeXSearchRequest("grok-4");
         if (!xaiRes.ok) {
           const fallbackErr = await xaiRes.text().catch(() => errText);
           console.error("[x-search] API error:", xaiRes.status, fallbackErr);
@@ -1675,17 +1672,27 @@ export async function registerRoutes(
       }
 
       const data = await xaiRes.json() as any;
-      const citations: any[] = data?.citations ?? [];
+      const msgOutput = data?.output?.find((o: any) => o.type === "message");
+      const msgContent = msgOutput?.content?.[0];
+      const msgText: string = msgContent?.text ?? "";
+      const annotations: any[] = msgContent?.annotations ?? [];
 
-      const posts = citations.slice(0, 8).map((c: any) => ({
-        url: c.url ?? "",
-        title: c.title ?? "",
-        text: c.text ?? "",
-        handle: (() => {
-          const match = (c.url ?? "").match(/x\.com\/([^/]+)\/status/);
-          return match ? `@${match[1]}` : (c.title ?? "").replace(" on X", "").trim();
-        })(),
-      })).filter((p: any) => p.url);
+      const seenUrls = new Set<string>();
+      const posts: Array<{ url: string; title: string; text: string; handle: string }> = [];
+      for (const ann of annotations) {
+        if (ann.type !== "url_citation") continue;
+        const url: string = ann.url ?? "";
+        if (!url || seenUrls.has(url)) continue;
+        const urlMatch = url.match(/x\.com\/([^/]+)\/status/);
+        if (!urlMatch) continue;
+        seenUrls.add(url);
+        const handle = `@${urlMatch[1]}`;
+        const handleRegex = new RegExp(`@${urlMatch[1]}[^:]*:\\s*[""]?([^\\n"]{10,}?)[""]?(?:\\n|$)`, "i");
+        const m = msgText.match(handleRegex);
+        const snippet = m ? m[1].trim() : "";
+        posts.push({ url, title: handle, text: snippet || `Post from ${handle}`, handle });
+        if (posts.length >= 8) break;
+      }
 
       res.json({ posts, query });
     } catch (err: any) {
@@ -4729,10 +4736,14 @@ export async function registerRoutes(
       let modelName: string;
       let extraHeaders: Record<string, string> = {};
 
+      let isResponsesApiModel = false;
       if (modelSlug.startsWith("xai/")) {
-        apiUrl = "https://api.x.ai/v1/chat/completions";
         apiKey = process.env.XAI_API_KEY ?? "";
-        modelName = modelSlug.replace("xai/", ""); // e.g. "grok-3"
+        modelName = modelSlug.replace("xai/", ""); // e.g. "grok-3" or "grok-4.20-reasoning"
+        isResponsesApiModel = modelName.startsWith("grok-4");
+        apiUrl = isResponsesApiModel
+          ? "https://api.x.ai/v1/responses"
+          : "https://api.x.ai/v1/chat/completions";
         if (!apiKey) {
           return res.status(500).json({ message: "XAI_API_KEY is not configured. Add it in Replit Secrets (get your key at https://console.x.ai/)." });
         }
@@ -4788,6 +4799,23 @@ export async function registerRoutes(
       const history = await storage.getAiMessages(agentId, user.id);
       const contextMessages = history.slice(-20).map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
+      const requestBody = isResponsesApiModel
+        ? {
+            model: modelName,
+            input: [
+              { role: "system", content: agent.systemPrompt },
+              ...contextMessages,
+            ],
+          }
+        : {
+            model: modelName,
+            messages: [
+              { role: "system", content: agent.systemPrompt },
+              ...contextMessages,
+            ],
+            max_tokens: 1024,
+          };
+
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
@@ -4795,14 +4823,7 @@ export async function registerRoutes(
           "Content-Type": "application/json",
           ...extraHeaders,
         },
-        body: JSON.stringify({
-          model: modelName,
-          messages: [
-            { role: "system", content: agent.systemPrompt },
-            ...contextMessages,
-          ],
-          max_tokens: 1024,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -4868,7 +4889,14 @@ export async function registerRoutes(
       }
 
       const data = await response.json() as any;
-      const assistantContent = data.choices?.[0]?.message?.content ?? "I couldn't generate a response.";
+      let assistantContent: string;
+      if (isResponsesApiModel) {
+        const msgOut = data?.output?.find((o: any) => o.type === "message");
+        assistantContent = msgOut?.content?.[0]?.text
+          ?? "I couldn't generate a response.";
+      } else {
+        assistantContent = data.choices?.[0]?.message?.content ?? "I couldn't generate a response.";
+      }
 
       // Store assistant message
       const assistantMsg = await storage.createAiMessage({ agentId, userId: user.id, role: "assistant", content: assistantContent });
@@ -4898,10 +4926,14 @@ export async function registerRoutes(
       let modelName: string;
       let extraHeaders: Record<string, string> = {};
 
+      let isResponsesApiModel = false;
       if (modelSlug.startsWith("xai/")) {
-        apiUrl = "https://api.x.ai/v1/chat/completions";
         apiKey = process.env.XAI_API_KEY ?? "";
         modelName = modelSlug.replace("xai/", "");
+        isResponsesApiModel = modelName.startsWith("grok-4");
+        apiUrl = isResponsesApiModel
+          ? "https://api.x.ai/v1/responses"
+          : "https://api.x.ai/v1/chat/completions";
         if (!apiKey) {
           return res.status(500).json({ message: "XAI_API_KEY is not configured." });
         }
@@ -4953,6 +4985,25 @@ export async function registerRoutes(
       const history = await storage.getAiMessages(agentId, user.id);
       const contextMessages = history.slice(-20).map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
+      const streamRequestBody = isResponsesApiModel
+        ? {
+            model: modelName,
+            input: [
+              { role: "system", content: agent.systemPrompt },
+              ...contextMessages,
+            ],
+            stream: true,
+          }
+        : {
+            model: modelName,
+            messages: [
+              { role: "system", content: agent.systemPrompt },
+              ...contextMessages,
+            ],
+            max_tokens: 1024,
+            stream: true,
+          };
+
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
@@ -4960,15 +5011,7 @@ export async function registerRoutes(
           "Content-Type": "application/json",
           ...extraHeaders,
         },
-        body: JSON.stringify({
-          model: modelName,
-          messages: [
-            { role: "system", content: agent.systemPrompt },
-            ...contextMessages,
-          ],
-          max_tokens: 1024,
-          stream: true,
-        }),
+        body: JSON.stringify(streamRequestBody),
       });
 
       if (!response.ok) {
@@ -5069,7 +5112,12 @@ export async function registerRoutes(
             if (trimmed.startsWith("data: ") && trimmed.slice(6) !== "[DONE]") {
               try {
                 const parsed = JSON.parse(trimmed.slice(6));
-                const token = parsed.choices?.[0]?.delta?.content || "";
+                let token: string;
+                if (isResponsesApiModel) {
+                  token = (parsed.type === "response.output_text.delta" && parsed.delta) ? parsed.delta : "";
+                } else {
+                  token = parsed.choices?.[0]?.delta?.content || "";
+                }
                 if (token) {
                   fullContent += token;
                   res.write(`data: ${JSON.stringify({ token })}\n\n`);
@@ -5119,10 +5167,14 @@ export async function registerRoutes(
       let modelName: string;
       let extraHeaders: Record<string, string> = {};
 
+      let isResponsesApiModel = false;
       if (modelSlug.startsWith("xai/")) {
-        apiUrl = "https://api.x.ai/v1/chat/completions";
         apiKey = process.env.XAI_API_KEY ?? "";
         modelName = modelSlug.replace("xai/", "");
+        isResponsesApiModel = modelName.startsWith("grok-4");
+        apiUrl = isResponsesApiModel
+          ? "https://api.x.ai/v1/responses"
+          : "https://api.x.ai/v1/chat/completions";
         if (!apiKey) return res.status(500).json({ message: "XAI_API_KEY is not configured." });
       } else {
         apiUrl = "https://openrouter.ai/api/v1/chat/completions";
@@ -5135,15 +5187,23 @@ export async function registerRoutes(
       const history = await storage.getAiMessages(agentId, user.id);
       const contextMessages = history.slice(-20).map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
+      const regenRequestBody = isResponsesApiModel
+        ? {
+            model: modelName,
+            input: [{ role: "system", content: agent.systemPrompt }, ...contextMessages],
+            stream: true,
+          }
+        : {
+            model: modelName,
+            messages: [{ role: "system", content: agent.systemPrompt }, ...contextMessages],
+            max_tokens: 1024,
+            stream: true,
+          };
+
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json", ...extraHeaders },
-        body: JSON.stringify({
-          model: modelName,
-          messages: [{ role: "system", content: agent.systemPrompt }, ...contextMessages],
-          max_tokens: 1024,
-          stream: true,
-        }),
+        body: JSON.stringify(regenRequestBody),
       });
 
       if (!response.ok) {
@@ -5182,7 +5242,12 @@ export async function registerRoutes(
             if (trimmed.startsWith("data: ") && trimmed.slice(6) !== "[DONE]") {
               try {
                 const parsed = JSON.parse(trimmed.slice(6));
-                const token = parsed.choices?.[0]?.delta?.content || "";
+                let token: string;
+                if (isResponsesApiModel) {
+                  token = (parsed.type === "response.output_text.delta" && parsed.delta) ? parsed.delta : "";
+                } else {
+                  token = parsed.choices?.[0]?.delta?.content || "";
+                }
                 if (token) {
                   fullContent += token;
                   res.write(`data: ${JSON.stringify({ token })}\n\n`);
@@ -6056,6 +6121,41 @@ export async function registerRoutes(
   const trendingTopicsCache = new Map<string, { data: unknown; cachedAt: number }>();
   const TRENDING_CACHE_TTL = 5 * 60 * 1000;
 
+  async function fetchTrendingTopicsFromXai(): Promise<string[]> {
+    const xaiKey = process.env.XAI_API_KEY;
+    if (!xaiKey) return [];
+
+    const makeReq = async (model: string) =>
+      fetch("https://api.x.ai/v1/responses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${xaiKey}` },
+        body: JSON.stringify({
+          model,
+          input: [{ role: "user", content: "Use the x_search tool to search for what's trending on X in the US right now. Then list the top 10 trending topics as a JSON array of short topic strings, and nothing else. Example format: [\"Topic 1\", \"Topic 2\"]" }],
+          tools: [{ type: "x_search" }],
+        }),
+      });
+
+    let xaiRes = await makeReq("grok-4.20-reasoning");
+    if (!xaiRes.ok) {
+      xaiRes = await makeReq("grok-4");
+      if (!xaiRes.ok) return [];
+    }
+
+    const data = await xaiRes.json() as any;
+    const msgOutput = data?.output?.find((o: any) => o.type === "message");
+    const outputText: string = msgOutput?.content?.[0]?.text ?? "";
+
+    let topicNames: string[] = [];
+    try {
+      const jsonMatch = outputText.match(/\[[\s\S]*?\]/);
+      if (jsonMatch) topicNames = JSON.parse(jsonMatch[0]);
+    } catch {
+      topicNames = outputText.split(/\n/).map((l: string) => l.replace(/^\d+[\.\)]\s*/, "").replace(/[#*"]/g, "").trim()).filter(Boolean).slice(0, 10);
+    }
+    return topicNames.slice(0, 10).filter(Boolean);
+  }
+
   app.get("/api/trending-topics", async (_req, res) => {
     try {
       const cacheKey = "trending-topics-us";
@@ -6064,28 +6164,19 @@ export async function registerRoutes(
         return res.json(cached.data);
       }
 
-      const bearerToken = process.env.X_BEARER_TOKEN;
-      if (!bearerToken) {
-        return res.json({ topics: [], source: "unavailable" });
-      }
+      const xaiKey = process.env.XAI_API_KEY;
+      if (!xaiKey) return res.json({ topics: [], source: "unavailable" });
 
-      const xRes = await fetch("https://api.x.com/2/trends/by/woeid/23424977", {
-        headers: { Authorization: `Bearer ${bearerToken}` },
-      });
+      const topicNames = await fetchTrendingTopicsFromXai();
+      if (topicNames.length === 0) return res.json({ topics: [], source: "error" });
 
-      if (!xRes.ok) {
-        console.error(`[trending-topics] X API error: ${xRes.status} ${xRes.statusText}`);
-        return res.json({ topics: [], source: "error" });
-      }
-
-      const xData = await xRes.json() as { data?: Array<{ trend_name?: string; tweet_count?: number }> };
-      const topics = (xData?.data ?? []).slice(0, 20).map((t, i) => ({
+      const topics = topicNames.map((name: string, i: number) => ({
         rank: i + 1,
-        name: t.trend_name || "Unknown",
-        tweetCount: t.tweet_count ?? null,
+        name,
+        tweetCount: null,
       }));
 
-      const result = { topics, source: "x", fetchedAt: new Date().toISOString() };
+      const result = { topics, source: "xai", fetchedAt: new Date().toISOString() };
       trendingTopicsCache.set(cacheKey, { data: result, cachedAt: Date.now() });
       res.json(result);
     } catch (err: any) {
@@ -6105,32 +6196,26 @@ export async function registerRoutes(
       }
 
       let topicNames: string[] = [];
-      const bearerToken = process.env.X_BEARER_TOKEN;
-      if (bearerToken) {
-        try {
-          const topicsCacheKey = "trending-topics-us";
-          const topicsCached = trendingTopicsCache.get(topicsCacheKey);
-          if (topicsCached && Date.now() - topicsCached.cachedAt < TRENDING_CACHE_TTL) {
-            const cachedTopics = topicsCached.data as { topics: Array<{ name: string }> };
-            topicNames = cachedTopics.topics.slice(0, 5).map((t) => t.name);
-          } else {
-            const xRes = await fetch("https://api.x.com/2/trends/by/woeid/23424977", {
-              headers: { Authorization: `Bearer ${bearerToken}` },
-            });
-            if (xRes.ok) {
-              const xData = await xRes.json() as { data?: Array<{ trend_name?: string; tweet_count?: number }> };
-              const topics = (xData?.data ?? []).slice(0, 20).map((t, i) => ({
-                rank: i + 1,
-                name: t.trend_name || "Unknown",
-                tweetCount: t.tweet_count ?? null,
-              }));
-              trendingTopicsCache.set(topicsCacheKey, { data: { topics, source: "x", fetchedAt: new Date().toISOString() }, cachedAt: Date.now() });
-              topicNames = topics.slice(0, 5).map((t) => t.name);
-            }
+      try {
+        const topicsCacheKey = "trending-topics-us";
+        const topicsCached = trendingTopicsCache.get(topicsCacheKey);
+        if (topicsCached && Date.now() - topicsCached.cachedAt < TRENDING_CACHE_TTL) {
+          const cachedTopics = topicsCached.data as { topics: Array<{ name: string }> };
+          topicNames = cachedTopics.topics.slice(0, 5).map((t) => t.name);
+        } else if (process.env.XAI_API_KEY) {
+          const freshTopics = await fetchTrendingTopicsFromXai();
+          if (freshTopics.length > 0) {
+            const topicsData = {
+              topics: freshTopics.map((name, i) => ({ rank: i + 1, name, tweetCount: null })),
+              source: "xai",
+              fetchedAt: new Date().toISOString(),
+            };
+            trendingTopicsCache.set(topicsCacheKey, { data: topicsData, cachedAt: Date.now() });
+            topicNames = freshTopics.slice(0, 5);
           }
-        } catch (err) {
-          console.error("[trending-news] Failed to fetch topics:", err);
         }
+      } catch (err) {
+        console.error("[trending-news] Failed to fetch topics:", err);
       }
 
       if (topicNames.length === 0) {

@@ -105,13 +105,114 @@ function setCachedTweets(key: string, tweets: Tweet[]): void {
 }
 
 export function isXConfigured(): boolean {
-  return !!process.env.X_BEARER_TOKEN;
+  return !!(process.env.XAI_API_KEY || process.env.X_BEARER_TOKEN);
+}
+
+async function callXaiSearch(searchQuery: string, limit: number): Promise<Tweet[]> {
+  const apiKey = process.env.XAI_API_KEY;
+  if (!apiKey) return [];
+
+  const makeRequest = async (model: string) =>
+    fetch("https://api.x.ai/v1/responses", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        input: [{ role: "user", content: `Search X for recent posts about: ${searchQuery}. List ${limit} recent tweets with their x.com URLs.` }],
+        tools: [{ type: "x_search" }],
+      }),
+    });
+
+  try {
+    let res = await makeRequest("grok-4.20-reasoning");
+    if (!res.ok) {
+      const fallbackRes = await makeRequest("grok-4");
+      if (!fallbackRes.ok) return [];
+      const data = await fallbackRes.json() as any;
+      return mapXaiResponseToTweets(data, limit);
+    }
+    const data = await res.json() as any;
+    return mapXaiResponseToTweets(data, limit);
+  } catch (err: any) {
+    console.error("[x-api] xAI X Search error:", err.message);
+    return [];
+  }
+}
+
+function mapXaiResponseToTweets(data: any, limit: number): Tweet[] {
+  const msgOutput = data?.output?.find((o: any) => o.type === "message");
+  const content = msgOutput?.content?.[0];
+  const text: string = content?.text ?? "";
+  const annotations: any[] = content?.annotations ?? [];
+
+  const seenUrls = new Set<string>();
+  const tweets: Tweet[] = [];
+
+  for (const ann of annotations) {
+    if (ann.type !== "url_citation") continue;
+    const url: string = ann.url ?? "";
+    if (!url || seenUrls.has(url)) continue;
+    const urlMatch = url.match(/x\.com\/([^/]+)\/status\/(\d+)/);
+    if (!urlMatch) continue;
+    seenUrls.add(url);
+
+    const handle = urlMatch[1];
+    const tweetId = urlMatch[2];
+
+    const markerRegex = new RegExp(`\\[\\[?${ann.title}\\]?\\]`);
+    const markerIdx = text.search(markerRegex);
+    let snippet = "";
+    if (markerIdx >= 0) {
+      const nearby = text.slice(Math.max(0, markerIdx - 400), markerIdx);
+      const bulletMatch = nearby.match(/[*\-]\s+[*@]?([^\n]{10,}?)(?:\n|$)/g);
+      if (bulletMatch && bulletMatch.length > 0) {
+        snippet = bulletMatch[bulletMatch.length - 1].replace(/^[*\-]\s+/, "").trim();
+      }
+    }
+    if (!snippet) {
+      const handleRegex = new RegExp(`@${handle}[^:]*:\\s*[""]?([^\\n"]{10,}?)[""]?(?:\\n|$)`, "i");
+      const m = text.match(handleRegex);
+      if (m) snippet = m[1].trim();
+    }
+
+    tweets.push({
+      id: tweetId,
+      text: snippet || `Post from @${handle}`,
+      authorId: handle,
+      authorName: `@${handle}`,
+      authorHandle: `@${handle}`,
+      authorAvatarUrl: null,
+      mediaUrl: null,
+      likeCount: 0,
+      retweetCount: 0,
+      replyCount: 0,
+      createdAt: new Date().toISOString(),
+      url,
+    });
+
+    if (tweets.length >= limit) break;
+  }
+
+  return tweets;
 }
 
 export async function fetchUserTweets(handle: string, limit: number = 10): Promise<Tweet[]> {
+  if (process.env.XAI_API_KEY) {
+    const cleanHandle = handle.replace(/^@/, "");
+    const cacheKey = `xai-user:${cleanHandle}:${limit}`;
+    const cached = getCachedTweets(cacheKey);
+    if (cached) return cached;
+    const tweets = await callXaiSearch(`from:${cleanHandle}`, limit);
+    if (tweets.length > 0) setCachedTweets(cacheKey, tweets);
+    return tweets;
+  }
+
   const bearerToken = process.env.X_BEARER_TOKEN;
   if (!bearerToken) {
-    console.error("[x-api] X_BEARER_TOKEN is not set. Cannot fetch tweets.");
+    console.error("[x-api] Neither XAI_API_KEY nor X_BEARER_TOKEN is set. Cannot fetch tweets.");
     return [];
   }
 
@@ -213,9 +314,18 @@ export async function fetchUserTweets(handle: string, limit: number = 10): Promi
 }
 
 export async function searchTweets(query: string, limit: number = 6): Promise<Tweet[]> {
+  if (process.env.XAI_API_KEY) {
+    const cacheKey = `xai:${query}:${limit}`;
+    const cached = getCachedTweets(cacheKey);
+    if (cached) return cached;
+    const tweets = await callXaiSearch(query, limit);
+    if (tweets.length > 0) setCachedTweets(cacheKey, tweets);
+    return tweets;
+  }
+
   const bearerToken = process.env.X_BEARER_TOKEN;
   if (!bearerToken) {
-    console.error("[x-api] X_BEARER_TOKEN is not set. Cannot search tweets.");
+    console.error("[x-api] Neither XAI_API_KEY nor X_BEARER_TOKEN is set. Cannot search tweets.");
     return [];
   }
 

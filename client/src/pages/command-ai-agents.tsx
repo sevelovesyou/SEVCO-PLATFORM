@@ -38,11 +38,15 @@ const MODELS = [
   // Google (via OpenRouter)
   { value: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash", group: "Google" },
 
-  // Grok — x.ai direct API (uses XAI_API_KEY)
-  { value: "xai/grok-3",           label: "Grok 3",           group: "Grok" },
-  { value: "xai/grok-3-fast",      label: "Grok 3 Fast",      group: "Grok" },
-  { value: "xai/grok-3-mini",      label: "Grok 3 Mini",      group: "Grok" },
-  { value: "xai/grok-3-mini-fast", label: "Grok 3 Mini Fast", group: "Grok" },
+  // Grok 4 — x.ai Responses API (latest, uses XAI_API_KEY)
+  { value: "xai/grok-4.20-reasoning", label: "Grok 4.20 Reasoning", group: "Grok 4" },
+  { value: "xai/grok-4",              label: "Grok 4",               group: "Grok 4" },
+
+  // Grok 3 — x.ai chat completions (uses XAI_API_KEY)
+  { value: "xai/grok-3",           label: "Grok 3",           group: "Grok 3" },
+  { value: "xai/grok-3-fast",      label: "Grok 3 Fast",      group: "Grok 3" },
+  { value: "xai/grok-3-mini",      label: "Grok 3 Mini",      group: "Grok 3" },
+  { value: "xai/grok-3-mini-fast", label: "Grok 3 Mini Fast", group: "Grok 3" },
 
   // Grok — via OpenRouter (uses OPENROUTER_API_KEY)
   { value: "x-ai/grok-3",     label: "Grok 3",     group: "Grok (OpenRouter)" },

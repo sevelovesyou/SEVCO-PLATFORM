@@ -4752,12 +4752,17 @@ export async function registerRoutes(
         if (modelSlug.startsWith("xai/")) {
           let errObj: any = {};
           try { errObj = JSON.parse(errText); } catch {}
-          const errMsg = (errObj?.error ?? "").toLowerCase();
-          const errCode = (errObj?.code ?? "").toLowerCase();
+          // xAI uses OpenAI-compatible format: error may be an object {message, type, code} or a plain string
+          const errRaw = errObj?.error;
+          const errMsgStr = typeof errRaw === "object" && errRaw !== null ? (errRaw.message ?? "") : (errRaw ?? "");
+          const errCodeStr = typeof errRaw === "object" && errRaw !== null ? (errRaw.code ?? errRaw.type ?? "") : (errObj?.code ?? "");
+          const errMsg = String(errMsgStr).toLowerCase();
+          const errCode = String(errCodeStr).toLowerCase();
           const isCreditsError =
             errMsg.includes("credits") ||
             errMsg.includes("licenses") ||
-            errCode.includes("permission");
+            errCode.includes("permission") ||
+            errCode.includes("insufficient");
 
           if (isCreditsError && process.env.OPENROUTER_API_KEY) {
             const fallbackRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -4788,12 +4793,13 @@ export async function registerRoutes(
           }
 
           // Still failing: return improved error with guidance
-          const teamUrl = errObj?.error?.match(/https:\/\/console\.x\.ai\/team\/[^\s"]+/)?.[0];
+          const errDisplay = errMsgStr || errText;
+          const teamUrl = typeof errDisplay === "string" ? errDisplay.match(/https:\/\/console\.x\.ai\/team\/[^\s"]+/)?.[0] : undefined;
           const purchaseLink = teamUrl
             ? ` Purchase credits: ${teamUrl}`
             : " Visit https://console.x.ai to add credits.";
           return res.status(502).json({
-            message: `x.ai error: ${errObj?.error ?? errText}${purchaseLink} Or switch your agent to an OpenRouter Grok model (e.g. "Grok 3 (OpenRouter)").`,
+            message: `x.ai error: ${errDisplay}${purchaseLink} Or switch your agent to an OpenRouter Grok model (e.g. "Grok 3 (OpenRouter)").`,
           });
         }
 
@@ -4911,9 +4917,13 @@ export async function registerRoutes(
         if (modelSlug.startsWith("xai/")) {
           let errObj: any = {};
           try { errObj = JSON.parse(errText); } catch {}
-          const errMsg = (errObj?.error ?? "").toLowerCase();
-          const errCode = (errObj?.code ?? "").toLowerCase();
-          const isCreditsError = errMsg.includes("credits") || errMsg.includes("licenses") || errCode.includes("permission");
+          // xAI uses OpenAI-compatible format: error may be an object {message, type, code} or a plain string
+          const errRaw = errObj?.error;
+          const errMsgStr = typeof errRaw === "object" && errRaw !== null ? (errRaw.message ?? "") : (errRaw ?? "");
+          const errCodeStr = typeof errRaw === "object" && errRaw !== null ? (errRaw.code ?? errRaw.type ?? "") : (errObj?.code ?? "");
+          const errMsg = String(errMsgStr).toLowerCase();
+          const errCode = String(errCodeStr).toLowerCase();
+          const isCreditsError = errMsg.includes("credits") || errMsg.includes("licenses") || errCode.includes("permission") || errCode.includes("insufficient");
 
           if (isCreditsError && process.env.OPENROUTER_API_KEY) {
             const fallbackRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -4969,7 +4979,7 @@ export async function registerRoutes(
               return res.end();
             }
           }
-          return res.status(502).json({ message: `x.ai error: ${errObj?.error ?? errText}` });
+          return res.status(502).json({ message: `x.ai error: ${errMsgStr || errText}` });
         }
         return res.status(502).json({ message: `OpenRouter error: ${errText}` });
       }
@@ -5078,7 +5088,13 @@ export async function registerRoutes(
 
       if (!response.ok) {
         const errText = await response.text();
-        return res.status(502).json({ message: `AI error: ${errText}` });
+        let errDisplay = errText;
+        try {
+          const errObj = JSON.parse(errText);
+          const errRaw = errObj?.error;
+          errDisplay = typeof errRaw === "object" && errRaw !== null ? (errRaw.message || errText) : (errRaw || errText);
+        } catch {}
+        return res.status(502).json({ message: `AI error: ${errDisplay}` });
       }
 
       res.setHeader("Content-Type", "text/event-stream");

@@ -15000,3 +15000,332 @@ Basic ProseMirror content styling:
 
 ---
 
+## Task — notification-system
+> Merged: 2026-04-01
+
+# Task #178 — Notification System: Bell Icon, Chime, Persistent Controls
+
+## Overview
+A fully persistent notification system with a bell icon in the top nav showing real-time unread
+counts, a notification dropdown, audible chime (using the existing `use-sounds` hook), and
+notification preferences in the Account settings page.
+
+---
+
+## 1. Schema — `shared/schema.ts`
+
+Add `notifications` table:
+```ts
+export const notifications = pgTable("notifications", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // "email" | "chat_dm" | "task" | "staff_task" | "chat_channel"
+  title: text("title").notNull(),
+  body: text("body"),
+  link: text("link"),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+```
+
+Run `npm run db:push` after schema update.
+
+---
+
+## 2. Storage Interface — `server/storage.ts`
+
+Add to `IStorage`:
+```ts
+getNotifications(userId: string, limit?: number): Promise<Notification[]>;
+getUnreadNotificationCount(userId: string): Promise<number>;
+createNotification(data: InsertNotification): Promise<Notification>;
+markNotificationRead(id: number, userId: string): Promise<void>;
+markAllNotificationsRead(userId: string): Promise<void>;
+```
+
+Implement in `DatabaseStorage`:
+- `getNotifications`: order by `isRead ASC, createdAt DESC`, limit 30
+- `getUnreadNotificationCount`: count where `isRead = false`
+- `createNotification`: insert + return
+- `markNotificationRead`: PATCH where `id` and `userId` match
+- `markAllNotificationsRead`: UPDATE all unread for `userId`
+
+---
+
+## 3. Backend Routes — `server/routes.ts`
+
+### API Endpoints
+
+```
+GET    /api/notifications           → returns Notification[] (requireAuth)
+GET    /api/notifications/count     → returns { count: number } (requireAuth, used by polling)
+PATCH  /api/notifications/read-all  → marks all as read (requireAuth)
+PATCH  /api/notifications/:id/read  → marks one as read (requireAuth)
+```
+
+### Auto-create notifications at existing trigger points
+
+**A) Inbound email received** (in `/api/email/inbound` handler, after saving the email):
+```ts
+await storage.createNotification({
+  userId: targetUser.id,
+  type: "email",
+  title: `New email from ${fromName}`,
+  body: subject,
+  link: "/messages",
+  isRead: false,
+});
+```
+
+**B) User task created** (in `POST /api/tasks` or wherever user tasks are assigned):
+```ts
+// After task creation, if the task has a userId
+await storage.createNotification({
+  userId: task.userId,
+  type: "task",
+  title: "New task assigned",
+  body: task.title,
+  link: "/tools",   // or wherever the tasks tool lives
+  isRead: false,
+});
+```
+
+**C) Staff task created** (in `POST /api/staff-tasks`):
+```ts
+// Notify all active users with staff+ roles
+const staffUsers = await storage.getUsersByRole(["admin", "executive", "staff"]);
+await Promise.all(staffUsers.map((u) =>
+  storage.createNotification({
+    userId: u.id,
+    type: "staff_task",
+    title: "New staff task",
+    body: task.title,
+    link: "/command/staff",
+    isRead: false,
+  })
+));
+```
+
+**D) Chat DM received** (in `POST /api/chat/dm/:userId/messages`):
+```ts
+await storage.createNotification({
+  userId: toUserId,
+  type: "chat_dm",
+  title: `New message from ${sender.displayName || sender.username}`,
+  body: content.slice(0, 80),
+  link: "/messages",
+  isRead: false,
+});
+```
+
+---
+
+## 4. Frontend: Notification Bell — `client/src/components/platform-header.tsx`
+
+### Bell icon placement
+Add between the search icon and sound toggle in the right cluster of the header.
+
+Import `Bell` from lucide-react.
+Import a new `NotificationDropdown` component (see below).
+
+```tsx
+const { data: notifCount } = useQuery<{ count: number }>({
+  queryKey: ["/api/notifications/count"],
+  refetchInterval: 30000,  // poll every 30s
+  enabled: !!user,
+});
+const unreadNotifCount = notifCount?.count ?? 0;
+```
+
+Bell icon with badge:
+```tsx
+<div className="relative">
+  <Button variant="ghost" size="icon" onClick={() => setNotifOpen(!notifOpen)} data-testid="button-notifications">
+    <Bell className="h-4 w-4" />
+  </Button>
+  {unreadNotifCount > 0 && (
+    <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center pointer-events-none" data-testid="badge-notif-count">
+      {unreadNotifCount > 99 ? "99+" : unreadNotifCount}
+    </span>
+  )}
+</div>
+```
+
+### Sound trigger
+When `unreadNotifCount` increases (compare to previous value via `useRef`):
+```ts
+const prevCountRef = useRef(0);
+useEffect(() => {
+  if (unreadNotifCount > prevCountRef.current && prevCountRef.current !== -1) {
+    playNotification();  // from useSounds()
+  }
+  prevCountRef.current = unreadNotifCount;
+}, [unreadNotifCount]);
+// Set prevCountRef.current = -1 on initial mount to avoid playing on first load
+```
+
+---
+
+## 5. New Component: `client/src/components/notification-dropdown.tsx`
+
+A positioned dropdown panel that opens from the bell icon.
+
+**Props:**
+```ts
+interface NotificationDropdownProps {
+  open: boolean;
+  onClose: () => void;
+}
+```
+
+**Layout:**
+```
+┌──────────────────────────────────────┐
+│  Notifications           [Mark all ✓] │
+├──────────────────────────────────────┤
+│  [•] New email from Alice            │ ← unread (blue dot)
+│      "Meeting Notes" · 2m ago        │
+├──────────────────────────────────────┤
+│  New task assigned                   │ ← read (no dot)
+│      "Update product images" · 1h ago│
+├──────────────────────────────────────┤
+│  [View all notifications →]          │
+└──────────────────────────────────────┘
+```
+
+**Data:**
+```ts
+const { data: notifications = [], refetch } = useQuery<Notification[]>({
+  queryKey: ["/api/notifications"],
+  enabled: open,  // only fetch when open
+});
+```
+
+**Mark all as read:**
+```ts
+const markAllMutation = useMutation({
+  mutationFn: () => apiRequest("PATCH", "/api/notifications/read-all"),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/notifications/count"] });
+  },
+});
+```
+
+**Individual notification click:**
+- Call `PATCH /api/notifications/:id/read`
+- Navigate to `notification.link` using `useLocation` from wouter
+- Close dropdown
+
+**Styling:**
+- Max-height 400px with overflow-y-auto
+- Width ~340px
+- Positioned `absolute right-0 top-full mt-1` relative to bell button wrapper
+- Type icons: 📧 Mail for email, 💬 MessageCircle for chat, ✅ CheckSquare for task, 🚨 AlertCircle for staff_task
+- Unread items: slightly highlighted with `bg-primary/5`
+- `data-testid="notification-dropdown"`, `data-testid={`notif-item-${n.id}`}`
+
+**Dismiss on outside click:**
+Use `useRef` + `useEffect` to detect clicks outside and call `onClose()`.
+
+**Empty state:**
+```tsx
+<p className="text-sm text-muted-foreground text-center py-6">
+  You're all caught up 🎉
+</p>
+```
+
+---
+
+## 6. Account Settings — `client/src/pages/account-page.tsx`
+
+Add a **Notifications** section (or a new tab "Settings") to the Account page.
+
+Since the account page currently has no tabs, add a card section below the existing profile card:
+
+```tsx
+<Card>
+  <CardHeader>
+    <CardTitle>Notification Settings</CardTitle>
+  </CardHeader>
+  <CardContent className="space-y-4">
+    {/* Sound toggle */}
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-sm font-medium">Sound Notifications</p>
+        <p className="text-xs text-muted-foreground">Play a chime when new notifications arrive</p>
+      </div>
+      <Switch
+        checked={soundEnabled}
+        onCheckedChange={toggleSound}
+        data-testid="toggle-notification-sound"
+      />
+    </div>
+    <Separator />
+    {/* Per-type preferences (stored in localStorage for now) */}
+    {[
+      { key: "notif_email", label: "Email notifications", desc: "When you receive new emails" },
+      { key: "notif_chat", label: "Chat notifications", desc: "When you receive direct messages" },
+      { key: "notif_task", label: "Task notifications", desc: "When tasks are assigned to you" },
+    ].map(({ key, label, desc }) => (
+      <div key={key} className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium">{label}</p>
+          <p className="text-xs text-muted-foreground">{desc}</p>
+        </div>
+        <Switch
+          checked={localPrefs[key] !== false}
+          onCheckedChange={(v) => setLocalPref(key, v)}
+          data-testid={`toggle-${key}`}
+        />
+      </div>
+    ))}
+  </CardContent>
+</Card>
+```
+
+`localPrefs` and `setLocalPref` use a simple `localStorage`-backed state hook (no new DB columns needed):
+```ts
+function useLocalPrefs() {
+  const [prefs, setPrefs] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem("sevco-notif-prefs") || "{}"); } catch { return {}; }
+  });
+  function setPref(key: string, value: boolean) {
+    const next = { ...prefs, [key]: value };
+    setPrefs(next);
+    localStorage.setItem("sevco-notif-prefs", JSON.stringify(next));
+  }
+  return [prefs, setPref] as const;
+}
+```
+
+---
+
+## 7. Notification helper function — `server/routes.ts` or `server/notifications.ts`
+
+Optional: extract a small helper to simplify notification creation across routes:
+```ts
+async function notify(userId: string, type: string, title: string, body?: string, link?: string) {
+  try {
+    await storage.createNotification({ userId, type, title, body, link, isRead: false });
+  } catch { /* non-blocking */ }
+}
+```
+
+---
+
+## Files Changed
+- `shared/schema.ts` (add notifications table)
+- `server/storage.ts` (IStorage + DatabaseStorage implementations)
+- `server/routes.ts` (CRUD endpoints + notify() calls at trigger points)
+- `client/src/components/platform-header.tsx` (bell icon + sound trigger + count polling)
+- `client/src/components/notification-dropdown.tsx` (new component)
+- `client/src/pages/account-page.tsx` (notification preferences section)
+
+
+---
+

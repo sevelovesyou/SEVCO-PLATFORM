@@ -15585,3 +15585,134 @@ stale Node.js process. After db:push, restart the "Start application" workflow.
 
 ---
 
+## Task — fix-agent-models-cleanup
+> Merged: 2026-04-01
+
+# Task #183 — Clean up AI Agent model list: remove broken xAI direct models, verify OpenRouter models
+
+## Root Cause
+
+The agent model dropdown (`client/src/pages/command-ai-agents.tsx`) includes two groups
+of Grok models:
+1. **`xai/` prefix** — routes to x.ai's direct API, requires `XAI_API_KEY` secret
+2. **`x-ai/` prefix** — routes through OpenRouter, requires `OPENROUTER_API_KEY`
+
+`XAI_API_KEY` is **not configured** in this environment. The backend streaming endpoint
+explicitly returns HTTP 500 if the key is missing:
+```ts
+if (!process.env.XAI_API_KEY) {
+  return res.status(500).json({ message: "XAI_API_KEY is not configured." });
+}
+```
+`OPENROUTER_API_KEY` **is** configured — so all `openai/`, `anthropic/`, `google/`,
+`meta-llama/`, and `x-ai/` (OpenRouter) models should work.
+
+## Broken models to remove (8 total — the "Grok" group using xAI direct API):
+```
+xai/grok-3            → "Grok 3"
+xai/grok-3-fast       → "Grok 3 Fast"
+xai/grok-3-mini       → "Grok 3 Mini"
+xai/grok-3-mini-fast  → "Grok 3 Mini Fast"
+xai/grok-2-1212       → "Grok 2"
+xai/grok-2-vision-1212 → "Grok 2 Vision"
+xai/grok-beta         → "Grok Beta"
+xai/grok-2-image-1212 → "Grok Imagine"
+```
+
+## Working models to keep (OpenRouter — OPENROUTER_API_KEY is set):
+```
+openai/gpt-4o-mini                        → GPT-4o Mini
+openai/gpt-4o                             → GPT-4o
+anthropic/claude-3-haiku                  → Claude 3 Haiku
+anthropic/claude-3.5-sonnet               → Claude 3.5 Sonnet
+google/gemini-flash-1.5                   → Gemini Flash 1.5
+meta-llama/llama-3.1-8b-instruct:free     → Llama 3.1 8B (free)
+x-ai/grok-3                               → Grok 3 (OpenRouter)
+x-ai/grok-3-fast                          → Grok 3 Fast (OpenRouter)
+x-ai/grok-3-mini                          → Grok 3 Mini (OpenRouter)
+x-ai/grok-3-mini-fast                     → Grok 3 Mini Fast (OpenRouter)
+x-ai/grok-2-1212                          → Grok 2 (OpenRouter)
+```
+
+## Connectivity test before finalizing
+
+Before removing models, the task should verify the OpenRouter models respond correctly.
+Run a minimal test call for each model group:
+
+```ts
+// Test: POST to OpenRouter /chat/completions with a simple "ping" message
+// Check that each model returns a non-error 200 response
+const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
+const testModels = [
+  "openai/gpt-4o-mini",
+  "anthropic/claude-3-haiku",
+  "anthropic/claude-3.5-sonnet",
+  "google/gemini-flash-1.5",
+  "meta-llama/llama-3.1-8b-instruct:free",
+  "x-ai/grok-3-mini",
+  "x-ai/grok-2-1212",
+];
+for (const model of testModels) {
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${OPENROUTER_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model, messages: [{ role: "user", content: "Hi" }], max_tokens: 5 }),
+  });
+  console.log(model, res.status, res.ok ? "✓" : "✗");
+}
+```
+
+If any OpenRouter model fails (non-200), remove it from the list as well.
+
+## Changes — `client/src/pages/command-ai-agents.tsx`
+
+Remove the entire "Grok" group (8 models with `xai/` prefix). The remaining MODELS array
+becomes:
+
+```ts
+const MODELS = [
+  // OpenAI
+  { value: "openai/gpt-4o-mini",                        label: "GPT-4o Mini",                    group: "OpenAI" },
+  { value: "openai/gpt-4o",                             label: "GPT-4o",                         group: "OpenAI" },
+
+  // Anthropic
+  { value: "anthropic/claude-3-haiku",                  label: "Claude 3 Haiku",                 group: "Anthropic" },
+  { value: "anthropic/claude-3.5-sonnet",               label: "Claude 3.5 Sonnet",              group: "Anthropic" },
+
+  // Google
+  { value: "google/gemini-flash-1.5",                   label: "Gemini Flash 1.5",               group: "Google" },
+
+  // Meta
+  { value: "meta-llama/llama-3.1-8b-instruct:free",     label: "Llama 3.1 8B (free)",            group: "Meta" },
+
+  // Grok via OpenRouter (x.ai models routed through OpenRouter — no separate xAI key needed)
+  { value: "x-ai/grok-3",                               label: "Grok 3",                         group: "Grok" },
+  { value: "x-ai/grok-3-fast",                          label: "Grok 3 Fast",                    group: "Grok" },
+  { value: "x-ai/grok-3-mini",                          label: "Grok 3 Mini",                    group: "Grok" },
+  { value: "x-ai/grok-3-mini-fast",                     label: "Grok 3 Mini Fast",               group: "Grok" },
+  { value: "x-ai/grok-2-1212",                          label: "Grok 2",                         group: "Grok" },
+];
+```
+
+Note: The `(OpenRouter)` suffix has been dropped from the Grok labels since the direct
+`xai/` models are gone — there's no longer any ambiguity about which Grok group is used.
+The group name is also simplified from "Grok (via OpenRouter)" to "Grok".
+
+## Also: Clean up the backend `xai/` fallback logic in `server/routes.ts`
+
+The backend has a fallback block (lines ~4751–4796) that retries via OpenRouter when xAI
+returns a credits-depleted error. Since the `xai/` models are being removed from the
+frontend, this fallback code can be removed to clean up the routes. However, this is
+optional — leaving it doesn't break anything.
+
+## DEFAULT_FORM update
+
+Change the default model from `"openai/gpt-4o-mini"` to stay as-is — it's valid.
+
+## Files Changed
+- `client/src/pages/command-ai-agents.tsx` (remove xai/ models from MODELS array, clean up labels)
+- `server/routes.ts` (optional: remove xAI fallback logic, optional)
+
+
+---
+

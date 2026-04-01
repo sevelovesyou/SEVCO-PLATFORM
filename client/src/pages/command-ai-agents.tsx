@@ -28,36 +28,25 @@ import { Bot, Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Sparkles } from "lu
 import type { AiAgent } from "@shared/schema";
 
 const MODELS = [
-  // OpenAI
-  { value: "openai/gpt-4o-mini",                         label: "GPT-4o Mini",         group: "OpenAI" },
-  { value: "openai/gpt-4o",                              label: "GPT-4o",              group: "OpenAI" },
+  // OpenAI (via OpenRouter)
+  { value: "openai/gpt-4o-mini",       label: "GPT-4o Mini",     group: "OpenAI" },
+  { value: "openai/gpt-4o",            label: "GPT-4o",          group: "OpenAI" },
 
-  // Anthropic
-  { value: "anthropic/claude-3-haiku",                   label: "Claude 3 Haiku",      group: "Anthropic" },
-  { value: "anthropic/claude-3.5-sonnet",                label: "Claude 3.5 Sonnet",   group: "Anthropic" },
+  // Anthropic (via OpenRouter)
+  { value: "anthropic/claude-3-haiku", label: "Claude 3 Haiku",  group: "Anthropic" },
 
-  // Google
-  { value: "google/gemini-flash-1.5",                    label: "Gemini Flash 1.5",    group: "Google" },
+  // Google (via OpenRouter)
+  { value: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash", group: "Google" },
 
-  // Meta
-  { value: "meta-llama/llama-3.1-8b-instruct:free",      label: "Llama 3.1 8B (free)", group: "Meta" },
+  // Grok — x.ai direct API (uses XAI_API_KEY)
+  { value: "xai/grok-3",           label: "Grok 3",           group: "Grok" },
+  { value: "xai/grok-3-fast",      label: "Grok 3 Fast",      group: "Grok" },
+  { value: "xai/grok-3-mini",      label: "Grok 3 Mini",      group: "Grok" },
+  { value: "xai/grok-3-mini-fast", label: "Grok 3 Mini Fast", group: "Grok" },
 
-  // Grok (x.ai direct API — requires XAI_API_KEY from https://console.x.ai/)
-  { value: "xai/grok-3",                                 label: "Grok 3",              group: "Grok" },
-  { value: "xai/grok-3-fast",                            label: "Grok 3 Fast",         group: "Grok" },
-  { value: "xai/grok-3-mini",                            label: "Grok 3 Mini",         group: "Grok" },
-  { value: "xai/grok-3-mini-fast",                       label: "Grok 3 Mini Fast",    group: "Grok" },
-  { value: "xai/grok-2-1212",                            label: "Grok 2",              group: "Grok" },
-  { value: "xai/grok-2-vision-1212",                     label: "Grok 2 Vision",       group: "Grok" },
-  { value: "xai/grok-beta",                              label: "Grok Beta",           group: "Grok" },
-  { value: "xai/grok-2-image-1212",                      label: "Grok Imagine",        group: "Grok" },
-
-  // Grok via OpenRouter (no x.ai credits needed — uses OPENROUTER_API_KEY)
-  { value: "x-ai/grok-3",                                label: "Grok 3 (OpenRouter)",           group: "Grok (via OpenRouter)" },
-  { value: "x-ai/grok-3-fast",                           label: "Grok 3 Fast (OpenRouter)",      group: "Grok (via OpenRouter)" },
-  { value: "x-ai/grok-3-mini",                           label: "Grok 3 Mini (OpenRouter)",      group: "Grok (via OpenRouter)" },
-  { value: "x-ai/grok-3-mini-fast",                      label: "Grok 3 Mini Fast (OpenRouter)", group: "Grok (via OpenRouter)" },
-  { value: "x-ai/grok-2-1212",                           label: "Grok 2 (OpenRouter)",           group: "Grok (via OpenRouter)" },
+  // Grok — via OpenRouter (uses OPENROUTER_API_KEY)
+  { value: "x-ai/grok-3",     label: "Grok 3",     group: "Grok (OpenRouter)" },
+  { value: "x-ai/grok-3-mini", label: "Grok 3 Mini", group: "Grok (OpenRouter)" },
 ];
 
 const CAPABILITIES = ["text", "image", "code"] as const;

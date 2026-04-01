@@ -105,6 +105,40 @@ async function runStartupMigrations() {
       AND wiki_slug IS NOT NULL
       AND wiki_slug NOT LIKE 'platform-task-%';
   `);
+  // Task #182 — Add display_order to tables where it was in schema but not in DB
+  await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS display_order integer DEFAULT 0;`);
+  await pool.query(`ALTER TABLE platform_social_links ADD COLUMN IF NOT EXISTS display_order integer NOT NULL DEFAULT 0;`);
+  await pool.query(`ALTER TABLE brand_assets ADD COLUMN IF NOT EXISTS display_order integer NOT NULL DEFAULT 0;`);
+  await pool.query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS display_order integer NOT NULL DEFAULT 0;`);
+  await pool.query(`ALTER TABLE gallery_images ADD COLUMN IF NOT EXISTS display_order integer NOT NULL DEFAULT 0;`);
+  await pool.query(`ALTER TABLE spotify_artists ADD COLUMN IF NOT EXISTS display_order integer DEFAULT 0;`);
+  await pool.query(`ALTER TABLE minecraft_servers ADD COLUMN IF NOT EXISTS display_order integer NOT NULL DEFAULT 0;`);
+  await pool.query(`ALTER TABLE news_categories ADD COLUMN IF NOT EXISTS display_order integer NOT NULL DEFAULT 0;`);
+  // Task #181 — Notifications system
+  await pool.query(`CREATE TABLE IF NOT EXISTS notifications (
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type text NOT NULL,
+    title text NOT NULL,
+    body text,
+    link text,
+    is_read boolean NOT NULL DEFAULT false,
+    created_at timestamp DEFAULT now() NOT NULL
+  );`);
+  // Task #182 — Domains table (display_order was added; also ensure table exists)
+  await pool.query(`CREATE TABLE IF NOT EXISTS domains (
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    name text NOT NULL,
+    url text,
+    status text NOT NULL DEFAULT 'active',
+    renewal_date text,
+    renewal_price text,
+    hosting_provider text,
+    purpose text,
+    project_id integer REFERENCES projects(id) ON DELETE SET NULL,
+    display_order integer NOT NULL DEFAULT 0,
+    created_at timestamp DEFAULT now() NOT NULL
+  );`);
   console.log("[startup] migrations applied");
 }
 

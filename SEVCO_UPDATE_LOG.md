@@ -16669,3 +16669,168 @@ clarifying it's the hover/highlight color in dark mode.
 
 ---
 
+## Task — fix-notes-mobile-layout
+> Merged: 2026-04-01
+
+# Task #190 — Fix Notes: mobile toolbar layout + double-spaced paragraphs
+
+## Screenshots / Evidence
+
+User screenshot shows on mobile (~390px):
+- Toolbar wraps into **5 rows** of buttons (B/I/U/S/code, H1/H2/H3, blockquote/hr/align, link/image/undo, redo) — occupies most of the visible screen
+- Note body text has large gaps between paragraphs ("double spacing")
+
+---
+
+## Fix 1: Toolbar no longer wraps on mobile
+
+### Root cause
+`client/src/components/rich-text-editor.tsx` — `RichTextToolbar` wrapper:
+```tsx
+// Line 106 — CURRENT:
+<div className="flex flex-wrap items-center gap-0.5">
+```
+`flex-wrap` makes buttons flow to a new line when they don't fit the width.
+The container in `notes-page.tsx` has `overflow-x-auto` but since the toolbar itself wraps,
+it never gets wide enough to trigger horizontal scroll — it just grows taller.
+
+### Fix in `rich-text-editor.tsx`
+Change the wrapper to `flex-nowrap`:
+```tsx
+// AFTER:
+<div className="flex flex-nowrap items-center gap-0.5">
+```
+This makes the toolbar a single infinite row. The outer `overflow-x-auto` container in notes-page.tsx will then correctly scroll horizontally on narrow screens.
+
+---
+
+## Fix 2: Restructure the notes page toolbar bar on mobile (two-row layout)
+
+### Root cause
+`client/src/pages/notes-page.tsx` — the notes editor header bar (line ~636):
+```tsx
+<div className={`flex items-center gap-2 px-4 py-2 border-b border-border shrink-0 ${color.bg}`}>
+  {/* Mobile back button */}
+  {/* 6 color dot buttons */}
+  {/* Full RichTextToolbar (overflow-x-auto) */}
+  {/* Pin, Collab, Share, More buttons */}
+</div>
+```
+All of this is squeezed into one row. The color picker dots and action buttons consume fixed
+width, leaving almost nothing for the 20-button toolbar.
+
+### Fix: Two-row layout for mobile, single-row for desktop
+
+```tsx
+{/* Row 1 (always): back button | title controls | actions */}
+<div className="flex items-center gap-2 px-3 py-1.5 border-b border-border shrink-0">
+  {/* Mobile back button — md:hidden */}
+  <Button variant="ghost" size="icon" className="md:hidden h-7 w-7" onClick={...}>
+    <ChevronLeft className="h-4 w-4" />
+  </Button>
+
+  {/* Color picker dots */}
+  <div className="flex items-center gap-1">
+    {NOTE_COLORS.map(...)}
+  </div>
+
+  <div className="flex-1" /> {/* spacer */}
+
+  {/* Pin, Collab, Share, More — always visible, right-aligned */}
+  <div className="flex items-center gap-0.5 shrink-0">
+    {/* pin button */}
+    {/* collab button */}
+    {/* share dropdown */}
+    {/* more menu */}
+  </div>
+</div>
+
+{/* Row 2: scrollable toolbar */}
+<div className="flex items-center gap-0.5 overflow-x-auto px-2 py-1 border-b border-border shrink-0 scrollbar-none">
+  <RichTextToolbar editor={noteEditor} uploading={noteUploading} onImageButtonClick={...} />
+</div>
+```
+
+This gives the toolbar its own full-width row that can scroll horizontally without competition.
+
+### Also: hide the scrollbar (cosmetic)
+Add to `index.css`:
+```css
+.notes-toolbar-row {
+  scrollbar-width: none; /* Firefox */
+}
+.notes-toolbar-row::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+```
+
+Or apply Tailwind's `[&::-webkit-scrollbar]:hidden` inline.
+
+---
+
+## Fix 3: Remove double-spaced paragraphs in editor
+
+### Root cause
+`client/src/components/rich-text-editor.tsx` — editor `editorProps.attributes`:
+```tsx
+class: "min-h-[1px] p-4 prose prose-sm dark:prose-invert max-w-none focus:outline-none",
+```
+
+Tailwind Typography's `prose prose-sm` adds significant top/bottom margins to `<p>` tags:
+- `prose-sm` p: `margin-top: 1em`, `margin-bottom: 1em`
+
+This creates double spacing because TipTap wraps each paragraph in a `<p>`.
+
+### Fix in `index.css`
+Override the paragraph margins specifically for the Notes editor context:
+```css
+/* Notes editor — compact paragraph spacing (override prose defaults) */
+.ProseMirror p {
+  margin-top: 0.1em;
+  margin-bottom: 0.1em;
+}
+```
+
+This is a global ProseMirror override, which applies to all `RichTextEditor` instances across
+the platform. If this is too aggressive for other uses (e.g., wiki editing), scope it more
+narrowly by adding a wrapper class:
+
+Add a `data-editor="notes"` attribute to the editor container div in `notes-page.tsx` and scope:
+```css
+[data-editor="notes"] .ProseMirror p {
+  margin-top: 0.1em;
+  margin-bottom: 0.1em;
+}
+```
+
+Since the wiki editor may also use `RichTextEditor`, check whether the wiki has its own prose
+margin concerns before applying globally vs. scoped. Either way, the notes editor needs this fix.
+
+The heading spacing (h1/h2/h3) can keep a bit more breathing room, so only override `p`:
+```css
+.ProseMirror p { margin-top: 0.1em; margin-bottom: 0.1em; }
+```
+
+---
+
+## Summary of file changes
+
+| File | Change |
+|------|--------|
+| `client/src/components/rich-text-editor.tsx` | `flex flex-wrap` → `flex flex-nowrap` in `RichTextToolbar` wrapper |
+| `client/src/pages/notes-page.tsx` | Split single toolbar bar into two rows: (1) controls, (2) scrollable toolbar |
+| `client/src/index.css` | Add `.ProseMirror p { margin-top: 0.1em; margin-bottom: 0.1em; }` to fix double spacing |
+
+---
+
+## Done Looks Like
+
+- On mobile (~390px): toolbar is a single horizontally scrollable row — one swipe reveals all tools
+- Toolbar action buttons (pin, share, more) are on a clean row with the color picker above
+- Note paragraphs have tight, natural spacing — consistent with Apple Notes / Notion
+- Desktop behavior is unchanged (toolbar still shows all buttons in a row without scrolling)
+- Heading spacing (h1/h2/h3) is unaffected
+
+
+---
+

@@ -1,0 +1,250 @@
+#### Getting Started
+
+# Getting Started
+
+Welcome! In this guide, we'll walk you through the basics of using the xAI API, from creating an account to making your first request.
+
+## Step 1: Create an xAI account
+
+Sign up for an account at [accounts.x.ai](https://accounts.x.ai/sign-up?redirect=cloud-console), then load it with credits to start using the API.
+
+## Step 2: Generate an API key
+
+Create an API key via the [API Keys page](https://console.x.ai/team/default/api-keys) in the xAI Console. Then make it available to your code. Either export it in your terminal:
+
+```bash
+export XAI_API_KEY="your_api_key"
+```
+
+Or add it to a `.env` file in your project directory:
+
+```bash
+XAI_API_KEY=your_api_key
+```
+
+The xAI SDKs are configured to automatically read your API key from the `XAI_API_KEY` environment variable.
+
+## Step 3: Install an SDK
+
+Pick your language and install the SDK:
+
+```bash customLanguage="pythonXAI"
+pip install xai-sdk
+```
+
+```bash customLanguage="pythonOpenAISDK"
+pip install openai
+```
+
+```bash customLanguage="javascriptAISDK"
+npm install ai @ai-sdk/xai zod
+```
+
+```bash customLanguage="javascriptOpenAISDK"
+npm install openai
+```
+
+## Step 4: Make your first request
+
+Send a prompt to Grok and get a response:
+
+```python customLanguage="pythonXAI"
+import os
+from xai_sdk import Client
+from xai_sdk.chat import user, system
+
+client = Client(api_key=os.getenv("XAI_API_KEY"))
+
+chat = client.chat.create(model="grok-4.20-reasoning")
+chat.append(system("You are Grok, a highly intelligent, helpful AI assistant."))
+chat.append(user("What is the meaning of life, the universe, and everything?"))
+
+response = chat.sample()
+print(response.content)
+```
+
+```python customLanguage="pythonOpenAISDK"
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.getenv("XAI_API_KEY"),
+    base_url="https://api.x.ai/v1",
+)
+
+completion = client.responses.create(
+    model="grok-4.20-reasoning",
+    input=[
+        {"role": "system", "content": "You are Grok, a highly intelligent, helpful AI assistant."},
+        {"role": "user", "content": "What is the meaning of life, the universe, and everything?"},
+    ],
+)
+
+print(completion.output_text)
+```
+
+```javascript customLanguage="javascriptAISDK"
+import { createXai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const xai = createXai({ apiKey: process.env.XAI_API_KEY });
+
+const { text } = await generateText({
+    model: xai.responses('grok-4.20-reasoning'),
+    system: 'You are Grok, a highly intelligent, helpful AI assistant.',
+    prompt: 'What is the meaning of life, the universe, and everything?',
+});
+
+console.log(text);
+```
+
+```javascript customLanguage="javascriptOpenAISDK"
+import OpenAI from 'openai';
+
+const client = new OpenAI({
+    apiKey: process.env.XAI_API_KEY,
+    baseURL: 'https://api.x.ai/v1',
+});
+
+const response = await client.responses.create({
+    model: 'grok-4.20-reasoning',
+    input: [
+        { role: 'system', content: 'You are Grok, a highly intelligent, helpful AI assistant.' },
+        { role: 'user', content: 'What is the meaning of life, the universe, and everything?' },
+    ],
+});
+
+console.log(response.output_text);
+```
+
+```bash
+curl https://api.x.ai/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -d '{
+    "model": "grok-4.20-reasoning",
+    "input": [
+        {"role": "system", "content": "You are Grok, a highly intelligent, helpful AI assistant."},
+        {"role": "user", "content": "What is the meaning of life, the universe, and everything?"}
+    ]
+  }'
+```
+
+Certain models also support [Structured Outputs](/developers/model-capabilities/text/structured-outputs), which allows you to enforce a schema for the LLM output. For an in-depth guide about using Grok for text responses, check out the [Text Generation Guide](/developers/model-capabilities/text/generate-text).
+
+## Step 5: Analyze an image
+
+Grok can accept both text and images as input. Pass an image URL alongside your prompt:
+
+```python customLanguage="pythonXAI"
+import os
+from xai_sdk import Client
+from xai_sdk.chat import user, image
+
+client = Client(api_key=os.getenv("XAI_API_KEY"))
+
+chat = client.chat.create(model="grok-4")
+chat.append(
+    user(
+        "What's in this image?",
+        image("https://science.nasa.gov/wp-content/uploads/2023/09/web-first-images-release.png"),
+    )
+)
+
+response = chat.sample()
+print(response.content)
+```
+
+```python customLanguage="pythonOpenAISDK"
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.getenv("XAI_API_KEY"),
+    base_url="https://api.x.ai/v1",
+)
+
+completion = client.responses.create(
+    model="grok-4",
+    input=[{
+        "role": "user",
+        "content": [
+            {"type": "input_image", "image_url": "https://science.nasa.gov/wp-content/uploads/2023/09/web-first-images-release.png"},
+            {"type": "input_text", "text": "What's in this image?"},
+        ],
+    }],
+)
+
+print(completion.output_text)
+```
+
+```javascript customLanguage="javascriptAISDK"
+import { createXai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const xai = createXai({ apiKey: process.env.XAI_API_KEY });
+
+const { text } = await generateText({
+    model: xai.responses('grok-4'),
+    messages: [{
+        role: 'user',
+        content: [
+            { type: 'image', image: 'https://science.nasa.gov/wp-content/uploads/2023/09/web-first-images-release.png' },
+            { type: 'text', text: "What's in this image?" },
+        ],
+    }],
+});
+
+console.log(text);
+```
+
+```javascript customLanguage="javascriptOpenAISDK"
+import OpenAI from 'openai';
+
+const client = new OpenAI({
+    apiKey: process.env.XAI_API_KEY,
+    baseURL: 'https://api.x.ai/v1',
+});
+
+const completion = await client.responses.create({
+    model: 'grok-4',
+    input: [{
+        role: 'user',
+        content: [
+            { type: 'input_image', image_url: 'https://science.nasa.gov/wp-content/uploads/2023/09/web-first-images-release.png' },
+            { type: 'input_text', text: "What's in this image?" },
+        ],
+    }],
+});
+
+console.log(completion.output_text);
+```
+
+```bash
+curl https://api.x.ai/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -d '{
+    "model": "grok-4",
+    "input": [{
+        "role": "user",
+        "content": [
+            {"type": "input_image", "image_url": "https://science.nasa.gov/wp-content/uploads/2023/09/web-first-images-release.png"},
+            {"type": "input_text", "text": "What'\''s in this image?"}
+        ]
+    }]
+  }'
+```
+
+To learn how to use Grok vision for more advanced use cases, check out [Image Understanding](/developers/model-capabilities/images/understanding).
+
+## What's next
+
+Now that you've made your first request, explore what Grok can do:
+
+### Resources
+
+* [Streaming](/developers/model-capabilities/text/streaming) - Stream responses in real time
+* [Files & Collections](/developers/files) - Upload documents and build RAG pipelines
+* [Tools](/developers/tools/overview) - Web search, X search, code execution, and function calling
+* [Models & Pricing](/developers/models) - Compare available models and their capabilities

@@ -14614,3 +14614,60 @@ Also add `Avatar` import to the import list and `useAuth` import.
 
 ---
 
+## Task — ai-chat-modernization
+> Merged: 2026-04-01
+
+# AI Chat — Modern Agent Interface
+
+## What & Why
+Modernize the AI agent chat experience across all three chat surfaces (fullscreen, floating window, chat sheet) to match the UX conventions of leading LLM interfaces like ChatGPT, Claude, and Cursor. The current chat polls for complete responses, renders a basic textarea, and surfaces no insight into what the agent is doing. Users working with AI agents expect streaming output, rich artifact rendering, multimodal input, and actionable message controls.
+
+## Done looks like
+- AI responses stream token-by-token in real time (SSE from the backend) instead of appearing all at once after polling
+- A "thinking" / "working" animated indicator is visible while the model is processing, collapsible to show the raw reasoning chain if the model returns one
+- Code blocks have a **Copy** button and an **Open preview** button that opens a sandboxed live iframe panel for HTML/CSS/JS code — the panel renders right-side of the chat on wider screens and as a drawer on narrow screens
+- Generated images (from image-capable models) show in a click-to-expand lightbox with a download button, replacing the flat `max-w-[360px]` inline display
+- The message composer bar is upgraded: it shows the current agent's model name as a badge, supports `/clear` slash command, and includes an **Attach image** button (paperclip icon → file picker accepting image/*) for vision-capable agents. The attach button is hidden for agents without image capability
+- Each AI message has a hover-revealed action row: **Copy text**, **Regenerate** (resends the last user message), and **👍 / 👎** feedback buttons
+- The Regenerate action replaces the last assistant message in-place (optimistic UI)
+- All three chat surfaces (fullscreen, floating, sheet) receive these improvements consistently
+
+## Out of scope
+- Full WebSocket infrastructure (SSE is sufficient and simpler)
+- Multi-agent orchestration / @mentions across agents in one thread
+- Conversation branching / forking
+- Persistent memory across sessions
+- Tool-call visualization (web_search, code execution cards)
+- Video generation playback
+- Slash command menu beyond `/clear`
+- Changes to channel or DM (non-AI) conversations
+
+## Tasks
+
+1. **Streaming backend (SSE)** — Add a new `POST /api/ai/chat/:agentId/stream` route that streams the LLM response token-by-token using Server-Sent Events. Store the complete assistant message to the DB only after the stream ends. Both xAI and OpenRouter providers support streaming; wire up the `stream: true` flag and forward chunks. Keep the existing non-streaming route intact for fallback.
+
+2. **Streaming frontend hook** — Create a `useAgentStream` hook that opens a `fetch` with SSE reading (`getReader()`), accumulates partial content into local state, and finalizes by invalidating the react-query cache. The hook exposes `{ streamingContent, isStreaming, send }`. Replace polling in the AI agent view across all three chat surfaces with this hook.
+
+3. **Thinking indicator & reasoning display** — While `isStreaming` is true and no content has arrived yet, show an animated pulsing "Thinking…" indicator (three bouncing dots + agent avatar). If the streamed content begins with a `<think>` block (common in reasoning models), extract it, render it in a collapsible "Reasoning" disclosure below the message, and show the clean response body above it.
+
+4. **Code artifact panel** — Enhance `AiMessageRenderer` to add a toolbar above each fenced code block: a **Copy** icon button (clipboard API) and, for `html`/`css`/`js`/`javascript` languages, a **Preview** icon button. Clicking Preview opens an `<iframe sandbox="allow-scripts">` panel with a `srcdoc` containing the code. On the fullscreen page this panel appears as a right-side split (600px); on smaller surfaces it appears as a bottom drawer sheet.
+
+5. **Image lightbox + download** — Replace the inline `<img>` renderer in `AiMessageRenderer` with a component that renders the image at up to 480px wide, shows a zoom cursor on hover, and on click opens a fullscreen modal/lightbox overlay. The lightbox has a close button and a **Download** button (`<a href download>`). This applies to all AI-generated images (Grok image models, etc.).
+
+6. **Upgraded message composer** — Refactor the composer textarea in all three surfaces into a shared `AgentComposer` component. Add: (a) a model badge showing `agent.modelSlug` shortened to the model name, (b) a paperclip **Attach** button visible only when `agent.capabilities` includes `'vision'` or `'image'` — clicking it opens a file picker and encodes the image as base64 to be sent as a multimodal message part, (c) `/clear` slash command detected on submit that calls the clear-history mutation instead of sending a message.
+
+7. **Per-message action bar** — Wrap each AI assistant message in a container that reveals a floating action bar on hover (or long-press on mobile): **Copy** (copies `message.content` plain text), **Regenerate** (re-sends the previous user message and replaces the current assistant message optimistically), and **👍 / 👎** buttons (record feedback to a new `ai_message_feedback` table — agentId, messageId, userId, vote). The action bar uses icon-only buttons with tooltips.
+
+8. **Schema & storage for feedback** — Add an `ai_message_feedback` table (`messageId`, `userId`, `agentId`, `vote: 'up'|'down'`, `createdAt`), migration, storage interface method `upsertMessageFeedback`, and a `POST /api/ai/chat/:agentId/messages/:messageId/feedback` route. This is a lightweight table — no UI beyond the thumbs in the action bar is required.
+
+## Relevant files
+- `client/src/pages/fullscreen-chat-page.tsx`
+- `client/src/components/floating-chat-window.tsx`
+- `client/src/components/chat-sheet.tsx`
+- `client/src/components/ai-message-renderer.tsx`
+- `server/routes.ts`
+- `shared/schema.ts`
+
+
+---
+

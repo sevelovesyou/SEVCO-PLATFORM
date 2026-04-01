@@ -158,7 +158,6 @@ function getActiveApp(location: string): string {
   }
   if (location.startsWith("/projects")) return "/projects";
   if (location.startsWith("/services")) return "/services";
-  if (location.startsWith("/domains")) return "/services";
   if (location.startsWith("/store")) return "/store";
   if (location.startsWith("/music")) return "/music";
   if (location.startsWith("/command")) return "/command";
@@ -406,15 +405,6 @@ function ServicesDropdown({ isActive, platformSettings }: { isActive: boolean; p
                 </div>
               </div>
             </Link>
-            <Link href="/domains" onClick={() => setOpen(false)}>
-              <div className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group" data-testid="dropdown-services-domains">
-                <Globe className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-foreground leading-none group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">Domains</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">Search & register domain names</p>
-                </div>
-              </div>
-            </Link>
           </div>
 
           {/* Professional services by category */}
@@ -626,10 +616,11 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
 
   const allItems = [
     { label: "Notes",   href: "/notes",        icon: StickyNote,   desc: "Personal & shared notes",               requiredRoles: ["user","client","partner","staff","executive","admin"] },
-    { label: "Tasks",   href: "/tools/tasks",  icon: CheckSquare,  desc: "Personal to-do list & staff board",     requiredRoles: ["user","client","partner","staff","executive","admin"] },
-    { label: "Gallery", href: "/gallery",      icon: Images,       desc: "Quick-copy images for your profile",    requiredRoles: ["user","client","partner","staff","executive","admin"] },
-    { label: "Email",   href: "/messages",     icon: Mail,         desc: `${user?.username ?? "your"}@sevco.us`,  requiredRoles: ["client","partner","staff","executive","admin"] },
-    { label: "Wikify",  href: "/wikify",       icon: Wand2,        desc: "Bulk AI wiki article generator",        requiredRoles: ["partner","staff","executive","admin"] },
+    { label: "Tasks",   href: "/tools/tasks",    icon: CheckSquare,  desc: "Personal to-do list & staff board",     requiredRoles: ["user","client","partner","staff","executive","admin"] },
+    { label: "Domains", href: "/tools/domains", icon: Globe,        desc: "Search & register domain names",        requiredRoles: ["user","client","partner","staff","executive","admin"] },
+    { label: "Gallery", href: "/gallery",        icon: Images,       desc: "Quick-copy images for your profile",    requiredRoles: ["user","client","partner","staff","executive","admin"] },
+    { label: "Email",   href: "/messages",       icon: Mail,         desc: `${user?.username ?? "your"}@sevco.us`,  requiredRoles: ["client","partner","staff","executive","admin"] },
+    { label: "Wikify",  href: "/wikify",         icon: Wand2,        desc: "Bulk AI wiki article generator",        requiredRoles: ["partner","staff","executive","admin"] },
   ];
 
   const handleClick = (item: typeof allItems[number]) => {
@@ -1101,9 +1092,6 @@ export function PlatformHeader() {
                 <Link href="/hosting" onClick={() => setMobileOpen(false)}>
                   <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-services-hosting">Hosting</div>
                 </Link>
-                <Link href="/domains" onClick={() => setMobileOpen(false)}>
-                  <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-services-domains">Domains</div>
-                </Link>
                 <div className="border-t border-border/40 my-1" />
                 {mobileServiceCategories.map((cat) => (
                   <Link key={cat} href={`/services?category=${cat}`} onClick={() => setMobileOpen(false)}>
@@ -1159,11 +1147,12 @@ export function PlatformHeader() {
             <CollapsibleContent>
               <div className="pl-4 space-y-0.5 py-1">
                 {[
-                  { label: "Notes",   href: "/notes",        testId: "mobile-nav-tools-notes",   requiredRoles: ["user","client","partner","staff","executive","admin"] },
-                  { label: "Tasks",   href: "/tools/tasks",  testId: "mobile-nav-tools-tasks",   requiredRoles: ["user","client","partner","staff","executive","admin"] },
-                  { label: "Gallery", href: "/gallery",      testId: "mobile-nav-tools-gallery", requiredRoles: ["user","client","partner","staff","executive","admin"] },
-                  { label: "Email",   href: "/messages",     testId: "mobile-nav-tools-email",   requiredRoles: ["client","partner","staff","executive","admin"] },
-                  { label: "Wikify",  href: "/wikify",       testId: "mobile-nav-tools-wikify",  requiredRoles: ["partner","staff","executive","admin"] },
+                  { label: "Notes",   href: "/notes",          testId: "mobile-nav-tools-notes",   requiredRoles: ["user","client","partner","staff","executive","admin"] },
+                  { label: "Tasks",   href: "/tools/tasks",   testId: "mobile-nav-tools-tasks",   requiredRoles: ["user","client","partner","staff","executive","admin"] },
+                  { label: "Domains", href: "/tools/domains", testId: "mobile-nav-tools-domains", requiredRoles: ["user","client","partner","staff","executive","admin"] },
+                  { label: "Gallery", href: "/gallery",        testId: "mobile-nav-tools-gallery", requiredRoles: ["user","client","partner","staff","executive","admin"] },
+                  { label: "Email",   href: "/messages",       testId: "mobile-nav-tools-email",   requiredRoles: ["client","partner","staff","executive","admin"] },
+                  { label: "Wikify",  href: "/wikify",         testId: "mobile-nav-tools-wikify",  requiredRoles: ["partner","staff","executive","admin"] },
                 ].map((item) => (
                   <button
                     key={item.href}

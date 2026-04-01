@@ -265,7 +265,8 @@ function Router() {
           </CommandPageLayout>
         </ProtectedRoute>
       )} />
-      <Route path="/domains" component={DomainsPage} />
+      <Route path="/tools/domains" component={DomainsPage} />
+      <Route path="/domains" component={() => <Redirect to="/tools/domains" />} />
       <Route path="/notes" component={NotesPage} />
       <Route path="/tools/tasks" component={() => <ProtectedRoute><TasksPage /></ProtectedRoute>} />
       <Route path="/wikify" component={() => <ProtectedRoute requiredRole={["partner", "staff", "executive", "admin"]}><WikifyToolPage /></ProtectedRoute>} />

@@ -59,10 +59,11 @@ interface SendEmailParams {
   text?: string;
   replyTo?: string;
   isDraft?: boolean;
+  threadId?: string | null;
 }
 
 export async function sendEmail(params: SendEmailParams, resendSend: ResendSendFn): Promise<string | null> {
-  const { fromUser, to, cc = [], bcc = [], subject, html = "", text = "", replyTo, isDraft = false } = params;
+  const { fromUser, to, cc = [], bcc = [], subject, html = "", text = "", replyTo, isDraft = false, threadId = null } = params;
 
   const fromAddress = getEmailAddress(fromUser.username);
   const fromDisplay = `${fromUser.displayName || fromUser.username} <${fromAddress}>`;
@@ -99,7 +100,7 @@ export async function sendEmail(params: SendEmailParams, resendSend: ResendSendF
     isRead: true,
     isStarred: false,
     attachments: [],
-    threadId: null,
+    threadId: threadId ?? null,
   });
 
   return resendEmailId;

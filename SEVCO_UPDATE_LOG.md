@@ -138,6 +138,8 @@
 - **#126** — Wikify Tool Page — Bulk wiki article generator (`wikify-tool-page.md`)
 - **#127** — Tools Marketing Page + Navigation Updates (`tools-marketing-page.md`)
 - **#128** — SEVCO Platform Updates Page — Changelog Overhaul + Update Log + Auto-Update System (`compile-update-log.md`)
+- **#129** — Email Pagination & Advanced Filters (`task-173.md`)
+- **#130** — Email Threaded Conversation View (`task-174.md`)
 
 ### Appendix
 
@@ -14614,6 +14616,7 @@ Also add `Avatar` import to the import list and `useAuth` import.
 
 ---
 
+<<<<<<< HEAD
 ## Task — ai-chat-modernization
 > Merged: 2026-04-01
 
@@ -14667,6 +14670,134 @@ Modernize the AI agent chat experience across all three chat surfaces (fullscree
 - `client/src/components/ai-message-renderer.tsx`
 - `server/routes.ts`
 - `shared/schema.ts`
+=======
+## Task — task-174
+> Merged: 2026-04-01
+
+---
+title: Email: Threaded conversation view — grouped inbox, collapsible messages, inline reply
+---
+# Task #174 — Email: Threaded Conversations with Collapsible Replies & Inline Reply
+
+## Overview
+Group emails by `threadId` (already stored in the schema) so the inbox shows conversation
+threads rather than individual messages. Clicking a thread expands it to show all messages
+in chronological order with collapsible older messages and an inline reply composer at the bottom.
+
+---
+
+## Backend Changes
+
+### `server/routes.ts` — Thread grouping endpoint (new)
+
+**`GET /api/email/threads`** — returns inbox threads (admin+exec+staff+partner+client roles)
+
+Logic:
+1. Fetch all emails for the user in the current folder (same auth/role checks as messages)
+2. Group by `threadId` (or `subject` normalized: strip "Re:", "Fwd:", "FW:", trim, lowercase)
+   - If `threadId` is null/empty, each email is its own "thread" (threadId = `msg-${id}`)
+3. For each thread group, return:
+   ```json
+   {
+     "threadId": "abc123",
+     "subject": "Meeting Notes",
+     "participants": ["alice@co.com", "bob@co.com"],
+     "latestDate": "2026-03-30T10:00:00Z",
+     "messageCount": 3,
+     "hasUnread": true,
+     "hasAttachment": false,
+     "latestSnippet": "See you at 3pm...",
+     "emails": [ ...full Email objects ordered by createdAt ASC ]
+   }
+   ```
+4. Sort threads by `latestDate` DESC
+5. Support same `?folder`, `?page`, `?limit`, `?search`, `?sender` filter params
+
+### `server/routes.ts` — Reply sets threadId
+
+When `POST /api/email/send` sends a reply (has `replyTo` param in body):
+- Set `threadId` = the original email's `threadId` (or `resendEmailId` as fallback)
+  on the newly created outbound email row
+
+### `server/routes.ts` — GET /api/email/messages (used by thread endpoint)
+
+Ensure the `threadId` is returned in the email objects (it's already in the schema).
+
+---
+
+## Frontend Changes
+
+### New view: Thread List (replaces email list in Inbox/Sent/etc.)
+
+**`client/src/pages/messages-page.tsx`**
+
+Add a `viewMode` toggle: "threads" | "messages" (default: "threads" for Inbox, "messages" for Sent/Drafts).
+
+In thread mode, query `GET /api/email/threads?folder=inbox&page=N` instead of `/api/email/messages`.
+
+**Thread list item** (`ThreadListItem` component):
+- Avatar of latest sender (initials)
+- Subject + participant count badge (e.g., "3")
+- Snippet from most recent message
+- Date of latest message
+- Unread dot (if any message unread)
+- Attachment paperclip if any message has attachments
+- Clicking opens ThreadReadView (see below)
+
+### New component: `client/src/components/email-thread-view.tsx`
+
+A thread detail view, replacing the single `EmailReadView` when a thread is selected.
+
+**Layout:**
+```
+┌─────────────────────────────────────────────────────┐
+│  Subject heading                         [Action btns] │
+├─────────────────────────────────────────────────────┤
+│  [Collapsed older messages — N earlier] ▾            │
+├─────────────────────────────────────────────────────┤
+│  ── Message 1 (oldest visible) ──                   │
+│  [Avatar] From: alice@co.com · Mar 28 ···           │
+│  Message body (collapsed to 2 lines if not last)    │
+├─────────────────────────────────────────────────────┤
+│  ── Message 2 (expanded, most recent) ──            │
+│  [Avatar] From: bob@co.com · Mar 30                 │
+│  Full message body (HTML sanitized)                 │
+│  [Reply] [Reply All] [Forward] [More ▾]             │
+├─────────────────────────────────────────────────────┤
+│  ── Inline Reply Composer ──                        │
+│  [From: me@sevco.us] [To: alice@co.com]             │
+│  [Reply body — plain textarea, collapsible]         │
+│  [Send Reply]                                       │
+└─────────────────────────────────────────────────────┘
+```
+
+**Collapsed older messages:**
+- If thread has > 2 messages, show the first and last by default
+- Middle messages shown as a collapsed bar: "2 earlier messages ▾" — click to expand all
+- data-testid: `button-expand-thread-messages`
+
+**Individual message collapse:**
+- Non-latest messages show 2-line preview by default, click to expand full body
+- Latest message always fully expanded
+- data-testid: `button-toggle-email-${email.id}`
+
+**Inline reply:**
+- Simple textarea (not rich text — that's in the compose modal for full emails)
+- On send: POST /api/email/send with `{ replyTo: latestEmail.fromAddress, subject: "Re: ...", body: ..., threadId: thread.threadId }`
+- After send: refresh thread, clear textarea
+- "Expand to full compose ↗" button opens the full `EmailComposeModal` in reply mode
+- data-testid: `input-inline-reply`, `button-send-inline-reply`, `button-expand-to-compose`
+
+**Actions (top-right of thread view):**
+- Archive, Delete, Mark all as read, Move to folder (same as single email actions)
+
+---
+
+## Files Changed
+- `server/routes.ts` (new GET /api/email/threads, threadId population on send reply)
+- `client/src/pages/messages-page.tsx` (thread list query + ThreadListItem)
+- `client/src/components/email-thread-view.tsx` (new component — full thread UI)
+>>>>>>> 17a1104 (Post-merge setup completed successfully)
 
 
 ---

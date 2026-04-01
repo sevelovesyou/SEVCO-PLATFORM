@@ -6207,6 +6207,62 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/email/threads", requireAuth, requireRole(...CLIENT_PLUS_ROLES), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const folder = String(req.query.folder || "inbox");
+      const limit = Math.min(parseInt(String(req.query.limit || "50")), 100);
+      const page = Math.max(parseInt(String(req.query.page || "1")), 1);
+      const search = req.query.search ? String(req.query.search) : undefined;
+      const sender = req.query.sender ? String(req.query.sender) : undefined;
+      const offset = (page - 1) * limit;
+
+      let allEmails = await storage.getEmails(user.id, folder, 500, 0, search);
+
+      if (sender) {
+        const senderLower = sender.toLowerCase();
+        allEmails = allEmails.filter((e) => e.fromAddress.toLowerCase().includes(senderLower));
+      }
+
+      const threadMap = new Map<string, typeof allEmails>();
+      for (const email of allEmails) {
+        const key = email.threadId || `msg-${email.id}`;
+        if (!threadMap.has(key)) threadMap.set(key, []);
+        threadMap.get(key)!.push(email);
+      }
+
+      const threads = Array.from(threadMap.entries()).map(([groupKey, threadEmails]) => {
+        threadEmails.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        const latest = threadEmails[threadEmails.length - 1];
+        const participants = [...new Set(threadEmails.flatMap((e) => [e.fromAddress, ...e.toAddresses]))];
+        const hasUnread = threadEmails.some((e) => !e.isRead);
+        const hasAttachment = threadEmails.some(
+          (e) => e.attachments && Array.isArray(e.attachments) && (e.attachments as any[]).length > 0
+        );
+        const latestSnippet = latest.bodyText?.replace(/\s+/g, " ").trim().slice(0, 120) || "";
+
+        return {
+          threadId: groupKey,
+          subject: latest.subject || threadEmails[0].subject || "(no subject)",
+          participants,
+          latestDate: latest.createdAt,
+          messageCount: threadEmails.length,
+          hasUnread,
+          hasAttachment,
+          latestSnippet,
+          emails: threadEmails,
+        };
+      });
+
+      threads.sort((a, b) => new Date(b.latestDate).getTime() - new Date(a.latestDate).getTime());
+
+      const paginatedThreads = threads.slice(offset, offset + limit);
+      res.json(paginatedThreads);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/email/messages", requireAuth, requireRole(...CLIENT_PLUS_ROLES), async (req, res) => {
     try {
       const user = req.user as any;
@@ -6271,7 +6327,7 @@ export async function registerRoutes(
   app.post("/api/email/send", requireAuth, requireRole(...CLIENT_PLUS_ROLES), async (req, res) => {
     try {
       const user = req.user as any;
-      const { to, cc, bcc, subject, html, text, replyTo } = req.body as {
+      const { to, cc, bcc, subject, html, text, replyTo, threadId } = req.body as {
         to: string[];
         cc?: string[];
         bcc?: string[];
@@ -6279,6 +6335,7 @@ export async function registerRoutes(
         html?: string;
         text?: string;
         replyTo?: string;
+        threadId?: string;
       };
 
       if (!to || !Array.isArray(to) || to.length === 0) {
@@ -6330,6 +6387,17 @@ export async function registerRoutes(
       const fullUser = await storage.getUser(user.id);
       if (!fullUser) return res.status(404).json({ message: "User not found" });
 
+      let resolvedThreadId: string | null = threadId ?? null;
+      if (replyTo && !resolvedThreadId) {
+        const userEmails = await storage.getEmails(user.id, "all", 100, 0);
+        const originalEmail = userEmails.find(
+          (e) => e.fromAddress.includes(replyTo) || e.toAddresses.some((a) => a.includes(replyTo))
+        );
+        if (originalEmail) {
+          resolvedThreadId = originalEmail.threadId || originalEmail.resendEmailId || `msg-${originalEmail.id}`;
+        }
+      }
+
       const resendEmailId = await sendEmail({
         fromUser: fullUser,
         to,
@@ -6339,6 +6407,7 @@ export async function registerRoutes(
         html,
         text,
         replyTo,
+        threadId: resolvedThreadId,
       }, resendSend);
 
       res.json({ success: true, resendEmailId });

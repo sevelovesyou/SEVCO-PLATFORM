@@ -26,10 +26,14 @@ import {
   ShieldAlert,
   SlidersHorizontal,
   X,
+  Layers,
+  List,
+  Paperclip,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { EmailComposeModal } from "@/components/email-compose-modal";
 import { EmailReadView } from "@/components/email-read-view";
+import { EmailThreadView } from "@/components/email-thread-view";
 import type { Email, ChatChannel, ChatMessage } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 import { isClientPlus } from "@/lib/permissions";
@@ -42,6 +46,7 @@ type ChatMessageWithUser = ChatMessage & {
 };
 
 type Folder = "inbox" | "sent" | "drafts" | "trash" | "starred" | "archive" | "spam";
+type ViewMode = "threads" | "messages";
 
 type PaginatedEmailResponse = {
   emails: Email[];
@@ -50,6 +55,18 @@ type PaginatedEmailResponse = {
   totalPages: number;
   limit: number;
 };
+
+interface EmailThread {
+  threadId: string;
+  subject: string;
+  participants: string[];
+  latestDate: string | Date;
+  messageCount: number;
+  hasUnread: boolean;
+  hasAttachment: boolean;
+  latestSnippet: string;
+  emails: Email[];
+}
 
 const FOLDER_ITEMS: { id: Folder; label: string; icon: React.ElementType }[] = [
   { id: "inbox",   label: "Inbox",   icon: Inbox },
@@ -61,9 +78,11 @@ const FOLDER_ITEMS: { id: Folder; label: string; icon: React.ElementType }[] = [
   { id: "trash",   label: "Trash",   icon: Trash2 },
 ];
 
+const THREAD_FOLDERS: Folder[] = ["inbox", "starred"];
+
 function InitialsAvatar({ name }: { name: string }) {
   const initials = name
-    .split(/\s+/)
+    .split(/[@\s]+/)
     .map((w) => w[0])
     .filter(Boolean)
     .slice(0, 2)
@@ -137,11 +156,83 @@ function EmailListItem({
   );
 }
 
+function ThreadListItem({
+  thread,
+  isSelected,
+  onClick,
+}: {
+  thread: EmailThread;
+  isSelected: boolean;
+  onClick: () => void;
+}) {
+  const latestEmail = thread.emails[thread.emails.length - 1];
+  const senderName = latestEmail
+    ? (latestEmail.fromAddress.match(/^(.+?)\s*</)?.[1]?.trim() ?? latestEmail.fromAddress.split("@")[0])
+    : "Unknown";
+  const date = new Date(thread.latestDate);
+
+  let timeStr = "";
+  try {
+    timeStr = formatDistanceToNow(date, { addSuffix: true });
+  } catch {
+    timeStr = String(thread.latestDate);
+  }
+
+  return (
+    <div
+      className={`flex items-start gap-3 px-3 py-2.5 border-b border-border/40 cursor-pointer transition-colors hover:bg-muted/50 ${
+        isSelected ? "bg-muted" : thread.hasUnread ? "bg-blue-50/30 dark:bg-blue-950/20" : ""
+      }`}
+      onClick={onClick}
+      data-testid={`thread-list-item-${thread.threadId}`}
+    >
+      <InitialsAvatar name={senderName} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span
+              className={`text-sm truncate ${thread.hasUnread ? "font-semibold text-foreground" : "font-medium text-foreground/80"}`}
+              data-testid={`thread-sender-${thread.threadId}`}
+            >
+              {senderName}
+            </span>
+            {thread.messageCount > 1 && (
+              <Badge variant="secondary" className="h-4 min-w-4 px-1 text-[10px] shrink-0" data-testid={`thread-count-${thread.threadId}`}>
+                {thread.messageCount}
+              </Badge>
+            )}
+          </div>
+          <span className="text-[11px] text-muted-foreground shrink-0" data-testid={`thread-date-${thread.threadId}`}>
+            {timeStr}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          {thread.hasUnread && <div className="h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0" />}
+          {thread.hasAttachment && <Paperclip className="h-3 w-3 text-muted-foreground shrink-0" />}
+          <span
+            className={`text-xs truncate ${thread.hasUnread ? "font-medium text-foreground" : "text-muted-foreground"}`}
+            data-testid={`thread-subject-${thread.threadId}`}
+          >
+            {thread.subject || "(no subject)"}
+          </span>
+        </div>
+        {thread.latestSnippet && (
+          <p className="text-[11px] text-muted-foreground truncate mt-0.5" data-testid={`thread-snippet-${thread.threadId}`}>
+            {thread.latestSnippet}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function MessagesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeFolder, setActiveFolder] = useState<Folder>("inbox");
+  const [viewMode, setViewMode] = useState<ViewMode>("threads");
   const [selectedEmailId, setSelectedEmailId] = useState<number | null>(null);
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<ChatChannel | null>(null);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -178,6 +269,8 @@ export default function MessagesPage() {
     );
   }
 
+  const useThreadMode = THREAD_FOLDERS.includes(activeFolder) && viewMode === "threads" && !search;
+
   const { data: folderCounts, isFetching: countsFetching, refetch: refetchCounts } = useQuery<Record<string, number>>({
     queryKey: ["/api/email/folders"],
     refetchInterval: 30000,
@@ -200,6 +293,18 @@ export default function MessagesPage() {
       if (!res.ok) throw new Error("Failed to fetch emails");
       return res.json();
     },
+    enabled: !useThreadMode,
+  });
+
+  const { data: threads = [], isLoading: threadsLoading, isFetching: threadsFetching, refetch: refetchThreads } = useQuery<EmailThread[]>({
+    queryKey: ["/api/email/threads", activeFolder],
+    queryFn: async () => {
+      const params = new URLSearchParams({ folder: activeFolder, limit: "50" });
+      const res = await fetch(`/api/email/threads?${params}`);
+      if (!res.ok) throw new Error("Failed to fetch threads");
+      return res.json();
+    },
+    enabled: useThreadMode,
   });
 
   const emails = emailResponse?.emails ?? [];
@@ -224,8 +329,12 @@ export default function MessagesPage() {
   });
 
   const selectedEmail = emails.find((e) => e.id === selectedEmailId) ?? null;
+  const selectedThread = threads.find((t) => t.threadId === selectedThreadId) ?? null;
   const fromAddress = addressData?.address ?? `${user.username}@sevco.us`;
   const unreadCount = folderCounts?.unreadInbox ?? 0;
+
+  const isLoading = useThreadMode ? threadsLoading : emailsLoading;
+  const isFetching = useThreadMode ? threadsFetching : emailsFetching;
 
   const markReadMutation = useMutation({
     mutationFn: async (emailId: number) => {
@@ -239,17 +348,28 @@ export default function MessagesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/email/messages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/email/threads"] });
       queryClient.invalidateQueries({ queryKey: ["/api/email/folders"] });
     },
   });
 
   function handleSelectEmail(email: Email) {
     setSelectedEmailId(email.id);
+    setSelectedThreadId(null);
     setSelectedChannel(null);
     setMobileView("read");
     if (!email.isRead) {
       markReadMutation.mutate(email.id);
     }
+  }
+
+  function handleSelectThread(thread: EmailThread) {
+    setSelectedThreadId(thread.threadId);
+    setSelectedEmailId(null);
+    setSelectedChannel(null);
+    setMobileView("read");
+    const unreadEmails = thread.emails.filter((e) => !e.isRead);
+    unreadEmails.forEach((e) => markReadMutation.mutate(e.id));
   }
 
   function handleFolderClick(folder: Folder) {
@@ -266,10 +386,16 @@ export default function MessagesPage() {
   function handleFolderChange(folder: Folder) {
     setActiveFolder(folder);
     setSelectedEmailId(null);
+    setSelectedThreadId(null);
     setSelectedChannel(null);
     setSearch("");
     setSearchInput("");
     setCurrentPage(1);
+    if (THREAD_FOLDERS.includes(folder)) {
+      setViewMode("threads");
+    } else {
+      setViewMode("messages");
+    }
   }
 
   function handleApplyFilters() {
@@ -295,8 +421,18 @@ export default function MessagesPage() {
   function handleSelectChannel(ch: ChatChannel) {
     setSelectedChannel(ch);
     setSelectedEmailId(null);
+    setSelectedThreadId(null);
     setMobileView("read");
     setChatInput("");
+  }
+
+  function handleRefresh() {
+    if (useThreadMode) {
+      refetchThreads();
+    } else {
+      refetchEmails();
+    }
+    refetchCounts();
   }
 
   async function handleSendChatMessage() {
@@ -319,6 +455,8 @@ export default function MessagesPage() {
     }
   }
 
+  const hasSelection = !!selectedChannel || (useThreadMode ? !!selectedThread : !!selectedEmail);
+
   return (
     <div className="flex h-[calc(100vh-3rem)] overflow-hidden" data-testid="messages-page">
       <PageHead slug="messages" title="Messages — SEVCO" description="Your SEVCO inbox — email, direct messages, and platform notifications." noIndex={true} />
@@ -333,11 +471,11 @@ export default function MessagesPage() {
               variant="ghost"
               size="icon"
               className="h-7 w-7"
-              onClick={() => { refetchEmails(); refetchCounts(); }}
+              onClick={handleRefresh}
               data-testid="button-refresh-inbox"
               title="Refresh"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${emailsFetching || countsFetching ? "motion-safe:animate-spin" : ""}`} />
+              <RefreshCw className={`h-3.5 w-3.5 ${isFetching || countsFetching ? "motion-safe:animate-spin" : ""}`} />
             </Button>
             <Button
               variant="ghost"
@@ -526,19 +664,41 @@ export default function MessagesPage() {
           <span className="text-xs font-semibold text-muted-foreground capitalize">
             {search ? `Search: "${search}"` : activeFolder}
           </span>
-          {search && (
-            <button
-              className="text-[11px] text-muted-foreground hover:text-foreground"
-              onClick={() => { setSearch(""); setSearchInput(""); setCurrentPage(1); }}
-              data-testid="button-clear-search"
-            >
-              Clear
-            </button>
-          )}
+          <div className="flex items-center gap-1">
+            {search && (
+              <button
+                className="text-[11px] text-muted-foreground hover:text-foreground"
+                onClick={() => { setSearch(""); setSearchInput(""); setCurrentPage(1); }}
+                data-testid="button-clear-search"
+              >
+                Clear
+              </button>
+            )}
+            {THREAD_FOLDERS.includes(activeFolder) && !search && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => {
+                  setViewMode((m) => m === "threads" ? "messages" : "threads");
+                  setSelectedEmailId(null);
+                  setSelectedThreadId(null);
+                }}
+                data-testid="button-toggle-view-mode"
+                title={viewMode === "threads" ? "Switch to messages view" : "Switch to threads view"}
+              >
+                {viewMode === "threads" ? (
+                  <List className="h-3.5 w-3.5" />
+                ) : (
+                  <Layers className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {emailsLoading ? (
+          {isLoading ? (
             <div className="p-3 space-y-2">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="flex gap-3 items-start">
@@ -551,22 +711,42 @@ export default function MessagesPage() {
                 </div>
               ))}
             </div>
-          ) : emails.length === 0 ? (
-            <EmptyState
-              icon={Inbox}
-              title={search ? "No results found" : `No emails in ${activeFolder}`}
-              description={search ? "Try different search terms." : "When you receive messages, they'll appear here."}
-              className="h-full py-0"
-            />
-          ) : (
-            emails.map((email) => (
-              <EmailListItem
-                key={email.id}
-                email={email}
-                isSelected={selectedEmailId === email.id}
-                onClick={() => handleSelectEmail(email)}
+          ) : useThreadMode ? (
+            threads.length === 0 ? (
+              <EmptyState
+                icon={Inbox}
+                title={`No conversations in ${activeFolder}`}
+                description="When you receive messages, they'll appear here as threads."
+                className="h-full py-0"
               />
-            ))
+            ) : (
+              threads.map((thread) => (
+                <ThreadListItem
+                  key={thread.threadId}
+                  thread={thread}
+                  isSelected={selectedThreadId === thread.threadId}
+                  onClick={() => handleSelectThread(thread)}
+                />
+              ))
+            )
+          ) : (
+            emails.length === 0 ? (
+              <EmptyState
+                icon={Inbox}
+                title={search ? "No results found" : `No emails in ${activeFolder}`}
+                description={search ? "Try different search terms." : "When you receive messages, they'll appear here."}
+                className="h-full py-0"
+              />
+            ) : (
+              emails.map((email) => (
+                <EmailListItem
+                  key={email.id}
+                  email={email}
+                  isSelected={selectedEmailId === email.id}
+                  onClick={() => handleSelectEmail(email)}
+                />
+              ))
+            )
           )}
         </div>
 
@@ -610,7 +790,7 @@ export default function MessagesPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => { setMobileView("list"); setSelectedEmailId(null); setSelectedChannel(null); }}
+              onClick={() => { setMobileView("list"); setSelectedEmailId(null); setSelectedThreadId(null); setSelectedChannel(null); }}
               data-testid="button-back-to-list"
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
@@ -698,7 +878,18 @@ export default function MessagesPage() {
               </Button>
             </div>
           </div>
-        ) : selectedEmail ? (
+        ) : selectedThread && useThreadMode ? (
+          <EmailThreadView
+            thread={selectedThread}
+            fromAddress={fromAddress}
+            onDeleted={() => {
+              setSelectedThreadId(null);
+              setMobileView("list");
+              refetchThreads();
+              refetchCounts();
+            }}
+          />
+        ) : selectedEmail && !useThreadMode ? (
           <EmailReadView
             email={selectedEmail}
             fromAddress={fromAddress}
@@ -713,7 +904,9 @@ export default function MessagesPage() {
           <div className="flex flex-col items-center justify-center h-full text-center p-8 text-muted-foreground gap-3" data-testid="email-empty-state">
             <Inbox className="h-12 w-12 opacity-20" />
             <div>
-              <p className="text-sm font-medium">Select an email to read</p>
+              <p className="text-sm font-medium">
+                {useThreadMode ? "Select a conversation to read" : "Select an email to read"}
+              </p>
               <p className="text-xs text-muted-foreground/70 mt-0.5">{fromAddress}</p>
             </div>
             <Button

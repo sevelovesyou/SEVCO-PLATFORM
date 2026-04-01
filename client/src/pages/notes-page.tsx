@@ -395,6 +395,9 @@ export default function NotesPage() {
       setMobileShowEditor(false);
       toast({ title: "Note deleted" });
     },
+    onError: (err: any) => {
+      toast({ title: "Failed to delete note", description: err.message, variant: "destructive" });
+    },
   });
 
   const scheduleAutoSave = useCallback((id: number, title: string, content: string) => {

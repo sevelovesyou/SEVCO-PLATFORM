@@ -61,7 +61,7 @@ export function UserSnapshotPanel({ variant = "default" }: UserSnapshotPanelProp
     queryKey: ["/api/tasks"],
   });
 
-  const { data: emails, isLoading: emailsLoading } = useQuery<Email[]>({
+  const { data: emailsResponse, isLoading: emailsLoading } = useQuery<{ emails: Email[]; total: number } | null>({
     queryKey: ["/api/email/messages", "inbox"],
     queryFn: () =>
       fetch("/api/email/messages?folder=inbox&limit=5")
@@ -80,7 +80,7 @@ export function UserSnapshotPanel({ variant = "default" }: UserSnapshotPanelProp
     .filter((t) => !t.completed)
     .slice(0, 3);
 
-  const inboxEmails = (emails ?? []).slice(0, 3);
+  const inboxEmails = (emailsResponse?.emails ?? []).slice(0, 3);
 
   const sortedNotes = (notes ?? [])
     .slice()

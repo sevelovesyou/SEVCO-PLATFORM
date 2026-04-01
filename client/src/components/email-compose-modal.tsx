@@ -140,14 +140,6 @@ export function EmailComposeModal({
   const initialBodyRef = useRef(initialBody);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropzoneRef = useRef<HTMLDivElement>(null);
-  const firstInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (open) {
-      setTimeout(() => firstInputRef.current?.focus(), 0);
-    }
-  }, [open]);
-
   const sendMutation = useMutation({
     mutationFn: async (data: { to: string[]; cc: string[]; bcc: string[]; subject: string; bodyHtml: string; bodyText: string; attachments?: { filename: string; contentType: string; url: string; size: number }[] }) =>
       apiRequest("POST", "/api/email/send", data),

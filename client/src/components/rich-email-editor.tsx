@@ -103,13 +103,12 @@ export function RichEmailEditor({ initialContent = "", onChange, placeholder = "
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        editor?.commands.blur();
         setShowEmojis(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [editor]);
+  }, []);
 
   if (!editor) return null;
 

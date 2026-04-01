@@ -251,7 +251,7 @@ function DomainFormDialog({ open, onOpenChange, domain, projects }: DomainFormDi
                     <SelectContent>
                       <SelectItem value="none">— No project —</SelectItem>
                       {projects.map((p) => (
-                        <SelectItem key={p.id} value={String(p.id)}>{p.title}</SelectItem>
+                        <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -349,7 +349,7 @@ export default function CommandDomains() {
   function getProjectName(projectId: number | null | undefined): string {
     if (!projectId) return "—";
     const project = projects.find((p) => p.id === projectId);
-    return project?.title ?? "—";
+    return project?.name ?? "—";
   }
 
   function openEdit(domain: Domain) {

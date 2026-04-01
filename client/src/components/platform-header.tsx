@@ -218,12 +218,14 @@ function NavButton({
   isActive,
   onClick,
   open,
+  icon: Icon,
   "data-testid": testId,
 }: {
   label: string;
   isActive: boolean;
   onClick: () => void;
   open: boolean;
+  icon?: React.ElementType;
   "data-testid"?: string;
 }) {
   return (
@@ -236,6 +238,7 @@ function NavButton({
       onClick={onClick}
       data-testid={testId}
     >
+      {Icon && <Icon className="h-3.5 w-3.5" />}
       {label}
       <ChevronDown className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} />
     </Button>
@@ -641,6 +644,7 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
           isActive={isActive}
           onClick={() => setOpen((o) => !o)}
           open={open}
+          icon={Wrench}
           data-testid="nav-tools"
         />
       </div>
@@ -979,12 +983,6 @@ export function PlatformHeader() {
                     <Link href="/account" data-testid="link-account">
                       <Settings2 className="h-3.5 w-3.5 mr-2" />
                       Account
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/notes" data-testid="link-notes">
-                      <StickyNote className="h-3.5 w-3.5 mr-2" />
-                      Notes
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />

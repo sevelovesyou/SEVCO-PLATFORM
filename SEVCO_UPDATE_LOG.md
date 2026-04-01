@@ -15716,3 +15716,106 @@ Change the default model from `"openai/gpt-4o-mini"` to stay as-is — it's vali
 
 ---
 
+## Task — fix-xai-agent-chat
+> Merged: 2026-04-01
+
+# Task #184 — Fix: Can't add/chat with xAI Grok agents from CMD
+
+## Context
+
+User reports: "My XAI_API_KEY is configured within my Secrets yet, I can't add them as Agents from CMD"
+
+XAI_API_KEY IS confirmed in dev secrets (`process.env.XAI_API_KEY` returns "SET" in shell).
+xAI direct API tests PASS for: grok-3, grok-3-fast, grok-3-mini, grok-3-mini-fast.
+The `POST /api/ai-agents` route and DB are correct.
+
+## Likely Root Cause
+
+The issue is most likely in the **streaming/non-streaming chat routes**, not agent creation.
+When the user opens the Chat sheet and tries to message an xAI agent, the request fails.
+There are two chat endpoints to check:
+
+1. `GET /api/ai/chat/:agentId` (non-streaming, query param message)
+   - Route at routes.ts ~4635
+   - Returns SSE or JSON response depending on headers
+2. `POST /api/ai/agents/:id/chat` (streaming)
+   - Route at routes.ts ~4820
+   - Checks `if (!apiKey)` and returns 500 if XAI_API_KEY missing
+
+Both routes require `requireRole("admin", "executive")`. If user role isn't high enough
+(or something in the role check isn't working after DB changes), the route fails with 403.
+
+## Investigation Steps
+
+### Step 1: Restart the server
+The server must be restarted AFTER XAI_API_KEY was added to secrets for the env var to be available.
+```bash
+# Already done, but verify:
+node -e "console.log('XAI_API_KEY:', process.env.XAI_API_KEY ? 'SET' : 'MISSING')"
+```
+
+### Step 2: Test agent creation
+Make a direct POST to create a test agent with an xAI model:
+```bash
+curl -X POST http://localhost:5000/api/ai-agents \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test Grok","slug":"test-grok","systemPrompt":"You are helpful.","modelSlug":"xai/grok-3","enabled":true,"capabilities":["text"]}' \
+  -c /tmp/test-cookies.txt
+```
+If this returns 401/403 → auth/role issue (not the real problem here)
+If this returns 400 → Zod validation issue
+
+### Step 3: Test chat with the agent
+After creating an agent, try chatting:
+```bash
+# Get agent id first, then:
+curl "http://localhost:5000/api/ai/chat/{AGENT_ID}?message=Hello" \
+  -H "Accept: text/event-stream" \
+  -c /tmp/test-cookies.txt
+```
+
+### Step 4: Check the chat sheet component
+Look at the component that opens when the user clicks the Chat icon in the header:
+- `client/src/components/chat-sheet.tsx`
+- `client/src/pages/fullscreen-chat-page.tsx`
+
+Check if there's any client-side guard that filters out xAI models or checks for the key
+before allowing the user to pick the agent.
+
+### Step 5: Check the xAI/status endpoint
+The page may be calling `/api/ai/xai/status` and showing a disabled state if XAI_API_KEY
+is falsy. But since the key is set, this should return `{configured: true}`.
+
+## Fix Options
+
+Depending on what's found:
+
+**A) If the streaming route fails with "XAI_API_KEY is not configured" even though it IS set:**
+   - This means the server process doesn't have the env var despite it being in Replit secrets
+   - The fix is: check `scripts/post-merge.sh` to ensure server restarts properly
+   - Or: add an explicit `console.log("[startup] XAI_API_KEY:", !!process.env.XAI_API_KEY)` to debug
+
+**B) If the chat-sheet component guards xAI models:**
+   - Remove the guard or make it check the `/api/ai/xai/status` endpoint correctly
+
+**C) If agent creation fails with 400:**
+   - Log the exact Zod error from `err.message` in the route
+   - Fix the schema or payload mismatch
+
+**D) If role check fails (403):**
+   - Check the user's current role in the DB and ensure they have admin/executive
+
+## Key Files
+- `server/routes.ts` — Chat endpoints at lines ~4635 and ~4820
+- `client/src/components/chat-sheet.tsx` — Chat UI opened from header
+- `client/src/pages/command-ai-agents.tsx` — Agent creation form
+- `client/src/pages/fullscreen-chat-page.tsx` — Fullscreen chat
+
+## Done Looks Like
+- User can create a new agent with model = `xai/grok-3` from CMD
+- User can open the Chat panel, select that agent, type a message, and get a response
+- No "XAI_API_KEY is not configured" or 500 errors in server logs
+
+
+---
+

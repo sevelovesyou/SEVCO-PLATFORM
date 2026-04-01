@@ -291,7 +291,7 @@ html, body {
   display: none;
 }
 
-.cmd-sidebar {
+.dark .cmd-sidebar {
   --sidebar: 220 20% 5%;
   --sidebar-foreground: 210 15% 80%;
   --sidebar-accent: 220 18% 10%;

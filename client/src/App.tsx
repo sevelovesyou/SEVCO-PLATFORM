@@ -440,10 +440,6 @@ function PlatformColorInjector() {
 
     const lightRules: string[] = [];
 
-    if (brandMain && !settings["color.light.primary"]) {
-      lightRules.push(`  --primary: ${brandMain};`);
-      lightRules.push(`  --ring: ${brandMain};`);
-    }
     if (navMainBg) {
       lightRules.push(`  --sidebar-primary: ${navMainBg};`);
       lightRules.push(`  --sidebar-accent: ${navMainBg};`);
@@ -461,16 +457,6 @@ function PlatformColorInjector() {
     if (navSubText) {
       lightRules.push(`  --nav-sub-accent-foreground: ${navSubText};`);
     }
-    if (brandSecondary) {
-      lightRules.push(`  --secondary: ${brandSecondary};`);
-    }
-    if (brandAccent && !settings["color.light.accent"]) {
-      lightRules.push(`  --accent: ${brandAccent};`);
-    }
-    if (brandHighlight) {
-      lightRules.push(`  --ring: ${brandHighlight};`);
-    }
-
     if (brandMain) lightRules.push(`  --brand-main: ${brandMain};`);
     if (brandSecondary) lightRules.push(`  --brand-secondary: ${brandSecondary};`);
     if (brandAccent) lightRules.push(`  --brand-accent: ${brandAccent};`);
@@ -515,10 +501,6 @@ function PlatformColorInjector() {
 
     const darkRules: string[] = [];
 
-    if (brandMain && !settings["color.dark.primary"]) {
-      darkRules.push(`  --primary: ${brandMain};`);
-      darkRules.push(`  --ring: ${brandMain};`);
-    }
     if (navMainBg) {
       darkRules.push(`  --sidebar-primary: ${navMainBg};`);
       darkRules.push(`  --sidebar-accent: ${navMainBg};`);
@@ -536,16 +518,6 @@ function PlatformColorInjector() {
     if (navSubText) {
       darkRules.push(`  --nav-sub-accent-foreground: ${navSubText};`);
     }
-    if (brandSecondary) {
-      darkRules.push(`  --secondary: ${brandSecondary};`);
-    }
-    if (brandAccent && !settings["color.dark.accent"]) {
-      darkRules.push(`  --accent: ${brandAccent};`);
-    }
-    if (brandHighlight) {
-      darkRules.push(`  --ring: ${brandHighlight};`);
-    }
-
     if (brandMain) darkRules.push(`  --brand-main: ${brandMain};`);
     if (brandSecondary) darkRules.push(`  --brand-secondary: ${brandSecondary};`);
     if (brandAccent) darkRules.push(`  --brand-accent: ${brandAccent};`);

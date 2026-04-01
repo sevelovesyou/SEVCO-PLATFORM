@@ -1138,8 +1138,8 @@ export default function CommandSettings() {
   const [lightForeground, setLightForeground] = useState(DEFAULT_COLORS.lightForeground);
   const [lightAccent, setLightAccent] = useState(DEFAULT_COLORS.lightAccent);
   const [lightAccentFg, setLightAccentFg] = useState("224 71% 4%");
-  const [lightSecondary, setLightSecondary] = useState("0 100% 37%");
-  const [lightSecondaryFg, setLightSecondaryFg] = useState("0 0% 100%");
+  const [lightSecondary, setLightSecondary] = useState("220 14% 93%");
+  const [lightSecondaryFg, setLightSecondaryFg] = useState("220 20% 20%");
   const [lightCard, setLightCard] = useState("0 0% 100%");
   const [lightCardFg, setLightCardFg] = useState("224 71% 4%");
   const [lightMuted, setLightMuted] = useState("210 40% 96%");
@@ -1296,8 +1296,8 @@ export default function CommandSettings() {
     setLightForeground(settings["color.light.foreground"] || DEFAULT_COLORS.lightForeground);
     setLightAccent(settings["color.light.accent"] || DEFAULT_COLORS.lightAccent);
     setLightAccentFg(settings["color.light.accentFg"] || "224 71% 4%");
-    setLightSecondary(settings["color.light.secondary"] || "0 100% 37%");
-    setLightSecondaryFg(settings["color.light.secondaryFg"] || "0 0% 100%");
+    setLightSecondary(settings["color.light.secondary"] || "220 14% 93%");
+    setLightSecondaryFg(settings["color.light.secondaryFg"] || "220 20% 20%");
     setLightCard(settings["color.light.card"] || "0 0% 100%");
     setLightCardFg(settings["color.light.cardFg"] || "224 71% 4%");
     setLightMuted(settings["color.light.muted"] || "210 40% 96%");
@@ -2282,7 +2282,7 @@ export default function CommandSettings() {
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="pb-4 space-y-4">
-                        <p className="text-xs text-muted-foreground">Main brand color used for buttons, links, and key UI elements.</p>
+                        <p className="text-xs text-muted-foreground">Main brand color used for buttons, links, focus rings, and key UI elements.</p>
                         <div className="space-y-3">
                           <ColorPickerRow label="Primary (light mode)" hsl={lightPrimary} onChange={setLightPrimary} testIdBase="primary-light" showSwatches />
                           <ColorPickerRow label="Primary foreground (text on primary)" hsl={lightPrimaryFg} onChange={setLightPrimaryFg} testIdBase="primary-light-fg" />
@@ -2352,12 +2352,15 @@ export default function CommandSettings() {
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="pb-4 space-y-4">
-                        <p className="text-xs text-muted-foreground">Core brand palette that maps to primary, secondary, and accent when not overridden above.</p>
+                        <p className="text-xs text-muted-foreground">Your brand's identity palette — stored as CSS variables (--brand-main, --brand-secondary, etc.) for use in custom CSS and future theming. Use the Primary Palette and Secondary/Accent sections above to directly control button and UI colors.</p>
+                        <div className="rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                          If you were previously using Brand Main as your primary button color, re-enter it in the Primary Palette section above.
+                        </div>
                         <div className="space-y-3">
-                          <ColorPickerRow label="Brand Main" hsl={brandMain} onChange={setBrandMain} testIdBase="brand-main" showSwatches />
-                          <ColorPickerRow label="Brand Secondary" hsl={brandSecondary} onChange={setBrandSecondary} testIdBase="brand-secondary" showSwatches />
-                          <ColorPickerRow label="Brand Accent" hsl={brandAccent} onChange={setBrandAccent} testIdBase="brand-accent" showSwatches />
-                          <ColorPickerRow label="Brand Highlight / Ring" hsl={brandHighlight} onChange={setBrandHighlight} testIdBase="brand-highlight" showSwatches />
+                          <ColorPickerRow label="Brand Main (--brand-main)" hsl={brandMain} onChange={setBrandMain} testIdBase="brand-main" showSwatches />
+                          <ColorPickerRow label="Brand Secondary (--brand-secondary)" hsl={brandSecondary} onChange={setBrandSecondary} testIdBase="brand-secondary" showSwatches />
+                          <ColorPickerRow label="Brand Accent (--brand-accent)" hsl={brandAccent} onChange={setBrandAccent} testIdBase="brand-accent" showSwatches />
+                          <ColorPickerRow label="Brand Highlight (--brand-highlight)" hsl={brandHighlight} onChange={setBrandHighlight} testIdBase="brand-highlight" showSwatches />
                         </div>
                         <div className="flex justify-end pt-2 border-t">
                           <Button size="sm" onClick={saveThemeBrandColors} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-brand-colors">

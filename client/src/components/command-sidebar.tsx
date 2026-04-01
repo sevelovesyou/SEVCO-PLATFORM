@@ -35,7 +35,8 @@ import {
   Globe,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
-
+import { useAuth } from "@/hooks/use-auth";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SevcoLogo } from "@/components/sevco-logo";
 
 type NavItem = {
@@ -44,14 +45,10 @@ type NavItem = {
   icon: React.ElementType;
 };
 
-type NavSubGroup = {
-  label: string;
-  items: NavItem[];
-};
-
 export function CommandSidebar() {
   const [location] = useLocation();
   const { role } = usePermission();
+  const { user } = useAuth();
 
   const isAdmin = role === "admin";
   const isExec = role === "executive";
@@ -61,68 +58,37 @@ export function CommandSidebar() {
     { title: "Overview", url: "/command", icon: LayoutDashboard },
   ];
 
-  const contentTopItems: NavItem[] = [
+  const contentItems: NavItem[] = [
     ...(isAdmin || isExec ? [{ title: "Store", url: "/command/store", icon: ShoppingBag }] : []),
     ...(isAdmin || isExec ? [{ title: "Music", url: "/command/music", icon: Music }] : []),
     ...(isAdmin || isExec || isStaff ? [{ title: "Projects", url: "/command/projects", icon: Folder }] : []),
+    ...(isAdmin ? [{ title: "News", url: "/command/news", icon: Newspaper }] : []),
+    ...(isAdmin ? [{ title: "Gallery", url: "/command/gallery", icon: Images }] : []),
+    ...(isAdmin ? [{ title: "Media", url: "/command/media", icon: FolderOpen }] : []),
+    ...(isAdmin ? [{ title: "Resources", url: "/command/resources", icon: BookMarked }] : []),
+    ...(isAdmin ? [{ title: "Minecraft", url: "/command/minecraft", icon: Gamepad2 }] : []),
   ];
 
-  const contentSubGroups: NavSubGroup[] = [
-    {
-      label: "Publishing",
-      items: [
-        ...(isAdmin ? [{ title: "News", url: "/command/news", icon: Newspaper }] : []),
-        ...(isAdmin ? [{ title: "Gallery", url: "/command/gallery", icon: Images }] : []),
-        ...(isAdmin ? [{ title: "Media", url: "/command/media", icon: FolderOpen }] : []),
-      ].filter(Boolean),
-    },
-    {
-      label: "Other",
-      items: [
-        ...(isAdmin ? [{ title: "Resources", url: "/command/resources", icon: BookMarked }] : []),
-        ...(isAdmin ? [{ title: "Minecraft", url: "/command/minecraft", icon: Gamepad2 }] : []),
-      ].filter(Boolean),
-    },
-  ].filter((g) => g.items.length > 0);
-
-  const operationsTopItems: NavItem[] = [
+  const operationsItems: NavItem[] = [
     ...(isAdmin || isExec ? [{ title: "Jobs", url: "/command/jobs", icon: ClipboardList }] : []),
     ...(isAdmin || isExec ? [{ title: "Services", url: "/command/services", icon: Briefcase }] : []),
     ...(isAdmin || isExec || isStaff ? [{ title: "Changelog", url: "/command/changelog", icon: ScrollText }] : []),
+    ...(isAdmin || isExec || isStaff ? [{ title: "Support", url: "/command/support", icon: MessageSquare }] : []),
+    ...(isAdmin || isExec ? [{ title: "Finance", url: "/command/finance", icon: DollarSign }] : []),
   ];
 
-  const operationsSubGroups: NavSubGroup[] = [
-    {
-      label: "Support & Finance",
-      items: [
-        ...(isAdmin || isExec || isStaff ? [{ title: "Support", url: "/command/support", icon: MessageSquare }] : []),
-        ...(isAdmin || isExec ? [{ title: "Finance", url: "/command/finance", icon: DollarSign }] : []),
-      ].filter(Boolean),
-    },
-  ].filter((g) => g.items.length > 0);
-
-  const hasContentItems = contentTopItems.length > 0 || contentSubGroups.length > 0;
-  const hasOperationsItems = operationsTopItems.length > 0 || operationsSubGroups.length > 0;
-
-  const systemTopItems: NavItem[] = [
+  const systemItems: NavItem[] = [
     ...(isAdmin ? [{ title: "Users", url: "/command/users", icon: Users }] : []),
     ...(isAdmin ? [{ title: "Staff", url: "/command/staff", icon: UsersRound }] : []),
     ...(isAdmin ? [{ title: "Traffic", url: "/command/traffic", icon: BarChart2 }] : []),
     ...(isAdmin || isExec ? [{ title: "Domains", url: "/command/domains", icon: Globe }] : []),
-    ...(isAdmin || isExec ? [{ title: "Platform Settings", url: "/command/settings", icon: Settings2 }] : []),
+    ...(isAdmin ? [{ title: "Chat Log", url: "/command/chat-log", icon: MessageSquare }] : []),
+    ...(isAdmin ? [{ title: "Agents", url: "/command/ai-agents", icon: Bot }] : []),
   ];
 
-  const systemSubGroups: NavSubGroup[] = [
-    {
-      label: "Monitoring",
-      items: [
-        ...(isAdmin ? [{ title: "Chat Log", url: "/command/chat-log", icon: MessageSquare }] : []),
-        ...(isAdmin ? [{ title: "Agents", url: "/command/ai-agents", icon: Bot }] : []),
-      ].filter(Boolean),
-    },
-  ].filter((g) => g.items.length > 0);
-
-  const hasSystemItems = systemTopItems.length > 0 || systemSubGroups.length > 0;
+  const hasContentItems = contentItems.length > 0;
+  const hasOperationsItems = operationsItems.length > 0;
+  const hasSystemItems = systemItems.length > 0;
 
   function isActive(url: string) {
     if (url === "/command") {
@@ -138,6 +104,7 @@ export function CommandSidebar() {
           asChild
           tooltip={item.title}
           data-active={isActive(item.url)}
+          className="h-8 text-sm"
         >
           <Link href={item.url} data-testid={`link-command-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
             <item.icon className="h-4 w-4" />
@@ -145,19 +112,6 @@ export function CommandSidebar() {
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
-    ));
-  }
-
-  function renderSubGroups(subGroups: NavSubGroup[]) {
-    return subGroups.map((group) => (
-      <li key={group.label} className="list-none">
-        <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
-          {group.label}
-        </div>
-        <ul className="flex w-full min-w-0 flex-col gap-1">
-          {renderItems(group.items)}
-        </ul>
-      </li>
     ));
   }
 
@@ -190,11 +144,13 @@ export function CommandSidebar() {
 
         {hasContentItems && (
           <SidebarGroup>
-            <SidebarGroupLabel>Content</SidebarGroupLabel>
+            <SidebarGroupLabel className="flex items-center justify-between px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 group-data-[collapsible=icon]:hidden">
+              <span>Content</span>
+              <span className="font-light opacity-50">—</span>
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {renderItems(contentTopItems)}
-                {renderSubGroups(contentSubGroups)}
+                {renderItems(contentItems)}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -202,11 +158,13 @@ export function CommandSidebar() {
 
         {hasOperationsItems && (
           <SidebarGroup>
-            <SidebarGroupLabel>Operations</SidebarGroupLabel>
+            <SidebarGroupLabel className="flex items-center justify-between px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 group-data-[collapsible=icon]:hidden">
+              <span>Operations</span>
+              <span className="font-light opacity-50">—</span>
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {renderItems(operationsTopItems)}
-                {renderSubGroups(operationsSubGroups)}
+                {renderItems(operationsItems)}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -214,18 +172,35 @@ export function CommandSidebar() {
 
         {hasSystemItems && (
           <SidebarGroup>
-            <SidebarGroupLabel>System</SidebarGroupLabel>
+            <SidebarGroupLabel className="flex items-center justify-between px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 group-data-[collapsible=icon]:hidden">
+              <span>System</span>
+              <span className="font-light opacity-50">—</span>
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {renderItems(systemTopItems)}
-                {renderSubGroups(systemSubGroups)}
+                {renderItems(systemItems)}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
       </SidebarContent>
 
-      <SidebarFooter className="p-3 border-t border-sidebar-border">
+      <SidebarFooter className="p-2 border-t border-sidebar-border gap-2">
+        {user && (
+          <div className="flex items-center gap-2 px-1 py-1 rounded-md group-data-[collapsible=icon]:hidden">
+            <Avatar className="h-7 w-7 flex-shrink-0">
+              <AvatarFallback className="text-[10px] bg-sidebar-accent text-sidebar-accent-foreground">
+                {(user.displayName || user.username).slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium truncate text-sidebar-foreground leading-none mb-0.5">
+                {user.displayName || user.username}
+              </p>
+              <p className="text-[10px] text-muted-foreground/60 capitalize leading-none">{role}</p>
+            </div>
+          </div>
+        )}
         {(isAdmin || isExec) && (
           <SidebarMenu>
             <SidebarMenuItem>
@@ -233,6 +208,7 @@ export function CommandSidebar() {
                 asChild
                 tooltip="Platform Settings"
                 data-active={isActive("/command/settings")}
+                className="h-8"
               >
                 <Link href="/command/settings" data-testid="link-command-nav-platform-settings">
                   <Settings2 className="h-4 w-4" />
@@ -242,9 +218,6 @@ export function CommandSidebar() {
             </SidebarMenuItem>
           </SidebarMenu>
         )}
-        <div className="text-[10px] text-muted-foreground text-center pt-1 group-data-[collapsible=icon]:hidden">
-          Command Center
-        </div>
       </SidebarFooter>
     </Sidebar>
   );

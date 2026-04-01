@@ -15329,3 +15329,86 @@ async function notify(userId: string, type: string, title: string, body?: string
 
 ---
 
+## Task — email-compose-typing-fix
+> Merged: 2026-04-01
+
+# Task #179 — Fix: Can't Type in Email Compose Form
+
+## Root Causes
+
+### Cause 1: `initialContent={body}` passes live state to RichEmailEditor on every render
+
+In `email-compose-modal.tsx`:
+```tsx
+<RichEmailEditor
+  initialContent={body}       // ← body changes on every keystroke
+  onChange={(html) => setBody(html)}
+/>
+```
+
+Every time the user types in the Tiptap editor, `onUpdate` fires → `setBody(html)` → parent
+re-renders → `RichEmailEditor` receives a new `initialContent` prop. Even if Tiptap doesn't
+fully recreate the editor, passing a changing `initialContent` interferes with the editor's
+content management and can cause focus loss or content reset.
+
+**Fix:** Capture the initial value in a `useRef` and pass only that stable reference:
+```tsx
+const initialBodyRef = useRef(initialBody);
+
+// In JSX:
+<RichEmailEditor
+  initialContent={initialBodyRef.current}   // stable, never changes
+  onChange={(html) => setBody(html)}
+/>
+```
+
+This lets Tiptap own its own content state. The `body` state in the parent is still updated
+via `onChange` and used when sending — but it won't trigger spurious re-renders that
+re-initialize the editor.
+
+### Cause 2: Radix UI Dialog auto-focuses the first focusable element on open, competing with user interaction
+
+The Radix UI `Dialog` calls `onOpenAutoFocus` by default when it opens, which focuses the
+first focusable element inside `DialogContent`. This can conflict with the Tiptap
+`contenteditable` div and TagInput components, causing the dialog to recapture focus away
+from whichever element the user has clicked.
+
+**Fix:** Add `onOpenAutoFocus={(e) => e.preventDefault()}` to `DialogContent` so the dialog
+does not aggressively steal focus when opened:
+```tsx
+<DialogContent
+  onOpenAutoFocus={(e) => e.preventDefault()}
+  className="max-w-full sm:max-w-2xl mx-2 sm:mx-auto max-h-[90vh] flex flex-col"
+  data-testid="modal-compose-email"
+>
+```
+
+---
+
+## Changes Required
+
+### `client/src/components/email-compose-modal.tsx`
+
+1. Add `useRef` to the existing `useState, useRef, ...` import (already imported)
+2. After the state declarations add:
+   ```ts
+   const initialBodyRef = useRef(initialBody);
+   ```
+3. Change `initialContent={body}` on `<RichEmailEditor>` to `initialContent={initialBodyRef.current}`
+4. Add `onOpenAutoFocus={(e) => e.preventDefault()}` to `<DialogContent>`
+
+### No other files need to change.
+
+---
+
+## Verification
+- Open the compose modal
+- Click the "To" field → should be able to type an email address and press Enter to add tag
+- Click the "Subject" field → should be able to type
+- Click the body area → should be able to type in the Tiptap editor
+- Type in the body → body should not lose focus or reset between keystrokes
+- Emoji picker should open on click and close correctly
+
+
+---
+

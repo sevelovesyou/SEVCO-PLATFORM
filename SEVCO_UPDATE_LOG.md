@@ -16484,3 +16484,188 @@ before testing the fix.
 
 ---
 
+## Task — fix-platform-settings-theme-colors
+> Merged: 2026-04-01
+
+# Task #188 — Fix Platform Settings: Theme Color System Overhaul
+
+## Problem Summary
+
+The user changed one color in the Theme tab and "a bunch of colors got messed up."
+There are three distinct bugs causing cascading unpredictable color changes:
+
+---
+
+### Bug 1: Brand Colors silently collide with Primary/Secondary/Accent Palette groups
+
+In `client/src/App.tsx` — `PlatformColorInjector`:
+
+```javascript
+// CURRENT (broken) logic:
+if (brandMain && !settings["color.light.primary"]) {
+  lightRules.push(`  --primary: ${brandMain};`);
+  lightRules.push(`  --ring: ${brandMain};`);  // <- also sets ring!
+}
+if (brandSecondary) {
+  lightRules.push(`  --secondary: ${brandSecondary};`); // <- NO conditional, always fires
+}
+if (brandAccent && !settings["color.light.accent"]) {
+  lightRules.push(`  --accent: ${brandAccent};`);
+}
+if (brandHighlight) {
+  lightRules.push(`  --ring: ${brandHighlight};`); // <- OVERWRITES brandMain's ring
+}
+```
+
+The "Brand Colors" group in Settings controls `--primary`, `--secondary`, `--accent`, AND
+`--ring` — the same variables controlled by "Primary Palette" and "Secondary / Accent Palette".
+brandSecondary has NO conditional (always fires), while brandMain has a conditional —
+this inconsistency means secondary always gets overridden by Brand even when you set it in
+the Secondary/Accent group.
+
+**Fix**: Brand Colors should ONLY set `--brand-*` custom properties, NOT override `--primary`,
+`--secondary`, `--accent`, or `--ring`. Each dedicated palette group should be the sole owner
+of its CSS variable.
+
+---
+
+### Bug 2: Brand Highlight ring override
+
+`brandHighlight` pushes `--ring: ${brandHighlight}` AFTER `brandMain` already pushed
+`--ring: ${brandMain}`. So there are two conflicting `--ring` rules in the same `:root` block,
+and the last one wins. The user sees this as: "I changed Highlight color and my focus rings
+changed unexpectedly."
+
+**Fix**: Remove the `--ring` assignment from `brandHighlight`. Brand Highlight only sets
+`--brand-highlight`. The existing Primary Palette controls `--ring` via `--primary`.
+
+---
+
+### Bug 3: Secondary/Accent defaults to red (#bd0000 equivalent)
+
+In `command-settings.tsx`:
+```javascript
+const [lightSecondary, setLightSecondary] = useState("0 100% 37%"); // red!
+const [lightSecondaryFg, setLightSecondaryFg] = useState("0 0% 100%"); // white on red
+```
+
+The actual CSS default in `index.css` is `220 14% 93%` (light blue-gray). If a user opens the
+"Secondary / Accent Palette" accordion and saves without changing anything, they overwrite all
+secondary colors with solid red. This is likely what triggered the user's report.
+
+**Fix**: Change the default to `"220 14% 93%"` (matching `index.css` defaults for secondary)
+and `"220 20% 20%"` for the foreground.
+
+---
+
+## Changes Required
+
+### `client/src/App.tsx` — `PlatformColorInjector` function
+
+**Light mode brand cascade** — Replace the entire block that sets UI vars from brand colors:
+
+```javascript
+// REMOVE all of these light mode brand→UI cascades:
+// if (brandMain && !settings["color.light.primary"]) { --primary, --ring }
+// if (brandSecondary) { --secondary }
+// if (brandAccent && !settings["color.light.accent"]) { --accent }
+// if (brandHighlight) { --ring }
+
+// KEEP only the brand-* custom property assignments:
+if (brandMain) lightRules.push(`  --brand-main: ${brandMain};`);
+if (brandSecondary) lightRules.push(`  --brand-secondary: ${brandSecondary};`);
+if (brandAccent) lightRules.push(`  --brand-accent: ${brandAccent};`);
+if (brandHighlight) lightRules.push(`  --brand-highlight: ${brandHighlight};`);
+```
+
+**Dark mode brand cascade** — Same: remove the dark mode `--primary`/`--secondary`/`--accent`/`--ring`
+overrides from brand vars, keep only `--brand-*` assignments.
+
+The `COLOR_KEYS_LIGHT` and `COLOR_KEYS_DARK` loops (which handle `color.light.*` and `color.dark.*`
+settings) already correctly set `--primary`, `--secondary`, `--accent`, `--background`, etc.
+Brand Colors should NOT touch those.
+
+### `client/src/pages/command-settings.tsx`
+
+**1. Fix Secondary default values:**
+```javascript
+// BEFORE:
+const [lightSecondary, setLightSecondary] = useState("0 100% 37%");
+const [lightSecondaryFg, setLightSecondaryFg] = useState("0 0% 100%");
+
+// AFTER (matching index.css :root defaults):
+const [lightSecondary, setLightSecondary] = useState("220 14% 93%");
+const [lightSecondaryFg, setLightSecondaryFg] = useState("220 20% 20%");
+```
+
+Also fix the load-from-settings fallback in the useEffect (lines ~1299-1300):
+```javascript
+// BEFORE:
+setLightSecondary(settings["color.light.secondary"] || "0 100% 37%");
+setLightSecondaryFg(settings["color.light.secondaryFg"] || "0 0% 100%");
+
+// AFTER:
+setLightSecondary(settings["color.light.secondary"] || "220 14% 93%");
+setLightSecondaryFg(settings["color.light.secondaryFg"] || "220 20% 20%");
+```
+
+**2. Update Brand Colors description** to make clear it's for brand identity only:
+```
+// BEFORE:
+"Core brand palette that maps to primary, secondary, and accent when not overridden above."
+
+// AFTER:
+"Your brand's identity palette — stored as CSS variables (--brand-main, --brand-secondary, etc.)
+for use in custom CSS and future theming. Use the Primary Palette and Secondary/Accent sections
+above to directly control button and UI colors."
+```
+
+**3. Update Brand Colors field labels** to clarify they don't control UI directly:
+- "Brand Main" → "Brand Main (--brand-main)"  
+- "Brand Secondary" → "Brand Secondary (--brand-secondary)"
+- "Brand Accent" → "Brand Accent (--brand-accent)"
+- "Brand Highlight / Ring" → "Brand Highlight (--brand-highlight)" [remove "/ Ring" since it no longer controls ring]
+
+**4. Update Primary Palette description** to note it controls ring color too:
+```
+// AFTER:
+"Main brand color used for buttons, links, focus rings, and key UI elements."
+```
+
+**5. Move darkAccent out of Neutrals** — `darkAccent` controls `--accent` in dark mode (an
+interactive color), but it's currently in the "Neutral / Background Colors" dark mode tab
+alongside background, foreground, and borders. Move it to appear near darkPrimary or add a
+comment.
+
+Actually darkAccent is fine where it is since dark mode has fewer controls — just add a comment
+clarifying it's the hover/highlight color in dark mode.
+
+---
+
+## What NOT to Change
+
+- Do NOT change `COLOR_KEYS_LIGHT`, `COLOR_KEYS_DARK`, or `CSS_VAR_MAP_LIGHT/DARK` — these are correct.
+- Do NOT change `index.css` — the base CSS variables are fine.
+- Do NOT change nav colors, page button overrides, or per-section accent colors — these work correctly.
+- Do NOT change `saveThemePrimaryPalette`, `saveThemeSecondaryAccent`, `saveThemeNeutrals`, etc. — these save correctly.
+- Backward compatibility: existing saved values in the DB are not affected. If a user had
+  `color.light.primary` set, it still applies through `COLOR_KEYS_LIGHT`. If they had only
+  `color.brand.main` (no light.primary), the brand color will no longer auto-apply to --primary.
+  Add a migration note in the UI: the Brand Colors section gets a banner saying
+  "If you were using Brand Main as your primary button color, re-enter it in Primary Palette above."
+
+---
+
+## Done Looks Like
+
+- Changing "Brand Main" → does NOT affect `--primary` or `--ring` or any other UI variable. Only stores `--brand-main`.
+- Changing "Brand Highlight" → does NOT affect `--ring`. Only stores `--brand-highlight`.
+- Changing "Primary Palette" → ONLY affects `--primary` and `--primary-foreground`. Ring follows primary.
+- Changing "Secondary / Accent Palette" → ONLY affects `--secondary` and `--accent`. No red defaults.
+- Opening Secondary/Accent and saving without changes does NOT turn secondary elements red.
+- Color Palette has a live preview that accurately reflects what will change.
+- Each group's description accurately describes what CSS variables it controls.
+
+
+---
+

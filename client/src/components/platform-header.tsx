@@ -626,13 +626,6 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
   const CLIENT_PLUS_ROLES = ["client", "partner", "staff", "executive", "admin"];
   const isClientPlus = !!(user && CLIENT_PLUS_ROLES.includes(user.role));
 
-  const { data: folderCounts } = useQuery<Record<string, number>>({
-    queryKey: ["/api/email/folders"],
-    enabled: isClientPlus,
-    refetchInterval: 30000,
-  });
-  const unreadEmailCount = isClientPlus ? (folderCounts?.unreadInbox ?? 0) : 0;
-
   const allItems = [
     { label: "Notes",   href: "/notes",        icon: StickyNote,   desc: "Personal & shared notes",               requiredRoles: ["user","client","partner","staff","executive","admin"] },
     { label: "Tasks",   href: "/tools/tasks",  icon: CheckSquare,  desc: "Personal to-do list & staff board",     requiredRoles: ["user","client","partner","staff","executive","admin"] },
@@ -661,11 +654,6 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
           open={open}
           data-testid="nav-tools"
         />
-        {unreadEmailCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-blue-500 text-white text-[10px] font-semibold flex items-center justify-center pointer-events-none" data-testid="badge-email-unread-nav">
-            {unreadEmailCount > 99 ? "99+" : unreadEmailCount}
-          </span>
-        )}
       </div>
       {open && (
         <DropdownPanel className="w-64">
@@ -683,11 +671,6 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-xs font-semibold text-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">{item.label}</p>
-                      {item.label === "Email" && unreadEmailCount > 0 && (
-                        <span className="h-4 min-w-4 px-1 rounded-full bg-blue-500 text-white text-[10px] font-semibold flex items-center justify-center" data-testid="badge-email-unread-dropdown">
-                          {unreadEmailCount > 99 ? "99+" : unreadEmailCount}
-                        </span>
-                      )}
                       {locked && <Lock className="h-3 w-3 text-muted-foreground/60 ml-auto" />}
                     </div>
                     <p className="text-[11px] text-muted-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">{item.desc}</p>

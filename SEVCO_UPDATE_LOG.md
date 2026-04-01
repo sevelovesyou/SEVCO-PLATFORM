@@ -15819,3 +15819,205 @@ Depending on what's found:
 
 ---
 
+## Task — xai-x-search-enrichment
+> Merged: 2026-04-01
+
+# Task #185 — xAI X Search enrichment on the Search page
+
+## Goal
+Enrich search results with real-time X (Twitter) data via the xAI X Search tool.
+When a user searches for "dog" (for example):
+1. **Platform results appear first** — wiki, projects, store, music, jobs, services (existing behavior unchanged)
+2. **Below those**, a new "On X" section shows relevant X posts found via xAI X Search
+
+## API Details
+- Endpoint: `POST https://api.x.ai/v1/responses` (NOT `/v1/chat/completions`)
+- Auth: `Bearer ${XAI_API_KEY}` (already in secrets)
+- Request body:
+  ```json
+  {
+    "model": "grok-3",
+    "input": [{ "role": "user", "content": "Search X for posts about: {query}" }],
+    "tools": [{ "type": "x_search" }]
+  }
+  ```
+- The response is shaped like:
+  ```json
+  {
+    "output": [ ... message/tool objects ... ],
+    "citations": [
+      {
+        "url": "https://x.com/user/status/...",
+        "title": "@handle on X",
+        "text": "Post content snippet..."
+      },
+      ...
+    ]
+  }
+  ```
+- Citations contain the X posts. Each has `url`, `title` (usually "@handle on X"), `text`.
+
+## Backend Changes — `server/routes.ts`
+
+Add a new route near the existing `/api/search` route (~line 1637):
+
+```ts
+app.get("/api/search/x-social", async (req, res) => {
+  const query = ((req.query.q as string) || "").trim();
+  if (!query || query.length < 2) return res.json({ posts: [], query });
+
+  const apiKey = process.env.XAI_API_KEY;
+  if (!apiKey) return res.json({ posts: [], query, error: "XAI_API_KEY not configured" });
+
+  try {
+    const xaiRes = await fetch("https://api.x.ai/v1/responses", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "grok-3",
+        input: [{ role: "user", content: `Search X (Twitter) for recent posts about: ${query}` }],
+        tools: [{ type: "x_search" }],
+      }),
+    });
+
+    if (!xaiRes.ok) {
+      const errText = await xaiRes.text();
+      console.error("[x-search] API error:", xaiRes.status, errText);
+      return res.json({ posts: [], query, error: "X Search unavailable" });
+    }
+
+    const data = await xaiRes.json() as any;
+    const citations: any[] = data?.citations ?? [];
+    
+    // Map citations to a clean post shape
+    const posts = citations.slice(0, 8).map((c: any) => ({
+      url: c.url ?? "",
+      title: c.title ?? "",
+      text: c.text ?? "",
+      handle: (() => {
+        // Try to extract handle from URL: https://x.com/handle/status/...
+        const match = (c.url ?? "").match(/x\.com\/([^/]+)\/status/);
+        return match ? `@${match[1]}` : (c.title ?? "").replace(" on X", "").trim();
+      })(),
+    })).filter(p => p.url);
+
+    res.json({ posts, query });
+  } catch (err: any) {
+    console.error("[x-search] Error:", err.message);
+    res.json({ posts: [], query, error: "X Search failed" });
+  }
+});
+```
+
+**Important:** This route returns `{ posts, query, error? }` — errors are non-fatal (graceful empty).
+
+## Frontend Changes — `client/src/pages/search.tsx`
+
+### 1. Add XPostResult type
+```ts
+type XPost = {
+  url: string;
+  title: string;
+  text: string;
+  handle: string;
+};
+
+type XSearchResult = {
+  posts: XPost[];
+  query: string;
+  error?: string;
+};
+```
+
+### 2. Add a second query (parallel, doesn't block platform results)
+```tsx
+const { data: xResults, isLoading: xLoading } = useQuery<XSearchResult>({
+  queryKey: ["/api/search/x-social", query],
+  queryFn: async () => {
+    if (!query || query.length < 2) return { posts: [], query };
+    const res = await fetch(`/api/search/x-social?q=${encodeURIComponent(query)}`, {
+      credentials: "include",
+    });
+    if (!res.ok) return { posts: [], query };
+    return res.json();
+  },
+  enabled: query.length >= 2,
+});
+```
+
+### 3. Show the "On X" section below platform results
+
+Add this section at the bottom of the results area (after the SECTION_CONFIG loop, before the Google link):
+
+```tsx
+{/* X Social Results */}
+{(xLoading || (xResults?.posts && xResults.posts.length > 0)) && (
+  <section data-testid="section-search-x-social">
+    <div className="flex items-center gap-2 mb-3">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-foreground shrink-0">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+      </svg>
+      <h2 className="text-sm font-semibold text-foreground">On X</h2>
+      {xLoading && <span className="text-xs text-muted-foreground">Searching X…</span>}
+      {!xLoading && xResults?.posts?.length && (
+        <span className="text-xs text-muted-foreground">({xResults.posts.length})</span>
+      )}
+    </div>
+    {xLoading && (
+      <div className="space-y-1.5">
+        {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+      </div>
+    )}
+    {!xLoading && xResults?.posts && xResults.posts.length > 0 && (
+      <div className="space-y-1.5">
+        {xResults.posts.map((post, i) => (
+          <a
+            key={i}
+            href={post.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-start gap-3 px-4 py-3 rounded-xl border border-border hover:bg-muted/50 hover:border-border/80 transition-all cursor-pointer group"
+            data-testid={`search-result-x-${i}`}
+          >
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-muted-foreground mb-0.5">{post.handle}</p>
+              <p className="text-sm text-foreground line-clamp-2">{post.text}</p>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors shrink-0 mt-1" />
+          </a>
+        ))}
+      </div>
+    )}
+  </section>
+)}
+```
+
+### 4. Update the total count
+The existing count (`results.total`) covers only platform results and stays unchanged.
+The X section is additive below it.
+
+## Model choice
+Use `grok-3` (not `grok-4.20-reasoning` from docs, which may not exist yet in the API).
+If xAI returns a model-not-found error, fall back to `grok-3-mini`.
+The route logs errors server-side but never crashes the user's search.
+
+## No DB changes needed
+This is a pure pass-through — xAI results are fetched live and not persisted.
+
+## Key Files
+- `server/routes.ts` — new `GET /api/search/x-social` route (add near line 1637)
+- `client/src/pages/search.tsx` — new query + "On X" section in JSX
+
+## Done Looks Like
+- Searching "dog" on /search shows the usual wiki/projects/store etc. sections first
+- Below those (loading independently), an "On X" section appears with X post cards
+- Each card has the handle (@foo), post text snippet, links to the X post
+- If XAI_API_KEY is missing or X Search fails, the section simply doesn't appear (no error shown to user)
+- Platform results are NOT affected or slowed down by X Search
+
+
+---
+

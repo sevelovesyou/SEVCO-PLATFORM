@@ -343,6 +343,10 @@ html, body {
   pointer-events: none;
   height: 0;
 }
+.notes-editor .ProseMirror p {
+  margin-top: 0.1em;
+  margin-bottom: 0.1em;
+}
 
 @keyframes shimmer {
   100% {

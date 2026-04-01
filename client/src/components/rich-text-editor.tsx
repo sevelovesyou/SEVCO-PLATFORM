@@ -103,7 +103,7 @@ export function RichTextToolbar({ editor, uploading, onImageButtonClick }: {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5">
+    <div className="flex flex-nowrap items-center gap-0.5">
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         active={editor.isActive("bold")}

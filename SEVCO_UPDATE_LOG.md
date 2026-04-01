@@ -14417,3 +14417,200 @@ domains: "Domains",
 
 ---
 
+## Task — cmd-sidebar-redesign
+> Merged: 2026-04-01
+
+# Task #172 — CMD Sidebar Redesign: Linear-style dark navigation
+
+## Goal
+Redesign `command-sidebar.tsx` and its CSS to match the screenshot reference —
+a dense, very dark sidebar with icon-rail collapse, ALL-CAPS group labels with a `—`
+right-aligned indicator, flat (non-nested) item lists, and a user info footer card.
+
+---
+
+## Visual Reference: Screenshot Analysis
+
+Key elements to replicate:
+1. **Very dark background** (~#111) for the sidebar panel
+2. **Group labels**: `CONTENT —` style — uppercase, muted color, flex justify-between,
+   `—` is right-aligned and uses the same muted color
+3. **Flat items only** — no nested sub-group labels inside parent groups. Everything
+   promoted to direct children of the parent group (eliminate Publishing/Other/Support &
+   Finance/Monitoring sub-group tier)
+4. **Item density**: compact rows — icon (16px) + text, no extra vertical padding
+5. **Active state**: subtle full-row background highlight (no left-border accent, just bg)
+6. **Collapsed icon rail**: only 50px icons visible; hover shows branded-color tooltip pill
+7. **Footer user card**: avatar + username/role text — pinned at very bottom (above Settings)
+
+---
+
+## Changes
+
+### 1. `client/src/index.css` — CMD Sidebar CSS overrides
+
+Add/update the `.cmd-sidebar` block:
+```css
+.cmd-sidebar {
+  --sidebar: 220 20% 5%;           /* very dark: ~#0c0d12 */
+  --sidebar-foreground: 210 15% 80%;
+  --sidebar-accent: 220 18% 10%;   /* hover/active row bg */
+  --sidebar-accent-foreground: 210 20% 92%;
+  --sidebar-border: 220 16% 12%;
+}
+```
+
+Update the active-state indicator to be a full-row subtle highlight
+(remove any left-border pseudo-element if present, replace with background):
+```css
+.cmd-sidebar [data-active="true"][data-slot="sidebar-menu-button"] {
+  background: hsl(var(--sidebar-accent));
+  color: hsl(var(--sidebar-accent-foreground));
+}
+.cmd-sidebar [data-active="true"][data-slot="sidebar-menu-button"]::before {
+  display: none;  /* remove the left-border accent stripe */
+}
+```
+
+---
+
+### 2. `client/src/components/command-sidebar.tsx` — Full restructure
+
+#### A) Imports to add
+```ts
+import { useAuth } from "@/hooks/use-auth";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+```
+
+#### B) Flatten sub-groups — remove two-tier nesting
+
+Merge all sub-group items into their parent groups as flat arrays:
+
+**Content** (admin/exec/staff where applicable):
+- Overview (keep in its own unlabeled group at top)
+- Store, Music, Projects, News, Gallery, Media, Resources, Minecraft
+
+**Operations** (appropriate role checks retained):
+- Jobs, Services, Changelog, Support, Finance
+
+**System** (appropriate role checks retained):
+- Users, Staff, Traffic, Domains, Chat Log, Agents
+
+Remove `contentSubGroups`, `operationsSubGroups`, `systemSubGroups` state variables and
+the `renderSubGroups` helper. The `NavSubGroup` type can also be removed.
+
+#### C) Group label rendering — add `—` on right
+
+Change `SidebarGroupLabel` to render with flex layout and right-side dash:
+```tsx
+<SidebarGroupLabel className="flex items-center justify-between px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 group-data-[collapsible=icon]:hidden">
+  <span>{label}</span>
+  <span className="font-light opacity-50">—</span>
+</SidebarGroupLabel>
+```
+
+#### D) Item compactness
+
+Keep the existing `SidebarMenuButton` structure but ensure item rows are compact:
+```tsx
+<SidebarMenuButton
+  asChild
+  tooltip={item.title}
+  data-active={isActive(item.url)}
+  className="h-8 text-sm"   // compact height
+>
+```
+
+#### E) Footer — user card above Platform Settings
+
+Bring in user data via `useAuth`:
+```tsx
+const { user } = useAuth();
+```
+
+Replace the `<div>Command Center</div>` text with a proper user card:
+```tsx
+<SidebarFooter className="p-2 border-t border-sidebar-border gap-2">
+  {/* User card — full mode only */}
+  {user && (
+    <div className="flex items-center gap-2 px-1 py-1 rounded-md group-data-[collapsible=icon]:hidden">
+      <Avatar className="h-7 w-7 flex-shrink-0">
+        {user.avatarUrl ? (
+          <AvatarImage src={user.avatarUrl} alt={user.username} />
+        ) : null}
+        <AvatarFallback className="text-[10px] bg-sidebar-accent text-sidebar-accent-foreground">
+          {(user.displayName || user.username).slice(0, 2).toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium truncate text-sidebar-foreground leading-none mb-0.5">
+          {user.displayName || user.username}
+        </p>
+        <p className="text-[10px] text-muted-foreground/60 capitalize leading-none">{role}</p>
+      </div>
+    </div>
+  )}
+  {/* Platform Settings — pinned */}
+  {(isAdmin || isExec) && (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          asChild
+          tooltip="Platform Settings"
+          data-active={isActive("/command/settings")}
+          className="h-8"
+        >
+          <Link href="/command/settings" data-testid="link-command-nav-platform-settings">
+            <Settings2 className="h-4 w-4" />
+            <span>Platform Settings</span>
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  )}
+</SidebarFooter>
+```
+
+Also add `Avatar` import to the import list and `useAuth` import.
+
+---
+
+### 3. Final group structure (post-flatten)
+
+**Unlabeled top group:**
+- Overview
+
+**CONTENT group** (shown when any items exist):
+- Store (admin/exec)
+- Music (admin/exec)
+- Projects (admin/exec/staff)
+- News (admin)
+- Gallery (admin)
+- Media (admin)
+- Resources (admin)
+- Minecraft (admin)
+
+**OPERATIONS group** (shown when any items exist):
+- Jobs (admin/exec)
+- Services (admin/exec)
+- Changelog (admin/exec/staff)
+- Support (admin/exec/staff)
+- Finance (admin/exec)
+
+**SYSTEM group** (shown when any items exist):
+- Users (admin)
+- Staff (admin)
+- Traffic (admin)
+- Domains (admin/exec)
+- Chat Log (admin)
+- Agents (admin)
+
+---
+
+## Files Changed
+- `client/src/index.css`
+- `client/src/components/command-sidebar.tsx`
+
+
+---
+

@@ -15528,3 +15528,60 @@ from a stale Node.js process left over from the Task #180 merge. A workflow rest
 
 ---
 
+## Task — task-182
+> Merged: 2026-04-01
+
+---
+title: Fix: "column display_order does not exist" — run db:push to sync missing column to projects table + restart crashed server (EADDRINUSE)
+---
+# Task #182 — Fix: "column display_order does not exist" on Projects + DB sync
+
+## Root Cause
+
+The `display_order` column was added to the `projects` table (and several other tables)
+in `shared/schema.ts` but `npm run db:push` was never run to apply the change to the
+live PostgreSQL database. This causes:
+
+- **"Failed to create project"** toast: `column "display_order" of relation "projects" does not exist`
+- Server startup seed errors for `seedProjects`, `seedMinecraftProject`, `seedRecordsProject`
+- Any other operation that SELECTs or INSERTs `display_order` across affected tables
+
+## Tables with missing `display_order` column in the live DB
+(from `shared/schema.ts`):
+- `projects` (line 219) — directly blocks project creation
+- Additional tables at schema lines 413, 652, 667, 685, 698, 817, 890, 962
+
+## Fix
+
+### 1. Run `npm run db:push` to sync schema → database
+```bash
+npm run db:push
+```
+This is a safe, non-destructive operation using Drizzle's push command. It adds
+the missing columns without touching existing data.
+
+If the interactive prompt appears (asking about truncating tables), answer **No**
+(keep data, just add the new columns).
+
+If the command hangs waiting for interactive input, use:
+```bash
+echo "No" | npm run db:push
+```
+
+Or use the force flag if available:
+```bash
+npx drizzle-kit push --force
+```
+
+### 2. Restart the workflow
+The server is crashed with `EADDRINUSE: address already in use 0.0.0.0:5000` from a
+stale Node.js process. After db:push, restart the "Start application" workflow.
+
+## Verification
+- Navigate to CMD → Projects tab
+- Create a new project — should succeed without the `display_order` error
+- Check server logs on startup — seed errors should be gone
+
+
+---
+

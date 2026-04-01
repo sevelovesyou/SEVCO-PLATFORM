@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 npm install
-npm run db:push
+npm run db:push -- --force
 
 LATEST_TASK=$(ls -t .local/tasks/*.md 2>/dev/null | head -1)
 if [ -n "$LATEST_TASK" ]; then

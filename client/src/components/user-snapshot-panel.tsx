@@ -155,13 +155,13 @@ export function UserSnapshotPanel({ variant = "default" }: UserSnapshotPanelProp
             <div className="flex items-center gap-2">
               <Mail className={`h-4 w-4 ${isDark ? "text-white/70" : "text-foreground"}`} />
               <span className={`text-sm font-semibold ${isDark ? "text-white" : "text-foreground"}`}>Inbox</span>
-              {!emailsLoading && emails !== null && (
+              {!emailsLoading && emailsResponse !== null && (
                 <Badge
                   variant="secondary"
                   className={`text-[10px] px-1.5 py-0 ${isDark ? "bg-white/10 text-white/70 border-white/10" : ""}`}
                   data-testid="badge-inbox-count"
                 >
-                  {(emails ?? []).filter((e) => !e.isRead).length}
+                  {(emailsResponse?.emails ?? []).filter((e) => !e.isRead).length}
                 </Badge>
               )}
             </div>
@@ -176,7 +176,7 @@ export function UserSnapshotPanel({ variant = "default" }: UserSnapshotPanelProp
         <CardContent className="px-4 pt-3 pb-4">
           {emailsLoading ? (
             <SkeletonRows />
-          ) : emails === null ? (
+          ) : emailsResponse === null ? (
             <p className={`text-xs ${mutedClass} py-2`} data-testid="empty-inbox-error">Email not configured</p>
           ) : inboxEmails.length === 0 ? (
             <p className={`text-xs ${mutedClass} py-2`} data-testid="empty-inbox">No messages</p>

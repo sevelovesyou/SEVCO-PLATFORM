@@ -134,6 +134,7 @@ export function EmailComposeModal({
   const [attachments, setAttachments] = useState<File[]>([]);
   const [showAttachmentReminder, setShowAttachmentReminder] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const initialBodyRef = useRef(initialBody);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropzoneRef = useRef<HTMLDivElement>(null);
 
@@ -322,7 +323,7 @@ export function EmailComposeModal({
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-        <DialogContent className="max-w-full sm:max-w-2xl mx-2 sm:mx-auto max-h-[90vh] flex flex-col" data-testid="modal-compose-email">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-full sm:max-w-2xl mx-2 sm:mx-auto max-h-[90vh] flex flex-col" data-testid="modal-compose-email">
           <DialogHeader>
             <DialogTitle>{modeTitle}</DialogTitle>
           </DialogHeader>
@@ -397,7 +398,7 @@ export function EmailComposeModal({
             <div className="space-y-1 flex-1">
               <Label className="text-xs text-muted-foreground">Message</Label>
               <RichEmailEditor
-                initialContent={body}
+                initialContent={initialBodyRef.current}
                 onChange={(html) => setBody(html)}
               />
             </div>

@@ -16874,3 +16874,36 @@ The Domains page currently lives at `/domains` under the Services nav. It belong
 
 ---
 
+## Task — tools-nav-icon-button-remove-notes
+> Merged: 2026-04-01
+
+# Tools Wrench Icon Button + Remove Notes from Account Menu
+
+## What & Why
+Two small nav polish items:
+1. The Tools nav entry is a plain text dropdown button — it should use the Wrench icon to visually identify it as the toolbox section, matching the icon-forward design used on the Tools page itself.
+2. The Account/Profile dropdown contains a Notes shortcut that duplicates what's already in the Tools dropdown and mobile nav — remove it to reduce clutter.
+
+## Done looks like
+- The "Tools" nav button shows a Wrench icon (from lucide-react) alongside the label and chevron on desktop
+- Clicking the wrench-icon Tools button still opens the same Tools dropdown panel as before
+- The Account/Profile dropdown (avatar menu) no longer has a "Notes" item
+- All other account dropdown items (Profile, Account, Sign out) remain untouched
+- Mobile nav is unaffected
+
+## Out of scope
+- Changing any other nav button icons
+- Changing the Tools dropdown panel contents
+- Mobile nav changes
+
+## Tasks
+1. **Add icon to Tools NavButton** — Modify the `NavButton` component (or the Tools dropdown's button) to accept/render an optional leading icon. Pass `Wrench` as the icon for the Tools dropdown trigger. The icon should sit to the left of the label at the same size as the chevron (h-3.5 w-3.5 or h-4 w-4).
+
+2. **Remove Notes from account dropdown** — Delete the Notes `DropdownMenuItem` (with `StickyNote` icon and `/notes` link) from the signed-in user account/avatar `DropdownMenu` in the desktop nav. Clean up any now-unused `StickyNote` import if nothing else references it.
+
+## Relevant files
+- `client/src/components/platform-header.tsx:216-242,639-648,985-991`
+
+
+---
+

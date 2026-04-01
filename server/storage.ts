@@ -64,7 +64,7 @@ import {
   staffTasks,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, asc, and, sql, ilike, or, inArray } from "drizzle-orm";
+import { eq, desc, asc, and, sql, ilike, or, inArray, gte, lte, count as countFn } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -335,7 +335,7 @@ export interface IStorage {
   seedNewsCategoriesIfEmpty(): Promise<void>;
 
   createEmail(data: InsertEmail): Promise<Email>;
-  getEmails(userId: string, folder: string, limit: number, offset: number, search?: string): Promise<Email[]>;
+  getEmails(userId: string, folder: string, limit: number, offset: number, search?: string, filters?: { sender?: string; dateFrom?: string; dateTo?: string; hasAttachment?: boolean }): Promise<{ emails: Email[]; total: number }>;
   getEmail(id: number, userId: string): Promise<Email | undefined>;
   updateEmail(id: number, userId: string, updates: Partial<Email>): Promise<Email>;
   deleteEmail(id: number, userId: string): Promise<void>;
@@ -2149,7 +2149,7 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async getEmails(userId: string, folder: string, limit: number, offset: number, search?: string): Promise<Email[]> {
+  async getEmails(userId: string, folder: string, limit: number, offset: number, search?: string, filters?: { sender?: string; dateFrom?: string; dateTo?: string; hasAttachment?: boolean }): Promise<{ emails: Email[]; total: number }> {
     const conditions = [eq(emails.userId, userId)];
 
     if (folder === "all") {
@@ -2170,11 +2170,30 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
-    return db.select().from(emails)
-      .where(and(...conditions))
+    if (filters?.sender) {
+      conditions.push(ilike(emails.fromAddress, `%${filters.sender}%`));
+    }
+    if (filters?.dateFrom) {
+      conditions.push(gte(emails.createdAt, new Date(filters.dateFrom)));
+    }
+    if (filters?.dateTo) {
+      conditions.push(lte(emails.createdAt, new Date(filters.dateTo + "T23:59:59Z")));
+    }
+    if (filters?.hasAttachment) {
+      conditions.push(sql`jsonb_array_length(${emails.attachments}) > 0`);
+    }
+
+    const whereClause = and(...conditions);
+
+    const [{ total }] = await db.select({ total: countFn() }).from(emails).where(whereClause);
+
+    const rows = await db.select().from(emails)
+      .where(whereClause)
       .orderBy(desc(emails.createdAt))
       .limit(limit)
       .offset(offset);
+
+    return { emails: rows, total: Number(total) };
   }
 
   async getEmail(id: number, userId: string): Promise<Email | undefined> {

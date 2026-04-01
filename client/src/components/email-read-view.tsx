@@ -3,7 +3,25 @@ import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Reply, CornerUpLeft, Forward, Star, Trash2, FolderOpen, Download, File } from "lucide-react";
+import {
+  Reply,
+  CornerUpLeft,
+  Forward,
+  Star,
+  Trash2,
+  FolderOpen,
+  Download,
+  File,
+  Mail,
+  Archive,
+  FolderInput,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Email } from "@shared/schema";
 import DOMPurify from "dompurify";
@@ -67,6 +85,16 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+const MOVE_FOLDERS = [
+  { id: "inbox", label: "Inbox" },
+  { id: "sent", label: "Sent" },
+  { id: "starred", label: "Starred" },
+  { id: "drafts", label: "Drafts" },
+  { id: "archive", label: "Archive" },
+  { id: "spam", label: "Spam" },
+  { id: "trash", label: "Trash" },
+];
+
 export function EmailReadView({ email, fromAddress, onDeleted }: EmailReadViewProps) {
   const { toast } = useToast();
   const [composeMode, setComposeMode] = useState<"reply" | "reply-all" | "forward" | null>(null);
@@ -84,6 +112,42 @@ export function EmailReadView({ email, fromAddress, onDeleted }: EmailReadViewPr
     mutationFn: () => apiRequest("DELETE", `/api/email/messages/${email.id}`),
     onSuccess: () => {
       toast({ title: email.folder === "trash" ? "Email permanently deleted" : "Moved to trash" });
+      queryClient.invalidateQueries({ queryKey: ["/api/email/messages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/email/folders"] });
+      onDeleted?.();
+    },
+  });
+
+  const markUnreadMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/email/messages/${email.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isRead: false }),
+      });
+      if (!res.ok) throw new Error("Failed to mark as unread");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Marked as unread" });
+      queryClient.invalidateQueries({ queryKey: ["/api/email/messages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/email/folders"] });
+      onDeleted?.();
+    },
+  });
+
+  const moveMutation = useMutation({
+    mutationFn: async (folder: string) => {
+      const res = await fetch(`/api/email/messages/${email.id}/move`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder }),
+      });
+      if (!res.ok) throw new Error("Failed to move email");
+      return res.json();
+    },
+    onSuccess: (_data, folder) => {
+      toast({ title: `Moved to ${folder}` });
       queryClient.invalidateQueries({ queryKey: ["/api/email/messages"] });
       queryClient.invalidateQueries({ queryKey: ["/api/email/folders"] });
       onDeleted?.();
@@ -144,6 +208,28 @@ export function EmailReadView({ email, fromAddress, onDeleted }: EmailReadViewPr
           <Button
             variant="ghost"
             size="icon"
+            className="h-7 w-7"
+            onClick={() => markUnreadMutation.mutate()}
+            disabled={markUnreadMutation.isPending}
+            data-testid="button-mark-unread"
+            title="Mark as unread"
+          >
+            <Mail className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => moveMutation.mutate("archive")}
+            disabled={moveMutation.isPending}
+            data-testid="button-archive-email"
+            title="Archive"
+          >
+            <Archive className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             className={`h-7 w-7 ${email.isStarred ? "text-yellow-400" : ""}`}
             onClick={() => starMutation.mutate()}
             disabled={starMutation.isPending}
@@ -152,6 +238,30 @@ export function EmailReadView({ email, fromAddress, onDeleted }: EmailReadViewPr
           >
             <Star className={`h-4 w-4 ${email.isStarred ? "fill-yellow-400" : ""}`} />
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                data-testid="button-move-to-folder"
+                title="Move to folder"
+              >
+                <FolderInput className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {MOVE_FOLDERS.filter((f) => f.id !== email.folder).map((f) => (
+                <DropdownMenuItem
+                  key={f.id}
+                  onClick={() => moveMutation.mutate(f.id)}
+                  data-testid={`menu-move-to-${f.id}`}
+                >
+                  {f.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="ghost"
             size="icon"

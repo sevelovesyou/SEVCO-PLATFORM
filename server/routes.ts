@@ -6211,11 +6211,26 @@ export async function registerRoutes(
     try {
       const user = req.user as any;
       const folder = String(req.query.folder || "inbox");
-      const limit = Math.min(parseInt(String(req.query.limit || "50")), 100);
-      const offset = parseInt(String(req.query.offset || "0"));
+      const page = Math.max(1, parseInt(String(req.query.page || "1")));
+      const limit = Math.min(Math.max(1, parseInt(String(req.query.limit || "25"))), 100);
+      const offset = (page - 1) * limit;
       const search = req.query.search ? String(req.query.search) : undefined;
-      const msgs = await storage.getEmails(user.id, folder, limit, offset, search);
-      res.json(msgs);
+
+      const filters: { sender?: string; dateFrom?: string; dateTo?: string; hasAttachment?: boolean } = {};
+      if (req.query.sender) filters.sender = String(req.query.sender);
+      if (req.query.dateFrom) filters.dateFrom = String(req.query.dateFrom);
+      if (req.query.dateTo) filters.dateTo = String(req.query.dateTo);
+      if (req.query.hasAttachment === "true") filters.hasAttachment = true;
+
+      const result = await storage.getEmails(user.id, folder, limit, offset, search, filters);
+      const totalPages = Math.ceil(result.total / limit);
+      res.json({
+        emails: result.emails,
+        total: result.total,
+        page,
+        totalPages,
+        limit,
+      });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -6401,7 +6416,7 @@ export async function registerRoutes(
       const user = req.user as any;
       const id = parseInt(req.params.id);
       const { folder } = req.body as { folder: string };
-      const validFolders = ["inbox", "sent", "drafts", "trash", "starred"];
+      const validFolders = ["inbox", "sent", "drafts", "trash", "starred", "archive", "spam"];
       if (!folder || !validFolders.includes(folder)) return res.status(400).json({ message: "Invalid folder" });
       const updated = await storage.updateEmail(id, user.id, { folder });
       res.json(updated);

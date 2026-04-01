@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Inbox,
   Send,
@@ -17,9 +18,14 @@ import {
   Pencil,
   Search,
   ChevronLeft,
+  ChevronRight,
   Hash,
   MessageCircle,
   RefreshCw,
+  Archive,
+  ShieldAlert,
+  SlidersHorizontal,
+  X,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { EmailComposeModal } from "@/components/email-compose-modal";
@@ -35,13 +41,23 @@ type ChatMessageWithUser = ChatMessage & {
   channel: { id: number; name: string } | null;
 };
 
-type Folder = "inbox" | "sent" | "drafts" | "trash" | "starred";
+type Folder = "inbox" | "sent" | "drafts" | "trash" | "starred" | "archive" | "spam";
+
+type PaginatedEmailResponse = {
+  emails: Email[];
+  total: number;
+  page: number;
+  totalPages: number;
+  limit: number;
+};
 
 const FOLDER_ITEMS: { id: Folder; label: string; icon: React.ElementType }[] = [
   { id: "inbox",   label: "Inbox",   icon: Inbox },
   { id: "sent",    label: "Sent",    icon: Send },
   { id: "starred", label: "Starred", icon: Star },
   { id: "drafts",  label: "Drafts",  icon: FileText },
+  { id: "archive", label: "Archive", icon: Archive },
+  { id: "spam",    label: "Spam",    icon: ShieldAlert },
   { id: "trash",   label: "Trash",   icon: Trash2 },
 ];
 
@@ -134,6 +150,20 @@ export default function MessagesPage() {
   const [chatInput, setChatInput] = useState("");
   const [sendingChat, setSendingChat] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filterSender, setFilterSender] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+  const [filterHasAttachment, setFilterHasAttachment] = useState(false);
+
+  const [appliedSender, setAppliedSender] = useState("");
+  const [appliedDateFrom, setAppliedDateFrom] = useState("");
+  const [appliedDateTo, setAppliedDateTo] = useState("");
+  const [appliedHasAttachment, setAppliedHasAttachment] = useState(false);
+
+  const activeFilterCount = [appliedSender, appliedDateFrom, appliedDateTo, appliedHasAttachment].filter(Boolean).length;
+
   if (!user || !isClientPlus(user.role)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-4">
@@ -157,16 +187,27 @@ export default function MessagesPage() {
     queryKey: ["/api/email/address"],
   });
 
-  const { data: emails = [], isLoading: emailsLoading, isFetching: emailsFetching, refetch: refetchEmails } = useQuery<Email[]>({
-    queryKey: ["/api/email/messages", activeFolder, search],
+  const { data: emailResponse, isLoading: emailsLoading, isFetching: emailsFetching, refetch: refetchEmails } = useQuery<PaginatedEmailResponse>({
+    queryKey: ["/api/email/messages", activeFolder, search, currentPage, appliedSender, appliedDateFrom, appliedDateTo, appliedHasAttachment],
     queryFn: async () => {
-      const params = new URLSearchParams({ folder: search ? "all" : activeFolder, limit: "50" });
+      const params = new URLSearchParams({ folder: search ? "all" : activeFolder, limit: "25", page: String(currentPage) });
       if (search) params.set("search", search);
+      if (appliedSender) params.set("sender", appliedSender);
+      if (appliedDateFrom) params.set("dateFrom", appliedDateFrom);
+      if (appliedDateTo) params.set("dateTo", appliedDateTo);
+      if (appliedHasAttachment) params.set("hasAttachment", "true");
       const res = await fetch(`/api/email/messages?${params}`);
       if (!res.ok) throw new Error("Failed to fetch emails");
       return res.json();
     },
   });
+
+  const emails = emailResponse?.emails ?? [];
+  const totalPages = emailResponse?.totalPages ?? 1;
+
+  if (emailResponse && currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(totalPages);
+  }
 
   const { data: channels = [] } = useQuery<ChatChannel[]>({
     queryKey: ["/api/chat/channels"],
@@ -219,6 +260,7 @@ export default function MessagesPage() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     setSearch(searchInput);
+    setCurrentPage(1);
   }
 
   function handleFolderChange(folder: Folder) {
@@ -227,6 +269,27 @@ export default function MessagesPage() {
     setSelectedChannel(null);
     setSearch("");
     setSearchInput("");
+    setCurrentPage(1);
+  }
+
+  function handleApplyFilters() {
+    setAppliedSender(filterSender);
+    setAppliedDateFrom(filterDateFrom);
+    setAppliedDateTo(filterDateTo);
+    setAppliedHasAttachment(filterHasAttachment);
+    setCurrentPage(1);
+  }
+
+  function handleClearFilters() {
+    setFilterSender("");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+    setFilterHasAttachment(false);
+    setAppliedSender("");
+    setAppliedDateFrom("");
+    setAppliedDateTo("");
+    setAppliedHasAttachment(false);
+    setCurrentPage(1);
   }
 
   function handleSelectChannel(ch: ChatChannel) {
@@ -373,16 +436,90 @@ export default function MessagesPage() {
           </Button>
         </div>
         <div className="p-2 border-b">
-          <form onSubmit={handleSearch} className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search emails..."
-              className="pl-7 h-8 text-sm"
-              data-testid="input-email-search"
-            />
-          </form>
+          <div className="flex items-center gap-1">
+            <form onSubmit={handleSearch} className="relative flex-1">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search emails..."
+                className="pl-7 h-8 text-sm"
+                data-testid="input-email-search"
+              />
+            </form>
+            <Button
+              variant={filtersOpen ? "secondary" : "ghost"}
+              size="icon"
+              className="h-8 w-8 shrink-0 relative"
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              data-testid="button-toggle-filters"
+              title="Toggle filters"
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              {activeFilterCount > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[9px] bg-blue-500 hover:bg-blue-500 rounded-full" data-testid="badge-active-filter-count">
+                  {activeFilterCount}
+                </Badge>
+              )}
+            </Button>
+          </div>
+
+          {filtersOpen && (
+            <div className="mt-2 space-y-2 pt-2 border-t">
+              <div>
+                <label className="text-[11px] font-medium text-muted-foreground">From / Sender</label>
+                <Input
+                  value={filterSender}
+                  onChange={(e) => setFilterSender(e.target.value)}
+                  placeholder="Filter by sender..."
+                  className="h-7 text-xs mt-0.5"
+                  data-testid="input-filter-sender"
+                />
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-[11px] font-medium text-muted-foreground">Date from</label>
+                  <Input
+                    type="date"
+                    value={filterDateFrom}
+                    onChange={(e) => setFilterDateFrom(e.target.value)}
+                    className="h-7 text-xs mt-0.5"
+                    data-testid="input-filter-date-from"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[11px] font-medium text-muted-foreground">Date to</label>
+                  <Input
+                    type="date"
+                    value={filterDateTo}
+                    onChange={(e) => setFilterDateTo(e.target.value)}
+                    className="h-7 text-xs mt-0.5"
+                    data-testid="input-filter-date-to"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="filter-has-attachment"
+                  checked={filterHasAttachment}
+                  onCheckedChange={(checked) => setFilterHasAttachment(!!checked)}
+                  data-testid="checkbox-filter-has-attachment"
+                />
+                <label htmlFor="filter-has-attachment" className="text-xs text-muted-foreground cursor-pointer">
+                  Has attachment
+                </label>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" className="h-7 text-xs flex-1" onClick={handleApplyFilters} data-testid="button-apply-filters">
+                  Apply Filters
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleClearFilters} data-testid="button-clear-filters">
+                  <X className="h-3 w-3 mr-1" />
+                  Clear
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="px-3 py-1.5 border-b flex items-center justify-between">
@@ -392,7 +529,7 @@ export default function MessagesPage() {
           {search && (
             <button
               className="text-[11px] text-muted-foreground hover:text-foreground"
-              onClick={() => { setSearch(""); setSearchInput(""); }}
+              onClick={() => { setSearch(""); setSearchInput(""); setCurrentPage(1); }}
               data-testid="button-clear-search"
             >
               Clear
@@ -432,6 +569,36 @@ export default function MessagesPage() {
             ))
           )}
         </div>
+
+        {totalPages > 1 && (
+          <div className="border-t px-3 py-2 flex items-center justify-between gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              data-testid="button-email-prev-page"
+            >
+              <ChevronLeft className="h-3 w-3 mr-1" />
+              Previous
+            </Button>
+            <span className="text-[11px] text-muted-foreground" data-testid="text-email-page-info">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              data-testid="button-email-next-page"
+            >
+              Next
+              <ChevronRight className="h-3 w-3 ml-1" />
+            </Button>
+          </div>
+        )}
       </div>
 
       <div

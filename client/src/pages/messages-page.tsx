@@ -495,8 +495,7 @@ export default function MessagesPage() {
             Email
           </p>
           {FOLDER_ITEMS.map(({ id, label, icon: Icon }) => {
-            const count = id === "inbox" ? folderCounts?.inbox : id === "drafts" ? folderCounts?.drafts : 0;
-            const unread = id === "inbox" ? unreadCount : 0;
+            const badgeCount = id === "inbox" ? unreadCount : id === "drafts" ? (folderCounts?.drafts ?? 0) : 0;
             return (
               <button
                 key={id}
@@ -510,14 +509,11 @@ export default function MessagesPage() {
                   <span>{label}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  {unread > 0 && (
+                  {badgeCount > 0 && (
                     <Badge className="h-4 min-w-4 px-1 text-[10px] bg-blue-500 hover:bg-blue-500 rounded-full" data-testid={`badge-unread-${id}`}>
-                      {unread > 99 ? "99+" : unread}
+                      {badgeCount > 99 ? "99+" : badgeCount}
                     </Badge>
                   )}
-                  {!unread && count && count > 0 ? (
-                    <span className="text-[11px] text-muted-foreground">{count}</span>
-                  ) : null}
                 </div>
               </button>
             );

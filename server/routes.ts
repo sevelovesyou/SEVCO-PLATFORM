@@ -12,7 +12,7 @@ import {
   CAN_DELETE_ARTICLE,
   CAN_ACCESS_ARCHIVE,
 } from "./middleware/permissions";
-import type { Role, InsertJob, InsertArticle } from "@shared/schema";
+import type { Role, InsertJob, InsertArticle, Email } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema, updateUserTaskSchema, updateStaffTaskSchema, insertUserTaskSchema, insertStaffTaskSchema, insertDomainSchema } from "@shared/schema";
 import { fetchNewsArticles, generateGrokSummaryForTweet } from "./news";
 import { getNewsAiSettings, getMaxRequestsPerHour, getApiConfig, summarizeArticle as grokSummarize, generateNewsImage as grokImage, askGrokAboutArticle, searchNewsWithGrok, generateDailyBriefing, generateTrendingCommentary, streamSummarizeArticle, streamAskGrok } from "./grok-news";
@@ -6575,14 +6575,15 @@ export async function registerRoutes(
       const sender = req.query.sender ? String(req.query.sender) : undefined;
       const offset = (page - 1) * limit;
 
-      let allEmails = await storage.getEmails(user.id, folder, 500, 0, search);
+      const emailsResult = await storage.getEmails(user.id, folder, 500, 0, search);
+      let allEmails = emailsResult.emails;
 
       if (sender) {
         const senderLower = sender.toLowerCase();
         allEmails = allEmails.filter((e) => e.fromAddress.toLowerCase().includes(senderLower));
       }
 
-      const threadMap = new Map<string, typeof allEmails>();
+      const threadMap = new Map<string, Email[]>();
       for (const email of allEmails) {
         const key = email.threadId || `msg-${email.id}`;
         if (!threadMap.has(key)) threadMap.set(key, []);

@@ -306,6 +306,7 @@ export default function Landing() {
   const featuredProjects = projects.slice(0, 6);
 
   const heroBgUrl = settings["hero.backgroundImageUrl"] ?? "";
+  const heroHeadline = settings["hero.headline"] ?? "";
   const heroText = settings["hero.text"] || DEFAULT_HERO_TEXT;
   const heroOverlayOpacity = settings["hero.overlayOpacity"] ? parseInt(settings["hero.overlayOpacity"]) / 100 : 0.7;
 
@@ -451,33 +452,48 @@ export default function Landing() {
               <div>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4 leading-[1.1]">
                   {/* Word-by-word staggered reveal animation */}
-                  {["A", "creative", "community", "platform", "built", "by", "creators,", "for", "creators."].map((word, i) => {
-                    const isRedWord = i === 0 || i >= 6;
-                    const isWhiteWord = i >= 3 && i <= 5;
-                    return (
-                      <span
-                        key={i}
-                        className="inline-block mr-[0.25em]"
-                        style={{
-                          opacity: 0,
-                          animation: `wordReveal 0.5s ease forwards`,
-                          animationDelay: `${i * 0.08}s`,
-                          ...(isRedWord ? {
-                            background: "linear-gradient(135deg, #ff3333 0%, #cc0000 50%, #ff6666 100%)",
-                            WebkitBackgroundClip: "text",
-                            WebkitTextFillColor: "transparent",
-                            backgroundClip: "text",
-                          } : isWhiteWord ? {
+                  {heroHeadline
+                    ? heroHeadline.split(" ").map((word, i) => (
+                        <span
+                          key={i}
+                          className="inline-block mr-[0.25em]"
+                          style={{
+                            opacity: 0,
+                            animation: `wordReveal 0.5s ease forwards`,
+                            animationDelay: `${i * 0.08}s`,
                             color: "rgba(255,255,255,0.92)",
-                          } : {
-                            color: "rgba(255,255,255,0.92)",
-                          }),
-                        }}
-                      >
-                        {word}
-                      </span>
-                    );
-                  })}
+                          }}
+                        >
+                          {word}
+                        </span>
+                      ))
+                    : ["A", "creative", "community", "platform", "built", "by", "creators,", "for", "creators."].map((word, i) => {
+                        const isRedWord = i === 0 || i >= 6;
+                        const isWhiteWord = i >= 3 && i <= 5;
+                        return (
+                          <span
+                            key={i}
+                            className="inline-block mr-[0.25em]"
+                            style={{
+                              opacity: 0,
+                              animation: `wordReveal 0.5s ease forwards`,
+                              animationDelay: `${i * 0.08}s`,
+                              ...(isRedWord ? {
+                                background: "linear-gradient(135deg, #ff3333 0%, #cc0000 50%, #ff6666 100%)",
+                                WebkitBackgroundClip: "text",
+                                WebkitTextFillColor: "transparent",
+                                backgroundClip: "text",
+                              } : isWhiteWord ? {
+                                color: "rgba(255,255,255,0.92)",
+                              } : {
+                                color: "rgba(255,255,255,0.92)",
+                              }),
+                            }}
+                          >
+                            {word}
+                          </span>
+                        );
+                      })}
                 </h1>
                 <p className="text-white/50 text-base md:text-lg max-w-lg leading-relaxed">
                   {heroText}

@@ -1093,6 +1093,7 @@ export default function CommandSettings() {
 
   // ── Display state ──
   const [heroBgUrl, setHeroBgUrl] = useState("");
+  const [heroHeadline, setHeroHeadline] = useState("");
   const [heroText, setHeroText] = useState("");
   const [heroOverlayOpacity, setHeroOverlayOpacity] = useState(70);
   const [footerTagline, setFooterTagline] = useState("");
@@ -1252,6 +1253,7 @@ export default function CommandSettings() {
   useEffect(() => {
     if (isLoading) return;
     setHeroBgUrl(settings["hero.backgroundImageUrl"] ?? "");
+    setHeroHeadline(settings["hero.headline"] ?? "");
     setHeroText(settings["hero.text"] ?? "");
     setHeroOverlayOpacity(settings["hero.overlayOpacity"] ? parseInt(settings["hero.overlayOpacity"]) : 70);
     setFooterTagline(settings["footer.tagline"] ?? "");
@@ -1589,6 +1591,7 @@ export default function CommandSettings() {
     mutation.mutate({
       "platform.logoUrl": platformLogoUrl,
       "hero.backgroundImageUrl": heroBgUrl,
+      "hero.headline": heroHeadline,
       "hero.text": heroText,
       "hero.overlayOpacity": String(heroOverlayOpacity),
       "footer.tagline": footerTagline,
@@ -1981,6 +1984,16 @@ export default function CommandSettings() {
                     />
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="hero-headline">{highlight("Hero headline (H1)")}</Label>
+                    <Input
+                      id="hero-headline"
+                      placeholder="A creative community platform built by creators, for creators."
+                      value={heroHeadline}
+                      onChange={(e) => setHeroHeadline(e.target.value)}
+                      data-testid="input-hero-headline"
+                    />
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="hero-text">{highlight("Hero text (tagline)")}</Label>
                     <Textarea

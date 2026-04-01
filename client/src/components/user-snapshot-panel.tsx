@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CheckSquare, Mail, StickyNote, Pin } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import type { UserTask, Email, Note } from "@shared/schema";
+import type { UserTask, Email, Note, StaffTask } from "@shared/schema";
+import { usePermission } from "@/hooks/use-permission";
 
 interface UserSnapshotPanelProps {
   variant?: "dark" | "default";
@@ -57,8 +58,16 @@ export function UserSnapshotPanel({ variant = "default" }: UserSnapshotPanelProp
     ? "hover:bg-white/[0.04]"
     : "hover:bg-muted/50";
 
+  const { role } = usePermission();
+  const isStaffOrAbove = ["admin", "executive", "staff"].includes(role ?? "");
+
   const { data: tasks, isLoading: tasksLoading } = useQuery<UserTask[]>({
     queryKey: ["/api/tasks"],
+  });
+
+  const { data: staffTasks, isLoading: staffTasksLoading } = useQuery<StaffTask[]>({
+    queryKey: ["/api/tasks/staff"],
+    enabled: isStaffOrAbove,
   });
 
   const { data: emailsResponse, isLoading: emailsLoading } = useQuery<{ emails: Email[]; total: number } | null>({
@@ -76,9 +85,11 @@ export function UserSnapshotPanel({ variant = "default" }: UserSnapshotPanelProp
     queryKey: ["/api/notes"],
   });
 
-  const incompleteTasks = (tasks ?? [])
-    .filter((t) => !t.completed)
-    .slice(0, 3);
+  const incompletePersonal = (tasks ?? []).filter((t) => !t.completed).slice(0, 2);
+  const incompleteStaff = (staffTasks ?? []).filter((t) => !t.completed).slice(0, 2);
+  const totalIncomplete =
+    (tasks ?? []).filter((t) => !t.completed).length +
+    (staffTasks ?? []).filter((t) => !t.completed).length;
 
   const inboxEmails = (emailsResponse?.emails ?? []).slice(0, 3);
 
@@ -100,17 +111,17 @@ export function UserSnapshotPanel({ variant = "default" }: UserSnapshotPanelProp
             <div className="flex items-center gap-2">
               <CheckSquare className={`h-4 w-4 ${isDark ? "text-white/70" : "text-foreground"}`} />
               <span className={`text-sm font-semibold ${isDark ? "text-white" : "text-foreground"}`}>Tasks</span>
-              {!tasksLoading && (
+              {!tasksLoading && !(isStaffOrAbove && staffTasksLoading) && (
                 <Badge
                   variant="secondary"
                   className={`text-[10px] px-1.5 py-0 ${isDark ? "bg-white/10 text-white/70 border-white/10" : ""}`}
                   data-testid="badge-task-count"
                 >
-                  {incompleteTasks.length}
+                  {totalIncomplete}
                 </Badge>
               )}
             </div>
-            <Link href="/tasks">
+            <Link href="/tools/tasks">
               <span className={`text-xs ${isDark ? "text-white/50 hover:text-white/80" : "text-muted-foreground hover:text-foreground"} transition-colors cursor-pointer`} data-testid="link-tasks-viewall">
                 View all
               </span>
@@ -119,28 +130,62 @@ export function UserSnapshotPanel({ variant = "default" }: UserSnapshotPanelProp
         </CardHeader>
 
         <CardContent className="px-4 pt-3 pb-4">
-          {tasksLoading ? (
+          {tasksLoading || (isStaffOrAbove && staffTasksLoading) ? (
             <SkeletonRows />
-          ) : incompleteTasks.length === 0 ? (
-            <p className={`text-xs ${mutedClass} py-2`} data-testid="empty-tasks">No open tasks</p>
           ) : (
-            <ul className="flex flex-col gap-0.5" data-testid="list-tasks">
-              {incompleteTasks.map((task) => (
-                <li
-                  key={task.id}
-                  className={`flex items-center gap-2 py-1.5 px-1 rounded-md ${hoverRowClass} transition-colors`}
-                  data-testid={`task-row-${task.id}`}
-                >
-                  <span className={`text-base leading-none ${mutedClass}`}>⬜</span>
-                  <span className={`flex-1 text-xs truncate ${isDark ? "text-white/90" : "text-foreground"}`}>{task.title}</span>
-                  {task.dueDate && (
-                    <span className={`text-[10px] shrink-0 ${mutedClass}`}>{relativeDate(task.dueDate)}</span>
+            <>
+              {incompletePersonal.length > 0 && (
+                <>
+                  {isStaffOrAbove && (
+                    <p className={`text-[10px] font-semibold uppercase tracking-widest ${mutedClass} mb-1`}>
+                      Personal
+                    </p>
                   )}
-                </li>
-              ))}
-            </ul>
+                  <ul className="flex flex-col gap-0.5" data-testid="list-tasks-personal">
+                    {incompletePersonal.map((task) => (
+                      <li
+                        key={task.id}
+                        className={`flex items-center gap-2 py-1.5 px-1 rounded-md ${hoverRowClass} transition-colors`}
+                        data-testid={`task-row-${task.id}`}
+                      >
+                        <span className={`text-base leading-none ${mutedClass}`}>⬜</span>
+                        <span className={`flex-1 text-xs truncate ${isDark ? "text-white/90" : "text-foreground"}`}>{task.title}</span>
+                        {task.dueDate && (
+                          <span className={`text-[10px] shrink-0 ${mutedClass}`}>{relativeDate(task.dueDate)}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {isStaffOrAbove && incompleteStaff.length > 0 && (
+                <>
+                  <p className={`text-[10px] font-semibold uppercase tracking-widest ${mutedClass} mt-2 mb-1`}>
+                    Team
+                  </p>
+                  <ul className="flex flex-col gap-0.5" data-testid="list-tasks-staff">
+                    {incompleteStaff.map((task) => (
+                      <li
+                        key={`staff-${task.id}`}
+                        className={`flex items-center gap-2 py-1.5 px-1 rounded-md ${hoverRowClass} transition-colors`}
+                        data-testid={`staff-task-row-${task.id}`}
+                      >
+                        <span className={`text-base leading-none ${mutedClass}`}>⬜</span>
+                        <span className={`flex-1 text-xs truncate ${isDark ? "text-white/90" : "text-foreground"}`}>{task.title}</span>
+                        {task.dueDate && (
+                          <span className={`text-[10px] shrink-0 ${mutedClass}`}>{relativeDate(task.dueDate)}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {incompletePersonal.length === 0 && (!isStaffOrAbove || incompleteStaff.length === 0) && (
+                <p className={`text-xs ${mutedClass} py-2`} data-testid="empty-tasks">No open tasks</p>
+              )}
+            </>
           )}
-          <Link href="/tasks">
+          <Link href="/tools/tasks">
             <div className={`mt-3 flex items-center gap-1 text-xs ${isDark ? "text-white/40 hover:text-white/70" : "text-muted-foreground hover:text-foreground"} transition-colors cursor-pointer`} data-testid="link-tasks-footer">
               <span>View all →</span>
             </div>

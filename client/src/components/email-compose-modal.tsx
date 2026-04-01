@@ -51,11 +51,13 @@ function TagInput({
   onChange,
   placeholder,
   "data-testid": testId,
+  autoFocus,
 }: {
   value: string[];
   onChange: (v: string[]) => void;
   placeholder?: string;
   "data-testid"?: string;
+  autoFocus?: boolean;
 }) {
   const [inputVal, setInputVal] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -109,6 +111,7 @@ function TagInput({
         placeholder={value.length === 0 ? placeholder : ""}
         className="flex-1 min-w-24 text-sm bg-transparent outline-none border-none"
         data-testid={testId ? `${testId}-input` : undefined}
+        autoFocus={autoFocus}
       />
     </div>
   );
@@ -137,6 +140,13 @@ export function EmailComposeModal({
   const initialBodyRef = useRef(initialBody);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropzoneRef = useRef<HTMLDivElement>(null);
+  const firstInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => firstInputRef.current?.focus(), 0);
+    }
+  }, [open]);
 
   const sendMutation = useMutation({
     mutationFn: async (data: { to: string[]; cc: string[]; bcc: string[]; subject: string; bodyHtml: string; bodyText: string; attachments?: { filename: string; contentType: string; url: string; size: number }[] }) =>
@@ -343,6 +353,7 @@ export function EmailComposeModal({
                 onChange={setTo}
                 placeholder="recipient@example.com — press Enter or comma to add"
                 data-testid="input-email-to"
+                autoFocus={true}
               />
             </div>
 

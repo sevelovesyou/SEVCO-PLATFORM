@@ -16907,3 +16907,44 @@ Two small nav polish items:
 
 ---
 
+## Task — loading-splash-font-perf
+> Merged: 2026-04-01
+
+# Loading Splash Screen + Font Performance
+
+## What & Why
+Two performance improvements:
+
+1. **Logo loading splash** — The app shows a blank white/dark screen for several seconds while JS bundles download and React mounts. Adding an HTML/CSS splash screen that renders instantly (before any JS) with the SEVCO elephant logo gives users something to look at and makes the app feel fast.
+
+2. **Google Fonts trim** — The `index.html` loads 25+ font families from Google Fonts in one render-blocking request. Only ~11 are actually needed (Inter, JetBrains Mono, Fira Code, Source Serif 4, Libre Baskerville + the selectable font options: Roboto, Open Sans, Poppins, Montserrat, Playfair Display, Merriweather). Trimming this cuts the font payload significantly and adds `font-display: swap` so text renders immediately with fallback fonts.
+
+## Done looks like
+- On every page load, a centered splash screen shows immediately (pure CSS, no JS required) with the SEVCO elephant logo on a dark background, with a subtle pulse animation on the logo
+- The splash screen smoothly fades out once React finishes mounting
+- The Google Fonts URL in `index.html` loads only the 11 fonts actually used or user-selectable: Inter, JetBrains Mono, Fira Code, Source Serif 4, Libre Baskerville, Roboto, Open Sans, Poppins, Montserrat, Playfair Display, Merriweather
+- `font-display=swap` is set on the Google Fonts request so text renders immediately
+- The font options that were in the platform settings but not loaded (Lato, Nunito, Raleway, Source Sans Pro) are either added to the font request or removed from the font options list in CMD Settings
+
+## Out of scope
+- Server-side rendering or pre-rendering for SEO (already handled by PageHead component)
+- Any changes to sitemap, robots.txt, or JSON-LD (already well-configured)
+- Changing the platform's color scheme or dark mode behavior
+- Per-page SEO meta tags (already handled)
+
+## Tasks
+
+1. **Copy logo to public and build the splash** — Copy the elephant logo image (`attached_assets/People_Power_-_Artboard_22_1775060349031.png`) into `client/public/logo-splash.png`. In `index.html`, add a `#app-loading` div before `#root` with inline CSS: dark background (`#0a0a0a`), centered flex layout, the logo image at ~160px width with a CSS `@keyframes` pulse animation. Add a small JS snippet (non-module, inline in `<body>`) that adds a `.loaded` class to `#app-loading` once `DOMContentLoaded` fires and React removes the blank state — or call `hideSplash()` from `main.tsx` after `createRoot().render()`.
+
+2. **Trim Google Fonts and add font-display** — Replace the existing Google Fonts `<link>` in `index.html` with a trimmed URL that loads only: Inter, JetBrains Mono, Fira Code, Source Serif 4, Libre Baskerville, Roboto, Open Sans, Poppins, Montserrat, Playfair Display, Merriweather — with `&display=swap` appended. Update the CMD Settings font options list to remove font names that aren't loaded (Lato, Nunito, Raleway, Source Sans Pro) OR add those fonts to the Google Fonts URL too — whichever is cleaner.
+
+## Relevant files
+- `client/index.html`
+- `client/src/main.tsx`
+- `client/public/` (copy logo here)
+- `attached_assets/People_Power_-_Artboard_22_1775060349031.png`
+- `client/src/pages/command-settings.tsx:1193`
+
+
+---
+

@@ -16834,3 +16834,43 @@ The heading spacing (h1/h2/h3) can keep a bit more breathing room, so only overr
 
 ---
 
+## Task — move-domains-to-tools
+> Merged: 2026-04-01
+
+# Move Domains Page to Tools
+
+## What & Why
+The Domains page currently lives at `/domains` under the Services nav. It belongs in the Tools section — it's a platform utility, not a professional service offering. Move it to `/tools/domains`, add it to the Tools menu and Tools landing page, and remove it from Services.
+
+## Done looks like
+- Navigating to `/tools/domains` loads the Domains page
+- Navigating to old `/domains` redirects to `/tools/domains` (backwards compatibility)
+- "Domains" appears in the Tools dropdown in the top nav (with Globe icon)
+- "Domains" appears in the mobile nav under the Tools collapsible section
+- "Domains" appears as a card on the Tools landing page (`/tools`)
+- "Domains" is gone from the Services dropdown and mobile Services nav
+- The active nav highlight correctly shows "Tools" when on `/tools/domains`
+
+## Out of scope
+- Any changes to the Domains page content itself
+- Command Center domains (`/command/domains`) — leave untouched
+
+## Tasks
+1. **Update route and activeApp mapping** — Add `/tools/domains` route pointing to `DomainsPage`. Add a redirect so `/domains` → `/tools/domains`. Update the `activeApp` map so `/tools/domains` resolves to `/tools` (not `/services`).
+
+2. **Update desktop Tools dropdown** — Add a Domains entry to the `ToolsDropdown` `allItems` array in the platform header, using the Globe icon, the description "Search & register domain names", and access open to all roles.
+
+3. **Update mobile navigation** — Add Domains to the mobile Tools collapsible items list. Remove the Domains link from the mobile Services section.
+
+4. **Remove Domains from Services dropdown** — Delete the Domains link block from the Services mega-menu featured row in the desktop nav.
+
+5. **Add Domains to Tools landing page** — Insert a Domains card into the `TOOLS` array in the Tools page, with Globe icon, appropriate description, features list, and `accessLabel: "Free with account"`.
+
+## Relevant files
+- `client/src/App.tsx:268`
+- `client/src/components/platform-header.tsx:161,409-418,629-636,1104-1106,1162-1166`
+- `client/src/pages/tools-page.tsx:30-120`
+
+
+---
+

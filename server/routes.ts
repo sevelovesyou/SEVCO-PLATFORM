@@ -6327,16 +6327,22 @@ export async function registerRoutes(
   app.post("/api/email/send", requireAuth, requireRole(...CLIENT_PLUS_ROLES), async (req, res) => {
     try {
       const user = req.user as any;
-      const { to, cc, bcc, subject, html, text, replyTo, threadId } = req.body as {
+      const { to, cc, bcc, subject, bodyHtml, bodyText, html, text, replyTo, threadId, attachments: rawAttachments } = req.body as {
         to: string[];
         cc?: string[];
         bcc?: string[];
         subject: string;
+        bodyHtml?: string;
+        bodyText?: string;
         html?: string;
         text?: string;
         replyTo?: string;
         threadId?: string;
+        attachments?: Array<{ filename: string; contentType: string; url: string; size: number }>;
       };
+
+      const resolvedHtml = bodyHtml || html || "";
+      const resolvedText = bodyText || text || (resolvedHtml ? resolvedHtml.replace(/<[^>]*>/g, "") : "");
 
       if (!to || !Array.isArray(to) || to.length === 0) {
         return res.status(400).json({ message: "At least one recipient is required" });
@@ -6369,7 +6375,7 @@ export async function registerRoutes(
 
       const resendSend: ResendSendFn = async (payload) => {
         if (!resendClient) throw new Error("Resend API key not configured");
-        const sendPayload = {
+        const sendPayload: Parameters<typeof resendClient.emails.send>[0] = {
           from: payload.from,
           to: payload.to,
           subject: payload.subject,
@@ -6379,6 +6385,14 @@ export async function registerRoutes(
           ...(payload.html ? { html: payload.html } : {}),
           ...(payload.text ? { text: payload.text } : {}),
         };
+        if (payload.attachments && payload.attachments.length > 0) {
+          sendPayload.attachments = payload.attachments.map(att => {
+            if (att.content) {
+              return { filename: att.filename, content: Buffer.from(att.content, "base64") };
+            }
+            return { filename: att.filename, path: att.path! };
+          });
+        }
         const { data, error } = await resendClient.emails.send(sendPayload);
         if (error) throw new Error(error.message);
         return { id: data?.id ?? null };
@@ -6404,10 +6418,11 @@ export async function registerRoutes(
         cc,
         bcc,
         subject,
-        html,
-        text,
+        html: resolvedHtml,
+        text: resolvedText,
         replyTo,
         threadId: resolvedThreadId,
+        attachments: rawAttachments,
       }, resendSend);
 
       res.json({ success: true, resendEmailId });
@@ -6419,7 +6434,9 @@ export async function registerRoutes(
   app.post("/api/email/drafts", requireAuth, requireRole(...CLIENT_PLUS_ROLES), async (req, res) => {
     try {
       const user = req.user as any;
-      const { to = [], cc = [], bcc = [], subject = "", html = "", text = "" } = req.body;
+      const { to = [], cc = [], bcc = [], subject = "", bodyHtml, bodyText, html = "", text = "" } = req.body;
+      const draftHtml = bodyHtml || html;
+      const draftText = bodyText || text || (draftHtml ? draftHtml.replace(/<[^>]*>/g, "") : "");
       const fullUser = await storage.getUser(user.id);
       if (!fullUser) return res.status(404).json({ message: "User not found" });
 
@@ -6433,8 +6450,8 @@ export async function registerRoutes(
         bccAddresses: bcc,
         replyTo: null,
         subject,
-        bodyHtml: html,
-        bodyText: text,
+        bodyHtml: draftHtml,
+        bodyText: draftText,
         folder: "drafts",
         isRead: true,
         isStarred: false,

@@ -308,6 +308,42 @@ html, body {
   display: none;
 }
 
+.ProseMirror {
+  outline: none;
+  min-height: 160px;
+  padding: 8px;
+}
+.ProseMirror ul, .ProseMirror ol { padding-left: 1.5rem; }
+.ProseMirror ul { list-style-type: disc; }
+.ProseMirror ol { list-style-type: decimal; }
+.ProseMirror a { color: hsl(var(--primary)); text-decoration: underline; }
+.ProseMirror blockquote {
+  border-left: 3px solid hsl(var(--border));
+  padding-left: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+.ProseMirror pre {
+  background: hsl(var(--muted));
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+.ProseMirror code {
+  background: hsl(var(--muted));
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+  height: 0;
+}
+
 @keyframes shimmer {
   100% {
     transform: translateX(200%);

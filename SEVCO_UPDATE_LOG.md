@@ -14802,3 +14802,201 @@ A thread detail view, replacing the single `EmailReadView` when a thread is sele
 
 ---
 
+## Task — task-175
+> Merged: 2026-04-01
+
+---
+title: Email: Rich text composer (Tiptap — bold/italic/links/lists/emoji) + drag-drop attachments with inline preview & attachment reminder
+---
+# Task #175 — Email: Rich Text Composer + Drag-Drop Attachments
+
+## Overview
+Replace the plain `<Textarea>` in `EmailComposeModal` with a full Tiptap rich text editor.
+Add drag-and-drop multi-file attachment support with inline previews and an attachment reminder.
+
+Tiptap is **already installed**: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-link`,
+`@tiptap/extension-image`, `@tiptap/extension-text-align`, `@tiptap/extension-text-style`,
+`@tiptap/extension-underline`, `@tiptap/extension-placeholder`.
+
+---
+
+## New Component: `client/src/components/rich-email-editor.tsx`
+
+A self-contained Tiptap-based editor component used inside the compose modal.
+
+**Tiptap extensions to configure:**
+```ts
+useEditor({
+  extensions: [
+    StarterKit,                    // bold, italic, strike, bullet/ordered list, blockquote, code, hr, heading
+    Underline,                     // Ctrl+U
+    Link.configure({ openOnClick: false, autolink: true }),
+    Image.configure({ inline: true }),
+    TextStyle,                     // color support
+    TextAlign.configure({ types: ["heading", "paragraph"] }),
+    Placeholder.configure({ placeholder: "Compose your message..." }),
+  ],
+  content: initialContent,
+  onUpdate: ({ editor }) => onChange(editor.getHTML()),
+})
+```
+
+**Toolbar** (rendered above the editor area):
+Row of compact icon buttons:
+- **B** Bold | **I** Italic | **U** Underline | **~~S~~** Strikethrough | separator
+- **Link** (opens inline prompt for URL) | separator
+- **• —** Bullet list | **1. —** Ordered list | separator
+- **≡ ↓** Align left | Center | Right | separator
+- **"** Blockquote | **</>** Code block | separator
+- **😀** Emoji picker (simple: open a small emoji grid with common emojis — no heavy library,
+  just a static 8×6 grid of the 48 most common emojis inserted via `editor.commands.insertContent`)
+
+Each toolbar button uses a compact `<button>` with a Tooltip showing the keyboard shortcut.
+Active state: slightly highlighted (uses `editor.isActive()` check).
+
+**Editor area:**
+- Min height 160px, max height 400px with scroll
+- Class `ProseMirror` styled to match the rest of the form (border, rounded, focus ring)
+- Click outside editor → blur
+- `data-testid="rich-email-editor"`
+
+**Props:**
+```ts
+interface RichEmailEditorProps {
+  initialContent?: string;  // HTML string, used for pre-filled reply content
+  onChange: (html: string) => void;
+  placeholder?: string;
+}
+```
+
+---
+
+## Updated Component: `client/src/components/email-compose-modal.tsx`
+
+### A) Replace Textarea with RichEmailEditor
+
+Import `RichEmailEditor` from `./rich-email-editor`.
+Replace:
+```tsx
+<Textarea value={body} onChange={...} />
+```
+with:
+```tsx
+<RichEmailEditor
+  initialContent={body}
+  onChange={(html) => setBody(html)}
+/>
+```
+
+When building the API payload, send `bodyHtml: body` (HTML from Tiptap).
+
+### B) Attachment Panel (below the editor)
+
+Add a file attachment area between the editor and the send button:
+
+**Drag-and-drop zone:**
+```tsx
+<div
+  className="border-2 border-dashed border-border/60 rounded-lg p-3 text-center cursor-pointer hover:border-primary/40 transition-colors"
+  onDragOver={handleDragOver}
+  onDrop={handleDrop}
+  onClick={() => fileInputRef.current?.click()}
+  data-testid="email-attachment-dropzone"
+>
+  <Paperclip className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+  <p className="text-xs text-muted-foreground">
+    Drag files here or <span className="text-primary underline">browse</span>
+  </p>
+</div>
+<input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
+```
+
+**Attachment state:** `attachments: File[]`
+- `handleDrop(e)` → reads `e.dataTransfer.files`, calls `addFiles()`
+- `handleFileSelect(e)` → reads `e.target.files`, calls `addFiles()`
+- `addFiles(files)` → filter by max size (10MB per file), append to state, show toast if rejected
+
+**Attachment list** (below dropzone):
+```tsx
+{attachments.map((file, i) => (
+  <div key={i} className="flex items-center gap-2 text-sm py-1" data-testid={`attachment-item-${i}`}>
+    <FileIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+    <span className="truncate flex-1">{file.name}</span>
+    <span className="text-xs text-muted-foreground shrink-0">{formatFileSize(file.size)}</span>
+    <button onClick={() => removeAttachment(i)} data-testid={`button-remove-attachment-${i}`}>
+      <X className="h-3.5 w-3.5" />
+    </button>
+  </div>
+))}
+```
+
+**Image preview:** If `file.type.startsWith("image/")`, show a small 40×40 thumbnail using
+`URL.createObjectURL(file)`.
+
+### C) Attachment Upload on Send
+
+When the form is submitted and `attachments.length > 0`:
+1. Upload each file to Supabase Storage via `POST /api/storage/upload`
+   (or `/api/gallery/upload` if that pattern exists — check how the gallery uploads files)
+2. Collect `{ name, url, type, size }` for each uploaded file
+3. Include `attachments: [{ name, url, type, size }]` in the email send payload
+
+If Supabase upload isn't feasible (large files, storage limits), fall back to:
+- Include files as base64 in the email payload (acceptable for files < 2MB)
+- Show a warning for files > 2MB that they cannot be attached
+
+### D) Attachment Reminder
+
+Before sending, check if the body HTML (converted to plain text) contains any of these words:
+`["attached", "attachment", "see attached", "find attached", "enclosed", "herewith"]`
+
+If matches found and `attachments.length === 0`:
+- Show an `AlertDialog`:
+  > "You mentioned an attachment but didn't attach any files. Send anyway?"
+  > [Attach files] [Send anyway]
+- If user clicks "Attach files": close dialog, focus the dropzone
+- If user clicks "Send anyway": proceed with send
+
+---
+
+## Backend: `server/routes.ts` — `POST /api/email/send`
+
+Ensure the existing endpoint already handles `bodyHtml` being a full HTML string.
+If the current endpoint expects `body` (plain text), update it to:
+- Accept `bodyHtml` (HTML) and `bodyText` (plain text, auto-derived by stripping HTML tags)
+- Strip HTML → `bodyText` server-side if only `bodyHtml` is provided
+
+---
+
+## CSS: `client/src/index.css` or a new `rich-email-editor.css`
+
+Basic ProseMirror content styling:
+```css
+.ProseMirror {
+  outline: none;
+  min-height: 160px;
+  padding: 8px;
+}
+.ProseMirror ul, .ProseMirror ol { padding-left: 1.5rem; }
+.ProseMirror a { color: hsl(var(--primary)); text-decoration: underline; }
+.ProseMirror blockquote { border-left: 3px solid hsl(var(--border)); padding-left: 0.75rem; color: hsl(var(--muted-foreground)); }
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+  height: 0;
+}
+```
+
+---
+
+## Files Changed
+- `client/src/components/rich-email-editor.tsx` (new component)
+- `client/src/components/email-compose-modal.tsx` (replace textarea, add attachments)
+- `client/src/index.css` (ProseMirror styles)
+- `server/routes.ts` (ensure bodyHtml handled on send)
+
+
+---
+

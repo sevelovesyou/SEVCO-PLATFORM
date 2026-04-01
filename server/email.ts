@@ -36,6 +36,13 @@ export function isClientPlus(role: string): boolean {
   return CLIENT_PLUS_ROLES.includes(role);
 }
 
+export interface EmailAttachment {
+  filename: string;
+  contentType: string;
+  url: string;
+  size: number;
+}
+
 export interface ResendSendFn {
   (payload: {
     from: string;
@@ -46,6 +53,7 @@ export interface ResendSendFn {
     subject: string;
     html?: string;
     text?: string;
+    attachments?: Array<{ filename: string; content?: string; path?: string }>;
   }): Promise<{ id?: string | null }>;
 }
 
@@ -60,15 +68,28 @@ interface SendEmailParams {
   replyTo?: string;
   isDraft?: boolean;
   threadId?: string | null;
+  attachments?: EmailAttachment[];
 }
 
 export async function sendEmail(params: SendEmailParams, resendSend: ResendSendFn): Promise<string | null> {
-  const { fromUser, to, cc = [], bcc = [], subject, html = "", text = "", replyTo, isDraft = false, threadId = null } = params;
+  const { fromUser, to, cc = [], bcc = [], subject, html = "", text = "", replyTo, isDraft = false, threadId = null, attachments = [] } = params;
 
   const fromAddress = getEmailAddress(fromUser.username);
   const fromDisplay = `${fromUser.displayName || fromUser.username} <${fromAddress}>`;
 
   let resendEmailId: string | null = null;
+
+  const resendAttachments: Array<{ filename: string; content?: string; path?: string }> = [];
+  for (const att of attachments) {
+    if (att.url.startsWith("data:")) {
+      const base64Data = att.url.split(",")[1];
+      if (base64Data) {
+        resendAttachments.push({ filename: att.filename, content: base64Data });
+      }
+    } else {
+      resendAttachments.push({ filename: att.filename, path: att.url });
+    }
+  }
 
   if (!isDraft) {
     const result = await resendSend({
@@ -80,9 +101,12 @@ export async function sendEmail(params: SendEmailParams, resendSend: ResendSendF
       subject,
       html: html || undefined,
       text: text || undefined,
+      attachments: resendAttachments.length > 0 ? resendAttachments : undefined,
     });
     resendEmailId = result?.id ?? null;
   }
+
+  const storedAttachments = attachments.map(a => ({ filename: a.filename, contentType: a.contentType, url: a.url, size: a.size }));
 
   await storage.createEmail({
     userId: fromUser.id,
@@ -99,7 +123,7 @@ export async function sendEmail(params: SendEmailParams, resendSend: ResendSendF
     folder: isDraft ? "drafts" : "sent",
     isRead: true,
     isStarred: false,
-    attachments: [],
+    attachments: storedAttachments,
     threadId: threadId ?? null,
   });
 

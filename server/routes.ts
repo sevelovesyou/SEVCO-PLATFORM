@@ -4470,6 +4470,14 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Content is required" });
       }
       const message = await storage.sendDmMessage(req.user!.id, toUserId, content.trim());
+      const sender = req.user as any;
+      notify(
+        toUserId,
+        "chat_dm",
+        `New message from ${sender.displayName || sender.username}`,
+        content.trim().slice(0, 80),
+        "/messages"
+      ).catch(() => {});
       res.json(message);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -7079,6 +7087,11 @@ export async function registerRoutes(
       const parsed = insertStaffTaskSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.issues[0]?.message ?? "Invalid data" });
       const task = await storage.createStaffTask({ ...parsed.data, createdById });
+      storage.getUsersByRole(["admin", "executive", "staff"]).then((staffUsers) => {
+        Promise.all(staffUsers.map((u) =>
+          notify(u.id, "staff_task", "New staff task", task.title, "/command/staff")
+        )).catch(() => {});
+      }).catch(() => {});
       res.status(201).json(task);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -7129,6 +7142,7 @@ export async function registerRoutes(
       const parsed = insertUserTaskSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.issues[0]?.message ?? "Invalid data" });
       const task = await storage.createUserTask({ ...parsed.data, userId });
+      notify(userId, "task", "New task assigned", task.title, "/tools").catch(() => {});
       res.status(201).json(task);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -7206,5 +7220,56 @@ export async function registerRoutes(
     }
   });
 
+  // ─── Notifications ────────────────────────────────────────────────────────
+  app.get("/api/notifications", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id as string;
+      const notifs = await storage.getNotifications(userId);
+      res.json(notifs);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/notifications/count", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id as string;
+      const count = await storage.getUnreadNotificationCount(userId);
+      res.json({ count });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/notifications/read-all", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id as string;
+      await storage.markAllNotificationsRead(userId);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/notifications/:id/read", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id as string;
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      await storage.markNotificationRead(id, userId);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   return httpServer;
 }
+
+async function notify(userId: string, type: string, title: string, body?: string, link?: string) {
+  try {
+    await storage.createNotification({ userId, type, title, body, link, isRead: false });
+  } catch { /* non-blocking */ }
+}
+
+export { notify };

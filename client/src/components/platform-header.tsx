@@ -87,8 +87,9 @@ import {
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { ChatSheet } from "@/components/chat-sheet";
 import { useSounds } from "@/hooks/use-sounds";
-import { Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX, Bell } from "lucide-react";
 import type { Project, Service } from "@shared/schema";
+import { NotificationDropdown } from "@/components/notification-dropdown";
 
 function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
   if (!name) return null;
@@ -729,7 +730,26 @@ export function PlatformHeader() {
   const [mobileSection, setMobileSection] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const { soundEnabled, toggleSound, playClick } = useSounds();
+  const [notifOpen, setNotifOpen] = useState(false);
+  const { soundEnabled, toggleSound, playClick, playNotification } = useSounds();
+
+  const { data: notifCount } = useQuery<{ count: number }>({
+    queryKey: ["/api/notifications/count"],
+    refetchInterval: 30000,
+    enabled: !!user,
+  });
+  const unreadNotifCount = notifCount?.count ?? 0;
+  const prevCountRef = useRef(-1);
+  useEffect(() => {
+    if (prevCountRef.current === -1) {
+      prevCountRef.current = unreadNotifCount;
+      return;
+    }
+    if (unreadNotifCount > prevCountRef.current) {
+      playNotification();
+    }
+    prevCountRef.current = unreadNotifCount;
+  }, [unreadNotifCount, playNotification]);
 
   const { data: allServices = [] } = useQuery<Service[]>({
     queryKey: ["/api/services"],
@@ -880,6 +900,36 @@ export function PlatformHeader() {
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Open Chat</TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Notification bell — logged-in only */}
+          {user && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setNotifOpen((o) => !o)}
+                    data-testid="button-notifications"
+                    aria-label="Notifications"
+                  >
+                    <Bell className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                  {unreadNotifCount > 0 && (
+                    <span
+                      className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center pointer-events-none"
+                      data-testid="badge-notif-count"
+                    >
+                      {unreadNotifCount > 99 ? "99+" : unreadNotifCount}
+                    </span>
+                  )}
+                  <NotificationDropdown open={notifOpen} onClose={() => setNotifOpen(false)} />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Notifications{unreadNotifCount > 0 ? ` (${unreadNotifCount})` : ""}</TooltipContent>
             </Tooltip>
           )}
 

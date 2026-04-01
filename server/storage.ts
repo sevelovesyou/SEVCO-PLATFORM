@@ -44,6 +44,7 @@ import {
   type UserTask, type InsertUserTask, type UpdateUserTask,
   type StaffTask, type InsertStaffTask, type UpdateStaffTask,
   type Domain, type InsertDomain,
+  type Notification, type InsertNotification,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
@@ -63,6 +64,7 @@ import {
   domains,
   userTasks,
   staffTasks,
+  notifications,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, and, sql, ilike, or, inArray, gte, lte, count as countFn } from "drizzle-orm";
@@ -369,6 +371,13 @@ export interface IStorage {
   createDomain(data: InsertDomain): Promise<Domain>;
   updateDomain(id: number, data: Partial<InsertDomain>): Promise<Domain>;
   deleteDomain(id: number): Promise<void>;
+
+  getNotifications(userId: string, limit?: number): Promise<Notification[]>;
+  getUnreadNotificationCount(userId: string): Promise<number>;
+  createNotification(data: InsertNotification): Promise<Notification>;
+  markNotificationRead(id: number, userId: string): Promise<void>;
+  markAllNotificationsRead(userId: string): Promise<void>;
+  getUsersByRole(roles: Role[]): Promise<User[]>;
 }
 
 export type SearchResultItem = {
@@ -2360,6 +2369,46 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDomain(id: number): Promise<void> {
     await db.delete(domains).where(eq(domains.id, id));
+  }
+
+  async getNotifications(userId: string, limit = 30): Promise<Notification[]> {
+    return db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(asc(notifications.isRead), desc(notifications.createdAt))
+      .limit(limit);
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const [row] = await db
+      .select({ count: countFn() })
+      .from(notifications)
+      .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+    return Number(row?.count ?? 0);
+  }
+
+  async createNotification(data: InsertNotification): Promise<Notification> {
+    const [notif] = await db.insert(notifications).values(data).returning();
+    return notif;
+  }
+
+  async markNotificationRead(id: number, userId: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+  }
+
+  async markAllNotificationsRead(userId: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+  }
+
+  async getUsersByRole(roles: Role[]): Promise<User[]> {
+    return db.select().from(users).where(inArray(users.role, roles));
   }
 }
 

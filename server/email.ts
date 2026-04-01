@@ -411,6 +411,18 @@ export async function processInboundEmail(payload: ResendInboundPayload): Promis
     });
 
     console.log(`[email] Stored inbound email for ${username} (id: ${email_id})`);
+
+    try {
+      const fromName = fromAddress.replace(/<[^>]+>/, "").trim() || fromAddress;
+      await storage.createNotification({
+        userId: user.id,
+        type: "email",
+        title: `New email from ${fromName}`,
+        body: subject || undefined,
+        link: "/messages",
+        isRead: false,
+      });
+    } catch { /* non-blocking */ }
   }
 }
 

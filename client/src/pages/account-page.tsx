@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,10 +13,24 @@ import { Badge } from "@/components/ui/badge";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { User, Loader2, ExternalLink } from "lucide-react";
 import { SiX } from "react-icons/si";
 import { Link } from "wouter";
+import { useSounds } from "@/hooks/use-sounds";
+
+function useLocalPrefs() {
+  const [prefs, setPrefs] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem("sevco-notif-prefs") || "{}"); } catch { return {}; }
+  });
+  function setPref(key: string, value: boolean) {
+    const next = { ...prefs, [key]: value };
+    setPrefs(next);
+    localStorage.setItem("sevco-notif-prefs", JSON.stringify(next));
+  }
+  return [prefs, setPref] as const;
+}
 
 const profileSchema = z.object({
   displayName: z.string().max(80, "Max 80 characters").optional().or(z.literal("")),
@@ -29,6 +43,8 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 export default function AccountPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { soundEnabled, toggleSound } = useSounds();
+  const [localPrefs, setLocalPref] = useLocalPrefs();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -282,6 +298,43 @@ export default function AccountPage() {
               </Button>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Notification Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Sound Notifications</p>
+              <p className="text-xs text-muted-foreground">Play a chime when new notifications arrive</p>
+            </div>
+            <Switch
+              checked={soundEnabled}
+              onCheckedChange={toggleSound}
+              data-testid="toggle-notification-sound"
+            />
+          </div>
+          <Separator />
+          {[
+            { key: "notif_email", label: "Email notifications", desc: "When you receive new emails" },
+            { key: "notif_chat", label: "Chat notifications", desc: "When you receive direct messages" },
+            { key: "notif_task", label: "Task notifications", desc: "When tasks are assigned to you" },
+          ].map(({ key, label, desc }) => (
+            <div key={key} className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">{label}</p>
+                <p className="text-xs text-muted-foreground">{desc}</p>
+              </div>
+              <Switch
+                checked={localPrefs[key] !== false}
+                onCheckedChange={(v) => setLocalPref(key, v)}
+                data-testid={`toggle-${key}`}
+              />
+            </div>
+          ))}
         </CardContent>
       </Card>
     </div>

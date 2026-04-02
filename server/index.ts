@@ -140,6 +140,7 @@ async function runStartupMigrations() {
     created_at timestamp DEFAULT now() NOT NULL
   );`);
   // Task #197 — Music track library
+  // Task #196 + #198 — Music tracks table
   await pool.query(`CREATE TABLE IF NOT EXISTS music_tracks (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     title text NOT NULL,

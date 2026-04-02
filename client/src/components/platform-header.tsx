@@ -83,6 +83,7 @@ import {
   CheckSquare,
   Wand2,
   Lock,
+  Drum,
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { ChatSheet } from "@/components/chat-sheet";
@@ -473,6 +474,7 @@ function MusicDropdown({ isActive }: { isActive: boolean }) {
   const items = [
     { label: "SEVCO RECORDS", href: "/music",             icon: Music,        desc: "The label" },
     { label: "Listen",        href: "/listen",            icon: Headphones,   desc: "Stream music" },
+    { label: "Beats",         href: "/music/beats",       icon: Drum,         desc: "Instrumental beats" },
     { label: "Artists",       href: "/music/artists",     icon: Music2,       desc: "Browse artists" },
     { label: "Playlists",     href: "/music/playlists",   icon: ListMusic,    desc: "Curated playlists" },
     { label: "Submit",        href: "/music/submit",      icon: Send,         desc: "Submit your music" },
@@ -751,6 +753,7 @@ export function PlatformHeader() {
   const musicItems = [
     { label: "SEVCO RECORDS", href: "/music" },
     { label: "Listen",        href: "/listen" },
+    { label: "Beats",         href: "/music/beats" },
     { label: "Artists",       href: "/music/artists" },
     { label: "Playlists",     href: "/music/playlists" },
     { label: "Submit",        href: "/music/submit" },

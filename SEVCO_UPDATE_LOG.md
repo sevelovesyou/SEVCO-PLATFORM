@@ -14616,7 +14616,6 @@ Also add `Avatar` import to the import list and `useAuth` import.
 
 ---
 
-<<<<<<< HEAD
 ## Task — ai-chat-modernization
 > Merged: 2026-04-01
 
@@ -14670,7 +14669,7 @@ Modernize the AI agent chat experience across all three chat surfaces (fullscree
 - `client/src/components/ai-message-renderer.tsx`
 - `server/routes.ts`
 - `shared/schema.ts`
-=======
+
 ## Task — task-174
 > Merged: 2026-04-01
 
@@ -14797,7 +14796,6 @@ A thread detail view, replacing the single `EmailReadView` when a thread is sele
 - `server/routes.ts` (new GET /api/email/threads, threadId population on send reply)
 - `client/src/pages/messages-page.tsx` (thread list query + ThreadListItem)
 - `client/src/components/email-thread-view.tsx` (new component — full thread UI)
->>>>>>> 17a1104 (Post-merge setup completed successfully)
 
 
 ---
@@ -17053,6 +17051,39 @@ With the `music_tracks` table in place, users need a way to browse and play the 
 - `client/src/components/floating-chat-window.tsx` (drag/resize pattern)
 - `client/src/App.tsx:711-719` (where FloatingChatProvider and FloatingChatWindows are mounted)
 - `client/src/pages/music-listen-page.tsx`
+
+## Task — task-198
+> Merged: 2026-04-02
+
+---
+title: Beats page (/music/beats), Instrumental type & nav entry
+---
+# Beats Page + Instrumental Upload Type
+
+## What & Why
+The Beats page gives producers and instrumental music its own dedicated section, separate from the main Music Library. The `music_tracks` schema (from the library infrastructure task) already has a `type` field supporting "instrumental". This task adds the public-facing Beats page, the nav entry, and the upload option.
+
+## Done looks like
+- A new `/music/beats` route and `MusicBeatsPage` renders a grid of all published "instrumental" tracks with cover art, title, producer/artist name, duration, stream count, and a Play button
+- The Beats page has its own hero/header section distinct from the main music page
+- "Beats" appears in the Music dropdown nav on desktop and in the mobile Music collapsible section
+- The Beats Library CMD tab (added as part of the library infrastructure task) shows only type="instrumental" tracks
+- When playing a beat in the floating player, it works identically to playing a regular track
+
+## Out of scope
+- Licensing/purchase for beats (future)
+- BPM or key tagging on instrumentals (future)
+- Any changes to the schema (already handled by the library infrastructure task)
+
+## Tasks
+1. **Beats page** — Create `client/src/pages/music-beats-page.tsx`. Fetch `GET /api/music/tracks?type=instrumental`. Display as a responsive grid (same card design as the listen page but with a distinct "Beats" brand feel — darker, production-focused). Play button triggers the global `MusicPlayerContext`. Show stream count on each card. Include a `<PageHead>` with title "Beats — SEVCO Records".
+
+2. **Route + nav** — Add `/music/beats` route in `App.tsx` with `MusicBeatsPage`. In `platform-header.tsx`, add "Beats" to the `MusicDropdown` `allItems` array (use a `Drum` or `Headphones` icon from lucide-react) and to the mobile Music collapsible items list.
+
+## Relevant files
+- `client/src/App.tsx:162-170` (music routes)
+- `client/src/components/platform-header.tsx:470-480` (MusicDropdown items), mobile music items
+- `client/src/pages/music-listen-page.tsx` (reference for card/grid design)
 
 
 ---

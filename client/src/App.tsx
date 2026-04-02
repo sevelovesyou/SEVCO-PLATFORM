@@ -53,6 +53,7 @@ import JobsDetailPage from "@/pages/jobs-detail-page";
 import MusicSubmitPage from "@/pages/music-submit-page";
 import MusicListenPage from "@/pages/music-listen-page";
 import MusicPlaylistsPage from "@/pages/music-playlists-page";
+import MusicBeatsPage from "@/pages/music-beats-page";
 import NotFound from "@/pages/not-found";
 
 import { CommandPageLayout } from "@/pages/command-page";
@@ -163,6 +164,7 @@ function Router() {
       <Route path="/music/playlists" component={MusicPlaylistsPage} />
       <Route path="/listen" component={MusicListenPage} />
       <Route path="/music/listen" component={MusicListenPage} />
+      <Route path="/music/beats" component={MusicBeatsPage} />
       <Route path="/music/artists" component={MusicArtistsPage} />
       <Route path="/music/artists/new" component={() => <ProtectedRoute><MusicArtistForm /></ProtectedRoute>} />
       <Route path="/music/artists/:slug" component={MusicArtistDetail} />

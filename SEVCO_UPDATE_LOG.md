@@ -17233,3 +17233,31 @@ When staff add tracks to the Music or Beats Library, the current form only accep
 
 ---
 
+## Task — music-track-cover-upload
+> Merged: 2026-04-02
+
+# Music Track: Cover Image Upload
+
+## What & Why
+The Add/Edit Track dialog has a plain URL text input for Cover Image. Like the audio file field, it should use a file upload control so staff can upload images directly instead of pasting URLs.
+
+## Done looks like
+- The Cover Image field in the Add/Edit Track dialog uses `FileUploadWithFallback` — staff can click to upload a jpg/png/webp image (up to 10 MB)
+- An image preview appears after upload
+- An "Or paste a URL" toggle remains as a fallback
+- The zod schema validation is updated to remove the `.url()` constraint (since uploaded files produce valid URLs automatically)
+
+## Out of scope
+- Cover image for playlists (separate form, not requested)
+- Any other dialog changes
+
+## Tasks
+1. **Swap cover image input** — In `MusicTrackDialog` in `command-music.tsx`, replace the `Input` for `coverImageUrl` with `FileUploadWithFallback`. Config: `bucket="gallery"`, `path="tracks/covers/{timestamp}.{ext}"`, `accept="image/jpeg,image/png,image/webp,image/*"`, `maxSizeMb=10`. The upload callback calls `form.setValue("coverImageUrl", url)`. Update the `musicTrackSchema` `coverImageUrl` field to remove the `.url()` validator (change to `z.string().optional().or(z.literal(""))`) so non-URL storage paths don't fail validation.
+
+## Relevant files
+- `client/src/pages/command-music.tsx:1190,1390-1397` (coverImageUrl schema field + form field)
+- `client/src/components/file-upload.tsx` (FileUploadWithFallback — already imported)
+
+
+---
+

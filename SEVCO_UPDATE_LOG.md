@@ -17190,3 +17190,46 @@ The Task #200 merge left a duplicate "Beats Library" tab in CommandMusic using `
 
 ---
 
+## Task — music-library-upload-genre-prefill
+> Merged: 2026-04-02
+
+# Music Library: File Upload, Genre & Submission Prefill
+
+## What & Why
+When staff add tracks to the Music or Beats Library, the current form only accepts a URL for the audio file and pre-populates very little from submissions. This task upgrades the workflow to use real file uploads, adds a genre classification field, and auto-populates all available metadata (including the audio file) from accepted submissions.
+
+## Done looks like
+- "Add Track" and "Add Instrumental" dialogs have a file upload control instead of a URL text input for the audio file. Staff can upload mp3/wav files directly (up to 200 MB). An "Or paste a URL" toggle remains as a fallback.
+- The form has a Genre dropdown with a curated list (Hip-Hop, R&B, Pop, Rock, Electronic, Jazz, Classical, Country, Latin, Gospel, Soul, Funk, Indie, Alternative, Other).
+- When clicking "Add to Library" from an accepted submission, the dialog pre-populates: Title, Artist, Genre, and auto-fetches + sets the submission's audio file URL so the admin just reviews and saves.
+- Genre is stored on the `music_tracks` record and shown in the track list table (CMD) and on public artist/album pages.
+
+## Out of scope
+- Cover image upload (already handled separately)
+- Editing the genre list from the UI (hardcoded list is fine)
+- Genre search or filtering on public pages
+
+## Tasks
+
+1. **Schema + migration** — Add `genre text` column to the `musicTracks` table in `shared/schema.ts`. Add `ALTER TABLE music_tracks ADD COLUMN IF NOT EXISTS genre text;` to the startup migration in `server/index.ts`. Update `insertMusicTrackSchema` to include genre (optional string).
+
+2. **File upload in track dialog** — In `MusicTrackDialog` in `command-music.tsx`, replace the plain text `fileUrl` input with `FileUploadWithFallback` (from `@/components/file-upload`). Config: `bucket="tracks"`, `path="library/{timestamp}.{ext}"`, `accept="audio/mpeg,audio/wav,audio/*"`, `maxSizeMb=200`. The upload callback sets `fileUrl` in the form via `form.setValue("fileUrl", url)`.
+
+3. **Genre dropdown** — Add a `genre` field to `musicTrackSchema` (optional string). Add a `<Select>` genre dropdown to the dialog form with the curated genre list above. The existing `MusicTrackWithMeta` type should extend to include `genre`.
+
+4. **Richer submission prefill + auto-fetch audio** — Expand the `prefill` type to include `{ title, artistId, genre, albumName, fileUrl }`. In `handleAddFromSubmission`, populate all available fields from the submission object. For the audio file: call `GET /api/music/submissions/:id/track-url` immediately when the dialog opens with a submission prefill, and set `fileUrl` in the form with the returned signed URL. Show a loading indicator in the fileUrl field until the URL resolves.
+
+5. **Display genre in track table** — Add a Genre column (or show it as a small badge) in the CMD music library track table. Also show it on artist/album detail pages next to the track duration if available.
+
+## Relevant files
+- `client/src/pages/command-music.tsx` (MusicTrackDialog, MusicLibraryTab, handleAddFromSubmission, musicTrackSchema, prefill type)
+- `client/src/components/file-upload.tsx` (FileUpload, FileUploadWithFallback — already exists)
+- `shared/schema.ts:985-1003` (musicTracks table definition)
+- `server/index.ts` (startup migrations — ADD COLUMN pattern)
+- `client/src/pages/music-artist-detail.tsx` (track display)
+- `client/src/pages/music-album-detail.tsx` (track display)
+- `server/routes.ts:3088` (GET /api/music/submissions/:id/track-url — returns signed URL)
+
+
+---
+

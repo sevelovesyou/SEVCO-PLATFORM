@@ -17127,3 +17127,40 @@ The music library infrastructure adds stream counts per track. This task surface
 
 ---
 
+## Task — fix-music-tracks-schema-alignment
+> Merged: 2026-04-02
+
+# Fix: Music Tracks Schema Alignment
+
+## What & Why
+Multiple recent merges left `storage.ts` and several frontend pages using field names that don't exist in `shared/schema.ts`. The actual `music_tracks` table has `coverImageUrl`, `duration`, `status` (text), `albumName` (text, no FK), and `artistId` (FK). Code referencing `coverArtUrl`, `durationSeconds`, `isPublished`, and `albumId` causes Drizzle to throw runtime errors, crashing every page that touches the tracks table — including the CMD Music section, the Beats page, and artist/album detail pages.
+
+## Done looks like
+- CMD > Music section loads without crashing (all tabs work)
+- `/music/beats` loads and plays tracks
+- Artist and album detail pages show track listings with stream counts
+- The floating music player can play tracks from any of those pages
+
+## Out of scope
+- New features or data model changes
+- Adding an `albumId` FK or `isPublished` boolean column (would require a DB migration)
+
+## Tasks
+
+1. **Fix storage layer** — In `server/storage.ts`, correct all field references in `getMusicTracks`, `getMusicTrackById`, `createMusicTrack`, `updateMusicTrack`, and `incrementMusicTrackStream`: replace `coverArtUrl` → `coverImageUrl`, `durationSeconds` → `duration`, `isPublished` checks → `status === "published"`, and remove the `albumId` FK join (use the `albumName` text field instead). Update `IStorage` return types to match.
+
+2. **Fix CMD Music page** — In `command-music.tsx`, update the `musicTrackSchema` form definition and all field references: `coverArtUrl` → `coverImageUrl`, `durationSeconds` → `duration`, `isPublished` → `status` (with `"published"`/`"draft"` values), and `albumId` form field → `albumName` text input. Update `MusicTrackWithMeta` type to remove the `album` join object and use `albumName: string | null` directly. Fix the sort function for duration and status accordingly.
+
+3. **Fix public music pages** — In `music-beats-page.tsx`, `music-artist-detail.tsx`, and `music-album-detail.tsx`, fix all field references: `coverArtUrl` → `coverImageUrl`, `durationSeconds` → `duration`, and remove any `albumId` FK usage in favor of `albumName`.
+
+## Relevant files
+- `server/storage.ts`
+- `shared/schema.ts`
+- `client/src/pages/command-music.tsx`
+- `client/src/pages/music-beats-page.tsx`
+- `client/src/pages/music-artist-detail.tsx`
+- `client/src/pages/music-album-detail.tsx`
+
+
+---
+

@@ -17289,3 +17289,48 @@ Submitting the Add Track / Add Instrumental form always returns "Invalid data". 
 
 ---
 
+## Task — artist-profile-merge
+> Merged: 2026-04-02
+
+# Artist Pages → User Profiles with Discography
+
+## What & Why
+Artist detail pages are a separate experience from user profiles, creating fragmented identity. When an artist is a SEVCO platform user (linked via Task #205), their artist page should simply be their user profile — one unified identity. Profiles should also surface all of an artist's music (albums + tracks with art) automatically.
+
+## Done looks like
+- Visiting `/music/artists/:slug` for an artist who has a linked user account redirects automatically to their `/profile/:username`
+- Artist cards on the `/music/artists` grid link to `/profile/:username` for linked artists, and to the existing `/music/artists/:slug` page for artists with no linked account
+- A user profile page with a linked artist shows a "Music" section with: all their albums displayed as cards with cover art, title, release year, track count; and a track listing below with cover art, title, genre, duration, stream count, and a Play button
+- For artists with no linked user, the existing `/music/artists/:slug` page continues to work as-is
+- No existing artist profile data or styles are lost — the profile page's music section matches the quality of the artist detail page
+
+## Out of scope
+- Merging the artists table or removing artist records
+- Changing how unlinked artists appear
+- Album detail pages (those remain at `/music/albums/:slug`)
+
+## Tasks
+
+1. **Artist API: return linked username** — Update `GET /api/music/artists/:slug` in `server/routes.ts` to also query the `users` table for any user whose `linked_artist_id` equals the artist's id, and include `linkedUsername: string | null` in the response.
+
+2. **Artist detail redirect** — In `music-artist-detail.tsx`, after the artist loads, check `artist.linkedUsername`. If set, immediately redirect to `/profile/${artist.linkedUsername}` using wouter's `useLocation`. The existing artist detail page content remains as the fallback for unlinked artists.
+
+3. **Artist grid links** — In `music-artists-page.tsx` (the `/music/artists` listing), update each artist card's link so: if `artist.linkedUsername` is set, link to `/profile/${artist.linkedUsername}`; otherwise link to `/music/artists/${artist.slug}`. Ensure the artist list API (`GET /api/music/artists`) also returns `linkedUsername` for each record (same reverse-lookup).
+
+4. **Profile API: expose linkedArtistId** — In `GET /api/profile/:username` in `server/routes.ts`, add `linkedArtistId` to the `publicProfile` response object (it will exist on the user row after Task #205's migration).
+
+5. **Profile page music section** — In `profile-page.tsx`, when `profile.linkedArtistId` is set, fetch:
+   - `GET /api/music/albums?artistId={linkedArtistId}` — artist's albums
+   - `GET /api/music/tracks?artist_id={linkedArtistId}` — published tracks
+   Display a "Music" section beneath the existing profile content. Albums appear as a horizontal scroll of cards with cover art, title, and release year. Tracks appear as a list below with cover art thumbnail, title, genre badge, duration, stream count, and a Play button (using the floating music player context). Show skeleton loaders while loading.
+
+## Relevant files
+- `server/routes.ts:1990-2010` (GET /api/music/artists/:slug), `2801-2830` (GET /api/profile/:username)
+- `client/src/pages/music-artist-detail.tsx` (full file — 291 lines)
+- `client/src/pages/music-artists-page.tsx` (artist grid)
+- `client/src/pages/profile-page.tsx` (add music section — 1498 lines, add near bottom)
+- `client/src/contexts/music-player-context.tsx` (for play buttons)
+
+
+---
+

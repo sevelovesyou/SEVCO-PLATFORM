@@ -21,10 +21,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Music, ExternalLink, Filter, CheckCircle, XCircle, Clock, Eye,
   ListMusic, Plus, Pencil, Trash2, Users, ChevronDown, ChevronUp,
-  Search, RefreshCw, Unlink, Play, Loader2, Drum, Headphones,
+  Search, RefreshCw, Unlink, Play, Loader2, Drum, Headphones, Lock,
 } from "lucide-react";
 import { FileUploadWithFallback } from "@/components/file-upload";
 import { SiSpotify, SiApplemusic, SiYoutubemusic, SiSoundcloud } from "react-icons/si";
@@ -1218,15 +1219,26 @@ function MusicTrackDialog({
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
   const isEdit = !!track;
   const [fetchingAudio, setFetchingAudio] = useState(false);
 
   const { data: artists } = useQuery<Artist[]>({ queryKey: ["/api/music/artists"] });
 
+  const isStaffLocked = user?.role === "staff" && !!user?.linkedArtistId;
+
   function buildDefaults(): MusicTrackFormInit {
+    let artistIdValue: number | undefined;
+    if (track?.artistId != null) {
+      artistIdValue = track.artistId;
+    } else if (prefill?.artistId != null) {
+      artistIdValue = prefill.artistId;
+    } else if (user?.linkedArtistId != null) {
+      artistIdValue = user.linkedArtistId;
+    }
     return {
       title: track?.title ?? prefill?.title ?? "",
-      ...(track?.artistId != null ? { artistId: track.artistId } : prefill?.artistId != null ? { artistId: prefill.artistId } : {}),
+      ...(artistIdValue != null ? { artistId: artistIdValue } : {}),
       albumName: track?.albumName ?? prefill?.albumName ?? "",
       genre: track?.genre ?? prefill?.genre ?? "",
       type: track?.type ?? trackType,
@@ -1299,20 +1311,32 @@ function MusicTrackDialog({
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="artistId" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Artist</FormLabel>
-                  <Select
-                    value={field.value ? String(field.value) : ""}
-                    onValueChange={(v) => field.onChange(Number(v))}
-                  >
-                    <FormControl>
-                      <SelectTrigger data-testid="select-track-artist"><SelectValue placeholder="Select artist" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {(artists ?? []).map((a) => (
-                        <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel className="flex items-center gap-1.5">
+                    Artist
+                    {isStaffLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
+                  </FormLabel>
+                  {isStaffLocked ? (
+                    <div className="flex items-center gap-2 h-9 px-3 rounded-md border bg-muted/50 text-sm text-muted-foreground" data-testid="text-locked-artist">
+                      {artists?.find((a) => a.id === field.value)?.name ?? "Linked artist"}
+                    </div>
+                  ) : (
+                    <Select
+                      value={field.value ? String(field.value) : ""}
+                      onValueChange={(v) => field.onChange(Number(v))}
+                    >
+                      <FormControl>
+                        <SelectTrigger data-testid="select-track-artist"><SelectValue placeholder="Select artist" /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {(artists ?? []).map((a) => (
+                          <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {isStaffLocked && (
+                    <p className="text-xs text-muted-foreground">Linked to your artist profile</p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )} />

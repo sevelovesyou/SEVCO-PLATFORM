@@ -5,7 +5,7 @@ import { useLocation } from "wouter";
 
 import type { Role } from "@shared/schema";
 
-type AuthUser = { id: string; username: string; role: Role; displayName?: string; bio?: string; email?: string; xId?: string | null; hasPassword?: boolean };
+type AuthUser = { id: string; username: string; role: Role; displayName?: string; bio?: string; email?: string; xId?: string | null; hasPassword?: boolean; linkedArtistId?: number | null };
 
 type AuthContextType = {
   user: AuthUser | null;

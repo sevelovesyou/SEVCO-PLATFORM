@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, jsonb, boolean, real, pgEnum, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, jsonb, boolean, real, pgEnum, uniqueIndex, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -35,6 +35,7 @@ export const users = pgTable("users", {
   profilePronouns: text("profile_pronouns"),
   profileAccentGradient: boolean("profile_accent_gradient").default(false),
   profileShowFollowers: boolean("profile_show_followers").default(true),
+  linkedArtistId: integer("linked_artist_id").references((): AnyPgColumn => artists.id),
 });
 
 export const categories = pgTable("categories", {
@@ -348,6 +349,7 @@ export const updateUserSchema = z.object({
   displayName: z.string().max(80).optional(),
   bio: z.string().max(500).optional(),
   email: z.string().email().optional().or(z.literal("")),
+  linkedArtistId: z.number().int().nullable().optional(),
 });
 
 const optionalUrl = z.string().url().optional().or(z.literal("")).or(z.null());

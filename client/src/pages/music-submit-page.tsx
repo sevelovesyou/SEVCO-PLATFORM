@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHead } from "@/components/page-head";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import type { Artist } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -84,6 +85,13 @@ export default function MusicSubmitPage() {
   const [submitted, setSubmitted] = useState(false);
   const [trackFilePath, setTrackFilePath] = useState<string>("");
 
+  const { data: artists } = useQuery<Artist[]>({ queryKey: ["/api/music/artists"] });
+
+  const isStaffLocked = user?.role === "staff" && !!user?.linkedArtistId;
+  const linkedArtistName = user?.linkedArtistId && artists
+    ? (artists.find((a) => a.id === user.linkedArtistId)?.name ?? "")
+    : "";
+
   const form = useForm<SubmitForm>({
     resolver: zodResolver(submitSchema),
     defaultValues: {
@@ -97,6 +105,12 @@ export default function MusicSubmitPage() {
       agreed: false,
     },
   });
+
+  useEffect(() => {
+    if (linkedArtistName) {
+      form.setValue("artistName", linkedArtistName);
+    }
+  }, [linkedArtistName]);
 
   const mutation = useMutation({
     mutationFn: async (data: SubmitForm) => {
@@ -215,10 +229,22 @@ export default function MusicSubmitPage() {
                 <div className="grid sm:grid-cols-2 gap-5">
                   <FormField control={form.control} name="artistName" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Artist / Project Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Stage name or project" {...field} data-testid="input-artist-name" />
-                      </FormControl>
+                      <FormLabel className="flex items-center gap-1.5">
+                        Artist / Project Name
+                        {isStaffLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
+                      </FormLabel>
+                      {isStaffLocked ? (
+                        <>
+                          <div className="flex items-center h-9 px-3 rounded-md border bg-muted/50 text-sm text-muted-foreground" data-testid="text-locked-artist-name">
+                            {field.value || linkedArtistName}
+                          </div>
+                          <p className="text-xs text-muted-foreground">Linked to your artist profile</p>
+                        </>
+                      ) : (
+                        <FormControl>
+                          <Input placeholder="Stage name or project" {...field} data-testid="input-artist-name" />
+                        </FormControl>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )} />

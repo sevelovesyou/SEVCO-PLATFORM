@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -14,11 +14,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { User, Loader2, ExternalLink } from "lucide-react";
+import { User, Loader2, ExternalLink, Music } from "lucide-react";
 import { SiX } from "react-icons/si";
 import { Link } from "wouter";
 import { useSounds } from "@/hooks/use-sounds";
+import type { Artist } from "@shared/schema";
 
 function useLocalPrefs() {
   const [prefs, setPrefs] = useState<Record<string, boolean>>(() => {
@@ -45,6 +47,27 @@ export default function AccountPage() {
   const { toast } = useToast();
   const { soundEnabled, toggleSound } = useSounds();
   const [localPrefs, setLocalPref] = useLocalPrefs();
+  const [selectedArtistId, setSelectedArtistId] = useState<number | null>(user?.linkedArtistId ?? null);
+
+  const { data: artists } = useQuery<Artist[]>({ queryKey: ["/api/music/artists"] });
+
+  useEffect(() => {
+    setSelectedArtistId(user?.linkedArtistId ?? null);
+  }, [user?.linkedArtistId]);
+
+  const linkArtistMutation = useMutation({
+    mutationFn: async (linkedArtistId: number | null) => {
+      const res = await apiRequest("PATCH", "/api/user", { linkedArtistId });
+      return res.json();
+    },
+    onSuccess: (updatedUser) => {
+      queryClient.setQueryData(["/api/user"], updatedUser);
+      toast({ title: "Artist profile saved" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Failed to save artist profile", description: err.message, variant: "destructive" });
+    },
+  });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -300,6 +323,55 @@ export default function AccountPage() {
           </div>
         </CardContent>
       </Card>
+
+      {(user?.role === "admin" || user?.role === "executive" || user?.role === "staff") && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Music className="h-4 w-4 text-primary" />
+              Artist Profile
+            </CardTitle>
+            <CardDescription>
+              Link your account to an artist in the music catalog. When linked, track upload and music submission forms will auto-populate your artist name.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Linked Artist</p>
+              <Select
+                value={selectedArtistId != null ? String(selectedArtistId) : "none"}
+                onValueChange={(v) => setSelectedArtistId(v === "none" ? null : Number(v))}
+              >
+                <SelectTrigger data-testid="select-linked-artist">
+                  <SelectValue placeholder="— Not linked —" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Not linked —</SelectItem>
+                  {(artists ?? []).map((a) => (
+                    <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {user?.linkedArtistId && artists && (
+                <p className="text-xs text-muted-foreground">
+                  Currently linked: <span className="font-medium text-foreground">{artists.find((a) => a.id === user.linkedArtistId)?.name ?? "Unknown artist"}</span>
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                disabled={linkArtistMutation.isPending}
+                onClick={() => linkArtistMutation.mutate(selectedArtistId)}
+                data-testid="button-save-linked-artist"
+              >
+                {linkArtistMutation.isPending && <Loader2 className="mr-2 h-3.5 w-3.5 motion-safe:animate-spin" />}
+                Save Artist Link
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

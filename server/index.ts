@@ -158,6 +158,8 @@ async function runStartupMigrations() {
   );`);
   // Task #202 — Add genre column to music_tracks
   await pool.query(`ALTER TABLE music_tracks ADD COLUMN IF NOT EXISTS genre text;`);
+  // Task #205 — Link user account to artist profile
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS linked_artist_id integer REFERENCES artists(id) ON DELETE SET NULL;`);
   console.log("[startup] migrations applied");
 }
 

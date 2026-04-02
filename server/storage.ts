@@ -381,9 +381,9 @@ export interface IStorage {
   markAllNotificationsRead(userId: string): Promise<void>;
   getUsersByRole(roles: Role[]): Promise<User[]>;
 
-  getMusicTracks(filter?: { type?: string; publishedOnly?: boolean; artistId?: number; albumId?: number }): Promise<(MusicTrack & { artist: { id: number; name: string }; album: { id: number; title: string } | null })[]>;
+  getMusicTracks(filter?: { type?: string; publishedOnly?: boolean; artistId?: number; albumName?: string }): Promise<(MusicTrack & { artist: { id: number; name: string } | null })[]>;
   getMusicTrackById(id: number): Promise<MusicTrack | undefined>;
-  getMusicTrack(id: number): Promise<(MusicTrack & { artist: { id: number; name: string }; album: { id: number; title: string } | null }) | undefined>;
+  getMusicTrack(id: number): Promise<(MusicTrack & { artist: { id: number; name: string } | null }) | undefined>;
   createMusicTrack(data: InsertMusicTrack): Promise<MusicTrack>;
   updateMusicTrack(id: number, data: Partial<InsertMusicTrack>): Promise<MusicTrack>;
   deleteMusicTrack(id: number): Promise<void>;
@@ -2421,33 +2421,32 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(users).where(inArray(users.role, roles));
   }
 
-  async getMusicTracks(filter?: { type?: string; publishedOnly?: boolean; artistId?: number; albumId?: number }): Promise<(MusicTrack & { artist: { id: number; name: string }; album: { id: number; title: string } | null })[]> {
+  async getMusicTracks(filter?: { type?: string; publishedOnly?: boolean; artistId?: number; albumName?: string }): Promise<(MusicTrack & { artist: { id: number; name: string } | null })[]> {
     const rows = await db
       .select({
         id: musicTracks.id,
         title: musicTracks.title,
         artistId: musicTracks.artistId,
-        albumId: musicTracks.albumId,
+        artistName: musicTracks.artistName,
+        albumName: musicTracks.albumName,
         type: musicTracks.type,
         fileUrl: musicTracks.fileUrl,
-        coverArtUrl: musicTracks.coverArtUrl,
-        durationSeconds: musicTracks.durationSeconds,
+        coverImageUrl: musicTracks.coverImageUrl,
+        duration: musicTracks.duration,
         streamCount: musicTracks.streamCount,
-        isPublished: musicTracks.isPublished,
+        status: musicTracks.status,
         displayOrder: musicTracks.displayOrder,
         createdAt: musicTracks.createdAt,
-        artistName: artists.name,
-        albumTitle: albums.title,
+        linkedArtistName: artists.name,
       })
       .from(musicTracks)
       .leftJoin(artists, eq(musicTracks.artistId, artists.id))
-      .leftJoin(albums, eq(musicTracks.albumId, albums.id))
       .where(
         and(
-          filter?.type ? eq(musicTracks.type, filter.type as "track" | "instrumental") : undefined,
-          filter?.publishedOnly ? eq(musicTracks.isPublished, true) : undefined,
+          filter?.type ? eq(musicTracks.type, filter.type) : undefined,
+          filter?.publishedOnly ? eq(musicTracks.status, "published") : undefined,
           filter?.artistId !== undefined ? eq(musicTracks.artistId, filter.artistId) : undefined,
-          filter?.albumId !== undefined ? eq(musicTracks.albumId, filter.albumId) : undefined,
+          filter?.albumName !== undefined ? eq(musicTracks.albumName, filter.albumName) : undefined,
         )
       )
       .orderBy(asc(musicTracks.displayOrder), asc(musicTracks.createdAt));
@@ -2456,17 +2455,17 @@ export class DatabaseStorage implements IStorage {
       id: r.id,
       title: r.title,
       artistId: r.artistId,
-      albumId: r.albumId,
+      artistName: r.artistName,
+      albumName: r.albumName,
       type: r.type,
       fileUrl: r.fileUrl,
-      coverArtUrl: r.coverArtUrl,
-      durationSeconds: r.durationSeconds,
+      coverImageUrl: r.coverImageUrl,
+      duration: r.duration,
       streamCount: r.streamCount,
-      isPublished: r.isPublished,
+      status: r.status,
       displayOrder: r.displayOrder,
       createdAt: r.createdAt,
-      artist: { id: r.artistId, name: r.artistName ?? "" },
-      album: r.albumId && r.albumTitle ? { id: r.albumId, title: r.albumTitle } : null,
+      artist: r.artistId != null ? { id: r.artistId, name: r.linkedArtistName ?? r.artistName } : null,
     }));
   }
 
@@ -2475,27 +2474,26 @@ export class DatabaseStorage implements IStorage {
     return track;
   }
 
-  async getMusicTrack(id: number): Promise<(MusicTrack & { artist: { id: number; name: string }; album: { id: number; title: string } | null }) | undefined> {
+  async getMusicTrack(id: number): Promise<(MusicTrack & { artist: { id: number; name: string } | null }) | undefined> {
     const [row] = await db
       .select({
         id: musicTracks.id,
         title: musicTracks.title,
         artistId: musicTracks.artistId,
-        albumId: musicTracks.albumId,
+        artistName: musicTracks.artistName,
+        albumName: musicTracks.albumName,
         type: musicTracks.type,
         fileUrl: musicTracks.fileUrl,
-        coverArtUrl: musicTracks.coverArtUrl,
-        durationSeconds: musicTracks.durationSeconds,
+        coverImageUrl: musicTracks.coverImageUrl,
+        duration: musicTracks.duration,
         streamCount: musicTracks.streamCount,
-        isPublished: musicTracks.isPublished,
+        status: musicTracks.status,
         displayOrder: musicTracks.displayOrder,
         createdAt: musicTracks.createdAt,
-        artistName: artists.name,
-        albumTitle: albums.title,
+        linkedArtistName: artists.name,
       })
       .from(musicTracks)
       .leftJoin(artists, eq(musicTracks.artistId, artists.id))
-      .leftJoin(albums, eq(musicTracks.albumId, albums.id))
       .where(eq(musicTracks.id, id));
 
     if (!row) return undefined;
@@ -2504,17 +2502,17 @@ export class DatabaseStorage implements IStorage {
       id: row.id,
       title: row.title,
       artistId: row.artistId,
-      albumId: row.albumId,
+      artistName: row.artistName,
+      albumName: row.albumName,
       type: row.type,
       fileUrl: row.fileUrl,
-      coverArtUrl: row.coverArtUrl,
-      durationSeconds: row.durationSeconds,
+      coverImageUrl: row.coverImageUrl,
+      duration: row.duration,
       streamCount: row.streamCount,
-      isPublished: row.isPublished,
+      status: row.status,
       displayOrder: row.displayOrder,
       createdAt: row.createdAt,
-      artist: { id: row.artistId, name: row.artistName ?? "" },
-      album: row.albumId && row.albumTitle ? { id: row.albumId, title: row.albumTitle } : null,
+      artist: row.artistId != null ? { id: row.artistId, name: row.linkedArtistName ?? row.artistName } : null,
     };
   }
 

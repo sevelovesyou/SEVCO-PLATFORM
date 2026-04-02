@@ -10,7 +10,7 @@ import type { Artist, Album, MusicTrack, Playlist } from "@shared/schema";
 import { useSpotifyPlayer } from "@/hooks/use-spotify-player";
 
 type AlbumDetail = Album & { artist: Artist };
-type TrackWithMeta = MusicTrack & { artist: { id: number; name: string }; album: { id: number; title: string } | null };
+type TrackWithMeta = MusicTrack & { artist: { id: number; name: string } | null };
 
 function formatStreamCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -33,7 +33,7 @@ function trackToPlaylistAdapter(track: TrackWithMeta): Playlist {
     description: null,
     platform: null,
     playlistUrl: track.fileUrl,
-    coverImageUrl: track.coverArtUrl ?? null,
+    coverImageUrl: track.coverImageUrl ?? null,
     isOfficial: false,
     createdAt: track.createdAt,
   };
@@ -54,9 +54,9 @@ export default function MusicAlbumDetail() {
   });
 
   const { data: tracks = [], isLoading: tracksLoading } = useQuery<TrackWithMeta[]>({
-    queryKey: ["/api/music/tracks", { album_id: album?.id }],
-    queryFn: () => fetch(`/api/music/tracks?album_id=${album!.id}`).then((r) => r.json()),
-    enabled: !!album?.id,
+    queryKey: ["/api/music/tracks", { album_name: album?.title }],
+    queryFn: () => fetch(`/api/music/tracks?album_name=${encodeURIComponent(album!.title)}`).then((r) => r.json()),
+    enabled: !!album?.title,
   });
 
   const totalStreams = tracks.reduce((sum, t) => sum + (t.streamCount ?? 0), 0);
@@ -183,9 +183,9 @@ export default function MusicAlbumDetail() {
                   <span className="text-xs text-muted-foreground w-5 text-right shrink-0 tabular-nums">
                     {track.displayOrder || i + 1}
                   </span>
-                  {track.coverArtUrl ? (
+                  {track.coverImageUrl ? (
                     <img
-                      src={track.coverArtUrl}
+                      src={track.coverImageUrl}
                       alt={track.title}
                       className="h-8 w-8 rounded object-cover shrink-0"
                     />
@@ -201,7 +201,7 @@ export default function MusicAlbumDetail() {
                     </p>
                   </div>
                   <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
-                    {formatDuration(track.durationSeconds)}
+                    {formatDuration(track.duration)}
                   </span>
                   {track.fileUrl && (
                     <Button

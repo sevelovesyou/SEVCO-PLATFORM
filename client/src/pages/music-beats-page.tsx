@@ -30,8 +30,8 @@ function BeatCard({ track }: { track: MusicTrack }) {
 
   function handlePlay() {
     streamMutation.mutate();
-    if (track.audioUrl) {
-      window.open(track.audioUrl, "_blank");
+    if (track.fileUrl) {
+      window.open(track.fileUrl, "_blank");
     }
   }
 

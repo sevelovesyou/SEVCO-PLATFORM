@@ -14,7 +14,7 @@ import type { Playlist } from "@shared/schema";
 const CAN_MANAGE_MUSIC = ["admin", "executive", "staff"];
 
 type ArtistDetail = Artist & { albums: Album[] };
-type TrackWithMeta = MusicTrack & { artist: { id: number; name: string }; album: { id: number; title: string } | null };
+type TrackWithMeta = MusicTrack & { artist: { id: number; name: string } | null };
 
 function formatStreamCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -37,7 +37,7 @@ function trackToPlaylistAdapter(track: TrackWithMeta): Playlist {
     description: null,
     platform: null,
     playlistUrl: track.fileUrl,
-    coverImageUrl: track.coverArtUrl ?? null,
+    coverImageUrl: track.coverImageUrl ?? null,
     isOfficial: false,
     createdAt: track.createdAt,
   };
@@ -195,9 +195,9 @@ export default function MusicArtistDetail() {
                   <span className="text-xs text-muted-foreground w-5 text-right shrink-0 tabular-nums">
                     {i + 1}
                   </span>
-                  {track.coverArtUrl ? (
+                  {track.coverImageUrl ? (
                     <img
-                      src={track.coverArtUrl}
+                      src={track.coverImageUrl}
                       alt={track.title}
                       className="h-8 w-8 rounded object-cover shrink-0"
                     />
@@ -213,7 +213,7 @@ export default function MusicArtistDetail() {
                     </p>
                   </div>
                   <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
-                    {formatDuration(track.durationSeconds)}
+                    {formatDuration(track.duration)}
                   </span>
                   {track.fileUrl && (
                     <Button

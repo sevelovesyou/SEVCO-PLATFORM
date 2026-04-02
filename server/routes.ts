@@ -3117,14 +3117,14 @@ export async function registerRoutes(
       const publishedOnly = !isStaffRole;
 
       const artistIdRaw = req.query.artist_id;
-      const albumIdRaw = req.query.album_id;
       const artistId = typeof artistIdRaw === "string" && artistIdRaw ? parseInt(artistIdRaw) : undefined;
-      const albumId = typeof albumIdRaw === "string" && albumIdRaw ? parseInt(albumIdRaw) : undefined;
+      const albumNameRaw = req.query.album_name;
+      const albumName = typeof albumNameRaw === "string" && albumNameRaw ? albumNameRaw : undefined;
       const tracks = await storage.getMusicTracks({
         type: typeParam,
         publishedOnly,
         artistId: artistId !== undefined && !isNaN(artistId) ? artistId : undefined,
-        albumId: albumId !== undefined && !isNaN(albumId) ? albumId : undefined,
+        albumName,
       });
       res.json(tracks);
     } catch (err: any) {

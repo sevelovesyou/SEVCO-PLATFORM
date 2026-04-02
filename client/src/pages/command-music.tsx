@@ -1170,19 +1170,18 @@ function SpotifyTab() {
 /* ─── Music Library Tab ────────────────────────────────────────────────── */
 
 type MusicTrackWithMeta = MusicTrack & {
-  artist: { id: number; name: string };
-  album: { id: number; title: string } | null;
+  artist: { id: number; name: string } | null;
 };
 
 const musicTrackSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  artistId: z.coerce.number({ invalid_type_error: "Select an artist" }).int().positive("Select an artist"),
-  albumId: z.coerce.number().int().positive().nullable().optional(),
+  artistId: z.coerce.number({ invalid_type_error: "Select an artist" }).int().positive("Select an artist").nullable().optional(),
+  albumName: z.string().optional().or(z.literal("")),
   type: z.enum(["track", "instrumental"]),
   fileUrl: z.string().min(1, "File URL is required"),
-  coverArtUrl: z.string().url("Enter a valid URL").optional().or(z.literal("")),
-  durationSeconds: z.coerce.number().int().positive().nullable().optional(),
-  isPublished: z.boolean().default(false),
+  coverImageUrl: z.string().url("Enter a valid URL").optional().or(z.literal("")),
+  duration: z.coerce.number().int().positive().nullable().optional(),
+  status: z.enum(["published", "draft"]).default("draft"),
   displayOrder: z.coerce.number().int().default(0),
 });
 
@@ -1214,18 +1213,17 @@ function MusicTrackDialog({
   const isEdit = !!track;
 
   const { data: artists } = useQuery<Artist[]>({ queryKey: ["/api/music/artists"] });
-  const { data: albums } = useQuery<{ artist: Artist; id: number; title: string; slug: string; releaseYear: number | null; trackList: unknown; createdAt: Date; artistId: number }[]>({ queryKey: ["/api/music/albums"] });
 
   function buildDefaults(): MusicTrackFormInit {
     return {
       title: track?.title ?? prefill?.title ?? "",
       ...(track?.artistId != null ? { artistId: track.artistId } : prefill?.artistId != null ? { artistId: prefill.artistId } : {}),
-      albumId: track?.albumId ?? null,
+      albumName: track?.albumName ?? "",
       type: track?.type ?? trackType,
       fileUrl: track?.fileUrl ?? "",
-      coverArtUrl: track?.coverArtUrl ?? "",
-      durationSeconds: track?.durationSeconds ?? null,
-      isPublished: track?.isPublished ?? false,
+      coverImageUrl: track?.coverImageUrl ?? "",
+      duration: track?.duration ?? null,
+      status: track?.status === "published" ? "published" : "draft",
       displayOrder: track?.displayOrder ?? 0,
     };
   }
@@ -1241,7 +1239,7 @@ function MusicTrackDialog({
 
   const mutation = useMutation({
     mutationFn: (data: MusicTrackForm) => {
-      const payload = { ...data, albumId: data.albumId || null };
+      const payload = { ...data, albumName: data.albumName || null };
       return isEdit
         ? apiRequest("PATCH", `/api/music/tracks/${track!.id}`, payload)
         : apiRequest("POST", "/api/music/tracks", payload);
@@ -1255,8 +1253,6 @@ function MusicTrackDialog({
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const selectedArtistId = form.watch("artistId");
-  const filteredAlbums = albums?.filter((a) => a.artistId === Number(selectedArtistId)) ?? [];
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -1280,7 +1276,7 @@ function MusicTrackDialog({
                   <FormLabel>Artist</FormLabel>
                   <Select
                     value={field.value ? String(field.value) : ""}
-                    onValueChange={(v) => { field.onChange(Number(v)); form.setValue("albumId", null); }}
+                    onValueChange={(v) => field.onChange(Number(v))}
                   >
                     <FormControl>
                       <SelectTrigger data-testid="select-track-artist"><SelectValue placeholder="Select artist" /></SelectTrigger>
@@ -1295,24 +1291,12 @@ function MusicTrackDialog({
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="albumId" render={({ field }) => (
+              <FormField control={form.control} name="albumName" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Album (optional)</FormLabel>
-                  <Select
-                    value={field.value ? String(field.value) : "none"}
-                    onValueChange={(v) => field.onChange(v === "none" ? null : Number(v))}
-                    disabled={!selectedArtistId || filteredAlbums.length === 0}
-                  >
-                    <FormControl>
-                      <SelectTrigger data-testid="select-track-album"><SelectValue placeholder="No album" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">No album</SelectItem>
-                      {filteredAlbums.map((a) => (
-                        <SelectItem key={a.id} value={String(a.id)}>{a.title}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <Input {...field} value={field.value ?? ""} placeholder="Album name" data-testid="input-track-album" />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -1342,16 +1326,16 @@ function MusicTrackDialog({
               </FormItem>
             )} />
 
-            <FormField control={form.control} name="coverArtUrl" render={({ field }) => (
+            <FormField control={form.control} name="coverImageUrl" render={({ field }) => (
               <FormItem>
-                <FormLabel>Cover Art URL</FormLabel>
+                <FormLabel>Cover Image URL</FormLabel>
                 <FormControl><Input {...field} value={field.value ?? ""} placeholder="https://..." data-testid="input-track-cover-url" /></FormControl>
                 <FormMessage />
               </FormItem>
             )} />
 
             <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="durationSeconds" render={({ field }) => (
+              <FormField control={form.control} name="duration" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Duration (seconds)</FormLabel>
                   <FormControl>
@@ -1379,10 +1363,14 @@ function MusicTrackDialog({
               )} />
             </div>
 
-            <FormField control={form.control} name="isPublished" render={({ field }) => (
+            <FormField control={form.control} name="status" render={({ field }) => (
               <FormItem className="flex items-center gap-3">
                 <FormControl>
-                  <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-track-published" />
+                  <Switch
+                    checked={field.value === "published"}
+                    onCheckedChange={(checked) => field.onChange(checked ? "published" : "draft")}
+                    data-testid="switch-track-published"
+                  />
                 </FormControl>
                 <FormLabel className="!mt-0">Published</FormLabel>
               </FormItem>
@@ -1488,10 +1476,10 @@ function MusicLibraryTab({ trackType }: { trackType: "track" | "instrumental" })
     let cmp = 0;
     switch (sortKey) {
       case "title": cmp = a.title.localeCompare(b.title); break;
-      case "artist": cmp = a.artist.name.localeCompare(b.artist.name); break;
-      case "duration": cmp = (a.durationSeconds ?? 0) - (b.durationSeconds ?? 0); break;
+      case "artist": cmp = (a.artist?.name ?? a.artistName).localeCompare(b.artist?.name ?? b.artistName); break;
+      case "duration": cmp = (a.duration ?? 0) - (b.duration ?? 0); break;
       case "streams": cmp = a.streamCount - b.streamCount; break;
-      case "status": cmp = Number(b.isPublished) - Number(a.isPublished); break;
+      case "status": cmp = Number(b.status === "published") - Number(a.status === "published"); break;
     }
     return sortDir === "asc" ? cmp : -cmp;
   });
@@ -1557,8 +1545,8 @@ function MusicLibraryTab({ trackType }: { trackType: "track" | "instrumental" })
                 <tr key={t.id} className="hover:bg-muted/20 transition-colors group" data-testid={`row-track-lib-${t.id}`}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      {t.coverArtUrl ? (
-                        <img src={t.coverArtUrl} alt={t.title} className="h-9 w-9 rounded object-cover shrink-0" loading="lazy" />
+                      {t.coverImageUrl ? (
+                        <img src={t.coverImageUrl} alt={t.title} className="h-9 w-9 rounded object-cover shrink-0" loading="lazy" />
                       ) : (
                         <div className="h-9 w-9 rounded bg-muted flex items-center justify-center shrink-0">
                           <Music className="h-4 w-4 text-muted-foreground opacity-40" />
@@ -1566,19 +1554,19 @@ function MusicLibraryTab({ trackType }: { trackType: "track" | "instrumental" })
                       )}
                       <div className="min-w-0">
                         <p className="font-medium truncate max-w-[180px]" data-testid={`text-track-title-${t.id}`}>{t.title}</p>
-                        <p className="text-xs text-muted-foreground sm:hidden truncate">{t.artist.name}</p>
+                        <p className="text-xs text-muted-foreground sm:hidden truncate">{t.artist?.name ?? t.artistName}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell truncate max-w-[120px]">{t.artist.name}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell truncate max-w-[120px]">{t.artist?.name ?? t.artistName}</td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <Badge variant="outline" className="text-[10px] px-1.5 capitalize">{t.type}</Badge>
                   </td>
-                  <td className="px-4 py-3 text-right text-muted-foreground hidden sm:table-cell font-mono text-xs">{formatSeconds(t.durationSeconds)}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden sm:table-cell font-mono text-xs">{formatSeconds(t.duration)}</td>
                   <td className="px-4 py-3 text-right text-muted-foreground hidden md:table-cell text-xs" data-testid={`text-stream-count-${t.id}`}>{t.streamCount.toLocaleString()}</td>
                   <td className="px-4 py-3 text-center">
-                    <Badge variant={t.isPublished ? "default" : "secondary"} className="text-[10px] px-1.5">
-                      {t.isPublished ? "Live" : "Draft"}
+                    <Badge variant={t.status === "published" ? "default" : "secondary"} className="text-[10px] px-1.5">
+                      {t.status === "published" ? "Live" : "Draft"}
                     </Badge>
                   </td>
                   <td className="px-4 py-3">

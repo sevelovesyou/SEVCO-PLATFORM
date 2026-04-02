@@ -988,6 +988,7 @@ export const musicTracks = pgTable("music_tracks", {
   artistName: text("artist_name").notNull(),
   artistId: integer("artist_id").references(() => artists.id, { onDelete: "set null" }),
   albumName: text("album_name"),
+  genre: text("genre"),
   coverImageUrl: text("cover_image_url"),
   fileUrl: text("file_url").notNull(),
   duration: integer("duration"),

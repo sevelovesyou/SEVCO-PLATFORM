@@ -26,6 +26,7 @@ import {
   ListMusic, Plus, Pencil, Trash2, Users, ChevronDown, ChevronUp,
   Search, RefreshCw, Unlink, Play, Loader2, Drum, Headphones,
 } from "lucide-react";
+import { FileUploadWithFallback } from "@/components/file-upload";
 import { SiSpotify, SiApplemusic, SiYoutubemusic, SiSoundcloud } from "react-icons/si";
 import type { MusicSubmission, Playlist, SpotifyArtist, Artist, MusicTrack } from "@shared/schema";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -1169,14 +1170,21 @@ function SpotifyTab() {
 
 /* ─── Music Library Tab ────────────────────────────────────────────────── */
 
+const MUSIC_GENRES = [
+  "Hip-Hop", "R&B", "Pop", "Rock", "Electronic", "Jazz", "Classical",
+  "Country", "Latin", "Gospel", "Soul", "Funk", "Indie", "Alternative", "Other",
+];
+
 type MusicTrackWithMeta = MusicTrack & {
   artist: { id: number; name: string } | null;
+  genre?: string | null;
 };
 
 const musicTrackSchema = z.object({
   title: z.string().min(1, "Title is required"),
   artistId: z.coerce.number({ invalid_type_error: "Select an artist" }).int().positive("Select an artist").nullable().optional(),
   albumName: z.string().optional().or(z.literal("")),
+  genre: z.string().optional().or(z.literal("")),
   type: z.enum(["track", "instrumental"]),
   fileUrl: z.string().min(1, "File URL is required"),
   coverImageUrl: z.string().url("Enter a valid URL").optional().or(z.literal("")),
@@ -1206,11 +1214,12 @@ function MusicTrackDialog({
   onClose: () => void;
   track?: MusicTrackWithMeta | null;
   trackType: "track" | "instrumental";
-  prefill?: { title?: string; artistId?: number };
+  prefill?: { title?: string; artistId?: number; genre?: string; albumName?: string; fileUrl?: string; submissionId?: number };
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isEdit = !!track;
+  const [fetchingAudio, setFetchingAudio] = useState(false);
 
   const { data: artists } = useQuery<Artist[]>({ queryKey: ["/api/music/artists"] });
 
@@ -1218,9 +1227,10 @@ function MusicTrackDialog({
     return {
       title: track?.title ?? prefill?.title ?? "",
       ...(track?.artistId != null ? { artistId: track.artistId } : prefill?.artistId != null ? { artistId: prefill.artistId } : {}),
-      albumName: track?.albumName ?? "",
+      albumName: track?.albumName ?? prefill?.albumName ?? "",
+      genre: track?.genre ?? prefill?.genre ?? "",
       type: track?.type ?? trackType,
-      fileUrl: track?.fileUrl ?? "",
+      fileUrl: track?.fileUrl ?? prefill?.fileUrl ?? "",
       coverImageUrl: track?.coverImageUrl ?? "",
       duration: track?.duration ?? null,
       status: track?.status === "published" ? "published" : "draft",
@@ -1235,11 +1245,26 @@ function MusicTrackDialog({
 
   useEffect(() => {
     form.reset(buildDefaults() as MusicTrackForm);
+
+    if (open && !isEdit && prefill?.submissionId && !prefill?.fileUrl) {
+      setFetchingAudio(true);
+      apiRequest("GET", `/api/music/submissions/${prefill.submissionId}/track-url`)
+        .then((res) => res.json())
+        .then((data: { signedUrl?: string }) => {
+          if (data?.signedUrl) {
+            form.setValue("fileUrl", data.signedUrl);
+          }
+        })
+        .catch((err: Error) => {
+          console.warn("[MusicTrackDialog] Failed to fetch submission track URL:", err.message);
+        })
+        .finally(() => setFetchingAudio(false));
+    }
   }, [track, open, prefill, trackType]);
 
   const mutation = useMutation({
     mutationFn: (data: MusicTrackForm) => {
-      const payload = { ...data, albumName: data.albumName || null };
+      const payload = { ...data, albumName: data.albumName || null, genre: data.genre || null };
       return isEdit
         ? apiRequest("PATCH", `/api/music/tracks/${track!.id}`, payload)
         : apiRequest("POST", "/api/music/tracks", payload);
@@ -1302,26 +1327,62 @@ function MusicTrackDialog({
               )} />
             </div>
 
-            <FormField control={form.control} name="type" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Type</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <FormControl>
-                    <SelectTrigger data-testid="select-track-type"><SelectValue /></SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="track">Track</SelectItem>
-                    <SelectItem value="instrumental">Instrumental</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )} />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField control={form.control} name="genre" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Genre</FormLabel>
+                  <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-track-genre"><SelectValue placeholder="Select genre" /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {MUSIC_GENRES.map((g) => (
+                        <SelectItem key={g} value={g}>{g}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="type" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Type</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-track-type"><SelectValue /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="track">Track</SelectItem>
+                      <SelectItem value="instrumental">Instrumental</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </div>
 
             <FormField control={form.control} name="fileUrl" render={({ field }) => (
               <FormItem>
-                <FormLabel>File URL</FormLabel>
-                <FormControl><Input {...field} placeholder="https://... (mp3/wav URL)" data-testid="input-track-file-url" /></FormControl>
+                <FormLabel className="flex items-center gap-2">
+                  Audio File
+                  {fetchingAudio && <Loader2 className="h-3 w-3 motion-safe:animate-spin text-muted-foreground" />}
+                </FormLabel>
+                <FormControl>
+                  <FileUploadWithFallback
+                    bucket="tracks"
+                    path={`library/${Date.now()}.{ext}`}
+                    accept="audio/mpeg,audio/wav,audio/*"
+                    maxSizeMb={200}
+                    isPrivate={false}
+                    urlValue={field.value}
+                    onUrlChange={(url) => form.setValue("fileUrl", url)}
+                    urlPlaceholder="https://... (mp3/wav URL)"
+                    urlTestId="input-track-file-url"
+                    label="Upload Audio"
+                    currentUrl={field.value || null}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )} />
@@ -1431,7 +1492,7 @@ function MusicLibraryTab({ trackType }: { trackType: "track" | "instrumental" })
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTrack, setEditingTrack] = useState<MusicTrackWithMeta | null>(null);
-  const [prefill, setPrefill] = useState<{ title?: string; artistId?: number } | undefined>(undefined);
+  const [prefill, setPrefill] = useState<{ title?: string; artistId?: number; genre?: string; albumName?: string; fileUrl?: string; submissionId?: number } | undefined>(undefined);
   const [sortKey, setSortKey] = useState<SortKey>("title");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
@@ -1458,7 +1519,12 @@ function MusicLibraryTab({ trackType }: { trackType: "track" | "instrumental" })
   const handleClose = () => { setDialogOpen(false); setEditingTrack(null); setPrefill(undefined); };
   const handleAddFromSubmission = (sub: MusicSubmission) => {
     const matchedArtist = artists?.find((a) => a.name.toLowerCase() === sub.artistName?.toLowerCase());
-    setPrefill({ title: sub.trackTitle ?? "", artistId: matchedArtist?.id });
+    setPrefill({
+      title: sub.trackTitle ?? "",
+      artistId: matchedArtist?.id,
+      genre: sub.genre ?? undefined,
+      submissionId: sub.trackFileUrl ? sub.id : undefined,
+    });
     setEditingTrack(null);
     setDialogOpen(true);
   };
@@ -1533,7 +1599,8 @@ function MusicLibraryTab({ trackType }: { trackType: "track" | "instrumental" })
               <tr className="border-b bg-muted/30 text-xs text-muted-foreground">
                 <SortHeader label="Title" sortKey="title" current={sortKey} dir={sortDir} onSort={handleSort} className="text-left" />
                 <SortHeader label="Artist" sortKey="artist" current={sortKey} dir={sortDir} onSort={handleSort} className="text-left hidden sm:table-cell" />
-                <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Type</th>
+                <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Genre</th>
+                <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Type</th>
                 <SortHeader label="Duration" sortKey="duration" current={sortKey} dir={sortDir} onSort={handleSort} className="text-right hidden sm:table-cell" />
                 <SortHeader label="Streams" sortKey="streams" current={sortKey} dir={sortDir} onSort={handleSort} className="text-right hidden md:table-cell" />
                 <SortHeader label="Status" sortKey="status" current={sortKey} dir={sortDir} onSort={handleSort} className="text-center" />
@@ -1560,6 +1627,13 @@ function MusicLibraryTab({ trackType }: { trackType: "track" | "instrumental" })
                   </td>
                   <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell truncate max-w-[120px]">{t.artist?.name ?? t.artistName}</td>
                   <td className="px-4 py-3 hidden md:table-cell">
+                    {t.genre ? (
+                      <Badge variant="secondary" className="text-[10px] px-1.5" data-testid={`badge-genre-${t.id}`}>{t.genre}</Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground/50">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 hidden lg:table-cell">
                     <Badge variant="outline" className="text-[10px] px-1.5 capitalize">{t.type}</Badge>
                   </td>
                   <td className="px-4 py-3 text-right text-muted-foreground hidden sm:table-cell font-mono text-xs">{formatSeconds(t.duration)}</td>

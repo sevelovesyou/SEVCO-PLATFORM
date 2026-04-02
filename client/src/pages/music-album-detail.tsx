@@ -200,6 +200,11 @@ export default function MusicAlbumDetail() {
                       {formatStreamCount(track.streamCount ?? 0)} streams
                     </p>
                   </div>
+                  {track.genre && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 shrink-0 hidden sm:inline-flex" data-testid={`badge-track-genre-${track.id}`}>
+                      {track.genre}
+                    </Badge>
+                  )}
                   <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
                     {formatDuration(track.duration)}
                   </span>

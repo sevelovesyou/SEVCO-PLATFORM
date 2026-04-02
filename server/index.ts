@@ -156,6 +156,8 @@ async function runStartupMigrations() {
     display_order integer NOT NULL DEFAULT 0,
     created_at timestamp DEFAULT now() NOT NULL
   );`);
+  // Task #202 — Add genre column to music_tracks
+  await pool.query(`ALTER TABLE music_tracks ADD COLUMN IF NOT EXISTS genre text;`);
   console.log("[startup] migrations applied");
 }
 

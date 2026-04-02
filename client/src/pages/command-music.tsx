@@ -1264,7 +1264,8 @@ function MusicTrackDialog({
 
   const mutation = useMutation({
     mutationFn: (data: MusicTrackForm) => {
-      const payload = { ...data, albumName: data.albumName || null, genre: data.genre || null };
+      const artistName = artists?.find((a) => a.id === data.artistId)?.name ?? track?.artistName ?? "";
+      const payload = { ...data, albumName: data.albumName || null, genre: data.genre || null, artistName };
       return isEdit
         ? apiRequest("PATCH", `/api/music/tracks/${track!.id}`, payload)
         : apiRequest("POST", "/api/music/tracks", payload);

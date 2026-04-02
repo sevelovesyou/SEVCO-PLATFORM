@@ -1187,7 +1187,7 @@ const musicTrackSchema = z.object({
   genre: z.string().optional().or(z.literal("")),
   type: z.enum(["track", "instrumental"]),
   fileUrl: z.string().min(1, "File URL is required"),
-  coverImageUrl: z.string().url("Enter a valid URL").optional().or(z.literal("")),
+  coverImageUrl: z.string().optional().or(z.literal("")),
   duration: z.coerce.number().int().positive().nullable().optional(),
   status: z.enum(["published", "draft"]).default("draft"),
   displayOrder: z.coerce.number().int().default(0),
@@ -1389,8 +1389,22 @@ function MusicTrackDialog({
 
             <FormField control={form.control} name="coverImageUrl" render={({ field }) => (
               <FormItem>
-                <FormLabel>Cover Image URL</FormLabel>
-                <FormControl><Input {...field} value={field.value ?? ""} placeholder="https://..." data-testid="input-track-cover-url" /></FormControl>
+                <FormLabel>Cover Image</FormLabel>
+                <FormControl>
+                  <FileUploadWithFallback
+                    bucket="gallery"
+                    path={`tracks/covers/${Date.now()}.{ext}`}
+                    accept="image/jpeg,image/png,image/webp,image/*"
+                    maxSizeMb={10}
+                    currentUrl={field.value ?? ""}
+                    onUpload={(url) => form.setValue("coverImageUrl", url)}
+                    urlValue={field.value ?? ""}
+                    onUrlChange={(url) => form.setValue("coverImageUrl", url)}
+                    urlPlaceholder="https://..."
+                    urlTestId="input-track-cover-url"
+                    label="Upload Cover Image"
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )} />

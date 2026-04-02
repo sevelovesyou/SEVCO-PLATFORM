@@ -17164,3 +17164,29 @@ Multiple recent merges left `storage.ts` and several frontend pages using field 
 
 ---
 
+## Task — fix-command-music-beatslib-crash
+> Merged: 2026-04-02
+
+# Fix: /command/music crash (BeatsLibraryTab undefined)
+
+## What & Why
+The Task #200 merge left a duplicate "Beats Library" tab in CommandMusic using `<BeatsLibraryTab />` — a component that was removed. JavaScript throws `ReferenceError: BeatsLibraryTab is not defined` the moment the page loads, crashing the entire CMD Music page with "Something went wrong."
+
+## Done looks like
+- `/command/music` loads without crashing
+- Only one "Beats Library" tab exists (the working one with `MusicLibraryTab trackType="instrumental"`)
+- No duplicate tab labels in the tab bar
+
+## Out of scope
+- Any redesign or new features
+- Any backend changes
+
+## Tasks
+1. **Remove the broken duplicate tab** — In `CommandMusic`, delete the stale `<TabsTrigger value="beats">` and its matching `<TabsContent value="beats"><BeatsLibraryTab /></TabsContent>` block. Remove "beats" from the `validTabs` array. The working `value="beats-library"` tab and its `<MusicLibraryTab trackType="instrumental" />` content block stay untouched.
+
+## Relevant files
+- `client/src/pages/command-music.tsx:1631,1663-1684`
+
+
+---
+

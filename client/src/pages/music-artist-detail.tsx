@@ -6,18 +6,49 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Disc, ChevronLeft, BookOpen, ArrowRight, Plus, Music } from "lucide-react";
-import type { Artist, Album } from "@shared/schema";
+import { Users, Disc, ChevronLeft, BookOpen, ArrowRight, Plus, Music, Play, BarChart2 } from "lucide-react";
+import type { Artist, Album, MusicTrack } from "@shared/schema";
+import { useSpotifyPlayer } from "@/hooks/use-spotify-player";
+import type { Playlist } from "@shared/schema";
 
 const CAN_MANAGE_MUSIC = ["admin", "executive", "staff"];
 
 type ArtistDetail = Artist & { albums: Album[] };
+type TrackWithMeta = MusicTrack & { artist: { id: number; name: string }; album: { id: number; title: string } | null };
+
+function formatStreamCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
+function formatDuration(seconds: number | null | undefined): string {
+  if (!seconds) return "—";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function trackToPlaylistAdapter(track: TrackWithMeta): Playlist {
+  return {
+    id: track.id,
+    title: track.title,
+    slug: String(track.id),
+    description: null,
+    platform: null,
+    playlistUrl: track.fileUrl,
+    coverImageUrl: track.coverArtUrl ?? null,
+    isOfficial: false,
+    createdAt: track.createdAt,
+  };
+}
 
 export default function MusicArtistDetail() {
   const [, params] = useRoute("/music/artists/:slug");
   const slug = params?.slug;
   const { role } = usePermission();
   const canManage = CAN_MANAGE_MUSIC.includes(role ?? "");
+  const { play } = useSpotifyPlayer();
 
   const { data: artist, isLoading, isError } = useQuery<ArtistDetail>({
     queryKey: ["/api/music/artists", slug],
@@ -27,6 +58,14 @@ export default function MusicArtistDetail() {
     }),
     enabled: !!slug,
   });
+
+  const { data: tracks = [], isLoading: tracksLoading } = useQuery<TrackWithMeta[]>({
+    queryKey: ["/api/music/tracks", { artist_id: artist?.id }],
+    queryFn: () => fetch(`/api/music/tracks?artist_id=${artist!.id}`).then((r) => r.json()),
+    enabled: !!artist?.id,
+  });
+
+  const totalStreams = tracks.reduce((sum, t) => sum + (t.streamCount ?? 0), 0);
 
   if (isLoading) {
     return (
@@ -75,7 +114,7 @@ export default function MusicArtistDetail() {
       <PageHead
         title={`${artist.name} — SEVCO Records`}
         description={artist.bio || `Listen to ${artist.name} on SEVCO Records — music, albums, and more.`}
-        ogImage={artist.imageUrl || undefined}
+        ogImage={undefined}
         ogType="profile"
         ogUrl={`https://sevco.us/music/artists/${artist.slug}`}
       />
@@ -93,7 +132,15 @@ export default function MusicArtistDetail() {
           <Users className="h-9 w-9 text-blue-700 dark:text-blue-400" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight">{artist.name}</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-2xl font-bold tracking-tight">{artist.name}</h1>
+            {totalStreams > 0 && (
+              <Badge variant="secondary" className="gap-1 text-xs" data-testid="badge-total-streams">
+                <BarChart2 className="h-3 w-3" />
+                {formatStreamCount(totalStreams)} streams
+              </Badge>
+            )}
+          </div>
           {artist.genres && artist.genres.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
               {artist.genres.map((g) => (
@@ -118,6 +165,73 @@ export default function MusicArtistDetail() {
             </div>
           )}
         </div>
+      </div>
+
+      <div>
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+          <Music className="h-3.5 w-3.5" />
+          Tracks
+        </h2>
+        {tracksLoading ? (
+          <div className="flex flex-col gap-1">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full rounded-md" />
+            ))}
+          </div>
+        ) : tracks.length === 0 ? (
+          <Card className="p-6 overflow-visible text-center" data-testid="empty-tracks">
+            <Music className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-40" />
+            <p className="text-sm text-muted-foreground">No tracks released yet.</p>
+          </Card>
+        ) : (
+          <Card className="overflow-hidden overflow-visible">
+            <ol className="divide-y">
+              {tracks.map((track, i) => (
+                <li
+                  key={track.id}
+                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/40 transition-colors group"
+                  data-testid={`track-${track.id}`}
+                >
+                  <span className="text-xs text-muted-foreground w-5 text-right shrink-0 tabular-nums">
+                    {i + 1}
+                  </span>
+                  {track.coverArtUrl ? (
+                    <img
+                      src={track.coverArtUrl}
+                      alt={track.title}
+                      className="h-8 w-8 rounded object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
+                      <Music className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{track.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatStreamCount(track.streamCount ?? 0)} streams
+                    </p>
+                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
+                    {formatDuration(track.durationSeconds)}
+                  </span>
+                  {track.fileUrl && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label={`Play ${track.title}`}
+                      data-testid={`button-play-track-${track.id}`}
+                      onClick={() => play(trackToPlaylistAdapter(track))}
+                    >
+                      <Play className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </Card>
+        )}
       </div>
 
       <div>

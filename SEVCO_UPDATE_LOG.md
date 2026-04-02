@@ -17088,3 +17088,42 @@ The Beats page gives producers and instrumental music its own dedicated section,
 
 ---
 
+## Task — task-199
+> Merged: 2026-04-02
+
+---
+title: Artist, album & track detail pages with stream counts
+---
+# Artist, Album & Track Detail Pages with Stream Counts
+
+## What & Why
+The music library infrastructure adds stream counts per track. This task surfaces those counts on the artist and album detail pages, enriches both pages with the library track listings, and adds prominent stream count stats to make SEVCO Records feel like a real streaming platform.
+
+## Done looks like
+- Artist detail page (`/music/artists/:slug`) shows: total stream count for all their tracks combined, a "Tracks" section listing their published library tracks with cover, title, duration, streams, and a Play button
+- Album detail page (`/music/albums/:slug`) shows: total stream count for the album, a track listing from the library (filtered by this album's id) with per-track stream counts and Play buttons; each row in the tracklist is clickable to play
+- Stream counts display with sensible formatting (e.g. "1.2K", "45.6K", "1.2M")
+- If an artist or album has no library tracks yet, the section shows an empty state ("No tracks released yet")
+- Playing a track from a detail page opens/updates the floating music player
+
+## Out of scope
+- Streaming history per user
+- Charts or graphs of stream trends
+- "Singles" as a separate entity (a single is just a track without an album_id)
+
+## Tasks
+1. **Artist detail enhancements** — Update `client/src/pages/music-artist-detail.tsx`. Add a `GET /api/music/tracks?artist_id=X` query (or filter from the full tracks list). Show a "Tracks" card grid/list section with cover, title, stream count (formatted), duration, and Play button per track. Show a total streams badge next to the artist name. Compute total streams client-side by summing across fetched tracks.
+
+2. **Album detail enhancements** — Update `client/src/pages/music-album-detail.tsx`. Add a `GET /api/music/tracks?album_id=X` query. Replace or augment the existing `track_list` JSONB display with real library tracks. Show per-track stream count, a Play button per track, and a total album stream count. Format stream counts (K/M abbreviation helper function).
+
+3. **API filter support** — In `server/routes.ts`, update `GET /api/music/tracks` to support `?artist_id` and `?album_id` query params so tracks can be fetched per artist or per album efficiently.
+
+## Relevant files
+- `client/src/pages/music-artist-detail.tsx`
+- `client/src/pages/music-album-detail.tsx`
+- `server/routes.ts` (GET /api/music/tracks)
+- `server/storage.ts` (getMusicTracks filter)
+
+
+---
+

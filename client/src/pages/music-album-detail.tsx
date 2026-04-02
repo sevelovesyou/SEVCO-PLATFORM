@@ -2,16 +2,47 @@ import { Link, useRoute } from "wouter";
 import { PageHead } from "@/components/page-head";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Disc, Users, ChevronLeft, Music } from "lucide-react";
-import type { Artist, Album } from "@shared/schema";
+import { Disc, Users, ChevronLeft, Music, Play, BarChart2 } from "lucide-react";
+import type { Artist, Album, MusicTrack, Playlist } from "@shared/schema";
+import { useSpotifyPlayer } from "@/hooks/use-spotify-player";
 
 type AlbumDetail = Album & { artist: Artist };
+type TrackWithMeta = MusicTrack & { artist: { id: number; name: string }; album: { id: number; title: string } | null };
+
+function formatStreamCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
+function formatDuration(seconds: number | null | undefined): string {
+  if (!seconds) return "—";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function trackToPlaylistAdapter(track: TrackWithMeta): Playlist {
+  return {
+    id: track.id,
+    title: track.title,
+    slug: String(track.id),
+    description: null,
+    platform: null,
+    playlistUrl: track.fileUrl,
+    coverImageUrl: track.coverArtUrl ?? null,
+    isOfficial: false,
+    createdAt: track.createdAt,
+  };
+}
 
 export default function MusicAlbumDetail() {
   const [, params] = useRoute("/music/albums/:slug");
   const slug = params?.slug;
+  const { play } = useSpotifyPlayer();
 
   const { data: album, isLoading, isError } = useQuery<AlbumDetail>({
     queryKey: ["/api/music/albums", slug],
@@ -21,6 +52,14 @@ export default function MusicAlbumDetail() {
     }),
     enabled: !!slug,
   });
+
+  const { data: tracks = [], isLoading: tracksLoading } = useQuery<TrackWithMeta[]>({
+    queryKey: ["/api/music/tracks", { album_id: album?.id }],
+    queryFn: () => fetch(`/api/music/tracks?album_id=${album!.id}`).then((r) => r.json()),
+    enabled: !!album?.id,
+  });
+
+  const totalStreams = tracks.reduce((sum, t) => sum + (t.streamCount ?? 0), 0);
 
   if (isLoading) {
     return (
@@ -61,12 +100,6 @@ export default function MusicAlbumDetail() {
     );
   }
 
-  const trackList = Array.isArray(album.trackList)
-    ? (album.trackList as string[])
-    : typeof album.trackList === "object" && album.trackList !== null
-    ? Object.values(album.trackList as Record<string, string>)
-    : [];
-
   return (
     <div className="max-w-3xl mx-auto p-4 md:p-6 flex flex-col gap-6">
       <PageHead
@@ -86,9 +119,17 @@ export default function MusicAlbumDetail() {
       </div>
 
       <div className="flex items-start gap-5">
-        <div className="h-24 w-24 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-          <Disc className="h-10 w-10 text-primary" />
-        </div>
+        {album.coverImageUrl ? (
+          <img
+            src={album.coverImageUrl}
+            alt={album.title}
+            className="h-24 w-24 rounded-lg object-cover shrink-0"
+          />
+        ) : (
+          <div className="h-24 w-24 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Disc className="h-10 w-10 text-primary" />
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">{album.title}</h1>
           <Link href={`/music/artists/${album.artist.slug}`}>
@@ -100,6 +141,12 @@ export default function MusicAlbumDetail() {
           {album.releaseYear && (
             <p className="text-sm text-muted-foreground mt-1">{album.releaseYear}</p>
           )}
+          {totalStreams > 0 && (
+            <Badge variant="secondary" className="mt-2 gap-1 text-xs" data-testid="badge-total-streams">
+              <BarChart2 className="h-3 w-3" />
+              {formatStreamCount(totalStreams)} streams
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -108,23 +155,69 @@ export default function MusicAlbumDetail() {
           <Music className="h-3.5 w-3.5" />
           Track Listing
         </h2>
-        {trackList.length === 0 ? (
-          <Card className="p-4 overflow-visible text-center">
-            <p className="text-sm text-muted-foreground">No tracks listed for this album.</p>
+        {tracksLoading ? (
+          <div className="flex flex-col gap-1">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-9 w-full rounded-md" />
+            ))}
+          </div>
+        ) : tracks.length === 0 ? (
+          <Card className="p-4 overflow-visible text-center" data-testid="empty-tracks">
+            <Music className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-40" />
+            <p className="text-sm text-muted-foreground">No tracks released yet.</p>
           </Card>
         ) : (
           <Card className="overflow-hidden overflow-visible">
             <ol className="divide-y">
-              {trackList.map((track, i) => (
+              {tracks.map((track, i) => (
                 <li
-                  key={i}
-                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/40 transition-colors"
-                  data-testid={`track-${i + 1}`}
+                  key={track.id}
+                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/40 transition-colors cursor-pointer group"
+                  data-testid={`track-${track.id}`}
+                  onClick={() => {
+                    if (track.fileUrl) {
+                      play(trackToPlaylistAdapter(track));
+                    }
+                  }}
                 >
                   <span className="text-xs text-muted-foreground w-5 text-right shrink-0 tabular-nums">
-                    {i + 1}
+                    {track.displayOrder || i + 1}
                   </span>
-                  <span className="text-sm flex-1">{track}</span>
+                  {track.coverArtUrl ? (
+                    <img
+                      src={track.coverArtUrl}
+                      alt={track.title}
+                      className="h-8 w-8 rounded object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
+                      <Music className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{track.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatStreamCount(track.streamCount ?? 0)} streams
+                    </p>
+                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
+                    {formatDuration(track.durationSeconds)}
+                  </span>
+                  {track.fileUrl && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label={`Play ${track.title}`}
+                      data-testid={`button-play-track-${track.id}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        play(trackToPlaylistAdapter(track));
+                      }}
+                    >
+                      <Play className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </li>
               ))}
             </ol>

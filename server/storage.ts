@@ -381,8 +381,9 @@ export interface IStorage {
   markAllNotificationsRead(userId: string): Promise<void>;
   getUsersByRole(roles: Role[]): Promise<User[]>;
 
-  getMusicTracks(type?: string): Promise<MusicTrack[]>;
+  getMusicTracks(filter?: { type?: string; publishedOnly?: boolean; artistId?: number; albumId?: number }): Promise<(MusicTrack & { artist: { id: number; name: string }; album: { id: number; title: string } | null })[]>;
   getMusicTrackById(id: number): Promise<MusicTrack | undefined>;
+  getMusicTrack(id: number): Promise<(MusicTrack & { artist: { id: number; name: string }; album: { id: number; title: string } | null }) | undefined>;
   createMusicTrack(data: InsertMusicTrack): Promise<MusicTrack>;
   updateMusicTrack(id: number, data: Partial<InsertMusicTrack>): Promise<MusicTrack>;
   deleteMusicTrack(id: number): Promise<void>;
@@ -2420,17 +2421,101 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(users).where(inArray(users.role, roles));
   }
 
-  async getMusicTracks(type?: string): Promise<MusicTrack[]> {
-    const query = db.select().from(musicTracks);
-    if (type) {
-      return query.where(and(eq(musicTracks.type, type), eq(musicTracks.status, "published"))).orderBy(asc(musicTracks.displayOrder), desc(musicTracks.createdAt));
-    }
-    return query.where(eq(musicTracks.status, "published")).orderBy(asc(musicTracks.displayOrder), desc(musicTracks.createdAt));
+  async getMusicTracks(filter?: { type?: string; publishedOnly?: boolean; artistId?: number; albumId?: number }): Promise<(MusicTrack & { artist: { id: number; name: string }; album: { id: number; title: string } | null })[]> {
+    const rows = await db
+      .select({
+        id: musicTracks.id,
+        title: musicTracks.title,
+        artistId: musicTracks.artistId,
+        albumId: musicTracks.albumId,
+        type: musicTracks.type,
+        fileUrl: musicTracks.fileUrl,
+        coverArtUrl: musicTracks.coverArtUrl,
+        durationSeconds: musicTracks.durationSeconds,
+        streamCount: musicTracks.streamCount,
+        isPublished: musicTracks.isPublished,
+        displayOrder: musicTracks.displayOrder,
+        createdAt: musicTracks.createdAt,
+        artistName: artists.name,
+        albumTitle: albums.title,
+      })
+      .from(musicTracks)
+      .leftJoin(artists, eq(musicTracks.artistId, artists.id))
+      .leftJoin(albums, eq(musicTracks.albumId, albums.id))
+      .where(
+        and(
+          filter?.type ? eq(musicTracks.type, filter.type as "track" | "instrumental") : undefined,
+          filter?.publishedOnly ? eq(musicTracks.isPublished, true) : undefined,
+          filter?.artistId !== undefined ? eq(musicTracks.artistId, filter.artistId) : undefined,
+          filter?.albumId !== undefined ? eq(musicTracks.albumId, filter.albumId) : undefined,
+        )
+      )
+      .orderBy(asc(musicTracks.displayOrder), asc(musicTracks.createdAt));
+
+    return rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      artistId: r.artistId,
+      albumId: r.albumId,
+      type: r.type,
+      fileUrl: r.fileUrl,
+      coverArtUrl: r.coverArtUrl,
+      durationSeconds: r.durationSeconds,
+      streamCount: r.streamCount,
+      isPublished: r.isPublished,
+      displayOrder: r.displayOrder,
+      createdAt: r.createdAt,
+      artist: { id: r.artistId, name: r.artistName ?? "" },
+      album: r.albumId && r.albumTitle ? { id: r.albumId, title: r.albumTitle } : null,
+    }));
   }
 
   async getMusicTrackById(id: number): Promise<MusicTrack | undefined> {
     const [track] = await db.select().from(musicTracks).where(eq(musicTracks.id, id));
     return track;
+  }
+
+  async getMusicTrack(id: number): Promise<(MusicTrack & { artist: { id: number; name: string }; album: { id: number; title: string } | null }) | undefined> {
+    const [row] = await db
+      .select({
+        id: musicTracks.id,
+        title: musicTracks.title,
+        artistId: musicTracks.artistId,
+        albumId: musicTracks.albumId,
+        type: musicTracks.type,
+        fileUrl: musicTracks.fileUrl,
+        coverArtUrl: musicTracks.coverArtUrl,
+        durationSeconds: musicTracks.durationSeconds,
+        streamCount: musicTracks.streamCount,
+        isPublished: musicTracks.isPublished,
+        displayOrder: musicTracks.displayOrder,
+        createdAt: musicTracks.createdAt,
+        artistName: artists.name,
+        albumTitle: albums.title,
+      })
+      .from(musicTracks)
+      .leftJoin(artists, eq(musicTracks.artistId, artists.id))
+      .leftJoin(albums, eq(musicTracks.albumId, albums.id))
+      .where(eq(musicTracks.id, id));
+
+    if (!row) return undefined;
+
+    return {
+      id: row.id,
+      title: row.title,
+      artistId: row.artistId,
+      albumId: row.albumId,
+      type: row.type,
+      fileUrl: row.fileUrl,
+      coverArtUrl: row.coverArtUrl,
+      durationSeconds: row.durationSeconds,
+      streamCount: row.streamCount,
+      isPublished: row.isPublished,
+      displayOrder: row.displayOrder,
+      createdAt: row.createdAt,
+      artist: { id: row.artistId, name: row.artistName ?? "" },
+      album: row.albumId && row.albumTitle ? { id: row.albumId, title: row.albumTitle } : null,
+    };
   }
 
   async createMusicTrack(data: InsertMusicTrack): Promise<MusicTrack> {

@@ -3106,8 +3106,26 @@ export async function registerRoutes(
 
   app.get("/api/music/tracks", async (req, res) => {
     try {
-      const type = req.query.type as string | undefined;
-      const tracks = await storage.getMusicTracks(type);
+      const rawType = req.query.type;
+      const typeParam: string | undefined = typeof rawType === "string" ? rawType : undefined;
+      if (typeParam !== undefined && typeParam !== "track" && typeParam !== "instrumental") {
+        return res.status(400).json({ message: "Invalid type parameter. Must be 'track' or 'instrumental'." });
+      }
+      
+      const user = (req as any).user;
+      const isStaffRole = user && ["admin", "executive", "staff"].includes(user.role);
+      const publishedOnly = !isStaffRole;
+
+      const artistIdRaw = req.query.artist_id;
+      const albumIdRaw = req.query.album_id;
+      const artistId = typeof artistIdRaw === "string" && artistIdRaw ? parseInt(artistIdRaw) : undefined;
+      const albumId = typeof albumIdRaw === "string" && albumIdRaw ? parseInt(albumIdRaw) : undefined;
+      const tracks = await storage.getMusicTracks({
+        type: typeParam,
+        publishedOnly,
+        artistId: artistId !== undefined && !isNaN(artistId) ? artistId : undefined,
+        albumId: albumId !== undefined && !isNaN(albumId) ? albumId : undefined,
+      });
       res.json(tracks);
     } catch (err: any) {
       res.status(500).json({ message: err.message });

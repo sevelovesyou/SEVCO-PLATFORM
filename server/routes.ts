@@ -1981,7 +1981,10 @@ export async function registerRoutes(
   app.get("/api/music/artists", async (_req, res) => {
     try {
       const all = await storage.getArtists();
-      res.json(all);
+      const users = await storage.getUsersWithLinkedArtist();
+      const linkedMap = new Map(users.map((u) => [u.linkedArtistId!, u.username]));
+      const result = all.map((a) => ({ ...a, linkedUsername: linkedMap.get(a.id) ?? null }));
+      res.json(result);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -1992,7 +1995,8 @@ export async function registerRoutes(
       const artist = await storage.getArtistBySlug(req.params.slug);
       if (!artist) return res.status(404).json({ message: "Artist not found" });
       const artistAlbums = await storage.getAlbumsByArtist(artist.id);
-      res.json({ ...artist, albums: artistAlbums });
+      const linkedUser = await storage.getUserByLinkedArtistId(artist.id);
+      res.json({ ...artist, albums: artistAlbums, linkedUsername: linkedUser?.username ?? null });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -2008,8 +2012,14 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/music/albums", async (_req, res) => {
+  app.get("/api/music/albums", async (req, res) => {
     try {
+      const artistIdRaw = req.query.artistId;
+      const artistId = typeof artistIdRaw === "string" && artistIdRaw ? parseInt(artistIdRaw) : undefined;
+      if (artistId !== undefined && !isNaN(artistId)) {
+        const albums = await storage.getAlbumsByArtist(artistId);
+        return res.json(albums);
+      }
       const all = await storage.getAlbums();
       res.json(all);
     } catch (err: any) {
@@ -2824,6 +2834,7 @@ export async function registerRoutes(
         profilePronouns: user.profilePronouns,
         profileAccentGradient: user.profileAccentGradient,
         profileShowFollowers: user.profileShowFollowers,
+        linkedArtistId: user.linkedArtistId ?? null,
       };
       res.json(publicProfile);
     } catch (err: any) {

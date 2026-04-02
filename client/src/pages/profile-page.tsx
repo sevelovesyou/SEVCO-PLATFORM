@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { useParams, Link } from "wouter";
+import { Badge } from "@/components/ui/badge";
+import { useMusicPlayer } from "@/contexts/music-player-context";
+import type { MusicTrack, Album } from "@shared/schema";
 import { PageHead } from "@/components/page-head";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -55,6 +58,10 @@ import {
   Settings,
   Lock,
   Star,
+  Music,
+  Disc,
+  Play,
+  BarChart2,
 } from "lucide-react";
 import { SiDiscord, SiInstagram, SiX, SiTiktok } from "react-icons/si";
 import { SevcoLogo } from "@/components/sevco-logo";
@@ -129,6 +136,7 @@ type PublicUser = {
   profilePronouns?: string | null;
   profileAccentGradient?: boolean | null;
   profileShowFollowers?: boolean | null;
+  linkedArtistId?: number | null;
 };
 
 type PostAuthor = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
@@ -911,6 +919,198 @@ function FeaturedItemCard({ type, itemId, accentColor, bgColor }: {
   );
 }
 
+function formatStreamCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
+function formatDuration(seconds: number | null | undefined): string {
+  if (!seconds) return "—";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function ArtistMusicSection({ artistId, accentColor, bgColor }: { artistId: number; accentColor?: string; bgColor?: string }) {
+  const { playTrack } = useMusicPlayer();
+
+  const { data: albums = [], isLoading: albumsLoading } = useQuery<Album[]>({
+    queryKey: ["/api/music/albums", { artistId }],
+    queryFn: async () => {
+      const res = await fetch(`/api/music/albums?artistId=${artistId}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const { data: tracks = [], isLoading: tracksLoading } = useQuery<MusicTrack[]>({
+    queryKey: ["/api/music/tracks", { artist_id: artistId }],
+    queryFn: async () => {
+      const res = await fetch(`/api/music/tracks?artist_id=${artistId}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const borderColor = accentColor ? `${accentColor}33` : "var(--border)";
+  const cardBg = bgColor ? `${bgColor}88` : "var(--card)";
+  const mutedColor = accentColor ? `${accentColor}99` : "var(--muted-foreground)";
+
+  return (
+    <div className="mt-5 space-y-5" data-testid="section-artist-music">
+      <div>
+        <h2
+          className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2"
+          style={{ color: mutedColor }}
+        >
+          <Disc className="h-3.5 w-3.5" />
+          Discography
+        </h2>
+        {albumsLoading ? (
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-32 w-28 rounded-xl flex-shrink-0" />
+            ))}
+          </div>
+        ) : albums.length === 0 ? (
+          <div
+            className="rounded-xl border px-5 py-6 text-center"
+            style={{ background: cardBg, borderColor }}
+          >
+            <p className="text-sm" style={{ color: mutedColor }}>No albums yet.</p>
+          </div>
+        ) : (
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {albums.map((album) => (
+              <Link key={album.id} href={`/music/albums/${album.slug}`}>
+                <div
+                  className="flex-shrink-0 w-28 rounded-xl border overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                  style={{ background: cardBg, borderColor }}
+                  data-testid={`card-profile-album-${album.id}`}
+                >
+                  {(album as any).coverImageUrl ? (
+                    <img
+                      src={(album as any).coverImageUrl}
+                      alt={album.title}
+                      className="w-full h-28 object-cover"
+                    />
+                  ) : (
+                    <div
+                      className="w-full h-28 flex items-center justify-center"
+                      style={{ background: accentColor ? `${accentColor}22` : "var(--muted)" }}
+                    >
+                      <Disc className="h-8 w-8" style={{ color: accentColor || "var(--muted-foreground)", opacity: 0.5 }} />
+                    </div>
+                  )}
+                  <div className="p-2">
+                    <p className="text-xs font-medium truncate" style={{ color: accentColor || "var(--foreground)" }}>
+                      {album.title}
+                    </p>
+                    {album.releaseYear && (
+                      <p className="text-[10px]" style={{ color: mutedColor }}>{album.releaseYear}</p>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h2
+          className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2"
+          style={{ color: mutedColor }}
+        >
+          <Music className="h-3.5 w-3.5" />
+          Tracks
+        </h2>
+        {tracksLoading ? (
+          <div className="space-y-1">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full rounded-lg" />
+            ))}
+          </div>
+        ) : tracks.length === 0 ? (
+          <div
+            className="rounded-xl border px-5 py-6 text-center"
+            style={{ background: cardBg, borderColor }}
+          >
+            <p className="text-sm" style={{ color: mutedColor }}>No tracks released yet.</p>
+          </div>
+        ) : (
+          <div
+            className="rounded-xl border overflow-hidden"
+            style={{ background: cardBg, borderColor }}
+          >
+            <ol className="divide-y" style={{ borderColor }}>
+              {tracks.map((track, i) => (
+                <li
+                  key={track.id}
+                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/40 transition-colors group"
+                  data-testid={`track-profile-${track.id}`}
+                >
+                  <span className="text-xs w-5 text-right shrink-0 tabular-nums" style={{ color: mutedColor }}>
+                    {i + 1}
+                  </span>
+                  {track.coverImageUrl ? (
+                    <img
+                      src={track.coverImageUrl}
+                      alt={track.title}
+                      className="h-8 w-8 rounded object-cover shrink-0"
+                    />
+                  ) : (
+                    <div
+                      className="h-8 w-8 rounded flex items-center justify-center shrink-0"
+                      style={{ background: accentColor ? `${accentColor}22` : "var(--muted)" }}
+                    >
+                      <Music className="h-3.5 w-3.5" style={{ color: accentColor || "var(--muted-foreground)" }} />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: accentColor || "var(--foreground)" }}>
+                      {track.title}
+                    </p>
+                    <p className="text-xs flex items-center gap-1" style={{ color: mutedColor }}>
+                      <BarChart2 className="h-3 w-3" />
+                      {formatStreamCount(track.streamCount ?? 0)} streams
+                    </p>
+                  </div>
+                  {track.genre && (
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] px-1.5 shrink-0 hidden sm:inline-flex"
+                      data-testid={`badge-track-genre-${track.id}`}
+                    >
+                      {track.genre}
+                    </Badge>
+                  )}
+                  <span className="text-xs shrink-0 tabular-nums" style={{ color: mutedColor }}>
+                    {formatDuration(track.duration)}
+                  </span>
+                  {track.fileUrl && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label={`Play ${track.title}`}
+                      data-testid={`button-play-track-profile-${track.id}`}
+                      onClick={() => playTrack(track, tracks.filter((_, idx) => idx > i))}
+                    >
+                      <Play className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
   profile: PublicUser;
   isOwnProfile: boolean;
@@ -1362,6 +1562,14 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
           </div>
         )}
       </div>
+
+      {profile.linkedArtistId && (
+        <ArtistMusicSection
+          artistId={profile.linkedArtistId}
+          accentColor={accentColor}
+          bgColor={bgColor}
+        />
+      )}
 
       <FollowListDialog username={profile.username} type="followers" open={followersOpen} onClose={() => setFollowersOpen(false)} />
       <FollowListDialog username={profile.username} type="following" open={followingOpen} onClose={() => setFollowingOpen(false)} />

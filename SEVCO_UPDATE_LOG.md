@@ -17289,9 +17289,12 @@ Submitting the Add Track / Add Instrumental form always returns "Invalid data". 
 
 ---
 
-## Task — artist-profile-merge
+## Task — task-206
 > Merged: 2026-04-02
 
+---
+title: Artist pages → user profiles with discography section
+---
 # Artist Pages → User Profiles with Discography
 
 ## What & Why

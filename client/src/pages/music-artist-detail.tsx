@@ -1,4 +1,4 @@
-import { Link, useRoute } from "wouter";
+import { Link, useRoute, useLocation } from "wouter";
 import { PageHead } from "@/components/page-head";
 import { useQuery } from "@tanstack/react-query";
 import { usePermission } from "@/hooks/use-permission";
@@ -10,10 +10,11 @@ import { Users, Disc, ChevronLeft, BookOpen, ArrowRight, Plus, Music, Play, BarC
 import type { Artist, Album, MusicTrack } from "@shared/schema";
 import { useSpotifyPlayer } from "@/hooks/use-spotify-player";
 import type { Playlist } from "@shared/schema";
+import { useEffect } from "react";
 
 const CAN_MANAGE_MUSIC = ["admin", "executive", "staff"];
 
-type ArtistDetail = Artist & { albums: Album[] };
+type ArtistDetail = Artist & { albums: Album[]; linkedUsername: string | null };
 type TrackWithMeta = MusicTrack & { artist: { id: number; name: string } | null };
 
 function formatStreamCount(n: number): string {
@@ -49,6 +50,7 @@ export default function MusicArtistDetail() {
   const { role } = usePermission();
   const canManage = CAN_MANAGE_MUSIC.includes(role ?? "");
   const { play } = useSpotifyPlayer();
+  const [, setLocation] = useLocation();
 
   const { data: artist, isLoading, isError } = useQuery<ArtistDetail>({
     queryKey: ["/api/music/artists", slug],
@@ -58,6 +60,12 @@ export default function MusicArtistDetail() {
     }),
     enabled: !!slug,
   });
+
+  useEffect(() => {
+    if (artist?.linkedUsername) {
+      setLocation(`/profile/${artist.linkedUsername}`, { replace: true });
+    }
+  }, [artist?.linkedUsername, setLocation]);
 
   const { data: tracks = [], isLoading: tracksLoading } = useQuery<TrackWithMeta[]>({
     queryKey: ["/api/music/tracks", { artist_id: artist?.id }],

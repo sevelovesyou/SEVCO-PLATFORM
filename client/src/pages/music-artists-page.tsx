@@ -9,13 +9,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Plus, ArrowRight, Music, ChevronLeft } from "lucide-react";
 import type { Artist } from "@shared/schema";
 
+type ArtistWithLinked = Artist & { linkedUsername: string | null };
+
 const CAN_MANAGE_MUSIC = ["admin", "executive", "staff"];
 
 export default function MusicArtistsPage() {
   const { role } = usePermission();
   const canManage = CAN_MANAGE_MUSIC.includes(role ?? "");
 
-  const { data: artistsList, isLoading } = useQuery<Artist[]>({
+  const { data: artistsList, isLoading } = useQuery<ArtistWithLinked[]>({
     queryKey: ["/api/music/artists"],
   });
 
@@ -87,7 +89,7 @@ export default function MusicArtistsPage() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {artistsList.map((artist) => (
-            <Link key={artist.id} href={`/music/artists/${artist.slug}`}>
+            <Link key={artist.id} href={artist.linkedUsername ? `/profile/${artist.linkedUsername}` : `/music/artists/${artist.slug}`}>
               <Card
                 className="p-4 hover-elevate active-elevate-2 cursor-pointer overflow-visible group"
                 data-testid={`card-artist-${artist.id}`}

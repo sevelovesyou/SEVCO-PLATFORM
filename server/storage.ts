@@ -125,6 +125,8 @@ export interface IStorage {
 
   getArtists(): Promise<Artist[]>;
   getArtistBySlug(slug: string): Promise<Artist | undefined>;
+  getUsersWithLinkedArtist(): Promise<User[]>;
+  getUserByLinkedArtistId(artistId: number): Promise<User | undefined>;
   createArtist(artist: InsertArtist): Promise<Artist>;
 
   getAlbums(): Promise<(Album & { artist: Artist })[]>;
@@ -784,6 +786,15 @@ export class DatabaseStorage implements IStorage {
   async getArtistBySlug(slug: string): Promise<Artist | undefined> {
     const [artist] = await db.select().from(artists).where(eq(artists.slug, slug));
     return artist || undefined;
+  }
+
+  async getUsersWithLinkedArtist(): Promise<User[]> {
+    return db.select().from(users).where(sql`${users.linkedArtistId} IS NOT NULL`);
+  }
+
+  async getUserByLinkedArtistId(artistId: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.linkedArtistId, artistId));
+    return user || undefined;
   }
 
   async createArtist(artist: InsertArtist): Promise<Artist> {

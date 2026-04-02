@@ -17261,3 +17261,31 @@ The Add/Edit Track dialog has a plain URL text input for Cover Image. Like the a
 
 ---
 
+## Task — fix-music-track-artistname-payload
+> Merged: 2026-04-02
+
+# Fix: Music track create fails ("Invalid data")
+
+## What & Why
+Submitting the Add Track / Add Instrumental form always returns "Invalid data". The `music_tracks` table requires `artist_name NOT NULL`, and the server validates the request body against `insertMusicTrackSchema` which includes `artistName` as required. The form only sends `artistId` (the FK) and never includes `artistName`, so Zod rejects every create/edit attempt.
+
+## Done looks like
+- Creating a track from the Music Library or Beats Library tab works without error
+- Editing an existing track also works
+- The `artistName` field is always sent in the payload, derived from the selected artist
+
+## Out of scope
+- Any UI changes to the form
+- Any schema or backend changes
+
+## Tasks
+1. **Inject `artistName` into mutation payload** — In `MusicTrackDialog` in `command-music.tsx`, update the `mutationFn` to add `artistName` to the payload. Derive it by finding the selected `artistId` in the `artists` array already loaded by the dialog's query (e.g. `artists?.find(a => a.id === data.artistId)?.name ?? ""`). If no artist is selected, fall back to the existing `track?.artistName ?? ""` when editing, or empty string when creating (the Artist field is optional in the form schema, so cover that case gracefully).
+
+## Relevant files
+- `client/src/pages/command-music.tsx:1263-1270` (mutation payload construction in MusicTrackDialog)
+- `client/src/pages/command-music.tsx:1185` (artistId schema field)
+- `shared/schema.ts:985-1003` (musicTracks table — artistName NOT NULL)
+
+
+---
+

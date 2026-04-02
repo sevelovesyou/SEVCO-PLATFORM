@@ -3100,6 +3100,113 @@ export async function registerRoutes(
     }
   });
 
+  // ── Music Tracks CRUD ──────────────────────────────────────────────────
+  const CAN_MANAGE_TRACKS: Role[] = ["admin", "executive", "staff"];
+  const CAN_DELETE_TRACKS: Role[] = ["admin", "executive"];
+  const streamSessions = new Map<string, Set<number>>();
+
+  function isStaffRole(req: Express.Request): boolean {
+    return req.isAuthenticated() && ["admin", "executive", "staff"].includes(req.user?.role ?? "");
+  }
+
+  app.get("/api/music/tracks", async (req, res) => {
+    try {
+      const rawType = req.query.type;
+      const typeParam: string | undefined = typeof rawType === "string" ? rawType : undefined;
+      if (typeParam !== undefined && typeParam !== "track" && typeParam !== "instrumental") {
+        return res.status(400).json({ message: "Invalid type parameter. Must be 'track' or 'instrumental'." });
+      }
+      const publishedOnly = !isStaffRole(req);
+      const tracks = await storage.getMusicTracks({
+        type: typeParam,
+        publishedOnly,
+      });
+      res.json(tracks);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/music/tracks/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid track id" });
+      const track = await storage.getMusicTrack(id);
+      if (!track) return res.status(404).json({ message: "Track not found" });
+      if (!track.isPublished && !isStaffRole(req)) {
+        return res.status(404).json({ message: "Track not found" });
+      }
+      res.json(track);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/music/tracks", requireAuth, requireRole(...CAN_MANAGE_TRACKS), async (req, res) => {
+    try {
+      const { insertMusicTrackSchema } = await import("@shared/schema");
+      const parsed = insertMusicTrackSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+      const track = await storage.createMusicTrack(parsed.data);
+      res.status(201).json(track);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/music/tracks/:id", requireAuth, requireRole(...CAN_MANAGE_TRACKS), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const existing = await storage.getMusicTrack(id);
+      if (!existing) return res.status(404).json({ message: "Track not found" });
+      const { insertMusicTrackSchema } = await import("@shared/schema");
+      const parsed = insertMusicTrackSchema.partial().safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+      const track = await storage.updateMusicTrack(id, parsed.data);
+      res.json(track);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/music/tracks/:id", requireAuth, requireRole(...CAN_DELETE_TRACKS), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const existing = await storage.getMusicTrack(id);
+      if (!existing) return res.status(404).json({ message: "Track not found" });
+      await storage.deleteMusicTrack(id);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/music/tracks/:id/stream", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid track id" });
+      const userId: string = req.user!.id;
+      const sessionKey = `${userId}:${req.sessionID ?? "default"}`;
+      if (!streamSessions.has(sessionKey)) {
+        streamSessions.set(sessionKey, new Set());
+      }
+      const userSessions = streamSessions.get(sessionKey)!;
+      if (userSessions.has(id)) {
+        return res.json({ counted: false, message: "Already counted this session" });
+      }
+      const existing = await storage.getMusicTrack(id);
+      if (!existing) return res.status(404).json({ message: "Track not found" });
+      if (!existing.isPublished && !isStaffRole(req)) {
+        return res.status(404).json({ message: "Track not found" });
+      }
+      await storage.incrementStreamCount(id);
+      userSessions.add(id);
+      res.json({ counted: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // Contact form rate limiting: max 3 per IP per hour
   const contactRateMap = new Map<string, { count: number; resetAt: number }>();
 

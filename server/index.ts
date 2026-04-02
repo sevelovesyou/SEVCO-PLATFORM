@@ -139,6 +139,26 @@ async function runStartupMigrations() {
     display_order integer NOT NULL DEFAULT 0,
     created_at timestamp DEFAULT now() NOT NULL
   );`);
+  // Task #196 — Music tracks table
+  await pool.query(`DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'music_track_type') THEN
+      CREATE TYPE music_track_type AS ENUM ('track', 'instrumental');
+    END IF;
+  END $$;`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS music_tracks (
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    title text NOT NULL,
+    artist_id integer NOT NULL REFERENCES artists(id) ON DELETE CASCADE,
+    album_id integer REFERENCES albums(id) ON DELETE SET NULL,
+    type music_track_type NOT NULL DEFAULT 'track',
+    file_url text NOT NULL,
+    cover_art_url text,
+    duration_seconds integer,
+    stream_count integer NOT NULL DEFAULT 0,
+    is_published boolean NOT NULL DEFAULT false,
+    display_order integer NOT NULL DEFAULT 0,
+    created_at timestamp DEFAULT now() NOT NULL
+  );`);
   console.log("[startup] migrations applied");
 }
 

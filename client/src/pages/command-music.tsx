@@ -27,7 +27,7 @@ import {
   Search, RefreshCw, Unlink, Play, Loader2,
 } from "lucide-react";
 import { SiSpotify, SiApplemusic, SiYoutubemusic, SiSoundcloud } from "react-icons/si";
-import type { MusicSubmission, Playlist, SpotifyArtist } from "@shared/schema";
+import type { MusicSubmission, Playlist, SpotifyArtist, Artist, MusicTrack } from "@shared/schema";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 /* ─── Submissions tab ──────────────────────────────────────────────────── */
@@ -1167,6 +1167,471 @@ function SpotifyTab() {
   );
 }
 
+/* ─── Music Library Tab ────────────────────────────────────────────────── */
+
+type MusicTrackWithMeta = MusicTrack & {
+  artist: { id: number; name: string };
+  album: { id: number; title: string } | null;
+};
+
+const musicTrackSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  artistId: z.coerce.number({ invalid_type_error: "Select an artist" }).int().positive("Select an artist"),
+  albumId: z.coerce.number().int().positive().nullable().optional(),
+  type: z.enum(["track", "instrumental"]),
+  fileUrl: z.string().min(1, "File URL is required"),
+  coverArtUrl: z.string().url("Enter a valid URL").optional().or(z.literal("")),
+  durationSeconds: z.coerce.number().int().positive().nullable().optional(),
+  isPublished: z.boolean().default(false),
+  displayOrder: z.coerce.number().int().default(0),
+});
+
+type MusicTrackForm = z.infer<typeof musicTrackSchema>;
+type MusicTrackFormInit = Partial<MusicTrackForm> & { title: string; type: "track" | "instrumental" };
+
+function formatSeconds(s: number | null | undefined): string {
+  if (!s) return "--:--";
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, "0")}`;
+}
+
+function MusicTrackDialog({
+  open,
+  onClose,
+  track,
+  trackType,
+  prefill,
+}: {
+  open: boolean;
+  onClose: () => void;
+  track?: MusicTrackWithMeta | null;
+  trackType: "track" | "instrumental";
+  prefill?: { title?: string; artistId?: number };
+}) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const isEdit = !!track;
+
+  const { data: artists } = useQuery<Artist[]>({ queryKey: ["/api/music/artists"] });
+  const { data: albums } = useQuery<{ artist: Artist; id: number; title: string; slug: string; releaseYear: number | null; trackList: unknown; createdAt: Date; artistId: number }[]>({ queryKey: ["/api/music/albums"] });
+
+  function buildDefaults(): MusicTrackFormInit {
+    return {
+      title: track?.title ?? prefill?.title ?? "",
+      ...(track?.artistId != null ? { artistId: track.artistId } : prefill?.artistId != null ? { artistId: prefill.artistId } : {}),
+      albumId: track?.albumId ?? null,
+      type: track?.type ?? trackType,
+      fileUrl: track?.fileUrl ?? "",
+      coverArtUrl: track?.coverArtUrl ?? "",
+      durationSeconds: track?.durationSeconds ?? null,
+      isPublished: track?.isPublished ?? false,
+      displayOrder: track?.displayOrder ?? 0,
+    };
+  }
+
+  const form = useForm<MusicTrackForm>({
+    resolver: zodResolver(musicTrackSchema),
+    defaultValues: buildDefaults() as MusicTrackForm,
+  });
+
+  useEffect(() => {
+    form.reset(buildDefaults() as MusicTrackForm);
+  }, [track, open, prefill, trackType]);
+
+  const mutation = useMutation({
+    mutationFn: (data: MusicTrackForm) => {
+      const payload = { ...data, albumId: data.albumId || null };
+      return isEdit
+        ? apiRequest("PATCH", `/api/music/tracks/${track!.id}`, payload)
+        : apiRequest("POST", "/api/music/tracks", payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/music/tracks"] });
+      toast({ title: isEdit ? "Track updated" : "Track created" });
+      onClose();
+      form.reset();
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const selectedArtistId = form.watch("artistId");
+  const filteredAlbums = albums?.filter((a) => a.artistId === Number(selectedArtistId)) ?? [];
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Edit Track" : `Add ${trackType === "instrumental" ? "Instrumental" : "Track"}`}</DialogTitle>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+            <FormField control={form.control} name="title" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Title</FormLabel>
+                <FormControl><Input {...field} placeholder="Track title" data-testid="input-track-title" /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField control={form.control} name="artistId" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Artist</FormLabel>
+                  <Select
+                    value={field.value ? String(field.value) : ""}
+                    onValueChange={(v) => { field.onChange(Number(v)); form.setValue("albumId", null); }}
+                  >
+                    <FormControl>
+                      <SelectTrigger data-testid="select-track-artist"><SelectValue placeholder="Select artist" /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {(artists ?? []).map((a) => (
+                        <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="albumId" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Album (optional)</FormLabel>
+                  <Select
+                    value={field.value ? String(field.value) : "none"}
+                    onValueChange={(v) => field.onChange(v === "none" ? null : Number(v))}
+                    disabled={!selectedArtistId || filteredAlbums.length === 0}
+                  >
+                    <FormControl>
+                      <SelectTrigger data-testid="select-track-album"><SelectValue placeholder="No album" /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">No album</SelectItem>
+                      {filteredAlbums.map((a) => (
+                        <SelectItem key={a.id} value={String(a.id)}>{a.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </div>
+
+            <FormField control={form.control} name="type" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Type</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger data-testid="select-track-type"><SelectValue /></SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="track">Track</SelectItem>
+                    <SelectItem value="instrumental">Instrumental</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )} />
+
+            <FormField control={form.control} name="fileUrl" render={({ field }) => (
+              <FormItem>
+                <FormLabel>File URL</FormLabel>
+                <FormControl><Input {...field} placeholder="https://... (mp3/wav URL)" data-testid="input-track-file-url" /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+
+            <FormField control={form.control} name="coverArtUrl" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cover Art URL</FormLabel>
+                <FormControl><Input {...field} value={field.value ?? ""} placeholder="https://..." data-testid="input-track-cover-url" /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField control={form.control} name="durationSeconds" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Duration (seconds)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      value={field.value ?? ""}
+                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                      placeholder="e.g. 213"
+                      data-testid="input-track-duration"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="displayOrder" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Display Order</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} placeholder="0" data-testid="input-track-order" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </div>
+
+            <FormField control={form.control} name="isPublished" render={({ field }) => (
+              <FormItem className="flex items-center gap-3">
+                <FormControl>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-track-published" />
+                </FormControl>
+                <FormLabel className="!mt-0">Published</FormLabel>
+              </FormItem>
+            )} />
+
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+              <Button type="submit" disabled={mutation.isPending} data-testid="button-track-save">
+                {mutation.isPending ? "Saving..." : isEdit ? "Save Changes" : "Create Track"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type SortKey = "title" | "artist" | "duration" | "streams" | "status";
+type SortDir = "asc" | "desc";
+
+function SortHeader({
+  label,
+  sortKey,
+  current,
+  dir,
+  onSort,
+  className,
+}: {
+  label: string;
+  sortKey: SortKey;
+  current: SortKey;
+  dir: SortDir;
+  onSort: (k: SortKey) => void;
+  className?: string;
+}) {
+  const active = current === sortKey;
+  return (
+    <th
+      className={`px-4 py-3 font-medium cursor-pointer select-none hover:text-foreground transition-colors ${className ?? ""}`}
+      onClick={() => onSort(sortKey)}
+      data-testid={`sort-${sortKey}`}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active ? (
+          dir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+        ) : (
+          <ChevronUp className="h-3 w-3 opacity-20" />
+        )}
+      </span>
+    </th>
+  );
+}
+
+function MusicLibraryTab({ trackType }: { trackType: "track" | "instrumental" }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingTrack, setEditingTrack] = useState<MusicTrackWithMeta | null>(null);
+  const [prefill, setPrefill] = useState<{ title?: string; artistId?: number } | undefined>(undefined);
+  const [sortKey, setSortKey] = useState<SortKey>("title");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const { data: tracks, isLoading } = useQuery<MusicTrackWithMeta[]>({
+    queryKey: ["/api/music/tracks", trackType],
+    queryFn: () => fetch(`/api/music/tracks?type=${trackType}`, { credentials: "include" }).then((r) => r.json()),
+  });
+
+  const { data: submissions } = useQuery<MusicSubmission[]>({ queryKey: ["/api/music/submissions"] });
+  const { data: artists } = useQuery<Artist[]>({ queryKey: ["/api/music/artists"] });
+
+  const approvedSubs = (submissions ?? []).filter((s) => s.status === "accepted");
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/music/tracks/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/music/tracks"] });
+      toast({ title: "Track deleted" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const handleEdit = (t: MusicTrackWithMeta) => { setEditingTrack(t); setPrefill(undefined); setDialogOpen(true); };
+  const handleClose = () => { setDialogOpen(false); setEditingTrack(null); setPrefill(undefined); };
+  const handleAddFromSubmission = (sub: MusicSubmission) => {
+    const matchedArtist = artists?.find((a) => a.name.toLowerCase() === sub.artistName?.toLowerCase());
+    setPrefill({ title: sub.trackTitle ?? "", artistId: matchedArtist?.id });
+    setEditingTrack(null);
+    setDialogOpen(true);
+  };
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const sortedTracks = [...(tracks ?? [])].sort((a, b) => {
+    let cmp = 0;
+    switch (sortKey) {
+      case "title": cmp = a.title.localeCompare(b.title); break;
+      case "artist": cmp = a.artist.name.localeCompare(b.artist.name); break;
+      case "duration": cmp = (a.durationSeconds ?? 0) - (b.durationSeconds ?? 0); break;
+      case "streams": cmp = a.streamCount - b.streamCount; break;
+      case "status": cmp = Number(b.isPublished) - Number(a.isPublished); break;
+    }
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+
+  const label = trackType === "instrumental" ? "Instrumental" : "Track";
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {tracks ? `${tracks.length} ${label.toLowerCase()}${tracks.length !== 1 ? "s" : ""}` : "Loading..."}
+        </p>
+        <Button onClick={() => { setEditingTrack(null); setPrefill(undefined); setDialogOpen(true); }} size="sm" className="gap-2" data-testid={`button-add-${trackType}`}>
+          <Plus className="h-4 w-4" /> Add {label}
+        </Button>
+      </div>
+
+      {/* Add from Submission */}
+      {approvedSubs.length > 0 && (
+        <div className="border rounded-xl p-4 space-y-3 bg-muted/20">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Add from Approved Submissions</p>
+          <div className="space-y-2">
+            {approvedSubs.slice(0, 5).map((sub) => (
+              <div key={sub.id} className="flex items-center justify-between gap-3 p-2.5 border rounded-lg bg-background" data-testid={`row-approved-sub-${sub.id}`}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{sub.artistName} — {sub.trackTitle}</p>
+                  <p className="text-xs text-muted-foreground truncate">{sub.genre}</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1.5 shrink-0"
+                  onClick={() => handleAddFromSubmission(sub)}
+                  data-testid={`button-add-from-sub-${sub.id}`}
+                >
+                  <Plus className="h-3 w-3" /> Add as {label}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Track table */}
+      {isLoading ? (
+        <div className="space-y-3">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}</div>
+      ) : sortedTracks.length > 0 ? (
+        <div className="border rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/30 text-xs text-muted-foreground">
+                <SortHeader label="Title" sortKey="title" current={sortKey} dir={sortDir} onSort={handleSort} className="text-left" />
+                <SortHeader label="Artist" sortKey="artist" current={sortKey} dir={sortDir} onSort={handleSort} className="text-left hidden sm:table-cell" />
+                <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Type</th>
+                <SortHeader label="Duration" sortKey="duration" current={sortKey} dir={sortDir} onSort={handleSort} className="text-right hidden sm:table-cell" />
+                <SortHeader label="Streams" sortKey="streams" current={sortKey} dir={sortDir} onSort={handleSort} className="text-right hidden md:table-cell" />
+                <SortHeader label="Status" sortKey="status" current={sortKey} dir={sortDir} onSort={handleSort} className="text-center" />
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {sortedTracks.map((t) => (
+                <tr key={t.id} className="hover:bg-muted/20 transition-colors group" data-testid={`row-track-lib-${t.id}`}>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      {t.coverArtUrl ? (
+                        <img src={t.coverArtUrl} alt={t.title} className="h-9 w-9 rounded object-cover shrink-0" loading="lazy" />
+                      ) : (
+                        <div className="h-9 w-9 rounded bg-muted flex items-center justify-center shrink-0">
+                          <Music className="h-4 w-4 text-muted-foreground opacity-40" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-medium truncate max-w-[180px]" data-testid={`text-track-title-${t.id}`}>{t.title}</p>
+                        <p className="text-xs text-muted-foreground sm:hidden truncate">{t.artist.name}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell truncate max-w-[120px]">{t.artist.name}</td>
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    <Badge variant="outline" className="text-[10px] px-1.5 capitalize">{t.type}</Badge>
+                  </td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden sm:table-cell font-mono text-xs">{formatSeconds(t.durationSeconds)}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden md:table-cell text-xs" data-testid={`text-stream-count-${t.id}`}>{t.streamCount.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-center">
+                    <Badge variant={t.isPublished ? "default" : "secondary"} className="text-[10px] px-1.5">
+                      {t.isPublished ? "Live" : "Draft"}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(t)} data-testid={`button-edit-track-${t.id}`} aria-label="Edit">
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost" size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => deleteMutation.mutate(t.id)}
+                            disabled={deleteMutation.isPending}
+                            data-testid={`button-delete-track-${t.id}`}
+                            aria-label="Delete"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-16 text-center border rounded-xl border-dashed">
+          <Music className="h-10 w-10 text-muted-foreground/40 mb-3" />
+          <p className="font-semibold text-sm">No {label.toLowerCase()}s yet</p>
+          <p className="text-xs text-muted-foreground mt-1">Add your first {label.toLowerCase()} to get started.</p>
+        </div>
+      )}
+
+      <MusicTrackDialog
+        open={dialogOpen}
+        onClose={handleClose}
+        track={editingTrack}
+        trackType={trackType}
+        prefill={prefill}
+      />
+    </div>
+  );
+}
+
 /* ─── Main export ──────────────────────────────────────────────────────── */
 
 export default function CommandMusic() {
@@ -1175,7 +1640,8 @@ export default function CommandMusic() {
     typeof window !== "undefined" ? window.location.search : ""
   );
   const tabParam = params.get("tab");
-  const defaultTab = tabParam === "spotify" ? "spotify" : "submissions";
+  const validTabs = ["submissions", "playlists", "spotify", "music-library", "beats-library"];
+  const defaultTab = validTabs.includes(tabParam ?? "") ? tabParam! : "submissions";
 
   const { toast } = useToast();
 
@@ -1199,7 +1665,7 @@ export default function CommandMusic() {
 
   return (
     <Tabs defaultValue={defaultTab}>
-      <TabsList className="mb-6">
+      <TabsList className="mb-6 flex-wrap gap-y-1">
         <TabsTrigger value="submissions" data-testid="tab-submissions">
           <Music className="h-3.5 w-3.5 mr-1.5" /> Submissions
         </TabsTrigger>
@@ -1208,6 +1674,12 @@ export default function CommandMusic() {
         </TabsTrigger>
         <TabsTrigger value="spotify" data-testid="tab-spotify">
           <SiSpotify className="h-3.5 w-3.5 mr-1.5 text-[#1DB954]" /> Spotify
+        </TabsTrigger>
+        <TabsTrigger value="music-library" data-testid="tab-music-library">
+          <Music className="h-3.5 w-3.5 mr-1.5" /> Music Library
+        </TabsTrigger>
+        <TabsTrigger value="beats-library" data-testid="tab-beats-library">
+          <Play className="h-3.5 w-3.5 mr-1.5" /> Beats Library
         </TabsTrigger>
       </TabsList>
       <TabsContent value="submissions">
@@ -1218,6 +1690,12 @@ export default function CommandMusic() {
       </TabsContent>
       <TabsContent value="spotify">
         <SpotifyTab />
+      </TabsContent>
+      <TabsContent value="music-library">
+        <MusicLibraryTab trackType="track" />
+      </TabsContent>
+      <TabsContent value="beats-library">
+        <MusicLibraryTab trackType="instrumental" />
       </TabsContent>
     </Tabs>
   );

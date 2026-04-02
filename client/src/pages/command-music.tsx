@@ -1660,9 +1660,6 @@ export default function CommandMusic() {
         <TabsTrigger value="playlists" data-testid="tab-playlists">
           <ListMusic className="h-3.5 w-3.5 mr-1.5" /> Playlists
         </TabsTrigger>
-        <TabsTrigger value="beats" data-testid="tab-beats">
-          <Drum className="h-3.5 w-3.5 mr-1.5" /> Beats Library
-        </TabsTrigger>
         <TabsTrigger value="spotify" data-testid="tab-spotify">
           <SiSpotify className="h-3.5 w-3.5 mr-1.5 text-[#1DB954]" /> Spotify
         </TabsTrigger>
@@ -1678,9 +1675,6 @@ export default function CommandMusic() {
       </TabsContent>
       <TabsContent value="playlists">
         <PlaylistsTab />
-      </TabsContent>
-      <TabsContent value="beats">
-        <BeatsLibraryTab />
       </TabsContent>
       <TabsContent value="spotify">
         <SpotifyTab />

@@ -161,7 +161,9 @@ function Router() {
       <Route path="/music/playlists" component={MusicPlaylistsPage} />
       <Route path="/listen" component={MusicListenPage} />
       <Route path="/music/artists" component={MusicArtistsPage} />
+      <Route path="/music/artists/new" component={() => <ProtectedRoute><MusicArtistForm /></ProtectedRoute>} />
       <Route path="/music/artists/:slug" component={MusicArtistDetail} />
+      <Route path="/music/albums/new" component={() => <ProtectedRoute><MusicAlbumForm /></ProtectedRoute>} />
       <Route path="/music/albums/:slug" component={MusicAlbumDetail} />
       <Route path="/store" component={StorePage} />
       <Route path="/store/products/:slug" component={StoreProductDetail} />
@@ -193,8 +195,6 @@ function Router() {
       <Route path="/store/success" component={() => <ProtectedRoute><StoreSuccessPage /></ProtectedRoute>} />
       <Route path="/store/cancel" component={() => <ProtectedRoute><StoreCancelPage /></ProtectedRoute>} />
       <Route path="/store/products/new" component={() => <ProtectedRoute><StoreProductForm /></ProtectedRoute>} />
-      <Route path="/music/artists/new" component={() => <ProtectedRoute><MusicArtistForm /></ProtectedRoute>} />
-      <Route path="/music/albums/new" component={() => <ProtectedRoute><MusicAlbumForm /></ProtectedRoute>} />
       <Route path="/projects/:slug/edit" component={() => <ProtectedRoute><ProjectEditPage /></ProtectedRoute>} />
 
       <Route path="/dashboard" component={() => <Redirect to="/command" />} />

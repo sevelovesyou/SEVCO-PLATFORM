@@ -1,52 +1,42 @@
 # SEVCO Platform
 
 ## Overview
-The SEVCO Platform is a multi-application system designed for sevco.us, encompassing SEVE and SEVCO Records. It acts as a unified shell for various applications including a Wiki (knowledge base), Music (SEVCO RECORDS), Store, Projects (SEVCO Ventures), and a role-based Dashboard. The platform provides a consistent global navigation while allowing individual applications to have distinct layouts and sidebars. Its vision is to be a comprehensive digital ecosystem for community, commerce, and content related to SEVCO.
+The SEVCO Platform is a multi-application system designed for sevco.us, integrating a Wiki for knowledge, SEVCO RECORDS for music, a Store, SEVCO Ventures for projects, and a role-based Dashboard. Its primary goal is to provide a comprehensive, interconnected digital ecosystem for various SEVCO initiatives, featuring a persistent global navigation while allowing individual applications flexible layouts. The platform aims to centralize content, e-commerce, and community engagement for SEVCO's diverse operations.
 
 ## User Preferences
-I want iterative development. I prefer detailed explanations. Ask before making major changes. Do not make changes to the folder `client/src/pages/dashboard-page.tsx`.
+I want iterative development.
+Ask before making major changes.
+Do not make changes to the folder `shared/`
+Do not make changes to the file `server/db.ts`
 
 ## System Architecture
 The platform is built with a modern web stack:
-- **Frontend**: React, Vite, TailwindCSS, Shadcn UI, Wouter for routing, and TanStack Query for data fetching.
+- **Frontend**: React, Vite, TailwindCSS, Shadcn UI for componentry, Wouter for routing, and TanStack Query for data fetching.
 - **Backend**: An Express.js REST API.
-- **Database**: PostgreSQL paired with Drizzle ORM.
+- **Database**: PostgreSQL, managed with Drizzle ORM.
 - **UI/UX**: Features a clean, encyclopedic design supporting both dark and light modes.
-- **Authentication**: Session-based login/registration using `passport.js` with `bcrypt` for password hashing and `express-session` storing sessions in PostgreSQL. It includes email verification via Resend and OAuth 2.0 integration for X (Twitter) accounts. Role-Based Access Control (RBAC) is implemented with a hierarchical role system (admin > executive > staff > partner > client > user) governing feature access and permissions.
-- **Content Management**:
-    - **Articles**: Structured content with markdown-like formatting, supporting infoboxes (artist, song, album, merchandise, event, general) and semantic crosslinks generated via keyword extraction.
-    - **Citation Validation**: Automatic validation of URLs and citation formats (APA/MLA/Chicago).
-    - **Version Review Workflow**: Edits create pending revisions requiring admin approval.
-- **E-commerce**: Integrated Stripe for product management, checkout processes, and order tracking. Products can be managed via the admin dashboard, automatically syncing with Stripe.
-- **Media Storage**: Utilizes Supabase Storage for managing various media assets (avatars, banners, tracks, gallery, brand assets) with distinct public/private buckets and size limits.
-- **AI Integration**: Features an AI-powered News page leveraging Grok AI for content summarization, image generation, search, and briefing.
-- **Analytics**: Google Analytics 4 integration with server-side data API for detailed traffic analysis presented in the Command Center.
-- **Email System**: A threaded email conversation view with CRUD capabilities for personal notes.
-- **Hostinger Integration**: Manages VPS hosting, domains, and WHOIS lookups through the Hostinger API.
-- **Social Features**: Public user profiles, a social feed, and dynamic social links management.
-- **Platform Modules**:
-    - **Wiki**: Comprehensive knowledge base with article viewing, editing, search, category organization, and a review queue for pending revisions.
-    - **Music (SEVCO RECORDS)**: Hub for music content, including catalog browsing, music submissions, curated playlists, and artist/album details.
-    - **Store**: E-commerce functionality for products with a shopping cart, checkout, and order management.
-    - **Projects (SEVCO Ventures)**: Section dedicated to projects.
-    - **Command Center**: An admin dashboard providing role-based management for users, store products, music submissions, playlists, jobs, social links, hosting, media, and finance.
-    - **News**: An AI-enhanced news feed with trending topics, breaking news, article bookmarking, and personalized preferences.
-    - **Jobs**: A job board with application forms and administrative management.
-    - **Notes**: Personal note-taking application with search, pinning, and color-coding.
+- **Core Features**:
+    - **Global Music Player**: A draggable, resizable `FloatingMusicPlayer` with persistence across routes, supporting standard audio playback and stream tracking.
+    - **Content Management**: Articles with structured content, markdown-like formatting, and type-based Infoboxes.
+    - **Validation & Linking**: Citation validation (URL and format) and semantic cross-linking through keyword analysis.
+    - **Version Control**: A revision workflow for articles requiring admin approval.
+    - **Search**: Server-side search with filtering capabilities.
+    - **Role-Based Access Control (RBAC)**: Hierarchical roles (admin > executive > staff > partner > client > user) control access to features and content, managed by `requireAuth` and `requireRole` middleware.
+    - **Authentication**: Session-based login/registration using bcrypt and Passport.js, with email verification and X (Twitter) OAuth 2.0 integration.
+    - **E-commerce**: Stripe integration for product management, checkout, and order tracking, including product synchronization and webhook handling.
+    - **Supabase Storage**: Utilized for file uploads (avatars, banners, music tracks, gallery, brand assets) with public and private buckets, leveraging signed URLs for private assets.
+    - **Analytics**: Google Analytics 4 integration via GA4 Data API for admin dashboards, including session data, top pages, traffic sources, and device information.
+    - **Dynamic Content**: AI-powered news features (summarization, image generation), trending hashtags, and personalized news feeds with bookmarking and preference management.
+    - **Email System**: Threaded email conversation view with inbox, starred, and send functionalities.
 
 ## External Dependencies
-- **Stripe**: Payment processing and e-commerce functionalities.
-- **Resend**: Email delivery for user verification and contact forms.
-- **Passport.js**: Authentication middleware.
-- **Bcrypt.js**: Password hashing.
-- **PostgreSQL**: Primary database.
-- **Drizzle ORM**: Object-relational mapping.
-- **TailwindCSS**: Utility-first CSS framework.
-- **Shadcn UI**: UI component library.
-- **TanStack Query**: Data fetching and caching.
-- **Wouter**: Client-side routing.
-- **Supabase Storage**: Cloud storage for media assets.
-- **Google Analytics 4**: Web analytics and reporting.
-- **Hostinger API**: Domain and hosting management.
-- **Grok AI**: AI capabilities for news content generation and summarization.
-- **X (Twitter) OAuth 2.0**: Social login integration.
+- **Database**: PostgreSQL
+- **ORM**: Drizzle ORM
+- **Authentication**: Passport.js, bcryptjs, express-session, connect-pg-simple, passport-oauth2
+- **Email Service**: Resend (via Replit connector)
+- **Payment Gateway**: Stripe (via Replit integration)
+- **Cloud Storage**: Supabase Storage
+- **Analytics**: Google Analytics 4 (via `@google-analytics/data` package)
+- **AI Services**: Grok AI (for news summarization, image generation, etc.)
+- **Hosting Management**: Hostinger API (for VPS, domains, catalog, WHOIS)
+- **Frontend Libraries**: React, Vite, TailwindCSS, Shadcn UI, Wouter, TanStack Query

@@ -17015,3 +17015,45 @@ The music library infrastructure adds stream counts per track. This task surface
 
 ---
 
+## Task — task-197
+> Merged: 2026-04-02
+
+---
+title: Native floating mp3/wav player + Listen page library UI
+---
+# Native Floating Music Player + Listen Page Library
+
+## What & Why
+With the `music_tracks` table in place, users need a way to browse and play the library. The player should work like the Chat floating window — it pops into a draggable, resizable window within the app so users can keep listening while navigating between pages. The `/music/listen` page becomes the music library browser.
+
+## Done looks like
+- `/music/listen` shows a browsable grid/list of all published "track" type tracks from the music library, with title, artist name, cover art, duration, stream count, and a Play button
+- Clicking Play opens (or focuses) the Floating Music Player window with the track queued
+- The Floating Music Player is a draggable, resizable window (like the chat float) that renders on top of all pages via context + App.tsx mount point
+- The player has: cover art thumbnail, track title, artist name, play/pause button, previous/next (queue navigation), a time scrubber / progress bar, volume control, and a minimize button
+- A small "Now Playing" pill appears in the bottom-right corner when the player is minimized (like a docked state), showing the current track name and a play/pause toggle — clicking it restores the full player
+- Stream count is incremented via `POST /api/music/tracks/:id/stream` when a track starts playing
+- The player persists across route changes (global context)
+- When a user clicks Play on any track anywhere (listen page, detail pages, CMD preview), the player opens and starts
+
+## Out of scope
+- Playlist queuing or shuffle/repeat (basic sequential queue only)
+- Offline / download
+- Beats page (separate task)
+
+## Tasks
+1. **MusicPlayerContext** — Create `client/src/contexts/music-player-context.tsx` modeled after `floating-chat-context.tsx`. State: `currentTrack`, `queue`, `isPlaying`, `position {x,y}`, `size {width,height}`, `minimized`. Actions: `playTrack(track)`, `addToQueue(track)`, `pause`, `resume`, `nextTrack`, `prevTrack`, `setPosition`, `setSize`, `minimize`, `restore`. Provide an `<audio>` element ref managed in context that actually plays the file_url. Increment stream count via API when a track begins.
+
+2. **FloatingMusicPlayer component** — Create `client/src/components/floating-music-player.tsx`. Draggable by title bar (same mousedown drag logic as `floating-chat-window.tsx`), resizable from bottom-right corner. Shows cover art, track title/artist, transport controls (prev/play-pause/next), a progress `<input type="range">` that syncs with audio currentTime, and a volume slider. When minimized, collapses to a small pill in the bottom-right with track name + play/pause. Mount `<FloatingMusicPlayer />` inside the `<MusicPlayerProvider>` in `App.tsx` alongside `<FloatingChatWindows />`.
+
+3. **Listen page library UI** — Update `client/src/pages/music-listen-page.tsx` to include a "Music Library" section. Fetch tracks from `GET /api/music/tracks?type=track`. Display as a responsive grid of cards with cover art, title, artist, duration, stream count. Each card has a Play button. The existing streaming platform links section is kept and shown below the library.
+
+## Relevant files
+- `client/src/contexts/floating-chat-context.tsx` (reference pattern)
+- `client/src/components/floating-chat-window.tsx` (drag/resize pattern)
+- `client/src/App.tsx:711-719` (where FloatingChatProvider and FloatingChatWindows are mounted)
+- `client/src/pages/music-listen-page.tsx`
+
+
+---
+

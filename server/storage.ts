@@ -381,12 +381,12 @@ export interface IStorage {
   markAllNotificationsRead(userId: string): Promise<void>;
   getUsersByRole(roles: Role[]): Promise<User[]>;
 
-  getMusicTracks(filter?: { type?: string; publishedOnly?: boolean }): Promise<(MusicTrack & { artist: { id: number; name: string }; album: { id: number; title: string } | null })[]>;
-  getMusicTrack(id: number): Promise<(MusicTrack & { artist: { id: number; name: string }; album: { id: number; title: string } | null }) | undefined>;
+  getMusicTracks(type?: string): Promise<MusicTrack[]>;
+  getMusicTrackById(id: number): Promise<MusicTrack | undefined>;
   createMusicTrack(data: InsertMusicTrack): Promise<MusicTrack>;
   updateMusicTrack(id: number, data: Partial<InsertMusicTrack>): Promise<MusicTrack>;
   deleteMusicTrack(id: number): Promise<void>;
-  incrementStreamCount(id: number): Promise<void>;
+  incrementMusicTrackStream(id: number): Promise<MusicTrack>;
 }
 
 export type SearchResultItem = {
@@ -2420,93 +2420,17 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(users).where(inArray(users.role, roles));
   }
 
-  async getMusicTracks(filter?: { type?: string; publishedOnly?: boolean }): Promise<(MusicTrack & { artist: { id: number; name: string }; album: { id: number; title: string } | null })[]> {
-    const rows = await db
-      .select({
-        id: musicTracks.id,
-        title: musicTracks.title,
-        artistId: musicTracks.artistId,
-        albumId: musicTracks.albumId,
-        type: musicTracks.type,
-        fileUrl: musicTracks.fileUrl,
-        coverArtUrl: musicTracks.coverArtUrl,
-        durationSeconds: musicTracks.durationSeconds,
-        streamCount: musicTracks.streamCount,
-        isPublished: musicTracks.isPublished,
-        displayOrder: musicTracks.displayOrder,
-        createdAt: musicTracks.createdAt,
-        artistName: artists.name,
-        albumTitle: albums.title,
-      })
-      .from(musicTracks)
-      .leftJoin(artists, eq(musicTracks.artistId, artists.id))
-      .leftJoin(albums, eq(musicTracks.albumId, albums.id))
-      .where(
-        and(
-          filter?.type ? eq(musicTracks.type, filter.type as "track" | "instrumental") : undefined,
-          filter?.publishedOnly ? eq(musicTracks.isPublished, true) : undefined,
-        )
-      )
-      .orderBy(asc(musicTracks.displayOrder), asc(musicTracks.createdAt));
-
-    return rows.map((r) => ({
-      id: r.id,
-      title: r.title,
-      artistId: r.artistId,
-      albumId: r.albumId,
-      type: r.type,
-      fileUrl: r.fileUrl,
-      coverArtUrl: r.coverArtUrl,
-      durationSeconds: r.durationSeconds,
-      streamCount: r.streamCount,
-      isPublished: r.isPublished,
-      displayOrder: r.displayOrder,
-      createdAt: r.createdAt,
-      artist: { id: r.artistId, name: r.artistName ?? "" },
-      album: r.albumId && r.albumTitle ? { id: r.albumId, title: r.albumTitle } : null,
-    }));
+  async getMusicTracks(type?: string): Promise<MusicTrack[]> {
+    const query = db.select().from(musicTracks);
+    if (type) {
+      return query.where(and(eq(musicTracks.type, type), eq(musicTracks.status, "published"))).orderBy(asc(musicTracks.displayOrder), desc(musicTracks.createdAt));
+    }
+    return query.where(eq(musicTracks.status, "published")).orderBy(asc(musicTracks.displayOrder), desc(musicTracks.createdAt));
   }
 
-  async getMusicTrack(id: number): Promise<(MusicTrack & { artist: { id: number; name: string }; album: { id: number; title: string } | null }) | undefined> {
-    const [r] = await db
-      .select({
-        id: musicTracks.id,
-        title: musicTracks.title,
-        artistId: musicTracks.artistId,
-        albumId: musicTracks.albumId,
-        type: musicTracks.type,
-        fileUrl: musicTracks.fileUrl,
-        coverArtUrl: musicTracks.coverArtUrl,
-        durationSeconds: musicTracks.durationSeconds,
-        streamCount: musicTracks.streamCount,
-        isPublished: musicTracks.isPublished,
-        displayOrder: musicTracks.displayOrder,
-        createdAt: musicTracks.createdAt,
-        artistName: artists.name,
-        albumTitle: albums.title,
-      })
-      .from(musicTracks)
-      .leftJoin(artists, eq(musicTracks.artistId, artists.id))
-      .leftJoin(albums, eq(musicTracks.albumId, albums.id))
-      .where(eq(musicTracks.id, id));
-
-    if (!r) return undefined;
-    return {
-      id: r.id,
-      title: r.title,
-      artistId: r.artistId,
-      albumId: r.albumId,
-      type: r.type,
-      fileUrl: r.fileUrl,
-      coverArtUrl: r.coverArtUrl,
-      durationSeconds: r.durationSeconds,
-      streamCount: r.streamCount,
-      isPublished: r.isPublished,
-      displayOrder: r.displayOrder,
-      createdAt: r.createdAt,
-      artist: { id: r.artistId, name: r.artistName ?? "" },
-      album: r.albumId && r.albumTitle ? { id: r.albumId, title: r.albumTitle } : null,
-    };
+  async getMusicTrackById(id: number): Promise<MusicTrack | undefined> {
+    const [track] = await db.select().from(musicTracks).where(eq(musicTracks.id, id));
+    return track;
   }
 
   async createMusicTrack(data: InsertMusicTrack): Promise<MusicTrack> {
@@ -2523,11 +2447,13 @@ export class DatabaseStorage implements IStorage {
     await db.delete(musicTracks).where(eq(musicTracks.id, id));
   }
 
-  async incrementStreamCount(id: number): Promise<void> {
-    await db
+  async incrementMusicTrackStream(id: number): Promise<MusicTrack> {
+    const [track] = await db
       .update(musicTracks)
       .set({ streamCount: sql`${musicTracks.streamCount} + 1` })
-      .where(eq(musicTracks.id, id));
+      .where(eq(musicTracks.id, id))
+      .returning();
+    return track;
   }
 }
 

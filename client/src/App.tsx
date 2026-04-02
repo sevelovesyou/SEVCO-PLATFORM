@@ -99,6 +99,8 @@ import MessagesPage from "@/pages/messages-page";
 import FullscreenChatPage from "@/pages/fullscreen-chat-page";
 import { FloatingChatProvider } from "@/contexts/floating-chat-context";
 import { FloatingChatWindows } from "@/components/floating-chat-window";
+import { MusicPlayerProvider } from "@/contexts/music-player-context";
+import { FloatingMusicPlayer } from "@/components/floating-music-player";
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new/", "/search", "/review", "/category/", "/wikify"];
 const COMMAND_PREFIXES = ["/command"];
@@ -160,6 +162,7 @@ function Router() {
       <Route path="/music/submit" component={MusicSubmitPage} />
       <Route path="/music/playlists" component={MusicPlaylistsPage} />
       <Route path="/listen" component={MusicListenPage} />
+      <Route path="/music/listen" component={MusicListenPage} />
       <Route path="/music/artists" component={MusicArtistsPage} />
       <Route path="/music/artists/new" component={() => <ProtectedRoute><MusicArtistForm /></ProtectedRoute>} />
       <Route path="/music/artists/:slug" component={MusicArtistDetail} />
@@ -709,13 +712,16 @@ function App() {
             <CartProvider>
               <SpotifyPlayerProvider>
                 <FloatingChatProvider>
-                  <TooltipProvider>
-                    <DynamicHead />
-                    <PlatformColorInjector />
-                    <AppShell />
-                    <FloatingChatWindows />
-                    <Toaster />
-                  </TooltipProvider>
+                  <MusicPlayerProvider>
+                    <TooltipProvider>
+                      <DynamicHead />
+                      <PlatformColorInjector />
+                      <AppShell />
+                      <FloatingChatWindows />
+                      <FloatingMusicPlayer />
+                      <Toaster />
+                    </TooltipProvider>
+                  </MusicPlayerProvider>
                 </FloatingChatProvider>
               </SpotifyPlayerProvider>
             </CartProvider>

@@ -982,28 +982,22 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
-export const musicTrackTypeEnum = pgEnum("music_track_type", ["track", "instrumental"]);
-
 export const musicTracks = pgTable("music_tracks", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   title: text("title").notNull(),
-  artistId: integer("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
-  albumId: integer("album_id").references(() => albums.id, { onDelete: "set null" }),
-  type: musicTrackTypeEnum("type").notNull().default("track"),
+  artistName: text("artist_name").notNull(),
+  artistId: integer("artist_id").references(() => artists.id, { onDelete: "set null" }),
+  albumName: text("album_name"),
+  coverImageUrl: text("cover_image_url"),
   fileUrl: text("file_url").notNull(),
-  coverArtUrl: text("cover_art_url"),
-  durationSeconds: integer("duration_seconds"),
+  duration: integer("duration"),
+  type: text("type").notNull().default("track"),
+  status: text("status").notNull().default("published"),
   streamCount: integer("stream_count").notNull().default(0),
-  isPublished: boolean("is_published").notNull().default(false),
   displayOrder: integer("display_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertMusicTrackSchema = createInsertSchema(musicTracks).omit({ id: true, createdAt: true, streamCount: true });
-export type InsertMusicTrack = z.infer<typeof insertMusicTrackSchema>;
 export type MusicTrack = typeof musicTracks.$inferSelect;
-
-export const musicTracksRelations = relations(musicTracks, ({ one }) => ({
-  artist: one(artists, { fields: [musicTracks.artistId], references: [artists.id] }),
-  album: one(albums, { fields: [musicTracks.albumId], references: [albums.id] }),
-}));
+export type InsertMusicTrack = z.infer<typeof insertMusicTrackSchema>;

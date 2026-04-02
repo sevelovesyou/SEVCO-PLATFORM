@@ -16948,3 +16948,34 @@ Two performance improvements:
 
 ---
 
+## Task — hero-headline-platform-setting
+> Merged: 2026-04-01
+
+# Hero Headline Editable from Platform Settings
+
+## What & Why
+The hero H1 headline ("A creative community platform built by creators, for creators.") is currently hardcoded in `landing.tsx`. Admins should be able to change it from Platform Settings just like they can already change the tagline (`hero.text`), buttons, and background image.
+
+## Done looks like
+- In CMD → Platform Settings → Hero section, a new "Hero headline (H1)" text input appears directly above the existing "Hero text (tagline)" textarea
+- Admin saves a custom headline, visits the homepage, and sees the updated H1 text
+- If the headline field is left blank, the original default text is used as fallback
+- The staggered word-reveal animation still applies to the custom text
+- When custom text is set, all words are rendered in white (no red gradient since per-word coloring only makes sense for the exact default text); when default text is used, the existing red/white coloring per word is preserved exactly as before
+
+## Out of scope
+- Changing the animation or styling of the H1 beyond the above coloring rule
+- Rich-text or per-word color control for custom headline text
+
+## Tasks
+1. **Add state and wire to save in CMD Settings** — Add `heroHeadline` state (string), initialize it from `settings["hero.headline"]` in the settings load effect, include it in the save payload as `"hero.headline": heroHeadline`, and render a text Input labeled "Hero headline (H1)" with placeholder showing the default text, placed above the existing hero tagline textarea.
+
+2. **Read and render in landing.tsx** — Read `settings["hero.headline"]` and use it when set. If set, split by spaces into a words array and render with the same `wordReveal` animation but all white (no red gradient). If not set (empty/undefined), fall back to the existing hardcoded array with the original per-word color logic unchanged.
+
+## Relevant files
+- `client/src/pages/command-settings.tsx:1096,1254-1255,1591-1592,1984-1995`
+- `client/src/pages/landing.tsx:309,452-481`
+
+
+---
+

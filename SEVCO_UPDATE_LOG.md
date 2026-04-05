@@ -17800,3 +17800,47 @@ In the CMD Projects edit dialog (`/command/projects`), the "GitHub / App URL" fi
 
 ---
 
+## Task — store-consistency-orders-staff
+> Merged: 2026-04-05
+
+# Store Consistency, Orders Tab & Staff Permissions
+
+## What & Why
+Four related Store improvements:
+1. The home page product cards divide price by 100 (treating it as cents) while the store page and CMD both display price directly — they must match.
+2. The home page calls the store "SEV Store" in three places — should be "Store" or "SEVCO Store" consistently.
+3. CMD > Store has no Orders tab — staff and admins have no UI to see incoming orders and their statuses even though orders are stored in the DB.
+4. Staff role cannot add or edit products from CMD > Store > Catalog — only admin and executive can, which is too restrictive.
+
+## Done looks like
+- Product price is displayed the same way on the home page, the store page, and in CMD (same dollar value, same decimal format).
+- The home page shows "Store" or "SEVCO Store" — never "SEV Store" or "Sev Store".
+- CMD > Store has an "Orders" tab (alongside Catalog and Analytics) that shows a table of all orders with: order ID, user, date, total, status, and item count. Staff+ can view orders.
+- Staff can also update order status (e.g., pending → fulfilled → shipped) from the Orders tab.
+- Staff role can add new products and edit existing products from CMD > Store > Catalog. The add/edit UI buttons are visible to staff, and the server routes accept staff role for product create/update/delete.
+
+## Out of scope
+- A customer-facing "My Orders" page (separate work).
+- Stripe webhook changes.
+- New order schema columns (use the existing `orders` table: id, userId, stripeSessionId, stripePaymentIntentId, total, status, items, createdAt).
+
+## Tasks
+1. **Fix home page price display** — In `landing.tsx`, update the `ProductCard` component to display price the same way the store page does (`product.price.toFixed(2)` without dividing by 100, matching the format used in `store-page.tsx` and `command-store.tsx`). Verify both pages show identical dollar values.
+
+2. **Fix "SEV Store" branding** — In `landing.tsx`, replace all three occurrences of "SEV Store" (lines ~563, ~1029, ~1464) with "Store" (short label context) or "SEVCO Store" (descriptive context). Keep consistent with the rest of the nav which just says "Store".
+
+3. **Add Orders tab to CMD Store** — Add a third "Orders" tab to the `<Tabs>` in `command-store.tsx`. The tab fetches from `GET /api/orders` and renders a table with: order ID, username/user ID, date, total (formatted as dollars), status badge, and item count. Include a dropdown or button per row to update order status (pending → processing → fulfilled → shipped → cancelled) via a `PATCH /api/orders/:id/status` endpoint. On the server, expand the existing `GET /api/orders` route from `requireRole("admin", "executive")` to include `"staff"`, and add the new `PATCH /api/orders/:id/status` route (also staff+). Add `updateOrderStatus(id, status)` to the storage interface.
+
+4. **Expand product management to Staff role** — On the server, change `CAN_MANAGE_STORE_PRODUCTS` from `["admin", "executive"]` to `["admin", "executive", "staff"]` so staff can call the product create/update/delete endpoints. In `command-store.tsx`, show the "Add Product" button and the per-row edit/delete controls to users with the staff role (currently only shown to admin/executive — check the role guard and update it to match the new constant).
+
+## Relevant files
+- `client/src/pages/landing.tsx:147-185,563,1029,1464`
+- `client/src/pages/command-store.tsx:16,41,43,290-380,596-676`
+- `client/src/pages/store-page.tsx:56-180`
+- `server/routes.ts:41,43,2117,2153,2175,2279`
+- `shared/schema.ts:184-195`
+- `server/storage.ts`
+
+
+---
+

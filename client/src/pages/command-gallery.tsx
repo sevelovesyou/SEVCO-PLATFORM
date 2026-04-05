@@ -129,7 +129,7 @@ function GalleryForm({
                   bucket="gallery"
                   path={`gallery/${Date.now()}.{ext}`}
                   accept="image/*"
-                  maxSizeMb={10}
+                  maxSizeMb={100}
                   currentUrl={field.value || null}
                   onUpload={(url) => field.onChange(url)}
                   onUrlChange={(url) => field.onChange(url)}

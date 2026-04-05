@@ -4181,7 +4181,7 @@ export async function registerRoutes(
     requireAuth,
     (req, res, next) => {
       // Parse raw binary body for this route only
-      (require("express").raw({ type: "*/*", limit: "51mb" }))(req, res, next);
+      (require("express").raw({ type: "*/*", limit: "110mb" }))(req, res, next);
     },
     async (req, res) => {
       try {

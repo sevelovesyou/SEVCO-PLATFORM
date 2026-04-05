@@ -41,7 +41,7 @@ export const BUCKETS = {
   avatars: { name: "avatars", public: true, maxSizeMb: 5, allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"] },
   banners: { name: "banners", public: true, maxSizeMb: 5, allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"] },
   tracks: { name: "tracks", public: false, maxSizeMb: 50, allowedMimeTypes: ["audio/mpeg", "audio/wav", "audio/ogg", "audio/flac", "audio/aac", "audio/mp4"] },
-  gallery: { name: "gallery", public: true, maxSizeMb: 25, allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"] },
+  gallery: { name: "gallery", public: true, maxSizeMb: 100, allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"] },
   "brand-assets": { name: "brand-assets", public: true, maxSizeMb: 25, allowedMimeTypes: [] },
   "email-attachments": { name: "email-attachments", public: true, maxSizeMb: 25, allowedMimeTypes: [] },
 } as const;
@@ -64,6 +64,17 @@ export async function ensureBucketsExist() {
           console.error(`[supabase] Failed to create bucket "${bucket.name}":`, error.message);
         } else {
           console.log(`[supabase] Created bucket "${bucket.name}"`);
+        }
+      } else {
+        const { error } = await supabase.storage.updateBucket(bucket.name, {
+          public: bucket.public,
+          fileSizeLimit: bucket.maxSizeMb * 1024 * 1024,
+          allowedMimeTypes: bucket.allowedMimeTypes.length > 0 ? bucket.allowedMimeTypes : undefined,
+        });
+        if (error) {
+          console.error(`[supabase] Failed to update bucket "${bucket.name}":`, error.message);
+        } else {
+          console.log(`[supabase] Updated bucket "${bucket.name}"`);
         }
       }
     } catch (err: any) {

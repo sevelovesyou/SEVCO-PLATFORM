@@ -24,7 +24,10 @@ function resolveLucideIcon(name: string | null | undefined): React.ElementType |
   return icons[name] ?? null;
 }
 
-const optUrl = z.string().url("Must be a valid URL").optional().or(z.literal(""));
+const optUrl = z.string().refine(
+  (val) => val === "" || /^https?:\/\//.test(val) || val.startsWith("/images/"),
+  "Must be a valid URL"
+).optional().or(z.literal(""));
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),

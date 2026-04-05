@@ -17629,3 +17629,81 @@ The frontend already shows the API success/error message as a toast. Once the ba
 
 ---
 
+## Task — gallery-redesign
+> Merged: 2026-04-05
+
+# Gallery Page Redesign — Full Images + Lightbox + Proxy URLs
+
+## What
+The Gallery page currently crops all images to a 16:9 aspect ratio (aspect-video + object-cover), which cuts off logos, square images, and portrait-oriented artwork. It also passes raw Supabase storage URLs to the clipboard and external link buttons. The page needs a redesign that prioritizes actually seeing images in full, with a proper lightbox for full-size viewing.
+
+## Done looks like
+- Gallery images display fully without cropping — square logos show as squares, tall artwork shows tall
+- Clicking any image thumbnail opens a full-screen lightbox/dialog showing the image at its natural size with the title, category badge, and action buttons
+- The "Copy Link" button copies the proxied URL (`/images/bucket/path` form) not the raw Supabase URL
+- The external open button links to the proxied URL as well
+- The grid layout adapts to show natural aspect ratios (masonry-style or fixed-height with object-contain)
+- On load, `resolveImageUrl` from `@/lib/resolve-image-url` (added by Task #215) is applied to all image src and href values — if #215 has not yet merged, inline the same SUPABASE_PUBLIC_PATTERN rewrite logic locally
+
+## Design changes
+
+### Image grid
+Replace `aspect-video` container + `object-cover` with a layout that respects image aspect ratios:
+
+**Option (recommended): CSS columns masonry**
+```jsx
+<div
+  className="columns-2 sm:columns-3 md:columns-4 gap-4 space-y-4"
+  data-testid="gallery-grid"
+>
+  {images.map((image) => (
+    <div key={image.id} className="break-inside-avoid mb-4">
+      <button onClick={() => setLightbox(image)} className="w-full group">
+        <img
+          src={resolveImageUrl(image.imageUrl)}
+          alt={image.altText || image.title}
+          className="w-full rounded-xl group-hover:opacity-90 transition-opacity"
+          loading="lazy"
+        />
+      </button>
+      {/* title + badge + buttons below thumbnail */}
+    </div>
+  ))}
+</div>
+```
+The masonry CSS columns approach requires no JS library — images stack naturally at their intrinsic aspect ratios.
+
+**Skeleton loading**: replace `aspect-video` skeletons with a mix of short/tall skeletons to mimic masonry (e.g., alternate `h-40` and `h-64` skeletons across 4 columns).
+
+### Lightbox
+When a gallery image is clicked, open a shadcn `Dialog` (full-screen or near-full-screen) containing:
+- The image centered, max 90vw × 90vh, `object-contain`, natural size
+- Title and category badge below the image
+- Three action buttons: "Copy Link" (copies proxied URL), "Open Full Size" (opens proxied URL in new tab), "Close"
+- Keyboard close on Escape (shadcn Dialog already provides this)
+- Click outside to close
+
+### URL fixes
+- In the existing `copyLink()` function and the `<a href>` external link, wrap `image.imageUrl` with `resolveImageUrl()`:
+```typescript
+import { resolveImageUrl } from "@/lib/resolve-image-url";
+// ...
+onClick={() => copyLink(resolveImageUrl(image.imageUrl), image.title)}
+// ...
+<a href={resolveImageUrl(image.imageUrl)} target="_blank" ...>
+// ...
+src={resolveImageUrl(image.imageUrl)}
+```
+- If `@/lib/resolve-image-url` doesn't exist yet (Task #215 not merged), define the inline utility locally in gallery-page.tsx until #215 lands
+
+## Files to modify
+- `client/src/pages/gallery-page.tsx` — full redesign (213 lines currently):
+  - Replace `aspect-video` grid with CSS columns masonry
+  - Add `lightboxImage` state and `Dialog`-based lightbox component
+  - Apply `resolveImageUrl` to all image.imageUrl usages
+  - Update skeleton loaders to masonry-style
+  - Add `Dialog` import from `@/components/ui/dialog`
+
+
+---
+

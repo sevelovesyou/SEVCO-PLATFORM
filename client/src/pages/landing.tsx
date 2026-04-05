@@ -173,7 +173,7 @@ function ProductCard({ product }: { product: Product }) {
         <div className="p-3">
           <p className="text-xs font-semibold text-white truncate">{product.name}</p>
           <p className="text-xs text-white/50 mt-0.5">
-            ${(product.price / 100).toFixed(2)}
+            ${product.price.toFixed(2)}
           </p>
         </div>
       </div>
@@ -560,7 +560,7 @@ export default function Landing() {
                     <ShoppingBag className="h-5 w-5 text-red-400" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-white">SEV Store</p>
+                    <p className="text-xs font-bold text-white">Store</p>
                     <p className="text-[11px] text-white/40">Latest drop available</p>
                   </div>
                   <Badge className="ml-auto bg-red-600/20 text-red-300 border-red-500/20 text-[10px]">New</Badge>
@@ -1026,7 +1026,7 @@ export default function Landing() {
                   <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
                     <div>
                       <Badge className="mb-4 bg-red-600/20 text-red-300 border-red-500/20 text-xs font-semibold uppercase tracking-wider">
-                        SEV Store
+                        SEVCO Store
                       </Badge>
                       <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
                         Shop the latest drops.
@@ -1461,7 +1461,7 @@ export default function Landing() {
                     <div className="grid grid-cols-2 gap-3">
                       {[
                         { icon: Music, label: "SEVCO RECORDS", desc: "Stream & discover music", color: "#3b82f6" },
-                        { icon: ShoppingBag, label: "SEV Store", desc: "Shop exclusive drops", color: "#ef4444" },
+                        { icon: ShoppingBag, label: "Store", desc: "Shop exclusive drops", color: "#ef4444" },
                         { icon: Folder, label: "Ventures", desc: "Follow active projects", color: "#22c55e" },
                         { icon: Newspaper, label: "News Feed", desc: "AI-curated creator news", color: "#eab308" },
                         { icon: Users, label: "Community", desc: "Connect with creators", color: "#6366f1" },

@@ -40,7 +40,7 @@ import { isUsernameReserved } from "./usernameUtils";
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive"];
 const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_JOBS: Role[] = ["admin", "executive"];
-const CAN_MANAGE_STORE_PRODUCTS: Role[] = ["admin", "executive"];
+const CAN_MANAGE_STORE_PRODUCTS: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_PROJECTS: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_CHANGELOG: Role[] = ["admin", "executive", "staff"];
 
@@ -2276,10 +2276,25 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/orders", requireAuth, requireRole("admin", "executive"), async (_req, res) => {
+  app.get("/api/orders", requireAuth, requireRole("admin", "executive", "staff"), async (_req, res) => {
     try {
       const allOrders = await storage.getOrders();
       res.json(allOrders);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/orders/:id/status", requireAuth, requireRole("admin", "executive", "staff"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid order id" });
+      const { status } = req.body;
+      if (!status || typeof status !== "string") return res.status(400).json({ message: "status required" });
+      const validStatuses = ["pending", "processing", "fulfilled", "shipped", "cancelled"];
+      if (!validStatuses.includes(status)) return res.status(400).json({ message: "Invalid status" });
+      const order = await storage.updateOrderStatus(id, status);
+      res.json(order);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

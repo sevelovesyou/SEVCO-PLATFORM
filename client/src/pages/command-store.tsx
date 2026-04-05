@@ -61,8 +61,9 @@ import {
   DollarSign,
   TrendingUp,
   BarChart2,
+  Package,
 } from "lucide-react";
-import type { Product } from "@shared/schema";
+import type { Product, Order } from "@shared/schema";
 
 const STOCK_STATUS_COLORS: Record<string, string> = {
   available:   "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
@@ -577,19 +578,155 @@ function StoreAnalyticsTab() {
   );
 }
 
+const ORDER_STATUS_OPTIONS = ["pending", "processing", "fulfilled", "shipped", "cancelled"];
+
+const ORDER_STATUS_COLORS: Record<string, string> = {
+  pending:    "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
+  processing: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
+  fulfilled:  "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
+  shipped:    "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20",
+  cancelled:  "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+};
+
+function OrderStatusBadge({ status }: { status: string }) {
+  const className = ORDER_STATUS_COLORS[status] ?? "bg-muted text-muted-foreground border-border";
+  return (
+    <span className={`inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded border capitalize ${className}`}>
+      {status}
+    </span>
+  );
+}
+
+function OrderRow({ order }: { order: Order }) {
+  const { toast } = useToast();
+
+  const updateStatusMutation = useMutation({
+    mutationFn: (status: string) => apiRequest("PATCH", `/api/orders/${order.id}/status`, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({ title: "Order status updated" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update order status", variant: "destructive" });
+    },
+  });
+
+  const items = Array.isArray(order.items) ? order.items as Array<{ quantity?: number }> : [];
+  const itemCount = items.reduce((sum, item) => sum + (item.quantity ?? 1), 0);
+
+  return (
+    <tr className="border-b last:border-0 hover:bg-muted/30 transition-colors" data-testid={`row-order-${order.id}`}>
+      <td className="p-3 text-xs font-mono text-muted-foreground">#{order.id}</td>
+      <td className="p-3 text-xs">{order.userId ?? <span className="text-muted-foreground">Guest</span>}</td>
+      <td className="p-3 text-xs text-muted-foreground hidden md:table-cell">
+        {new Date(order.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+      </td>
+      <td className="p-3 text-xs font-medium" data-testid={`text-order-total-${order.id}`}>
+        ${(order.total / 100).toFixed(2)}
+      </td>
+      <td className="p-3">
+        <OrderStatusBadge status={order.status} />
+      </td>
+      <td className="p-3 text-xs text-muted-foreground">{itemCount}</td>
+      <td className="p-3">
+        <Select
+          value={order.status}
+          onValueChange={(s) => updateStatusMutation.mutate(s)}
+          disabled={updateStatusMutation.isPending}
+        >
+          <SelectTrigger className="h-7 text-xs w-32" data-testid={`select-order-status-${order.id}`}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {ORDER_STATUS_OPTIONS.map((s) => (
+              <SelectItem key={s} value={s} className="text-xs capitalize">{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </td>
+    </tr>
+  );
+}
+
+function StoreOrdersTab() {
+  const { data: orders, isLoading } = useQuery<Order[]>({
+    queryKey: ["/api/orders"],
+  });
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <Package className="h-4 w-4 text-muted-foreground" />
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Orders
+        </h2>
+        {orders && (
+          <span className="text-xs text-muted-foreground">
+            {orders.length} order{orders.length !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+      <Card className="overflow-hidden overflow-visible" data-testid="table-orders">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="border-b bg-muted/50">
+              <tr>
+                <th className="text-left p-3 text-xs font-medium text-muted-foreground">Order ID</th>
+                <th className="text-left p-3 text-xs font-medium text-muted-foreground">User</th>
+                <th className="text-left p-3 text-xs font-medium text-muted-foreground hidden md:table-cell">Date</th>
+                <th className="text-left p-3 text-xs font-medium text-muted-foreground">Total</th>
+                <th className="text-left p-3 text-xs font-medium text-muted-foreground">Status</th>
+                <th className="text-left p-3 text-xs font-medium text-muted-foreground">Items</th>
+                <th className="text-left p-3 text-xs font-medium text-muted-foreground">Update Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="border-b last:border-0">
+                    <td className="p-3"><Skeleton className="h-4 w-10" /></td>
+                    <td className="p-3"><Skeleton className="h-4 w-24" /></td>
+                    <td className="p-3 hidden md:table-cell"><Skeleton className="h-4 w-20" /></td>
+                    <td className="p-3"><Skeleton className="h-4 w-14" /></td>
+                    <td className="p-3"><Skeleton className="h-4 w-16" /></td>
+                    <td className="p-3"><Skeleton className="h-4 w-8" /></td>
+                    <td className="p-3"><Skeleton className="h-7 w-28" /></td>
+                  </tr>
+                ))
+              ) : orders && orders.length > 0 ? (
+                orders.map((order) => (
+                  <OrderRow key={order.id} order={order} />
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="p-6 text-center text-sm text-muted-foreground">
+                    No orders yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export default function CommandStore() {
-  const { isAdmin, isExecutive } = usePermission();
+  const { isAdmin, isExecutive, isStaff } = usePermission();
   const [showAddDialog, setShowAddDialog] = useState(false);
 
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/store/products"],
   });
 
-  if (!isAdmin && !isExecutive) {
+  const canManageProducts = isAdmin || isExecutive || isStaff;
+
+  if (!isAdmin && !isExecutive && !isStaff) {
     return (
       <Card className="p-6 text-center overflow-visible">
         <Shield className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-40" />
-        <p className="text-sm text-muted-foreground">Admin or Executive access required.</p>
+        <p className="text-sm text-muted-foreground">Staff access or higher required.</p>
       </Card>
     );
   }
@@ -602,6 +739,9 @@ export default function CommandStore() {
         </TabsTrigger>
         <TabsTrigger value="analytics" data-testid="tab-store-analytics">
           <BarChart2 className="h-3.5 w-3.5 mr-1.5" /> Analytics
+        </TabsTrigger>
+        <TabsTrigger value="orders" data-testid="tab-store-orders">
+          <Package className="h-3.5 w-3.5 mr-1.5" /> Orders
         </TabsTrigger>
       </TabsList>
 
@@ -617,6 +757,7 @@ export default function CommandStore() {
                 {products.length} product{products.length !== 1 ? "s" : ""}
               </span>
             )}
+            {canManageProducts && (
             <Button
               size="sm"
               className="ml-auto h-7 text-xs gap-1"
@@ -626,6 +767,7 @@ export default function CommandStore() {
               <Plus className="h-3.5 w-3.5" />
               Add Product
             </Button>
+            )}
           </div>
 
           <Card className="overflow-hidden overflow-visible" data-testid="table-products">
@@ -673,6 +815,10 @@ export default function CommandStore() {
 
       <TabsContent value="analytics">
         <StoreAnalyticsTab />
+      </TabsContent>
+
+      <TabsContent value="orders">
+        <StoreOrdersTab />
       </TabsContent>
     </Tabs>
   );

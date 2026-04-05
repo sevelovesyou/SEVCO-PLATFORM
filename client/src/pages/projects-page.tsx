@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermission } from "@/hooks/use-permission";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import type { Project } from "@shared/schema";
 
 const CAN_MANAGE_PROJECTS = ["admin", "executive", "staff"];
@@ -82,7 +83,7 @@ function ProjectCard({ project }: { project: Project }) {
         <div className="h-10 w-10 rounded-lg bg-muted/50 flex items-center justify-center shrink-0 overflow-hidden">
           {project.appIcon ? (
             <img
-              src={project.appIcon}
+              src={resolveImageUrl(project.appIcon)}
               alt={project.name}
               className="h-8 w-8 rounded-lg object-cover"
             />

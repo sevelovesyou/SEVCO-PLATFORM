@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { X, ExternalLink, Sparkles, Loader2, Send, ImagePlus, Lightbulb, MessageCircle } from "lucide-react";
 import { SiX } from "react-icons/si";
 import { Button } from "@/components/ui/button";
@@ -134,7 +135,7 @@ export function ArticleDetailModal({ article, onClose, aiSettings }: ArticleModa
           {(imageMutation.data?.url || article.imageUrl) && (
             <div className="relative aspect-video rounded-xl overflow-hidden bg-muted">
               <img
-                src={imageMutation.data?.url || article.imageUrl || ""}
+                src={resolveImageUrl(imageMutation.data?.url || article.imageUrl || "")}
                 alt={article.title}
                 className="w-full h-full object-cover"
               />

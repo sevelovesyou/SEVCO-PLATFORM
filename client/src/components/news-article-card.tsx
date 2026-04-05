@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { WikifyDialog } from "@/components/wikify-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useToast } from "@/hooks/use-toast";
 import type { UserNewsBookmark } from "@shared/schema";
 
@@ -423,7 +424,7 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
             <div className="relative aspect-video overflow-hidden">
               {displayUrl ? (
                 <img
-                  src={displayUrl}
+                  src={resolveImageUrl(displayUrl)}
                   alt={article.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   loading="lazy"
@@ -490,7 +491,7 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
           <a href={article.link} target={onCardClick ? undefined : "_blank"} rel="noopener noreferrer" onClick={(e) => { if (onCardClick) e.preventDefault(); }}>
             {displayUrl ? (
               <img
-                src={displayUrl}
+                src={resolveImageUrl(displayUrl)}
                 alt={article.title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 loading="lazy"

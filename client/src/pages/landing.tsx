@@ -24,6 +24,7 @@ import { NewsEditorial } from "@/components/news-editorial";
 import { UserSnapshotPanel } from "@/components/user-snapshot-panel";
 import { formatDistanceToNow } from "date-fns";
 import planetIconWhite from "@assets/SEVCO_App_Icon_-_Artboard_71_1774998179682.png";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 
 function getLucideIcon(name: string | undefined): LucideIcons.LucideIcon | null {
   if (!name) return null;
@@ -156,7 +157,7 @@ function ProductCard({ product }: { product: Product }) {
           <div className="w-full h-full bg-white/[0.03] p-3">
             {product.imageUrl && !imgError ? (
               <img
-                src={product.imageUrl}
+                src={resolveImageUrl(product.imageUrl)}
                 alt={product.name}
                 className="w-full h-full object-cover rounded-md group-hover:scale-105 transition-transform duration-500"
                 loading="lazy"
@@ -410,7 +411,7 @@ export default function Landing() {
       <section
         className="relative overflow-hidden bg-[#07070f] text-white min-h-[90vh] flex items-center"
         style={heroBgUrl ? {
-          backgroundImage: `url(${heroBgUrl})`,
+          backgroundImage: `url(${resolveImageUrl(heroBgUrl)})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         } : undefined}
@@ -442,7 +443,7 @@ export default function Landing() {
             <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left gap-6">
               <div className="overflow-visible p-1 shrink-0">
                 <img
-                  src={settings["hero.logoUrl"] || settings["platform.logoUrl"] || planetIconWhite}
+                  src={resolveImageUrl(settings["hero.logoUrl"] || settings["platform.logoUrl"]) || planetIconWhite}
                   alt="SEVCO"
                   className="h-20 w-20 md:h-24 md:w-24 object-contain"
                   data-testid="img-planet-hero"
@@ -959,7 +960,7 @@ export default function Landing() {
                         >
                           <div className="flex items-center gap-3 mb-3">
                             <Avatar className="h-8 w-8 shrink-0">
-                              {post.author?.avatarUrl && <AvatarImage src={post.author.avatarUrl} />}
+                              {post.author?.avatarUrl && <AvatarImage src={resolveImageUrl(post.author.avatarUrl)} />}
                               <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">{initials}</AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
@@ -975,7 +976,7 @@ export default function Landing() {
                           </p>
                           {post.mediaUrl && (
                             <div className="mt-3 rounded-lg overflow-hidden">
-                              <img src={post.mediaUrl} alt="" className="w-full h-40 object-cover" loading="lazy" />
+                              <img src={resolveImageUrl(post.mediaUrl)} alt="" className="w-full h-40 object-cover" loading="lazy" />
                             </div>
                           )}
                         </div>

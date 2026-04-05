@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { usePermission } from "@/hooks/use-permission";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -275,7 +276,7 @@ function OrgNodeCard({
       <Card className="w-44 p-3 flex flex-col items-center gap-2 border shadow-sm hover:shadow-md transition-shadow cursor-pointer group relative"
         onClick={() => onEdit(node)}>
         <Avatar className="h-12 w-12">
-          {user?.avatarUrl && <AvatarImage src={user.avatarUrl} />}
+          {user?.avatarUrl && <AvatarImage src={resolveImageUrl(user.avatarUrl)} />}
           <AvatarFallback className="text-sm">
             {user ? getInitials(user.displayName, user.username) : <User className="h-5 w-5 text-muted-foreground" />}
           </AvatarFallback>
@@ -450,7 +451,7 @@ function DirectoryTab() {
               <tr key={user.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors" data-testid={`row-staff-${user.id}`}>
                 <td className="px-4 py-3">
                   <Avatar className="h-8 w-8">
-                    {user.avatarUrl && <AvatarImage src={user.avatarUrl} />}
+                    {user.avatarUrl && <AvatarImage src={resolveImageUrl(user.avatarUrl)} />}
                     <AvatarFallback className="text-xs">
                       {getInitials(user.displayName, user.username)}
                     </AvatarFallback>

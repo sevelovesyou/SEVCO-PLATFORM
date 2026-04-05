@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Disc, Users, ChevronLeft, Music, Play, BarChart2 } from "lucide-react";
 import type { Artist, Album, MusicTrack, Playlist } from "@shared/schema";
 import { useSpotifyPlayer } from "@/hooks/use-spotify-player";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 
 type AlbumDetail = Album & { artist: Artist };
 type TrackWithMeta = MusicTrack & { artist: { id: number; name: string } | null };
@@ -121,7 +122,7 @@ export default function MusicAlbumDetail() {
       <div className="flex items-start gap-5">
         {album.coverImageUrl ? (
           <img
-            src={album.coverImageUrl}
+            src={resolveImageUrl(album.coverImageUrl)}
             alt={album.title}
             className="h-24 w-24 rounded-lg object-cover shrink-0"
           />
@@ -185,7 +186,7 @@ export default function MusicAlbumDetail() {
                   </span>
                   {track.coverImageUrl ? (
                     <img
-                      src={track.coverImageUrl}
+                      src={resolveImageUrl(track.coverImageUrl)}
                       alt={track.title}
                       className="h-8 w-8 rounded object-cover shrink-0"
                     />

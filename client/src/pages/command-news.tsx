@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import {
   Plus, Pencil, Trash2, Loader2, Newspaper, Eye, RefreshCw, Key, CheckCircle2, XCircle,
   ExternalLink, SlidersHorizontal, Sparkles, Bot, Image, BarChart2, BookmarkCheck,
@@ -238,7 +239,7 @@ function PreviewDialog({ open, onClose, category }: PreviewDialogProps) {
                 >
                   {article.imageUrl && (
                     <img
-                      src={article.imageUrl}
+                      src={resolveImageUrl(article.imageUrl)}
                       alt=""
                       className="w-16 h-12 object-cover rounded-md shrink-0"
                       onError={(e) => { e.currentTarget.style.display = "none"; }}
@@ -644,7 +645,7 @@ function XQueryPreviewDialog({
                 >
                   {article.imageUrl && (
                     <img
-                      src={article.imageUrl}
+                      src={resolveImageUrl(article.imageUrl)}
                       alt=""
                       className="w-16 h-12 object-cover rounded-md shrink-0"
                       onError={(e) => { e.currentTarget.style.display = "none"; }}

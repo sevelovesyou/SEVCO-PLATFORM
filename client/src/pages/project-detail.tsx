@@ -8,6 +8,7 @@ import {
   Calendar, ArrowRight, ExternalLink, DollarSign,
 } from "lucide-react";
 import { SiX, SiInstagram, SiYoutube, SiDiscord, SiGithub } from "react-icons/si";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
@@ -282,7 +283,7 @@ export default function ProjectDetail() {
           {project.heroImageUrl ? (
             <div className="relative h-64 md:h-80">
               <img
-                src={project.heroImageUrl}
+                src={resolveImageUrl(project.heroImageUrl)}
                 alt={project.name}
                 className="w-full h-full object-cover"
               />
@@ -296,14 +297,14 @@ export default function ProjectDetail() {
             <div className="flex items-start gap-4">
               {project.appIcon ? (
                 <img
-                  src={project.appIcon}
+                  src={resolveImageUrl(project.appIcon)}
                   alt={`${project.name} icon`}
                   className="h-16 w-16 rounded-xl object-cover border bg-background shadow-sm shrink-0"
                   data-testid="img-project-app-icon"
                 />
               ) : project.logoUrl ? (
                 <img
-                  src={project.logoUrl}
+                  src={resolveImageUrl(project.logoUrl)}
                   alt={project.name}
                   className="h-16 w-16 rounded-xl object-contain border bg-background shadow-sm shrink-0"
                 />
@@ -433,7 +434,7 @@ export default function ProjectDetail() {
                   {project.galleryUrls.map((url, i) => (
                     <img
                       key={i}
-                      src={url}
+                      src={resolveImageUrl(url)}
                       alt={`${project.name} screenshot ${i + 1}`}
                       className="h-40 w-auto rounded-lg border border-border object-cover shrink-0"
                     />

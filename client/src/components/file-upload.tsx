@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Upload, X, FileAudio, ImageIcon, ChevronDown, ChevronUp } from "lucide-react";
@@ -94,7 +95,7 @@ export function FileUpload({
     <div className="space-y-2">
       {displayUrl && isImage && !isPrivate && (
         <div className="relative w-full h-24 rounded-lg overflow-hidden border bg-muted/30">
-          <img src={displayUrl} alt="Preview" className="w-full h-full object-cover" />
+          <img src={resolveImageUrl(displayUrl)} alt="Preview" className="w-full h-full object-cover" />
           <button
             type="button"
             className="absolute top-1 right-1 h-5 w-5 rounded-full bg-background/80 flex items-center justify-center hover:bg-background"

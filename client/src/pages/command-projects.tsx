@@ -6,6 +6,7 @@ import { z } from "zod";
 import * as LucideIcons from "lucide-react";
 import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useToast } from "@/hooks/use-toast";
 import { usePermission } from "@/hooks/use-permission";
 import { Button } from "@/components/ui/button";
@@ -353,7 +354,7 @@ function ProjectFormDialog({
                   </FormControl>
                   {appIconValue && (
                     <img
-                      src={appIconValue}
+                      src={resolveImageUrl(appIconValue)}
                       alt="App icon preview"
                       className="h-10 w-10 rounded object-cover mt-1"
                     />

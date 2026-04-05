@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -78,7 +79,7 @@ function Avatar({ user, size = 8 }: { user: ChatUserInfo; size?: number }) {
   if (user.avatarUrl) {
     return (
       <img
-        src={user.avatarUrl}
+        src={resolveImageUrl(user.avatarUrl)}
         alt={initials}
         className={`w-${size} h-${size} rounded-full object-cover shrink-0`}
       />
@@ -344,7 +345,7 @@ function AiContent({ agent, onPopOut }: { agent: AiAgent; onPopOut: () => void }
       <div className={`flex flex-col ${preview ? "w-1/2" : "w-full"} h-full transition-all`}>
         <div className="flex items-center gap-3 px-6 py-4 border-b shrink-0 bg-background">
           {agent.avatarUrl ? (
-            <img src={agent.avatarUrl} alt={agent.name} className="w-8 h-8 rounded-full object-cover shrink-0" />
+            <img src={resolveImageUrl(agent.avatarUrl)} alt={agent.name} className="w-8 h-8 rounded-full object-cover shrink-0" />
           ) : (
             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
               <Bot className="h-4 w-4 text-primary" />
@@ -393,7 +394,7 @@ function AiContent({ agent, onPopOut }: { agent: AiAgent; onPopOut: () => void }
               <div key={msg.id} className={`flex gap-3 group ${isUser ? "flex-row-reverse" : "flex-row"}`} data-testid={`fullscreen-ai-msg-${msg.id}`}>
                 {!isUser && (
                   agent.avatarUrl ? (
-                    <img src={agent.avatarUrl} alt={agent.name} className="w-8 h-8 rounded-full object-cover shrink-0 mt-1" />
+                    <img src={resolveImageUrl(agent.avatarUrl)} alt={agent.name} className="w-8 h-8 rounded-full object-cover shrink-0 mt-1" />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-1">
                       <Bot className="h-4 w-4 text-primary" />
@@ -625,7 +626,7 @@ export default function FullscreenChatPage() {
                 data-testid={`fullscreen-dm-${thread.otherUser.id}`}
               >
                 {thread.otherUser.avatarUrl ? (
-                  <img src={thread.otherUser.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+                  <img src={resolveImageUrl(thread.otherUser.avatarUrl)} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
                 ) : (
                   <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0 text-[8px] font-bold text-primary">
                     {(thread.otherUser.displayName || thread.otherUser.username).slice(0, 2).toUpperCase()}
@@ -658,7 +659,7 @@ export default function FullscreenChatPage() {
                   data-testid={`fullscreen-ai-agent-${agent.id}`}
                 >
                   {agent.avatarUrl ? (
-                    <img src={agent.avatarUrl} alt={agent.name} className="w-5 h-5 rounded-full object-cover shrink-0" />
+                    <img src={resolveImageUrl(agent.avatarUrl)} alt={agent.name} className="w-5 h-5 rounded-full object-cover shrink-0" />
                   ) : (
                     <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                       <Bot className="h-3 w-3 text-primary" />

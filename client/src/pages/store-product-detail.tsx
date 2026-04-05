@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCart } from "@/hooks/use-cart";
 import type { Product } from "@shared/schema";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 
 export default function StoreProductDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -108,7 +109,7 @@ export default function StoreProductDetail() {
           <div className="bg-muted/40 border border-border rounded-2xl overflow-hidden flex items-center justify-center h-72 md:h-80">
             {product.imageUrl ? (
               <img
-                src={product.imageUrl}
+                src={resolveImageUrl(product.imageUrl)}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />

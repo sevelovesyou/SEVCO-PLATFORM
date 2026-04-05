@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -109,7 +110,7 @@ function HeroCard({ article, accentColor }: { article: EditorialArticle; accentC
     >
       <div className="absolute inset-0">
         <img
-          src={(!imgError && article.imageUrl) ? article.imageUrl : PLACEHOLDER}
+          src={(!imgError && article.imageUrl) ? resolveImageUrl(article.imageUrl) : PLACEHOLDER}
           alt={article.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           onError={() => setImgError(true)}
@@ -167,7 +168,7 @@ function SecondaryCard({ article, accentColor }: { article: EditorialArticle; ac
     >
       <div className="shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-white/5">
         <img
-          src={(!imgError && article.imageUrl) ? article.imageUrl : PLACEHOLDER}
+          src={(!imgError && article.imageUrl) ? resolveImageUrl(article.imageUrl) : PLACEHOLDER}
           alt={article.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           onError={() => setImgError(true)}
@@ -198,7 +199,7 @@ function GridCard({ article, accentColor }: { article: EditorialArticle; accentC
     >
       <div className="relative aspect-video overflow-hidden bg-white/5">
         <img
-          src={(!imgError && article.imageUrl) ? article.imageUrl : PLACEHOLDER}
+          src={(!imgError && article.imageUrl) ? resolveImageUrl(article.imageUrl) : PLACEHOLDER}
           alt={article.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           onError={() => setImgError(true)}
@@ -245,7 +246,7 @@ function LiveXTweet({ tweet }: { tweet: Tweet }) {
     >
       <div className="flex items-start gap-2 mb-2">
         <Avatar className="h-7 w-7 shrink-0">
-          {tweet.authorAvatarUrl && <AvatarImage src={tweet.authorAvatarUrl} />}
+          {tweet.authorAvatarUrl && <AvatarImage src={resolveImageUrl(tweet.authorAvatarUrl)} />}
           <AvatarFallback className="text-[10px] font-bold bg-white/10 text-white/80">
             {tweet.authorName.charAt(0)}
           </AvatarFallback>

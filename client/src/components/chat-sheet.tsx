@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermission } from "@/hooks/use-permission";
@@ -84,7 +85,7 @@ function Avatar({ user, size = 6 }: { user: ChatUserInfo; size?: number }) {
   if (user.avatarUrl) {
     return (
       <img
-        src={user.avatarUrl}
+        src={resolveImageUrl(user.avatarUrl)}
         alt={initials}
         className={`w-${size} h-${size} rounded-full object-cover shrink-0`}
       />
@@ -512,7 +513,7 @@ function AiAgentView({ agent, onBack, onPopOut }: { agent: AiAgent; onBack: () =
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
         {agent.avatarUrl ? (
-          <img src={agent.avatarUrl} alt={agent.name} className="w-6 h-6 rounded-full object-cover shrink-0" />
+          <img src={resolveImageUrl(agent.avatarUrl)} alt={agent.name} className="w-6 h-6 rounded-full object-cover shrink-0" />
         ) : (
           <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
             <Bot className="h-3 w-3 text-primary" />
@@ -565,7 +566,7 @@ function AiAgentView({ agent, onBack, onPopOut }: { agent: AiAgent; onBack: () =
             <div key={msg.id} className={`flex gap-2 group ${isUser ? "flex-row-reverse" : "flex-row"}`} data-testid={`ai-message-${msg.id}`}>
               {!isUser && (
                 agent.avatarUrl ? (
-                  <img src={agent.avatarUrl} alt={agent.name} className="w-6 h-6 rounded-full object-cover shrink-0 mt-1" />
+                  <img src={resolveImageUrl(agent.avatarUrl)} alt={agent.name} className="w-6 h-6 rounded-full object-cover shrink-0 mt-1" />
                 ) : (
                   <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-1">
                     <Bot className="h-3 w-3 text-primary" />
@@ -603,7 +604,7 @@ function AiAgentView({ agent, onBack, onPopOut }: { agent: AiAgent; onBack: () =
         {inlineError && !isStreaming && (
           <div className="flex gap-2 flex-row" data-testid="ai-inline-error">
             {agent.avatarUrl ? (
-              <img src={agent.avatarUrl} alt={agent.name} className="w-6 h-6 rounded-full object-cover shrink-0 mt-1" />
+              <img src={resolveImageUrl(agent.avatarUrl)} alt={agent.name} className="w-6 h-6 rounded-full object-cover shrink-0 mt-1" />
             ) : (
               <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-1">
                 <Bot className="h-3 w-3 text-primary" />
@@ -790,7 +791,7 @@ export function ChatSheet({ open, onClose }: { open: boolean; onClose: () => voi
                         data-testid={`ai-agent-item-${agent.id}`}
                       >
                         {agent.avatarUrl ? (
-                          <img src={agent.avatarUrl} alt={agent.name} className="w-6 h-6 rounded-full object-cover shrink-0" />
+                          <img src={resolveImageUrl(agent.avatarUrl)} alt={agent.name} className="w-6 h-6 rounded-full object-cover shrink-0" />
                         ) : (
                           <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                             <Bot className="h-3 w-3 text-primary" />

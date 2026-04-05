@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Play, Headphones, Drum, Music2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { MusicTrack } from "@shared/schema";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return "";
@@ -43,7 +44,7 @@ function BeatCard({ track }: { track: MusicTrack }) {
       <div className="aspect-square relative bg-zinc-900 overflow-hidden">
         {track.coverImageUrl ? (
           <img
-            src={track.coverImageUrl}
+            src={resolveImageUrl(track.coverImageUrl)}
             alt={track.title}
             className="w-full h-full object-cover opacity-80 group-hover:opacity-90 group-hover:scale-105 transition-all duration-500"
           />

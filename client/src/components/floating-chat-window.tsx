@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from "react";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -47,7 +48,7 @@ function Avatar({ user, size = 5 }: { user: ChatUserInfo; size?: number }) {
   if (user.avatarUrl) {
     return (
       <img
-        src={user.avatarUrl}
+        src={resolveImageUrl(user.avatarUrl)}
         alt={initials}
         className={`w-${size} h-${size} rounded-full object-cover shrink-0`}
       />
@@ -254,7 +255,7 @@ function FloatingAiContent({
             <div key={msg.id} className={`flex gap-1.5 group ${isUser ? "flex-row-reverse" : "flex-row"}`}>
               {!isUser && (
                 agent.avatarUrl ? (
-                  <img src={agent.avatarUrl} alt={agent.name} className="w-5 h-5 rounded-full object-cover shrink-0 mt-0.5" />
+                  <img src={resolveImageUrl(agent.avatarUrl)} alt={agent.name} className="w-5 h-5 rounded-full object-cover shrink-0 mt-0.5" />
                 ) : (
                   <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
                     <Bot className="h-2.5 w-2.5 text-primary" />
@@ -289,7 +290,7 @@ function FloatingAiContent({
         {inlineError && !isStreaming && (
           <div className="flex gap-1.5">
             {agent.avatarUrl ? (
-              <img src={agent.avatarUrl} alt={agent.name} className="w-5 h-5 rounded-full object-cover shrink-0 mt-0.5" />
+              <img src={resolveImageUrl(agent.avatarUrl)} alt={agent.name} className="w-5 h-5 rounded-full object-cover shrink-0 mt-0.5" />
             ) : (
               <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
                 <Bot className="h-2.5 w-2.5 text-primary" />

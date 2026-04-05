@@ -18,6 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useToast } from "@/hooks/use-toast";
 import {
   ListMusic, ExternalLink, Music, Send, CheckCircle, Disc, Play, Pause,
@@ -119,7 +120,7 @@ function PlaylistCard({ playlist }: { playlist: Playlist }) {
     >
       <div className="aspect-square bg-gradient-to-br from-blue-600/20 to-blue-700/10 flex items-center justify-center relative overflow-hidden">
         <img
-          src={playlist.coverImageUrl}
+          src={resolveImageUrl(playlist.coverImageUrl)}
           alt={playlist.title}
           className="w-full h-full object-cover"
         />

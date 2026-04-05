@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermission } from "@/hooks/use-permission";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -407,7 +408,7 @@ function StaffTaskCard({ task, projects, staffUsers, currentUserId, onToggle, on
           {assignee && (
             <span className="text-[11px] flex items-center gap-1 text-muted-foreground" data-testid={`badge-assignee-${task.id}`}>
               {assignee.avatarUrl ? (
-                <img src={assignee.avatarUrl} alt={assigneeName ?? ""} className="h-4 w-4 rounded-full object-cover shrink-0" />
+                <img src={resolveImageUrl(assignee.avatarUrl)} alt={assigneeName ?? ""} className="h-4 w-4 rounded-full object-cover shrink-0" />
               ) : (
                 <span className="h-4 w-4 rounded-full bg-muted flex items-center justify-center text-[9px] font-bold text-muted-foreground shrink-0">
                   {assigneeInitial}

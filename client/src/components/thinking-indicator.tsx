@@ -1,4 +1,5 @@
 import { Bot } from "lucide-react";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 
 interface ThinkingIndicatorProps {
   agentName: string;
@@ -18,7 +19,7 @@ export function ThinkingIndicator({ agentName, agentAvatarUrl, streamingContent,
   return (
     <div className={`flex ${gap}`} data-testid="thinking-indicator">
       {agentAvatarUrl ? (
-        <img src={agentAvatarUrl} alt={agentName} className={`${avatarSize} rounded-full object-cover shrink-0 mt-0.5`} />
+        <img src={resolveImageUrl(agentAvatarUrl)} alt={agentName} className={`${avatarSize} rounded-full object-cover shrink-0 mt-0.5`} />
       ) : (
         <div className={`${avatarSize} rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5`}>
           <Bot className={`${iconSize} text-primary`} />

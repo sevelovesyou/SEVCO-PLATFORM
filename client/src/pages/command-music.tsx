@@ -28,6 +28,7 @@ import {
   Search, RefreshCw, Unlink, Play, Loader2, Drum, Headphones, Lock,
 } from "lucide-react";
 import { FileUploadWithFallback } from "@/components/file-upload";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { SiSpotify, SiApplemusic, SiYoutubemusic, SiSoundcloud } from "react-icons/si";
 import type { MusicSubmission, Playlist, SpotifyArtist, Artist, MusicTrack } from "@shared/schema";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -449,7 +450,7 @@ function PlaylistRow({ playlist, onEdit }: { playlist: Playlist; onEdit: (p: Pla
     <div className="flex items-center gap-4 p-4 border rounded-xl hover:bg-muted/30 transition-colors group" data-testid={`row-playlist-${playlist.id}`}>
       <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-600/20 to-blue-700/10 flex items-center justify-center shrink-0 overflow-hidden">
         {playlist.coverImageUrl ? (
-          <img src={playlist.coverImageUrl} alt={playlist.title} className="h-full w-full object-cover rounded-lg" loading="lazy" />
+          <img src={resolveImageUrl(playlist.coverImageUrl)} alt={playlist.title} className="h-full w-full object-cover rounded-lg" loading="lazy" />
         ) : (
           <ListMusic className="h-5 w-5 text-blue-500 opacity-50" />
         )}
@@ -705,7 +706,7 @@ function ArtistCard({ artist }: { artist: SpotifyArtist }) {
           {statsLoading ? (
             <Skeleton className="h-14 w-14 rounded-full" />
           ) : imageUrl ? (
-            <img src={imageUrl} alt={artist.displayName} className="h-full w-full object-cover" />
+            <img src={resolveImageUrl(imageUrl)} alt={artist.displayName} className="h-full w-full object-cover" />
           ) : (
             <Users className="h-6 w-6 text-muted-foreground" />
           )}
@@ -1652,7 +1653,7 @@ function MusicLibraryTab({ trackType }: { trackType: "track" | "instrumental" })
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       {t.coverImageUrl ? (
-                        <img src={t.coverImageUrl} alt={t.title} className="h-9 w-9 rounded object-cover shrink-0" loading="lazy" />
+                        <img src={resolveImageUrl(t.coverImageUrl)} alt={t.title} className="h-9 w-9 rounded object-cover shrink-0" loading="lazy" />
                       ) : (
                         <div className="h-9 w-9 rounded bg-muted flex items-center justify-center shrink-0">
                           <Music className="h-4 w-4 text-muted-foreground opacity-40" />

@@ -7,6 +7,7 @@ import { usePermission } from "@/hooks/use-permission";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { FileUploadWithFallback } from "@/components/file-upload";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -360,7 +361,7 @@ export default function CommandGallery() {
                   <td className="px-4 py-2.5">
                     <div className="h-10 w-16 rounded overflow-hidden bg-muted shrink-0">
                       <img
-                        src={image.imageUrl}
+                        src={resolveImageUrl(image.imageUrl)}
                         alt={image.altText || image.title}
                         className="w-full h-full object-cover"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
@@ -370,7 +371,7 @@ export default function CommandGallery() {
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-1.5">
                       <p className="font-medium text-sm leading-tight" data-testid={`text-gallery-title-${image.id}`}>{image.title}</p>
-                      <a href={image.imageUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
+                      <a href={resolveImageUrl(image.imageUrl)} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
                         <ExternalLink className="h-3 w-3" />
                       </a>
                     </div>

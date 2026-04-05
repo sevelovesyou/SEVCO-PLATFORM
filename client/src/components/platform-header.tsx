@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePermission } from "@/hooks/use-permission";
 import { useCart } from "@/hooks/use-cart";
 import { useQuery } from "@tanstack/react-query";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SearchOverlay } from "@/components/search-overlay";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -779,7 +780,7 @@ export function PlatformHeader() {
         <Link href="/" className="shrink-0">
           <div className="flex items-center gap-2 cursor-pointer" data-testid="link-platform-home">
             <img
-              src={platformLogoUrl || wordmarkBlack}
+              src={resolveImageUrl(platformLogoUrl) || wordmarkBlack}
               alt="SEVCO"
               className="h-6 w-auto object-contain dark:invert"
             />

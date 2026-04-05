@@ -21,7 +21,7 @@ The platform is built with a modern web stack:
     - **Role-Based Access Control (RBAC)**: Hierarchical roles (admin > executive > staff > partner > client > user) control access to features and content, managed by `requireAuth` and `requireRole` middleware.
     - **Authentication**: Session-based login/registration using bcrypt and Passport.js, with email verification and X (Twitter) OAuth 2.0 integration.
     - **E-commerce**: Stripe integration for product management, checkout, and order tracking, including product synchronization and webhook handling.
-    - **Supabase Storage**: Utilized for file uploads (avatars, banners, music tracks, gallery, brand assets) with public and private buckets, leveraging signed URLs for private assets.
+    - **Supabase Storage**: Utilized for file uploads (avatars, banners, music tracks, gallery, brand assets) with public and private buckets. All Supabase storage URLs are proxied through `GET /images/:bucket/*` on the Express server, which adds `Cache-Control: immutable` headers and blocks the private `tracks` bucket (403). The upload API returns `/images/:bucket/:path` proxy paths directly. All frontend image renders must use `resolveImageUrl()` from `client/src/lib/resolve-image-url.ts` to rewrite raw Supabase storage URLs to proxy paths.
     - **Analytics**: Google Analytics 4 integration via GA4 Data API for admin dashboards, including session data, top pages, traffic sources, and device information.
     - **Dynamic Content**: AI-powered news features (summarization, image generation), trending hashtags, and personalized news feeds with bookmarking and preference management.
     - **Email System**: Threaded email conversation view with inbox, starred, and send functionalities.

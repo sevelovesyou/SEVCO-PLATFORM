@@ -18,6 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useToast } from "@/hooks/use-toast";
 import { ListMusic, Plus, Pencil, Trash2, ExternalLink } from "lucide-react";
 import { SiSpotify, SiApplemusic, SiYoutubemusic, SiSoundcloud } from "react-icons/si";
@@ -226,7 +227,7 @@ function PlaylistRow({ playlist, onEdit }: { playlist: Playlist; onEdit: (p: Pla
     <div className="flex items-center gap-4 p-4 border rounded-xl hover:bg-muted/30 transition-colors group" data-testid={`row-playlist-${playlist.id}`}>
       <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-600/20 to-blue-700/10 flex items-center justify-center shrink-0 overflow-hidden">
         {playlist.coverImageUrl ? (
-          <img src={playlist.coverImageUrl} alt={playlist.title} className="h-full w-full object-cover rounded-lg" loading="lazy" />
+          <img src={resolveImageUrl(playlist.coverImageUrl)} alt={playlist.title} className="h-full w-full object-cover rounded-lg" loading="lazy" />
         ) : (
           <ListMusic className="h-5 w-5 text-blue-500 opacity-50" />
         )}

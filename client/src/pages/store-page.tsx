@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { usePermission } from "@/hooks/use-permission";
 import { useCart } from "@/hooks/use-cart";
 import type { Product } from "@shared/schema";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 
 const CAN_MANAGE_STORE_PRODUCTS = ["admin", "executive"];
 
@@ -63,7 +64,7 @@ function ProductImageArea({ product, onAddToCart }: { product: Product; onAddToC
       <div className="w-full h-full bg-muted/50 rounded-lg p-4">
         {product.imageUrl && !imgError ? (
           <img
-            src={product.imageUrl}
+            src={resolveImageUrl(product.imageUrl)}
             alt={product.name}
             className="w-full h-full object-cover rounded-md transition-transform duration-500 group-hover:scale-105"
             loading="lazy"

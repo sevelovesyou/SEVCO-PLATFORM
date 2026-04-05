@@ -9,6 +9,7 @@ import { SevcoLogo } from "@/components/sevco-logo";
 import * as SI from "react-icons/si";
 import type { PlatformSocialLink, MusicTrack } from "@shared/schema";
 import { useMusicPlayer } from "@/contexts/music-player-context";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 
 const STREAMING_ICON_NAMES = new Set([
   "SiSpotify", "SiApplemusic", "SiSoundcloud", "SiYoutubemusic", "SiDeezer", "SiTidal", "SiAmazonmusic",
@@ -52,7 +53,7 @@ function TrackCard({ track, allTracks }: { track: MusicTrack; allTracks: MusicTr
       <div className="relative shrink-0">
         {track.coverImageUrl ? (
           <img
-            src={track.coverImageUrl}
+            src={resolveImageUrl(track.coverImageUrl)}
             alt={track.title}
             className="w-14 h-14 rounded-lg object-cover shadow-sm"
           />

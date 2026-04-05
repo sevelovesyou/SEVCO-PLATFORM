@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { ExternalLink, Newspaper, RefreshCw, ChevronRight, ArrowLeft, Search, X, Zap, BookmarkCheck, Sparkles, Loader2 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
@@ -175,7 +176,7 @@ function HeroSection({ article, aiSettings, onImageGenerated }: { article: NewsA
       <div className="relative aspect-[21/7] md:aspect-[21/6] overflow-hidden">
         {displayImage && !heroImgError ? (
           <img
-            src={displayImage}
+            src={resolveImageUrl(displayImage)}
             alt={article.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             onError={() => {

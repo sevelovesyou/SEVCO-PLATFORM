@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StickyNote } from "lucide-react";
@@ -48,7 +49,7 @@ export function StaffNotes({ resourceType, resourceId }: StaffNotesProps) {
           >
             <div className="flex items-center gap-2.5">
               <Avatar className="h-6 w-6">
-                {note.author?.avatarUrl && <AvatarImage src={note.author.avatarUrl} />}
+                {note.author?.avatarUrl && <AvatarImage src={resolveImageUrl(note.author.avatarUrl)} />}
                 <AvatarFallback className="text-[10px]">
                   {(note.author?.displayName ?? note.author?.username ?? "?")[0].toUpperCase()}
                 </AvatarFallback>

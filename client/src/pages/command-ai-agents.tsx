@@ -2,6 +2,7 @@ import { PageHead } from "@/components/page-head";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -376,7 +377,7 @@ export default function CommandAiAgentsPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3 min-w-0">
                     {agent.avatarUrl ? (
-                      <img src={agent.avatarUrl} alt={agent.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
+                      <img src={resolveImageUrl(agent.avatarUrl)} alt={agent.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
                     ) : (
                       <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                         <Bot className="h-4 w-4 text-primary" />

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermission } from "@/hooks/use-permission";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -129,7 +130,7 @@ function AvatarIcon({ user, size = "sm" }: { user: { username?: string; displayN
   const sz = size === "sm" ? "h-8 w-8" : "h-9 w-9";
   return (
     <Avatar className={`${sz} shrink-0`}>
-      {user?.avatarUrl && <AvatarImage src={user.avatarUrl} />}
+      {user?.avatarUrl && <AvatarImage src={resolveImageUrl(user.avatarUrl)} />}
       <AvatarFallback className="text-xs font-bold">{initials}</AvatarFallback>
     </Avatar>
   );
@@ -285,7 +286,7 @@ function SocialPostCard({
           {post.imageUrl && (
             <div className="mt-2 mb-3 rounded-xl overflow-hidden border">
               <img
-                src={post.imageUrl}
+                src={resolveImageUrl(post.imageUrl)}
                 alt="Post image"
                 className="w-full max-h-72 object-cover"
                 data-testid={`img-post-${post.id}`}
@@ -374,7 +375,7 @@ function AdminFeedCard({
     <Card className={`p-4 overflow-visible transition-shadow hover:shadow-sm border-l-2 border-l-primary/30 ${post.pinned ? "border-primary/30 bg-primary/[0.02]" : ""}`} data-testid={`card-feed-${post.id}`}>
       <div className="flex gap-3">
         <Avatar className="h-9 w-9 shrink-0">
-          {post.author?.avatarUrl && <AvatarImage src={post.author.avatarUrl} />}
+          {post.author?.avatarUrl && <AvatarImage src={resolveImageUrl(post.author.avatarUrl)} />}
           <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">{initials}</AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
@@ -422,7 +423,7 @@ function AdminFeedCard({
           </p>
           {post.mediaUrl && (
             <div className="mt-2 mb-2 rounded-md overflow-hidden border">
-              <img src={post.mediaUrl} alt="Feed media" className="w-full max-h-72 object-cover" loading="lazy" data-testid={`img-feed-media-${post.id}`} />
+              <img src={resolveImageUrl(post.mediaUrl)} alt="Feed media" className="w-full max-h-72 object-cover" loading="lazy" data-testid={`img-feed-media-${post.id}`} />
             </div>
           )}
           {post.linkUrl && (
@@ -708,7 +709,7 @@ export default function FeedPage() {
                 <form onSubmit={adminForm.handleSubmit((data) => createFeedMutation.mutate(data))} className="flex flex-col gap-3">
                   <div className="flex items-center gap-2">
                     <Avatar className="h-8 w-8 shrink-0">
-                      {user?.avatarUrl && <AvatarImage src={user.avatarUrl} />}
+                      {user?.avatarUrl && <AvatarImage src={resolveImageUrl(user.avatarUrl)} />}
                       <AvatarFallback className="text-xs">{(user?.displayName || user?.username || "?").charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <FormField

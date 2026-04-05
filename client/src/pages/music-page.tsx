@@ -13,6 +13,7 @@ import type { Artist, Album, Playlist } from "@shared/schema";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { SiSpotify, SiApplemusic, SiYoutubemusic, SiSoundcloud } from "react-icons/si";
 import { useSpotifyPlayer, isSpotifyUrl } from "@/hooks/use-spotify-player";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 
 const CAN_MANAGE_MUSIC = ["admin", "executive", "staff"];
 
@@ -85,7 +86,7 @@ function FeaturedPlaylistCard({ playlist }: { playlist: Playlist }) {
     >
       <div className="aspect-square bg-gradient-to-br from-blue-600/20 to-blue-700/10 flex items-center justify-center relative overflow-hidden">
         {playlist.coverImageUrl ? (
-          <img src={playlist.coverImageUrl} alt={playlist.title} className="w-full h-full object-cover" loading="lazy" />
+          <img src={resolveImageUrl(playlist.coverImageUrl)} alt={playlist.title} className="w-full h-full object-cover" loading="lazy" />
         ) : (
           <ListMusic className="h-8 w-8 text-blue-500 opacity-50 group-hover:scale-110 transition-transform duration-300" />
         )}

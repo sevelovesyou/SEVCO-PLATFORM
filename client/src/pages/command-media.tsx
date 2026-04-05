@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +41,7 @@ function FileIcon({ mimeType, publicUrl, name }: { mimeType: string | null; publ
   if (mimeType?.startsWith("image/") && publicUrl) {
     return (
       <img
-        src={publicUrl}
+        src={resolveImageUrl(publicUrl)}
         alt={name}
         className="w-full h-full object-cover rounded-t-lg"
         onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}

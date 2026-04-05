@@ -11,6 +11,7 @@ import type { Artist, Album, MusicTrack } from "@shared/schema";
 import { useSpotifyPlayer } from "@/hooks/use-spotify-player";
 import type { Playlist } from "@shared/schema";
 import { useEffect } from "react";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 
 const CAN_MANAGE_MUSIC = ["admin", "executive", "staff"];
 
@@ -205,7 +206,7 @@ export default function MusicArtistDetail() {
                   </span>
                   {track.coverImageUrl ? (
                     <img
-                      src={track.coverImageUrl}
+                      src={resolveImageUrl(track.coverImageUrl)}
                       alt={track.title}
                       className="h-8 w-8 rounded object-cover shrink-0"
                     />

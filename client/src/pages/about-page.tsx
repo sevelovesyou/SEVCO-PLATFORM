@@ -5,6 +5,7 @@ import { SiInstagram, SiX, SiYoutube, SiDiscord, SiGithub } from "react-icons/si
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { BrandAsset } from "@shared/schema";
@@ -298,7 +299,7 @@ export default function AboutPage() {
                           <div className="h-28 bg-muted/30 flex items-center justify-center border-b border-border">
                             {(asset.previewUrl || (asset.assetType === "logo" && asset.downloadUrl)) ? (
                               <img
-                                src={asset.previewUrl || asset.downloadUrl}
+                                src={resolveImageUrl(asset.previewUrl || asset.downloadUrl)}
                                 alt={asset.name}
                                 className="max-h-24 max-w-full object-contain p-2"
                               />
@@ -321,7 +322,7 @@ export default function AboutPage() {
                               <p className="text-[11px] text-muted-foreground leading-relaxed">{asset.description}</p>
                             )}
                             <a
-                              href={asset.downloadUrl}
+                              href={resolveImageUrl(asset.downloadUrl)}
                               target="_blank"
                               rel="noopener noreferrer"
                               data-testid={`link-download-asset-${asset.id}`}

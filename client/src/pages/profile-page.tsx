@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useParams, Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { useMusicPlayer } from "@/contexts/music-player-context";
@@ -239,7 +240,7 @@ function FollowListDialog({ username, type, open, onClose }: { username: string;
               <Link key={u.id} href={`/profile/${u.username}`} onClick={onClose}>
                 <div className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-muted/60 cursor-pointer" data-testid={`follow-user-${u.username}`}>
                   <Avatar className="h-8 w-8">
-                    {u.avatarUrl && <AvatarImage src={u.avatarUrl} />}
+                    {u.avatarUrl && <AvatarImage src={resolveImageUrl(u.avatarUrl)} />}
                     <AvatarFallback className="text-xs">{(u.displayName || u.username).charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div>
@@ -333,7 +334,7 @@ function FeaturedItemSelector({ type, value, onChange, username }: {
             data-testid={`option-featured-item-${item.id}`}
           >
             {item.thumbnail ? (
-              <img src={item.thumbnail} alt="" className="h-6 w-6 rounded object-cover flex-shrink-0" />
+              <img src={resolveImageUrl(item.thumbnail)} alt="" className="h-6 w-6 rounded object-cover flex-shrink-0" />
             ) : (
               <Star className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
             )}
@@ -445,7 +446,7 @@ function ProfileEditPanel({
         style={{ background: bgColor, borderColor: `${accentColor}44` }}
       >
         {form.avatarUrl ? (
-          <img src={form.avatarUrl} alt="avatar" className="h-9 w-9 rounded-full object-cover border-2" style={{ borderColor: accentColor }} />
+          <img src={resolveImageUrl(form.avatarUrl)} alt="avatar" className="h-9 w-9 rounded-full object-cover border-2" style={{ borderColor: accentColor }} />
         ) : (
           <div className="h-9 w-9 rounded-full flex items-center justify-center" style={{ background: `${accentColor}22` }}>
             <UserCircle2 className="h-5 w-5" style={{ color: accentColor }} />
@@ -758,7 +759,7 @@ function PostCard({ post, currentUserId, canDelete, onDelete }: {
           <p className="text-sm leading-relaxed whitespace-pre-wrap mb-2">{post.content}</p>
           {post.imageUrl && (
             <div className="mb-2 rounded-xl overflow-hidden border">
-              <img src={post.imageUrl} alt="Post" className="w-full max-h-48 object-cover" loading="lazy" />
+              <img src={resolveImageUrl(post.imageUrl)} alt="Post" className="w-full max-h-48 object-cover" loading="lazy" />
             </div>
           )}
           <div className="flex items-center gap-4">
@@ -885,7 +886,7 @@ function FeaturedItemCard({ type, itemId, accentColor, bgColor }: {
         <Skeleton className="h-9 w-9 rounded-md flex-shrink-0" />
       ) : meta?.thumbnail ? (
         <img
-          src={meta.thumbnail}
+          src={resolveImageUrl(meta.thumbnail)}
           alt=""
           className="h-9 w-9 rounded-md object-cover flex-shrink-0"
         />
@@ -991,7 +992,7 @@ function ArtistMusicSection({ artistId, accentColor, bgColor }: { artistId: numb
                 >
                   {(album as any).coverImageUrl ? (
                     <img
-                      src={(album as any).coverImageUrl}
+                      src={resolveImageUrl((album as any).coverImageUrl)}
                       alt={album.title}
                       className="w-full h-28 object-cover"
                     />
@@ -1056,7 +1057,7 @@ function ArtistMusicSection({ artistId, accentColor, bgColor }: { artistId: numb
                   </span>
                   {track.coverImageUrl ? (
                     <img
-                      src={track.coverImageUrl}
+                      src={resolveImageUrl(track.coverImageUrl)}
                       alt={track.title}
                       className="h-8 w-8 rounded object-cover shrink-0"
                     />
@@ -1203,7 +1204,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
   return (
     <div className="min-h-screen relative" style={bgColor ? { backgroundColor: bgColor } : {}}>
       {bgImage && (
-        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${bgImage})`, opacity: bgOpacity }} />
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${resolveImageUrl(bgImage)})`, opacity: bgOpacity }} />
       )}
       {profileFont === "handwritten" && (
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap" />
@@ -1223,7 +1224,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
             <div
               className={`${isWide ? "h-48" : "h-24 md:h-32"} w-full relative overflow-hidden`}
               style={bannerImage ? {
-                backgroundImage: `url(${bannerImage})`, backgroundSize: "cover", backgroundPosition: "center",
+                backgroundImage: `url(${resolveImageUrl(bannerImage)})`, backgroundSize: "cover", backgroundPosition: "center",
               } : { background: gradientStyle }}
             />
           )}
@@ -1235,7 +1236,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex-shrink-0">
                   {profile.avatarUrl ? (
-                    <img src={profile.avatarUrl} alt={displayName}
+                    <img src={resolveImageUrl(profile.avatarUrl)} alt={displayName}
                       className="h-14 w-14 rounded-full object-cover border-2 shadow"
                       style={{ borderColor: useGradient && accentColor ? "transparent" : (accentColor || "var(--background)") }}
                       data-testid="img-avatar"
@@ -1291,7 +1292,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
               <div className="flex items-end justify-between -mt-10 mb-4 relative z-10">
                 <div>
                   {profile.avatarUrl ? (
-                    <img src={profile.avatarUrl} alt={displayName}
+                    <img src={resolveImageUrl(profile.avatarUrl)} alt={displayName}
                       className={`${isWide ? "h-28 w-28" : "h-20 w-20 md:h-24 md:w-24"} rounded-2xl object-cover border-4 shadow-lg`}
                       style={{ borderColor: useGradient && accentColor ? "transparent" : (accentColor || "var(--background)"), outline: useGradient && accentColor ? `3px solid ${accentColor}` : undefined }}
                       data-testid="img-avatar"

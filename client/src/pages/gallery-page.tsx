@@ -10,6 +10,7 @@ import { Link } from "wouter";
 import { Copy, ImageOff, ExternalLink } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import type { GalleryImage } from "@shared/schema";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 
 const CATEGORY_LABELS: Record<string, string> = {
   profile: "Profile Pics",
@@ -148,7 +149,7 @@ export default function GalleryPage() {
             >
               <div className="relative aspect-video bg-muted overflow-hidden">
                 <img
-                  src={image.imageUrl}
+                  src={resolveImageUrl(image.imageUrl)}
                   alt={image.altText || image.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   loading="lazy"
@@ -198,7 +199,7 @@ export default function GalleryPage() {
                     asChild
                     data-testid={`button-open-image-${image.id}`}
                   >
-                    <a href={image.imageUrl} target="_blank" rel="noopener noreferrer">
+                    <a href={resolveImageUrl(image.imageUrl)} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   </Button>

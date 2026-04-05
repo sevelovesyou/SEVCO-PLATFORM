@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -914,7 +915,7 @@ export default function CommandDisplay() {
                 >
                   {(asset.previewUrl || (asset.assetType === "logo" && asset.downloadUrl)) ? (
                     <img
-                      src={asset.previewUrl || asset.downloadUrl}
+                      src={resolveImageUrl(asset.previewUrl || asset.downloadUrl)}
                       alt={asset.name}
                       className="h-10 w-10 object-contain rounded border border-border shrink-0 bg-muted/30"
                     />

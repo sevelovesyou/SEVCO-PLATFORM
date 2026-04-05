@@ -1511,6 +1511,46 @@ export async function registerRoutes(
   // Initialize Supabase storage buckets
   import("./supabase").then(({ ensureBucketsExist }) => ensureBucketsExist().catch(console.error));
 
+  // Image proxy — serves Supabase public-bucket files via /images/:bucket/*
+  // Private buckets (e.g. tracks) are excluded; callers must use signed URLs.
+  const PRIVATE_BUCKETS = new Set(["tracks"]);
+
+  app.get("/images/:bucket/*filePath", async (req, res) => {
+    const { bucket } = req.params;
+    const rawPath = req.params.filePath;
+    const filePath = Array.isArray(rawPath) ? rawPath.join("/") : rawPath;
+
+    if (PRIVATE_BUCKETS.has(bucket)) {
+      return res.status(403).json({ message: "Direct access to this bucket is not permitted." });
+    }
+
+    const { supabase: supabaseAdmin } = await import("./supabase");
+    if (!supabaseAdmin) {
+      return res.status(503).json({ message: "Storage not configured." });
+    }
+
+    try {
+      const { data: urlData } = supabaseAdmin.storage.from(bucket).getPublicUrl(filePath);
+      const upstream = await fetch(urlData.publicUrl);
+      if (!upstream.ok) {
+        return res.status(upstream.status).json({ message: "File not found." });
+      }
+      const contentType = upstream.headers.get("content-type") ?? "application/octet-stream";
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      const body: ReadableStream<Uint8Array> | null = upstream.body;
+      if (body) {
+        const { Readable } = await import("stream");
+        Readable.fromWeb(body).pipe(res);
+      } else {
+        res.end();
+      }
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // robots.txt — allow all crawlers
   app.get("/robots.txt", (_req, res) => {
     res.type("text/plain").send(
@@ -4045,12 +4085,11 @@ export async function registerRoutes(
       const files = (data || [])
         .filter((f) => f.name !== ".emptyFolderPlaceholder")
         .map((f) => {
-          const { data: urlData } = supabaseAdmin.storage.from(bucket).getPublicUrl(f.name);
           return {
             name: f.name,
             size: f.metadata?.size ?? 0,
             updatedAt: f.updated_at,
-            publicUrl: urlData?.publicUrl ?? null,
+            publicUrl: `/images/${bucket}/${f.name}`,
             mimeType: f.metadata?.mimetype ?? null,
           };
         });
@@ -4095,8 +4134,7 @@ export async function registerRoutes(
       if (moveError) {
         return res.status(500).json({ message: moveError.message });
       }
-      const { data: urlData } = supabaseAdmin.storage.from(bucket).getPublicUrl(toPath);
-      res.json({ name: toPath, publicUrl: urlData?.publicUrl ?? null });
+      res.json({ name: toPath, publicUrl: `/images/${bucket}/${toPath}` });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -4135,8 +4173,7 @@ export async function registerRoutes(
         }
         let publicUrl = path;
         if (!isPrivate) {
-          const { data } = supabaseAdmin.storage.from(bucket).getPublicUrl(path);
-          publicUrl = data.publicUrl;
+          publicUrl = `/images/${bucket}/${path}`;
         }
         res.json({ url: publicUrl, path });
       } catch (err: any) {

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { X, ShoppingCart, Plus, Minus, Trash2, Package, ArrowRight, Loader2 } from "lucide-react";
@@ -93,7 +94,7 @@ export function CartDrawer() {
                 >
                   <div className="h-16 w-16 rounded-lg bg-muted/50 border border-border overflow-hidden flex-shrink-0">
                     {item.imageUrl ? (
-                      <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
+                      <img src={resolveImageUrl(item.imageUrl)} alt={item.name} className="h-full w-full object-cover" />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center">
                         <Package className="h-6 w-6 text-muted-foreground opacity-30" />

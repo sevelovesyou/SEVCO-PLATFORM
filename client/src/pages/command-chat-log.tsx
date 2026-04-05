@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,7 @@ function Avatar({ user }: { user: ChatUserInfo }) {
   if (user.avatarUrl) {
     return (
       <img
-        src={user.avatarUrl}
+        src={resolveImageUrl(user.avatarUrl)}
         alt={initials}
         className="w-7 h-7 rounded-full object-cover shrink-0"
       />

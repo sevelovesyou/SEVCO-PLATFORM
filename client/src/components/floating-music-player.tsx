@@ -1,4 +1,5 @@
 import { useRef, useCallback } from "react";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useMusicPlayer } from "@/contexts/music-player-context";
 import { Button } from "@/components/ui/button";
 import {
@@ -87,7 +88,7 @@ export function FloatingMusicPlayer() {
       >
         {currentTrack.coverImageUrl ? (
           <img
-            src={currentTrack.coverImageUrl}
+            src={resolveImageUrl(currentTrack.coverImageUrl)}
             alt={currentTrack.title}
             className="w-7 h-7 rounded-full object-cover shrink-0"
           />
@@ -153,7 +154,7 @@ export function FloatingMusicPlayer() {
         <div className="shrink-0">
           {currentTrack.coverImageUrl ? (
             <img
-              src={currentTrack.coverImageUrl}
+              src={resolveImageUrl(currentTrack.coverImageUrl)}
               alt={currentTrack.title}
               className="w-20 h-20 rounded-lg object-cover shadow-md"
               data-testid="music-player-cover"

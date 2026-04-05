@@ -17563,3 +17563,69 @@ Add a "Legal Documents" card/section in the Platform Settings tab (near the bott
 
 ---
 
+## Task — email-diagnostics-system-mailbox-fix
+> Merged: 2026-04-05
+
+# Fix: Email Diagnostics — support system mailbox addresses
+
+## What
+The Email Diagnostics panel's "Simulate Inbound Email" fails with "No user account found for help@sevco.us" when testing a system mailbox address. The simulation and status-check routes were written before system mailboxes existed (Task #211) and only look up user accounts. They need to also check system mailboxes.
+
+## Done looks like
+- Simulating `help@sevco.us` (or any active system mailbox address) succeeds — a test email appears in the mailbox's inbox in CMD > Support > Company Inboxes
+- The "Check Status" button for a system mailbox address returns a sensible status (isSystemMailbox: true, isActive: true) instead of `userExists: false`
+- Regular user address simulation still works as before
+- If the address matches neither a user nor a system mailbox, the existing 404 error is returned unchanged
+
+## Backend fix — server/routes.ts
+
+### POST /api/admin/inbound-email-simulate
+After the `getUserByUsername` call, if `targetUser` is null, add a second lookup:
+```typescript
+const mailbox = await storage.getSystemMailboxByAddress(`${username}@sevco.us`);
+if (mailbox) {
+  // inject test email directly into system_mailbox_emails
+  const timestamp = new Date().toISOString();
+  await storage.createSystemMailboxEmail({
+    mailboxId: mailbox.id,
+    resendEmailId: `simulate-${Date.now()}`,
+    direction: "inbound",
+    fromAddress: "diagnostics@sevco.us",
+    toAddresses: [mailbox.address],
+    subject: "Inbound Email Test",
+    bodyHtml: `<p>This is a simulated inbound email sent at <strong>${timestamp}</strong> to confirm end-to-end delivery is working.</p>`,
+    bodyText: `This is a simulated inbound email sent at ${timestamp} to confirm end-to-end delivery is working.`,
+    isRead: false,
+    threadId: null,
+  });
+  return res.json({ success: true, message: `Simulated inbound email delivered to ${mailbox.address}` });
+}
+// if still nothing found, fall through to existing 404
+return res.status(404).json({ success: false, message: `No user account or system mailbox found for ${username}@sevco.us` });
+```
+
+### GET /api/admin/inbound-email-status
+After the user lookup, also check system mailboxes:
+```typescript
+const mailbox = await storage.getSystemMailboxByAddress(address);
+if (mailbox) {
+  return res.json({ 
+    isSystemMailbox: true, 
+    isActive: mailbox.isActive, 
+    webhookConfigured: !!process.env.RESEND_WEBHOOK_SECRET 
+  });
+}
+// existing user-based response follows
+res.json({ userExists, userRole, roleQualifies, webhookConfigured });
+```
+
+## No frontend changes needed
+The frontend already shows the API success/error message as a toast. Once the backend returns success, the simulation toast will show correctly.
+
+## Relevant files
+- `server/routes.ts` lines ~5609–5655 (inbound-email-status + inbound-email-simulate)
+- `server/storage.ts` — `getSystemMailboxByAddress` and `createSystemMailboxEmail` already added by Task #211
+
+
+---
+

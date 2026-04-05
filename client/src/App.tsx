@@ -77,6 +77,7 @@ import ServiceDetailPage from "@/pages/service-detail-page";
 import ServicesListingPage from "@/pages/services-listing";
 import WikiArchivePage from "@/pages/wiki-archive-page";
 import AboutPage from "@/pages/about-page";
+import LegalPage from "@/pages/legal-page";
 import HostingPage from "@/pages/hosting-page";
 import MinecraftPage from "@/pages/minecraft-page";
 import GalleryPage from "@/pages/gallery-page";
@@ -178,6 +179,7 @@ function Router() {
       <Route path="/projects/new" component={() => <ProtectedRoute><ProjectCreatePage /></ProtectedRoute>} />
       <Route path="/projects/:slug" component={ProjectDetail} />
       <Route path="/about" component={AboutPage} />
+      <Route path="/legal" component={LegalPage} />
       <Route path="/hosting" component={HostingPage} />
       <Route path="/minecraft" component={MinecraftPage} />
       <Route path="/contact" component={ContactPage} />

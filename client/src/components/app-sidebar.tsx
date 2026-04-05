@@ -32,6 +32,7 @@ import {
   RotateCcw,
   ScrollText,
   Wand2,
+  Scale,
 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -95,6 +96,7 @@ export function AppSidebar() {
     { title: "Wikify", url: "/wikify", icon: Wand2, show: canCreateArticle },
     { title: "Review Queue", url: "/review", icon: Shield, show: canAccessReviewQueue },
     { title: "Archive", url: "/wiki/archive", icon: Archive, show: canAccessArchive },
+    { title: "Legal", url: "/legal", icon: Scale, show: true },
   ].filter((item) => item.show);
 
   return (

@@ -710,6 +710,7 @@ export function PlatformHeader() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const notifTriggerRef = useRef<HTMLDivElement>(null);
   const { soundEnabled, toggleSound, playClick, playNotification } = useSounds();
 
   const { data: notifCount } = useQuery<{ count: number }>({
@@ -887,7 +888,7 @@ export function PlatformHeader() {
           {user && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="relative">
+                <div className="relative" ref={notifTriggerRef}>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -906,7 +907,7 @@ export function PlatformHeader() {
                       {unreadNotifCount > 99 ? "99+" : unreadNotifCount}
                     </span>
                   )}
-                  <NotificationDropdown open={notifOpen} onClose={() => setNotifOpen(false)} />
+                  <NotificationDropdown open={notifOpen} onClose={() => setNotifOpen(false)} triggerRef={notifTriggerRef} />
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom">Notifications{unreadNotifCount > 0 ? ` (${unreadNotifCount})` : ""}</TooltipContent>

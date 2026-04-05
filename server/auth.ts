@@ -12,6 +12,7 @@ import { requireRole, CAN_MANAGE_ROLES } from "./middleware/permissions";
 import { pool } from "./db";
 import { sendVerificationEmail } from "./emailClient";
 import { isUsernameReserved } from "./usernameUtils";
+import { notify } from "./routes";
 
 const PgSession = connectPgSimple(session);
 
@@ -328,6 +329,12 @@ export function setupAuth(app: Express) {
         emailVerificationToken: token,
         emailVerificationExpires: expires,
       });
+
+      storage.getUsersByRole(["admin", "executive", "staff"]).then((staffUsers) => {
+        for (const staffUser of staffUsers) {
+          notify(staffUser.id, "new_member", "New member joined", `${parsed.data.username} has registered.`, "/command/members").catch(() => {});
+        }
+      }).catch(() => {});
 
       let emailSent = false;
       let emailError: string | null = null;

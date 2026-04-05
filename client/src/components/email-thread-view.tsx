@@ -487,7 +487,7 @@ export function EmailThreadView({ thread, fromAddress, onDeleted }: EmailThreadV
           className="min-h-[80px] resize-none text-sm"
           data-testid="input-inline-reply"
         />
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
@@ -498,7 +498,7 @@ export function EmailThreadView({ thread, fromAddress, onDeleted }: EmailThreadV
             <Maximize2 className="h-3.5 w-3.5 mr-1.5" />
             Expand to full compose
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 ml-auto">
             <Button
               variant="outline"
               size="sm"

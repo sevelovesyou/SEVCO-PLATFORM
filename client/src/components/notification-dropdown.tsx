@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, type RefObject } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -9,6 +9,7 @@ import type { Notification } from "@shared/schema";
 interface NotificationDropdownProps {
   open: boolean;
   onClose: () => void;
+  triggerRef?: RefObject<HTMLElement>;
 }
 
 function timeAgo(date: Date | string): string {
@@ -29,7 +30,7 @@ function TypeIcon({ type }: { type: string }) {
   return <Mail className={`${cls} text-muted-foreground`} />;
 }
 
-export function NotificationDropdown({ open, onClose }: NotificationDropdownProps) {
+export function NotificationDropdown({ open, onClose, triggerRef }: NotificationDropdownProps) {
   const [, navigate] = useLocation();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -57,13 +58,15 @@ export function NotificationDropdown({ open, onClose }: NotificationDropdownProp
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (triggerRef?.current && triggerRef.current.contains(target)) return;
+      if (ref.current && !ref.current.contains(target)) {
         onClose();
       }
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [open, onClose]);
+  }, [open, onClose, triggerRef]);
 
   if (!open) return null;
 

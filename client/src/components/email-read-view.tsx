@@ -358,7 +358,7 @@ export function EmailReadView({ email, fromAddress, onDeleted }: EmailReadViewPr
         )}
       </div>
 
-      <div className="border-t px-4 py-3 flex items-center gap-2" data-testid="email-action-bar">
+      <div className="border-t px-4 py-3 flex flex-wrap items-center gap-2" data-testid="email-action-bar">
         <Button
           variant="outline"
           size="sm"

@@ -17707,3 +17707,42 @@ src={resolveImageUrl(image.imageUrl)}
 
 ---
 
+## Task — ux-fixes-bell-reply-member-notif
+> Merged: 2026-04-05
+
+# Bell Toggle, Mobile Reply & New Member Notification
+
+## What & Why
+Three UX/functionality bugs that need fixing:
+1. Clicking the bell icon when the notification panel is open does not close it — the dropdown's click-outside handler fires on the trigger button, closing the panel, then the toggle re-opens it. Net effect: the bell can only open the panel, not close it.
+2. On mobile (narrow screens), the email reply action row in the thread view overflows and clips the Reply All / Forward / Send buttons, making them unreachable.
+3. Staff, executive, and admin users are not notified when a new member registers on the platform.
+
+## Done looks like
+- Clicking the bell icon while the notification panel is open closes it; clicking again reopens it (true toggle).
+- On mobile, all reply/forward/send buttons are visible and tappable in the email read and thread views — no overflow clipping.
+- After a new user account is created via registration, every user with role staff, executive, or admin receives an in-app notification: "New member joined" with a link to the Command Center members list.
+
+## Out of scope
+- Email notifications (only in-app notifications via the existing `notify()` function).
+- Notifying on email verification (notify on registration/account creation only).
+- Changes to the notification schema or storage layer.
+
+## Tasks
+1. **Fix bell icon toggle** — In the notification dropdown, the click-outside listener must not count the trigger button as "outside". Pass a `triggerRef` (wrapping the entire relative container that holds both the bell button and the dropdown panel) into the notification dropdown component, and check that ref in the mousedown handler so clicking the trigger only fires the button's own toggle.
+
+2. **Fix mobile reply buttons** — In both `email-read-view.tsx` and `email-thread-view.tsx`, update the action bar at the bottom to wrap gracefully on narrow screens. The thread-view inline reply section needs its button row to stack or wrap rather than overflow. Use `flex-wrap` and compact/icon-only variants on small viewports where appropriate.
+
+3. **Notify staff+ on new member registration** — In the `/api/register` route in `server/auth.ts`, after `storage.createUser()` succeeds, call `storage.getUsersByRole(["admin", "executive", "staff"])` and fire `notify()` for each with type `"new_member"`, title `"New member joined"`, a brief body with the new username, and link `/command/members`. Use `.catch(() => {})` so errors are non-blocking. Import `notify` from `./routes`.
+
+## Relevant files
+- `client/src/components/platform-header.tsx:886-913`
+- `client/src/components/notification-dropdown.tsx`
+- `client/src/components/email-read-view.tsx:361-389`
+- `client/src/components/email-thread-view.tsx:478-531`
+- `server/auth.ts:296-360`
+- `server/routes.ts:7770-7776`
+
+
+---
+

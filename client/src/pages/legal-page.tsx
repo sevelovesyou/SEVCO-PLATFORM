@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { PageHead } from "@/components/page-head";
 import {
   FileText,
@@ -46,7 +47,7 @@ const PRACTICE_AREAS = [
   },
 ];
 
-const LEGAL_DOCUMENTS = [
+const DEFAULT_LEGAL_DOCUMENTS = [
   { label: "Terms of Service", href: "#" },
   { label: "Privacy Policy", href: "#" },
   { label: "Creator Agreement", href: "#" },
@@ -56,6 +57,20 @@ const LEGAL_DOCUMENTS = [
 ];
 
 export default function LegalPage() {
+  const { data: settings } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
+  });
+
+  let legalDocuments = DEFAULT_LEGAL_DOCUMENTS;
+  if (settings?.["legal.documents"]) {
+    try {
+      const parsed = JSON.parse(settings["legal.documents"]);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        legalDocuments = parsed;
+      }
+    } catch {}
+  }
+
   return (
     <>
       <PageHead
@@ -173,7 +188,7 @@ export default function LegalPage() {
             Legal Documents
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-            {LEGAL_DOCUMENTS.map((doc) => (
+            {legalDocuments.map((doc) => (
               <a
                 key={doc.label}
                 href={doc.href}

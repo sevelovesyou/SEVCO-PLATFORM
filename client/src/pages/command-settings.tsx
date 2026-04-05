@@ -1218,6 +1218,18 @@ export default function CommandSettings() {
   // ── Footer sitemap state ──
   const [sitemapColumns, setSitemapColumns] = useState<SitemapColumn[]>(DEFAULT_SITEMAP);
 
+  // ── Legal documents state ──
+  const DEFAULT_LEGAL_DOCS = [
+    { label: "Terms of Service", href: "" },
+    { label: "Privacy Policy", href: "" },
+    { label: "Creator Agreement", href: "" },
+    { label: "Cookie Policy", href: "" },
+    { label: "Acceptable Use Policy", href: "" },
+    { label: "DMCA / Copyright Policy", href: "" },
+  ];
+  type LegalDoc = { label: string; href: string };
+  const [legalDocs, setLegalDocs] = useState<LegalDoc[]>(DEFAULT_LEGAL_DOCS);
+
   // ── SEO / Optimization state ──
   const [selectedSeoPage, setSelectedSeoPage] = useState("home");
   const [seoPages, setSeoPages] = useState<Record<string, SeoPageMeta>>(() =>
@@ -1407,6 +1419,13 @@ export default function CommandSettings() {
       try {
         const parsed = JSON.parse(settings["footer.sitemap"]);
         if (Array.isArray(parsed)) setSitemapColumns(parsed);
+      } catch {}
+    }
+
+    if (settings["legal.documents"]) {
+      try {
+        const parsed = JSON.parse(settings["legal.documents"]);
+        if (Array.isArray(parsed) && parsed.length > 0) setLegalDocs(parsed);
       } catch {}
     }
 
@@ -2256,6 +2275,119 @@ export default function CommandSettings() {
                     <Button onClick={saveAssets} disabled={mutation.isPending} className="gap-2" data-testid="button-save-assets">
                       <Save className="h-3.5 w-3.5" />
                       Save Assets
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Legal Documents */}
+              <Card data-search-label="legal documents terms of service privacy policy creator agreement" className={cardVisible("legal documents terms of service privacy policy creator agreement cookie acceptable use dmca copyright") ? "" : "hidden"}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    {highlight("Legal Documents")}
+                  </CardTitle>
+                  <CardDescription>
+                    {highlight("Manage the document links shown on the /legal page. Each row has a label and a URL.")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    {legalDocs.map((doc, idx) => (
+                      <div key={idx} className="flex items-center gap-2" data-testid={`row-legal-doc-${idx}`}>
+                        <div className="flex flex-col gap-1 flex-none">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            disabled={idx === 0}
+                            onClick={() => {
+                              const next = [...legalDocs];
+                              [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                              setLegalDocs(next);
+                            }}
+                            aria-label="Move up"
+                            data-testid={`button-legal-doc-up-${idx}`}
+                          >
+                            <ChevronUp className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            disabled={idx === legalDocs.length - 1}
+                            onClick={() => {
+                              const next = [...legalDocs];
+                              [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
+                              setLegalDocs(next);
+                            }}
+                            aria-label="Move down"
+                            data-testid={`button-legal-doc-down-${idx}`}
+                          >
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        <Input
+                          placeholder="Label (e.g. Terms of Service)"
+                          value={doc.label}
+                          onChange={(e) => {
+                            const next = [...legalDocs];
+                            next[idx] = { ...next[idx], label: e.target.value };
+                            setLegalDocs(next);
+                          }}
+                          className="flex-1 min-w-0"
+                          data-testid={`input-legal-doc-label-${idx}`}
+                        />
+                        <Input
+                          placeholder="URL (e.g. https://sevco.us/terms)"
+                          value={doc.href}
+                          onChange={(e) => {
+                            const next = [...legalDocs];
+                            next[idx] = { ...next[idx], href: e.target.value };
+                            setLegalDocs(next);
+                          }}
+                          className="flex-1 min-w-0"
+                          data-testid={`input-legal-doc-href-${idx}`}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
+                          onClick={() => setLegalDocs(legalDocs.filter((_, i) => i !== idx))}
+                          aria-label="Remove"
+                          data-testid={`button-legal-doc-remove-${idx}`}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => setLegalDocs([...legalDocs, { label: "", href: "" }])}
+                      data-testid="button-legal-doc-add"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add Document
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="gap-1.5"
+                      disabled={mutation.isPending}
+                      onClick={() =>
+                        mutation.mutate({ "legal.documents": JSON.stringify(legalDocs) })
+                      }
+                      data-testid="button-legal-doc-save"
+                    >
+                      <Save className="h-3.5 w-3.5" />
+                      Save Legal Documents
                     </Button>
                   </div>
                 </CardContent>

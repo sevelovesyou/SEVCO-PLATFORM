@@ -605,7 +605,7 @@ function CompanyInboxesTab() {
                 <div className="border rounded-lg overflow-hidden text-sm">
                   {selectedEmail.bodyHtml ? (
                     <iframe
-                      srcDoc={`<!DOCTYPE html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src https: data:;"><style>body{font-family:sans-serif;font-size:14px;margin:16px;word-break:break-word;}</style></head><body>${selectedEmail.bodyHtml}</body></html>`}
+                      srcDoc={`<!DOCTYPE html><html><head><meta name="color-scheme" content="dark"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src https: data:;"><style>html,body{background:#0f0f0f;color:#d4d4d4;font-family:sans-serif;font-size:14px;margin:16px;word-break:break-word;}a{color:#6b9eff;}img{max-width:100%;height:auto;}hr{border-color:#333;}blockquote{border-left:3px solid #444;margin-left:0;padding-left:1em;color:#9ca3af;}</style></head><body>${selectedEmail.bodyHtml}</body></html>`}
                       sandbox="allow-same-origin"
                       className="w-full min-h-[200px] border-0"
                       title="Email content"

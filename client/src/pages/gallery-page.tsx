@@ -66,7 +66,8 @@ export default function GalleryPage() {
 
   async function copyLink(imageUrl: string, title: string) {
     try {
-      await navigator.clipboard.writeText(imageUrl);
+      const fullUrl = new URL(imageUrl, window.location.origin).toString();
+      await navigator.clipboard.writeText(fullUrl);
       toast({
         title: "Link copied!",
         description: `"${title}" URL copied to clipboard.`,

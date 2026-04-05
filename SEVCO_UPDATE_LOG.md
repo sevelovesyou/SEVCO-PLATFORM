@@ -17909,3 +17909,95 @@ Two bugs in the music player after Task #221:
 
 ---
 
+## Task — music-player-proxy-and-layout
+> Merged: 2026-04-05
+
+# Music Player — Track Proxy Fix (dedicated /songs path) & Layout Redesign
+
+## What & Why
+
+### Playback broken — wrong proxy path
+Track files are uploaded with `isPrivate={false}`, so the upload API returns `/images/tracks/library/timestamp.mp3` as `fileUrl`. But `tracks` is in `PRIVATE_BUCKETS` on the server, so the `/images/` proxy 403s those requests. The music player context's `isPrivatePath` check doesn't catch `/images/...` paths, so audio never loads.
+
+Additionally, routing music audio through `/images/` is semantically wrong — audio files are not images. Music tracks should have their own dedicated proxy route separate from the image/media proxy.
+
+### Layout broken — art stretches full height
+Task #222 changed the album art from a fixed `w-20 h-20` square to `self-stretch / w-full h-full`, making the art stretch the full height of the player (tall and narrow on the left side). The desired design is Spotify-style: **square album art filling the full width of the player at the top**, with playback controls below.
+
+## Done looks like
+- Track files uploaded via the form are stored in the `tracks` Supabase bucket and are accessible via the new `/songs/*` proxy route.
+- Clicking play on any track immediately starts audio playback with no errors.
+- Audio seeking works (range requests supported via redirect to signed Supabase URL).
+- The floating player shows a square album art image at the top spanning the full player width, with title, artist, scrubber, and controls below.
+- When the player is resized wider, the art grows wider and stays square; more height gives the controls area more space.
+- The `/images/` route continues to work as-is for all other buckets (gallery images, avatars, etc.).
+- Existing tracks in the DB with `/images/tracks/...` fileUrls are migrated to `/songs/...`.
+
+## Spec
+
+### 1. New `/songs/*` server route (`server/routes.ts`)
+Add a dedicated route **before** the `PRIVATE_BUCKETS` block:
+```
+app.get("/songs/*filePath", async (req, res) => {
+  const rawPath = req.params.filePath;
+  const filePath = Array.isArray(rawPath) ? rawPath.join("/") : rawPath;
+  try {
+    const { getSignedUrl, supabase: supabaseAdmin } = await import("./supabase");
+    if (!supabaseAdmin) return res.status(503).json({ message: "Storage not configured." });
+    const signedUrl = await getSignedUrl("tracks", filePath);
+    if (!signedUrl) return res.status(503).json({ message: "Could not generate signed URL" });
+    res.redirect(302, signedUrl);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+```
+The redirect lets the browser follow to the Supabase CDN, which supports HTTP range requests for audio seeking.
+
+### 2. Update upload API to use `/songs/` for tracks bucket (`server/routes.ts`)
+In the `POST /api/upload` handler, change the `publicUrl` logic:
+```
+// Before:
+if (!isPrivate) {
+  publicUrl = `/images/${bucket}/${path}`;
+}
+// After:
+if (!isPrivate) {
+  publicUrl = bucket === "tracks" ? `/songs/${path}` : `/images/${bucket}/${path}`;
+}
+```
+Also update the CMD file browser listing (`/api/storage/files`) and rename (`/api/storage/rename`) responses to use `/songs/${path}` when `bucket === "tracks"`.
+
+### 3. Database migration for existing tracks (`server/index.ts`)
+Add a startup migration step in `runStartupMigrations()` to update existing `music_tracks.fileUrl` values:
+```sql
+UPDATE music_tracks
+SET "fileUrl" = REPLACE("fileUrl", '/images/tracks/', '/songs/')
+WHERE "fileUrl" LIKE '/images/tracks/%';
+```
+This is safe to run repeatedly (idempotent — only rows still using the old path are affected).
+
+### 4. Update music player context (`client/src/contexts/music-player-context.tsx`)
+The `isPrivatePath` check is no longer needed for `/songs/` paths — the `/songs/` route handles signing server-side. Remove the signed-URL fetch logic entirely. Simply set `audio.src = track.fileUrl` and let the redirect work. Keep the signed-URL fetch only as a fallback for any raw storage paths (no prefix) that may still exist from before the migration.
+
+### 5. Redesign player layout — art above controls (`client/src/components/floating-music-player.tsx`)
+Replace the `flex-row` layout (left art column, right controls column) with a `flex-col` layout:
+- Top: `<div className="w-full aspect-square overflow-hidden shrink-0">` containing the cover image (or music icon placeholder)
+- Bottom: `<div className="flex flex-col flex-1 min-h-0 p-3 gap-2">` containing:
+  - Track title (`font-semibold text-sm`)
+  - Artist name (`text-xs text-muted-foreground`)
+  - Optional album name (`text-[10px] text-muted-foreground/70`)
+  - Seek scrubber row (time + range input + time)
+  - Playback controls row (prev / play-pause / next) centered
+  - Volume row (icon + range input)
+- The outer player window keeps its draggable/resizable behavior unchanged. Min size stays `width: 320, height: 220` but the default should be increased to at least `width: 320, height: 360` so the square art plus controls both fit comfortably without squishing.
+
+## Relevant files
+- `server/routes.ts` — new `/songs/*` route; update upload publicUrl logic; update file browser list/rename responses; keep `PRIVATE_BUCKETS` unchanged
+- `server/index.ts` — add `UPDATE music_tracks SET fileUrl` migration in `runStartupMigrations()`
+- `client/src/contexts/music-player-context.tsx` — simplify `loadTrack`, remove complex `isPrivatePath` fetch
+- `client/src/components/floating-music-player.tsx` — redesign body to `flex-col` with square art on top
+
+
+---
+

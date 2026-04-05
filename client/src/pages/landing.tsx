@@ -453,20 +453,31 @@ export default function Landing() {
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4 leading-[1.1]">
                   {/* Word-by-word staggered reveal animation */}
                   {heroHeadline
-                    ? heroHeadline.split(" ").map((word, i) => (
-                        <span
-                          key={i}
-                          className="inline-block mr-[0.25em]"
-                          style={{
-                            opacity: 0,
-                            animation: `wordReveal 0.5s ease forwards`,
-                            animationDelay: `${i * 0.08}s`,
-                            color: "rgba(255,255,255,0.92)",
-                          }}
-                        >
-                          {word}
-                        </span>
-                      ))
+                    ? heroHeadline.split(" ").map((word, i) => {
+                        const isAccented = word.startsWith("*") && word.endsWith("*") && word.length > 2;
+                        const displayWord = isAccented ? word.slice(1, -1) : word;
+                        return (
+                          <span
+                            key={i}
+                            className="inline-block mr-[0.25em]"
+                            style={{
+                              opacity: 0,
+                              animation: `wordReveal 0.5s ease forwards`,
+                              animationDelay: `${i * 0.08}s`,
+                              ...(isAccented ? {
+                                background: "linear-gradient(135deg, #ff3333 0%, #cc0000 50%, #ff6666 100%)",
+                                WebkitBackgroundClip: "text",
+                                WebkitTextFillColor: "transparent",
+                                backgroundClip: "text",
+                              } : {
+                                color: "rgba(255,255,255,0.92)",
+                              }),
+                            }}
+                          >
+                            {displayWord}
+                          </span>
+                        );
+                      })
                     : ["A", "creative", "community", "platform", "built", "by", "creators,", "for", "creators."].map((word, i) => {
                         const isRedWord = i === 0 || i >= 6;
                         const isWhiteWord = i >= 3 && i <= 5;

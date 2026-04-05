@@ -84,6 +84,7 @@ export default function CommandDisplay() {
 
   const [heroLogoUrl, setHeroLogoUrl] = useState("");
   const [heroBgUrl, setHeroBgUrl] = useState("");
+  const [heroHeadline, setHeroHeadline] = useState("");
   const [heroText, setHeroText] = useState("");
   const [heroOverlayOpacity, setHeroOverlayOpacity] = useState(70);
   const [footerTagline, setFooterTagline] = useState("");
@@ -132,6 +133,7 @@ export default function CommandDisplay() {
     if (isLoading) return;
     setHeroLogoUrl(settings["hero.logoUrl"] ?? settings["platform.logoUrl"] ?? "");
     setHeroBgUrl(settings["hero.backgroundImageUrl"] ?? "");
+    setHeroHeadline(settings["hero.headline"] ?? "");
     setHeroText(settings["hero.text"] ?? "");
     setHeroOverlayOpacity(settings["hero.overlayOpacity"] ? parseInt(settings["hero.overlayOpacity"]) : 70);
     setFooterTagline(settings["footer.tagline"] ?? "");
@@ -203,6 +205,7 @@ export default function CommandDisplay() {
     mutation.mutate({
       "hero.logoUrl": heroLogoUrl,
       "hero.backgroundImageUrl": heroBgUrl,
+      "hero.headline": heroHeadline,
       "hero.text": heroText,
       "hero.overlayOpacity": String(heroOverlayOpacity),
       "footer.tagline": footerTagline,
@@ -570,6 +573,18 @@ export default function CommandDisplay() {
               data-testid="slider-overlay-opacity"
             />
             <p className="text-xs text-muted-foreground">Controls how dark the overlay is on top of the hero background image.</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="hero-headline">Hero headline (H1)</Label>
+            <Input
+              id="hero-headline"
+              placeholder="A creative community platform built by creators, for creators."
+              value={heroHeadline}
+              onChange={(e) => setHeroHeadline(e.target.value)}
+              data-testid="input-hero-headline"
+            />
+            <p className="text-xs text-muted-foreground">Wrap words in *asterisks* to highlight them in red — e.g. *A* creative platform</p>
           </div>
 
           <div className="space-y-2">

@@ -1993,6 +1993,7 @@ export default function CommandSettings() {
                       onChange={(e) => setHeroHeadline(e.target.value)}
                       data-testid="input-hero-headline"
                     />
+                    <p className="text-xs text-muted-foreground">Wrap words in *asterisks* to highlight them in red — e.g. *A* creative platform</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="hero-text">{highlight("Hero text (tagline)")}</Label>

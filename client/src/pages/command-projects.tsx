@@ -72,7 +72,10 @@ const formSchema = z.object({
   category: z.string().max(100).optional().or(z.literal("")),
   type: z.string().max(100).optional().or(z.literal("")),
   websiteUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
-  linkUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  linkUrl: z.string().refine(
+    (val) => val === "" || /^https?:\/\//.test(val) || val.startsWith("/"),
+    "Must be a valid URL or relative path"
+  ).optional().or(z.literal("")),
   menuIcon: z.string().max(100).optional().or(z.literal("")),
   appIcon: z.string().optional().or(z.literal("")),
   displayOrder: z.coerce.number().int().optional(),

@@ -17510,3 +17510,56 @@ Create a dedicated landing page at `/legal` for the SEVCO Legal Department, prom
 
 ---
 
+## Task — legal-docs-cmd-editable
+> Merged: 2026-04-05
+
+# Legal Documents Links: Editable from CMD Platform Settings
+
+## What
+The `/legal` page has 6 hardcoded document links (Terms of Service, Privacy Policy, Creator Agreement, etc.) that all point to `"#"`. Admins should be able to set the real URLs and labels for these from CMD > Platform Settings without touching code.
+
+## Done looks like
+- CMD > Platform Settings has a new "Legal Documents" section with an editable list of document links — each row has a Label field and a URL field
+- Admins can add new document links, edit existing ones, remove any row, and reorder them with up/down arrows
+- Saving stores the list as JSON at platform settings key `"legal.documents"`
+- The `/legal` page reads from `GET /api/platform-settings` and renders the `legal.documents` list; falls back to the current hardcoded defaults if the setting is not yet saved
+- No new backend routes needed — the existing `GET /api/platform-settings` (public) and `PUT /api/platform-settings` (admin-only) routes handle everything
+
+## Data format
+```json
+// platform_settings key: "legal.documents"
+// value: JSON string of array
+[
+  { "label": "Terms of Service", "href": "https://sevco.us/terms" },
+  { "label": "Privacy Policy", "href": "https://sevco.us/privacy" },
+  { "label": "Creator Agreement", "href": "#" }
+]
+```
+
+## Frontend changes
+
+### client/src/pages/command-settings.tsx
+Add a "Legal Documents" card/section in the Platform Settings tab (near the bottom, after existing sections). The section contains:
+- A sortable list of rows, each with:
+  - A text input for the label (e.g., "Terms of Service")
+  - A URL input for the href (e.g., "https://sevco.us/terms")
+  - An "×" remove button
+  - Up/down arrow buttons to reorder
+- An "+ Add Document" button that appends a new empty row
+- A "Save Legal Documents" button that serializes the list to JSON and calls `PUT /api/platform-settings` with `{ "legal.documents": JSON.stringify(list) }`
+- On load, parse `settings["legal.documents"]` if present to populate the list; otherwise pre-populate with the 6 default labels and empty hrefs so the admin sees the existing documents ready to fill in
+
+### client/src/pages/legal-page.tsx
+- Import `useQuery` from `@tanstack/react-query` (if not already imported)
+- Fetch `GET /api/platform-settings` to get the settings object
+- Parse `settings["legal.documents"]` if present; fall back to the current hardcoded `LEGAL_DOCS` array if not set or if parsing fails
+- Render the resulting array exactly as today (label + FileText icon + href link)
+
+## Relevant files
+- `client/src/pages/command-settings.tsx` — add Legal Documents section
+- `client/src/pages/legal-page.tsx` — read from platform settings instead of hardcoded array
+- No backend changes needed
+
+
+---
+

@@ -6,6 +6,26 @@ html, body {
   overflow-x: clip;
 }
 
+/* Global scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.28);
+}
+
 /* LIGHT MODE - Clean encyclopedic wiki theme */
 :root {
   --button-outline: rgba(0,0,0, .10);

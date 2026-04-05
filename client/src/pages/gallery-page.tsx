@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { PageHead } from "@/components/page-head";
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +44,6 @@ const TABS = [
 const SKELETON_HEIGHTS = ["h-40", "h-64", "h-48", "h-56", "h-32", "h-72", "h-44", "h-60"];
 
 export default function GalleryPage() {
-  const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("all");
   const [lightboxImage, setLightboxImage] = useState<GalleryImage | null>(null);
@@ -134,15 +132,9 @@ export default function GalleryPage() {
             ? "No images in this category. Try another filter."
             : "The gallery is empty. Check back soon!"}
           action={
-            user ? (
-              <Link href="/">
-                <Button variant="outline" size="sm" data-testid="link-gallery-empty-feed">Go Home</Button>
-              </Link>
-            ) : (
-              <Link href="/wiki/contact">
-                <Button variant="outline" size="sm" data-testid="link-gallery-empty-contact">Visit Discord</Button>
-              </Link>
-            )
+            <Link href="/wiki/contact">
+              <Button variant="outline" size="sm" data-testid="link-gallery-empty-contact">Visit Discord</Button>
+            </Link>
           }
         />
       )}

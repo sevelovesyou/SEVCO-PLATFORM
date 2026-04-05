@@ -46,6 +46,8 @@ import {
   type StaffTask, type InsertStaffTask, type UpdateStaffTask,
   type Domain, type InsertDomain,
   type Notification, type InsertNotification,
+  type SystemMailbox, type InsertSystemMailbox,
+  type SystemMailboxEmail, type InsertSystemMailboxEmail,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
@@ -67,6 +69,8 @@ import {
   staffTasks,
   notifications,
   musicTracks,
+  systemMailboxes,
+  systemMailboxEmails,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, and, sql, ilike, or, inArray, gte, lte, count as countFn } from "drizzle-orm";
@@ -390,6 +394,17 @@ export interface IStorage {
   updateMusicTrack(id: number, data: Partial<InsertMusicTrack>): Promise<MusicTrack>;
   deleteMusicTrack(id: number): Promise<void>;
   incrementMusicTrackStream(id: number): Promise<MusicTrack>;
+
+  getSystemMailboxes(): Promise<SystemMailbox[]>;
+  getSystemMailboxByAddress(address: string): Promise<SystemMailbox | undefined>;
+  createSystemMailbox(data: InsertSystemMailbox): Promise<SystemMailbox>;
+  deleteSystemMailbox(id: number): Promise<void>;
+  getSystemMailboxUnreadCounts(): Promise<Record<number, number>>;
+  getSystemMailboxEmails(mailboxId: number): Promise<SystemMailboxEmail[]>;
+  getSystemMailboxEmail(mailboxId: number, emailId: number): Promise<SystemMailboxEmail | undefined>;
+  getSystemMailboxEmailByResendId(resendEmailId: string): Promise<SystemMailboxEmail | undefined>;
+  createSystemMailboxEmail(data: InsertSystemMailboxEmail): Promise<SystemMailboxEmail>;
+  markSystemMailboxEmailRead(mailboxId: number, emailId: number): Promise<void>;
 }
 
 export type SearchResultItem = {
@@ -2552,6 +2567,64 @@ export class DatabaseStorage implements IStorage {
       .where(eq(musicTracks.id, id))
       .returning();
     return track;
+  }
+
+  async getSystemMailboxes(): Promise<SystemMailbox[]> {
+    return db.select().from(systemMailboxes).orderBy(asc(systemMailboxes.name));
+  }
+
+  async getSystemMailboxByAddress(address: string): Promise<SystemMailbox | undefined> {
+    const [mb] = await db.select().from(systemMailboxes).where(eq(systemMailboxes.address, address.toLowerCase()));
+    return mb;
+  }
+
+  async createSystemMailbox(data: InsertSystemMailbox): Promise<SystemMailbox> {
+    const [mb] = await db.insert(systemMailboxes).values({ ...data, address: data.address.toLowerCase() }).returning();
+    return mb;
+  }
+
+  async deleteSystemMailbox(id: number): Promise<void> {
+    await db.delete(systemMailboxes).where(eq(systemMailboxes.id, id));
+  }
+
+  async getSystemMailboxUnreadCounts(): Promise<Record<number, number>> {
+    const rows = await db
+      .select({ mailboxId: systemMailboxEmails.mailboxId, cnt: countFn() })
+      .from(systemMailboxEmails)
+      .where(and(eq(systemMailboxEmails.isRead, false), eq(systemMailboxEmails.direction, "inbound")))
+      .groupBy(systemMailboxEmails.mailboxId);
+    const result: Record<number, number> = {};
+    for (const row of rows) result[row.mailboxId] = Number(row.cnt);
+    return result;
+  }
+
+  async getSystemMailboxEmails(mailboxId: number): Promise<SystemMailboxEmail[]> {
+    return db.select().from(systemMailboxEmails)
+      .where(eq(systemMailboxEmails.mailboxId, mailboxId))
+      .orderBy(desc(systemMailboxEmails.createdAt));
+  }
+
+  async getSystemMailboxEmail(mailboxId: number, emailId: number): Promise<SystemMailboxEmail | undefined> {
+    const [email] = await db.select().from(systemMailboxEmails)
+      .where(and(eq(systemMailboxEmails.id, emailId), eq(systemMailboxEmails.mailboxId, mailboxId)));
+    return email;
+  }
+
+  async getSystemMailboxEmailByResendId(resendEmailId: string): Promise<SystemMailboxEmail | undefined> {
+    const [email] = await db.select().from(systemMailboxEmails)
+      .where(eq(systemMailboxEmails.resendEmailId, resendEmailId));
+    return email;
+  }
+
+  async createSystemMailboxEmail(data: InsertSystemMailboxEmail): Promise<SystemMailboxEmail> {
+    const [email] = await db.insert(systemMailboxEmails).values(data).returning();
+    return email;
+  }
+
+  async markSystemMailboxEmailRead(mailboxId: number, emailId: number): Promise<void> {
+    await db.update(systemMailboxEmails)
+      .set({ isRead: true })
+      .where(and(eq(systemMailboxEmails.id, emailId), eq(systemMailboxEmails.mailboxId, mailboxId)));
   }
 }
 

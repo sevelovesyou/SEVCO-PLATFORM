@@ -35,6 +35,7 @@ import {
   getCountryBreakdown,
   getDeviceSplit,
 } from "./analytics";
+import { isUsernameReserved } from "./usernameUtils";
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive"];
 const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
@@ -2423,6 +2424,9 @@ export async function registerRoutes(
       if (existing && existing.id !== req.params.id) {
         return res.status(409).json({ message: "Username already taken" });
       }
+      if (await isUsernameReserved(trimmed)) {
+        return res.status(400).json({ message: "This username is reserved." });
+      }
       const updated = await storage.updateUsername(req.params.id, trimmed);
       const { password: _, ...safe } = updated;
       res.json(safe);
@@ -2484,6 +2488,9 @@ export async function registerRoutes(
         const existing = await storage.getUserByUsername(trimmed);
         if (existing && existing.id !== req.params.id) {
           return res.status(409).json({ message: "Username already taken" });
+        }
+        if (await isUsernameReserved(trimmed)) {
+          return res.status(400).json({ message: "This username is reserved." });
         }
         await storage.updateUsername(req.params.id, trimmed);
       }
@@ -5646,6 +5653,134 @@ export async function registerRoutes(
       res.json({ success: true, message: `Simulated inbound email delivered to ${username}@sevco.us` });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err?.message ?? "Simulation failed" });
+    }
+  });
+
+  // ── System Mailboxes ──────────────────────────────────────────────────
+  app.get("/api/admin/mailboxes", requireAuth, requireRole("admin"), async (_req, res) => {
+    try {
+      const [mailboxes, unreadCounts] = await Promise.all([
+        storage.getSystemMailboxes(),
+        storage.getSystemMailboxUnreadCounts(),
+      ]);
+      const withCounts = mailboxes.map((mb) => ({ ...mb, unreadCount: unreadCounts[mb.id] ?? 0 }));
+      res.json(withCounts);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/admin/mailboxes", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const { name, address, description } = req.body;
+      if (!name || typeof name !== "string" || !name.trim()) {
+        return res.status(400).json({ message: "Name is required" });
+      }
+      if (!address || typeof address !== "string" || !address.trim()) {
+        return res.status(400).json({ message: "Address is required" });
+      }
+      const addr = address.trim().toLowerCase();
+      if (!/^[a-z0-9._+-]+@sevco\.us$/.test(addr)) {
+        return res.status(400).json({ message: "Mailbox address must be a @sevco.us address" });
+      }
+      const existing = await storage.getSystemMailboxByAddress(addr);
+      if (existing) {
+        return res.status(409).json({ message: "A mailbox with that address already exists" });
+      }
+      const mailbox = await storage.createSystemMailbox({
+        name: name.trim(),
+        address: addr,
+        description: description?.trim() || null,
+        isActive: true,
+      });
+      res.json(mailbox);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/admin/mailboxes/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      await storage.deleteSystemMailbox(id);
+      res.status(204).send();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/admin/mailboxes/:id/emails", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      const emails = await storage.getSystemMailboxEmails(id);
+      res.json(emails);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/admin/mailboxes/:id/emails/:emailId", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const emailId = parseInt(req.params.emailId);
+      if (isNaN(id) || isNaN(emailId)) return res.status(400).json({ message: "Invalid id" });
+      const email = await storage.getSystemMailboxEmail(id, emailId);
+      if (!email) return res.status(404).json({ message: "Email not found" });
+      await storage.markSystemMailboxEmailRead(id, emailId);
+      res.json({ ...email, isRead: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/admin/mailboxes/:id/emails/:emailId/reply", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const emailId = parseInt(req.params.emailId);
+      if (isNaN(id) || isNaN(emailId)) return res.status(400).json({ message: "Invalid id" });
+      const { subject, body } = req.body;
+      if (!body || typeof body !== "string" || !body.trim()) {
+        return res.status(400).json({ message: "Reply body is required" });
+      }
+      const mailbox = await storage.getSystemMailboxes().then((mbs) => mbs.find((m) => m.id === id));
+      if (!mailbox) return res.status(404).json({ message: "Mailbox not found" });
+      const originalEmail = await storage.getSystemMailboxEmail(id, emailId);
+      if (!originalEmail) return res.status(404).json({ message: "Email not found" });
+      if (originalEmail.direction !== "inbound") {
+        return res.status(400).json({ message: "Can only reply to inbound emails" });
+      }
+
+      const resend = await import("resend").then((m) => new m.Resend(process.env.RESEND_API_KEY));
+      const replySubject = subject?.trim() || `Re: ${originalEmail.subject}`;
+      const toAddress = originalEmail.fromAddress;
+
+      const sendResult = await resend.emails.send({
+        from: `${mailbox.name} <${mailbox.address}>`,
+        to: [toAddress],
+        subject: replySubject,
+        text: body.trim(),
+      });
+
+      const resendEmailId = sendResult.data?.id ?? null;
+
+      const saved = await storage.createSystemMailboxEmail({
+        mailboxId: id,
+        resendEmailId,
+        direction: "outbound",
+        fromAddress: mailbox.address,
+        toAddresses: [toAddress],
+        subject: replySubject,
+        bodyHtml: "",
+        bodyText: body.trim(),
+        isRead: true,
+        threadId: originalEmail.threadId ?? null,
+      });
+
+      res.json(saved);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
     }
   });
 

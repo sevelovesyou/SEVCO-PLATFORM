@@ -1011,3 +1011,35 @@ export const musicTracks = pgTable("music_tracks", {
 export const insertMusicTrackSchema = createInsertSchema(musicTracks).omit({ id: true, createdAt: true, streamCount: true });
 export type MusicTrack = typeof musicTracks.$inferSelect;
 export type InsertMusicTrack = z.infer<typeof insertMusicTrackSchema>;
+
+export const systemMailboxes = pgTable("system_mailboxes", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  address: text("address").notNull().unique(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const systemMailboxEmails = pgTable("system_mailbox_emails", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  mailboxId: integer("mailbox_id").notNull().references(() => systemMailboxes.id, { onDelete: "cascade" }),
+  resendEmailId: text("resend_email_id"),
+  direction: text("direction").notNull(),
+  fromAddress: text("from_address").notNull(),
+  toAddresses: text("to_addresses").array().notNull(),
+  subject: text("subject").notNull().default(""),
+  bodyHtml: text("body_html").default(""),
+  bodyText: text("body_text").default(""),
+  isRead: boolean("is_read").default(false),
+  threadId: text("thread_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertSystemMailboxSchema = createInsertSchema(systemMailboxes).omit({ id: true, createdAt: true });
+export type SystemMailbox = typeof systemMailboxes.$inferSelect;
+export type InsertSystemMailbox = z.infer<typeof insertSystemMailboxSchema>;
+
+export const insertSystemMailboxEmailSchema = createInsertSchema(systemMailboxEmails).omit({ id: true, createdAt: true });
+export type SystemMailboxEmail = typeof systemMailboxEmails.$inferSelect;
+export type InsertSystemMailboxEmail = z.infer<typeof insertSystemMailboxEmailSchema>;

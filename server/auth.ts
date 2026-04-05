@@ -11,6 +11,7 @@ import { insertUserSchema, updateUserSchema, updateRoleSchema } from "@shared/sc
 import { requireRole, CAN_MANAGE_ROLES } from "./middleware/permissions";
 import { pool } from "./db";
 import { sendVerificationEmail } from "./emailClient";
+import { isUsernameReserved } from "./usernameUtils";
 
 const PgSession = connectPgSimple(session);
 
@@ -302,6 +303,10 @@ export function setupAuth(app: Express) {
       const existing = await storage.getUserByUsername(parsed.data.username);
       if (existing) {
         return res.status(400).json({ message: "Username already taken" });
+      }
+
+      if (await isUsernameReserved(parsed.data.username)) {
+        return res.status(400).json({ message: "This username is reserved." });
       }
 
       const existingEmail = await storage.getUserByEmail(parsed.data.email);

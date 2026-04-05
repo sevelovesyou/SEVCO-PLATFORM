@@ -363,6 +363,40 @@ export async function processInboundEmail(payload: ResendInboundPayload): Promis
 
   const bodyText = payloadText;
 
+  const allMailboxes = await storage.getSystemMailboxes();
+  const activeMailboxes = allMailboxes.filter((m) => m.isActive);
+
+  // Pre-scan ALL recipients for system mailbox match BEFORE any user routing
+  for (const recipient of toAddresses) {
+    const addr = extractEmailAddress(recipient);
+    const matchedMailbox = activeMailboxes.find((m) => m.address.toLowerCase() === addr.toLowerCase());
+    if (matchedMailbox) {
+      if (email_id) {
+        const existing = await storage.getSystemMailboxEmailByResendId(email_id);
+        if (existing) {
+          console.log(`[email] Skipping duplicate inbound email ${email_id} for system mailbox ${matchedMailbox.address}`);
+          return;
+        }
+      }
+      console.log(`[email] Routing inbound email to system mailbox: ${matchedMailbox.address}`);
+      await storage.createSystemMailboxEmail({
+        mailboxId: matchedMailbox.id,
+        resendEmailId: email_id ?? null,
+        direction: "inbound",
+        fromAddress,
+        toAddresses,
+        subject,
+        bodyHtml,
+        bodyText,
+        isRead: false,
+        threadId: null,
+      });
+      console.log(`[email] Stored inbound email in system mailbox ${matchedMailbox.address} — returning early, skipping user routing`);
+      return;
+    }
+  }
+
+  // No system mailbox matched — proceed with user inbox routing
   for (const recipient of toAddresses) {
     const addr = extractEmailAddress(recipient);
     const match = addr.match(/^(.+?)@sevco\.us$/i);

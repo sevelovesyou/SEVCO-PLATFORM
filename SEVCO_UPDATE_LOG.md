@@ -17844,3 +17844,35 @@ Four related Store improvements:
 
 ---
 
+## Task — music-player-signed-url
+> Merged: 2026-04-05
+
+# Fix Music Player — Private Track Playback
+
+## What & Why
+The music player cannot play tracks because the `tracks` Supabase bucket is private. When a track file is uploaded, `fileUrl` is stored as a raw storage path (e.g., `tracks/filename.mp3`). The music player context sets `audio.src = track.fileUrl` directly, which resolves to a broken relative URL and silently fails. The existing image proxy returns 403 for private buckets by design.
+
+## Done looks like
+- Clicking play on any track in the music player (album page, artist page, beats page, profile) actually plays the audio.
+- The floating music player plays, pauses, seeks, and reports duration correctly.
+- Tracks with public file URLs (full `https://` links) continue to work as-is.
+
+## Out of scope
+- Making the `tracks` bucket public (keeps security as-is).
+- Changes to cover image display (covers use the public `gallery` bucket and are unaffected).
+- Changes to the track upload flow.
+
+## Tasks
+1. **Add signed URL server endpoint** — Add `GET /api/music/tracks/:id/signed-url` to `server/routes.ts`. It fetches the track by ID, takes its `fileUrl` (the raw storage path), calls `getSignedUrl("tracks", fileUrl)` from `./supabase`, and returns `{ signedUrl }`. Require auth so anonymous users can't harvest signed URLs for private tracks. The signed URL should have a 1-hour expiry (already the `getSignedUrl` default).
+
+2. **Update music player context to fetch signed URLs** — In `client/src/contexts/music-player-context.tsx`, update the `loadTrack()` function (and therefore `playTrack`) to check whether `track.fileUrl` looks like a private storage path (does not start with `http://`, `https://`, or `/images/`). If it is, make a `fetch` call to `/api/music/tracks/${track.id}/signed-url` to get a fresh signed URL and use that as `audio.src`. If the endpoint call fails or the fileUrl is already a public URL, fall back to using `track.fileUrl` directly.
+
+## Relevant files
+- `server/routes.ts:3198-3215` (existing signed URL pattern for submissions)
+- `server/supabase.ts:97-108` (`getSignedUrl` implementation)
+- `client/src/contexts/music-player-context.tsx:55-72` (`loadTrack` function)
+- `shared/schema.ts` (music_tracks table — `fileUrl` column)
+
+
+---
+

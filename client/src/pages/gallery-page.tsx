@@ -6,8 +6,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Link } from "wouter";
-import { Copy, ImageOff, ExternalLink } from "lucide-react";
+import { Copy, ImageOff, ExternalLink, X } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import type { GalleryImage } from "@shared/schema";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
@@ -37,10 +42,13 @@ const TABS = [
   { value: "other", label: "Other" },
 ];
 
+const SKELETON_HEIGHTS = ["h-40", "h-64", "h-48", "h-56", "h-32", "h-72", "h-44", "h-60"];
+
 export default function GalleryPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("all");
+  const [lightboxImage, setLightboxImage] = useState<GalleryImage | null>(null);
 
   const queryKey = activeTab === "all"
     ? ["/api/gallery"]
@@ -103,12 +111,12 @@ export default function GalleryPage() {
         ))}
       </div>
 
-      {/* Loading */}
+      {/* Loading — masonry-style skeleton */}
       {isLoading && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <div className="columns-2 sm:columns-3 md:columns-4 gap-4 space-y-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="space-y-2">
-              <Skeleton className="aspect-video w-full rounded-lg" />
+            <div key={i} className="break-inside-avoid mb-4 space-y-2">
+              <Skeleton className={`${SKELETON_HEIGHTS[i % SKELETON_HEIGHTS.length]} w-full rounded-xl`} />
               <Skeleton className="h-4 w-3/4" />
               <Skeleton className="h-7 w-full" />
             </div>
@@ -138,28 +146,32 @@ export default function GalleryPage() {
         />
       )}
 
-      {/* Image grid */}
+      {/* Masonry image grid */}
       {!isLoading && images && images.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4" data-testid="gallery-grid">
+        <div className="columns-2 sm:columns-3 md:columns-4 gap-4 space-y-4" data-testid="gallery-grid">
           {images.map((image) => (
             <div
               key={image.id}
-              className="group flex flex-col rounded-xl border bg-card overflow-hidden hover:shadow-md transition-shadow"
+              className="break-inside-avoid mb-4 group rounded-xl border bg-card overflow-hidden hover:shadow-md transition-shadow"
               data-testid={`card-gallery-${image.id}`}
             >
-              <div className="relative aspect-video bg-muted overflow-hidden">
+              <button
+                className="w-full relative"
+                onClick={() => setLightboxImage(image)}
+                data-testid={`button-expand-image-${image.id}`}
+              >
                 <img
                   src={resolveImageUrl(image.imageUrl)}
                   alt={image.altText || image.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  className="w-full rounded-t-xl group-hover:opacity-90 transition-opacity"
                   loading="lazy"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = "";
                     (e.target as HTMLImageElement).style.display = "none";
-                    (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
+                    const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                    if (fallback) fallback.classList.remove("hidden");
                   }}
                 />
-                <div className="hidden absolute inset-0 flex items-center justify-center">
+                <div className="hidden absolute inset-0 flex items-center justify-center bg-muted rounded-t-xl" style={{ minHeight: "8rem" }}>
                   <ImageOff className="h-8 w-8 text-muted-foreground/40" />
                 </div>
                 {!image.isPublic && (
@@ -167,8 +179,8 @@ export default function GalleryPage() {
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">Members only</Badge>
                   </div>
                 )}
-              </div>
-              <div className="p-3 flex flex-col gap-2 flex-1">
+              </button>
+              <div className="p-3 flex flex-col gap-2">
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-xs font-semibold leading-tight line-clamp-2" data-testid={`text-gallery-title-${image.id}`}>
                     {image.title}
@@ -181,12 +193,12 @@ export default function GalleryPage() {
                     {CATEGORY_LABELS[image.category] ?? image.category}
                   </Badge>
                 </div>
-                <div className="flex gap-1.5 mt-auto">
+                <div className="flex gap-1.5">
                   <Button
                     size="sm"
                     variant="outline"
                     className="flex-1 h-7 text-xs gap-1"
-                    onClick={() => copyLink(image.imageUrl, image.title)}
+                    onClick={() => copyLink(resolveImageUrl(image.imageUrl), image.title)}
                     data-testid={`button-copy-link-${image.id}`}
                   >
                     <Copy className="h-3 w-3" />
@@ -209,6 +221,74 @@ export default function GalleryPage() {
           ))}
         </div>
       )}
+
+      {/* Lightbox dialog */}
+      <Dialog open={lightboxImage !== null} onOpenChange={(open) => { if (!open) setLightboxImage(null); }}>
+        <DialogContent className="max-w-[95vw] w-auto p-0 overflow-hidden bg-background border rounded-2xl" data-testid="lightbox-dialog">
+          <DialogTitle className="sr-only">
+            {lightboxImage?.title ?? "Image preview"}
+          </DialogTitle>
+          {lightboxImage && (
+            <div className="flex flex-col items-center">
+              <div className="relative w-full flex items-center justify-center bg-muted/30 p-4">
+                <img
+                  src={resolveImageUrl(lightboxImage.imageUrl)}
+                  alt={lightboxImage.altText || lightboxImage.title}
+                  className="max-w-[90vw] max-h-[75vh] object-contain rounded-xl"
+                  data-testid="lightbox-image"
+                />
+              </div>
+              <div className="w-full px-5 py-4 flex flex-col gap-3 border-t">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold leading-snug" data-testid="lightbox-title">
+                    {lightboxImage.title}
+                  </p>
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] px-1.5 py-0.5 shrink-0 ${CATEGORY_COLORS[lightboxImage.category] ?? CATEGORY_COLORS.other}`}
+                    data-testid="lightbox-category-badge"
+                  >
+                    {CATEGORY_LABELS[lightboxImage.category] ?? lightboxImage.category}
+                  </Badge>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 gap-1.5"
+                    onClick={() => copyLink(resolveImageUrl(lightboxImage.imageUrl), lightboxImage.title)}
+                    data-testid="lightbox-button-copy"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    Copy Link
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 gap-1.5"
+                    asChild
+                    data-testid="lightbox-button-open"
+                  >
+                    <a href={resolveImageUrl(lightboxImage.imageUrl)} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Open Full Size
+                    </a>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-9 w-9 p-0 shrink-0"
+                    onClick={() => setLightboxImage(null)}
+                    data-testid="lightbox-button-close"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

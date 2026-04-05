@@ -5613,10 +5613,16 @@ export async function registerRoutes(
       }
       const username = match[1].toLowerCase();
       const user = await storage.getUserByUsername(username);
+      const webhookConfigured = !!process.env.RESEND_WEBHOOK_SECRET;
+      if (!user) {
+        const mailbox = await storage.getSystemMailboxByAddress(address.toLowerCase());
+        if (mailbox) {
+          return res.json({ isSystemMailbox: true, isActive: mailbox.isActive, webhookConfigured });
+        }
+      }
       const userExists = !!user;
       const userRole = user?.role ?? null;
       const roleQualifies = userRole ? isClientPlus(userRole) : false;
-      const webhookConfigured = !!process.env.RESEND_WEBHOOK_SECRET;
       res.json({ userExists, userRole, roleQualifies, webhookConfigured });
     } catch (err: any) {
       res.status(500).json({ message: err?.message ?? "Status check failed" });
@@ -5636,7 +5642,24 @@ export async function registerRoutes(
       const username = match[1].toLowerCase();
       const targetUser = await storage.getUserByUsername(username);
       if (!targetUser) {
-        return res.status(404).json({ success: false, message: `No user account found for ${username}@sevco.us` });
+        const mailbox = await storage.getSystemMailboxByAddress(address.toLowerCase());
+        if (mailbox) {
+          const timestamp = new Date().toISOString();
+          await storage.createSystemMailboxEmail({
+            mailboxId: mailbox.id,
+            resendEmailId: `simulate-${Date.now()}`,
+            direction: "inbound",
+            fromAddress: "diagnostics@sevco.us",
+            toAddresses: [mailbox.address],
+            subject: "Inbound Email Test",
+            bodyHtml: `<p>This is a simulated inbound email sent at <strong>${timestamp}</strong> to confirm end-to-end delivery is working.</p>`,
+            bodyText: `This is a simulated inbound email sent at ${timestamp} to confirm end-to-end delivery is working.`,
+            isRead: false,
+            threadId: null,
+          });
+          return res.json({ success: true, message: `Simulated inbound email delivered to ${mailbox.address}` });
+        }
+        return res.status(404).json({ success: false, message: `No user account or system mailbox found for ${username}@sevco.us` });
       }
       if (!isClientPlus(targetUser.role)) {
         return res.status(403).json({ success: false, message: `User ${username} has role "${targetUser.role}" which does not qualify for inbound email (requires client, partner, staff, executive, or admin)` });

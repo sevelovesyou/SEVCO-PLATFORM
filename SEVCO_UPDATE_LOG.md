@@ -17382,3 +17382,52 @@ Artist detail pages are a separate experience from user profiles, creating fragm
 
 ---
 
+## Task — cmd-sidebar-scrollbar
+> Merged: 2026-04-05
+
+# Global Scrollbar Styling
+
+## What
+Default browser scrollbars appear throughout the platform — most visibly in the CMD sidebar nav. Apply a single global scrollbar style in `index.css` so every scrollable area on the platform gets a consistent, polished look that matches the dark theme.
+
+## Done looks like
+- All scrollbars across the platform are replaced with a thin (4px wide), low-contrast custom scrollbar
+- Scrollbar track is transparent
+- Scrollbar thumb is a subtle semi-transparent white/grey (`rgba(255,255,255,0.15)`) with rounded corners, that darkens slightly on hover
+- Content remains fully scrollable — only the visual appearance changes
+- Works in both light and dark sections of the UI (the semi-transparent thumb adapts to both)
+- Firefox users get `scrollbar-width: thin` and `scrollbar-color` equivalents via the `scrollbar-color` property
+
+## How
+Add to `client/src/index.css` using global selectors (no scoping needed since this should apply everywhere):
+
+```css
+/* Global scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.28);
+}
+```
+
+The CMD sidebar task that was originally proposed is absorbed into this — no scoped CSS needed on the sidebar component itself.
+
+## Files
+- `client/src/index.css` — add global scrollbar styles (single location, ~12 lines)
+
+
+---
+

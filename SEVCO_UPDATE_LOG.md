@@ -17773,3 +17773,30 @@ When adding or editing a project, uploading an image (Hero Image, Logo, App Icon
 
 ---
 
+## Task — cmd-projects-link-url-validation
+> Merged: 2026-04-05
+
+# Fix GitHub/App URL Validation in CMD Projects
+
+## What & Why
+In the CMD Projects edit dialog (`/command/projects`), the "GitHub / App URL" field uses `z.string().url("Must be a valid URL")` which only accepts full `https://...` URLs. Projects that use an internal relative path like `/music` as their app URL (instead of an external link) are blocked from saving with "Must be a valid URL".
+
+## Done looks like
+- Entering a relative path like `/music` or `/projects/foo` in the "GitHub / App URL" field saves successfully without any validation error.
+- Full `https://...` URLs continue to work as before.
+- Leaving the field empty still works (optional).
+
+## Out of scope
+- Changes to any other form fields or validators.
+- Changes to `project-form.tsx` (that was fixed in Task #218).
+- Server-side validation.
+
+## Tasks
+1. **Fix `linkUrl` validator in CMD Projects** — In `command-projects.tsx`, replace the `z.string().url()` validator for `linkUrl` with a `.refine()` that accepts: an empty string, a full `http://` or `https://` URL, or a relative path starting with `/`. This is the same pattern used for image fields in Task #218.
+
+## Relevant files
+- `client/src/pages/command-projects.tsx:75`
+
+
+---
+

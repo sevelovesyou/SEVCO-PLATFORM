@@ -3215,6 +3215,21 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/music/tracks/:id/signed-url", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const track = await storage.getMusicTrackById(id);
+      if (!track) return res.status(404).json({ message: "Track not found" });
+      if (!track.fileUrl) return res.status(404).json({ message: "No file URL for track" });
+      const { getSignedUrl } = await import("./supabase");
+      const signedUrl = await getSignedUrl("tracks", track.fileUrl);
+      if (!signedUrl) return res.status(503).json({ message: "Could not generate signed URL" });
+      res.json({ signedUrl });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // ── Music Tracks CRUD ──────────────────────────────────────────────────
   const CAN_MANAGE_TRACKS: Role[] = ["admin", "executive", "staff"];
   const CAN_DELETE_TRACKS: Role[] = ["admin", "executive"];

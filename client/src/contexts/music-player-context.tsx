@@ -52,10 +52,25 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     setQueue(newQueue);
   }
 
-  function loadTrack(track: MusicTrack, remainingQueue: MusicTrack[], audioEl?: HTMLAudioElement) {
+  async function loadTrack(track: MusicTrack, remainingQueue: MusicTrack[], audioEl?: HTMLAudioElement) {
     const audio = audioEl ?? audioRef.current;
     if (!audio) return;
-    audio.src = track.fileUrl;
+
+    const isPrivatePath = track.fileUrl && !track.fileUrl.startsWith("http://") && !track.fileUrl.startsWith("https://") && !track.fileUrl.startsWith("/images/");
+    let src = track.fileUrl;
+    if (isPrivatePath) {
+      try {
+        const res = await fetch(`/api/music/tracks/${track.id}/signed-url`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.signedUrl) src = data.signedUrl;
+        }
+      } catch {
+        // fall back to raw fileUrl
+      }
+    }
+
+    audio.src = src;
     audio.load();
     audio.play().catch(() => {});
     setCurrentTrack(track);

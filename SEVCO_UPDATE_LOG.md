@@ -17876,3 +17876,36 @@ The music player cannot play tracks because the `tracks` Supabase bucket is priv
 
 ---
 
+## Task — music-player-auth-and-art
+> Merged: 2026-04-05
+
+# Music Player — Playback Auth Fix & Responsive Art
+
+## What & Why
+Two bugs in the music player after Task #221:
+
+1. **Still not playing** — The `fetch` call for the signed URL in `loadTrack()` is missing `credentials: "include"`, so the session cookie is never sent. The server's `requireAuth` returns 401, `res.ok` is false, the code silently falls back to the raw storage path (`tracks/filename.mp3`), and the audio fails to load.
+
+2. **Album art doesn't resize** — The cover image in the floating player is hardcoded to `w-20 h-20` (80×80px). When the user resizes the player window larger, the art stays tiny. It should grow to fill available vertical space.
+
+## Done looks like
+- Clicking play on a track immediately starts playing audio — no silent failure.
+- Resizing the floating player window larger causes the album art to grow proportionally to fill the left column.
+- All existing player controls (pause, seek, volume, prev/next, minimize, close) continue to work.
+
+## Out of scope
+- Changes to the server-side signed URL endpoint.
+- Changes to the track upload flow or Supabase bucket settings.
+
+## Tasks
+1. **Fix fetch credentials** — In `client/src/contexts/music-player-context.tsx`, add `credentials: "include"` to the `fetch` call at line 63 so the session cookie is sent and `requireAuth` passes. This is a one-line fix.
+
+2. **Make album art responsive** — In `client/src/components/floating-music-player.tsx`, update the cover image container from the fixed `w-20 h-20` size to a flexible layout. The left column should use `self-stretch` or `flex-1` so it grows with the player height, with the image filling the available space using `w-full h-full object-cover`.
+
+## Relevant files
+- `client/src/contexts/music-player-context.tsx:63`
+- `client/src/components/floating-music-player.tsx:153-167`
+
+
+---
+

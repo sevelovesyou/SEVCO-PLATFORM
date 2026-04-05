@@ -60,7 +60,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     let src = track.fileUrl;
     if (isPrivatePath) {
       try {
-        const res = await fetch(`/api/music/tracks/${track.id}/signed-url`);
+        const res = await fetch(`/api/music/tracks/${track.id}/signed-url`, { credentials: "include" });
         if (res.ok) {
           const data = await res.json();
           if (data.signedUrl) src = data.signedUrl;

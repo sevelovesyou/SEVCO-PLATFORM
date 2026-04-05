@@ -151,16 +151,16 @@ export function FloatingMusicPlayer() {
       </div>
 
       <div className="flex flex-1 min-h-0 p-3 gap-3 overflow-hidden">
-        <div className="shrink-0">
+        <div className="self-stretch flex flex-col min-w-0" style={{ width: "80px" }}>
           {currentTrack.coverImageUrl ? (
             <img
               src={resolveImageUrl(currentTrack.coverImageUrl)}
               alt={currentTrack.title}
-              className="w-20 h-20 rounded-lg object-cover shadow-md"
+              className="w-full h-full rounded-lg object-cover shadow-md"
               data-testid="music-player-cover"
             />
           ) : (
-            <div className="w-20 h-20 rounded-lg bg-primary/10 flex items-center justify-center shadow-md">
+            <div className="w-full h-full rounded-lg bg-primary/10 flex items-center justify-center shadow-md">
               <Music className="h-8 w-8 text-primary/50" />
             </div>
           )}

@@ -17472,3 +17472,41 @@ Both files have the `hero.headline` (or equivalent) text input. Under it, add:
 
 ---
 
+## Task — legal-department-landing
+> Merged: 2026-04-05
+
+# SEVCO Legal Department Landing Page
+
+## What
+Create a dedicated landing page at `/legal` for the SEVCO Legal Department, prominently featuring the official department seal (elephant + "Veritas Vincit") with a formal, authoritative dark aesthetic that matches the SEVCO platform's design language.
+
+## Done looks like
+- `/legal` route exists and is accessible from the app sidebar and main nav (if applicable)
+- Page features the seal image large and centered in the hero with a subtle white glow/radial halo behind it
+- "SEVCO Legal Department" as the main heading with "Veritas Vincit — Truth Conquers" as the tagline
+- A brief mission statement paragraph about protecting the platform, creators, and partners
+- 4–5 area-of-practice cards (Contracts & Agreements, Intellectual Property & Copyright, Compliance & Regulation, Privacy & Data Protection, Employment & Creator Relations)
+- A "Legal Documents" section with quick links to Terms of Service, Privacy Policy, Creator Agreement, etc. (rendered as placeholder links for now — real URLs can be added later)
+- A "Contact Legal" section with a note about how to reach the team (e.g. legal@sevco.us)
+- Consistent with platform dark theme: `#07070f` background, white text, SEVCO red (`#dc2626`) accents on active/highlighted elements
+
+## Design notes
+- Seal image: `@assets/SEVCO_App_Icon_-_Artboard_35_(2)_1775364380486.png` — import directly via Vite alias. The image already has a black background, which blends seamlessly on the dark page. Display it at ~200–240px with `mix-blend-mode: lighten` or a radial white glow `box-shadow` to integrate it elegantly.
+- Typography: use a serif or condensed font pairing for the hero title to communicate authority (can use `font-serif` Tailwind class or a Google Font import if available; fall back to `font-bold tracking-widest uppercase` if not)
+- Area cards: dark bordered cards (`border-white/10 bg-white/5`) with a small lucide icon and short description per area
+- Legal documents section: simple list/grid of links with `FileText` icons
+- No backend required — this is a fully static marketing/info page
+
+## Route & nav
+- Add `<Route path="/legal" component={LegalPage} />` in `client/src/App.tsx`
+- Import the new page component
+- Add "Legal" nav item to the app sidebar (`client/src/components/app-sidebar.tsx`) under an appropriate group (e.g., near "About" or at the bottom of main nav)
+
+## Files to create/modify
+- **CREATE** `client/src/pages/legal-page.tsx` — full legal department landing page component
+- **MODIFY** `client/src/App.tsx` — add the `/legal` route
+- **MODIFY** `client/src/components/app-sidebar.tsx` — add Legal nav item
+
+
+---
+

@@ -18001,3 +18001,27 @@ Replace the `flex-row` layout (left art column, right controls column) with a `f
 
 ---
 
+## Task — gallery-upload-limit-100mb
+> Merged: 2026-04-05
+
+# Gallery Upload Limit — 10MB → 100MB
+
+## What & Why
+The gallery image upload is limited to 10MB on the client side (`command-gallery.tsx:132 maxSizeMb={10}`) and 25MB at the Supabase bucket level (`server/supabase.ts gallery.maxSizeMb: 25`). Raising both to 100MB allows uploading large-format photography, high-resolution artwork, and uncompressed PNGs safely.
+
+## Done looks like
+- Uploading a file larger than 10MB but under 100MB to the gallery succeeds without a validation error.
+- The CMD gallery upload shows "Max 100 MB" in the helper text.
+- The Supabase bucket policy reflects the new 100MB limit on the next server start (via `ensureBucketsExist`).
+
+## Changes
+
+### `client/src/pages/command-gallery.tsx` line ~132
+Change `maxSizeMb={10}` → `maxSizeMb={100}`
+
+### `server/supabase.ts` line ~44
+Change `gallery: { ..., maxSizeMb: 25, ... }` → `gallery: { ..., maxSizeMb: 100, ... }`
+
+
+---
+

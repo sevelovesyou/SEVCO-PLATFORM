@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermission } from "@/hooks/use-permission";
@@ -25,6 +27,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogHeader,
@@ -34,8 +44,8 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Shield, Pencil, Check, X, Trash2, SquarePen } from "lucide-react";
-import type { Role } from "@shared/schema";
+import { Shield, Pencil, Check, X, Trash2, SquarePen, UserPlus } from "lucide-react";
+import { adminCreateUserSchema, type AdminCreateUser, type Role } from "@shared/schema";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const ROLES: Role[] = ["admin", "executive", "staff", "partner", "client", "user"];
@@ -137,8 +147,8 @@ function ChangeUsernameInline({
       toast({ title: "Username updated" });
       setEditing(false);
     },
-    onError: async (err: any) => {
-      const msg = await err.response?.json().then((d: any) => d.message).catch(() => "Failed to update username");
+    onError: (err: any) => {
+      const msg = err instanceof Error ? err.message : "Failed to update username";
       toast({ title: msg, variant: "destructive" });
     },
   });
@@ -236,8 +246,8 @@ function EditUserDialog({
       toast({ title: "User profile updated" });
       onClose();
     },
-    onError: async (err: any) => {
-      const msg = await err.response?.json().then((d: any) => d.message).catch(() => "Failed to update user");
+    onError: (err: any) => {
+      const msg = err instanceof Error ? err.message : "Failed to update user";
       toast({ title: msg, variant: "destructive" });
     },
   });
@@ -291,6 +301,151 @@ function EditUserDialog({
   );
 }
 
+function AddUserDialog({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const { toast } = useToast();
+
+  const form = useForm<AdminCreateUser>({
+    resolver: zodResolver(adminCreateUserSchema),
+    defaultValues: {
+      username: "",
+      displayName: "",
+      email: "",
+      password: "",
+      role: "user",
+    },
+  });
+
+  const mutation = useMutation({
+    mutationFn: (values: AdminCreateUser) =>
+      apiRequest("POST", "/api/users", values),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      toast({ title: "User created successfully" });
+      form.reset();
+      onClose();
+    },
+    onError: (err: any) => {
+      const msg = err instanceof Error ? err.message : "Failed to create user";
+      toast({ title: msg, variant: "destructive" });
+    },
+  });
+
+  function handleClose() {
+    if (!mutation.isPending) {
+      form.reset();
+      onClose();
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
+      <DialogContent data-testid="dialog-add-user">
+        <DialogHeader>
+          <DialogTitle>Add New User</DialogTitle>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit((values) => mutation.mutate(values))} className="flex flex-col gap-4 py-2">
+            <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username <span className="text-destructive">*</span></FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. johndoe" data-testid="input-add-username" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="displayName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Display Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. John Doe" data-testid="input-add-displayname" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="e.g. john@example.com" data-testid="input-add-email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password <span className="text-destructive">*</span></FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="Min. 6 characters" data-testid="input-add-password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-add-role">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {ROLES.map((r) => (
+                        <SelectItem key={r} value={r} className="capitalize">
+                          {r}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter className="mt-2">
+              <Button type="button" variant="outline" onClick={handleClose} disabled={mutation.isPending}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={mutation.isPending}
+                data-testid="button-submit-add-user"
+              >
+                {mutation.isPending ? "Creating…" : "Create User"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 type DeleteStep = "first" | "second";
 
 function DeleteUserDialog({
@@ -313,8 +468,8 @@ function DeleteUserDialog({
       toast({ title: "User deleted" });
       onClose();
     },
-    onError: async (err: any) => {
-      const msg = await err.response?.json().then((d: any) => d.message).catch(() => "Failed to delete user");
+    onError: (err: any) => {
+      const msg = err instanceof Error ? err.message : "Failed to delete user";
       toast({ title: msg, variant: "destructive" });
     },
   });
@@ -380,6 +535,7 @@ export default function CommandUsers() {
 
   const [editUser, setEditUser] = useState<DashboardUser | null>(null);
   const [deleteUser, setDeleteUser] = useState<DashboardUser | null>(null);
+  const [addUserOpen, setAddUserOpen] = useState(false);
 
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ["/api/dashboard"],
@@ -433,9 +589,20 @@ export default function CommandUsers() {
       )}
 
       <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-          User Management
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            User Management
+          </h2>
+          <Button
+            size="sm"
+            onClick={() => setAddUserOpen(true)}
+            data-testid="button-add-user"
+            className="gap-1.5"
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            Add User
+          </Button>
+        </div>
         <Card className="overflow-hidden overflow-visible">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -522,6 +689,11 @@ export default function CommandUsers() {
           onClose={() => setDeleteUser(null)}
         />
       )}
+
+      <AddUserDialog
+        open={addUserOpen}
+        onClose={() => setAddUserOpen(false)}
+      />
     </div>
   );
 }

@@ -334,6 +334,13 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+export const adminCreateUserSchema = insertUserSchema.extend({
+  email: z.string().email("Please enter a valid email").optional().or(z.literal("")),
+  displayName: z.string().max(80, "Display name must be at most 80 characters").optional(),
+  role: z.enum(ROLES).default("user"),
+});
+export type AdminCreateUser = z.infer<typeof adminCreateUserSchema>;
+
 export const createOAuthUserSchema = z.object({
   username: z.string(),
   xId: z.string(),

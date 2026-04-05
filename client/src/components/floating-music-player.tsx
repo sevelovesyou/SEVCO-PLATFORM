@@ -150,23 +150,23 @@ export function FloatingMusicPlayer() {
         </Button>
       </div>
 
-      <div className="flex flex-1 min-h-0 p-3 gap-3 overflow-hidden">
-        <div className="self-stretch flex flex-col min-w-0" style={{ width: "80px" }}>
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div className="w-full aspect-square overflow-hidden shrink-0">
           {currentTrack.coverImageUrl ? (
             <img
               src={resolveImageUrl(currentTrack.coverImageUrl)}
               alt={currentTrack.title}
-              className="w-full h-full rounded-lg object-cover shadow-md"
+              className="w-full h-full object-cover"
               data-testid="music-player-cover"
             />
           ) : (
-            <div className="w-full h-full rounded-lg bg-primary/10 flex items-center justify-center shadow-md">
-              <Music className="h-8 w-8 text-primary/50" />
+            <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+              <Music className="h-12 w-12 text-primary/50" />
             </div>
           )}
         </div>
 
-        <div className="flex flex-col flex-1 min-w-0 justify-between">
+        <div className="flex flex-col flex-1 min-h-0 p-3 gap-2">
           <div className="min-w-0">
             <p className="text-sm font-semibold truncate" data-testid="music-player-title">{currentTrack.title}</p>
             <p className="text-xs text-muted-foreground truncate" data-testid="music-player-artist">{currentTrack.artistName}</p>

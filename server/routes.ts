@@ -1512,16 +1512,21 @@ export async function registerRoutes(
   import("./supabase").then(({ ensureBucketsExist }) => ensureBucketsExist().catch(console.error));
 
   // Image proxy — serves Supabase public-bucket files via /images/:bucket/*
-  // Private buckets (e.g. tracks) are excluded; callers must use signed URLs.
-  const PRIVATE_BUCKETS = new Set(["tracks"]);
+  // Buckets that require a signed URL redirect instead of direct proxying.
+  const SIGNED_URL_BUCKETS = new Set(["tracks"]);
 
   app.get("/images/:bucket/*filePath", async (req, res) => {
     const { bucket } = req.params;
     const rawPath = req.params.filePath;
     const filePath = Array.isArray(rawPath) ? rawPath.join("/") : rawPath;
 
-    if (PRIVATE_BUCKETS.has(bucket)) {
-      return res.status(403).json({ message: "Direct access to this bucket is not permitted." });
+    if (SIGNED_URL_BUCKETS.has(bucket)) {
+      const { getSignedUrl } = await import("./supabase");
+      const signedUrl = await getSignedUrl(bucket, filePath);
+      if (!signedUrl) {
+        return res.status(503).json({ message: "Could not generate signed URL for track." });
+      }
+      return res.redirect(302, signedUrl);
     }
 
     const { supabase: supabaseAdmin } = await import("./supabase");

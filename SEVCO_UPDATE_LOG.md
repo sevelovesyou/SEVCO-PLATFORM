@@ -17431,3 +17431,44 @@ The CMD sidebar task that was originally proposed is absorbed into this — no s
 
 ---
 
+## Task — hero-headline-accent-markup
+> Merged: 2026-04-05
+
+# Hero Headline Asterisk Accent Markup
+
+## What
+When a custom headline is set from the CMD Display Settings, all words render as plain white — the intentional red accent on specific words is lost. Add `*word*` markup support so any word wrapped in asterisks in the CMD headline field gets the red gradient, matching the styled default headline.
+
+## Done looks like
+- The CMD hero headline input field has a helper note/tooltip that says: "Wrap words in *asterisks* to make them red — e.g. *A* creative community platform"
+- On the home page, any word wrapped in `*...*` in the custom headline renders with the red gradient (`linear-gradient(135deg, #ff3333 0%, #cc0000 50%, #ff6666 100%)`) and transparent text fill — exactly matching how "A" and "creators, for creators." look in the default headline
+- Non-accented words render as `rgba(255,255,255,0.92)` white as before
+- The asterisks themselves do not appear on screen — only the styled word
+- If no asterisks are used, all words render white (same as current behaviour for custom headlines — the user simply adds asterisks when they want accents)
+- The staggered word-reveal animation still applies to all words regardless of style
+
+## How
+Two files need changes:
+
+### 1. `client/src/pages/landing.tsx` — parse asterisk markup in the custom headline branch
+Replace the current `heroHeadline.split(" ")` loop (which colors everything white) with a parser that:
+- Splits on spaces to get words
+- For each word, strips leading/trailing `*` and checks if they were present
+- If accented: applies the red gradient inline style (same as `isRedWord` in the default branch)
+- If plain: applies `color: "rgba(255,255,255,0.92)"`
+- Same `wordReveal` animation and `animationDelay` per word index as already used
+
+### 2. `client/src/pages/command-display.tsx` and `client/src/pages/command-settings.tsx` — add helper text under the headline input
+Both files have the `hero.headline` (or equivalent) text input. Under it, add:
+- A small muted helper line: `Wrap words in *asterisks* to highlight them in red — e.g. *A* creative platform`
+- Use the existing `text-xs text-muted-foreground` style pattern already used for other helper text in these forms
+- No tooltip needed — inline helper text is clearer for a text field
+
+## Relevant files
+- `client/src/pages/landing.tsx` ~line 456–470 (the `heroHeadline` branch of the h1)
+- `client/src/pages/command-display.tsx` — hero headline input field
+- `client/src/pages/command-settings.tsx` — hero headline input field (same field, different page)
+
+
+---
+

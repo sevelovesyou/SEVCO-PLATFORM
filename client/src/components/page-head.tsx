@@ -14,7 +14,7 @@ interface PageHeadProps {
 
 const SITE_NAME = "SEVCO";
 const BASE_URL = "https://sevco.us";
-const DEFAULT_OG_IMAGE = "/favicon.png";
+const DEFAULT_OG_IMAGE = "/favicon.jpg";
 const JSON_LD_SCRIPT_ID = "page-head-json-ld";
 const GEO_JSON_LD_SCRIPT_ID = "page-head-geo-json-ld";
 const CANONICAL_LINK_ID = "page-head-canonical";

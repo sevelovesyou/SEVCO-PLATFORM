@@ -401,7 +401,7 @@ export default function Landing() {
           "@type": "Organization",
           "name": "SEVCO",
           "url": "https://sevco.us",
-          "logo": "https://sevco.us/favicon.png",
+          "logo": "https://sevco.us/favicon.jpg",
           "sameAs": [],
         }}
       />

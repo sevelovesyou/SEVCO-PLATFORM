@@ -17746,3 +17746,30 @@ Three UX/functionality bugs that need fixing:
 
 ---
 
+## Task — project-form-image-url-validation
+> Merged: 2026-04-05
+
+# Project Form Upload URL Validation Fix
+
+## What & Why
+When adding or editing a project, uploading an image (Hero Image, Logo, App Icon) sets the form field to the upload API's return value — a relative proxy path like `/images/projects/hero.jpg`. The form's Zod schema uses `z.string().url()` which only accepts full `https://...` URLs, so it rejects uploaded image paths and blocks form submission with "Must be a valid URL" even though the image was uploaded successfully.
+
+## Done looks like
+- Uploading a Hero Image, Logo, or App Icon and submitting the form works without any "Must be a valid URL" error.
+- Pasting a full `https://...` URL into the URL fallback field still works.
+- Empty fields (no image) are still accepted.
+
+## Out of scope
+- Server-side validation of image URLs.
+- Changes to the upload API or storage layer.
+- Any other project form fields.
+
+## Tasks
+1. **Fix `optUrl` validator** — In `project-form.tsx`, replace the current `z.string().url()` with a custom `.refine()` that accepts: an empty string, a full `http://` or `https://` URL, or a relative path starting with `/images/` (the upload proxy path format). This single change unblocks all three image fields (heroImageUrl, logoUrl, appIcon) since they all share the same `optUrl` definition.
+
+## Relevant files
+- `client/src/pages/project-form.tsx:27`
+
+
+---
+

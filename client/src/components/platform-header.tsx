@@ -89,6 +89,7 @@ import {
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { ChatSheet } from "@/components/chat-sheet";
 import { useSounds } from "@/hooks/use-sounds";
+import { useMusicPlayer } from "@/contexts/music-player-context";
 import { Volume2, VolumeX, Bell } from "lucide-react";
 import type { Project, Service } from "@shared/schema";
 import { NotificationDropdown } from "@/components/notification-dropdown";
@@ -712,6 +713,14 @@ export function PlatformHeader() {
   const [notifOpen, setNotifOpen] = useState(false);
   const notifTriggerRef = useRef<HTMLDivElement>(null);
   const { soundEnabled, toggleSound, playClick, playNotification } = useSounds();
+  const { volume, setVolume } = useMusicPlayer();
+  const prevMusicVolumeRef = useRef(0.8);
+
+  useEffect(() => {
+    if (!soundEnabled) {
+      setVolume(0);
+    }
+  }, []);
 
   const { data: notifCount } = useQuery<{ count: number }>({
     queryKey: ["/api/notifications/count"],
@@ -1001,7 +1010,16 @@ export function PlatformHeader() {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => { toggleSound(); playClick(); }}
+                onClick={() => {
+                  if (soundEnabled) {
+                    prevMusicVolumeRef.current = volume || 0.8;
+                    setVolume(0);
+                  } else {
+                    setVolume(prevMusicVolumeRef.current);
+                  }
+                  toggleSound();
+                  playClick();
+                }}
                 aria-label={soundEnabled ? "Mute sounds" : "Unmute sounds"}
                 data-testid="button-sound-toggle"
               >
@@ -1015,7 +1033,16 @@ export function PlatformHeader() {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => { toggleSound(); playClick(); }}
+                onClick={() => {
+                  if (soundEnabled) {
+                    prevMusicVolumeRef.current = volume || 0.8;
+                    setVolume(0);
+                  } else {
+                    setVolume(prevMusicVolumeRef.current);
+                  }
+                  toggleSound();
+                  playClick();
+                }}
                 aria-label={soundEnabled ? "Mute sounds" : "Unmute sounds"}
                 data-testid="button-sound-toggle-guest"
               >

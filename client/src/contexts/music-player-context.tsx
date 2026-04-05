@@ -38,7 +38,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const [isOpen, setIsOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [position, setPositionState] = useState({ x: Math.max(20, window.innerWidth - 420), y: Math.max(20, window.innerHeight - 300) });
-  const [size, setSizeState] = useState({ width: 380, height: 240 });
+  const [size, setSizeState] = useState({ width: 380, height: 320 });
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.8);

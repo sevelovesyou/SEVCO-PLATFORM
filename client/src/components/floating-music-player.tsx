@@ -59,7 +59,7 @@ export function FloatingMusicPlayer() {
       const dy = e.clientY - resizeRef.current.startY;
       setSize({
         width: Math.max(320, Math.min(600, resizeRef.current.origW + dx)),
-        height: Math.max(220, Math.min(400, resizeRef.current.origH + dy)),
+        height: Math.max(280, Math.min(400, resizeRef.current.origH + dy)),
       });
     }
 
@@ -151,7 +151,7 @@ export function FloatingMusicPlayer() {
       </div>
 
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-        <div className="w-full aspect-square overflow-hidden shrink-0">
+        <div className="w-full h-36 overflow-hidden shrink-0">
           {currentTrack.coverImageUrl ? (
             <img
               src={resolveImageUrl(currentTrack.coverImageUrl)}

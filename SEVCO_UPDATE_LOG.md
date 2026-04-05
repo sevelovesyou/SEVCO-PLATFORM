@@ -17629,3 +17629,49 @@ The frontend already shows the API success/error message as a toast. Once the ba
 
 ---
 
+## Task — email-body-dark-mode
+> Merged: 2026-04-05
+
+# Fix: Email body text invisible in dark mode (company inboxes)
+
+## What
+The HTML email body in CMD > Support > Company Inboxes is rendered in a sandboxed iframe whose injected `<style>` block sets no background or text color. The email HTML defaults to black text on a transparent/dark background — invisible in dark mode.
+
+## Done looks like
+- Email body text is clearly readable in dark mode — light text on a dark background
+- The iframe background is dark (#0f0f0f or similar) so there's no white flash
+- The fix applies to both the Company Inboxes email view and the regular user Messages email view if it uses the same pattern
+
+## Fix
+
+### client/src/pages/command-support.tsx — line ~608
+Update the `srcDoc` string's injected `<style>` block to add dark mode defaults:
+
+Change:
+```
+<style>body{font-family:sans-serif;font-size:14px;margin:16px;word-break:break-word;}</style>
+```
+
+To:
+```
+<style>
+  html,body{background:#0f0f0f;color:#d4d4d4;font-family:sans-serif;font-size:14px;margin:16px;word-break:break-word;}
+  a{color:#6b9eff;}
+  img{max-width:100%;height:auto;}
+  hr{border-color:#333;}
+  blockquote{border-left:3px solid #444;margin-left:0;padding-left:1em;color:#9ca3af;}
+</style>
+```
+
+Also add `<meta name="color-scheme" content="dark">` in the `<head>` of the srcdoc so the browser's native form elements and scrollbars respect dark mode.
+
+### Also check client/src/pages/messages-page.tsx (or equivalent user email page)
+If the regular Messages page renders HTML email bodies in an iframe with the same srcDoc pattern, apply the same fix there too.
+
+## Relevant files
+- `client/src/pages/command-support.tsx` line ~608 (primary fix)
+- `client/src/pages/messages-page.tsx` or similar user inbox page (check and fix if same pattern used)
+
+
+---
+

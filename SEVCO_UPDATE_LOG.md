@@ -19260,109 +19260,158 @@ Also extend the `NewsArticle` type in `client/src/components/news-article-card.t
 # Paperclip Dashboard Integration in CMD → Agents
 
 ## What & Why
-The user wants to surface and manage data from their external **Paperclip** AI agent orchestration platform (https://paperclip.ing) inside the CMD → Agents section of the SEVCO platform. Paperclip tracks a team of AI agents, their goals/tasks (issues), budgets, spend, and activity via a REST API.
+The user wants to surface data from their external **Paperclip** AI agent orchestration platform (https://paperclip.ing) inside the CMD → Agents section of the SEVCO platform. Paperclip tracks a team of AI agents, their goals/tasks (issues), budgets, spend, and activity via a REST API.
 
-This adds a full "Paperclip" panel to the existing `command-ai-agents.tsx` page so operators can monitor and control their Paperclip agent operations — including creating, updating, and deleting issues and agents — without leaving CMD.
+This adds a **read-only** "Paperclip" collapsible panel to `command-ai-agents.tsx` so operators can monitor their Paperclip agent operations without leaving CMD.
 
 ## Done Looks Like
 
-### Read/Display
 - A "Paperclip" section (collapsible, below the existing SEVCO agents grid) appears in CMD → Agents
 - Shows a live connection status badge (connected / unreachable)
-- Displays key metrics from `GET /api/dashboard`: total agents, active agents, open issues, total spend, active goals
-- Lists Paperclip agents in a compact table: avatar | name | role | status | budget remaining | open issue count
-- Lists issues in a compact table: title | status badge | assigned agent | creation date
-- Shows a short recent activity feed (last 5 events) from `GET /api/activity`
-- A "Configure" button that opens a settings dialog to prompt the operator to add `PAPERCLIP_BASE_URL`, `PAPERCLIP_API_KEY`, and optionally `PAPERCLIP_COMPANY_ID` as server environment secrets
-- All API calls proxied through SEVCO's Express backend (keeps API key server-side, avoids CORS)
-- If credentials aren't configured yet, a placeholder card prompts the operator to add them
+- Displays 5 key metric cards from `GET /api/paperclip/dashboard`: Total Agents, Active Agents, Open Issues, Active Goals, Total Spend
+- Lists Paperclip agents in a read-only compact table: avatar | name | role | status | budget remaining | open issue count
+- Shows a short recent activity feed (last 5 events) from `GET /api/paperclip/activity`
+- A "Configure" button opens a settings dialog for operators to save `baseUrl`, `apiKey`, and `companyId` — stored in `platform_settings` DB (env vars take priority if set)
+- All API calls proxied through SEVCO's Express backend (admin-only, keeps API key server-side, avoids CORS)
+- If credentials aren't configured yet, a placeholder card prompts the operator to configure the integration
 - Data auto-refreshes every 60 seconds with a manual refresh button
-- Graceful error handling: if Paperclip is unreachable, shows a stale-data warning instead of crashing
-
-### Write / Mutations
-**Issues (tasks):**
-- Create a new issue — "New Issue" button above the issues table opens a modal: title (required) + description (optional) + assignee agent (optional dropdown) → `POST /api/companies/:companyId/issues`
-- Update issue status — inline status dropdown on each row (backlog → in_progress → done) → `PATCH /api/companies/:companyId/issues/:id`
-- Add a comment to an issue — comment input field per issue row → `PATCH /api/companies/:companyId/issues/:id` with `{ comment: "..." }`
-- Delete an issue — trash icon per row with confirmation → `DELETE /api/companies/:companyId/issues/:id`
-
-**Agents:**
-- Create a new Paperclip agent — "New Agent" button in the agents table header opens a modal: name (required) + role dropdown (ceo/cto/cfo/engineer/designer/pm/qa/devops/researcher/general) + adapter type (process/http/claude_local/etc.) + budget → `POST /api/companies/:companyId/agents`
-- Update an existing agent — edit icon per row → inline form for name, role, status, budget, title, reports-to → `PATCH /api/companies/:companyId/agents/:id`
-- Delete an agent — trash icon per row with confirmation → `DELETE /api/companies/:companyId/agents/:id`
+- Upstream non-2xx responses (401/403/500) are propagated with their original status code; network failures return HTTP 502
 
 ## Out of Scope
+- Write/mutation features (create/update/delete issues or agents) — read-only dashboard only
 - Embedding the full Paperclip UI as an iframe
 - Changing the existing SEVCO AI agents grid (the OpenRouter/xAI agents above)
 - Integrating Paperclip costs data into any SEVCO billing/finance views
-- Goals and projects CRUD (read-only display only for now)
 - Approval gates management
 
 ## Architecture
 
-### Secrets Required
-Three new environment secrets must be added and read on the backend:
-- `PAPERCLIP_BASE_URL` — base URL of the user's Paperclip instance (e.g. `https://my.paperclip.ing` or `http://localhost:3100`)
-- `PAPERCLIP_API_KEY` — long-lived API key (`pk_live_...`), passed as `Authorization: Bearer` to all requests
-- `PAPERCLIP_COMPANY_ID` — optional; if set, scopes all endpoints to `/api/companies/{id}/...`
-
-> Note: Paperclip agent bearer keys may have limited write permissions for board mutations (known upstream issue #1177). If a write request returns 401/403, proxy that error back to the frontend with a clear message advising the user to use a board-level API token.
+### Credentials
+Three values configure the integration, read in priority order:
+1. Environment variables: `PAPERCLIP_BASE_URL`, `PAPERCLIP_API_KEY`, `PAPERCLIP_COMPANY_ID`
+2. DB fallback: `platform_settings` keys `paperclip.baseUrl`, `paperclip.apiKey`, `paperclip.companyId`
 
 ### Backend Proxy Routes (`server/routes.ts`)
-All routes prefixed `/api/paperclip/*` and admin-only. Each route reads `PAPERCLIP_BASE_URL` + `PAPERCLIP_API_KEY` from `process.env`, returns `{ configured: false }` if missing, forwards with `Authorization: Bearer` header, and returns `{ error: "unreachable" }` with HTTP 502 on network failure.
+All routes prefixed `/api/paperclip/*` and admin-only (`requireRole("admin")`). Returns `{ configured: false }` when credentials are missing. Propagates upstream HTTP status codes; returns HTTP 502 on network failure.
 
-**Read routes:**
-- `GET /api/paperclip/status` → `GET {base}/api/health`
+- `GET /api/paperclip/status` → `GET {base}/api/health` (always HTTP 200 from SEVCO)
 - `GET /api/paperclip/dashboard` → `GET {base}/api/dashboard`
 - `GET /api/paperclip/agents` → `GET {base}/api/companies/{companyId}/agents` or `GET {base}/api/agents`
-- `GET /api/paperclip/issues` → `GET {base}/api/companies/{companyId}/issues` (with optional `?status=` filter)
 - `GET /api/paperclip/activity` → `GET {base}/api/activity?limit=5`
 - `GET /api/paperclip/costs` → `GET {base}/api/costs?limit=10`
-
-**Write routes (proxy to Paperclip):**
-- `POST   /api/paperclip/issues`            → `POST   {base}/api/companies/{companyId}/issues`
-- `PATCH  /api/paperclip/issues/:id`        → `PATCH  {base}/api/companies/{companyId}/issues/:id`
-- `DELETE /api/paperclip/issues/:id`        → `DELETE {base}/api/companies/{companyId}/issues/:id`
-- `POST   /api/paperclip/agents`            → `POST   {base}/api/companies/{companyId}/agents`
-- `PATCH  /api/paperclip/agents/:id`        → `PATCH  {base}/api/companies/{companyId}/agents/:id`
-- `DELETE /api/paperclip/agents/:id`        → `DELETE {base}/api/companies/{companyId}/agents/:id`
+- `GET /api/paperclip/config` — returns configured status (never returns the raw API key)
+- `PUT /api/paperclip/config` — saves credentials to `platform_settings` DB
 
 ### Frontend Section (`command-ai-agents.tsx`)
-New `PaperclipDashboardSection` component appended after the existing agent grid.
+`PaperclipDashboardSection` component appended after the existing agent grid.
 
 **States:** Not configured → Connecting → Connected / Unreachable (shows cached data + warning banner)
 
-**Connected layout (tabbed):**
-- Tab 1 — **Overview**: header bar with status dot + refresh button, 4 metric stat cards (Total Agents | Active | Open Issues | Total Spend), recent activity feed
-- Tab 2 — **Agents**: compact table with edit/delete per row + "New Agent" button → create modal
-- Tab 3 — **Issues**: compact table with inline status dropdown, comment input, delete per row + "New Issue" button → create modal
-
-**TanStack Query mutations** (with cache invalidation after each):
-```
-useMutation → POST/PATCH/DELETE /api/paperclip/issues
-useMutation → POST/PATCH/DELETE /api/paperclip/agents
-```
-
 **TanStack Query reads (auto-refresh every 60s):**
 ```
+useQuery({ queryKey: ['/api/paperclip/status'] })
 useQuery({ queryKey: ['/api/paperclip/dashboard'] })
 useQuery({ queryKey: ['/api/paperclip/agents'] })
-useQuery({ queryKey: ['/api/paperclip/issues'] })
 useQuery({ queryKey: ['/api/paperclip/activity'] })
 ```
 
 ## Relevant Files
-- `client/src/pages/command-ai-agents.tsx` — add `PaperclipDashboardSection` component
-- `server/routes.ts` — add `/api/paperclip/*` proxy routes (admin-only, read + write)
-- Server environment — new secrets `PAPERCLIP_BASE_URL`, `PAPERCLIP_API_KEY`, `PAPERCLIP_COMPANY_ID`
+- `client/src/pages/command-ai-agents.tsx` — `PaperclipDashboardSection` component
+- `server/routes.ts` — `/api/paperclip/*` proxy routes (admin-only, read-only + config)
 
 ## Notes
-- Paperclip's response shapes are not fully documented; the backend proxy passes them through as-is and the frontend accesses fields defensively (e.g. `data?.totalAgents ?? 0`)
+- No new DB schema changes needed — data is live-fetched from the external Paperclip API; only credentials are persisted in `platform_settings`
+- Paperclip response shapes are accessed defensively (e.g. `data?.totalAgents ?? 0`)
+
+
+---
+
+## Task — task-239
+> Merged: 2026-04-06
+
+---
+title: Paperclip Dashboard integration in CMD → Agents (read + write)
+---
+# Paperclip Dashboard Integration in CMD → Agents
+
+## What & Why
+The user wants to surface data from their external **Paperclip** AI agent orchestration platform (https://paperclip.ing) inside the CMD → Agents section of the SEVCO platform. Paperclip tracks a team of AI agents, their goals/tasks (issues), budgets, spend, and activity via a REST API.
+
+This adds a "Paperclip" panel to the existing `command-ai-agents.tsx` page so operators can monitor their Paperclip agent operations without leaving CMD.
+
+## Done Looks Like
+- A "Paperclip Dashboard" section (collapsible, below the existing SEVCO agents grid) appears in CMD → Agents
+- Shows a live connection status badge (connected / unreachable)
+- Displays key metrics from `GET /api/dashboard`: total agents, active agents, open issues, total spend, active goals
+- Lists Paperclip agents in a compact table: name, role/status, current budget, assigned open issues
+- Shows a short recent activity feed (last 5 events) from `GET /api/activity`
+- A "Configure" button that opens a settings dialog to save `PAPERCLIP_BASE_URL`, `PAPERCLIP_API_KEY`, and optionally `PAPERCLIP_COMPANY_ID` as environment-level config (stored server-side or in DB settings)
+- All API calls to Paperclip are proxied through SEVCO's Express backend (keeps API key server-side, avoids CORS)
+- If credentials aren't configured yet, a placeholder card prompts the operator to add them
+- Data auto-refreshes every 60 seconds with a manual refresh button
+- Graceful error handling: if Paperclip is unreachable, shows a stale-data warning instead of crashing
+
+## Out of Scope
+- Modifying any Paperclip data (no create/update/delete issues or agents via SEVCO — read-only)
+- Embedding the full Paperclip UI as an iframe
+- Changing the existing SEVCO AI agents grid
+- Integrating Paperclip costs data into any billing/finance views
+
+## Architecture
+
+### Secrets Required
+Two new environment secrets must be added and read on the backend:
+- `PAPERCLIP_BASE_URL` — base URL of the user's Paperclip instance (e.g. `https://my.paperclip.ing` or `http://localhost:3100`)
+- `PAPERCLIP_API_KEY` — long-lived API key (`pk_live_...`), passed as `Authorization: Bearer` to Paperclip
+- `PAPERCLIP_COMPANY_ID` — optional; if set, used for `/api/companies/{id}/agents` scoping
+
+### Backend Proxy Routes (`server/routes.ts`)
+New routes prefixed `/api/paperclip/*` — all admin-only:
+- `GET /api/paperclip/status` → `GET {base}/api/health` — connection check
+- `GET /api/paperclip/dashboard` → `GET {base}/api/dashboard` — overall metrics
+- `GET /api/paperclip/agents` → `GET {base}/api/companies/{companyId}/agents` (if companyId set) or `GET {base}/api/agents`
+- `GET /api/paperclip/activity` → `GET {base}/api/activity?limit=5`
+- `GET /api/paperclip/costs` → `GET {base}/api/costs?limit=10`
+
+Each route:
+1. Reads `PAPERCLIP_BASE_URL` and `PAPERCLIP_API_KEY` from `process.env`
+2. Returns `{ configured: false }` if env vars are missing (frontend shows "not configured" state)
+3. Forwards the request with `Authorization: Bearer` header
+4. Returns Paperclip's JSON response as-is (no transformation needed)
+5. On network error, returns `{ error: "unreachable", message: "..." }` with HTTP 502
+
+### Frontend Section (`command-ai-agents.tsx`)
+New `PaperclipDashboardSection` component appended after the existing agent grid:
+
+**States:**
+1. **Not configured** — card prompts admin to add `PAPERCLIP_BASE_URL` and `PAPERCLIP_API_KEY` in server environment
+2. **Connecting** — spinner while checking status
+3. **Connected** — full data panels
+4. **Unreachable** — error banner with last-seen timestamp, still shows cached data if available
+
+**Connected layout:**
+- Header bar: "Paperclip" wordmark + connection status dot + last updated time + refresh button
+- Metrics row (4 stat cards): Total Agents | Active Agents | Open Issues | Total Spend
+- Agent roster table (compact): Avatar | Name | Role | Status | Budget Remaining | Open Issues count
+- Activity feed (5 most recent): timestamp | agent name | event description
+- Footer link: "Open Paperclip →" linking to `PAPERCLIP_BASE_URL` in a new tab
+
+**Queries (TanStack Query):**
+```
+useQuery({ queryKey: ['/api/paperclip/dashboard'], refetchInterval: 60_000 })
+useQuery({ queryKey: ['/api/paperclip/agents'],    refetchInterval: 60_000 })
+useQuery({ queryKey: ['/api/paperclip/activity'],  refetchInterval: 60_000 })
+```
+
+## Relevant Files
+- `client/src/pages/command-ai-agents.tsx` — add `PaperclipDashboardSection` component
+- `server/routes.ts` — add `/api/paperclip/*` proxy routes (admin-only)
+- `.env` (server environment) — new secrets `PAPERCLIP_BASE_URL`, `PAPERCLIP_API_KEY`, `PAPERCLIP_COMPANY_ID`
+
+## Notes
+- Paperclip's `/api/dashboard` response field names are not fully documented in public docs. The backend proxy should pass the raw response through and the frontend should handle optional fields gracefully (e.g. `data?.totalAgents ?? 0`)
 - No new DB schema changes needed — all data is live-fetched from the external Paperclip API
-- Issue status values: `backlog`, `in_progress`, `done`
-- Supported agent roles: `ceo`, `cto`, `cmo`, `cfo`, `engineer`, `designer`, `pm`, `qa`, `devops`, `researcher`, `general`
-- Supported adapter types: `process`, `http`, `claude_local`, `codex_local`, `opencode_local`, `pi_local`, `cursor`, `openclaw_gateway`
-- The `PAPERCLIP_API_KEY` and `PAPERCLIP_BASE_URL` secrets must be provided by the user before the feature can be tested end-to-end
+- The `PAPERCLIP_API_KEY` secret must be requested from the user via the environment-secrets skill before implementing
 
 
 ---

@@ -7924,6 +7924,105 @@ export async function registerRoutes(
     }
   });
 
+  // ─── Paperclip Proxy Routes ────────────────────────────────────────────────
+  async function getPaperclipConfig(): Promise<{ baseUrl: string; apiKey: string; companyId: string | null } | null> {
+    const envBase = process.env.PAPERCLIP_BASE_URL;
+    const envKey  = process.env.PAPERCLIP_API_KEY;
+    if (envBase && envKey) {
+      return { baseUrl: envBase, apiKey: envKey, companyId: process.env.PAPERCLIP_COMPANY_ID || null };
+    }
+    const settings = await storage.getPlatformSettings();
+    const dbBase = settings["paperclip.baseUrl"];
+    const dbKey  = settings["paperclip.apiKey"];
+    if (dbBase && dbKey) {
+      return { baseUrl: dbBase, apiKey: dbKey, companyId: settings["paperclip.companyId"] || null };
+    }
+    return null;
+  }
+
+  function paperclipProxy(getPath: string | ((cfg: { companyId: string | null }) => string)) {
+    return async (req: any, res: any) => {
+      const cfg = await getPaperclipConfig();
+      if (!cfg) return res.json({ configured: false });
+      const path = typeof getPath === "function" ? getPath(cfg) : getPath;
+      const url = `${cfg.baseUrl.replace(/\/$/, "")}${path}`;
+      try {
+        const upstream = await fetch(url, {
+          headers: { Authorization: `Bearer ${cfg.apiKey}`, "Content-Type": "application/json" },
+        });
+        let data: any;
+        try { data = await upstream.json(); } catch { data = {}; }
+        return res.status(upstream.status).json(data);
+      } catch (err: any) {
+        return res.status(502).json({ error: "unreachable", message: err.message });
+      }
+    };
+  }
+
+  const ADMIN_ONLY: Role[] = ["admin"];
+
+  app.get("/api/paperclip/status", requireAuth, requireRole(...ADMIN_ONLY), async (req, res) => {
+    const cfg = await getPaperclipConfig();
+    if (!cfg) return res.json({ configured: false });
+    const url = `${cfg.baseUrl.replace(/\/$/, "")}/api/health`;
+    try {
+      const upstream = await fetch(url, {
+        headers: { Authorization: `Bearer ${cfg.apiKey}`, "Content-Type": "application/json" },
+      });
+      let data: any;
+      try { data = await upstream.json(); } catch { data = {}; }
+      if (!upstream.ok) {
+        return res.json({ error: "unhealthy", status: upstream.status, baseUrl: cfg.baseUrl });
+      }
+      return res.json({ ...data, baseUrl: cfg.baseUrl });
+    } catch (err: any) {
+      return res.json({ error: "unreachable", message: err.message, baseUrl: cfg.baseUrl });
+    }
+  });
+
+  app.get("/api/paperclip/dashboard", requireAuth, requireRole(...ADMIN_ONLY), paperclipProxy("/api/dashboard"));
+  app.get("/api/paperclip/agents", requireAuth, requireRole(...ADMIN_ONLY),
+    paperclipProxy((cfg) => cfg.companyId ? `/api/companies/${cfg.companyId}/agents` : "/api/agents")
+  );
+  app.get("/api/paperclip/activity", requireAuth, requireRole(...ADMIN_ONLY), paperclipProxy("/api/activity?limit=5"));
+  app.get("/api/paperclip/costs", requireAuth, requireRole(...ADMIN_ONLY), paperclipProxy("/api/costs?limit=10"));
+
+  app.get("/api/paperclip/config", requireAuth, requireRole(...ADMIN_ONLY), async (_req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      const envBase = process.env.PAPERCLIP_BASE_URL;
+      const envKey  = process.env.PAPERCLIP_API_KEY;
+      res.json({
+        baseUrl: envBase || settings["paperclip.baseUrl"] || "",
+        companyId: process.env.PAPERCLIP_COMPANY_ID || settings["paperclip.companyId"] || "",
+        hasApiKey: !!(envKey || settings["paperclip.apiKey"]),
+        source: envBase && envKey ? "env" : (settings["paperclip.baseUrl"] ? "db" : "none"),
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put("/api/paperclip/config", requireAuth, requireRole(...ADMIN_ONLY), async (req, res) => {
+    try {
+      const { baseUrl, apiKey, companyId } = req.body as { baseUrl?: string; apiKey?: string; companyId?: string };
+      const updates: Record<string, string> = {};
+      if (baseUrl !== undefined) {
+        const trimmed = baseUrl.trim();
+        if (trimmed && !/^https?:\/\/.+/.test(trimmed)) {
+          return res.status(400).json({ message: "baseUrl must start with http:// or https://" });
+        }
+        updates["paperclip.baseUrl"] = trimmed;
+      }
+      if (apiKey !== undefined && apiKey.trim()) updates["paperclip.apiKey"] = apiKey.trim();
+      if (companyId !== undefined) updates["paperclip.companyId"] = companyId.trim();
+      if (Object.keys(updates).length > 0) await storage.setPlatformSettings(updates);
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   return httpServer;
 }
 

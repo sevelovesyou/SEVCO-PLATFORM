@@ -25,7 +25,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Bot, Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Sparkles } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Bot, Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Sparkles, RefreshCw, ChevronDown, ChevronUp, ExternalLink, AlertTriangle, Paperclip, Settings, Circle } from "lucide-react";
 import type { AiAgent } from "@shared/schema";
 
 const MODELS = [
@@ -287,6 +292,374 @@ function AgentDialog({
   );
 }
 
+function StatCard({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-lg border bg-card px-4 py-3 text-center" data-testid={`paperclip-stat-${label.toLowerCase().replace(/\s+/g, "-")}`}>
+      <p className="text-2xl font-bold tabular-nums">{value}</p>
+      <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+    </div>
+  );
+}
+
+function PaperclipDashboardSection() {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(true);
+  const [configOpen, setConfigOpen] = useState(false);
+  const [cfgForm, setCfgForm] = useState({ baseUrl: "", apiKey: "", companyId: "" });
+
+  const { data: status, isLoading: statusLoading, dataUpdatedAt: statusUpdatedAt, refetch: refetchStatus } =
+    useQuery<any>({ queryKey: ["/api/paperclip/status"], refetchInterval: 60_000, retry: false });
+
+  const isStatusReady = !statusLoading && status !== undefined;
+  const isConfiguredReady = isStatusReady && status?.configured !== false;
+
+  const { data: dashboard, isLoading: dashLoading, refetch: refetchDash } =
+    useQuery<any>({ queryKey: ["/api/paperclip/dashboard"], refetchInterval: 60_000, retry: false, enabled: isConfiguredReady });
+
+  const { data: agents, isLoading: agentsLoading, refetch: refetchAgents } =
+    useQuery<any>({ queryKey: ["/api/paperclip/agents"], refetchInterval: 60_000, retry: false, enabled: isConfiguredReady });
+
+  const { data: activity, isLoading: activityLoading, refetch: refetchActivity } =
+    useQuery<any>({ queryKey: ["/api/paperclip/activity"], refetchInterval: 60_000, retry: false, enabled: isConfiguredReady });
+
+  const { data: cfgData } = useQuery<any>({
+    queryKey: ["/api/paperclip/config"],
+    enabled: configOpen,
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (cfgData) {
+      setCfgForm({ baseUrl: cfgData.baseUrl || "", apiKey: "", companyId: cfgData.companyId || "" });
+    }
+  }, [cfgData]);
+
+  const saveCfgMutation = useMutation({
+    mutationFn: (data: { baseUrl: string; apiKey: string; companyId: string }) =>
+      apiRequest("PUT", "/api/paperclip/config", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/paperclip/status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/paperclip/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/paperclip/agents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/paperclip/activity"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/paperclip/config"] });
+      toast({ title: "Paperclip settings saved" });
+      setConfigOpen(false);
+    },
+    onError: (e: any) => toast({ title: "Save failed", description: e.message, variant: "destructive" }),
+  });
+
+  function handleRefresh() {
+    refetchStatus();
+    refetchDash();
+    refetchAgents();
+    refetchActivity();
+  }
+
+  const isConfigured = isStatusReady && status?.configured !== false;
+  const isUnreachable = isConfigured && !!status?.error;
+  const isReachable = isConfigured && !isUnreachable && !statusLoading;
+  const isLoading = statusLoading || dashLoading || agentsLoading || activityLoading;
+
+  const lastUpdated = statusUpdatedAt
+    ? new Date(statusUpdatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : null;
+
+  const baseUrl: string | null = status?.baseUrl ?? null;
+
+  const agentList: any[] = Array.isArray(agents) ? agents : (agents?.agents ?? agents?.data ?? []);
+  const activityList: any[] = Array.isArray(activity) ? activity : (activity?.events ?? activity?.activity ?? activity?.data ?? []);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <Card className="border-2">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between gap-2">
+            <CollapsibleTrigger asChild>
+              <button className="flex items-center gap-2 text-left group" data-testid="paperclip-section-toggle">
+                <Paperclip className="h-5 w-5 text-primary shrink-0" />
+                <CardTitle className="text-base">Paperclip Dashboard</CardTitle>
+                {open ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                )}
+              </button>
+            </CollapsibleTrigger>
+            <div className="flex items-center gap-2 shrink-0">
+              {isConfigured && (
+                <div className="flex items-center gap-1.5" data-testid="paperclip-connection-status">
+                  <Circle
+                    className={`h-2.5 w-2.5 fill-current ${isReachable ? "text-green-500" : isUnreachable ? "text-red-500" : "text-yellow-500"}`}
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    {statusLoading ? "Connecting…" : isReachable ? "Connected" : status?.error === "unhealthy" ? "Unhealthy" : "Unreachable"}
+                  </span>
+                </div>
+              )}
+              {lastUpdated && (
+                <span className="text-xs text-muted-foreground hidden sm:inline">Updated {lastUpdated}</span>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 w-7 p-0"
+                onClick={handleRefresh}
+                disabled={isLoading}
+                data-testid="paperclip-refresh-btn"
+                title="Refresh Paperclip data"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 w-7 p-0"
+                onClick={() => setConfigOpen(true)}
+                data-testid="paperclip-configure-btn"
+                title="Configure Paperclip"
+              >
+                <Settings className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CollapsibleContent>
+          <CardContent className="pt-0">
+            {!isConfigured && (
+              <div className="rounded-lg border border-dashed p-6 text-center space-y-3" data-testid="paperclip-not-configured">
+                <Paperclip className="h-8 w-8 mx-auto text-muted-foreground/40" />
+                <div>
+                  <p className="font-medium text-sm">Paperclip not configured</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Enter your Paperclip base URL and API key below to connect.
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => setConfigOpen(true)} data-testid="paperclip-setup-btn">
+                  <Settings className="h-3.5 w-3.5 mr-1.5" />
+                  Configure
+                </Button>
+              </div>
+            )}
+
+            {isUnreachable && (
+              <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2 mb-4 text-sm text-destructive" data-testid="paperclip-unreachable-banner">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>Paperclip is unreachable — showing cached data.{status?.message ? ` (${status.message})` : ""}</span>
+              </div>
+            )}
+
+            {isConfigured && (
+              <div className="space-y-5">
+                {dashLoading ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="rounded-lg border bg-card px-4 py-3 animate-pulse h-16" />
+                    ))}
+                  </div>
+                ) : dashboard && !dashboard.error ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" data-testid="paperclip-metrics">
+                    <StatCard label="Total Agents" value={dashboard?.totalAgents ?? dashboard?.total_agents ?? 0} />
+                    <StatCard label="Active Agents" value={dashboard?.activeAgents ?? dashboard?.active_agents ?? 0} />
+                    <StatCard label="Open Issues" value={dashboard?.openIssues ?? dashboard?.open_issues ?? 0} />
+                    <StatCard label="Active Goals" value={dashboard?.activeGoals ?? dashboard?.active_goals ?? 0} />
+                    <StatCard
+                      label="Total Spend"
+                      value={
+                        dashboard?.totalSpend != null
+                          ? `$${Number(dashboard.totalSpend).toFixed(2)}`
+                          : dashboard?.total_spend != null
+                          ? `$${Number(dashboard.total_spend).toFixed(2)}`
+                          : "—"
+                      }
+                    />
+                  </div>
+                ) : null}
+
+                {agentsLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-10 rounded-md bg-muted animate-pulse" />
+                    ))}
+                  </div>
+                ) : agentList.length > 0 ? (
+                  <div data-testid="paperclip-agent-table">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Agents</p>
+                    <div className="rounded-md border overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/40">
+                            <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Name</th>
+                            <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground hidden sm:table-cell">Role / Status</th>
+                            <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground hidden md:table-cell">Budget Remaining</th>
+                            <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground">Open Issues</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {agentList.map((agent: any, idx: number) => (
+                            <tr key={agent.id ?? idx} className="border-b last:border-0 hover:bg-muted/30 transition-colors" data-testid={`paperclip-agent-row-${agent.id ?? idx}`}>
+                              <td className="px-3 py-2.5 font-medium">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0 text-[10px] font-bold text-primary uppercase">
+                                    {(agent.name ?? agent.agent_name ?? "?")[0]}
+                                  </div>
+                                  <span className="truncate max-w-[140px]">{agent.name ?? agent.agent_name ?? "Unknown"}</span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2.5 hidden sm:table-cell">
+                                <div className="flex items-center gap-1.5">
+                                  {agent.role && <span className="text-xs text-muted-foreground">{agent.role}</span>}
+                                  {(agent.status ?? agent.state) && (
+                                    <Badge
+                                      variant={(agent.status ?? agent.state) === "active" ? "default" : "secondary"}
+                                      className="text-[10px] px-1.5 py-0 h-4 capitalize"
+                                    >
+                                      {agent.status ?? agent.state}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-3 py-2.5 text-right hidden md:table-cell text-muted-foreground text-xs">
+                                {agent.budgetRemaining != null
+                                  ? `$${Number(agent.budgetRemaining).toFixed(2)}`
+                                  : agent.budget_remaining != null
+                                  ? `$${Number(agent.budget_remaining).toFixed(2)}`
+                                  : "—"}
+                              </td>
+                              <td className="px-3 py-2.5 text-right">
+                                <Badge variant="outline" className="text-[10px]">
+                                  {agent.openIssues ?? agent.open_issues ?? 0}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : null}
+
+                {activityLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-8 rounded bg-muted animate-pulse" />
+                    ))}
+                  </div>
+                ) : activityList.length > 0 ? (
+                  <div data-testid="paperclip-activity-feed">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Recent Activity</p>
+                    <div className="space-y-1.5">
+                      {activityList.slice(0, 5).map((event: any, idx: number) => (
+                        <div key={event.id ?? idx} className="flex items-start gap-3 text-sm py-1.5 border-b last:border-0" data-testid={`paperclip-activity-${idx}`}>
+                          <span className="text-xs text-muted-foreground shrink-0 tabular-nums mt-0.5">
+                            {event.timestamp
+                              ? new Date(event.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                              : event.created_at
+                              ? new Date(event.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                              : "—"}
+                          </span>
+                          {(event.agentName ?? event.agent_name) && (
+                            <span className="font-medium text-xs shrink-0">{event.agentName ?? event.agent_name}</span>
+                          )}
+                          <span className="text-xs text-muted-foreground line-clamp-1">
+                            {event.description ?? event.event ?? event.message ?? ""}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {baseUrl && (
+                  <div className="flex justify-end pt-1">
+                    <a
+                      href={baseUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      data-testid="paperclip-open-link"
+                    >
+                      Open Paperclip
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+
+      <Dialog open={configOpen} onOpenChange={setConfigOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Paperclip className="h-4 w-4" />
+              Configure Paperclip
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Credentials are stored server-side and never sent to the browser. If environment variables
+              (<code className="bg-muted px-1 rounded text-xs">PAPERCLIP_BASE_URL</code> /{" "}
+              <code className="bg-muted px-1 rounded text-xs">PAPERCLIP_API_KEY</code>) are set, they take priority.
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium">Base URL</label>
+                <Input
+                  className="mt-1"
+                  placeholder="https://my.paperclip.ing"
+                  value={cfgForm.baseUrl}
+                  onChange={(e) => setCfgForm((f) => ({ ...f, baseUrl: e.target.value }))}
+                  data-testid="input-paperclip-base-url"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">
+                  API Key
+                  {cfgData?.hasApiKey && (
+                    <span className="ml-2 text-xs text-muted-foreground font-normal">(currently set — leave blank to keep)</span>
+                  )}
+                </label>
+                <Input
+                  className="mt-1"
+                  type="password"
+                  placeholder={cfgData?.hasApiKey ? "••••••••••••" : "pk_live_..."}
+                  value={cfgForm.apiKey}
+                  onChange={(e) => setCfgForm((f) => ({ ...f, apiKey: e.target.value }))}
+                  data-testid="input-paperclip-api-key"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Company ID <span className="text-muted-foreground font-normal">(optional)</span></label>
+                <Input
+                  className="mt-1"
+                  placeholder="your-company-id"
+                  value={cfgForm.companyId}
+                  onChange={(e) => setCfgForm((f) => ({ ...f, companyId: e.target.value }))}
+                  data-testid="input-paperclip-company-id"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfigOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => saveCfgMutation.mutate(cfgForm)}
+              disabled={!cfgForm.baseUrl.trim() || (!cfgForm.apiKey.trim() && !cfgData?.hasApiKey) || saveCfgMutation.isPending}
+              data-testid="button-save-paperclip-config"
+            >
+              {saveCfgMutation.isPending ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Collapsible>
+  );
+}
+
 export default function CommandAiAgentsPage() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -464,6 +837,8 @@ export default function CommandAiAgentsPage() {
           </p>
         </CardContent>
       </Card>
+
+      <PaperclipDashboardSection />
 
       <AgentDialog
         open={dialogOpen}

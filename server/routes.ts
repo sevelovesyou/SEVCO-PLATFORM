@@ -2761,7 +2761,7 @@ export async function registerRoutes(
     }
   });
 
-  const CAN_MANAGE_SERVICES: Role[] = ["admin", "executive"];
+  const CAN_MANAGE_SERVICES: Role[] = ["admin", "executive", "staff"];
 
   app.get("/api/services/categories", async (req, res) => {
     try {
@@ -2805,6 +2805,30 @@ export async function registerRoutes(
       if (!updated.includes(newName) && !updated.includes(oldName)) updated.push(newName);
       await storage.setPlatformSettings({ "services.categories": JSON.stringify(updated) });
       res.json({ success: true, updated: toUpdate.length });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/services/categories/:name", requireAuth, requireRole(...CAN_MANAGE_SERVICES), async (req, res) => {
+    try {
+      const name = req.params.name;
+      const platformSettings = await storage.getPlatformSettings();
+      let storedCategories: string[] = [];
+      if (platformSettings["services.categories"]) {
+        try {
+          const parsed = JSON.parse(platformSettings["services.categories"]);
+          if (Array.isArray(parsed)) storedCategories = parsed;
+        } catch {}
+      }
+      const updated = storedCategories.filter((c) => c !== name);
+      await storage.setPlatformSettings({ "services.categories": JSON.stringify(updated) });
+      const allServices = await storage.getServices();
+      const toUpdate = allServices.filter((s) => s.category === name);
+      for (const s of toUpdate) {
+        await storage.updateService(s.id, { category: "" });
+      }
+      res.json({ success: true, cleared: toUpdate.length });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

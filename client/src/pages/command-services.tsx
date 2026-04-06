@@ -267,6 +267,7 @@ function CategoriesTab({ categories }: { categories: string[] }) {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [renameTarget, setRenameTarget] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const addCategoryMutation = useMutation({
     mutationFn: async (name: string) => {
@@ -304,6 +305,20 @@ function CategoriesTab({ categories }: { categories: string[] }) {
     onError: (err: any) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const res = await apiRequest("DELETE", `/api/services/categories/${encodeURIComponent(name)}`);
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/services/categories"] });
+      toast({ title: "Category deleted", description: data.cleared > 0 ? `${data.cleared} service(s) unassigned.` : undefined });
+      setDeleteTarget(null);
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   function handleAdd() {
@@ -387,6 +402,32 @@ function CategoriesTab({ categories }: { categories: string[] }) {
                       </TooltipTrigger>
                       <TooltipContent>Rename</TooltipContent>
                     </Tooltip>
+                    {deleteTarget === cat ? (
+                      <div className="flex items-center gap-1">
+                        <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => deleteMutation.mutate(cat)} disabled={deleteMutation.isPending} data-testid={`button-confirm-delete-category-${cat}`}>
+                          Delete
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDeleteTarget(null)} data-testid={`button-cancel-delete-category-${cat}`}>
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Delete"
+                            className="h-7 w-7 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => { setRenameTarget(null); setDeleteTarget(cat); }}
+                            data-testid={`button-delete-category-${cat}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete</TooltipContent>
+                      </Tooltip>
+                    )}
                   </>
                 )}
               </div>

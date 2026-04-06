@@ -18025,3 +18025,47 @@ Change `gallery: { ..., maxSizeMb: 25, ... }` → `gallery: { ..., maxSizeMb: 10
 
 ---
 
+## Task — music-player-layout-and-nav-mute
+> Merged: 2026-04-05
+
+# Music Player — Art Height Fix & Nav Mute Sync
+
+## What & Why
+
+### Fix 1 — Album art is too tall, controls hidden
+The art container uses `aspect-square` which scales with the player width (380px default). That makes the art 380px tall — larger than the whole player (240px default height). The controls are pushed completely off-screen and invisible.
+
+Fix: Replace `aspect-square` with a fixed pixel height (`h-36` = 144px) on the art container. The image still fills it with `object-cover`. Additionally increase the player's default height from 240 → 320px and the resize minimum from 220 → 280px so both art and controls comfortably fit at default size.
+
+### Fix 2 — Nav mute button should mute/unmute the music player
+The nav bar mute button (Volume2/VolumeX) calls `toggleSound()` from `useSounds`, which only affects UI click sounds (stored in localStorage under `sevco-sound-enabled`). When the user mutes via the nav bar they expect music to also go silent; unmuting should restore the previous volume.
+
+Fix: In `platform-header.tsx`, import `useMusicPlayer`, add a `prevMusicVolumeRef` to remember the volume before muting, and update the mute button's `onClick` handler:
+- If currently `soundEnabled` (about to mute): save `volume` to ref, call `setVolume(0)`, then `toggleSound()`
+- If currently `!soundEnabled` (about to unmute): call `setVolume(prevMusicVolumeRef.current)`, then `toggleSound()`
+Also add a mount `useEffect` that checks `soundEnabled` on load: if it's `false`, call `setVolume(0)` so music is muted if the user had left it muted.
+
+There are two mute buttons in the header (desktop and mobile variants) — both should get the same updated `onClick` logic.
+
+## Done looks like
+- Opening the player shows the album art (144px tall strip) at the top and all controls (scrubber, prev/play/next, volume) clearly visible below without scrolling.
+- Clicking the mute icon in the nav bar silences the music player immediately.
+- Clicking it again restores the prior volume.
+- If the page is loaded with sounds already muted (persisted in localStorage), the music player is also silenced on mount.
+
+## Files
+- `client/src/components/floating-music-player.tsx`
+  - Line ~155: change `<div className="w-full aspect-square overflow-hidden shrink-0">` → `<div className="w-full h-36 overflow-hidden shrink-0">`
+- `client/src/contexts/music-player-context.tsx`
+  - Line ~41: change default height from `240` → `320`
+  - In `handleMouseResizeStart`, change `Math.max(220, ...)` → `Math.max(280, ...)`
+- `client/src/components/platform-header.tsx`
+  - Import `useMusicPlayer` from `@/contexts/music-player-context`
+  - Add `const { volume, setVolume } = useMusicPlayer()` inside `PlatformHeader`
+  - Add `const prevMusicVolumeRef = useRef(0.8)` 
+  - Add mount `useEffect`: if `!soundEnabled`, call `setVolume(0)`
+  - Update both mute button `onClick` handlers to sync player volume
+
+
+---
+

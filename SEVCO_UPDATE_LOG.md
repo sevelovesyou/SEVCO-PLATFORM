@@ -18142,3 +18142,51 @@ No other changes. No backend changes. No schema changes.
 
 ---
 
+## Task — music-player-art-responsive-height
+> Merged: 2026-04-06
+
+# Music Player — Responsive Art Height (scales with player size)
+
+## Root cause
+The art container uses `h-36` (fixed 144px). At the default small player size this looks fine.
+But when the player is resized larger (e.g. 760×550px), a 144px strip is tiny relative to the
+player width and `object-cover` heavily crops the image (only the bottom portion visible).
+
+## Fix — one element, one change in `floating-music-player.tsx`
+
+`size` is already destructured from `useMusicPlayer()` at the top of the component.
+
+Change the art container from:
+```jsx
+<div className="w-full h-36 overflow-hidden shrink-0">
+  <img ... className="w-full h-full object-cover" />
+```
+
+To:
+```jsx
+<div
+  className="w-full overflow-hidden shrink-0 bg-black"
+  style={{ height: Math.min(size.width, Math.round(size.height * 0.52)) }}
+>
+  <img ... className="w-full h-full object-contain" />
+```
+
+### Why this works at every player size
+- `Math.min(size.width, size.height * 0.52)` = the lesser of:
+  - The player width — so art never exceeds a square
+  - 52% of player height — so controls always have at least 48% of height
+- At default 320×320: art height = min(320, 166) = **166px** — shows art + controls comfortably
+- At large 760×550: art height = min(760, 286) = **286px** — proportional, not a tiny strip
+- `object-contain` + `bg-black` letterbox: full art always visible, no cropping
+
+### Also update the minimum height constraint in handleMouseResizeStart
+Currently `Math.max(280, ...)`. With this layout, a 280px tall player at default 320px width gives:
+- art = min(320, 145) = 145px, controls area = 280-34-145 = 101px — just enough room.
+Keep `280` as the minimum, no change needed.
+
+## Files
+- `client/src/components/floating-music-player.tsx` — art container div + img className only
+
+
+---
+

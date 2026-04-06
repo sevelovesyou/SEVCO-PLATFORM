@@ -18190,3 +18190,90 @@ Keep `280` as the minimum, no change needed.
 
 ---
 
+## Task — music-card-play-download
+> Merged: 2026-04-06
+
+# Music Cards — Whole-Card Play + Download Button
+
+## What & Why
+
+### BeatCard play button is clipped
+The play button is `absolute bottom-3 right-3` inside the `overflow-hidden rounded-t-xl` image container. `overflow-hidden` clips any element positioned near the edge. Fix: remove the floating absolute play button entirely, make the whole card clickable, and add a subtle centered play overlay on the image instead (which stays within bounds).
+
+### Download button needed on all track/beat cards
+Users should be able to download songs/beats. This requires:
+- A small `Download` icon button on each card
+- The server needs to support a `?download=1` query param on the `/images/:bucket/*` route for tracks bucket, so Supabase generates a signed URL with `Content-Disposition: attachment` (forcing browser save instead of in-browser play)
+
+## Changes
+
+### 1. `server/supabase.ts` — extend `getSignedUrl` with optional download option
+```typescript
+export async function getSignedUrl(
+  bucket: string,
+  path: string,
+  expiresInSeconds = 3600,
+  download?: string | boolean
+): Promise<string | null> {
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(path, expiresInSeconds, download ? { download } : undefined);
+  ...
+}
+```
+
+### 2. `server/routes.ts` — pass download option when `?download=1` in query
+In the `/images/:bucket/*filePath` handler, for SIGNED_URL_BUCKETS (tracks):
+```typescript
+const download = req.query.download === "1" ? (filePath.split("/").pop() ?? true) : undefined;
+const signedUrl = await getSignedUrl(bucket, filePath, 3600, download);
+```
+This makes `/images/tracks/library/track.mp3?download=1` generate a signed URL with `Content-Disposition: attachment; filename="track.mp3"`, forcing a browser save dialog.
+
+### 3. `client/src/pages/music-beats-page.tsx` — whole-card play + download icon
+
+**BeatCard**:
+- Add `onClick={handlePlay}` and `cursor-pointer` to the outer card div
+- Remove the `<Button>` play button from inside the image container entirely (it was being clipped)
+- Replace with a centered `<div>` play overlay (`absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100`) inside the image container — this stays within bounds
+- In the `p-3` info area, add a small `Download` icon button at the end of the stats row:
+  ```tsx
+  <a
+    href={`${track.fileUrl}?download=1`}
+    download
+    onClick={(e) => e.stopPropagation()}
+    aria-label="Download"
+    data-testid={`button-download-beat-${track.id}`}
+  >
+    <Download className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground transition-colors" />
+  </a>
+  ```
+- Add `Download` to lucide-react imports
+
+### 4. `client/src/pages/music-listen-page.tsx` — download icon on TrackCard
+- Add `Download` to lucide-react imports
+- Add a download icon button after the Play button at the right side of the TrackCard row:
+  ```tsx
+  <a
+    href={`${track.fileUrl}?download=1`}
+    download
+    onClick={(e) => e.stopPropagation()}
+    aria-label="Download"
+    data-testid={`button-download-track-${track.id}`}
+    className="shrink-0"
+  >
+    <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+      <span><Download className="h-3.5 w-3.5" /></span>
+    </Button>
+  </a>
+  ```
+
+## Relevant files
+- `server/supabase.ts` — `getSignedUrl` signature update
+- `server/routes.ts` — pass download to getSignedUrl when `?download=1`
+- `client/src/pages/music-beats-page.tsx` — card clickable, remove clipped button, add download
+- `client/src/pages/music-listen-page.tsx` — add download button to TrackCard
+
+
+---
+

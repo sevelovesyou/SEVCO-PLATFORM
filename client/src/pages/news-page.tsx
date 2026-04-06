@@ -485,7 +485,11 @@ function CategorySwimLane({ category, isFollowed, onFollowToggle, onArticleClick
     queryKey: ["/api/news/feed", category.query, 20],
     queryFn: () =>
       fetch(`/api/news/feed?query=${encodeURIComponent(category.query)}&limit=20`).then((r) => r.json()),
-    staleTime: 15 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: (query) => {
+      const data = query.state.data as NewsArticle[] | undefined;
+      return (!data || data.length === 0) ? 10000 : false;
+    },
   });
 
   useEffect(() => {
@@ -780,12 +784,16 @@ export default function NewsPage() {
   const primaryCategory = sortedCategories[0];
   const otherCategories = sortedCategories.slice(1);
 
-  const { data: primaryArticles, isLoading: primaryLoading, refetch: refetchPrimary } = useQuery<NewsArticle[]>({
+  const { data: primaryArticles, isLoading: primaryLoading, isFetching: primaryFetching, refetch: refetchPrimary } = useQuery<NewsArticle[]>({
     queryKey: ["/api/news/feed", primaryCategory?.query, 11],
     queryFn: () =>
       fetch(`/api/news/feed?query=${encodeURIComponent(primaryCategory!.query)}&limit=11`).then((r) => r.json()),
     enabled: !!primaryCategory,
-    staleTime: 15 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: (query) => {
+      const data = query.state.data as NewsArticle[] | undefined;
+      return (!data || data.length === 0) ? 10000 : false;
+    },
   });
 
   const { data: trendingNews } = useQuery<TrendingNewsItem[]>({
@@ -934,8 +942,15 @@ export default function NewsPage() {
                     <HeroSection article={heroArticle} aiSettings={aiSettings} />
                   </div>
                 ) : (
-                  <div className="rounded-2xl border bg-muted/30 flex items-center justify-center h-48">
-                    <p className="text-sm text-muted-foreground">No headlines available right now. Check back soon.</p>
+                  <div className="rounded-2xl border bg-muted/30 flex flex-col items-center justify-center h-48 gap-3">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      {primaryFetching ? "Fetching latest headlines…" : "Warming up the news feed…"}
+                    </p>
+                    <Button size="sm" variant="ghost" onClick={() => refetchPrimary()} data-testid="button-retry-news">
+                      <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                      Refresh now
+                    </Button>
                   </div>
                 )}
 

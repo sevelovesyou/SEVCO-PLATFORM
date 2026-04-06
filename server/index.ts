@@ -375,6 +375,20 @@ async function initStripe() {
     }
   })();
 
+  await (async () => {
+    try {
+      const cats = await storage.getNewsCategories();
+      if (cats.length === 0) {
+        await storage.createNewsCategory({ name: "General", query: "world news OR breaking news", xQuery: null, accentColor: "#6b7280", displayOrder: 0, enabled: true, featured: false, pinned: false });
+        await storage.createNewsCategory({ name: "Technology", query: "technology AI startups OR tech news", xQuery: null, accentColor: "#3b82f6", displayOrder: 1, enabled: true, featured: false, pinned: false });
+        await storage.createNewsCategory({ name: "Business", query: "business entrepreneurship startups OR business news", xQuery: null, accentColor: "#10b981", displayOrder: 2, enabled: true, featured: false, pinned: false });
+        console.log("[news] Seeded 3 default news categories");
+      }
+    } catch (err: any) {
+      console.warn("[news] Category seed failed:", err?.message ?? err);
+    }
+  })();
+
   startNewsAggregator();
   setupAuth(app);
   await registerRoutes(httpServer, app);

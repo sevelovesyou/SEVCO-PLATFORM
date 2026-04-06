@@ -18115,3 +18115,30 @@ Both `BeatCard` and `TrackCard` hide the play button with `opacity-0 group-hover
 
 ---
 
+## Task — music-player-art-height-final
+> Merged: 2026-04-06
+
+# Music Player — Restore Fixed Art Height (revert Task #226 regression)
+
+## What happened
+Task #226 was a stale queued task that merged after Task #225 had already correctly fixed the art height to `h-36`. Task #226 reverted the art container back to `aspect-square`, which makes the art height equal to the player width (~470px on desktop) — hiding all controls below.
+
+## Two-line fix in `client/src/components/floating-music-player.tsx`
+
+Line 154: Change
+  `className="w-full aspect-square overflow-hidden shrink-0 bg-black"`
+to
+  `className="w-full h-36 overflow-hidden shrink-0"`
+(Remove bg-black — it was only needed for object-contain letterboxing)
+
+Line 159: Change
+  `className="w-full h-full object-contain"`
+to
+  `className="w-full h-full object-cover"`
+(Cover crops and fills the space cleanly; no letterboxing needed)
+
+No other changes. No backend changes. No schema changes.
+
+
+---
+

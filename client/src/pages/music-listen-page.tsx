@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Send, Music, ExternalLink, Play, Headphones } from "lucide-react";
+import { Users, Send, Music, ExternalLink, Play, Headphones, Download } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { SevcoLogo } from "@/components/sevco-logo";
 import * as SI from "react-icons/si";
@@ -102,6 +102,20 @@ function TrackCard({ track, allTracks }: { track: MusicTrack; allTracks: MusicTr
         <Play className="h-3 w-3" />
         Play
       </Button>
+      {track.fileUrl && (
+        <a
+          href={`${track.fileUrl}?download=1`}
+          download
+          onClick={(e) => e.stopPropagation()}
+          aria-label="Download"
+          data-testid={`button-download-track-${track.id}`}
+          className="shrink-0"
+        >
+          <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+            <span><Download className="h-3.5 w-3.5" /></span>
+          </Button>
+        </a>
+      )}
     </div>
   );
 }

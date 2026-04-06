@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Play, Headphones, Drum, Music2 } from "lucide-react";
+import { Play, Headphones, Drum, Music2, Download } from "lucide-react";
 import type { MusicTrack } from "@shared/schema";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useMusicPlayer } from "@/contexts/music-player-context";
@@ -31,7 +31,8 @@ function BeatCard({ track, allTracks }: { track: MusicTrack; allTracks: MusicTra
 
   return (
     <div
-      className="group relative bg-card border border-border rounded-xl hover:border-foreground/20 hover:shadow-lg hover:shadow-black/20 transition-all duration-300"
+      className="group relative bg-card border border-border rounded-xl hover:border-foreground/20 hover:shadow-lg hover:shadow-black/20 transition-all duration-300 cursor-pointer"
+      onClick={handlePlay}
       data-testid={`card-beat-${track.id}`}
     >
       <div className="aspect-square relative bg-zinc-900 overflow-hidden rounded-t-xl">
@@ -49,14 +50,14 @@ function BeatCard({ track, allTracks }: { track: MusicTrack; allTracks: MusicTra
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-        <Button
-          size="icon"
-          className="absolute bottom-3 right-3 h-10 w-10 rounded-full bg-white text-black hover:bg-white/90 opacity-100 md:opacity-0 md:group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-xl"
-          onClick={handlePlay}
+        <div
+          className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           data-testid={`button-play-beat-${track.id}`}
         >
-          <Play className="h-4 w-4 fill-black" />
-        </Button>
+          <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center shadow-xl">
+            <Play className="h-5 w-5 fill-black text-black ml-0.5" />
+          </div>
+        </div>
       </div>
 
       <div className="p-3">
@@ -72,11 +73,24 @@ function BeatCard({ track, allTracks }: { track: MusicTrack; allTracks: MusicTra
             <Headphones className="h-3 w-3" />
             <span data-testid={`text-beat-streams-${track.id}`}>{formatStreamCount(track.streamCount)}</span>
           </div>
-          {track.duration && (
-            <span className="text-[11px] text-muted-foreground" data-testid={`text-beat-duration-${track.id}`}>
-              {formatDuration(track.duration)}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {track.duration && (
+              <span className="text-[11px] text-muted-foreground" data-testid={`text-beat-duration-${track.id}`}>
+                {formatDuration(track.duration)}
+              </span>
+            )}
+            {track.fileUrl && (
+              <a
+                href={`${track.fileUrl}?download=1`}
+                download
+                onClick={(e) => e.stopPropagation()}
+                aria-label="Download"
+                data-testid={`button-download-beat-${track.id}`}
+              >
+                <Download className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground transition-colors" />
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </div>

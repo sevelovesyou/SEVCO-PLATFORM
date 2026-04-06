@@ -1522,7 +1522,8 @@ export async function registerRoutes(
 
     if (SIGNED_URL_BUCKETS.has(bucket)) {
       const { getSignedUrl } = await import("./supabase");
-      const signedUrl = await getSignedUrl(bucket, filePath);
+      const download = req.query.download === "1" ? (filePath.split("/").pop() ?? true) : undefined;
+      const signedUrl = await getSignedUrl(bucket, filePath, 3600, download);
       if (!signedUrl) {
         return res.status(503).json({ message: "Could not generate signed URL for track." });
       }

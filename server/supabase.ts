@@ -105,10 +105,10 @@ export async function uploadBuffer(bucket: BucketName, filePath: string, buffer:
   }
 }
 
-export async function getSignedUrl(bucket: string, path: string, expiresInSeconds = 3600): Promise<string | null> {
+export async function getSignedUrl(bucket: string, path: string, expiresInSeconds = 3600, download?: string | boolean): Promise<string | null> {
   if (!supabase) return null;
   try {
-    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, expiresInSeconds);
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, expiresInSeconds, download ? { download } : undefined);
     if (error) {
       console.error(`[supabase] Failed to create signed URL:`, error.message);
       return null;

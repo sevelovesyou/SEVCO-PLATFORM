@@ -18069,3 +18069,49 @@ There are two mute buttons in the header (desktop and mobile variants) — both 
 
 ---
 
+## Task — music-card-overflow-and-player
+> Merged: 2026-04-06
+
+# Music Cards — Fix Overflow Clipping & Beats Player Integration
+
+## What & Why
+
+### Overflow clipping (Music + Beats pages)
+`BeatCard` in `music-beats-page.tsx` has `overflow-hidden` on both the outer card div AND the inner `aspect-square` image container. This double-clips any element that's positioned at the boundary (e.g., a play button, label badge, or artist indicator near the edge of the image). The screenshot shows a white circular element being cut off at the bottom-left of the image area. Fix: remove `overflow-hidden` from the outer card — the `rounded-xl` border radius can be preserved; only the image container needs its own `overflow-hidden` to clip the photo itself.
+
+The same issue may affect `TrackCard` in `music-listen-page.tsx` which also has nested relative containers.
+
+### BeatCard still opens a new tab instead of using the music player
+`BeatCard.handlePlay` calls `window.open(track.fileUrl, "_blank")`. With the `/songs/` signed-URL proxy now in place, beats should play directly in the floating music player like all other tracks. Fix: swap `window.open` for `playTrack(track, otherBeats)` from `useMusicPlayer`.
+
+### Play button invisible on touch devices
+Both `BeatCard` and `TrackCard` hide the play button with `opacity-0 group-hover:opacity-100`, which means it's permanently invisible on mobile/tablet where CSS `:hover` doesn't fire. Fix: make the play button always visible on small screens and hover-revealed only on md+ screens.
+
+## Done looks like
+- All card elements (play button, any label badge) are fully visible and not clipped at any card size.
+- Clicking a beat card plays the track in the floating music player (no new tab opens).
+- On mobile, the play button on both BeatCard and TrackCard is visible without hovering.
+- On desktop, the play button appears on hover as before.
+
+## Changes
+
+### `client/src/pages/music-beats-page.tsx`
+- Outer card div: remove `overflow-hidden` (keep `rounded-xl`, `border`, `bg-card` etc.)
+- Add `import { useMusicPlayer } from "@/contexts/music-player-context"`
+- Update `BeatCard` to accept `allTracks: MusicTrack[]` prop
+- Replace `streamMutation` + `window.open` logic with `playTrack(track, otherBeats)` from `useMusicPlayer`
+- Play button: change class from `opacity-0 group-hover:opacity-100` → `opacity-100 md:opacity-0 md:group-hover:opacity-100`
+- Pass `tracks` array as `allTracks` prop when rendering `BeatCard` in the grid
+
+### `client/src/pages/music-listen-page.tsx`
+- Outer `TrackCard` div: confirm no extra `overflow-hidden` is present (it currently uses `rounded-xl border`, which is fine)
+- Play overlay button: change from `opacity-0 group-hover:opacity-100` → `opacity-100 sm:opacity-0 sm:group-hover:opacity-100`
+- Play button (the separate `<Button>` component at end of row): same responsive opacity change
+
+## Relevant files
+- `client/src/pages/music-beats-page.tsx`
+- `client/src/pages/music-listen-page.tsx`
+
+
+---
+

@@ -18277,3 +18277,95 @@ This makes `/images/tracks/library/track.mp3?download=1` generate a signed URL w
 
 ---
 
+## Task — store-categories-management
+> Merged: 2026-04-06
+
+# Store — Categories Management (staff+)
+
+## What & Why
+Product categories are currently a free-text `categoryName` field on each product — there's no managed list. Staff members can't reliably add/edit/delete categories because there's no dedicated UI or table. The product form shows a plain text input instead of a curated dropdown.
+
+This task adds a `store_categories` table, CRUD API endpoints (staff+), a Categories tab in CMD Store, and wires the product form's category field to use a Select populated from the categories API.
+
+## Done looks like
+- CMD Store has a "Categories" tab visible to staff, executive, and admin.
+- Staff can add a category (name + optional description + display order), edit it, and delete it.
+- The product form's "Category" field is a Select dropdown showing the categories from the API (not a free-text input).
+- Existing products with any `categoryName` value are unaffected (the existing string is preserved and will match if the category exists, or can be re-selected).
+- `GET /api/store/categories` is public (used by the product form dropdown).
+- `POST/PATCH/DELETE /api/store/categories` require staff+ role.
+
+## Schema (`shared/schema.ts`)
+```typescript
+export const storeCategories = pgTable("store_categories", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  description: text("description"),
+  displayOrder: integer("displayOrder").notNull().default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export const insertStoreCategorySchema = createInsertSchema(storeCategories).omit({ id: true, createdAt: true });
+export type InsertStoreCategory = z.infer<typeof insertStoreCategorySchema>;
+export type StoreCategory = typeof storeCategories.$inferSelect;
+```
+
+## Storage (`server/storage.ts`)
+Add to IStorage and DatabaseStorage:
+- `getStoreCategories(): Promise<StoreCategory[]>` — ordered by displayOrder, then name
+- `createStoreCategory(data: InsertStoreCategory): Promise<StoreCategory>`
+- `updateStoreCategory(id: number, data: Partial<InsertStoreCategory>): Promise<StoreCategory | undefined>`
+- `deleteStoreCategory(id: number): Promise<void>`
+
+## API (`server/routes.ts`)
+- `GET /api/store/categories` — public, returns all categories ordered by displayOrder/name
+- `POST /api/store/categories` — requireAuth + requireRole("admin","executive","staff")
+- `PATCH /api/store/categories/:id` — same roles
+- `DELETE /api/store/categories/:id` — same roles
+
+## Startup migration (`server/index.ts`)
+Add to `runStartupMigrations()`:
+```sql
+CREATE TABLE IF NOT EXISTS store_categories (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL UNIQUE,
+  description TEXT,
+  "displayOrder" INTEGER NOT NULL DEFAULT 0,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
+);
+```
+Then seed any existing distinct `categoryName` values from `store_products` into `store_categories` if the table is empty:
+```sql
+INSERT INTO store_categories (name)
+SELECT DISTINCT "categoryName" FROM store_products
+WHERE "categoryName" IS NOT NULL AND "categoryName" != ''
+ON CONFLICT (name) DO NOTHING;
+```
+
+## CMD Store UI (`client/src/pages/command-store.tsx`)
+Add a "Categories" tab (alongside existing Products, Orders, Analytics tabs) visible to `canManageProducts` (staff+):
+- Table listing all categories (name, description, displayOrder, actions)
+- "Add Category" button opens an inline form or dialog with: Name*, Description, Display Order
+- Edit (pencil icon) and Delete (trash icon) per row
+- Delete shows a confirm before calling the DELETE endpoint
+- Uses `useQuery(["/api/store/categories"])` and mutations that invalidate the same key
+
+## Product form (`client/src/pages/store-product-form.tsx`)
+- Import `StoreCategory` type
+- Add `useQuery<StoreCategory[]>({ queryKey: ["/api/store/categories"] })` to fetch categories
+- Change the `categoryName` field from `<Input>` to `<Select>`:
+  - Options: categories from API (each `<SelectItem value={cat.name}>`)
+  - When categories are loading: show a disabled Select with "Loading categories…"
+  - When no categories exist: show a fallback `<Input>` so forms still work
+  - Keep `categoryName` as a free string in schema (no FK constraint) for flexibility
+
+## Files
+- `shared/schema.ts`
+- `server/storage.ts`
+- `server/routes.ts`
+- `server/index.ts` — startup migration + seeding
+- `client/src/pages/command-store.tsx` — Categories tab
+- `client/src/pages/store-product-form.tsx` — category Select
+
+
+---
+

@@ -18277,9 +18277,18 @@ This makes `/images/tracks/library/track.mp3?download=1` generate a signed URL w
 
 ---
 
+<<<<<<< HEAD
 ## Task — store-categories-management
 > Merged: 2026-04-06
 
+=======
+## Task — task-232
+> Merged: 2026-04-06
+
+---
+title: Store — categories management for staff+ (table, API, CMD tab, product dropdown)
+---
+>>>>>>> 2d37fc2 (Post-merge setup completed successfully)
 # Store — Categories Management (staff+)
 
 ## What & Why

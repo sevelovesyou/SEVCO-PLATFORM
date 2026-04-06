@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -62,16 +62,16 @@ import {
   TrendingUp,
   BarChart2,
   Package,
+  Tag,
+  Pencil,
 } from "lucide-react";
-import type { Product, Order } from "@shared/schema";
+import type { Product, Order, StoreCategory } from "@shared/schema";
 
 const STOCK_STATUS_COLORS: Record<string, string> = {
   available:   "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
   unavailable: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
   preorder:    "bg-yellow-500/10 text-yellow-700 dark:text-yellow-500 border-yellow-500/20",
 };
-
-const STORE_CATEGORIES = ["Apparel", "Games", "Grocery", "Health", "Music", "Books", "Other"];
 
 const productFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -101,6 +101,10 @@ function StockBadge({ status }: { status: string }) {
 function AddProductDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { toast } = useToast();
 
+  const { data: storeCategories, isLoading: categoriesLoading } = useQuery<StoreCategory[]>({
+    queryKey: ["/api/store/categories"],
+  });
+
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
@@ -108,7 +112,7 @@ function AddProductDialog({ open, onClose }: { open: boolean; onClose: () => voi
       slug: "",
       description: "",
       price: "",
-      categoryName: "Apparel",
+      categoryName: "",
       stockStatus: "available",
       imageUrl: "",
     },
@@ -208,18 +212,32 @@ function AddProductDialog({ open, onClose }: { open: boolean; onClose: () => voi
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Category</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    {categoriesLoading ? (
+                      <Select disabled>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-product-category">
+                            <SelectValue placeholder="Loading…" />
+                          </SelectTrigger>
+                        </FormControl>
+                      </Select>
+                    ) : storeCategories && storeCategories.length > 0 ? (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-product-category">
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {storeCategories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
                       <FormControl>
-                        <SelectTrigger data-testid="select-product-category">
-                          <SelectValue />
-                        </SelectTrigger>
+                        <Input {...field} placeholder="e.g. Apparel" data-testid="select-product-category" />
                       </FormControl>
-                      <SelectContent>
-                        {STORE_CATEGORIES.map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -712,6 +730,267 @@ function StoreOrdersTab() {
   );
 }
 
+const categoryFormSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100),
+  description: z.string().optional(),
+  displayOrder: z.coerce.number().int().default(0),
+});
+
+type CategoryFormData = z.infer<typeof categoryFormSchema>;
+
+function CategoryDialog({
+  open,
+  onClose,
+  category,
+}: {
+  open: boolean;
+  onClose: () => void;
+  category?: StoreCategory;
+}) {
+  const { toast } = useToast();
+  const isEdit = !!category;
+
+  const form = useForm<CategoryFormData>({
+    resolver: zodResolver(categoryFormSchema),
+    defaultValues: {
+      name: category?.name ?? "",
+      description: category?.description ?? "",
+      displayOrder: category?.displayOrder ?? 0,
+    },
+  });
+
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        name: category?.name ?? "",
+        description: category?.description ?? "",
+        displayOrder: category?.displayOrder ?? 0,
+      });
+    }
+  }, [open, category]);
+
+  const mutation = useMutation({
+    mutationFn: async (data: CategoryFormData) => {
+      const payload = {
+        name: data.name,
+        description: data.description || null,
+        displayOrder: data.displayOrder,
+      };
+      const res = isEdit
+        ? await apiRequest("PATCH", `/api/store/categories/${category!.id}`, payload)
+        : await apiRequest("POST", "/api/store/categories", payload);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/store/categories"] });
+      toast({ title: isEdit ? "Category updated" : "Category created" });
+      form.reset();
+      onClose();
+    },
+    onError: (err: any) => {
+      toast({ title: err.message || "Failed to save category", variant: "destructive" });
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Edit Category" : "Add Category"}</DialogTitle>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit((d) => mutation.mutate(d))} className="flex flex-col gap-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name *</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="e.g. Apparel" data-testid="input-category-name" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
+                  <FormControl>
+                    <Textarea {...field} placeholder="Brief description…" rows={2} data-testid="textarea-category-description" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="displayOrder"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Display Order</FormLabel>
+                  <FormControl>
+                    <Input {...field} type="number" placeholder="0" data-testid="input-category-order" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+              <Button type="submit" disabled={mutation.isPending} data-testid="button-submit-category">
+                {mutation.isPending ? "Saving…" : isEdit ? "Save Changes" : "Create Category"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function StoreCategoriesTab() {
+  const { toast } = useToast();
+  const [addOpen, setAddOpen] = useState(false);
+  const [editCategory, setEditCategory] = useState<StoreCategory | undefined>(undefined);
+
+  const { data: categories, isLoading } = useQuery<StoreCategory[]>({
+    queryKey: ["/api/store/categories"],
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/store/categories/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/store/categories"] });
+      toast({ title: "Category deleted" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete category", variant: "destructive" });
+    },
+  });
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <Tag className="h-4 w-4 text-muted-foreground" />
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Categories
+        </h2>
+        {categories && (
+          <span className="text-xs text-muted-foreground">
+            {categories.length} categor{categories.length !== 1 ? "ies" : "y"}
+          </span>
+        )}
+        <Button
+          size="sm"
+          className="ml-auto h-7 text-xs gap-1"
+          onClick={() => setAddOpen(true)}
+          data-testid="button-add-category"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add Category
+        </Button>
+      </div>
+
+      <Card className="overflow-hidden overflow-visible" data-testid="table-categories">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="border-b bg-muted/50">
+              <tr>
+                <th className="text-left p-3 text-xs font-medium text-muted-foreground">Name</th>
+                <th className="text-left p-3 text-xs font-medium text-muted-foreground hidden md:table-cell">Description</th>
+                <th className="text-left p-3 text-xs font-medium text-muted-foreground">Order</th>
+                <th className="text-left p-3 text-xs font-medium text-muted-foreground">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i} className="border-b last:border-0">
+                    <td className="p-3"><Skeleton className="h-4 w-24" /></td>
+                    <td className="p-3 hidden md:table-cell"><Skeleton className="h-4 w-40" /></td>
+                    <td className="p-3"><Skeleton className="h-4 w-8" /></td>
+                    <td className="p-3"><Skeleton className="h-7 w-16" /></td>
+                  </tr>
+                ))
+              ) : categories && categories.length > 0 ? (
+                categories.map((cat) => (
+                  <tr key={cat.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors" data-testid={`row-category-${cat.id}`}>
+                    <td className="p-3 font-medium text-sm">{cat.name}</td>
+                    <td className="p-3 text-xs text-muted-foreground hidden md:table-cell">
+                      {cat.description ?? <span className="italic opacity-50">—</span>}
+                    </td>
+                    <td className="p-3 text-xs text-muted-foreground">{cat.displayOrder}</td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-1.5">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => setEditCategory(cat)}
+                              data-testid={`button-edit-category-${cat.id}`}
+                              aria-label={`Edit ${cat.name}`}
+                            >
+                              <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => {
+                                if (window.confirm(`Delete category "${cat.name}"? This cannot be undone.`)) {
+                                  deleteMutation.mutate(cat.id);
+                                }
+                              }}
+                              disabled={deleteMutation.isPending}
+                              data-testid={`button-delete-category-${cat.id}`}
+                              aria-label={`Delete ${cat.name}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Delete</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="p-6 text-center text-sm text-muted-foreground">
+                    No categories yet. Add one to get started.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <CategoryDialog open={addOpen} onClose={() => setAddOpen(false)} />
+      <CategoryDialog
+        open={!!editCategory}
+        onClose={() => setEditCategory(undefined)}
+        category={editCategory}
+      />
+    </div>
+  );
+}
+
 export default function CommandStore() {
   const { isAdmin, isExecutive, isStaff } = usePermission();
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -736,6 +1015,9 @@ export default function CommandStore() {
       <TabsList className="mb-6">
         <TabsTrigger value="catalog" data-testid="tab-store-catalog">
           <ShoppingBag className="h-3.5 w-3.5 mr-1.5" /> Catalog
+        </TabsTrigger>
+        <TabsTrigger value="categories" data-testid="tab-store-categories">
+          <Tag className="h-3.5 w-3.5 mr-1.5" /> Categories
         </TabsTrigger>
         <TabsTrigger value="analytics" data-testid="tab-store-analytics">
           <BarChart2 className="h-3.5 w-3.5 mr-1.5" /> Analytics
@@ -811,6 +1093,10 @@ export default function CommandStore() {
 
           <AddProductDialog open={showAddDialog} onClose={() => setShowAddDialog(false)} />
         </div>
+      </TabsContent>
+
+      <TabsContent value="categories">
+        <StoreCategoriesTab />
       </TabsContent>
 
       <TabsContent value="analytics">

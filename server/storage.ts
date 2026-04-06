@@ -9,6 +9,7 @@ import {
   type Album, type InsertAlbum,
   type MusicTrack, type InsertMusicTrack,
   type Product, type InsertProduct,
+  type StoreCategory, type InsertStoreCategory,
   type Project, type InsertProject,
   type Changelog, type InsertChangelog,
   type Order, type InsertOrder,
@@ -71,6 +72,7 @@ import {
   musicTracks,
   systemMailboxes,
   systemMailboxEmails,
+  storeCategories,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, and, sql, ilike, or, inArray, gte, lte, count as countFn } from "drizzle-orm";
@@ -146,6 +148,11 @@ export interface IStorage {
   updateProductStockStatus(id: number, stockStatus: string): Promise<Product>;
   deleteProduct(id: number): Promise<void>;
   updateProduct(id: number, data: Partial<InsertProduct & { stripeProductId: string; stripePriceId: string }>): Promise<Product>;
+
+  getStoreCategories(): Promise<StoreCategory[]>;
+  createStoreCategory(data: InsertStoreCategory): Promise<StoreCategory>;
+  updateStoreCategory(id: number, data: Partial<InsertStoreCategory>): Promise<StoreCategory | undefined>;
+  deleteStoreCategory(id: number): Promise<void>;
 
   getOrders(): Promise<Order[]>;
   getOrderBySessionId(sessionId: string): Promise<Order | undefined>;
@@ -884,6 +891,24 @@ export class DatabaseStorage implements IStorage {
   async updateProduct(id: number, data: Partial<any>): Promise<Product> {
     const [updated] = await db.update(products).set(data).where(eq(products.id, id)).returning();
     return updated;
+  }
+
+  async getStoreCategories(): Promise<StoreCategory[]> {
+    return db.select().from(storeCategories).orderBy(asc(storeCategories.displayOrder), asc(storeCategories.name));
+  }
+
+  async createStoreCategory(data: InsertStoreCategory): Promise<StoreCategory> {
+    const [created] = await db.insert(storeCategories).values(data).returning();
+    return created;
+  }
+
+  async updateStoreCategory(id: number, data: Partial<InsertStoreCategory>): Promise<StoreCategory | undefined> {
+    const [updated] = await db.update(storeCategories).set(data).where(eq(storeCategories.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteStoreCategory(id: number): Promise<void> {
+    await db.delete(storeCategories).where(eq(storeCategories.id, id));
   }
 
   async getOrders(): Promise<Order[]> {

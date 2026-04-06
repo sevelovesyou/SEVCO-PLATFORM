@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ShoppingBag, ShieldOff } from "lucide-react";
 import { FileUpload } from "@/components/file-upload";
+import type { StoreCategory } from "@shared/schema";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
@@ -65,6 +66,10 @@ export default function StoreProductForm() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { role } = usePermission();
+
+  const { data: storeCategories, isLoading: categoriesLoading } = useQuery<StoreCategory[]>({
+    queryKey: ["/api/store/categories"],
+  });
 
   if (!CAN_MANAGE_STORE_PRODUCTS.includes(role ?? "")) {
     return <AccessDenied />;
@@ -245,13 +250,36 @@ export default function StoreProductForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="e.g. Apparel, Music, Accessories"
-                      data-testid="input-product-category"
-                      {...field}
-                    />
-                  </FormControl>
+                  {categoriesLoading ? (
+                    <Select disabled>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-product-category">
+                          <SelectValue placeholder="Loading categories…" />
+                        </SelectTrigger>
+                      </FormControl>
+                    </Select>
+                  ) : storeCategories && storeCategories.length > 0 ? (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-product-category">
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {storeCategories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. Apparel, Music, Accessories"
+                        data-testid="input-product-category"
+                        {...field}
+                      />
+                    </FormControl>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

@@ -183,6 +183,18 @@ async function runStartupMigrations() {
     thread_id text,
     created_at timestamp DEFAULT now() NOT NULL
   );`);
+  // Task #232 — Store categories management
+  await pool.query(`CREATE TABLE IF NOT EXISTS store_categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    "displayOrder" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
+  );`);
+  await pool.query(`INSERT INTO store_categories (name)
+    SELECT DISTINCT category_name FROM products
+    WHERE category_name IS NOT NULL AND category_name != ''
+    ON CONFLICT (name) DO NOTHING;`);
   console.log("[startup] migrations applied");
 }
 

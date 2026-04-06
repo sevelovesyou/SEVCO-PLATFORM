@@ -304,6 +304,7 @@ export default function Landing() {
 
   const recentArticles = articles.filter((a) => a.status === "published").slice(0, 3);
   const featuredProducts = products.slice(0, 4);
+  const latestProducts = [...products].sort((a, b) => b.id - a.id).slice(0, 3);
   const featuredProjects = projects.slice(0, 6);
 
   const heroBgUrl = settings["hero.backgroundImageUrl"] ?? "";
@@ -566,11 +567,19 @@ export default function Landing() {
                   <Badge className="ml-auto bg-red-600/20 text-red-300 border-red-500/20 text-[10px]">New</Badge>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  {[Music, Folder, Briefcase].map((Icon, i) => (
-                    <div key={i} className="aspect-square rounded-lg bg-white/[0.04] border border-white/[0.07] flex items-center justify-center">
-                      <Icon className="h-5 w-5 text-white/30" />
-                    </div>
-                  ))}
+                  {Array.from({ length: 3 }).map((_, i) => {
+                    const p = latestProducts[i];
+                    const imgSrc = p ? resolveImageUrl(p.imageUrls?.[0] ?? p.imageUrl ?? null) : null;
+                    return (
+                      <div key={i} className="aspect-square rounded-lg bg-white/[0.04] border border-white/[0.07] overflow-hidden flex items-center justify-center">
+                        {imgSrc ? (
+                          <img src={imgSrc} alt={p.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <ShoppingBag className="h-5 w-5 text-white/30" />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

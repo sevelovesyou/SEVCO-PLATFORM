@@ -7,11 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NewsBentoGrid } from "@/components/news-bento-grid";
-import { NewsArticleCard, type NewsArticle } from "@/components/news-article-card";
+import { NewsArticleCard, articleHasImage, type NewsArticle } from "@/components/news-article-card";
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { NewsCategory, UserNewsBookmark } from "@shared/schema";
 import type { EditorialArticle } from "@/components/news-editorial";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { Link, useLocation } from "wouter";
 import { SiX } from "react-icons/si";
 import { apiRequest } from "@/lib/queryClient";
@@ -105,6 +105,10 @@ function TrendingTopicsSidebar({ onTopicClick }: { onTopicClick: (topic: string)
 
 function ArticleSkeleton() {
   return <Skeleton className="w-full h-48 rounded-xl" />;
+}
+
+function RowSkeleton() {
+  return <Skeleton className="w-full h-8 rounded-lg" />;
 }
 
 function HeroSection({ article, aiSettings, onImageGenerated }: { article: NewsArticle; aiSettings?: NewsAiSettings; onImageGenerated?: (url: string) => void }) {
@@ -519,22 +523,33 @@ function CategorySwimLane({ category, isFollowed, onFollowToggle, onArticleClick
   const visibleArticles = allArticles.slice(0, displayCount);
   const hasMore = displayCount < allArticles.length;
 
+  const accent = category.accentColor || "#6b7280";
+  const slug = category.name.toLowerCase().replace(/\s+/g, "-");
+
+  const withImage = visibleArticles.filter(articleHasImage);
+  const withoutImage = visibleArticles.filter((a) => !articleHasImage(a));
+
+  const featured = withImage[0];
+  const secondary = withImage.slice(1, 3);
+  const tertiary = withImage.slice(3, 6);
+  const remainingWithImage = withImage.slice(6);
+
   return (
-    <section data-testid={`swimlane-${category.id}`}>
-      <div className="flex items-center gap-3 mb-4 border-t pt-6">
-        <span
-          className="w-3 h-3 rounded-full shrink-0"
-          style={{ backgroundColor: category.accentColor || "#6b7280" }}
+    <section id={slug} data-testid={`swimlane-${category.id}`}>
+      <div className="flex items-center gap-0 mb-5 pt-6">
+        <div
+          className="w-1 self-stretch rounded-sm mr-3 shrink-0"
+          style={{ backgroundColor: accent }}
         />
-        <h2 className="text-base font-bold text-foreground">{category.name}</h2>
+        <h2 className="text-base font-bold text-foreground font-serif tracking-wide">{category.name}</h2>
         {isFollowed && (
-          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Following</Badge>
+          <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0">Following</Badge>
         )}
-        <div className="flex-1 h-px bg-border" />
+        <div className="flex-1 h-px bg-border ml-3" />
         <Button
           variant={isFollowed ? "secondary" : "ghost"}
           size="sm"
-          className="h-7 text-xs gap-1"
+          className="h-7 text-xs gap-1 ml-2"
           onClick={() => onFollowToggle(category.id)}
           data-testid={`button-follow-${category.id}`}
         >
@@ -548,25 +563,105 @@ function CategorySwimLane({ category, isFollowed, onFollowToggle, onArticleClick
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map((i) => <ArticleSkeleton key={i} />)}
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2"><ArticleSkeleton /></div>
+            <div className="space-y-4">
+              <ArticleSkeleton />
+              <ArticleSkeleton />
+            </div>
+          </div>
+          <div className="space-y-2 mt-2">
+            {[1, 2, 3].map((i) => <RowSkeleton key={i} />)}
+          </div>
         </div>
       ) : !visibleArticles.length ? (
         <p className="text-sm text-muted-foreground py-4">No articles available right now.</p>
+      ) : withImage.length === 0 ? (
+        <div className="divide-y divide-border">
+          {visibleArticles.map((article) => (
+            <NewsArticleCard
+              key={article.link}
+              article={article}
+              variant="list"
+              accentColor={accent}
+              categoryLabel={category.name}
+              onCardClick={onArticleClick ? () => onArticleClick(article) : undefined}
+              suppressAiImages
+            />
+          ))}
+        </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 justify-start">
-            {visibleArticles.map((article) => (
-              <NewsArticleCard
-                key={article.link}
-                article={article}
-                variant="compact"
-                accentColor={category.accentColor || undefined}
-                categoryLabel={category.name}
-                onCardClick={onArticleClick ? () => onArticleClick(article) : undefined}
-              />
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {featured && (
+              <div className={secondary.length > 0 ? "md:col-span-2" : "md:col-span-3"}>
+                <NewsArticleCard
+                  article={featured}
+                  variant="large"
+                  accentColor={accent}
+                  categoryLabel={category.name}
+                  onCardClick={onArticleClick ? () => onArticleClick(featured) : undefined}
+                />
+              </div>
+            )}
+            {secondary.length > 0 && (
+              <div className="md:col-span-1 flex flex-col gap-4">
+                {secondary.map((article) => (
+                  <NewsArticleCard
+                    key={article.link}
+                    article={article}
+                    variant="medium"
+                    accentColor={accent}
+                    categoryLabel={category.name}
+                    onCardClick={onArticleClick ? () => onArticleClick(article) : undefined}
+                  />
+                ))}
+              </div>
+            )}
           </div>
+
+          {tertiary.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              {tertiary.map((article) => (
+                <NewsArticleCard
+                  key={article.link}
+                  article={article}
+                  variant="compact"
+                  accentColor={accent}
+                  categoryLabel={category.name}
+                  onCardClick={onArticleClick ? () => onArticleClick(article) : undefined}
+                />
+              ))}
+            </div>
+          )}
+
+          {(withoutImage.length > 0 || remainingWithImage.length > 0) && (
+            <div className="mt-4 border-t divide-y divide-border">
+              {remainingWithImage.map((article) => (
+                <NewsArticleCard
+                  key={article.link}
+                  article={article}
+                  variant="list"
+                  accentColor={accent}
+                  categoryLabel={category.name}
+                  onCardClick={onArticleClick ? () => onArticleClick(article) : undefined}
+                />
+              ))}
+              {withoutImage.map((article) => (
+                <NewsArticleCard
+                  key={article.link}
+                  article={article}
+                  variant="list"
+                  accentColor={accent}
+                  categoryLabel={category.name}
+                  onCardClick={onArticleClick ? () => onArticleClick(article) : undefined}
+                  suppressAiImages
+                />
+              ))}
+            </div>
+          )}
+
           <div ref={sentinelRef} className="h-1 mt-2" />
           {hasMore && (
             <div className="mt-4 flex justify-center">
@@ -713,6 +808,7 @@ export default function NewsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
+  const [activeCategorySlug, setActiveCategorySlug] = useState<string | null>(null);
 
   const { data: aiSettings } = useNewsAiSettings();
 
@@ -823,40 +919,64 @@ export default function NewsPage() {
     setSelectedArticle(article);
   };
 
+  useEffect(() => {
+    if (!categories || categories.length === 0) return;
+    const firstSlug = categories[0].name.toLowerCase().replace(/\s+/g, "-");
+    setActiveCategorySlug(firstSlug);
+
+    const slugs = categories.map((c) => c.name.toLowerCase().replace(/\s+/g, "-"));
+    const elements = slugs.map((slug) => document.getElementById(slug)).filter(Boolean) as HTMLElement[];
+    if (elements.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting);
+        if (visible.length > 0) {
+          const topEntry = visible.reduce((prev, cur) =>
+            cur.boundingClientRect.top < prev.boundingClientRect.top ? cur : prev
+          );
+          setActiveCategorySlug(topEntry.target.id);
+        }
+      },
+      { rootMargin: "-20% 0px -60% 0px", threshold: 0 }
+    );
+
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [categories]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-6" data-testid="news-page" data-page="news">
       {!categoryParam && <BreakingBanner />}
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Newspaper className="h-7 w-7 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">News</h1>
-            <p className="text-sm text-muted-foreground">
-              {aiSettings?.aiAvailable ? (
-                <span className="flex items-center gap-1">
-                  AI-powered headlines curated for you
-                  <Sparkles className="h-3 w-3 text-primary inline" />
-                </span>
-              ) : (
-                "Curated headlines from across the web"
-              )}
-            </p>
+      <div className="border-b pb-3">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-baseline gap-3">
+            <h1 className="text-3xl font-serif font-black tracking-tight text-foreground">News</h1>
+            <span className="text-xs text-muted-foreground font-medium hidden sm:block">
+              {format(new Date(), "EEEE, MMMM d, yyyy")}
+            </span>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {!categoryParam && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => refetchPrimary()}
-              data-testid="button-refresh-news"
-              className="gap-1.5 text-muted-foreground"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Refresh
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {aiSettings?.aiAvailable && (
+              <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
+                <Sparkles className="h-3 w-3 text-primary" />
+                AI-curated
+              </span>
+            )}
+            {!categoryParam && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => refetchPrimary()}
+                data-testid="button-refresh-news"
+                className="gap-1.5 text-muted-foreground"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Refresh
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -913,6 +1033,37 @@ export default function NewsPage() {
               )}
             </div>
 
+            {!isSearchActive && activeTab === "all" && categories && categories.length > 1 && (
+              <div
+                className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide"
+                data-testid="category-quicknav"
+              >
+                {categories.map((cat) => {
+                  const catSlug = cat.name.toLowerCase().replace(/\s+/g, "-");
+                  const isActive = activeCategorySlug === catSlug;
+                  const accent = cat.accentColor || "#6b7280";
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => {
+                        const el = document.getElementById(catSlug);
+                        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }}
+                      className="shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-all hover:opacity-90"
+                      style={{
+                        borderColor: accent,
+                        color: isActive ? "#fff" : accent,
+                        backgroundColor: isActive ? accent : "transparent",
+                      }}
+                      data-testid={`quicknav-${cat.id}`}
+                    >
+                      {cat.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {!isSearchActive && activeTab === "all" && (
               <TrendingHashtags
                 primaryCategoryName={primaryCategory?.name}
@@ -955,20 +1106,21 @@ export default function NewsPage() {
                 )}
 
                 {primaryCategory && (
-                  <section>
-                    <div className="flex items-center gap-3 mb-4 border-t pt-6">
-                      {primaryCategory.accentColor && (
-                        <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: primaryCategory.accentColor }} />
-                      )}
-                      <h2 className="text-base font-bold text-foreground">{primaryCategory.name}</h2>
+                  <section id={primaryCategory.name.toLowerCase().replace(/\s+/g, "-")}>
+                    <div className="flex items-center gap-0 mb-5 pt-6">
+                      <div
+                        className="w-1 self-stretch rounded-sm mr-3 shrink-0"
+                        style={{ backgroundColor: primaryCategory.accentColor || "#6b7280" }}
+                      />
+                      <h2 className="text-base font-bold text-foreground font-serif tracking-wide">{primaryCategory.name}</h2>
                       {followedCategoryIds.includes(primaryCategory.id) && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Following</Badge>
+                        <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0">Following</Badge>
                       )}
-                      <div className="flex-1 h-px bg-border" />
+                      <div className="flex-1 h-px bg-border ml-3" />
                       <Button
                         variant={followedCategoryIds.includes(primaryCategory.id) ? "secondary" : "ghost"}
                         size="sm"
-                        className="h-7 text-xs"
+                        className="h-7 text-xs ml-2"
                         onClick={() => handleFollowToggle(primaryCategory.id)}
                         data-testid={`button-follow-${primaryCategory.id}`}
                       >
@@ -981,8 +1133,12 @@ export default function NewsPage() {
                       </Link>
                     </div>
                     {primaryLoading ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <ArticleSkeleton key={i} />)}
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="md:col-span-2"><ArticleSkeleton /></div>
+                          <div className="space-y-4"><ArticleSkeleton /><ArticleSkeleton /></div>
+                        </div>
+                        <div className="space-y-2">{[1, 2, 3].map((i) => <RowSkeleton key={i} />)}</div>
                       </div>
                     ) : (
                       <NewsBentoGrid

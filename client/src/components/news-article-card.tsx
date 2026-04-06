@@ -97,7 +97,7 @@ function ImageSkeleton({ className }: { className?: string }) {
 
 const MAX_IMAGE_ERROR_RETRIES = 2;
 
-function useCardAiImage(article: NewsArticle) {
+function useCardAiImage(article: NewsArticle, suppressAiImages = false) {
   const [aiImageUrl, setAiImageUrl] = useState<string | null>(
     isPlaceholderUrl(article.aiImageUrl) ? null : (article.aiImageUrl ?? null)
   );
@@ -130,6 +130,7 @@ function useCardAiImage(article: NewsArticle) {
   }, []);
 
   useEffect(() => {
+    if (suppressAiImages) return;
     if (triggered.current) return;
     if (!hasNoImage) return;
     triggered.current = true;
@@ -138,7 +139,7 @@ function useCardAiImage(article: NewsArticle) {
       requestAiImage(prompt, `card-${article.link}`);
     }, 150);
     return () => clearTimeout(timer);
-  }, [hasNoImage, article.title, article.link, requestAiImage]);
+  }, [suppressAiImages, hasNoImage, article.title, article.link, requestAiImage]);
 
   const handleImageError = useCallback(() => {
     setSourceFailed(true);
@@ -185,7 +186,14 @@ function estimateReadTime(text: string): number {
 }
 
 
-type CardVariant = "large" | "medium" | "small" | "compact";
+export function articleHasImage(article: NewsArticle): boolean {
+  const url = article.imageUrl;
+  if (!url) return false;
+  if (url.startsWith("data:")) return false;
+  return true;
+}
+
+type CardVariant = "large" | "medium" | "small" | "compact" | "list";
 
 interface NewsArticleCardProps {
   article: NewsArticle;
@@ -194,6 +202,7 @@ interface NewsArticleCardProps {
   categoryLabel?: string;
   onBookmarkToggle?: (bookmarked: boolean) => void;
   onCardClick?: () => void;
+  suppressAiImages?: boolean;
 }
 
 function WikifyButton({ onClick, testId }: { onClick: () => void; testId?: string }) {
@@ -401,11 +410,56 @@ function AiInsightPanel({ article }: { article: NewsArticle }) {
   );
 }
 
-export function NewsArticleCard({ article, variant = "medium", accentColor, categoryLabel, onCardClick }: NewsArticleCardProps) {
+export function NewsArticleCard({ article, variant = "medium", accentColor, categoryLabel, onCardClick, suppressAiImages }: NewsArticleCardProps) {
   const [wikifyOpen, setWikifyOpen] = useState(false);
-  const { displayUrl, aiImageUrl: cardAiImageUrl, isGenerating, handleImageError } = useCardAiImage(article);
+  const hasRealImage = articleHasImage(article);
+  const { displayUrl, aiImageUrl: cardAiImageUrl, isGenerating, handleImageError } = useCardAiImage(article, suppressAiImages || !hasRealImage);
 
   const readTime = estimateReadTime((article.description || "") + " " + (article.title || ""));
+
+  if (variant === "list") {
+    const handleListClick = (e: React.MouseEvent) => {
+      if (onCardClick) { e.preventDefault(); onCardClick(); }
+    };
+    return (
+      <>
+        <a
+          href={article.link}
+          target={onCardClick ? undefined : "_blank"}
+          rel="noopener noreferrer"
+          onClick={handleListClick}
+          className="group flex items-start gap-3 py-3 hover:bg-muted/40 rounded-lg px-2 transition-colors cursor-pointer"
+          data-testid={`card-news-list-${encodeURIComponent(article.link).slice(0, 30)}`}
+        >
+          {accentColor && (
+            <span
+              className="mt-1.5 w-2 h-2 rounded-full shrink-0"
+              style={{ backgroundColor: accentColor }}
+            />
+          )}
+          <div className="flex-1 min-w-0">
+            <h4 className="font-serif font-bold text-sm text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+              {article.title}
+            </h4>
+            <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground">
+              {article.source && (
+                <>
+                  <span className="truncate max-w-[120px]">{article.source}</span>
+                  <span>·</span>
+                </>
+              )}
+              <span>{formatRelativeTime(article.pubDate)}</span>
+            </div>
+          </div>
+          <div className="shrink-0 self-center flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+            <WikifyButton onClick={() => setWikifyOpen(true)} testId="button-wikify-list" />
+            <BookmarkButton article={article} categoryLabel={categoryLabel} size="xs" />
+          </div>
+        </a>
+        <WikifyDialog open={wikifyOpen} onClose={() => setWikifyOpen(false)} article={article} />
+      </>
+    );
+  }
 
   if (variant === "compact") {
     const handleCompactClick = (e: React.MouseEvent) => {

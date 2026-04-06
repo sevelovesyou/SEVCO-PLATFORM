@@ -18378,3 +18378,96 @@ Add a "Categories" tab (alongside existing Products, Orders, Analytics tabs) vis
 
 ---
 
+## Task — store-product-multi-photo-upload
+> Merged: 2026-04-06
+
+# Store — Multi-Photo Upload for Products (up to 5)
+
+## What & Why
+Two problems:
+1. The `AddProductDialog` in `command-store.tsx` still shows "Image URL (optional)" as a plain text input — it was not fixed by Task #231 which only updated `store-product-form.tsx`.
+2. Products only support a single `imageUrl`. The user wants upload-only (no URL text) with up to 5 photos per product.
+
+## Done looks like
+- The Add Product dialog in CMD Store shows up to 5 upload slots (grid of image upload squares), no URL text input.
+- The Edit Product form (`store-product-form.tsx`) also shows up to 5 upload slots.
+- Products store up to 5 uploaded photo URLs.
+- On the public store product detail page, if a product has multiple photos, they show as a clickable thumbnail gallery (primary photo large, thumbnails row below).
+- On the store catalog/listing page, the first uploaded photo is used as the product card image.
+- Backwards compatible: existing products with `imageUrl` still display correctly (treated as the first photo).
+
+## Schema (`shared/schema.ts`)
+Add `imageUrls` as a text array column to `storeProducts`:
+```typescript
+imageUrls: text("image_urls").array(),  // up to 5 uploaded photo paths
+```
+Keep `imageUrl` as-is (legacy column, used as fallback).
+
+Add to `insertStoreProductSchema` omit: keep existing omit list unchanged (imageUrls is optional and defaults to null).
+
+## Startup Migration (`server/index.ts`)
+In `runStartupMigrations()`, add:
+```sql
+ALTER TABLE store_products ADD COLUMN IF NOT EXISTS image_urls text[];
+-- Backfill: copy existing imageUrl into imageUrls[1] where imageUrls is null
+UPDATE store_products
+  SET image_urls = ARRAY[image_url]
+  WHERE image_url IS NOT NULL AND image_urls IS NULL;
+```
+
+## Storage (`server/storage.ts`)
+The `createStoreProduct` and `updateStoreProduct` methods already pass through all fields generically — no changes needed unless the storage uses explicit field lists.
+Check and update if needed to pass `imageUrls` through.
+
+## API (`server/routes.ts`)
+In POST/PATCH `/api/store/products`:
+- Accept `imageUrls` as an optional array of strings in the body.
+- Validate as `z.array(z.string()).max(5).optional()` in the Zod schema.
+- When `imageUrls` is provided and non-empty, also set `imageUrl` to `imageUrls[0]` for backwards compatibility.
+
+## Helper — `PhotoUploadGrid` component
+Create a reusable component (inline in command-store.tsx or as a shared component) `PhotoUploadGrid`:
+- Props: `value: string[]`, `onChange: (urls: string[]) => void`, `max?: number` (default 5), `bucket?: string` (default "products")
+- Renders a grid of upload slots. Each slot shows:
+  - If empty: a dashed border box with a camera/plus icon ("Add photo")
+  - If filled: the uploaded image thumbnail with an X button to remove
+- Only shows up to `max` slots (if all 5 are filled, no more slots appear)
+- Each slot uses `FileUpload` from `@/components/file-upload`
+- Path per slot: `products/{slug}-{index}-{timestamp}.{ext}`
+
+## `AddProductDialog` (`client/src/pages/command-store.tsx`)
+- Change form schema: remove `imageUrl: z.string().url()...`, add `imageUrls: z.array(z.string()).max(5).optional()`
+- Remove `imageUrl: ""` default, add `imageUrls: []`
+- Remove `Image URL` FormField (`<Input placeholder="https://..." />`)
+- Add `Product Photos` FormField using `PhotoUploadGrid` (max=5, bucket="products")
+- In mutation payload: `imageUrls: data.imageUrls || []`, `imageUrl: data.imageUrls?.[0] || null`
+
+## `store-product-form.tsx`
+- Change schema: remove `imageUrl: z.string().optional()`, add `imageUrls: z.array(z.string()).max(5).optional()`
+- Update default values: `imageUrls: existingProduct?.imageUrls ?? (existingProduct?.imageUrl ? [existingProduct.imageUrl] : [])`
+- Replace the single `FileUpload` field with `PhotoUploadGrid` (max=5, bucket="products")
+- In submit payload: `imageUrls: values.imageUrls || []`, `imageUrl: values.imageUrls?.[0] || null`
+
+## `store-product-detail.tsx`
+Update image display section:
+- Derive `photos = product.imageUrls?.length ? product.imageUrls : product.imageUrl ? [product.imageUrl] : []`
+- If `photos.length === 1`: show as before (single large image)
+- If `photos.length > 1`: show primary photo large + a horizontal row of thumbnail buttons below (clicking a thumbnail swaps the large image via `useState`)
+
+## `store-page.tsx` (catalog listing cards)
+- Derive `heroImage = product.imageUrls?.[0] ?? product.imageUrl ?? null`
+- Use `heroImage` where `product.imageUrl` was used
+
+## Files
+- `shared/schema.ts` — add `imageUrls` column
+- `server/index.ts` — startup migration
+- `server/routes.ts` — accept imageUrls in product create/update
+- `server/storage.ts` — pass imageUrls through if not already
+- `client/src/pages/command-store.tsx` — replace URL input with PhotoUploadGrid
+- `client/src/pages/store-product-form.tsx` — replace single FileUpload with PhotoUploadGrid
+- `client/src/pages/store-product-detail.tsx` — multi-photo gallery display
+- `client/src/pages/store-page.tsx` — use first photo from imageUrls
+
+
+---
+

@@ -1,12 +1,12 @@
 import { PageHead } from "@/components/page-head";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Play, Headphones, Drum, Music2 } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { MusicTrack } from "@shared/schema";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
+import { useMusicPlayer } from "@/contexts/music-player-context";
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return "";
@@ -21,27 +21,20 @@ function formatStreamCount(count: number): string {
   return String(count);
 }
 
-function BeatCard({ track }: { track: MusicTrack }) {
-  const streamMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/music/tracks/${track.id}/stream`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/music/tracks", "instrumental"] });
-    },
-  });
+function BeatCard({ track, allTracks }: { track: MusicTrack; allTracks: MusicTrack[] }) {
+  const { playTrack } = useMusicPlayer();
 
   function handlePlay() {
-    streamMutation.mutate();
-    if (track.fileUrl) {
-      window.open(track.fileUrl, "_blank");
-    }
+    const queue = allTracks.filter((t) => t.id !== track.id);
+    playTrack(track, queue);
   }
 
   return (
     <div
-      className="group relative bg-card border border-border rounded-xl overflow-hidden hover:border-foreground/20 hover:shadow-lg hover:shadow-black/20 transition-all duration-300"
+      className="group relative bg-card border border-border rounded-xl hover:border-foreground/20 hover:shadow-lg hover:shadow-black/20 transition-all duration-300"
       data-testid={`card-beat-${track.id}`}
     >
-      <div className="aspect-square relative bg-zinc-900 overflow-hidden">
+      <div className="aspect-square relative bg-zinc-900 overflow-hidden rounded-t-xl">
         {track.coverImageUrl ? (
           <img
             src={resolveImageUrl(track.coverImageUrl)}
@@ -58,7 +51,7 @@ function BeatCard({ track }: { track: MusicTrack }) {
 
         <Button
           size="icon"
-          className="absolute bottom-3 right-3 h-10 w-10 rounded-full bg-white text-black hover:bg-white/90 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-xl"
+          className="absolute bottom-3 right-3 h-10 w-10 rounded-full bg-white text-black hover:bg-white/90 opacity-100 md:opacity-0 md:group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-xl"
           onClick={handlePlay}
           data-testid={`button-play-beat-${track.id}`}
         >
@@ -170,7 +163,7 @@ export default function MusicBeatsPage() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" data-testid="grid-beats">
             {tracks.map((track) => (
-              <BeatCard key={track.id} track={track} />
+              <BeatCard key={track.id} track={track} allTracks={tracks} />
             ))}
           </div>
         )}

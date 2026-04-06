@@ -63,7 +63,7 @@ function TrackCard({ track, allTracks }: { track: MusicTrack; allTracks: MusicTr
           </div>
         )}
         <button
-          className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
           onClick={handlePlay}
           data-testid={`button-play-track-${track.id}`}
           aria-label={`Play ${track.title}`}
@@ -94,7 +94,7 @@ function TrackCard({ track, allTracks }: { track: MusicTrack; allTracks: MusicTr
       <Button
         size="sm"
         variant="outline"
-        className="shrink-0 gap-1.5 text-xs h-8 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="shrink-0 gap-1.5 text-xs h-8 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
         onClick={handlePlay}
         data-testid={`button-play-track-btn-${track.id}`}
         aria-label={`Play ${track.title}`}

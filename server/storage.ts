@@ -49,6 +49,7 @@ import {
   type Notification, type InsertNotification,
   type SystemMailbox, type InsertSystemMailbox,
   type SystemMailboxEmail, type InsertSystemMailboxEmail,
+  type MarketData, type InsertMarketData,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
@@ -73,6 +74,7 @@ import {
   systemMailboxes,
   systemMailboxEmails,
   storeCategories,
+  marketData,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, and, sql, ilike, or, inArray, gte, lte, count as countFn } from "drizzle-orm";
@@ -412,6 +414,10 @@ export interface IStorage {
   getSystemMailboxEmailByResendId(resendEmailId: string): Promise<SystemMailboxEmail | undefined>;
   createSystemMailboxEmail(data: InsertSystemMailboxEmail): Promise<SystemMailboxEmail>;
   markSystemMailboxEmailRead(mailboxId: number, emailId: number): Promise<void>;
+
+  getLatestMarketData(): Promise<MarketData[]>;
+  upsertMarketData(items: InsertMarketData[]): Promise<void>;
+  deleteExpiredMarketData(olderThanMinutes?: number): Promise<void>;
 }
 
 export type SearchResultItem = {
@@ -2650,6 +2656,34 @@ export class DatabaseStorage implements IStorage {
     await db.update(systemMailboxEmails)
       .set({ isRead: true })
       .where(and(eq(systemMailboxEmails.id, emailId), eq(systemMailboxEmails.mailboxId, mailboxId)));
+  }
+
+  async getLatestMarketData(): Promise<MarketData[]> {
+    return db.select().from(marketData).orderBy(asc(marketData.instrumentType), asc(marketData.symbol));
+  }
+
+  async upsertMarketData(items: InsertMarketData[]): Promise<void> {
+    if (!items.length) return;
+    for (const item of items) {
+      await db.insert(marketData)
+        .values({ ...item, fetchedAt: new Date() })
+        .onConflictDoUpdate({
+          target: marketData.symbol,
+          set: {
+            price: item.price,
+            changePercent: item.changePercent,
+            name: item.name,
+            instrumentType: item.instrumentType,
+            currency: item.currency,
+            fetchedAt: new Date(),
+          },
+        });
+    }
+  }
+
+  async deleteExpiredMarketData(olderThanMinutes = 30): Promise<void> {
+    const cutoff = new Date(Date.now() - olderThanMinutes * 60 * 1000);
+    await db.delete(marketData).where(lte(marketData.fetchedAt, cutoff));
   }
 }
 

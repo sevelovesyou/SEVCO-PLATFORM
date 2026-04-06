@@ -12,6 +12,7 @@ import { getStripeSync } from "./stripeClient";
 import { checkEmailCredentials } from "./emailClient";
 import { logEmptyBodyEmails } from "./email";
 import { pool } from "./db";
+import { fetchAllMarketData } from "./market-data";
 
 async function runStartupMigrations() {
   // Task #100 — X OAuth
@@ -198,6 +199,17 @@ async function runStartupMigrations() {
     SELECT DISTINCT category_name FROM products
     WHERE category_name IS NOT NULL AND category_name != ''
     ON CONFLICT (name) DO NOTHING;`);
+  // Task #236 — Live Markets
+  await pool.query(`CREATE TABLE IF NOT EXISTS market_data (
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    instrument_type text NOT NULL,
+    symbol text NOT NULL UNIQUE,
+    name text NOT NULL,
+    price real NOT NULL,
+    change_percent real NOT NULL,
+    currency text NOT NULL DEFAULT 'USD',
+    fetched_at timestamp NOT NULL DEFAULT now()
+  );`);
   console.log("[startup] migrations applied");
 }
 
@@ -346,6 +358,22 @@ async function initStripe() {
 
   setupAuth(app);
   await registerRoutes(httpServer, app);
+
+  async function refreshMarketData() {
+    try {
+      const items = await fetchAllMarketData();
+      if (items.length > 0) {
+        await storage.deleteExpiredMarketData(30);
+        await storage.upsertMarketData(items);
+        log(`Market data refreshed: ${items.length} instruments`, "market");
+      }
+    } catch (err: any) {
+      console.error("[market] Background refresh error:", err?.message ?? err);
+    }
+  }
+
+  refreshMarketData().catch(() => {});
+  setInterval(() => refreshMarketData().catch(() => {}), 7 * 60 * 1000);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

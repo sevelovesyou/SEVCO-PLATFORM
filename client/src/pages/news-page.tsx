@@ -22,6 +22,7 @@ import { ArticleDetailModal } from "@/components/news-article-modal";
 import { NewsAiSidebar } from "@/components/news-ai-sidebar";
 import { DailyBriefingFab } from "@/components/news-daily-briefing";
 import { TrendingUp as TrendingUpIcon, Hash } from "lucide-react";
+import { LiveMarkets } from "@/components/live-markets";
 
 interface TrendingTopic {
   rank: number;
@@ -1000,6 +1001,7 @@ export default function NewsPage() {
           </div>
 
           <div className="hidden lg:block space-y-6">
+            <LiveMarkets />
             <TrendingTopicsSidebar onTopicClick={(topic) => { setSearchQuery(topic); setDebouncedSearch(topic); }} />
             {!categoryParam && aiSettings && (aiSettings.trendingEnabled || aiSettings.chatEnabled) && (
               <NewsAiSidebar

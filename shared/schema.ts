@@ -1055,3 +1055,18 @@ export type InsertSystemMailbox = z.infer<typeof insertSystemMailboxSchema>;
 export const insertSystemMailboxEmailSchema = createInsertSchema(systemMailboxEmails).omit({ id: true, createdAt: true });
 export type SystemMailboxEmail = typeof systemMailboxEmails.$inferSelect;
 export type InsertSystemMailboxEmail = z.infer<typeof insertSystemMailboxEmailSchema>;
+
+export const marketData = pgTable("market_data", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  instrumentType: text("instrument_type").notNull(),
+  symbol: text("symbol").notNull().unique(),
+  name: text("name").notNull(),
+  price: real("price").notNull(),
+  changePercent: real("change_percent").notNull(),
+  currency: text("currency").notNull().default("USD"),
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+});
+
+export const insertMarketDataSchema = createInsertSchema(marketData).omit({ id: true, fetchedAt: true });
+export type MarketData = typeof marketData.$inferSelect;
+export type InsertMarketData = z.infer<typeof insertMarketDataSchema>;

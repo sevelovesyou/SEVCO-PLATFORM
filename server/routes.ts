@@ -6624,6 +6624,34 @@ export async function registerRoutes(
     return topicNames.slice(0, 10).filter(Boolean);
   }
 
+  app.get("/api/market-data", async (_req, res) => {
+    try {
+      let rows = await storage.getLatestMarketData();
+      const staleThresholdMs = 15 * 60 * 1000;
+      const oldestFetchedAt = rows.length > 0
+        ? Math.min(...rows.map((r) => new Date(r.fetchedAt).getTime()))
+        : 0;
+      const isStale = rows.length === 0 || Date.now() - oldestFetchedAt > staleThresholdMs;
+      if (isStale) {
+        try {
+          const { fetchAllMarketData } = await import("./market-data");
+          const fresh = await fetchAllMarketData();
+          if (fresh.length > 0) {
+            await storage.deleteExpiredMarketData(30);
+            await storage.upsertMarketData(fresh);
+            rows = await storage.getLatestMarketData();
+          }
+        } catch (fetchErr: any) {
+          console.warn("[market-data] Fallback fetch failed:", fetchErr?.message);
+        }
+      }
+      res.json(rows);
+    } catch (err: any) {
+      console.error("[market-data] Route error:", err.message);
+      res.status(500).json({ error: "Failed to fetch market data" });
+    }
+  });
+
   app.get("/api/trending-topics", async (_req, res) => {
     try {
       const cacheKey = "trending-topics-us";

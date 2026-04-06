@@ -2165,7 +2165,14 @@ export async function registerRoutes(
 
   app.post("/api/store/products", requireAuth, requireRole(...CAN_MANAGE_STORE_PRODUCTS), async (req, res) => {
     try {
-      const data = insertProductSchema.parse(req.body);
+      const body = { ...req.body };
+      if (Array.isArray(body.imageUrls) && body.imageUrls.length > 0 && !body.imageUrl) {
+        body.imageUrl = body.imageUrls[0];
+      }
+      if (Array.isArray(body.imageUrls) && body.imageUrls.length > 5) {
+        return res.status(400).json({ message: "imageUrls must have at most 5 items" });
+      }
+      const data = insertProductSchema.parse(body);
       const product = await storage.createProduct(data);
 
       try {
@@ -2199,13 +2206,31 @@ export async function registerRoutes(
     }
   });
 
+  const patchProductSchema = z.object({
+    stockStatus: z.string().optional(),
+    imageUrl: z.string().nullable().optional(),
+    imageUrls: z.array(z.string()).max(5).nullable().optional(),
+    name: z.string().min(1).max(200).optional(),
+    slug: z.string().min(1).max(200).optional(),
+    description: z.string().nullable().optional(),
+    price: z.number().positive().optional(),
+    categoryName: z.string().min(1).max(100).optional(),
+  });
+
   app.patch("/api/store/products/:id", requireAuth, requireRole(...CAN_MANAGE_STORE_PRODUCTS), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) return res.status(400).json({ message: "Invalid product id" });
-      const { stockStatus } = req.body;
-      if (!stockStatus || typeof stockStatus !== "string") return res.status(400).json({ message: "stockStatus required" });
-      const product = await storage.updateProductStockStatus(id, stockStatus);
+      const parsed = patchProductSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input" });
+      const { imageUrls, ...rest } = parsed.data;
+      const updateData: Partial<typeof parsed.data> & { imageUrl?: string | null } = { ...rest };
+      if (imageUrls !== undefined) {
+        updateData.imageUrls = imageUrls;
+        updateData.imageUrl = Array.isArray(imageUrls) && imageUrls.length > 0 ? imageUrls[0] : null;
+      }
+      if (Object.keys(updateData).length === 0) return res.status(400).json({ message: "No valid fields to update" });
+      const product = await storage.updateProduct(id, updateData);
       res.json(product);
     } catch (err: any) {
       res.status(500).json({ message: err.message });

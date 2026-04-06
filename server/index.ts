@@ -183,6 +183,9 @@ async function runStartupMigrations() {
     thread_id text,
     created_at timestamp DEFAULT now() NOT NULL
   );`);
+  // Task #233 — Product multi-photo upload
+  await pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS image_urls text[];`);
+  await pool.query(`UPDATE products SET image_urls = ARRAY[image_url] WHERE image_url IS NOT NULL AND image_urls IS NULL;`);
   // Task #232 — Store categories management
   await pool.query(`CREATE TABLE IF NOT EXISTS store_categories (
     id SERIAL PRIMARY KEY,

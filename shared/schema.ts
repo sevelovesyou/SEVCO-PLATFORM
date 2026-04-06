@@ -176,6 +176,7 @@ export const products = pgTable("products", {
   categoryName: text("category_name").notNull(),
   stockStatus: text("stock_status").notNull().default("available"),
   imageUrl: text("image_url"),
+  imageUrls: text("image_urls").array(),
   stripeProductId: text("stripe_product_id"),
   stripePriceId: text("stripe_price_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

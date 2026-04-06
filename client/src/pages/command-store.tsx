@@ -66,6 +66,7 @@ import {
   Pencil,
 } from "lucide-react";
 import type { Product, Order, StoreCategory } from "@shared/schema";
+import { PhotoUploadGrid } from "@/components/photo-upload-grid";
 
 const STOCK_STATUS_COLORS: Record<string, string> = {
   available:   "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
@@ -80,7 +81,7 @@ const productFormSchema = z.object({
   price: z.string().min(1, "Price is required").refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) >= 0, "Must be a valid price"),
   categoryName: z.string().min(1, "Category is required"),
   stockStatus: z.enum(["available", "unavailable", "preorder"]),
-  imageUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  imageUrls: z.array(z.string()).max(5).optional(),
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -114,12 +115,13 @@ function AddProductDialog({ open, onClose }: { open: boolean; onClose: () => voi
       price: "",
       categoryName: "",
       stockStatus: "available",
-      imageUrl: "",
+      imageUrls: [],
     },
   });
 
   const mutation = useMutation({
     mutationFn: async (data: ProductFormData) => {
+      const imageUrls = data.imageUrls || [];
       const payload = {
         name: data.name,
         slug: data.slug,
@@ -127,7 +129,8 @@ function AddProductDialog({ open, onClose }: { open: boolean; onClose: () => voi
         price: parseFloat(data.price),
         categoryName: data.categoryName,
         stockStatus: data.stockStatus,
-        imageUrl: data.imageUrl || null,
+        imageUrls,
+        imageUrl: imageUrls[0] || null,
       };
       const res = await apiRequest("POST", "/api/store/products", payload);
       if (!res.ok) {
@@ -280,12 +283,18 @@ function AddProductDialog({ open, onClose }: { open: boolean; onClose: () => voi
             />
             <FormField
               control={form.control}
-              name="imageUrl"
+              name="imageUrls"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Image URL <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
+                  <FormLabel>Product Photos <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="https://..." data-testid="input-product-image" />
+                    <PhotoUploadGrid
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                      max={5}
+                      bucket="products"
+                      slug={form.watch("slug") || "product"}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

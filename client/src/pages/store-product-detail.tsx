@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { PageHead } from "@/components/page-head";
@@ -12,6 +13,7 @@ import { resolveImageUrl } from "@/lib/resolve-image-url";
 export default function StoreProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { addItem } = useCart();
+  const [activePhoto, setActivePhoto] = useState(0);
 
   const { data: product, isLoading, isError } = useQuery<Product>({
     queryKey: ["/api/store/products", slug],
@@ -63,13 +65,18 @@ export default function StoreProductDetail() {
   }
 
   const inStock = product.stockStatus === "available";
+  const photos = (product.imageUrls && product.imageUrls.length > 0)
+    ? product.imageUrls
+    : product.imageUrl
+      ? [product.imageUrl]
+      : [];
 
   return (
     <div className="min-h-screen bg-background">
       <PageHead
         title={`${product.name} — SEVCO Store`}
         description={product.description || `Buy ${product.name} from the SEVCO Store. ${product.categoryName} · $${product.price.toFixed(2)}`}
-        ogImage={product.imageUrl || undefined}
+        ogImage={photos[0] || product.imageUrl || undefined}
         ogType="product"
         ogUrl={`https://sevco.us/store/products/${product.slug}`}
         jsonLd={{
@@ -77,7 +84,7 @@ export default function StoreProductDetail() {
           "@type": "Product",
           "name": product.name,
           "description": product.description || undefined,
-          "image": product.imageUrl || undefined,
+          "image": photos[0] || product.imageUrl || undefined,
           "url": `https://sevco.us/store/products/${product.slug}`,
           "offers": {
             "@type": "Offer",
@@ -106,15 +113,38 @@ export default function StoreProductDetail() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
-          <div className="bg-muted/40 border border-border rounded-2xl overflow-hidden flex items-center justify-center h-72 md:h-80">
-            {product.imageUrl ? (
-              <img
-                src={resolveImageUrl(product.imageUrl)}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <Package className="h-24 w-24 text-muted-foreground/25" />
+          <div className="flex flex-col gap-3">
+            <div className="bg-muted/40 border border-border rounded-2xl overflow-hidden flex items-center justify-center h-72 md:h-80" data-testid="img-product-primary">
+              {photos.length > 0 ? (
+                <img
+                  src={resolveImageUrl(photos[activePhoto])}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Package className="h-24 w-24 text-muted-foreground/25" />
+              )}
+            </div>
+            {photos.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1" data-testid="gallery-thumbnails">
+                {photos.map((photo, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setActivePhoto(i)}
+                    className={`shrink-0 h-16 w-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                      i === activePhoto ? "border-red-600" : "border-border hover:border-muted-foreground/40"
+                    }`}
+                    data-testid={`button-thumbnail-${i}`}
+                  >
+                    <img
+                      src={resolveImageUrl(photo)}
+                      alt={`${product.name} photo ${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 

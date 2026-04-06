@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ShoppingBag, ShieldOff } from "lucide-react";
-import { FileUpload } from "@/components/file-upload";
+import { PhotoUploadGrid } from "@/components/photo-upload-grid";
 import type { StoreCategory } from "@shared/schema";
 
 const formSchema = z.object({
@@ -26,7 +26,7 @@ const formSchema = z.object({
   price: z.coerce.number().positive("Price must be greater than 0"),
   categoryName: z.string().min(1, "Category is required").max(100),
   stockStatus: z.enum(["available", "sold_out"]),
-  imageUrl: z.string().optional().or(z.literal("")),
+  imageUrls: z.array(z.string()).max(5).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -84,12 +84,13 @@ export default function StoreProductForm() {
       price: 0,
       categoryName: "",
       stockStatus: "available",
-      imageUrl: "",
+      imageUrls: [],
     },
   });
 
   const mutation = useMutation({
     mutationFn: (values: FormValues) => {
+      const imageUrls = values.imageUrls || [];
       return apiRequest("POST", "/api/store/products", {
         name: values.name,
         slug: values.slug,
@@ -97,7 +98,8 @@ export default function StoreProductForm() {
         price: values.price,
         categoryName: values.categoryName,
         stockStatus: values.stockStatus,
-        imageUrl: values.imageUrl || null,
+        imageUrls,
+        imageUrl: imageUrls[0] || null,
       });
     },
     onSuccess: async () => {
@@ -287,18 +289,17 @@ export default function StoreProductForm() {
 
             <FormField
               control={form.control}
-              name="imageUrl"
+              name="imageUrls"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Product Image <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
+                  <FormLabel>Product Photos <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
                   <FormControl>
-                    <FileUpload
+                    <PhotoUploadGrid
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                      max={5}
                       bucket="products"
-                      path={`products/${form.watch("slug") || Date.now()}.{ext}`}
-                      accept="image/*"
-                      maxSizeMb={50}
-                      currentUrl={field.value || null}
-                      onUpload={(url) => field.onChange(url)}
+                      slug={form.watch("slug") || "product"}
                     />
                   </FormControl>
                   <FormMessage />

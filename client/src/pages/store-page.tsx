@@ -62,9 +62,9 @@ function ProductImageArea({ product, onAddToCart }: { product: Product; onAddToC
   return (
     <div className="relative aspect-square overflow-hidden rounded-t-xl">
       <div className="w-full h-full bg-muted/50 rounded-lg p-4">
-        {product.imageUrl && !imgError ? (
+        {((product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : null) ?? product.imageUrl) && !imgError ? (
           <img
-            src={resolveImageUrl(product.imageUrl)}
+            src={resolveImageUrl((product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : null) ?? product.imageUrl ?? "")}
             alt={product.name}
             className="w-full h-full object-cover rounded-md transition-transform duration-500 group-hover:scale-105"
             loading="lazy"

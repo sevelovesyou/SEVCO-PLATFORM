@@ -42,6 +42,7 @@ export const BUCKETS = {
   banners: { name: "banners", public: true, maxSizeMb: 5, allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"] },
   tracks: { name: "tracks", public: false, maxSizeMb: 50, allowedMimeTypes: ["audio/mpeg", "audio/wav", "audio/ogg", "audio/flac", "audio/aac", "audio/mp4"] },
   gallery: { name: "gallery", public: true, maxSizeMb: 100, allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"] },
+  products: { name: "products", public: true, maxSizeMb: 50, allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"] },
   "brand-assets": { name: "brand-assets", public: true, maxSizeMb: 25, allowedMimeTypes: [] },
   "email-attachments": { name: "email-attachments", public: true, maxSizeMb: 25, allowedMimeTypes: [] },
 } as const;

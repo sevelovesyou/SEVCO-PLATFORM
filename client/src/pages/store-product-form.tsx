@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ShoppingBag, ShieldOff } from "lucide-react";
-import { FileUploadWithFallback } from "@/components/file-upload";
+import { FileUpload } from "@/components/file-upload";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
@@ -25,7 +25,7 @@ const formSchema = z.object({
   price: z.coerce.number().positive("Price must be greater than 0"),
   categoryName: z.string().min(1, "Category is required").max(100),
   stockStatus: z.enum(["available", "sold_out"]),
-  imageUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  imageUrl: z.string().optional().or(z.literal("")),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -264,18 +264,13 @@ export default function StoreProductForm() {
                 <FormItem>
                   <FormLabel>Product Image <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
                   <FormControl>
-                    <FileUploadWithFallback
-                      bucket="gallery"
-                      path={`products/${form.watch("slug") || "product"}.{ext}`}
+                    <FileUpload
+                      bucket="products"
+                      path={`products/${form.watch("slug") || Date.now()}.{ext}`}
                       accept="image/*"
-                      maxSizeMb={10}
+                      maxSizeMb={50}
                       currentUrl={field.value || null}
                       onUpload={(url) => field.onChange(url)}
-                      onUrlChange={(url) => field.onChange(url)}
-                      urlValue={field.value ?? ""}
-                      label="Upload Product Image"
-                      urlPlaceholder="https://example.com/image.jpg"
-                      urlTestId="input-product-image-url"
                     />
                   </FormControl>
                   <FormMessage />

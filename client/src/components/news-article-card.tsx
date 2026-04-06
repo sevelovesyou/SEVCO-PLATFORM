@@ -27,7 +27,7 @@ export type NewsArticle = {
   likeCount?: number;
   retweetCount?: number;
   replyCount?: number;
-  sourceType?: "x";
+  sourceType?: "rss" | "tavily" | "x";
   category?: string;
 };
 

@@ -13,6 +13,7 @@ import { checkEmailCredentials } from "./emailClient";
 import { logEmptyBodyEmails } from "./email";
 import { pool } from "./db";
 import { fetchAllMarketData } from "./market-data";
+import { startNewsAggregator } from "./news-aggregator";
 
 async function runStartupMigrations() {
   // Task #100 — X OAuth
@@ -184,6 +185,24 @@ async function runStartupMigrations() {
     thread_id text,
     created_at timestamp DEFAULT now() NOT NULL
   );`);
+  // Task #237 — News RSS aggregator with DB cache
+  await pool.query(`CREATE TABLE IF NOT EXISTS news_items (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    link TEXT NOT NULL,
+    description TEXT,
+    pub_date TIMESTAMP,
+    source TEXT NOT NULL,
+    image_url TEXT,
+    category_id INTEGER,
+    category_query TEXT,
+    source_type TEXT NOT NULL DEFAULT 'rss',
+    ai_insight TEXT,
+    fetched_at TIMESTAMP NOT NULL DEFAULT NOW()
+  );`);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS news_items_link_idx ON news_items (link);`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS news_items_cat_query_idx ON news_items (category_query);`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS news_items_fetched_at_idx ON news_items (fetched_at);`);
   // Task #233 — Product multi-photo upload
   await pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS image_urls text[];`);
   await pool.query(`UPDATE products SET image_urls = ARRAY[image_url] WHERE image_url IS NOT NULL AND image_urls IS NULL;`);
@@ -356,6 +375,7 @@ async function initStripe() {
     }
   })();
 
+  startNewsAggregator();
   setupAuth(app);
   await registerRoutes(httpServer, app);
 

@@ -12,7 +12,7 @@ import {
   CAN_DELETE_ARTICLE,
   CAN_ACCESS_ARCHIVE,
 } from "./middleware/permissions";
-import type { Role, InsertJob, InsertArticle, Email } from "@shared/schema";
+import type { Role, InsertJob, InsertArticle, Email, NewsItem } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertStoreCategorySchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema, updateUserTaskSchema, updateStaffTaskSchema, insertUserTaskSchema, insertStaffTaskSchema, insertDomainSchema, insertMusicTrackSchema, adminCreateUserSchema } from "@shared/schema";
 import { fetchNewsArticles, generateGrokSummaryForTweet } from "./news";
 import { getNewsAiSettings, getMaxRequestsPerHour, getApiConfig, summarizeArticle as grokSummarize, generateNewsImage as grokImage, askGrokAboutArticle, searchNewsWithGrok, generateDailyBriefing, generateTrendingCommentary, streamSummarizeArticle, streamAskGrok } from "./grok-news";
@@ -6173,27 +6173,38 @@ export async function registerRoutes(
     }
   });
 
+  function articleToNewsArticle(item: NewsItem): import("./news").NewsArticle {
+    return {
+      title: item.title,
+      link: item.link,
+      description: item.description ?? "",
+      pubDate: item.pubDate?.toISOString() ?? item.fetchedAt.toISOString(),
+      source: item.source,
+      imageUrl: item.imageUrl ?? null,
+      aiInsight: item.aiInsight ?? undefined,
+      sourceType: (item.sourceType as "rss" | "tavily" | "x") || undefined,
+      category: item.categoryQuery ?? undefined,
+    } as import("./news").NewsArticle;
+  }
+
   app.get("/api/news/feed", async (req, res) => {
     try {
       const query = String(req.query.query ?? "");
-      const limit = Math.min(parseInt(String(req.query.limit ?? "10")), 20);
+      const limit = Math.min(parseInt(String(req.query.limit ?? "10")), 30);
       if (!query) return res.status(400).json({ message: "query param required" });
-      const articles = await fetchNewsArticles(query, limit);
-      const needsImage = articles.filter((a) => !a.imageUrl).slice(0, 10);
-      if (needsImage.length > 0) {
-        try {
-          const generated = await Promise.allSettled(
-            needsImage.map((a) => grokImageUnchecked(`editorial news thumbnail for: ${a.title}`, `feed-${a.link}`))
-          );
-          needsImage.forEach((a, i) => {
-            const result = generated[i];
-            if (result.status === "fulfilled" && result.value) {
-              (a as typeof a & { imageUrl: string | null }).imageUrl = result.value;
-            }
-          });
-        } catch {}
+
+      const dbArticles = await storage.getNewsFeedItems(query, limit);
+      if (dbArticles.length > 0) {
+        return res.json(dbArticles.map(articleToNewsArticle));
       }
-      res.json(articles);
+
+      const searchResults = await storage.searchNewsItems(query, limit);
+      if (searchResults.length > 0) {
+        return res.json(searchResults.map(articleToNewsArticle));
+      }
+
+      const xArticles = await fetchNewsArticles(query, limit).catch(() => []);
+      res.json(xArticles);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -6216,52 +6227,15 @@ export async function registerRoutes(
     try {
       const cats = await storage.getNewsCategories(true);
       if (cats.length === 0) return res.json([]);
-      const results = await Promise.all(cats.map((c) => fetchNewsArticles(c.query, 8)));
+      const results = await Promise.all(cats.map(c => storage.getNewsFeedItems(c.query, 8)));
       const interleaved: import("./news").NewsArticle[] = [];
       const maxLen = Math.max(...results.map((r) => r.length));
       for (let i = 0; i < maxLen; i++) {
         for (const arr of results) {
-          if (arr[i]) interleaved.push(arr[i]);
+          if (arr[i]) interleaved.push(articleToNewsArticle(arr[i]));
         }
       }
-
-      const aiSettings = await getNewsAiSettings().catch(() => null);
-      if (aiSettings?.searchEnabled && cats.length > 0) {
-        try {
-          const primaryQuery = cats[0].query;
-          const grokResult = await searchNewsWithGrok(primaryQuery);
-          const grokArticles = await Promise.all(
-            grokResult.liveResults.map(async (r) => {
-              let imageUrl: string | null = null;
-              if (aiSettings.imagesEnabled) {
-                imageUrl = await grokImage(r.title, `grok-live:${r.url}`).catch(() => null);
-              }
-              return {
-                title: r.title,
-                link: r.url,
-                description: r.snippet || r.title,
-                pubDate: new Date().toISOString(),
-                source: "xAI Grok",
-                imageUrl,
-                sourceType: "x" as const,
-                grokSummary: r.snippet || undefined,
-              };
-            })
-          );
-
-          const merged: unknown[] = [];
-          const maxMergeLen = Math.max(interleaved.length, grokArticles.length);
-          for (let i = 0; i < maxMergeLen; i++) {
-            if (interleaved[i]) merged.push(interleaved[i]);
-            if (grokArticles[i]) merged.push(grokArticles[i]);
-          }
-          res.json(merged.slice(0, 20));
-          return;
-        } catch {
-        }
-      }
-
-      res.json(interleaved.slice(0, 20));
+      res.json(interleaved.slice(0, 40));
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, serial, timestamp, jsonb, boolean, real, pgEnum, uniqueIndex, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, serial, timestamp, jsonb, boolean, real, pgEnum, uniqueIndex, index, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -1070,3 +1070,24 @@ export const marketData = pgTable("market_data", {
 export const insertMarketDataSchema = createInsertSchema(marketData).omit({ id: true, fetchedAt: true });
 export type MarketData = typeof marketData.$inferSelect;
 export type InsertMarketData = z.infer<typeof insertMarketDataSchema>;
+
+export const newsItems = pgTable("news_items", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  link: text("link").notNull(),
+  description: text("description"),
+  pubDate: timestamp("pub_date"),
+  source: text("source").notNull(),
+  imageUrl: text("image_url"),
+  categoryId: integer("category_id"),
+  categoryQuery: text("category_query"),
+  sourceType: text("source_type").notNull().default("rss"),
+  aiInsight: text("ai_insight"),
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("news_items_link_idx").on(t.link),
+  index("news_items_cat_query_idx").on(t.categoryQuery),
+  index("news_items_fetched_at_idx").on(t.fetchedAt),
+]);
+
+export type NewsItem = typeof newsItems.$inferSelect;

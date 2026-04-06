@@ -9,10 +9,12 @@ export type NewsArticle = {
   source: string;
   imageUrl: string | null;
   grokSummary?: string;
+  aiInsight?: string;
   authorHandle?: string;
   likeCount?: number;
   retweetCount?: number;
-  sourceType: "x";
+  sourceType?: "rss" | "tavily" | "x";
+  category?: string;
 };
 
 const cache = new Map<string, { articles: NewsArticle[]; fetchedAt: number }>();

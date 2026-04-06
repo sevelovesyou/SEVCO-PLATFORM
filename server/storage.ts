@@ -50,6 +50,7 @@ import {
   type SystemMailbox, type InsertSystemMailbox,
   type SystemMailboxEmail, type InsertSystemMailboxEmail,
   type MarketData, type InsertMarketData,
+  type NewsItem,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
@@ -75,6 +76,7 @@ import {
   systemMailboxEmails,
   storeCategories,
   marketData,
+  newsItems,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, and, sql, ilike, or, inArray, gte, lte, count as countFn } from "drizzle-orm";
@@ -356,6 +358,8 @@ export interface IStorage {
   updateNewsCategory(id: number, data: Partial<InsertNewsCategory>): Promise<NewsCategory>;
   deleteNewsCategory(id: number): Promise<void>;
   seedNewsCategoriesIfEmpty(): Promise<void>;
+  getNewsFeedItems(categoryQuery: string, limit: number): Promise<NewsItem[]>;
+  searchNewsItems(searchText: string, limit: number): Promise<NewsItem[]>;
 
   createEmail(data: InsertEmail): Promise<Email>;
   getEmails(userId: string, folder: string, limit: number, offset: number, search?: string, filters?: { sender?: string; dateFrom?: string; dateTo?: string; hasAttachment?: boolean }): Promise<{ emails: Email[]; total: number }>;
@@ -2245,6 +2249,20 @@ export class DatabaseStorage implements IStorage {
       { name: "Technology", query: "technology startup AI", accentColor: "#3b82f6", displayOrder: 1, enabled: true },
       { name: "Business", query: "business entrepreneurship startup", accentColor: "#10b981", displayOrder: 2, enabled: true },
     ]);
+  }
+
+  async getNewsFeedItems(categoryQuery: string, limit: number): Promise<NewsItem[]> {
+    return db.select().from(newsItems)
+      .where(eq(newsItems.categoryQuery, categoryQuery))
+      .orderBy(desc(newsItems.pubDate))
+      .limit(limit);
+  }
+
+  async searchNewsItems(searchText: string, limit: number): Promise<NewsItem[]> {
+    return db.select().from(newsItems)
+      .where(or(ilike(newsItems.title, `%${searchText}%`), ilike(newsItems.description, `%${searchText}%`)))
+      .orderBy(desc(newsItems.pubDate))
+      .limit(limit);
   }
 
   async createEmail(data: InsertEmail): Promise<Email> {

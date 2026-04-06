@@ -360,6 +360,7 @@ export interface IStorage {
   seedNewsCategoriesIfEmpty(): Promise<void>;
   getNewsFeedItems(categoryQuery: string, limit: number): Promise<NewsItem[]>;
   searchNewsItems(searchText: string, limit: number): Promise<NewsItem[]>;
+  getNewsCacheStats(): Promise<{ rss: number; tavily: number; x: number; total: number }>;
 
   createEmail(data: InsertEmail): Promise<Email>;
   getEmails(userId: string, folder: string, limit: number, offset: number, search?: string, filters?: { sender?: string; dateFrom?: string; dateTo?: string; hasAttachment?: boolean }): Promise<{ emails: Email[]; total: number }>;
@@ -2263,6 +2264,17 @@ export class DatabaseStorage implements IStorage {
       .where(or(ilike(newsItems.title, `%${searchText}%`), ilike(newsItems.description, `%${searchText}%`)))
       .orderBy(desc(newsItems.pubDate))
       .limit(limit);
+  }
+
+  async getNewsCacheStats(): Promise<{ rss: number; tavily: number; x: number; total: number }> {
+    const rows = await db
+      .select({ sourceType: newsItems.sourceType, count: countFn() })
+      .from(newsItems)
+      .groupBy(newsItems.sourceType);
+    const rss = Number(rows.find(r => r.sourceType === "rss")?.count ?? 0);
+    const tavily = Number(rows.find(r => r.sourceType === "tavily")?.count ?? 0);
+    const x = Number(rows.find(r => r.sourceType === "x")?.count ?? 0);
+    return { rss, tavily, x, total: rss + tavily + x };
   }
 
   async createEmail(data: InsertEmail): Promise<Email> {

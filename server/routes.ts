@@ -15,6 +15,7 @@ import {
 import type { Role, InsertJob, InsertArticle, Email, NewsItem } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertStoreCategorySchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema, updateUserTaskSchema, updateStaffTaskSchema, insertUserTaskSchema, insertStaffTaskSchema, insertDomainSchema, insertMusicTrackSchema, adminCreateUserSchema } from "@shared/schema";
 import { fetchNewsArticles, generateGrokSummaryForTweet } from "./news";
+import { getAggregatorStatus, forceRefresh as forceAggregatorRefresh } from "./news-aggregator";
 import { getNewsAiSettings, getMaxRequestsPerHour, getApiConfig, summarizeArticle as grokSummarize, generateNewsImage as grokImage, askGrokAboutArticle, searchNewsWithGrok, generateDailyBriefing, generateTrendingCommentary, streamSummarizeArticle, streamAskGrok } from "./grok-news";
 import { fetchUserTweets, searchTweets, isXConfigured, fetchCategoryNewsFromX } from "./x-api";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
@@ -6097,8 +6098,10 @@ export async function registerRoutes(
 
   app.get("/api/news/analytics", requireAuth, requireRole("admin"), async (_req, res) => {
     try {
-      const cats = await storage.getNewsCategories();
-      const settings = await storage.getPlatformSettings();
+      const [cats, settings] = await Promise.all([
+        storage.getNewsCategories(),
+        storage.getPlatformSettings(),
+      ]);
 
       const bookmarkCounts: Record<string, number> = {};
       const topBookmarked: Array<{ title: string; url: string; count: number }> = [];
@@ -6116,7 +6119,6 @@ export async function registerRoutes(
           }
         }
       }
-
       topBookmarked.sort((a, b) => b.count - a.count);
 
       const enabledCategories = cats.filter(c => c.enabled).length;
@@ -6141,11 +6143,16 @@ export async function registerRoutes(
       const isToday = statsDate === today;
       const aiSummariesGeneratedToday = isToday ? (parseInt(settings["news.stats.aiSummariesToday"] || "0") || 0) : 0;
       const aiImagesGeneratedToday = isToday ? (parseInt(settings["news.stats.aiImagesToday"] || "0") || 0) : 0;
-      const articlesFetchedX = isToday ? (parseInt(settings["news.stats.articlesFetchedX"] || "0") || 0) : 0;
 
       const mostReadCategories = [...categoryStats]
         .sort((a, b) => b.bookmarks - a.bookmarks)
         .slice(0, 5);
+
+      // Real DB article counts from news_items table
+      const cacheStats = await storage.getNewsCacheStats();
+      const totalCached = cacheStats.total;
+
+      const aggStatus = getAggregatorStatus();
 
       res.json({
         totalCategories,
@@ -6157,11 +6164,18 @@ export async function registerRoutes(
         mostReadCategories,
         aiSummariesEnabled,
         aiImageGenEnabled,
-        sourceType: "x_only",
+        sourceType: "rss_tavily_x",
         articlesFetchedBySource: {
-          rss: 0,
-          x: articlesFetchedX,
-          total: articlesFetchedX,
+          rss: cacheStats.rss,
+          tavily: cacheStats.tavily,
+          x: cacheStats.x,
+          total: totalCached,
+        },
+        aggregator: {
+          lastRefreshAt: aggStatus.lastRefreshAt?.toISOString() ?? null,
+          tavilyCallsToday: aggStatus.tavilyCallsToday,
+          refreshIntervalMinutes: aggStatus.refreshIntervalMinutes,
+          totalCachedArticles: totalCached,
         },
         aiOperationsToday: {
           summaries: aiSummariesGeneratedToday,
@@ -6213,11 +6227,27 @@ export async function registerRoutes(
   app.get("/api/news/api-status", requireAuth, requireRole("admin"), async (_req, res) => {
     try {
       const xConfigured = !!process.env.X_BEARER_TOKEN;
+      const tavilyConfigured = !!process.env.TAVILY_API_KEY;
+      const aggStatus = getAggregatorStatus();
       res.json({
-        usingX: xConfigured,
-        source: xConfigured ? "x" : "none",
-        hasKey: xConfigured,
+        rss: { active: true, description: "Primary news source — RSS feeds from configured categories" },
+        tavily: { active: tavilyConfigured, callsToday: aggStatus.tavilyCallsToday, description: "AI web search (optional, max 3 calls/day)" },
+        x: { active: xConfigured, description: "X/Twitter social buzz sidebar (optional)" },
+        aggregator: {
+          lastRefreshAt: aggStatus.lastRefreshAt?.toISOString() ?? null,
+          refreshIntervalMinutes: aggStatus.refreshIntervalMinutes,
+        },
       });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/news/force-refresh", requireAuth, requireRole("admin"), async (_req, res) => {
+    try {
+      await forceAggregatorRefresh();
+      const cacheStats = await storage.getNewsCacheStats();
+      res.json({ success: true, message: "News aggregator refreshed successfully.", cacheStats });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

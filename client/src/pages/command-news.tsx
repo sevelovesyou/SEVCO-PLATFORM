@@ -113,7 +113,7 @@ function CategoryDialog({ open, onClose, editing }: CategoryDialogProps) {
           <div className="space-y-1.5">
             <Label>Search Query</Label>
             <Input {...form.register("query")} placeholder="music industry OR entertainment news" data-testid="input-category-query" />
-            <p className="text-[11px] text-muted-foreground">Used as the X search term for this category's news feed.</p>
+            <p className="text-[11px] text-muted-foreground">Used for RSS keyword matching and Tavily AI search for this category's news feed.</p>
             {form.formState.errors.query && (
               <p className="text-xs text-destructive">{form.formState.errors.query.message}</p>
             )}
@@ -126,7 +126,7 @@ function CategoryDialog({ open, onClose, editing }: CategoryDialogProps) {
               data-testid="input-category-xquery"
             />
             <p className="text-[11px] text-muted-foreground">
-              Custom X search query for this category. Supports hashtags, handles (<code className="bg-muted px-0.5 rounded">from:handle</code>), and OR logic. Overrides the default per-category X query when set.
+              Used only for the X/Twitter social buzz sidebar. Supports hashtags, handles (<code className="bg-muted px-0.5 rounded">from:handle</code>), and OR logic. Does not affect the main RSS news feed.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -267,7 +267,12 @@ function PreviewDialog({ open, onClose, category }: PreviewDialogProps) {
 }
 
 function ApiSettingsCard() {
-  const { data: apiStatus, isLoading: statusLoading } = useQuery<{ usingX: boolean; source: string; hasKey: boolean }>({
+  const { data: apiStatus, isLoading: statusLoading } = useQuery<{
+    rss: { active: boolean; description: string };
+    tavily: { active: boolean; callsToday: number; description: string };
+    x: { active: boolean; description: string };
+    aggregator: { lastRefreshAt: string | null; refreshIntervalMinutes: number };
+  }>({
     queryKey: ["/api/news/api-status"],
     staleTime: 30000,
   });
@@ -278,25 +283,28 @@ function ApiSettingsCard() {
         <Key className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold">Source Status</h3>
       </div>
-      <div className="flex items-center gap-2">
-        {statusLoading ? (
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin" /> Checking status…
-          </span>
-        ) : apiStatus?.hasKey ? (
-          <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            X API connected — real-time posts and images
-          </span>
-        ) : (
-          <span className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
-            <XCircle className="h-3.5 w-3.5" />
-            X API not configured — set X_BEARER_TOKEN
-          </span>
-        )}
-      </div>
+      {statusLoading ? (
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin" /> Checking status…
+        </span>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+            RSS feeds — always active (primary source)
+          </div>
+          <div className={`flex items-center gap-1.5 text-xs font-medium ${apiStatus?.tavily.active ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+            {apiStatus?.tavily.active ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> : <XCircle className="h-3.5 w-3.5 shrink-0" />}
+            Tavily AI search — {apiStatus?.tavily.active ? `active (${apiStatus.tavily.callsToday}/3 calls today)` : "not configured (set TAVILY_API_KEY)"}
+          </div>
+          <div className={`flex items-center gap-1.5 text-xs font-medium ${apiStatus?.x.active ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+            {apiStatus?.x.active ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> : <XCircle className="h-3.5 w-3.5 shrink-0" />}
+            X social buzz sidebar — {apiStatus?.x.active ? "active" : "not configured (set X_BEARER_TOKEN)"}
+          </div>
+        </div>
+      )}
       <p className="text-[11px] text-muted-foreground">
-        All news is sourced exclusively from X (formerly Twitter) and xAI Grok. Set the <code className="bg-muted px-0.5 rounded">X_BEARER_TOKEN</code> environment variable to enable live X post fetching.
+        News is primarily sourced from RSS feeds configured per category. Tavily AI search supplements RSS when available. X/Twitter is optional and only powers the social buzz sidebar.
       </p>
     </Card>
   );
@@ -369,10 +377,6 @@ function XFeedTab() {
           </div>
         ) : (
           <form onSubmit={form.handleSubmit((d) => saveMutation.mutate(d))} className="space-y-4">
-            <div className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2 text-[11px] text-primary/80 font-medium">
-              All news content is sourced exclusively from X (Twitter) and enriched by xAI Grok. No RSS or GNews sources.
-            </div>
-
             <div className="space-y-1.5">
               <Label className="text-xs">Image Mode</Label>
               <Select
@@ -986,14 +990,32 @@ interface AnalyticsData {
   aiSummariesEnabled: boolean;
   aiImageGenEnabled: boolean;
   sourceType: string;
-  articlesFetchedBySource: { rss: number; x: number; total: number };
+  articlesFetchedBySource: { rss: number; tavily: number; x: number; total: number };
+  aggregator: {
+    lastRefreshAt: string | null;
+    tavilyCallsToday: number;
+    refreshIntervalMinutes: number;
+    totalCachedArticles: number;
+  };
   aiOperationsToday: { summaries: number; images: number };
 }
 
 function AnalyticsTab() {
+  const { toast } = useToast();
   const { data: analytics, isLoading } = useQuery<AnalyticsData>({
     queryKey: ["/api/news/analytics"],
     staleTime: 60000,
+  });
+
+  const forceRefreshMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/news/force-refresh").then((r) => r.json()),
+    onSuccess: () => {
+      toast({ title: "Aggregator refreshed", description: "News feed has been updated from all sources." });
+      queryClient.invalidateQueries({ queryKey: ["/api/news/analytics"] });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Refresh failed", description: err.message, variant: "destructive" });
+    },
   });
 
   if (isLoading) {
@@ -1040,17 +1062,43 @@ function AnalyticsTab() {
       </div>
 
       <Card className="p-4 space-y-3" data-testid="card-articles-by-source">
-        <div className="flex items-center gap-2">
-          <Zap className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold">Articles Fetched Today</h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold">Cached Articles by Source</h3>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs h-7"
+            onClick={() => forceRefreshMutation.mutate()}
+            disabled={forceRefreshMutation.isPending}
+            data-testid="button-force-refresh"
+          >
+            {forceRefreshMutation.isPending ? <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Force Refresh
+          </Button>
         </div>
-        <div className="grid grid-cols-2 gap-3 text-center">
+        {analytics.aggregator.lastRefreshAt && (
+          <p className="text-[11px] text-muted-foreground">
+            Last refreshed: {new Date(analytics.aggregator.lastRefreshAt).toLocaleTimeString()} · auto-refreshes every {analytics.aggregator.refreshIntervalMinutes}min
+          </p>
+        )}
+        <div className="grid grid-cols-4 gap-3 text-center">
+          <div className="rounded-lg bg-muted/50 p-3">
+            <p className="text-lg font-bold tabular-nums">{analytics.articlesFetchedBySource.rss}</p>
+            <p className="text-[11px] text-muted-foreground">RSS</p>
+          </div>
+          <div className="rounded-lg bg-muted/50 p-3">
+            <p className="text-lg font-bold tabular-nums">{analytics.articlesFetchedBySource.tavily}</p>
+            <p className="text-[11px] text-muted-foreground">Tavily AI</p>
+          </div>
           <div className="rounded-lg bg-muted/50 p-3">
             <p className="text-lg font-bold tabular-nums">{analytics.articlesFetchedBySource.x}</p>
             <p className="text-[11px] text-muted-foreground">X Posts</p>
           </div>
           <div className="rounded-lg bg-muted/50 p-3">
-            <p className="text-lg font-bold tabular-nums">{analytics.articlesFetchedBySource.total}</p>
+            <p className="text-lg font-bold tabular-nums font-semibold">{analytics.articlesFetchedBySource.total}</p>
             <p className="text-[11px] text-muted-foreground">Total</p>
           </div>
         </div>
@@ -1164,10 +1212,16 @@ function AnalyticsTab() {
           <Zap className="h-4 w-4 text-primary" />
           <h3 className="text-sm font-semibold">Current Configuration</h3>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
           <div className="rounded-lg bg-muted/50 p-3">
-            <p className="text-muted-foreground mb-1">Source</p>
-            <p className="font-medium">X / xAI Only</p>
+            <p className="text-muted-foreground mb-1">Primary Source</p>
+            <p className="font-medium text-emerald-600 dark:text-emerald-400">RSS Feeds</p>
+          </div>
+          <div className="rounded-lg bg-muted/50 p-3">
+            <p className="text-muted-foreground mb-1">Tavily AI</p>
+            <p className={`font-medium ${analytics.aggregator.tavilyCallsToday >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+              {analytics.aggregator.tavilyCallsToday}/3 calls today
+            </p>
           </div>
           <div className="rounded-lg bg-muted/50 p-3">
             <p className="text-muted-foreground mb-1">AI Summaries</p>
@@ -1421,7 +1475,7 @@ function CategoriesTab() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Newspaper className="h-5 w-5 text-primary" />
-          <p className="text-sm text-muted-foreground">Manage news feed categories and X search queries.</p>
+          <p className="text-sm text-muted-foreground">Manage news feed categories, RSS keyword queries, and optional X social buzz queries.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button

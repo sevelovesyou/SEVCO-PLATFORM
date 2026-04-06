@@ -110,6 +110,17 @@ function parseRssItems(xml: string, sourceName: string): ParsedArticle[] {
 
 let tavilyCallsToday = 0;
 let tavilyLastResetDate = "";
+let lastRefreshAt: Date | null = null;
+let lastRefreshArticleCount = 0;
+
+export function getAggregatorStatus() {
+  return {
+    lastRefreshAt,
+    lastRefreshArticleCount,
+    tavilyCallsToday,
+    refreshIntervalMinutes: REFRESH_INTERVAL_MS / 60000,
+  };
+}
 
 async function fetchTavilyArticles(query: string): Promise<ParsedArticle[]> {
   if (!process.env.TAVILY_API_KEY) return [];
@@ -234,10 +245,15 @@ async function refreshNewsCache(): Promise<void> {
       const tavilyCount = batch.filter(a => a.sourceType === "tavily").length;
       console.log(`[news-aggregator] "${cat.name}" — ${inserted} upserted (${rssCount} rss, ${tavilyCount} tavily) from ${feedUrls.length} feeds`);
     }
+    lastRefreshAt = new Date();
     console.log("[news-aggregator] Refresh complete.");
   } catch (err) {
     console.error("[news-aggregator] Refresh failed:", err);
   }
+}
+
+export async function forceRefresh(): Promise<void> {
+  await refreshNewsCache();
 }
 
 export function startNewsAggregator(): void {

@@ -18471,3 +18471,65 @@ Update image display section:
 
 ---
 
+## Task — hero-store-card-product-images
+> Merged: 2026-04-06
+
+# Home Hero — Store Card Shows Last 3 Product Images
+
+## What & Why
+The floating "Store" frosted-glass card in the home page hero shows 3 hardcoded icon placeholders (`Music`, `Folder`, `Briefcase`). The user wants the 3 most recently added products' main photos shown instead.
+
+Products are already fetched via `useQuery<Product[]>({ queryKey: ["/api/store/products"] })` in `landing.tsx`. The `products` array is available in scope where the card is rendered.
+
+## Done looks like
+- The 3 image slots in the Store card show the actual product photo (first image from `imageUrls?.[0] ?? imageUrl`).
+- Products are shown newest-first (sorted by `id` descending, highest id = most recently added).
+- If a product has no image, its slot shows a `ShoppingBag` icon fallback (same as current).
+- If fewer than 3 products exist, remaining slots show the fallback icon.
+- If zero products exist, all 3 slots show the fallback icon (no error).
+
+## Change (`client/src/pages/landing.tsx`)
+
+In the component body (near where `featuredProducts` is derived), add:
+```typescript
+const latestProducts = [...products].sort((a, b) => b.id - a.id).slice(0, 3);
+```
+
+In the JSX, replace the 3-icon grid (currently lines ~571–576):
+```tsx
+// BEFORE:
+<div className="grid grid-cols-3 gap-2">
+  {[Music, Folder, Briefcase].map((Icon, i) => (
+    <div key={i} className="aspect-square rounded-lg bg-white/[0.04] border border-white/[0.07] flex items-center justify-center">
+      <Icon className="h-5 w-5 text-white/30" />
+    </div>
+  ))}
+</div>
+
+// AFTER:
+<div className="grid grid-cols-3 gap-2">
+  {Array.from({ length: 3 }).map((_, i) => {
+    const p = latestProducts[i];
+    const imgSrc = p ? resolveImageUrl(p.imageUrls?.[0] ?? p.imageUrl ?? null) : null;
+    return (
+      <div key={i} className="aspect-square rounded-lg bg-white/[0.04] border border-white/[0.07] overflow-hidden flex items-center justify-center">
+        {imgSrc ? (
+          <img src={imgSrc} alt={p.name} className="w-full h-full object-cover" />
+        ) : (
+          <ShoppingBag className="h-5 w-5 text-white/30" />
+        )}
+      </div>
+    );
+  })}
+</div>
+```
+
+Note: `resolveImageUrl` is already imported and used in `landing.tsx`. `ShoppingBag` is already imported.
+`imageUrls` is typed as `string[] | null` on the `Product` type — use optional chaining (`p.imageUrls?.[0]`).
+
+## Files
+- `client/src/pages/landing.tsx` — derive `latestProducts`, replace icon grid with photo grid
+
+
+---
+

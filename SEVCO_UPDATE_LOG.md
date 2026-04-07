@@ -20983,3 +20983,105 @@ re-runs all queries with the correct schema.
 
 ---
 
+## Task — fix-dropdown-flash
+> Merged: 2026-04-07
+
+# Task: Fix dropdown flash to far-left on open
+
+## Root Cause
+`DropdownPanel` in `client/src/components/platform-header.tsx` initializes
+`coords` to `{ top: 0, left: 0 }`. It then uses `useEffect` to compute the
+real position from `getBoundingClientRect()`. Because `useEffect` runs *after*
+the browser paints, the panel renders at (0, 0) — the far left — for one visible
+frame before snapping to the correct position.
+
+## Fix 1 — useLayoutEffect instead of useEffect (primary fix)
+
+`useLayoutEffect` fires synchronously after DOM mutations but **before** the
+browser paints. Changing the one import/call eliminates the flash entirely.
+
+```tsx
+// Before (line 270)
+import { useState, useEffect, ... } from "react";
+...
+useEffect(() => {
+  if (!triggerRef.current) return;
+  const rect = triggerRef.current.getBoundingClientRect();
+  const panelWidth = 256;
+  const wouldOverflow = rect.left + panelWidth > window.innerWidth - 8;
+  if (wouldOverflow) {
+    setCoords({ top: rect.bottom + 6, left: Math.max(8, rect.right - panelWidth) });
+  } else {
+    setCoords({ top: rect.bottom + 6, left: rect.left });
+  }
+}, [triggerRef]);
+
+// After
+import { useState, useEffect, useLayoutEffect, ... } from "react";
+...
+useLayoutEffect(() => {
+  if (!triggerRef.current) return;
+  const rect = triggerRef.current.getBoundingClientRect();
+  const panelWidth = 256;
+  const wouldOverflow = rect.left + panelWidth > window.innerWidth - 8;
+  if (wouldOverflow) {
+    setCoords({ top: rect.bottom + 6, left: Math.max(8, rect.right - panelWidth) });
+  } else {
+    setCoords({ top: rect.bottom + 6, left: rect.left });
+  }
+}, [triggerRef]);
+```
+
+## Fix 2 — Don't render the panel until coords are resolved (belt-and-suspenders)
+
+Initialize `coords` as `null` and skip rendering until the layout effect has run.
+This ensures the panel is never painted at (0, 0) even if useLayoutEffect is somehow
+delayed (e.g., in a heavy render cycle).
+
+```tsx
+// Before
+const [coords, setCoords] = useState({ top: 0, left: 0 });
+
+// After
+const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+```
+
+Then at the top of the return:
+```tsx
+// Before
+return createPortal(
+  <div data-dropdown-panel style={{ top: coords.top, left: coords.left }} ...>
+
+// After — return null if coords not yet calculated
+if (!coords) return null;
+return createPortal(
+  <div data-dropdown-panel style={{ top: coords.top, left: coords.left }} ...>
+```
+
+## Fix 3 — Accurate panelWidth from the actual rendered element (bonus fix)
+
+Currently `panelWidth = 256` is hardcoded but panels use different widths.
+Pass a `ref` to the panel div and read its actual width for the overflow check.
+This is a minor improvement and can be done alongside Fix 1+2:
+
+```tsx
+const panelRef = useRef<HTMLDivElement>(null);
+...
+// After mounting, measure actual width if available
+const panelWidth = panelRef.current?.offsetWidth ?? 256;
+```
+
+Or simply: measure on first render after mount and re-set coords. Since the panel
+is invisible until coords resolve (Fix 2), this extra pass won't flash.
+
+## Files to Edit
+`client/src/components/platform-header.tsx` — the `DropdownPanel` function (~line 263)
+
+## Acceptance Criteria
+- [ ] Opening any nav dropdown does not flash to the left side of the screen
+- [ ] Dropdowns appear immediately at their correct position
+- [ ] Right-alignment still works for dropdowns near the right edge of the viewport
+
+
+---
+

@@ -21144,3 +21144,125 @@ the page layout is not affected at all when the dropdown opens or closes.
 
 ---
 
+## Task — wiki-subcategory-cmd
+> Merged: 2026-04-07
+
+# Task: Staff+ can manage wiki subcategories from Command Center (CMD → Wiki)
+
+## Background
+
+Staff+ users need to be able to create, rename, and delete wiki subcategories
+directly from the Command Center (`/cmd`), under a "Wiki" section.
+
+Note: **Main categories are fixed** (General, Operations, Engineering, Design,
+Sales, Support) and cannot be added/removed through the UI. Only subcategories
+under those main categories can be managed.
+
+## Dependency
+
+This task assumes Task #266 (wiki-menu-redesign) has been merged, because
+the new category/subcategory structure (parentId column, seeded main categories)
+must already exist in the DB before this UI can function.
+
+## Permissions
+
+- Create subcategory: `staff` role and above
+- Rename subcategory: `staff` role and above
+- Delete subcategory: `executive` role and above
+- (Based on RBAC: admin > executive > staff > partner > client > user)
+
+## Backend API Changes
+
+Add/verify the following endpoints in `server/routes.ts`:
+
+### POST /api/categories
+Create a new subcategory. Requires:
+```json
+{
+  "name": "My New Subcategory",
+  "parentId": 3,
+  "description": "Optional description",
+  "icon": "optional icon name"
+}
+```
+- Validate: `parentId` must reference an existing top-level category (parentId IS NULL)
+- Auto-generate slug from name (slugify)
+- Role check: staff+
+
+### PATCH /api/categories/:id
+Rename/update a subcategory. Requires:
+```json
+{ "name": "Updated Name", "description": "...", "icon": "..." }
+```
+- Cannot change `parentId` (subcategory cannot be re-parented)
+- Cannot modify a top-level category (check that the category has a parentId)
+- Role check: staff+
+
+### DELETE /api/categories/:id
+Delete a subcategory.
+- Block deletion if the subcategory has articles assigned to it (return 400 with
+  message: "Cannot delete a subcategory that has articles. Move or delete the
+  articles first.")
+- Cannot delete top-level categories (check parentId IS NOT NULL)
+- Role check: executive+
+
+## Frontend — Command Center Wiki Section
+
+### Location
+In `client/src/pages/cmd.tsx` (or wherever CMD is implemented), add a "Wiki"
+section (or find the existing one if it exists). Under it, add a
+**Subcategories** panel.
+
+### UI Design
+```
+Wiki
+└── Subcategories
+    ┌────────────────────────────────────────────────────┐
+    │  Manage Wiki Subcategories                [+ Add]  │
+    │                                                    │
+    │  Filter by category: [All ▼]                      │
+    │                                                    │
+    │  Engineering                                       │
+    │    • SEVCO Platform          [Rename] [─]         │
+    │    • XWEET                   [Rename] [─]         │
+    │    • Resources               [Rename] [─]         │
+    │                                                    │
+    │  General                                           │
+    │    • Projects                [Rename] [─]         │
+    │    • Legal                   [Rename] [─]         │
+    │  ...                                               │
+    └────────────────────────────────────────────────────┘
+```
+
+- [+ Add] button opens a dialog/modal with:
+  - "Parent Category" select (dropdown of main categories only)
+  - "Name" text input
+  - "Description" text input (optional)
+  - Submit button
+- [Rename] button opens an inline edit or dialog to rename the subcategory
+- [─] (delete) button: only visible to executive+; shows confirmation dialog
+  before deleting; blocked with error message if subcategory has articles
+
+### Data Fetching
+- `GET /api/categories` — already exists; returns all categories with parentId
+- Group the results: main categories (parentId null) → their subcategories
+
+## Files to Edit
+
+- `server/routes.ts` — POST, PATCH, DELETE endpoints for `/api/categories/:id`
+- `server/storage.ts` — `createCategory`, `updateCategory`, `deleteCategory` methods
+- `client/src/pages/cmd.tsx` (or equivalent) — Wiki > Subcategories panel
+
+## Acceptance Criteria
+
+- [ ] Staff+ can see the Subcategories panel in CMD > Wiki
+- [ ] Staff+ can create a new subcategory under any main category
+- [ ] Staff+ can rename an existing subcategory
+- [ ] Executive+ can delete a subcategory (with confirmation)
+- [ ] Deleting a subcategory with articles shows an error (blocked)
+- [ ] Top-level categories (General, Operations, etc.) cannot be deleted or moved
+- [ ] New subcategory appears in the wiki sidebar immediately after creation
+
+
+---
+

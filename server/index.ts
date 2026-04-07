@@ -8,12 +8,84 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
-import { getStripeSync } from "./stripeClient";
+import { getStripeSync, getUncachableStripeClient } from "./stripeClient";
 import { checkEmailCredentials } from "./emailClient";
 import { logEmptyBodyEmails } from "./email";
 import { pool } from "./db";
 import { fetchAllMarketData } from "./market-data";
 import { startNewsAggregator } from "./news-aggregator";
+
+const SPARK_PACK_DEFS = [
+  { name: "Starter",  sparks: 100,    price: 800,    sortOrder: 0 },
+  { name: "Boost",    sparks: 500,    price: 3600,   sortOrder: 1 },
+  { name: "Surge",    sparks: 1000,   price: 6900,   sortOrder: 2 },
+  { name: "Inferno",  sparks: 10000,  price: 60000,  sortOrder: 3 },
+];
+
+async function seedSparkPacks() {
+  try {
+    const existing = await storage.listSparkPacks();
+    if (existing.length >= SPARK_PACK_DEFS.length) return;
+
+    if (existing.length > 0 && existing.length < SPARK_PACK_DEFS.length) {
+      console.warn(`[sparks] Only ${existing.length} of ${SPARK_PACK_DEFS.length} packs found — completing seed`);
+    }
+
+    const existingNames = new Set(existing.map((p) => p.name));
+    const stripe = process.env.STRIPE_SECRET_KEY ? getUncachableStripeClient() : null;
+
+    for (const def of SPARK_PACK_DEFS) {
+      if (existingNames.has(def.name)) continue;
+
+      let stripeProductId: string | null = null;
+      let stripePriceId: string | null = null;
+      let stripeRecurringPriceId: string | null = null;
+
+      if (stripe) {
+        const product = await stripe.products.create({
+          name: `${def.name} Spark Pack`,
+          metadata: { type: "spark_pack" },
+        });
+        stripeProductId = product.id;
+
+        const oneTimePrice = await stripe.prices.create({
+          product: product.id,
+          unit_amount: def.price,
+          currency: "usd",
+        });
+        stripePriceId = oneTimePrice.id;
+
+        const recurringPrice = await stripe.prices.create({
+          product: product.id,
+          unit_amount: def.price,
+          currency: "usd",
+          recurring: { interval: "month" },
+        });
+        stripeRecurringPriceId = recurringPrice.id;
+      }
+
+      await storage.upsertSparkPack({
+        name: def.name,
+        sparks: def.sparks,
+        price: def.price,
+        stripeProductId,
+        stripePriceId,
+        stripeRecurringPriceId,
+        active: true,
+        sortOrder: def.sortOrder,
+      });
+    }
+
+    const finalCount = (await storage.listSparkPacks()).length;
+    if (finalCount < SPARK_PACK_DEFS.length) {
+      console.warn(`[sparks] Seed incomplete: ${finalCount}/${SPARK_PACK_DEFS.length} packs present`);
+    } else {
+      console.log(`[sparks] Seeded ${SPARK_PACK_DEFS.length} spark packs`);
+    }
+  } catch (err: any) {
+    console.warn("[sparks] Pack seed skipped:", err?.message ?? err);
+  }
+}
 
 async function runStartupMigrations() {
   // Task #100 — X OAuth
@@ -375,17 +447,8 @@ async function initStripe() {
   await checkEmailCredentials().catch((err) => console.warn("[email] Startup credential check failed:", err?.message ?? err));
   logEmptyBodyEmails().catch((err) => console.warn("[email] Backfill check error:", err?.message ?? err));
   runWikiSeed().catch((err) => console.error("Wiki seed error:", err));
-  // Seed Sparks platform setting default
-  await (async () => {
-    try {
-      const currentSettings = await storage.getPlatformSettings();
-      if (!currentSettings["sparks.freeMonthlyAllocation"]) {
-        await storage.setPlatformSetting("sparks.freeMonthlyAllocation", "50");
-      }
-    } catch (err: any) {
-      console.warn("[sparks] Failed to seed sparks.freeMonthlyAllocation setting:", err?.message ?? err);
-    }
-  })();
+  // Seed official Spark Packs
+  await seedSparkPacks().catch((err: any) => console.warn("[sparks] Pack seed warning:", err?.message ?? err));
 
   // Seed default X (Twitter) handles for SEVCO social feed
   await (async () => {

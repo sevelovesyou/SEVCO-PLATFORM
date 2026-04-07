@@ -23,6 +23,7 @@ import {
   MessageSquare,
   Users,
   Link as LinkIcon,
+  Zap,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -54,6 +55,12 @@ export function SocialSidebar() {
       return res.json();
     },
     enabled: !!user?.username,
+  });
+
+  const { data: sparksData } = useQuery<{ balance: number }>({
+    queryKey: ["/api/sparks/balance"],
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000,
   });
 
   const { data: onboarding, isLoading: onboardingLoading } = useQuery<OnboardingProgress>({
@@ -125,6 +132,10 @@ export function SocialSidebar() {
                       <span className="text-[11px] text-muted-foreground" data-testid="text-social-sidebar-following">
                         <span className="font-semibold text-foreground">{profile?.followingCount ?? 0}</span> following
                       </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-yellow-400 font-semibold mt-1" data-testid="text-social-sidebar-sparks">
+                      <Zap className="h-3 w-3" />
+                      <span>{sparksData?.balance ?? "…"} Sparks</span>
                     </div>
                   </div>
                 </div>

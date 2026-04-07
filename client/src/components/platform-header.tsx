@@ -24,6 +24,11 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -90,7 +95,7 @@ import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { ChatSheet } from "@/components/chat-sheet";
 import { useSounds } from "@/hooks/use-sounds";
 import { useMusicPlayer } from "@/contexts/music-player-context";
-import { Volume2, VolumeX, Bell } from "lucide-react";
+import { Volume2, VolumeX, Bell, Zap } from "lucide-react";
 import type { Project, Service } from "@shared/schema";
 import { NotificationDropdown } from "@/components/notification-dropdown";
 
@@ -689,17 +694,43 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
 }
 
 function NavSparksBalance() {
-  const { data } = useQuery<{ balance: number }>({
+  const [open, setOpen] = useState(false);
+  const [, navigate] = useLocation();
+  const { data, isLoading } = useQuery<{ balance: number }>({
     queryKey: ["/api/sparks/balance"],
     staleTime: 2 * 60 * 1000,
   });
 
+  const balanceDisplay = isLoading ? "…" : (data?.balance ?? 0);
+
   return (
-    <Link href="/pricing" data-testid="nav-sparks-balance">
-      <button className="flex items-center gap-0.5 text-sm font-bold text-yellow-400 hover:text-yellow-300 transition-colors px-2 py-1 rounded-md hover:bg-yellow-400/10">
-        ⚡️ {data?.balance ?? "…"}
-      </button>
-    </Link>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className="flex items-center gap-0.5 text-sm font-bold text-yellow-400 hover:text-yellow-300 transition-colors px-2 py-1 rounded-md hover:bg-yellow-400/10"
+          data-testid="nav-sparks-balance"
+        >
+          ⚡️ {balanceDisplay}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-56 p-3 space-y-3">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Sparks Balance</p>
+        <div className="flex items-center gap-1.5">
+          <Zap className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+          <span className="text-2xl font-bold">{isLoading ? "…" : (data?.balance ?? 0).toLocaleString()}</span>
+        </div>
+        <div className="border-t border-border pt-2">
+          <Button
+            className="w-full"
+            size="sm"
+            onClick={() => { setOpen(false); navigate("/pricing"); }}
+            data-testid="button-nav-buy-sparks"
+          >
+            Buy Sparks
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -910,9 +941,6 @@ export function PlatformHeader() {
             </Tooltip>
           )}
 
-          {/* Sparks balance — logged-in only */}
-          {user && <NavSparksBalance />}
-
           {/* Notification bell — logged-in only */}
           {user && (
             <Tooltip>
@@ -965,6 +993,9 @@ export function PlatformHeader() {
             <TooltipContent side="bottom">Cart{itemCount > 0 ? ` (${itemCount})` : ""}</TooltipContent>
           </Tooltip>
           </TooltipProvider>
+
+          {/* Sparks balance — logged-in only, after cart */}
+          {user && <NavSparksBalance />}
 
           {/* Mobile/tablet hamburger */}
           <div className="lg:hidden">

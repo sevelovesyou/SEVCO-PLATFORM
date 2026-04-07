@@ -8048,7 +8048,6 @@ export async function registerRoutes(
   app.get("/api/sparks/balance", requireAuth, async (req, res) => {
     try {
       const userId = (req.user as any)?.id as string;
-      await storage.grantFreeMonthlyAllocation(userId);
       const balance = await storage.getUserSparksBalance(userId);
       res.json({ balance });
     } catch (err: any) {

@@ -364,6 +364,76 @@ async function runStartupMigrations() {
     created_at timestamp NOT NULL DEFAULT NOW()
   );`);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS content_sparks_sender_content_idx ON content_sparks (sender_id, content_type, content_id);`);
+
+  // Task #280 — Delete old auto-generated task articles from production
+  // Only delete if >= 10 such articles exist (production guard, safe after dev cleanup)
+  const oldTaskCount = await pool.query(`
+    SELECT COUNT(*) FROM articles
+    WHERE slug LIKE 'platform-task-%' OR slug LIKE 'eng-task-%' OR slug LIKE 'engineering-task-%'
+  `);
+  const oldTaskTotal = parseInt(oldTaskCount.rows[0].count, 10);
+  if (oldTaskTotal >= 10) {
+    const deleted = await pool.query(`
+      DELETE FROM articles
+      WHERE slug LIKE 'platform-task-%' OR slug LIKE 'eng-task-%' OR slug LIKE 'engineering-task-%'
+    `);
+    console.log(`[startup] Deleted ${deleted.rowCount} old task articles`);
+  } else {
+    console.log(`[startup] Skipped old task article cleanup (only ${oldTaskTotal} found, threshold is 10)`);
+  }
+
+  // Task #280 — Re-categorize the 25 SEVCO Platform feature articles to the correct category
+  const platformCatResult = await pool.query(`SELECT id FROM categories WHERE slug = 'sevco-platform' LIMIT 1`);
+  if (platformCatResult.rows.length > 0) {
+    const platformCatId = platformCatResult.rows[0].id;
+    const featureSlugs = [
+      'authentication-access-control',
+      'platform-shell-navigation',
+      'landing-page-home',
+      'wiki-system',
+      'store-ecommerce',
+      'music-platform-sevco-records',
+      'projects-ventures',
+      'services-platform',
+      'jobs-platform',
+      'profile-user-accounts',
+      'social-feed',
+      'social-sparks-economy',
+      'notes-tool',
+      'command-center-cmd',
+      'gallery-platform',
+      'file-storage-media-uploads',
+      'brand-visual-identity',
+      'hosting-infrastructure',
+      'domains-management',
+      'platform-search',
+      'chat-email-messaging',
+      'ai-agents',
+      'news-discovery',
+      'finance-billing',
+      'platform-updates-changelog',
+    ];
+    const placeholders = featureSlugs.map((_, i) => `$${i + 2}`).join(', ');
+    const recatResult = await pool.query(
+      `UPDATE articles SET category_id = $1 WHERE slug IN (${placeholders}) AND (category_id IS NULL OR category_id != $1)`,
+      [platformCatId, ...featureSlugs]
+    );
+    console.log(`[startup] Re-categorized ${recatResult.rowCount} feature articles to sevco-platform (id=${platformCatId})`);
+
+    // Also set authorId to seve's user id for these articles that have no author
+    const seveResult = await pool.query(`SELECT id FROM users WHERE username = 'seve' LIMIT 1`);
+    if (seveResult.rows.length > 0) {
+      const seveId = seveResult.rows[0].id;
+      const authorResult = await pool.query(
+        `UPDATE articles SET author_id = $1 WHERE slug IN (${placeholders}) AND author_id IS NULL`,
+        [seveId, ...featureSlugs]
+      );
+      console.log(`[startup] Set author to 'seve' on ${authorResult.rowCount} feature articles`);
+    }
+  } else {
+    console.warn('[startup] sevco-platform category not found — skipped feature article re-categorization');
+  }
+
   console.log("[startup] migrations applied");
 }
 

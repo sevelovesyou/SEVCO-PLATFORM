@@ -288,6 +288,11 @@ export default function ArticleView() {
               <Clock className="h-3 w-3" />
               {new Date(article.updatedAt).toLocaleDateString()}
             </span>
+            {(article as any).author?.username && (
+              <span className="text-xs text-muted-foreground" data-testid="text-article-author">
+                by {(article as any).author.username}
+              </span>
+            )}
             {user?.id !== article.authorId && (
             <TooltipProvider>
               <Tooltip open={sparkTooltip}>

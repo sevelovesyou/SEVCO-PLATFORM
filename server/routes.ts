@@ -1936,6 +1936,16 @@ export async function registerRoutes(
     const currentUserId = req.user?.id as string | undefined;
     const { sparkCount, isSparkedByMe } = await storage.getArticleSparkInfo(article.id, currentUserId);
 
+    let author: { username: string; displayName: string | null } | null = null;
+    if (article.authorId) {
+      try {
+        const authorUser = await storage.getUser(article.authorId);
+        if (authorUser) author = { username: authorUser.username, displayName: authorUser.displayName };
+      } catch {
+        // ignore
+      }
+    }
+
     res.json({
       ...article,
       citations: articleCitations,
@@ -1948,6 +1958,7 @@ export async function registerRoutes(
       category: category ? { name: category.name, slug: category.slug } : null,
       sparkCount,
       isSparkedByMe,
+      author,
     });
   });
 

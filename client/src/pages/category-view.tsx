@@ -198,6 +198,11 @@ export default function CategoryView({ overrideData }: { overrideData?: Category
                       <Clock className="h-3 w-3" />
                       {new Date(article.updatedAt).toLocaleDateString()}
                     </span>
+                    {(article as any).author?.username && (
+                      <span className="text-[10px] text-muted-foreground" data-testid={`text-article-author-${article.id}`}>
+                        by {(article as any).author.username}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />

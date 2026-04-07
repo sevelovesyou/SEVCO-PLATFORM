@@ -126,7 +126,7 @@ export interface IStorage {
   getArticles(): Promise<(Article & { category?: { id: number; name: string; slug: string } | null })[]>;
   getArticleById(id: number): Promise<Article | undefined>;
   getArticleBySlug(slug: string): Promise<Article | undefined>;
-  getArticlesByCategory(categoryId: number): Promise<Article[]>;
+  getArticlesByCategory(categoryId: number): Promise<(Article & { author?: { username: string; displayName: string | null } | null })[]>;
   getArticlesByAuthor(authorName: string): Promise<Article[]>;
   searchArticles(query: string): Promise<Article[]>;
   createArticle(article: InsertArticle): Promise<Article>;
@@ -737,8 +737,23 @@ export class DatabaseStorage implements IStorage {
     return article || undefined;
   }
 
-  async getArticlesByCategory(categoryId: number): Promise<Article[]> {
-    return db.select().from(articles).where(eq(articles.categoryId, categoryId)).orderBy(desc(articles.updatedAt));
+  async getArticlesByCategory(categoryId: number): Promise<(Article & { author?: { username: string; displayName: string | null } | null })[]> {
+    const rows = await db
+      .select({
+        article: articles,
+        author: {
+          username: users.username,
+          displayName: users.displayName,
+        },
+      })
+      .from(articles)
+      .leftJoin(users, eq(articles.authorId, users.id))
+      .where(eq(articles.categoryId, categoryId))
+      .orderBy(desc(articles.updatedAt));
+    return rows.map(({ article, author }) => ({
+      ...article,
+      author: author?.username ? { username: author.username, displayName: author.displayName } : null,
+    }));
   }
 
   async getArticlesByAuthor(authorName: string): Promise<Article[]> {

@@ -22233,9 +22233,18 @@ title: Social Sparks — notifications & leaderboard
 
 ---
 
+<<<<<<< HEAD
 ## Task — fix-wiki-articles-prod
 > Merged: 2026-04-07
 
+=======
+## Task — task-280
+> Merged: 2026-04-07
+
+---
+title: Fix wiki articles: cleanup, category & author byline
+---
+>>>>>>> 11319be (Post-merge setup completed successfully)
 # Fix Wiki Articles: Cleanup, Category & Author
 
   ## What & Why

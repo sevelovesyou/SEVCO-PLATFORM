@@ -1476,6 +1476,24 @@ export async function seedFeatureArticles() {
   const sentinel = await storage.getArticleBySlug("authentication-access-control");
   if (sentinel) return;
 
+  let categoryId: number | null = null;
+  try {
+    const cat = await storage.getCategoryBySlug("sevco-platform");
+    categoryId = cat?.id ?? null;
+    if (!categoryId) console.warn("[seed] sevco-platform category not found — articles will be uncategorized");
+  } catch (err: any) {
+    console.warn("[seed] Failed to look up sevco-platform category:", err?.message ?? err);
+  }
+
+  let authorId: string | null = null;
+  try {
+    const author = await storage.getUserByUsername("seve");
+    authorId = author?.id ?? null;
+    if (!authorId) console.warn("[seed] User 'seve' not found — articles will have no author");
+  } catch (err: any) {
+    console.warn("[seed] Failed to look up author 'seve':", err?.message ?? err);
+  }
+
   console.log("Seeding SEVCO Platform feature articles...");
   for (const article of FEATURE_ARTICLES) {
     await storage.createArticle({
@@ -1483,7 +1501,8 @@ export async function seedFeatureArticles() {
       slug: article.slug,
       content: article.content,
       summary: article.summary,
-      categoryId: SEVCO_PLATFORM_CATEGORY_ID,
+      categoryId,
+      authorId,
       status: "published",
       tags: article.tags,
     });

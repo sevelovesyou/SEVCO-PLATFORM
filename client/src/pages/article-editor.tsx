@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useRoute, useLocation } from "wouter";
+import { useRoute, useLocation, useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -79,6 +79,8 @@ export default function ArticleEditor() {
   const isEditing = !!params?.slug;
   const slug = params?.slug;
   const [, navigate] = useLocation();
+  const searchString = useSearch();
+  const prefillCategoryId = new URLSearchParams(searchString).get("categoryId");
   const { toast } = useToast();
   const { canCreateArticle } = usePermission();
 
@@ -148,6 +150,21 @@ export default function ArticleEditor() {
       }
     }
   }, [article, categories, form]);
+
+  useEffect(() => {
+    if (isEditing || !prefillCategoryId || !categories) return;
+    const numId = Number(prefillCategoryId);
+    const cat = categories.find((c) => c.id === numId);
+    if (!cat) return;
+
+    if (cat.parentId) {
+      setSelectedParentCategoryId(cat.parentId);
+      form.setValue("categoryId", cat.id);
+    } else {
+      setSelectedParentCategoryId(cat.id);
+      form.setValue("categoryId", cat.id);
+    }
+  }, [prefillCategoryId, categories, isEditing]);
 
   const titleValue = form.watch("title");
   useEffect(() => {

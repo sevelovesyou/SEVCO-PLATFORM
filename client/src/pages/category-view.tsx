@@ -13,9 +13,11 @@ import {
   ArrowRight,
   Clock,
   Layers,
+  PlusCircle,
 } from "lucide-react";
 import type { Article, Category } from "@shared/schema";
 import { articleUrl } from "@/lib/wiki-urls";
+import { usePermission } from "@/hooks/use-permission";
 
 export interface ArticleWithCategory extends Article {
   category?: { id: number; name: string; slug: string } | null;
@@ -31,6 +33,7 @@ export default function CategoryView({ overrideData }: { overrideData?: Category
   const [, paramsOne] = useRoute("/wiki/:slug");
   const slug = paramsTwo?.childSlug ?? paramsOne?.slug;
   const [, navigate] = useLocation();
+  const { canCreateArticle } = usePermission();
 
   const { data: fetchedData, isLoading: catLoading } = useQuery<CategoryWithArticles>({
     queryKey: ["/api/categories", slug],
@@ -121,9 +124,19 @@ export default function CategoryView({ overrideData }: { overrideData?: Category
         )}
       </div>
 
-      <div className="flex items-center gap-2">
-        <FolderOpen className="h-5 w-5 text-primary" />
-        <h1 className="text-xl font-bold" data-testid="text-category-name">{category.name}</h1>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <FolderOpen className="h-5 w-5 text-primary" />
+          <h1 className="text-xl font-bold" data-testid="text-category-name">{category.name}</h1>
+        </div>
+        {canCreateArticle && (
+          <Link href={`/wiki/new?categoryId=${category.id}`}>
+            <Button size="sm" variant="outline" className="gap-1.5" data-testid="button-new-article">
+              <PlusCircle className="h-3.5 w-3.5" />
+              New Article
+            </Button>
+          </Link>
+        )}
       </div>
       {category.description && (
         <p className="text-sm text-muted-foreground">{category.description}</p>

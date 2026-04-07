@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { StaggerGrid } from "@/components/stagger-grid";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import { PageHead } from "@/components/page-head";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
   Zap, Globe, Layers, CheckCircle, Code2,
   Palette, BarChart3, Megaphone, Camera, Building2,
   TrendingUp, Newspaper, Wrench, MoreHorizontal,
+  Link2, Download, Images,
 } from "lucide-react";
 import { SiDiscord, SiSpotify, SiApplemusic } from "react-icons/si";
 import type { Article, Product, FeedPost, Project, ChangelogCategory } from "@shared/schema";
@@ -225,9 +227,20 @@ type FeedPostWithAuthor = FeedPost & {
 
 export default function Landing() {
   const { user } = useAuth();
+  const { toast } = useToast();
+
+  const handleCopyWallpaperLink = useCallback((url: string) => {
+    const absoluteUrl = url.startsWith("http") ? url : `${window.location.origin}${url}`;
+    navigator.clipboard.writeText(absoluteUrl).then(() => {
+      toast({ title: "Link copied to clipboard" });
+    }).catch(() => {
+      toast({ title: "Could not copy link", variant: "destructive" });
+    });
+  }, [toast]);
 
   const { data: articles = [], isLoading: artLoading } = useQuery<Article[]>({
     queryKey: ["/api/articles/recent"],
+    refetchInterval: 5 * 60 * 1000,
   });
 
   const { data: products = [], isLoading: prodLoading } = useQuery<Product[]>({
@@ -272,9 +285,28 @@ export default function Landing() {
     queryKey: ["/api/platform-history"],
   });
 
+  interface GalleryItem {
+    id: number;
+    title: string;
+    imageUrl: string;
+    category?: string;
+    isPublic?: boolean;
+  }
+
+  const { data: wallpaperItems = [], isLoading: wallpaperLoading } = useQuery<GalleryItem[]>({
+    queryKey: ["/api/gallery?category=wallpaper&limit=20"],
+    queryFn: async () => {
+      const res = await fetch("/api/gallery?category=wallpaper&limit=20");
+      return res.json();
+    },
+  });
+
+  const latestWallpaper = wallpaperItems[0] ?? null;
+  const wallpaperUrl = latestWallpaper ? resolveImageUrl(latestWallpaper.imageUrl) : null;
+
   const pinnedPost = pinnedFeedPosts[0] ?? null;
 
-  const recentArticles = articles.filter((a) => a.status === "published").slice(0, 3);
+  const recentArticles = articles.filter((a) => a.status === "published").slice(0, 10);
   const featuredProducts = products.slice(0, 4);
   const latestProducts = [...products].sort((a, b) => b.id - a.id).slice(0, 3);
   const featuredProjects = projects.slice(0, 6);
@@ -333,6 +365,8 @@ export default function Landing() {
   const showBulletin = toBool(settings["section.bulletin.visible"]);
   const showFeedSection = toBool(settings["section.feed.visible"]);
   const showNewsSection = toBool(settings["section.news.visible"]);
+  const showIconPills = toBool(settings["section.iconPills.visible"]);
+  const showWallpaper = toBool(settings["section.wallpaper.visible"]);
 
   const sectionOrder: string[] = (() => {
     try {
@@ -637,40 +671,93 @@ export default function Landing() {
       `}</style>
 
       {/* ── FEATURE PILLS ── */}
-      <section
-        ref={featurePillsRef.ref}
-        className="relative overflow-hidden bg-[#0a0a14] border-y border-white/5 px-4 py-5"
-        data-testid="section-feature-pills"
-      >
-        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-6 md:gap-10">
-          {whySevcoPills.map((pill, i) => {
-            const PillIcon = getLucideIcon(pill.icon);
-            const accentColor = pill.color || "#BE0000";
-            const inner = (
-              <div
-                className="flex items-center gap-2.5 cursor-pointer group"
-                data-testid={`feature-pill-${pill.label.toLowerCase()}`}
-                style={{
-                  opacity: featurePillsRef.isVisible ? 1 : 0,
-                  transform: featurePillsRef.isVisible ? "translateY(0)" : "translateY(12px)",
-                  transition: `opacity 0.5s ease ${i * 0.07}s, transform 0.5s ease ${i * 0.07}s`,
-                }}
-              >
-                <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg group-hover:scale-110 transition-transform" style={{ backgroundColor: `${accentColor}26` }}>
-                  {PillIcon ? <PillIcon className="h-4 w-4" style={{ color: accentColor }} /> : null}
+      {showIconPills && (
+        <section
+          ref={featurePillsRef.ref}
+          className="relative overflow-hidden bg-[#0a0a14] border-y border-white/5 px-4 py-5"
+          data-testid="section-feature-pills"
+        >
+          <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-6 md:gap-10">
+            {whySevcoPills.map((pill, i) => {
+              const PillIcon = getLucideIcon(pill.icon);
+              const accentColor = pill.color || "#BE0000";
+              const inner = (
+                <div
+                  className="flex items-center gap-2.5 cursor-pointer group"
+                  data-testid={`feature-pill-${pill.label.toLowerCase()}`}
+                  style={{
+                    opacity: featurePillsRef.isVisible ? 1 : 0,
+                    transform: featurePillsRef.isVisible ? "translateY(0)" : "translateY(12px)",
+                    transition: `opacity 0.5s ease ${i * 0.07}s, transform 0.5s ease ${i * 0.07}s`,
+                  }}
+                >
+                  <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg group-hover:scale-110 transition-transform" style={{ backgroundColor: `${accentColor}26` }}>
+                    {PillIcon ? <PillIcon className="h-4 w-4" style={{ color: accentColor }} /> : null}
+                  </div>
+                  <p className="text-xs font-semibold text-white/70 group-hover:text-white/90 transition-colors">{pill.label}</p>
                 </div>
-                <p className="text-xs font-semibold text-white/70 group-hover:text-white/90 transition-colors">{pill.label}</p>
-              </div>
-            );
-            const href = pill.href || "/";
-            return href && href !== "/" ? (
-              <a key={pill.label} href={href}>{inner}</a>
-            ) : (
-              <div key={pill.label}>{inner}</div>
-            );
-          })}
-        </div>
-      </section>
+              );
+              const href = pill.href || "/";
+              return href && href !== "/" ? (
+                <a key={pill.label} href={href}>{inner}</a>
+              ) : (
+                <div key={pill.label}>{inner}</div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* ── WALLPAPER OF THE DAY ── */}
+      {showWallpaper && (
+        wallpaperLoading ? (
+          <div className="w-full bg-black/40 animate-pulse" style={{ minHeight: "40vh" }} data-testid="section-wallpaper-loading" />
+        ) : wallpaperUrl ? (
+          <section className="relative w-full overflow-hidden bg-black" style={{ minHeight: "60vh" }} data-testid="section-wallpaper">
+            <img
+              src={wallpaperUrl}
+              alt="Wallpaper of the Day"
+              className="w-full h-full object-cover"
+              style={{ minHeight: "60vh", maxHeight: "80vh", display: "block" }}
+            />
+            <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+            <div className="absolute bottom-4 right-4 flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="bg-black/40 text-white hover:bg-black/60 backdrop-blur-sm h-8 px-3 text-xs"
+                onClick={() => handleCopyWallpaperLink(wallpaperUrl)}
+                data-testid="button-wallpaper-copy-link"
+              >
+                <Link2 className="h-3.5 w-3.5 mr-1.5" /> Copy Link
+              </Button>
+              <a href={wallpaperUrl} download target="_blank" rel="noopener noreferrer">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="bg-black/40 text-white hover:bg-black/60 backdrop-blur-sm h-8 px-3 text-xs"
+                  data-testid="button-wallpaper-download"
+                >
+                  <Download className="h-3.5 w-3.5 mr-1.5" /> Download
+                </Button>
+              </a>
+              <Link href="/gallery">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="bg-black/40 text-white hover:bg-black/60 backdrop-blur-sm h-8 px-3 text-xs"
+                  data-testid="button-wallpaper-gallery"
+                >
+                  <Images className="h-3.5 w-3.5 mr-1.5" /> Gallery
+                </Button>
+              </Link>
+            </div>
+            <div className="absolute bottom-4 left-4">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/50">Wallpaper of the Day</p>
+            </div>
+          </section>
+        ) : null
+      )}
 
       {/* ── DYNAMIC SECTIONS (ordered) ── */}
       {sectionOrder.map((sectionKey) => {
@@ -1375,23 +1462,23 @@ export default function Landing() {
           case "wikiLatest":
             if (!showWikiLatest) return null;
             return (
-              <section key="wikiLatest" className="overflow-hidden bg-muted/40 border-y border-border/60">
+              <section key="wikiLatest" className="overflow-hidden bg-muted/40 border-y border-border/60" data-testid="section-wiki-latest">
                 <div className="max-w-6xl mx-auto px-6 py-16 md:py-20">
                   <div className="flex items-end justify-between mb-8">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">SEVCO Wiki</p>
-                      <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Latest knowledge.</h2>
+                      <h2 className="text-2xl md:text-3xl font-bold tracking-tight" data-testid="text-from-the-wiki-heading">From the Wiki</h2>
                     </div>
                     <Link href="/wiki">
-                      <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" data-testid="link-view-all-wiki">
-                        View all <ArrowRight className="h-3.5 w-3.5" />
+                      <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" data-testid="link-explore-wiki">
+                        Explore the Wiki → 
                       </Button>
                     </Link>
                   </div>
                   {artLoading ? (
-                    <div className="flex flex-col gap-3">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <Skeleton key={i} className="h-20 w-full rounded-xl" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <Skeleton key={i} className="h-28 w-full rounded-xl" />
                       ))}
                     </div>
                   ) : recentArticles.length === 0 ? (
@@ -1400,9 +1487,27 @@ export default function Landing() {
                       <p className="text-sm text-muted-foreground">No articles yet.</p>
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {recentArticles.map((article) => (
-                        <ArticleCard key={article.id} article={article} />
+                        <Link key={article.id} href={`/wiki/${article.slug}`}>
+                          <div
+                            className="group flex flex-col gap-2 p-4 rounded-xl border bg-background border-border/60 hover:bg-muted/60 hover:border-primary/30 transition-all duration-200 cursor-pointer h-[110px] overflow-hidden"
+                            data-testid={`card-wiki-article-${article.id}`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <BookOpen className="h-3.5 w-3.5 text-primary shrink-0" />
+                              {article.tags && article.tags.length > 0 && (
+                                <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-full truncate max-w-[100px]">{article.tags[0]}</span>
+                              )}
+                            </div>
+                            <p className="text-sm font-semibold text-foreground line-clamp-2 leading-snug">{article.title}</p>
+                            <p className="text-xs text-muted-foreground mt-auto">
+                              {article.createdAt
+                                ? formatDistanceToNow(new Date(article.createdAt), { addSuffix: true })
+                                : ""}
+                            </p>
+                          </div>
+                        </Link>
                       ))}
                     </div>
                   )}

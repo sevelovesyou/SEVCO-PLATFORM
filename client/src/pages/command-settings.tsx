@@ -50,15 +50,15 @@ const SECTION_KEYS = [
   { key: "section.feed.visible", label: "SEVCO Feed", description: "Latest community and official posts from the SEVCO team" },
   { key: "section.news.visible", label: "News — Top Stories", description: "Curated news bento grid and category swimlanes" },
   { key: "section.recordsSpotlight.visible", label: "RECORDS Spotlight", description: "The SEVCO RECORDS promotional section with purple gradient background" },
-  { key: "section.xFeed.visible", label: "X Feed", description: "Recent posts from configured X (Twitter) handles" },
   { key: "section.storePreview.visible", label: "Store Feature", description: "Glassmorphic Store showstopper section — featured products with brand red aurora" },
   { key: "section.servicesShowstopper.visible", label: "Services Feature", description: "Services split-layout showstopper with animated service icons and brand blue aurora" },
   { key: "section.projectsShowstopper.visible", label: "Projects Feature", description: "Projects/Ventures bento-grid showstopper with brand green aurora and status badges" },
-  { key: "section.newsTeaser.visible", label: "News Teaser Strip", description: "Horizontal news headline scroller pulling 3 headlines from the news feed" },
   { key: "section.signupCta.visible", label: "Sign-Up CTA", description: "Glassmorphic conversion panel with feature checklist — hidden automatically for logged-in users" },
-  { key: "section.wikiLatest.visible", label: "Wiki Latest", description: "\"Latest knowledge\" — recent wiki articles" },
+  { key: "section.wikiLatest.visible", label: "From the Wiki", description: "Latest 10 wiki articles in a compact grid" },
   { key: "section.communityCta.visible", label: "Community CTA", description: "Discord join section at the bottom" },
   { key: "section.bulletin.visible", label: "Bulletin", description: "Pinned announcement post displayed near the top of the home page" },
+  { key: "section.iconPills.visible", label: "Feature Pills", description: "Icon pill strip below the hero showing platform features" },
+  { key: "section.wallpaper.visible", label: "Wallpaper of the Day", description: "Full-width latest wallpaper from the Gallery" },
 ];
 
 const SECTION_KEY_META: Record<string, { label: string; description: string }> = Object.fromEntries(

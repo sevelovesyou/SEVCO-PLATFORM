@@ -1105,7 +1105,7 @@ export function PlatformHeader() {
 
           {user ? (
             <>
-              <DropdownMenu modal={false}>
+              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
                     className="hidden sm:flex items-center gap-1.5 cursor-pointer rounded-md px-1.5 py-1 hover:bg-muted/70 transition-colors"

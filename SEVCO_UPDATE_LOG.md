@@ -19861,3 +19861,132 @@ Four related fixes to improve profiles, social functionality, and the wiki editi
 
 ---
 
+## Task — home-services-sparks-fixes
+> Merged: 2026-04-07
+
+# Task: Home wiki count, Sparks section, Services hero fix, Section Visibility alignment
+
+## Summary
+Five focused changes across landing.tsx, services-listing.tsx, and command-settings.tsx.
+
+---
+
+## Change 1 — "Latest Knowledge" wiki section: show 5 articles (not 10)
+
+**File:** `client/src/pages/landing.tsx`
+
+Line 309:
+```ts
+// Before
+const recentArticles = articles.filter((a) => a.status === "published").slice(0, 10);
+// After
+const recentArticles = articles.filter((a) => a.status === "published").slice(0, 5);
+```
+
+The `refetchInterval: 5 * 60 * 1000` on the `/api/articles/recent` query is already set — auto-refresh is in place.
+
+The section heading "From the Wiki" should remain as-is (correct label).
+
+---
+
+## Change 2 — Add Sparks Marketing section to Home page
+
+**File:** `client/src/pages/landing.tsx`
+
+Add a new section below the icon pills strip (or near the community CTA area) that markets Sparks:
+- Heading: ⚡️ Sparks — SEVCO's creative currency
+- Short description of what Sparks are used for (AI tools, music features, creative boosts)
+- CTA Button: "Get Sparks →" linking to `/sparks`
+- Style consistent with existing showstopper sections (dark background, amber/yellow accent)
+
+Read `section.sparks.visible` from platform settings to control visibility (default true if unset).
+
+```ts
+const showSparks = toBool(settings["section.sparks.visible"]);
+```
+
+Place the section registration in the dynamic section ordering system the same way other sections are registered (search for `case "communityCta":` as a reference).
+
+---
+
+## Change 3 — Section Visibility alignment in Platform Settings
+
+**File:** `client/src/pages/command-settings.tsx`
+
+Add the new Sparks section key to `SECTION_KEYS`:
+```ts
+{ key: "section.sparks.visible", label: "Sparks", description: "Sparks marketing section with CTA linking to /sparks" },
+```
+
+Verify that every key in `SECTION_KEYS` has a corresponding section on the home page AND every home page section that respects visibility has a key in `SECTION_KEYS`. Cross-check:
+- section.platformGrid.visible ✓
+- section.whatsNew.visible ✓
+- section.feed.visible ✓
+- section.news.visible ✓
+- section.recordsSpotlight.visible ✓
+- section.storePreview.visible ✓
+- section.servicesShowstopper.visible ✓
+- section.projectsShowstopper.visible ✓
+- section.signupCta.visible ✓
+- section.wikiLatest.visible ✓
+- section.communityCta.visible ✓
+- section.bulletin.visible ✓
+- section.iconPills.visible ✓
+- section.wallpaper.visible ✓
+- section.sparks.visible ← ADD THIS
+
+---
+
+## Change 4 — Services hero CTA button links to /pricing (not /services)
+
+**File:** `client/src/pages/services-listing.tsx`
+
+Line ~89:
+```tsx
+// Before
+<Link href="/services">
+  <Button ...>Get Started</Button>
+</Link>
+
+// After
+<Link href="/pricing">
+  <Button ...>Get Started</Button>
+</Link>
+```
+
+Only the primary CTA (the destructive button) needs updating. The secondary outline button (if it links to `/services` too) should be checked and updated if needed.
+
+---
+
+## Change 5 — Verify admin delete service categories works in CMD
+
+**File:** `client/src/pages/command-services.tsx`
+
+The delete functionality exists (Categories tab → trash icon → two-step confirm → `DELETE /api/services/categories/:name`). Verify:
+1. The Categories tab is visible and accessible when navigating to CMD → Services → Categories
+2. The trash icon appears on each category row for admin users
+3. The backend route `DELETE /api/services/categories/:name` is reachable (role: admin, executive, staff)
+
+If any part of the flow is broken or not showing:
+- Check that `allCategories` is being populated from either stored categories or existing services
+- Add a fallback "No categories" empty state with instructions to create services first
+
+If everything works as expected, no code change needed — just verify.
+
+---
+
+## Files to Edit
+- `client/src/pages/landing.tsx` — wiki slice count, add Sparks section, read section.sparks.visible
+- `client/src/pages/services-listing.tsx` — hero CTA href to /pricing
+- `client/src/pages/command-settings.tsx` — add section.sparks.visible to SECTION_KEYS
+
+## Acceptance Criteria
+- [ ] Home page wiki section shows 5 articles (not 10), auto-refreshes every 5 min
+- [ ] Home page has a Sparks marketing section with ⚡️ styling and "Get Sparks" CTA → /sparks
+- [ ] Platform Settings → Section Visibility lists "Sparks" and the toggle works
+- [ ] Services page hero CTA links to /pricing
+- [ ] CMD → Services → Categories delete button is visible and functional for admin users
+
+
+---
+

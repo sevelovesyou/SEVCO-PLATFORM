@@ -21986,3 +21986,61 @@ queryClient.invalidateQueries({ queryKey: ["/api/categories", newCategorySlug] }
 
 ---
 
+## Task — fix-schema-conflict-categories-unique
+> Merged: 2026-04-07
+
+# Task: Fix deployment schema conflict — categories_name_unique constraint
+
+## Root Cause
+
+In Task #266 (wiki menu redesign), `shared/schema.ts` had `.unique()` removed
+from the `categories.name` column (required because subcategories share names
+like "Resources"). The constraint was dropped in `seedWikiCategories()` inside
+`server/routes.ts`, but was NEVER added to the canonical `runStartupMigrations()`
+function in `server/index.ts`.
+
+The production database still has the `categories_name_unique` constraint. When
+Replit's deployment check compares `schema.ts` against the live production DB, it
+detects a mismatch and blocks publishing with a "schema conflict" warning.
+
+## Fix
+
+Add the DROP CONSTRAINT to `runStartupMigrations()` in `server/index.ts`.
+This is idempotent (`IF EXISTS`) so it's safe to run multiple times.
+
+Find the relevant section in `runStartupMigrations()` (around line 91–92, near
+the `parent_id` migration):
+
+```typescript
+// Existing:
+await pool.query(`ALTER TABLE categories ADD COLUMN IF NOT EXISTS parent_id integer;`);
+
+// Add directly below it:
+await pool.query(`ALTER TABLE categories DROP CONSTRAINT IF EXISTS categories_name_unique;`);
+```
+
+This ensures that on any environment (dev, staging, production), the constraint
+is removed before any Drizzle queries run against the categories table.
+
+## Files to Edit
+
+`server/index.ts` — `runStartupMigrations()` function
+
+## Why Only index.ts?
+
+The drop already exists in `seedWikiCategories()` (routes.ts line 1543) but
+`runStartupMigrations` in `index.ts` is the authoritative, first-run migration
+function. It runs before any route handlers and is the correct place for schema
+patches. The duplicate in seedWikiCategories can remain as a safety net.
+
+## Acceptance Criteria
+
+- [ ] Adding the DROP CONSTRAINT to runStartupMigrations resolves the deployment
+  schema conflict
+- [ ] The app can be published without the "schema conflict" warning
+- [ ] Existing subcategory names that share the name "Resources" continue to work
+- [ ] No data loss or table truncation occurs
+
+
+---
+

@@ -1377,34 +1377,15 @@ async function seedAllTasksToChangelog() {
     const TASKS_DIR = ".local/tasks";
     const ALL_PLATFORM_FILES = ALL_PLATFORM_FILES_191;
 
-    // Startup guard: all 191 platform task articles AND 191 linked changelog entries must exist.
-    // Using >= 191 (strict) to prevent permanently skipping when one entry failed on a prior run.
-    // We check three sentinel slugs for fast article corpus validation, then count changelog links.
-    const [p001, p100, p191] = await Promise.all([
-      storage.getArticleBySlug("platform-task-001"),
-      storage.getArticleBySlug("platform-task-100"),
-      storage.getArticleBySlug("platform-task-191"),
-    ]);
+    // Startup guard: skip if 191+ Task # changelog entries already exist.
+    // Wiki articles are no longer created here — the wiki uses feature-area articles instead.
     const existingAll = await storage.getChangelog();
     const platformTaskEntries = existingAll.filter(
-      (e) => e.title.startsWith("Task #") && e.wikiSlug?.startsWith("platform-task-")
+      (e) => e.title.startsWith("Task #")
     );
-    if (p001 && p100 && p191 && platformTaskEntries.length >= 191) {
-      // Seeding is complete; fix any changelog entries still missing platform-task cross-link
-      for (const entry of existingAll.filter(
-        (e) => e.title.startsWith("Task #") && (!e.wikiSlug || !e.wikiSlug.startsWith("platform-task-"))
-      )) {
-        const match = entry.title.match(/^Task #(\d+)/);
-        if (match) {
-          const num = parseInt(match[1]);
-          if (num >= 1 && num <= 191) {
-            const slug = `platform-task-${String(num).padStart(3, "0")}`;
-            await storage.updateChangelogEntry(entry.id, { wikiSlug: slug });
-          }
-        }
-      }
+    if (platformTaskEntries.length >= 191) {
       console.log(
-        `[seedAllTasksToChangelog] Skipped bulk seed (platform-task-001/100/191 exist; ${platformTaskEntries.length}/191 linked changelog entries)`
+        `[seedAllTasksToChangelog] Skipped — ${platformTaskEntries.length} task changelog entries already exist`
       );
       return;
     }
@@ -1457,36 +1438,8 @@ async function seedAllTasksToChangelog() {
           existingTitles.add(fullTitle);
         }
 
-        const existingArticle = await storage.getArticleBySlug(wikiSlug);
-        let articleId: number;
-        if (existingArticle) {
-          await storage.updateArticle(existingArticle.id, {
-            title: fullTitle,
-            content,
-            summary: summary.slice(0, 300) || null,
-            tags: ["platform-history", `task-${String(taskNum).padStart(3, "0")}`, "engineering"],
-            status: "published",
-            infoboxData: { Task: `#${taskNum}`, Version: `v${version}`, Tool: "Replit Agent" },
-          });
-          articleId = existingArticle.id;
-        } else {
-          const article = await storage.createArticle({
-            title: fullTitle,
-            slug: wikiSlug,
-            content,
-            summary: summary.slice(0, 300) || null,
-            categoryId: platformCat.id,
-            status: "published",
-            infoboxType: "general",
-            infoboxData: { Task: `#${taskNum}`, Version: `v${version}`, Tool: "Replit Agent" },
-            tags: ["platform-history", `task-${String(taskNum).padStart(3, "0")}`, "engineering"],
-          });
-          articleId = article.id;
-        }
-
-        if (changelogEntry && (!changelogEntry.wikiSlug || !changelogEntry.wikiSlug.startsWith("platform-task-"))) {
-          await storage.updateChangelogEntry(changelogEntry.id, { wikiSlug });
-        }
+        // Wiki article creation removed — SEVCO Platform now uses 25 feature-area articles.
+        // Changelog entries only (no per-task wiki articles).
       } catch (err: any) {
         console.warn(`[seedAllTasksToChangelog] Error processing task #${idx + 1}: ${err.message}`);
       }
@@ -1589,9 +1542,9 @@ export async function registerRoutes(
     .then(() => linkChangelogToWikiArticles())
     .catch(console.error);
   seedJobs().catch(console.error);
-  seedEngineeringWikiArticles()
-    .then(() => updateEngineeringArticleVersions())
-    .then(() => seedSevcoplatformParentId())
+  // seedEngineeringWikiArticles/updateEngineeringArticleVersions disabled — wiki now uses
+  // 25 feature-area articles in SEVCO Platform (cat 12) seeded via scripts/seed-feature-articles.js
+  seedSevcoplatformParentId()
     .then(() => seedWikiCategories())
     .catch(console.error);
   // seedTaskChangelogEntries adds milestone-style entries (tasks 43–55) with eng-task-* slugs.
@@ -3202,6 +3155,39 @@ export async function registerRoutes(
       await generateCrosslinks(article.id);
 
       res.json({ action: "created", article });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Append a section to an existing feature wiki article (called by post-merge script)
+  app.post("/api/internal/wiki-article/append", async (req, res) => {
+    try {
+      const secret = process.env.WIKI_AUTO_ARTICLE_SECRET;
+      if (!secret) {
+        return res.status(503).json({ message: "Internal endpoint not configured" });
+      }
+      const provided = req.headers["x-internal-secret"];
+      if (provided !== secret) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { featureSlug, appendSection } = req.body;
+      if (!featureSlug || !appendSection) {
+        return res.status(400).json({ message: "featureSlug and appendSection are required" });
+      }
+
+      const existing = await storage.getArticleBySlug(featureSlug);
+      if (!existing) {
+        return res.status(404).json({ message: `Feature article not found: ${featureSlug}` });
+      }
+
+      const newContent = (existing.content || "") + appendSection;
+      const updated = await storage.updateArticle(existing.id, {
+        content: newContent,
+      });
+
+      return res.json({ action: "appended", article: { id: updated.id, slug: updated.slug } });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

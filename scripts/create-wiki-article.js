@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 import { readFileSync } from "fs";
-import { basename } from "path";
+import { basename, dirname } from "path";
+import { fileURLToPath } from "url";
 import { request } from "http";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const planFilePath = process.argv[2];
 
@@ -24,14 +27,13 @@ try {
   process.exit(1);
 }
 
-function deriveSlug(title) {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 80);
+// Load feature mapping
+let featureMapping = { mappings: [] };
+try {
+  const mappingRaw = readFileSync(`${__dirname}/feature-mapping.json`, "utf8");
+  featureMapping = JSON.parse(mappingRaw);
+} catch (err) {
+  console.warn("Warning: Could not load feature-mapping.json:", err.message);
 }
 
 function parsePlanFile(text) {
@@ -57,8 +59,6 @@ function parsePlanFile(text) {
     title = basename(planFilePath, ".md").replace(/-/g, " ");
   }
 
-  const slug = deriveSlug(title);
-
   const sectionRegex = /^##\s+(.+)$/gm;
   const sections = {};
   let match;
@@ -79,90 +79,140 @@ function parsePlanFile(text) {
 
   const summary = sections["What & Why"]
     ? sections["What & Why"].split("\n")[0].trim()
-    : `Engineering wiki article for: ${title}`;
+    : `Platform update: ${title}`;
 
-  const bodyParts = [];
-
-  bodyParts.push(`# ${title}\n`);
-
-  const orderedSections = [
-    "What & Why",
-    "Done looks like",
-    "Out of scope",
-    "Tasks",
-    "Relevant files",
-    "Origin / Request",
-  ];
-
-  for (const sName of orderedSections) {
-    if (sections[sName]) {
-      bodyParts.push(`## ${sName}\n\n${sections[sName]}\n`);
-    }
-  }
-
-  for (const sName of Object.keys(sections)) {
-    if (!orderedSections.includes(sName)) {
-      bodyParts.push(`## ${sName}\n\n${sections[sName]}\n`);
-    }
-  }
-
-  const content = bodyParts.join("\n");
-
-  const tags = ["engineering", "auto-generated"];
-  if (sections["What & Why"]) {
-    const words = sections["What & Why"]
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, "")
-      .split(/\s+/)
-      .filter((w) => w.length > 4)
-      .slice(0, 5);
-    tags.push(...words);
-  }
-
-  return { title, slug, summary, content, tags: [...new Set(tags)] };
+  return { title, sections, summary };
 }
 
-const articleData = parsePlanFile(raw);
+function extractTaskNumber(title) {
+  const match = title.match(/task\s*#?(\d+)/i) || title.match(/#(\d+)/);
+  return match ? match[1] : null;
+}
 
-console.log(`Creating wiki article: "${articleData.title}" (slug: ${articleData.slug})`);
-
-const payload = JSON.stringify(articleData);
-
-const options = {
-  hostname: "localhost",
-  port: 5000,
-  path: "/api/internal/wiki-article",
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Content-Length": Buffer.byteLength(payload),
-    "x-internal-secret": secret,
-  },
-};
-
-const req = request(options, (res) => {
-  let body = "";
-  res.on("data", (chunk) => { body += chunk; });
-  res.on("end", () => {
-    if (res.statusCode >= 200 && res.statusCode < 300) {
-      try {
-        const result = JSON.parse(body);
-        console.log(`Wiki article ${result.action} successfully: ${result.article?.slug}`);
-      } catch {
-        console.log("Wiki article operation succeeded.");
+function findFeatureSlug(title, content) {
+  const searchText = (title + " " + content).toLowerCase();
+  for (const mapping of featureMapping.mappings) {
+    for (const keyword of mapping.keywords) {
+      if (searchText.includes(keyword.toLowerCase())) {
+        return mapping.slug;
       }
+    }
+  }
+  return null;
+}
+
+function buildAppendSection(title, taskNumber, summary, sections) {
+  const date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  const taskLabel = taskNumber ? `Task #${taskNumber} — ` : "";
+
+  let section = `\n\n## ${taskLabel}${title}\n`;
+  section += `_Completed: ${date}_\n\n`;
+
+  if (summary) {
+    section += `${summary}\n`;
+  }
+
+  if (sections["Done looks like"]) {
+    const done = sections["Done looks like"].split("\n").slice(0, 3).join("\n").trim();
+    if (done) {
+      section += `\n**What changed:** ${done}\n`;
+    }
+  }
+
+  return section;
+}
+
+const { title, sections, summary } = parsePlanFile(raw);
+const taskNumber = extractTaskNumber(title);
+const featureSlug = findFeatureSlug(title, raw);
+
+function postRequest(path, payload, cb) {
+  const data = JSON.stringify(payload);
+  const options = {
+    hostname: "localhost",
+    port: 5000,
+    path,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(data),
+      "x-internal-secret": secret,
+    },
+  };
+
+  const req = request(options, (res) => {
+    let body = "";
+    res.on("data", (chunk) => { body += chunk; });
+    res.on("end", () => cb(null, res.statusCode, body));
+  });
+  req.on("error", (err) => cb(err));
+  req.write(data);
+  req.end();
+}
+
+if (featureSlug) {
+  // Append a section to the existing feature article
+  console.log(`Appending to feature article "${featureSlug}" for: "${title}"`);
+  const appendSection = buildAppendSection(title, taskNumber, summary, sections);
+
+  postRequest("/api/internal/wiki-article/append", { featureSlug, appendSection }, (err, status, body) => {
+    if (err) {
+      console.error(`Error calling append endpoint: ${err.message}`);
+      process.exit(0);
+    }
+    if (status >= 200 && status < 300) {
+      console.log(`Successfully appended update to: ${featureSlug}`);
       process.exit(0);
     } else {
-      console.error(`Failed to create/update wiki article. HTTP ${res.statusCode}: ${body}`);
-      process.exit(1);
+      console.error(`Append returned HTTP ${status}: ${body}`);
+      process.exit(0);
     }
   });
-});
+} else {
+  // No feature match — create/update a standalone article in SEVCO Platform subcategory
+  console.log(`No feature match found. Creating standalone article for: "${title}"`);
 
-req.on("error", (err) => {
-  console.error(`Error posting to wiki API: ${err.message}`);
-  process.exit(1);
-});
+  function deriveSlug(t) {
+    return t
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .slice(0, 80);
+  }
 
-req.write(payload);
-req.end();
+  const slug = deriveSlug(title);
+  const bodyParts = [`# ${title}\n`];
+  const orderedSections = ["What & Why", "Done looks like", "Out of scope", "Tasks", "Relevant files", "Origin / Request"];
+  for (const sName of orderedSections) {
+    if (sections[sName]) bodyParts.push(`## ${sName}\n\n${sections[sName]}\n`);
+  }
+  for (const sName of Object.keys(sections)) {
+    if (!orderedSections.includes(sName)) bodyParts.push(`## ${sName}\n\n${sections[sName]}\n`);
+  }
+  const content = bodyParts.join("\n");
+
+  postRequest(
+    "/api/internal/wiki-article",
+    { title, slug, summary, content, tags: ["platform", "update"], categorySlug: "sevco-platform" },
+    (err, status, body) => {
+      if (err) {
+        console.error(`Error creating wiki article: ${err.message}`);
+        process.exit(0);
+      }
+      if (status >= 200 && status < 300) {
+        try {
+          const result = JSON.parse(body);
+          console.log(`Wiki article ${result.action} successfully: ${result.article?.slug}`);
+        } catch {
+          console.log("Wiki article operation succeeded.");
+        }
+        process.exit(0);
+      } else {
+        console.error(`Failed to create wiki article. HTTP ${status}: ${body}`);
+        process.exit(0);
+      }
+    }
+  );
+}

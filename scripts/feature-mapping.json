@@ -1,0 +1,104 @@
+{
+  "mappings": [
+    {
+      "slug": "social-sparks-economy",
+      "keywords": ["spark", "sparks", "⚡", "inferno", "surge", "boost", "leaderboard"]
+    },
+    {
+      "slug": "ai-agents",
+      "keywords": ["grok", "claude", "openrouter", "ai agent", "ai chat", "llm", "paperclip", "imagine", "xai model", "grok-"]
+    },
+    {
+      "slug": "chat-email-messaging",
+      "keywords": ["email", "inbox", "resend", "inbound", "compose", "mailbox", "chat", "message", "svix", "webhook"]
+    },
+    {
+      "slug": "news-discovery",
+      "keywords": ["news", "rss", "feed aggregat", "trending", "wikify", "headline"]
+    },
+    {
+      "slug": "music-platform-sevco-records",
+      "keywords": ["music", "track", "album", "artist", "spotify", "beats", "player", "listen", "playlist", "song", "audio"]
+    },
+    {
+      "slug": "store-ecommerce",
+      "keywords": ["store", "product", "checkout", "stripe", "cart", "order", "purchase", "shop", "inventory", "ecommerce"]
+    },
+    {
+      "slug": "social-feed",
+      "keywords": ["feed", "post", "reply", "repost", "follow", "social", "timeline"]
+    },
+    {
+      "slug": "wiki-system",
+      "keywords": ["wiki", "article", "category", "subcategory", "review queue", "archive", "slug"]
+    },
+    {
+      "slug": "gallery-platform",
+      "keywords": ["gallery", "image", "lightbox", "photo", "upload limit"]
+    },
+    {
+      "slug": "notes-tool",
+      "keywords": ["notes", "note", "editor", "export note"]
+    },
+    {
+      "slug": "command-center-cmd",
+      "keywords": ["command center", "cmd", "dashboard", "admin panel", "display tab", "color editor", "brand asset", "org chart", "staff tab"]
+    },
+    {
+      "slug": "platform-search",
+      "keywords": ["search", "full-text", "discovery"]
+    },
+    {
+      "slug": "authentication-access-control",
+      "keywords": ["auth", "rbac", "role", "permission", "session", "login", "register", "verification", "x account", "x/twitter"]
+    },
+    {
+      "slug": "profile-user-accounts",
+      "keywords": ["profile", "avatar", "banner", "bio", "account page", "follower", "following"]
+    },
+    {
+      "slug": "projects-ventures",
+      "keywords": ["project", "venture", "portfolio", "app icon", "mega-menu"]
+    },
+    {
+      "slug": "services-platform",
+      "keywords": ["services", "service page", "service category"]
+    },
+    {
+      "slug": "jobs-platform",
+      "keywords": ["jobs", "job", "career", "hiring", "application"]
+    },
+    {
+      "slug": "domains-management",
+      "keywords": ["domain", "dns", "hostinger domain"]
+    },
+    {
+      "slug": "hosting-infrastructure",
+      "keywords": ["hosting", "vps", "server", "hostinger", "minecraft", "infrastructure"]
+    },
+    {
+      "slug": "brand-visual-identity",
+      "keywords": ["brand", "logo", "color", "favicon", "visual identity", "palette"]
+    },
+    {
+      "slug": "file-storage-media-uploads",
+      "keywords": ["supabase", "storage", "upload", "cdn", "file upload", "media library"]
+    },
+    {
+      "slug": "landing-page-home",
+      "keywords": ["landing", "home", "hero", "bulletin", "home page"]
+    },
+    {
+      "slug": "platform-shell-navigation",
+      "keywords": ["navigation", "nav", "header", "sidebar", "footer", "dropdown", "mega menu"]
+    },
+    {
+      "slug": "finance-billing",
+      "keywords": ["finance", "billing", "invoice", "subscription", "revenue"]
+    },
+    {
+      "slug": "platform-updates-changelog",
+      "keywords": ["changelog", "update log", "version", "platform history", "/platform"]
+    }
+  ]
+}

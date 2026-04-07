@@ -50,6 +50,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   display: "Display",
   "social-links": "Social Links",
   domains: "Domains",
+  wiki: "Wiki",
 };
 
 function formatRelativeTime(date: Date): string {

@@ -12,8 +12,8 @@ import {
   CAN_DELETE_ARTICLE,
   CAN_ACCESS_ARCHIVE,
 } from "./middleware/permissions";
-import type { Role, InsertJob, InsertArticle, Email, NewsItem } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertStoreCategorySchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema, updateUserTaskSchema, updateStaffTaskSchema, insertUserTaskSchema, insertStaffTaskSchema, insertDomainSchema, insertMusicTrackSchema, adminCreateUserSchema } from "@shared/schema";
+import type { Role, InsertJob, InsertArticle, InsertCategory, Email, NewsItem } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertStoreCategorySchema, insertCategorySchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema, updateUserTaskSchema, updateStaffTaskSchema, insertUserTaskSchema, insertStaffTaskSchema, insertDomainSchema, insertMusicTrackSchema, adminCreateUserSchema } from "@shared/schema";
 import { InsufficientSparksError } from "./storage";
 import { fetchNewsArticles, generateGrokSummaryForTweet } from "./news";
 import { getAggregatorStatus, forceRefresh as forceAggregatorRefresh } from "./news-aggregator";
@@ -47,6 +47,8 @@ const CAN_MANAGE_JOBS: Role[] = ["admin", "executive"];
 const CAN_MANAGE_STORE_PRODUCTS: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_PROJECTS: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_CHANGELOG: Role[] = ["admin", "executive", "staff"];
+const CAN_MANAGE_WIKI_SUBCATEGORIES: Role[] = ["admin", "executive", "staff"];
+const CAN_DELETE_WIKI_SUBCATEGORIES: Role[] = ["admin", "executive"];
 
 function extractKeywords(text: string): string[] {
   const stopWords = new Set([
@@ -1743,6 +1745,67 @@ export async function registerRoutes(
   app.get("/api/categories", async (_req, res) => {
     const cats = await storage.getCategories();
     res.json(cats);
+  });
+
+  app.post("/api/categories", requireAuth, requireRole(...CAN_MANAGE_WIKI_SUBCATEGORIES), async (req, res) => {
+    try {
+      const body = insertCategorySchema.omit({ slug: true }).extend({ name: z.string().min(1), parentId: z.number().int().positive() }).safeParse(req.body);
+      if (!body.success) return res.status(400).json({ message: "Invalid request", errors: body.error.flatten() });
+      const { name, parentId, description, icon } = body.data;
+      const allCats = await storage.getCategories();
+      const parent = allCats.find((c) => c.id === parentId && c.parentId === null);
+      if (!parent) return res.status(400).json({ message: "parentId must reference an existing top-level category" });
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+      const existing = allCats.find((c) => c.slug === slug);
+      const finalSlug = existing ? `${slug}-${Date.now()}` : slug;
+      const cat = await storage.createCategory({ name, slug: finalSlug, parentId, description: description ?? null, icon: icon ?? null });
+      res.status(201).json(cat);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/categories/:id", requireAuth, requireRole(...CAN_MANAGE_WIKI_SUBCATEGORIES), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      const allCats = await storage.getCategories();
+      const cat = allCats.find((c) => c.id === id);
+      if (!cat) return res.status(404).json({ message: "Category not found" });
+      if (cat.parentId === null) return res.status(400).json({ message: "Cannot modify a top-level category" });
+      const body = z.object({ name: z.string().min(1).optional(), description: z.string().optional().nullable(), icon: z.string().optional().nullable() }).safeParse(req.body);
+      if (!body.success) return res.status(400).json({ message: "Invalid request", errors: body.error.flatten() });
+      const updates: Partial<InsertCategory> = {};
+      if (body.data.name !== undefined) {
+        updates.name = body.data.name;
+        const newSlug = body.data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+        const slugConflict = allCats.find((c) => c.slug === newSlug && c.id !== id);
+        updates.slug = slugConflict ? `${newSlug}-${Date.now()}` : newSlug;
+      }
+      if (body.data.description !== undefined) updates.description = body.data.description;
+      if (body.data.icon !== undefined) updates.icon = body.data.icon;
+      const updated = await storage.updateCategory(id, updates);
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/categories/:id", requireAuth, requireRole(...CAN_DELETE_WIKI_SUBCATEGORIES), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      const allCats = await storage.getCategories();
+      const cat = allCats.find((c) => c.id === id);
+      if (!cat) return res.status(404).json({ message: "Category not found" });
+      if (cat.parentId === null) return res.status(400).json({ message: "Cannot delete a top-level category" });
+      const articles = await storage.getArticlesByCategory(id);
+      if (articles.length > 0) return res.status(400).json({ message: "Cannot delete a subcategory that has articles. Move or delete the articles first." });
+      await storage.deleteCategory(id);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
   });
 
   app.get("/api/categories/:parentSlug/:childSlug", async (req, res) => {

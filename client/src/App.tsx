@@ -101,6 +101,7 @@ import CommandNews from "@/pages/command-news";
 import CommandProjects from "@/pages/command-projects";
 import CommandDomains from "@/pages/command-domains";
 import CommandSparksPage from "@/pages/command-sparks";
+import CommandWiki from "@/pages/command-wiki";
 import NewsPage from "@/pages/news-page";
 import WikifyToolPage from "@/pages/wikify-tool-page";
 import ToolsPage from "@/pages/tools-page";
@@ -439,6 +440,13 @@ function Router() {
       <Route path="/command/sparks" component={() => (
         <ProtectedRoute requiredRole="admin">
           <CommandSparksPage />
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/wiki" component={() => (
+        <ProtectedRoute>
+          <CommandPageLayout title="Wiki" subtitle="Manage wiki subcategories">
+            <CommandWiki />
+          </CommandPageLayout>
         </ProtectedRoute>
       )} />
       <Route component={NotFound} />

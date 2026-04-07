@@ -22,6 +22,7 @@ import {
   Music,
   Settings2,
   BookMarked,
+  BookOpen,
   Images,
   FolderOpen,
   MessageSquare,
@@ -62,6 +63,7 @@ export function CommandSidebar() {
   const contentItems: NavItem[] = [
     ...(isAdmin || isExec ? [{ title: "Store", url: "/command/store", icon: ShoppingBag }] : []),
     ...(isAdmin || isExec ? [{ title: "Music", url: "/command/music", icon: Music }] : []),
+    ...(isAdmin || isExec || isStaff ? [{ title: "Wiki", url: "/command/wiki", icon: BookOpen }] : []),
     ...(isAdmin || isExec || isStaff ? [{ title: "Projects", url: "/command/projects", icon: Folder }] : []),
     ...(isAdmin ? [{ title: "News", url: "/command/news", icon: Newspaper }] : []),
     ...(isAdmin ? [{ title: "Gallery", url: "/command/gallery", icon: Images }] : []),

@@ -20931,3 +20931,55 @@ Also remove the now-redundant `min-h-[2.5rem]` from the title paragraph added in
 
 ---
 
+## Task — fix-categories-missing-parent-id
+> Merged: 2026-04-07
+
+# Task: Fix missing parent_id column in categories table
+
+## Root Cause
+Task #258 added `parentId: integer("parent_id")` to the Drizzle schema (shared/schema.ts),
+but the database migration never applied it. The `categories` table currently has:
+  id, name, slug, description, icon   ← NO parent_id column
+
+Every call to `storage.getCategories()` generates SQL that selects `parent_id`, which
+PostgreSQL rejects → 500 from `/api/categories` → categories don't render anywhere on the wiki.
+
+## Fix
+
+### 1. Run migration in server/routes.ts startup seeder
+
+The `seedSevcoplatformParentId()` function in routes.ts should run the `ALTER TABLE` before
+trying to update `parentId`. Add at the very top of `seedSevcoplatformParentId()`:
+
+```ts
+// Ensure the column exists before anything else
+await db.execute(sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS parent_id integer`);
+```
+
+This is idempotent — `IF NOT EXISTS` makes it safe to run every startup.
+
+### 2. Alternative: run db:push --force
+
+As part of the fix, run:
+```bash
+npm run db:push --force
+```
+to sync the Drizzle schema to the database. This will add the `parent_id` column.
+
+### 3. Restart workflow after fix
+
+After the column is added, restart the `Start application` workflow so the server
+re-runs all queries with the correct schema.
+
+## Acceptance Criteria
+- [ ] `SELECT column_name FROM information_schema.columns WHERE table_name = 'categories'`
+      shows `parent_id` in the result
+- [ ] `/api/categories` returns a JSON array of all categories (not 500)
+- [ ] Wiki sidebar shows all categories (General, Operations, Engineering, Design, Sales, Support)
+- [ ] Wiki home page shows all category cards
+- [ ] `/wiki/engineering` page shows SEVCO Platform as a subcategory card
+- [ ] `/wiki/engineering/sevco-platform` loads the SEVCO Platform category
+
+
+---
+

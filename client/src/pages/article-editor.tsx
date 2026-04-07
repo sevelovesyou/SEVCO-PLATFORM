@@ -193,6 +193,7 @@ export default function ArticleEditor() {
       const result = await res.json();
       queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
       queryClient.invalidateQueries({ queryKey: ["/api/articles", slug] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
       queryClient.invalidateQueries({ queryKey: ["/api/revisions", "pending-count"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({ title: "Revision submitted for review" });

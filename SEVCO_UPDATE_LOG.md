@@ -21747,6 +21747,7 @@ This is optional — if implementation adds too much complexity, skip it.
 
 ---
 
+<<<<<<< HEAD
 ## Task — task-270
 > Merged: 2026-04-07
 
@@ -21863,6 +21864,124 @@ Key changes from current implementation:
 - [ ] The "All Revisions" tab still shows all revisions (including newly approved/
   rejected ones) after the background refetch completes
 - [ ] Pending count badge in the sidebar updates immediately
+=======
+## Task — task-271
+> Merged: 2026-04-07
+
+---
+title: Fix: Article category/subcategory not saved when editing (backend ignores categoryId on PATCH)
+---
+# Task: Fix — Article category/subcategory not saved when editing
+
+## Root Cause
+
+### Backend: PATCH /api/articles/:slug ignores metadata changes
+
+In `server/routes.ts`, the PATCH handler for active (non-archived) articles only
+creates a **revision** containing `content`, `infoboxData`, and `summary`. It does
+**not** persist `categoryId`, `title`, `tags`, or `infoboxType` changes to the
+article record directly.
+
+So when a user edits an article and changes its subcategory:
+- The frontend correctly sends the new `categoryId` in the request body
+- The backend ignores it for the revision path and applies only content changes
+- The article stays in its original category in the DB
+
+### Frontend: article-editor.tsx category/subcategory pre-fill on edit
+
+The edit form added in Task #266 added `selectedParentCategoryId` state, but it
+may not correctly pre-select the subcategory when loading an existing article
+whose `categoryId` points to a subcategory (not a top-level category).
+
+## Fix
+
+### 1. Backend — Apply metadata changes immediately (server/routes.ts)
+
+In the PATCH `/api/articles/:slug` handler, before creating the revision,
+apply metadata changes directly to the article record:
+
+```typescript
+// After finding the article, before creating revision:
+const metadataUpdate: Partial<typeof articles> = {};
+if (body.categoryId !== undefined) metadataUpdate.categoryId = body.categoryId;
+if (body.title !== undefined) metadataUpdate.title = body.title;
+if (body.tags !== undefined) metadataUpdate.tags = body.tags;
+if (body.infoboxType !== undefined) metadataUpdate.infoboxType = body.infoboxType;
+if (body.summary !== undefined) metadataUpdate.summary = body.summary;
+
+if (Object.keys(metadataUpdate).length > 0) {
+  await storage.updateArticle(article.id, metadataUpdate);
+}
+```
+
+Then create the revision as before (for content tracking).
+
+Verify `storage.updateArticle()` in `server/storage.ts` accepts and saves
+`categoryId`. If the method only accepts certain fields, expand it to accept
+the full `Partial<InsertArticle>`.
+
+### 2. Frontend — Correctly pre-fill subcategory when editing (article-editor.tsx)
+
+When loading an existing article for editing, the form needs to:
+1. Determine whether the article's `categoryId` belongs to a subcategory
+   (i.e., the matching category has a `parentId`)
+2. If it's a subcategory: set `selectedParentCategoryId` to the parent's ID,
+   then set `form.setValue("categoryId", article.categoryId)`
+3. If it's a top-level category: set `selectedParentCategoryId` to that ID
+   and leave subcategory unselected
+
+This logic should run inside the `useEffect` that pre-populates the form when
+`editArticle` data loads. The categories list must be available (from the
+`useQuery("/api/categories")` already in the component) to do the lookup.
+
+```tsx
+// When editArticle loads:
+useEffect(() => {
+  if (!editArticle || !categories) return;
+
+  const articleCategory = categories.find(c => c.id === editArticle.categoryId);
+  if (!articleCategory) return;
+
+  if (articleCategory.parentId) {
+    // It's a subcategory — set parent + subcategory
+    setSelectedParentCategoryId(String(articleCategory.parentId));
+    form.setValue("categoryId", articleCategory.id);
+  } else {
+    // It's a top-level category
+    setSelectedParentCategoryId(String(articleCategory.id));
+    form.setValue("categoryId", articleCategory.id);
+  }
+}, [editArticle, categories]);
+```
+
+### 3. Cache invalidation after article PATCH (article-editor.tsx)
+
+After a successful article update, invalidate the category-specific query so the
+article shows up under its new subcategory:
+
+```tsx
+queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+// Also invalidate the specific category page cache:
+queryClient.invalidateQueries({ queryKey: ["/api/categories", newCategorySlug] });
+```
+
+## Files to Edit
+
+- `server/routes.ts` — PATCH `/api/articles/:slug` handler (apply metadata)
+- `server/storage.ts` — verify `updateArticle` accepts categoryId
+- `client/src/pages/article-editor.tsx` — pre-fill subcategory on edit + cache invalidation
+
+## Acceptance Criteria
+
+- [ ] Editing an article and changing its category/subcategory saves the new
+  category when submitted
+- [ ] After saving, the article no longer appears under the old subcategory page
+- [ ] After saving, the article appears under the new subcategory page
+- [ ] When opening an article for editing, the correct parent category AND
+  subcategory are pre-selected in the dropdowns
+- [ ] Content changes (revision) still work correctly alongside metadata changes
+>>>>>>> ac82ae7 (Post-merge setup completed successfully)
 
 
 ---

@@ -2095,6 +2095,18 @@ export async function registerRoutes(
 
       const canPublish = !!userRole && (CAN_PUBLISH_ARTICLES as string[]).includes(userRole);
 
+      const metadataUpdate: Partial<InsertArticle> = {};
+      if (updateData.categoryId !== undefined) metadataUpdate.categoryId = updateData.categoryId;
+      if (updateData.title !== undefined) metadataUpdate.title = updateData.title;
+      if (updateData.tags !== undefined) metadataUpdate.tags = updateData.tags;
+      if (updateData.infoboxType !== undefined) metadataUpdate.infoboxType = updateData.infoboxType;
+      if (updateData.summary !== undefined) metadataUpdate.summary = updateData.summary;
+
+      let updatedArticle = article;
+      if (Object.keys(metadataUpdate).length > 0) {
+        updatedArticle = await storage.updateArticle(article.id, metadataUpdate);
+      }
+
       await storage.createRevision({
         articleId: article.id,
         content: updateData.content || article.content,
@@ -2129,10 +2141,10 @@ export async function registerRoutes(
         }
       }
 
-      const updatedCategory = article.categoryId
-        ? (await storage.getCategories()).find((c) => c.id === article.categoryId) || null
+      const updatedCategory = updatedArticle.categoryId
+        ? (await storage.getCategories()).find((c) => c.id === updatedArticle.categoryId) || null
         : null;
-      res.json({ ...article, category: updatedCategory ? { name: updatedCategory.name, slug: updatedCategory.slug } : null });
+      res.json({ ...updatedArticle, category: updatedCategory ? { name: updatedCategory.name, slug: updatedCategory.slug } : null });
     } catch (err: any) {
       res.status(400).json({ message: err.message });
     }

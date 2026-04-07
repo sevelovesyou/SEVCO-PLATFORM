@@ -22152,3 +22152,50 @@ title: Security marketing page (/security)
 
 ---
 
+## Task — task-276
+> Merged: 2026-04-07
+
+---
+title: Social Sparks — notifications & leaderboard
+---
+# Social Sparks — Notifications & Leaderboard
+
+  ## What & Why
+  Two additions to the Social Sparks economy (Task #275):
+  1. **Spark notifications** — when your content receives a Spark you see a live, animated in-app notification so the reward feels exciting and immediate.
+  2. **Sitewide leaderboard** — a public `/sparks/leaderboard` page that showcases the top creators and most-sparked content, making the economy feel alive and competitive.
+
+  ## Done looks like
+  - When any user's post, wiki article, or gallery image is sparked, the author receives an in-app notification: "⚡ [Username] sparked your post" with a link to the content
+  - The notification bell in the nav header animates (pulse ring, yellow glow) when a new spark notification arrives and has not been read
+  - The notification entry in the dropdown has a yellow ⚡ accent color/icon to distinguish it from other notification types
+  - A public `/sparks/leaderboard` page exists, linked from the `/sparks` page and the nav
+  - The leaderboard shows two tabs: "This Month" and "All Time"
+  - Each tab has three sections: Top Creators (users by sparks received), Top Posts, and Top Content (articles + gallery combined)
+  - Rank 1–3 get gold/silver/bronze badges with a subtle animated shimmer; all rows have animated count-up numbers on first render
+  - The page is fully public (no login required to view)
+
+  ## Out of scope
+  - Browser push notifications via WebPush / Service Worker
+  - Email notifications for sparks
+  - Per-user notification preference settings for sparks
+
+  ## Tasks
+  1. **Spark notification delivery** — In the spark POST routes added by Task #275 (posts, articles, gallery), after crediting the author's Spark balance, also call `storage.createNotification()` with `type: 'spark'`, a descriptive title ("⚡ [SenderName] sparked your post"), a body excerpt, and a link to the content. Skip self-sparks. Add a backend endpoint `GET /api/sparks/leaderboard?period=month|all` that returns top-10 creators by sparks received and top-10 most-sparked items (posts + articles + gallery combined with content-type labels).
+
+  2. **Notification bell spark styling** — In `NotificationDropdown` (or wherever the bell renders), detect when unread notifications include type `'spark'`. If so, apply a yellow/amber animated pulse ring to the bell icon (CSS keyframe animation). Inside the dropdown, render spark notifications with a yellow ⚡ bolt accent instead of the default icon.
+
+  3. **Leaderboard page** — Create `client/src/pages/sparks-leaderboard.tsx`: a full-width page with a bold hero header, "This Month" / "All Time" tab switcher, and three card sections — Top Creators (avatar, display name, rank badge, animated spark count), Top Posts (excerpt, author, spark count), Top Content (title, type badge, spark count). Rank 1–3 rows use gold/silver/bronze gradient badges with a shimmer animation. All count numbers animate from 0 to their final value on mount using a CSS counter animation or a lightweight spring. Register the route at `/sparks/leaderboard` in `App.tsx` and add a "Leaderboard" link/tab on the existing `/sparks` page.
+
+  ## Relevant files
+  - `server/routes.ts` (spark POST routes from Task #275, notification delivery)
+  - `server/storage.ts` (createNotification method)
+  - `client/src/components/notification-dropdown.tsx`
+  - `client/src/components/platform-header.tsx`
+  - `client/src/pages/sparks-page.tsx`
+  - `client/src/App.tsx`
+  - `shared/schema.ts` (notifications table: type, title, body, link, isRead)
+
+
+---
+

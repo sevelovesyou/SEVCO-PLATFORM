@@ -39,7 +39,8 @@ import {
 } from "./analytics";
 import { isUsernameReserved } from "./usernameUtils";
 import { db } from "./db";
-import { sql } from "drizzle-orm";
+import { sql, eq, and, desc } from "drizzle-orm";
+import { posts, revisions, galleryImages } from "@shared/schema";
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive"];
 const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
@@ -8382,6 +8383,118 @@ export async function registerRoutes(
         topSparkedImages,
         topItems: stats.topItems,
       });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Content sparking routes
+  app.post("/api/posts/:id/spark", requireAuth, async (req: any, res) => {
+    try {
+      const contentId = parseInt(req.params.id);
+      if (isNaN(contentId)) return res.status(400).json({ message: "Invalid id" });
+      const senderId = req.user.id as string;
+
+      const [post] = await db.select().from(posts).where(eq(posts.id, contentId)).limit(1);
+      if (!post) return res.status(404).json({ message: "Post not found" });
+      if (post.authorId === senderId) return res.status(400).json({ message: "Cannot spark your own content" });
+
+      const already = await storage.hasContentSpark(senderId, "post", contentId);
+      if (already) return res.status(409).json({ message: "Already sparked" });
+
+      await storage.createContentSpark({ senderId, recipientId: post.authorId, contentType: "post", contentId, amount: 1 });
+      await storage.creditSparks(post.authorId, 1, "content_spark", `Spark received on post #${contentId}`);
+
+      const sender = await storage.getUser(senderId);
+      const senderName = sender?.displayName || sender?.username || "Someone";
+      notify(post.authorId, "spark", `⚡ ${senderName} sparked your post`, post.content.slice(0, 80), `/social`).catch(() => {});
+
+      const count = await storage.getContentSparkCount("post", contentId);
+      res.json({ success: true, sparksReceived: count });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/wiki/:slug/spark", requireAuth, async (req: any, res) => {
+    try {
+      const { slug } = req.params;
+      const senderId = req.user.id as string;
+
+      const article = await storage.getArticleBySlug(slug);
+      if (!article) return res.status(404).json({ message: "Article not found" });
+
+      const [authorRevision] = await db
+        .select({ authorName: revisions.authorName })
+        .from(revisions)
+        .where(and(eq(revisions.articleId, article.id), eq(revisions.status, "approved")))
+        .orderBy(desc(revisions.createdAt))
+        .limit(1);
+
+      const authorUser = authorRevision
+        ? await storage.getUserByUsername(authorRevision.authorName)
+        : undefined;
+
+      if (!authorUser) return res.status(400).json({ message: "Author not found" });
+      if (authorUser.id === senderId) return res.status(400).json({ message: "Cannot spark your own content" });
+
+      const already = await storage.hasContentSpark(senderId, "article", article.id);
+      if (already) return res.status(409).json({ message: "Already sparked" });
+
+      await storage.createContentSpark({ senderId, recipientId: authorUser.id, contentType: "article", contentId: article.id, amount: 1 });
+      await storage.creditSparks(authorUser.id, 1, "content_spark", `Spark received on article "${article.title}"`);
+
+      const sender = await storage.getUser(senderId);
+      const senderName = sender?.displayName || sender?.username || "Someone";
+      notify(authorUser.id, "spark", `⚡ ${senderName} sparked your article`, article.title, `/wiki/${slug}`).catch(() => {});
+
+      const count = await storage.getContentSparkCount("article", article.id);
+      res.json({ success: true, sparksReceived: count });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/gallery/:id/spark", requireAuth, async (req: any, res) => {
+    try {
+      const contentId = parseInt(req.params.id);
+      if (isNaN(contentId)) return res.status(400).json({ message: "Invalid id" });
+      const senderId = req.user.id as string;
+
+      const [img] = await db.select().from(galleryImages).where(eq(galleryImages.id, contentId)).limit(1);
+      if (!img) return res.status(404).json({ message: "Gallery image not found" });
+
+      const already = await storage.hasContentSpark(senderId, "gallery", contentId);
+      if (already) return res.status(409).json({ message: "Already sparked" });
+
+      // Gallery images don't have an author in schema, so skip recipient credit
+      await storage.createContentSpark({ senderId, recipientId: senderId, contentType: "gallery", contentId, amount: 1 });
+
+      const count = await storage.getContentSparkCount("gallery", contentId);
+      res.json({ success: true, sparksReceived: count });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/sparks/leaderboard", async (req, res) => {
+    try {
+      const period = req.query.period === "all" ? "all" : "month";
+      const data = await storage.getSparksLeaderboard(period as "month" | "all");
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/posts/:id/spark", requireAuth, async (req: any, res) => {
+    try {
+      const contentId = parseInt(req.params.id);
+      if (isNaN(contentId)) return res.status(400).json({ message: "Invalid id" });
+      const senderId = req.user.id as string;
+      const sparked = await storage.hasContentSpark(senderId, "post", contentId);
+      const count = await storage.getContentSparkCount("post", contentId);
+      res.json({ sparked, count });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

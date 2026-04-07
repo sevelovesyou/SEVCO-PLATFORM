@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Palette, Music, Bot, Sparkles, Eye } from "lucide-react";
+import { ArrowRight, Palette, Music, Bot, Sparkles, Eye, Trophy } from "lucide-react";
 
 const SPARK_USES = [
   { icon: Palette, label: "AI Art Generation", description: "Generate images, album art, and visual concepts on demand." },
@@ -43,9 +43,17 @@ export default function SparksPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-6 space-y-6" data-testid="sparks-page">
-      <div className="flex items-center gap-2">
-        <span className="text-xl">⚡️</span>
-        <h1 className="text-xl font-bold">Sparks</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">⚡️</span>
+          <h1 className="text-xl font-bold">Sparks</h1>
+        </div>
+        <Link href="/sparks/leaderboard">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" data-testid="link-sparks-leaderboard">
+            <Trophy className="h-3.5 w-3.5 text-yellow-500" />
+            Leaderboard
+          </Button>
+        </Link>
       </div>
 
       <Card data-testid="card-sparks-balance">

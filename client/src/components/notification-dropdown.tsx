@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { Mail, MessageCircle, CheckSquare, AlertCircle, CheckCheck } from "lucide-react";
+import { Mail, MessageCircle, CheckSquare, AlertCircle, CheckCheck, Zap } from "lucide-react";
 import type { Notification } from "@shared/schema";
 
 interface NotificationDropdownProps {
@@ -23,6 +23,7 @@ function timeAgo(date: Date | string): string {
 
 function TypeIcon({ type }: { type: string }) {
   const cls = "h-4 w-4 shrink-0 mt-0.5";
+  if (type === "spark") return <Zap className={`${cls} text-yellow-400 fill-yellow-400`} />;
   if (type === "email") return <Mail className={`${cls} text-blue-500`} />;
   if (type === "chat_dm" || type === "chat_channel") return <MessageCircle className={`${cls} text-green-500`} />;
   if (type === "task") return <CheckSquare className={`${cls} text-violet-500`} />;
@@ -117,17 +118,27 @@ export function NotificationDropdown({ open, onClose, triggerRef }: Notification
               data-testid={`notif-item-${n.id}`}
               onClick={() => handleNotifClick(n)}
               className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-border/40 last:border-b-0 hover:bg-muted/50 transition-colors ${
-                !n.isRead ? "bg-primary/5" : ""
+                !n.isRead
+                  ? n.type === "spark"
+                    ? "bg-yellow-400/5"
+                    : "bg-primary/5"
+                  : ""
               }`}
             >
               <div className="flex items-start gap-2.5 flex-1 min-w-0">
                 {!n.isRead && (
-                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0" />
+                  <span className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${n.type === "spark" ? "bg-yellow-400" : "bg-blue-500"}`} />
                 )}
                 {n.isRead && <span className="mt-1.5 h-1.5 w-1.5 shrink-0" />}
                 <TypeIcon type={n.type} />
                 <div className="min-w-0 flex-1">
-                  <p className={`text-xs font-medium leading-snug ${!n.isRead ? "text-foreground" : "text-muted-foreground"}`}>
+                  <p className={`text-xs font-medium leading-snug ${
+                    !n.isRead
+                      ? n.type === "spark"
+                        ? "text-yellow-500 dark:text-yellow-400"
+                        : "text-foreground"
+                      : "text-muted-foreground"
+                  }`}>
                     {n.title}
                   </p>
                   {n.body && (

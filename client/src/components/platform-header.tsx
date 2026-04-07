@@ -822,7 +822,7 @@ function NavSparksBalance() {
           <span className="text-xl">⚡️</span>
           <span className="text-2xl font-bold">{isLoading ? "…" : (data?.balance ?? 0).toLocaleString()}</span>
         </div>
-        <div className="border-t border-border pt-2">
+        <div className="border-t border-border pt-2 space-y-2">
           <Button
             className="w-full bg-[#0037ff] text-white hover:bg-[#0037ff]/90"
             size="sm"
@@ -830,6 +830,16 @@ function NavSparksBalance() {
             data-testid="button-nav-buy-sparks"
           >
             Buy Sparks
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-yellow-500 hover:text-yellow-400 hover:bg-yellow-400/10 gap-1"
+            onClick={() => { setOpen(false); navigate("/sparks/leaderboard"); }}
+            data-testid="button-nav-sparks-leaderboard"
+          >
+            <LucideIcons.Trophy className="h-3.5 w-3.5" />
+            Leaderboard
           </Button>
         </div>
       </PopoverContent>
@@ -889,6 +899,13 @@ export function PlatformHeader() {
     }
     prevCountRef.current = unreadNotifCount;
   }, [unreadNotifCount, playNotification]);
+
+  const { data: unreadNotifs = [] } = useQuery<import("@shared/schema").Notification[]>({
+    queryKey: ["/api/notifications"],
+    refetchInterval: 30000,
+    enabled: !!user && unreadNotifCount > 0,
+  });
+  const hasUnreadSpark = unreadNotifs.some((n) => !n.isRead && n.type === "spark");
 
   const { data: allServices = [] } = useQuery<Service[]>({
     queryKey: ["/api/services"],
@@ -1015,16 +1032,19 @@ export function PlatformHeader() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className={`h-8 w-8 relative ${hasUnreadSpark ? "spark-bell-glow" : ""}`}
                     onClick={() => setNotifOpen((o) => !o)}
                     data-testid="button-notifications"
                     aria-label="Notifications"
                   >
-                    <Bell className="h-4 w-4" aria-hidden="true" />
+                    {hasUnreadSpark && (
+                      <span className="absolute inset-0 rounded-md animate-ping bg-yellow-400/30 pointer-events-none" />
+                    )}
+                    <Bell className={`h-4 w-4 relative z-10 ${hasUnreadSpark ? "text-yellow-400" : ""}`} aria-hidden="true" />
                   </Button>
                   {unreadNotifCount > 0 && (
                     <span
-                      className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center pointer-events-none"
+                      className={`absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full text-white text-[10px] font-semibold flex items-center justify-center pointer-events-none ${hasUnreadSpark ? "bg-yellow-500" : "bg-red-500"}`}
                       data-testid="badge-notif-count"
                     >
                       {unreadNotifCount > 99 ? "99+" : unreadNotifCount}

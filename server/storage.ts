@@ -53,6 +53,7 @@ import {
   type NewsItem,
   type SparkTransaction, type InsertSparkTransaction,
   type SparkPack, type InsertSparkPack,
+  type ContentSpark, type InsertContentSpark,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
@@ -82,6 +83,7 @@ import {
   newsItems,
   sparkTransactions,
   sparkPacks,
+  contentSparks,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, and, sql, ilike, or, inArray, gte, lte, count as countFn, type SQL } from "drizzle-orm";
@@ -477,6 +479,15 @@ export interface IStorage {
     totalGallerySparksGiven: number;
     topRewardedCreatorThisMonth: { username: string; displayName: string | null; sparksReceived: number } | null;
     topItems: Array<{ type: string; title: string; sparkCount: number; id: number | string; slug?: string; authorUsername?: string; uploaderUsername?: string }>;
+  }>;
+
+  createContentSpark(data: InsertContentSpark): Promise<ContentSpark>;
+  hasContentSpark(senderId: string, contentType: string, contentId: number): Promise<boolean>;
+  getContentSparkCount(contentType: string, contentId: number): Promise<number>;
+  getSparksLeaderboard(period: "month" | "all"): Promise<{
+    topCreators: { userId: string; username: string; displayName: string | null; avatarUrl: string | null; sparksReceived: number }[];
+    topPosts: { id: number; content: string; authorUsername: string; authorDisplayName: string | null; sparksReceived: number }[];
+    topContent: { id: number; title: string; contentType: "article" | "gallery"; sparksReceived: number }[];
   }>;
 }
 
@@ -3256,6 +3267,143 @@ export class DatabaseStorage implements IStorage {
       totalGallerySparksGiven: galleryTotalRow?.total ?? 0,
       topRewardedCreatorThisMonth: topCreator,
       topItems: combined,
+    };
+  }
+
+  async createContentSpark(data: InsertContentSpark): Promise<ContentSpark> {
+    const [row] = await db.insert(contentSparks).values(data).returning();
+    return row;
+  }
+
+  async hasContentSpark(senderId: string, contentType: string, contentId: number): Promise<boolean> {
+    const [row] = await db
+      .select({ id: contentSparks.id })
+      .from(contentSparks)
+      .where(and(
+        eq(contentSparks.senderId, senderId),
+        eq(contentSparks.contentType, contentType as any),
+        eq(contentSparks.contentId, contentId),
+      ))
+      .limit(1);
+    return !!row;
+  }
+
+  async getContentSparkCount(contentType: string, contentId: number): Promise<number> {
+    const [row] = await db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(contentSparks)
+      .where(and(
+        eq(contentSparks.contentType, contentType as any),
+        eq(contentSparks.contentId, contentId),
+      ));
+    return row?.count ?? 0;
+  }
+
+  async getSparksLeaderboard(period: "month" | "all"): Promise<{
+    topCreators: { userId: string; username: string; displayName: string | null; avatarUrl: string | null; sparksReceived: number }[];
+    topPosts: { id: number; content: string; authorUsername: string; authorDisplayName: string | null; sparksReceived: number }[];
+    topContent: { id: number; title: string; contentType: "article" | "gallery"; sparksReceived: number }[];
+  }> {
+    const cutoff = period === "month"
+      ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      : undefined;
+    const periodFilter = cutoff ? gte(contentSparks.createdAt, cutoff) : undefined;
+
+    const creatorRows = await db
+      .select({
+        userId: contentSparks.recipientId,
+        username: users.username,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+        sparksReceived: sql<number>`cast(count(*) as integer)`,
+      })
+      .from(contentSparks)
+      .innerJoin(users, eq(users.id, contentSparks.recipientId))
+      .where(periodFilter ?? undefined)
+      .groupBy(contentSparks.recipientId, users.username, users.displayName, users.avatarUrl)
+      .orderBy(sql`count(*) desc`)
+      .limit(10);
+
+    const postRows = await db
+      .select({
+        id: contentSparks.contentId,
+        sparksReceived: sql<number>`cast(count(*) as integer)`,
+      })
+      .from(contentSparks)
+      .where(periodFilter ? and(eq(contentSparks.contentType, "post"), periodFilter) : eq(contentSparks.contentType, "post"))
+      .groupBy(contentSparks.contentId)
+      .orderBy(sql`count(*) desc`)
+      .limit(10);
+
+    const topPosts = await Promise.all(
+      postRows.map(async (r) => {
+        const [post] = await db
+          .select({
+            id: posts.id,
+            content: posts.content,
+            authorUsername: users.username,
+            authorDisplayName: users.displayName,
+          })
+          .from(posts)
+          .innerJoin(users, eq(users.id, posts.authorId))
+          .where(eq(posts.id, r.id))
+          .limit(1);
+        return post ? { ...post, sparksReceived: r.sparksReceived } : null;
+      })
+    );
+
+    const articleRows = await db
+      .select({
+        id: contentSparks.contentId,
+        sparksReceived: sql<number>`cast(count(*) as integer)`,
+      })
+      .from(contentSparks)
+      .where(periodFilter ? and(eq(contentSparks.contentType, "article"), periodFilter) : eq(contentSparks.contentType, "article"))
+      .groupBy(contentSparks.contentId)
+      .orderBy(sql`count(*) desc`)
+      .limit(10);
+
+    const galleryRows = await db
+      .select({
+        id: contentSparks.contentId,
+        sparksReceived: sql<number>`cast(count(*) as integer)`,
+      })
+      .from(contentSparks)
+      .where(periodFilter ? and(eq(contentSparks.contentType, "gallery"), periodFilter) : eq(contentSparks.contentType, "gallery"))
+      .groupBy(contentSparks.contentId)
+      .orderBy(sql`count(*) desc`)
+      .limit(10);
+
+    const articleItems = await Promise.all(
+      articleRows.map(async (r) => {
+        const [article] = await db
+          .select({ id: articles.id, title: articles.title })
+          .from(articles)
+          .where(eq(articles.id, r.id))
+          .limit(1);
+        return article ? { id: article.id, title: article.title, contentType: "article" as const, sparksReceived: r.sparksReceived } : null;
+      })
+    );
+
+    const galleryItems = await Promise.all(
+      galleryRows.map(async (r) => {
+        const [img] = await db
+          .select({ id: galleryImages.id, title: galleryImages.title })
+          .from(galleryImages)
+          .where(eq(galleryImages.id, r.id))
+          .limit(1);
+        return img ? { id: img.id, title: img.title, contentType: "gallery" as const, sparksReceived: r.sparksReceived } : null;
+      })
+    );
+
+    const topContent = [...articleItems.filter(Boolean), ...galleryItems.filter(Boolean)]
+      .sort((a, b) => b!.sparksReceived - a!.sparksReceived)
+      .slice(0, 10) as { id: number; title: string; contentType: "article" | "gallery"; sparksReceived: number }[];
+
+    return {
+      topCreators: creatorRows,
+      topPosts: topPosts.filter(Boolean) as any,
+      topContent,
     };
   }
 }

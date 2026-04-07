@@ -36,6 +36,7 @@ The platform is built with a modern web stack:
         - **News**: An AI-enhanced news feed with trending topics, breaking news, article bookmarking, and personalized preferences.
         - **Jobs**: A job board with application forms and administrative management.
         - **Notes**: Personal note-taking application with search, pinning, and color-coding.
+    - **Sparks Economy**: Platform currency with content sparking (posts, wiki articles, gallery images), spark notifications, and a public leaderboard at `/sparks/leaderboard`. The `content_sparks` table tracks who sparked what. Notifications of type `"spark"` get yellow ⚡ styling in the dropdown and a pulse animation on the bell icon.
 
 ## External Dependencies
 - **Database**: PostgreSQL

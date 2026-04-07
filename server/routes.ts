@@ -38,6 +38,8 @@ import {
   getDeviceSplit,
 } from "./analytics";
 import { isUsernameReserved } from "./usernameUtils";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive"];
 const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
@@ -893,6 +895,7 @@ const ENGINEERING_TASKS: EngineeringTask[] = [
 ];
 
 async function seedSevcoplatformParentId() {
+  await db.execute(sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS parent_id integer`);
   const engCat = await storage.getCategoryBySlug("engineering");
   const platformCat = await storage.getCategoryBySlug("sevco-platform");
   if (engCat && platformCat && !platformCat.parentId) {

@@ -169,9 +169,9 @@ export function AppSidebar() {
                       <SidebarMenuButton
                         asChild
                         tooltip={cat.name}
-                        data-active={location === `/category/${cat.slug}`}
+                        data-active={location === `/wiki/${cat.slug}`}
                       >
-                        <Link href={`/category/${cat.slug}`} data-testid={`link-category-${cat.slug}`}>
+                        <Link href={`/wiki/${cat.slug}`} data-testid={`link-category-${cat.slug}`}>
                           <CatIcon className="h-4 w-4" />
                           <span>{cat.name}</span>
                         </Link>

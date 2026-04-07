@@ -15,7 +15,7 @@ import {
 import type { Article, Category } from "@shared/schema";
 
 export default function CategoryView() {
-  const [, params] = useRoute("/category/:slug");
+  const [, params] = useRoute("/wiki/:slug");
   const slug = params?.slug;
 
   const { data: category, isLoading: catLoading } = useQuery<Category & { articles: Article[] }>({
@@ -62,7 +62,7 @@ export default function CategoryView() {
       <PageHead
         title={`${category.name} — SEVCO Wiki`}
         description={category.description || `Browse all articles in the ${category.name} category on the SEVCO knowledge base.`}
-        ogUrl={`https://sevco.us/category/${category.slug}`}
+        ogUrl={`https://sevco.us/wiki/${category.slug}`}
       />
       <div className="flex items-center gap-2 mb-2">
         <Link href="/wiki">

@@ -212,7 +212,7 @@ export default function Home() {
             Categories
           </h2>
           <div className="flex flex-col gap-3">
-            <Link href="/category/sevco-platform">
+            <Link href="/wiki/sevco-platform">
               <Card
                 className="p-3 hover-elevate active-elevate-2 cursor-pointer overflow-visible border-primary/20 bg-primary/5"
                 data-testid="card-category-sevco-platform"
@@ -237,7 +237,7 @@ export default function Home() {
                   </Card>
                 ))
               : categories?.filter((cat) => cat.slug !== "sevco-platform").map((cat) => (
-                  <Link key={cat.id} href={`/category/${cat.slug}`}>
+                  <Link key={cat.id} href={`/wiki/${cat.slug}`}>
                     <Card
                       className="p-3 hover-elevate active-elevate-2 cursor-pointer overflow-visible"
                       data-testid={`card-category-${cat.slug}`}

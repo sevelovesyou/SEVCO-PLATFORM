@@ -111,7 +111,20 @@ import { FloatingChatWindows } from "@/components/floating-chat-window";
 import { MusicPlayerProvider } from "@/contexts/music-player-context";
 import { FloatingMusicPlayer } from "@/components/floating-music-player";
 
-const WIKI_PREFIXES = ["/wiki", "/edit/", "/new/", "/search", "/review", "/category/", "/wikify"];
+function WikiSlugView({ params }: { params?: { slug?: string } }) {
+  const slug = params?.slug;
+  const { data: category, isLoading, isError } = useQuery<{ id: number } | null>({
+    queryKey: ["/api/categories", slug],
+    enabled: !!slug,
+    retry: false,
+  });
+
+  if (isLoading) return null;
+  if (!isError && category) return <CategoryView />;
+  return <ArticleView />;
+}
+
+const WIKI_PREFIXES = ["/wiki", "/edit/", "/new/", "/search", "/review", "/wikify"];
 const COMMAND_PREFIXES = ["/command"];
 const SOCIAL_PREFIXES = ["/feed", "/account", "/profile", "/discover"];
 
@@ -170,10 +183,12 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/wiki" component={Home} />
       <Route path="/wiki/archive" component={() => <ProtectedRoute><WikiArchivePage /></ProtectedRoute>} />
-      <Route path="/wiki/engineering/platform" component={() => <Redirect to="/category/sevco-platform" />} />
-      <Route path="/wiki/:slug" component={ArticleView} />
+      <Route path="/wiki/engineering/platform" component={() => <Redirect to="/wiki/sevco-platform" />} />
+      <Route path="/category/:slug">
+        {(params: { slug: string }) => <Redirect to={`/wiki/${params.slug}`} />}
+      </Route>
+      <Route path="/wiki/:slug" component={WikiSlugView} />
       <Route path="/search" component={SearchPage} />
-      <Route path="/category/:slug" component={CategoryView} />
       <Route path="/music" component={MusicPage} />
       <Route path="/music/submit" component={MusicSubmitPage} />
       <Route path="/music/playlists" component={MusicPlaylistsPage} />

@@ -216,7 +216,7 @@ export default function ArticleView() {
         {article.category && (
           <>
             <span className="text-muted-foreground text-xs">/</span>
-            <Link href={`/category/${article.category.slug}`}>
+            <Link href={`/wiki/${article.category.slug}`}>
               <Button variant="ghost" size="sm" data-testid="button-category-breadcrumb">
                 {article.category.name}
               </Button>

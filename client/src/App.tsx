@@ -86,6 +86,7 @@ import WikiArchivePage from "@/pages/wiki-archive-page";
 import AboutPage from "@/pages/about-page";
 import LegalPage from "@/pages/legal-page";
 import HostingPage from "@/pages/hosting-page";
+import SecurityPage from "@/pages/security-page";
 import MinecraftPage from "@/pages/minecraft-page";
 import GalleryPage from "@/pages/gallery-page";
 import CommandGallery from "@/pages/command-gallery";
@@ -257,6 +258,7 @@ function Router() {
       <Route path="/about" component={AboutPage} />
       <Route path="/legal" component={LegalPage} />
       <Route path="/hosting" component={HostingPage} />
+      <Route path="/security" component={SecurityPage} />
       <Route path="/minecraft" component={MinecraftPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/feed" component={FeedPage} />

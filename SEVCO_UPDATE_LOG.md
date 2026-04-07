@@ -22353,3 +22353,32 @@ title: Fix wiki articles: cleanup, category & author byline
 
 ---
 
+## Task — hotfix-services-link-url-column
+> Merged: 2026-04-07
+
+# Hotfix: Add link_url Column to Services Table
+
+  ## What & Why
+  Task #282 (Service Link Override) merged code that references a `link_url` column on the services table, but the task agent only applied the raw SQL migration in its own isolated environment. The column does not exist in dev or production databases, causing every services API query to crash with a missing column error. /command/services and /services are broken.
+
+  ## Done looks like
+  - The `link_url` column exists in both dev and production databases
+  - /command/services loads without error
+  - /services shows all services (not just infrastructure)
+  - The link override feature works end-to-end
+
+  ## Out of scope
+  - Any other schema changes
+
+  ## Tasks
+  1. **Add startup migration** — In `server/index.ts` inside `runStartupMigrations()`, add an idempotent SQL statement: `ALTER TABLE services ADD COLUMN IF NOT EXISTS link_url text;`. This ensures the column is created on the next restart in both dev and production without data loss.
+
+  2. **Verify the fix** — After adding the migration and restarting, confirm /api/services returns data and /command/services loads correctly.
+
+  ## Relevant files
+  - `server/index.ts` — runStartupMigrations() function where the ALTER TABLE should be added
+  - `shared/schema.ts:236-247` — services table definition with linkUrl already present
+
+
+---
+

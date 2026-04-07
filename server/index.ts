@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { seedDatabase, promoteFounderToAdmin, markExistingUsersVerified, seedProjects, seedServices, seedPlaylists, seedStoreProducts, migrateServiceCategories } from "./seed";
+import { seedDatabase, promoteFounderToAdmin, markExistingUsersVerified, seedProjects, seedServices, seedPlaylists, seedStoreProducts, migrateServiceCategories, seedFeatureArticles } from "./seed";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { WebhookHandlers } from "./webhookHandlers";
@@ -480,11 +480,12 @@ async function initStripe() {
   await migrateServiceCategories().catch((err) => console.error("Service category migration error:", err));
   await seedPlaylists().catch((err) => console.error("Playlist seed error:", err));
   await seedStoreProducts().catch((err) => console.error("Store products seed error:", err));
+  await seedFeatureArticles().catch((err) => console.error("Feature articles seed error:", err));
   await storage.seedSocialLinksIfEmpty().catch((err) => console.error("Social links seed error:", err));
   await storage.migrateSocialLinksShowOnListen().catch((err) => console.error("Social links listen migration error:", err));
   await checkEmailCredentials().catch((err) => console.warn("[email] Startup credential check failed:", err?.message ?? err));
   logEmptyBodyEmails().catch((err) => console.warn("[email] Backfill check error:", err?.message ?? err));
-  // runWikiSeed disabled — engineering articles are now feature-area articles seeded via seed-feature-articles.js
+  // seedFeatureArticles() handles SEVCO Platform wiki articles (25 feature-area articles in category ID 12)
   // Seed official Spark Packs
   await seedSparkPacks().catch((err: any) => console.warn("[sparks] Pack seed warning:", err?.message ?? err));
 

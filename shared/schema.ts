@@ -243,6 +243,7 @@ export const services = pgTable("services", {
   iconName: text("icon_name"),
   status: text("status").notNull().default("active"),
   featured: boolean("featured").default(false),
+  linkUrl: text("link_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

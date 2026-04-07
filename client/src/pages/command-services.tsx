@@ -45,6 +45,10 @@ const formSchema = z.object({
   iconName: z.string().max(100).optional(),
   status: z.enum(["active", "archived"]),
   featured: z.boolean(),
+  linkUrl: z.string().refine(
+    (val) => !val || val === "" || val.startsWith("/") || val.startsWith("http://") || val.startsWith("https://"),
+    { message: "Must be an internal path (/path) or full URL (https://...)" }
+  ).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -95,6 +99,7 @@ function ServiceForm({
       iconName: initialData?.iconName ?? "",
       status: (initialData?.status as FormValues["status"]) ?? "active",
       featured: initialData?.featured ?? false,
+      linkUrl: initialData?.linkUrl ?? "",
     },
   });
 
@@ -147,6 +152,21 @@ function ServiceForm({
             </FormItem>
           )} />
         </div>
+
+        <FormField control={form.control} name="linkUrl" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Link Override <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
+            <FormControl>
+              <Input
+                {...field}
+                placeholder="/security or https://example.com"
+                data-testid="input-service-link-url"
+              />
+            </FormControl>
+            <FormDescription className="text-xs">Overrides the detail page link — use /path for internal or https:// for external</FormDescription>
+            <FormMessage />
+          </FormItem>
+        )} />
 
         <div className="grid grid-cols-2 gap-4">
           <FormField control={form.control} name="category" render={({ field }) => (

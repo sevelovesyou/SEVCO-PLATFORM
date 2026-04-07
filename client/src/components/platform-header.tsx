@@ -470,20 +470,29 @@ function ServicesDropdown({ isActive, platformSettings }: { isActive: boolean; p
                       ) : (
                         items.map((service) => {
                           const IconComp = resolveLucideIcon(service.iconName) ?? Briefcase;
-                          return (
-                            <Link key={service.id} href={`/services/${service.slug}`} onClick={() => setOpen(false)}>
-                              <div
-                                className="flex items-start gap-2.5 px-2 py-2 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
-                                data-testid={`dropdown-service-${service.slug}`}
-                              >
-                                <IconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
-                                <div className="min-w-0">
-                                  <p className="text-xs font-semibold text-foreground leading-none group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">{service.name}</p>
-                                  {service.tagline && (
-                                    <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">{service.tagline}</p>
-                                  )}
-                                </div>
+                          const href = service.linkUrl || `/services/${service.slug}`;
+                          const isExternal = service.linkUrl?.startsWith("http");
+                          const innerContent = (
+                            <div
+                              className="flex items-start gap-2.5 px-2 py-2 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
+                              data-testid={`dropdown-service-${service.slug}`}
+                            >
+                              <IconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-foreground leading-none group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">{service.name}</p>
+                                {service.tagline && (
+                                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">{service.tagline}</p>
+                                )}
                               </div>
+                            </div>
+                          );
+                          return isExternal ? (
+                            <a key={service.id} href={href} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}>
+                              {innerContent}
+                            </a>
+                          ) : (
+                            <Link key={service.id} href={href} onClick={() => setOpen(false)}>
+                              {innerContent}
                             </Link>
                           );
                         })

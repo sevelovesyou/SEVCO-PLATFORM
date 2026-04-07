@@ -152,8 +152,9 @@ export default function ServicesListingPage() {
               {featured.map((service) => {
                 const Icon = (service.iconName && ICON_MAP[service.iconName]) ? ICON_MAP[service.iconName] : Sparkles;
                 const styles = CATEGORY_STYLES[service.category] ?? CATEGORY_STYLES.Technology;
-                return (
-                  <Link href={`/services/${service.slug}`} key={service.id}>
+                const href = service.linkUrl || `/services/${service.slug}`;
+                const isExternal = service.linkUrl?.startsWith("http");
+                const cardContent = (
                     <div
                       data-testid={`card-service-featured-${service.id}`}
                       className="group border rounded-xl p-6 hover:border-foreground/20 hover:shadow-sm transition-all cursor-pointer bg-background"
@@ -176,6 +177,14 @@ export default function ServicesListingPage() {
                         <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
                       </div>
                     </div>
+                );
+                return isExternal ? (
+                  <a href={href} key={service.id} target="_blank" rel="noopener noreferrer">
+                    {cardContent}
+                  </a>
+                ) : (
+                  <Link href={href} key={service.id}>
+                    {cardContent}
                   </Link>
                 );
               })}
@@ -201,22 +210,31 @@ export default function ServicesListingPage() {
               <div className="grid md:grid-cols-3 gap-3">
                 {items.map((service) => {
                   const Icon = (service.iconName && ICON_MAP[service.iconName]) ? ICON_MAP[service.iconName] : Sparkles;
-                  return (
-                    <Link href={`/services/${service.slug}`} key={service.id}>
-                      <div
-                        data-testid={`card-service-${service.id}`}
-                        className="group border rounded-xl p-4 hover:border-foreground/20 hover:shadow-sm transition-all cursor-pointer bg-background h-full"
-                      >
-                        <div className={`mb-3 ${accentStyle ? "" : styles.accent}`} style={accentStyle}>
-                          <Icon className="h-5 w-5" />
-                        </div>
-                        <h3 className="font-semibold text-sm mb-1 group-hover:text-foreground transition-colors">
-                          {service.name}
-                        </h3>
-                        {service.tagline && (
-                          <p className="text-xs text-muted-foreground line-clamp-2">{service.tagline}</p>
-                        )}
+                  const href = service.linkUrl || `/services/${service.slug}`;
+                  const isExternal = service.linkUrl?.startsWith("http");
+                  const cardContent = (
+                    <div
+                      data-testid={`card-service-${service.id}`}
+                      className="group border rounded-xl p-4 hover:border-foreground/20 hover:shadow-sm transition-all cursor-pointer bg-background h-full"
+                    >
+                      <div className={`mb-3 ${accentStyle ? "" : styles.accent}`} style={accentStyle}>
+                        <Icon className="h-5 w-5" />
                       </div>
+                      <h3 className="font-semibold text-sm mb-1 group-hover:text-foreground transition-colors">
+                        {service.name}
+                      </h3>
+                      {service.tagline && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">{service.tagline}</p>
+                      )}
+                    </div>
+                  );
+                  return isExternal ? (
+                    <a href={href} key={service.id} target="_blank" rel="noopener noreferrer">
+                      {cardContent}
+                    </a>
+                  ) : (
+                    <Link href={href} key={service.id}>
+                      {cardContent}
                     </Link>
                   );
                 })}

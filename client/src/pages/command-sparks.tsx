@@ -48,7 +48,7 @@ import {
 } from "lucide-react";
 
 interface SparkStats {
-  totalSparksIssued: number;
+  totalIssued: number;
   activeUsersWithSparks: number;
 }
 
@@ -72,10 +72,10 @@ interface TransactionPage {
 interface SparkPack {
   id: number;
   name: string;
-  sparksAmount: number;
+  sparks: number;
   price: number;
   sortOrder: number;
-  isActive: boolean;
+  active: boolean;
   stripePriceId: string | null;
   stripeRecurringPriceId: string | null;
 }
@@ -294,7 +294,7 @@ function OverviewTab() {
     refetchInterval: 30_000,
   });
 
-  const activePacks = packs?.filter((p) => p.isActive).length ?? 0;
+  const activePacks = packs?.filter((p) => p.active).length ?? 0;
   const transactions = recentData?.transactions ?? [];
 
   return (
@@ -302,7 +302,7 @@ function OverviewTab() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           label="Total Sparks Issued"
-          value={(stats?.totalSparksIssued ?? 0).toLocaleString()}
+          value={(stats?.totalIssued ?? 0).toLocaleString()}
           icon={Zap}
           loading={statsLoading}
         />
@@ -802,8 +802,10 @@ function PackCatalogTab() {
   const createMutation = useMutation({
     mutationFn: async (data: PackForm) => {
       const res = await apiRequest("POST", "/api/sparks/admin/packs", {
-        ...data,
+        name: data.name,
+        sparks: data.sparksAmount,
         price: Math.round(data.price * 100),
+        sortOrder: data.sortOrder,
       });
       return res.json();
     },
@@ -817,10 +819,14 @@ function PackCatalogTab() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Partial<PackForm & { isActive: boolean }> }) => {
+    mutationFn: async ({ id, data }: { id: number; data: Partial<PackForm & { active: boolean }> }) => {
       const body: Record<string, unknown> = { ...data };
       if (typeof body.price === "number") {
         body.price = Math.round((body.price as number) * 100);
+      }
+      if (typeof body.sparksAmount !== "undefined") {
+        body.sparks = body.sparksAmount;
+        delete body.sparksAmount;
       }
       const res = await apiRequest("PATCH", `/api/sparks/admin/packs/${id}`, body);
       return res.json();
@@ -858,7 +864,7 @@ function PackCatalogTab() {
     setEditingPack(pack);
     form.reset({
       name: pack.name,
-      sparksAmount: pack.sparksAmount,
+      sparksAmount: pack.sparks,
       price: pack.price / 100,
       sortOrder: pack.sortOrder,
     });
@@ -874,7 +880,7 @@ function PackCatalogTab() {
   }
 
   function toggleActive(pack: SparkPack) {
-    updateMutation.mutate({ id: pack.id, data: { isActive: !pack.isActive } });
+    updateMutation.mutate({ id: pack.id, data: { active: !pack.active } });
   }
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
@@ -922,7 +928,7 @@ function PackCatalogTab() {
                     <TableRow key={pack.id} data-testid={`row-pack-${pack.id}`}>
                       <TableCell className="font-medium text-sm">{pack.name}</TableCell>
                       <TableCell className="text-right font-mono text-sm">
-                        {pack.sparksAmount.toLocaleString()}
+                        {pack.sparks.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right text-sm">{formatPrice(pack.price)}</TableCell>
                       <TableCell>
@@ -940,13 +946,13 @@ function PackCatalogTab() {
                       <TableCell className="text-center">
                         <Button
                           size="sm"
-                          variant={pack.isActive ? "default" : "outline"}
+                          variant={pack.active ? "default" : "outline"}
                           className="h-6 text-[10px] px-2"
                           onClick={() => toggleActive(pack)}
                           disabled={updateMutation.isPending}
                           data-testid={`button-toggle-active-${pack.id}`}
                         >
-                          {pack.isActive ? "Active" : "Inactive"}
+                          {pack.active ? "Active" : "Inactive"}
                         </Button>
                       </TableCell>
                       <TableCell>

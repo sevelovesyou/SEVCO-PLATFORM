@@ -2834,12 +2834,22 @@ export class DatabaseStorage implements IStorage {
       .select({ total: sql<number>`COALESCE(SUM(${sparkTransactions.amount}), 0)` })
       .from(sparkTransactions)
       .where(sql`${sparkTransactions.amount} > 0`);
+
+    const [balanceSumRow] = await db
+      .select({ total: sql<number>`COALESCE(SUM(${users.sparksBalance}), 0)` })
+      .from(users)
+      .where(sql`${users.sparksBalance} > 0`);
+
     const [activeRow] = await db
       .select({ count: countFn() })
       .from(users)
       .where(sql`${users.sparksBalance} > 0`);
+
+    const transactionTotal = Number(issuedRow?.total ?? 0);
+    const balanceTotal = Number(balanceSumRow?.total ?? 0);
+
     return {
-      totalIssued: Number(issuedRow?.total ?? 0),
+      totalIssued: Math.max(transactionTotal, balanceTotal),
       activeUsersWithSparks: Number(activeRow?.count ?? 0),
     };
   }

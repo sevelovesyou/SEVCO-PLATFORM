@@ -97,6 +97,7 @@ import CommandTraffic from "@/pages/command-traffic";
 import CommandNews from "@/pages/command-news";
 import CommandProjects from "@/pages/command-projects";
 import CommandDomains from "@/pages/command-domains";
+import CommandSparksPage from "@/pages/command-sparks";
 import NewsPage from "@/pages/news-page";
 import WikifyToolPage from "@/pages/wikify-tool-page";
 import ToolsPage from "@/pages/tools-page";
@@ -370,6 +371,11 @@ function Router() {
           <CommandPageLayout title="Domains" subtitle="All SEVCO domains and their status">
             <CommandDomains />
           </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/sparks" component={() => (
+        <ProtectedRoute requiredRole="admin">
+          <CommandSparksPage />
         </ProtectedRoute>
       )} />
       <Route component={NotFound} />

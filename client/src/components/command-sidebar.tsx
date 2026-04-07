@@ -33,6 +33,7 @@ import {
   Newspaper,
   Folder,
   Globe,
+  Zap,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 import { useAuth } from "@/hooks/use-auth";
@@ -75,6 +76,7 @@ export function CommandSidebar() {
     ...(isAdmin || isExec || isStaff ? [{ title: "Changelog", url: "/command/changelog", icon: ScrollText }] : []),
     ...(isAdmin || isExec || isStaff ? [{ title: "Support", url: "/command/support", icon: MessageSquare }] : []),
     ...(isAdmin || isExec ? [{ title: "Finance", url: "/command/finance", icon: DollarSign }] : []),
+    ...(isAdmin ? [{ title: "Sparks", url: "/command/sparks", icon: Zap }] : []),
   ];
 
   const systemItems: NavItem[] = [

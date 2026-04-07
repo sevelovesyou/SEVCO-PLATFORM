@@ -1502,7 +1502,7 @@ export default function Landing() {
                                 <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-full truncate max-w-[100px]">{article.tags[0]}</span>
                               )}
                             </div>
-                            <p className="text-sm font-semibold text-foreground line-clamp-2 leading-snug">{article.title}</p>
+                            <p className="text-sm font-semibold text-foreground line-clamp-2 leading-snug min-h-[2.5rem]">{article.title}</p>
                             <p className="text-xs text-muted-foreground mt-auto">
                               {article.createdAt
                                 ? formatDistanceToNow(new Date(article.createdAt), { addSuffix: true })

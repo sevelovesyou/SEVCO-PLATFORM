@@ -1,0 +1,49 @@
+Social Sparks turns every like, repost, or bookmark into a real economic signal that rewards creators with usable Sparks they can spend on AI generation, music priority, wiki tools, etc.
+It creates a virtuous cycle: great content → more Sparks from the platform → more AI-powered creativity → even better content.
+All while staying 100% compliant and feeling generous to users.
+How Social Sparks Works (User Flow)
+1. User sees a post in the feed
+2. They click the ⚡ Spark button 
+    * Cost to user: 0 Sparks (free action)
+3. Instant visual feedback
+    * Bolt emoji lights up with a particle effect
+    * Post shows new Spark⚡️count
+4. Platform processes the reward
+    * SEVCO adds 1 Spark to the author’s balance from the central Creator Reward Pool(shown in CMD, Sparks)
+    * The action is recorded in the audit log
+5. Creator receives immediate value
+    * Balance increases instantly
+6. Public visibility
+    * Post shows total Sparks received(all-time, just how “likes” work)
+    * Author’s profile has a “Top Sparked Posts” section highlighting their most-supported content
+Detailed Feature Breakdown
+Feature	How It Works	Sparks Awarded to Author	Cost to User	Visibility
+Spark	Main support(like) button (bolt ⚡)	+1 Spark	Free	Public count
+Daily Creator Pool	SEVCO maintains a central pool funded by Spark purchases	Variable (top-up if pool low)	N/A	N/A
+Profile Feature –
+Every user profile gets a new section at the top (after bio):
+“Top Posts”
+* Shows the 3–5 posts that received the most Sparks this month
+* Beautiful card layout with bolt count and thumbnail
+* Bookmarked posts get a special glowing border and priority placement
+Feed Enhancements
+* Each post card shows a small “⚡ X Sparks” counter (updates live)
+* Top Sparked posts get a subtle glowing border in the feed
+Economic Model (Platform-Mediated)
+* Creator Reward Pool is funded automatically whenever users buy Spark packs. Example: 10% of every Spark purchase goes straight into the reward pool.
+* If the pool ever runs low, SEVCO can top it up manually or via a small percentage of all revenue.
+* This keeps the system sustainable and generous — creators get rewarded even if the sparker is on the free tier.
+Safeguards Built In
+* Rate limits: max 10 Sparks sent per user per day
+* Anti-spam: users can only spark a particular post once
+* Full audit log in spark_transactions with type: 'social_reward'
+* Platform can pause or adjust reward amounts instantly if needed
+Why This Version Wins
+* 100% Stripe compliant — no peer-to-peer transfer of purchased credits
+* Zero risk of negative money holes — platform controls the outflow
+* Feels generous to both creators and fans
+* Encourages high-quality content without forcing users to spend
+* Scales beautifully as the platform grows
+* Unique to SEVCO — no other social network rewards creators this directly with usable AI credits
+This turns the entire social layer into a living economy that directly powers creativity.
+🟡 Add Sparks (⚡️)to Wiki articles(show on top with counter) and Gallery Images(show author[uploader] and small ⚡️overlay with counter) allowing the author to be rewarded in the same way as social posts

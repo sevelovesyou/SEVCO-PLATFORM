@@ -22044,3 +22044,30 @@ patches. The duplicate in seedWikiCategories can remain as a safety net.
 
 ---
 
+## Task — project-card-appicon
+> Merged: 2026-04-07
+
+# Show App Icon on Venture Cards
+
+  ## What & Why
+  The venture cards on the home page landing section always show a generic folder icon, even when the project has a custom app icon set. Since `appIcon` is already stored on the project model and used correctly on the Projects and Project Detail pages, the landing page should display it too.
+
+  ## Done looks like
+  - Venture cards on the home page show the project's app icon image when one is set
+  - Cards with no app icon continue to show the folder icon fallback
+  - Icon is sized and rounded consistently with the other card elements
+
+  ## Out of scope
+  - Changing the icon logic on `/projects`, project detail, or CMD pages (already correct)
+  - Adding app icon editing — that already exists in CMD
+
+  ## Tasks
+  1. **Update venture card icon** — In the ventures section of the landing page, replace the hardcoded folder icon with a conditional: render an `<img>` using `resolveImageUrl(project.appIcon)` when `appIcon` is present, fall back to the folder icon otherwise. Add `overflow-hidden` to the icon container so the image respects the rounded corners.
+
+  ## Relevant files
+  - `client/src/pages/landing.tsx:1282-1300`
+  - `client/src/pages/projects-page.tsx:83-92`
+
+
+---
+

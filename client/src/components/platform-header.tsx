@@ -270,7 +270,13 @@ function DropdownPanel({ children, className = "", triggerRef }: {
   useEffect(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    setCoords({ top: rect.bottom + 6, left: rect.left });
+    const panelWidth = 256;
+    const wouldOverflow = rect.left + panelWidth > window.innerWidth - 8;
+    if (wouldOverflow) {
+      setCoords({ top: rect.bottom + 6, left: Math.max(8, rect.right - panelWidth) });
+    } else {
+      setCoords({ top: rect.bottom + 6, left: rect.left });
+    }
   }, [triggerRef]);
 
   return createPortal(
@@ -726,9 +732,9 @@ function ToolsDropdown({
                 </button>
               );
             })}
-            <div className="mt-1 pt-2 border-t border-border/60 px-3 pb-2 space-y-2">
+            <div className="mt-1 pt-2 border-t border-border/60 px-3 pb-2 space-y-1.5">
               <TooltipProvider delayDuration={400}>
-                <div className="flex items-center gap-1 flex-wrap">
+                <div className="flex items-center gap-0.5">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setOpen(false); onSearchOpen(); }} data-testid="dropdown-tools-search">
@@ -749,6 +755,8 @@ function ToolsDropdown({
                     </Tooltip>
                   )}
 
+                  <ThemeToggle />
+
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onSoundToggle} data-testid="dropdown-tools-sound">
@@ -757,23 +765,21 @@ function ToolsDropdown({
                     </TooltipTrigger>
                     <TooltipContent>{soundEnabled ? "Mute" : "Unmute"}</TooltipContent>
                   </Tooltip>
-
-                  {soundEnabled && (
-                    <input
-                      type="range"
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      value={volume}
-                      onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-                      className="w-20 h-1 accent-primary cursor-pointer"
-                      aria-label="Volume"
-                      data-testid="dropdown-tools-volume-slider"
-                    />
-                  )}
-
-                  <ThemeToggle />
                 </div>
+
+                {soundEnabled && (
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={volume}
+                    onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+                    className="w-full h-1 accent-primary cursor-pointer"
+                    aria-label="Volume"
+                    data-testid="dropdown-tools-volume-slider"
+                  />
+                )}
               </TooltipProvider>
 
               <Link href="/tools" onClick={() => setOpen(false)} data-testid="dropdown-tools-view-all">

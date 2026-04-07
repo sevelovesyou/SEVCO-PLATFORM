@@ -19819,3 +19819,45 @@ Polish the Sparks feature in three places: surface it prominently on the Account
 
 ---
 
+## Task — profile-social-fixes
+> Merged: 2026-04-07
+
+# Profile, Social & Wiki Fixes
+
+## What & Why
+Four related fixes to improve profiles, social functionality, and the wiki editing experience. These address broken content display on profiles, a missing repost feature, a missing people-discovery page, and an article editor pre-fill issue.
+
+## Done looks like
+- A user's profile page correctly displays their Posts tab with their posts and their Wiki tab with their wiki contributions
+- Any post can be reposted; reposted posts appear on both the reposter's profile and in followers' feeds, credited to the original author
+- A "Who to Follow" page at `/discover` (or similar) shows the top 10 most-followed public profiles by default with avatars and follow buttons, plus a live search input to find any public profile by username or display name
+- When navigating to edit a wiki article (e.g. `/edit/:slug`), all form fields — title, slug, summary, category, content (rich text), tags, infobox fields — are pre-populated with the article's current content
+
+## Out of scope
+- Notifications for reposts or new followers
+- Mutual follows / suggested follows based on graph analysis
+- Editing or deleting a repost (users can only undo a repost)
+
+## Tasks
+1. **Debug and fix profile Posts not showing** — Investigate why `getPosts({ userId: profile.id })` in the `/api/users/:username/posts` route returns no results. Check whether `posts.authorId` is stored as the correct user id type, and fix any type mismatch or query bug. Verify the profile tab renders results when posts exist.
+
+2. **Debug and fix profile Wiki contributions not showing** — Investigate why `getArticlesByAuthor(username)` returns nothing for users who have written wiki articles. Check whether `articles.authorName` stores the username or something else (e.g. displayName), and fix the lookup accordingly. Verify the Wiki tab on a profile renders articles correctly.
+
+3. **Repost feature** — Add a `repostOf` integer FK column to the `posts` table (references `posts.id`), nullable. Add backend endpoints: `POST /api/posts/:id/repost` (create a repost row for the current user) and `DELETE /api/posts/:id/repost` (remove the repost). Update `getPostsBase` to include the original post's content and author when a post is a repost. Show a "Repost" button on each post card in the feed and on profile post cards; toggling it reposts/un-reposts. Reposted posts appear on the reposter's profile and in the feed.
+
+4. **Who to Follow page** — Create a new page at `/discover` (accessible from the main navigation or the social sidebar). By default, show the top 10 profiles ranked by follower count with avatar, display name, username, follower count, and a follow/unfollow button. Include a search input that queries a new `GET /api/users/search?q=` endpoint returning matching public profiles. Register the route in `App.tsx`.
+
+5. **Fix wiki article editor pre-fill** — Investigate why editing an article (`/edit/:slug`) does not pre-populate the form fields, specifically the `RichTextEditor` content field. The `form.reset()` is called in a `useEffect` when article data loads, but the `RichTextEditor` may hold internal editor state that ignores external value changes. Fix so that all fields including the rich text content reflect the existing article on load.
+
+## Relevant files
+- `client/src/pages/profile-page.tsx`
+- `client/src/pages/article-editor.tsx`
+- `client/src/pages/feed-page.tsx`
+- `server/routes.ts:3085-3092,4056-4066`
+- `server/storage.ts:678-683,1439-1491`
+- `shared/schema.ts`
+- `client/src/App.tsx`
+
+
+---
+

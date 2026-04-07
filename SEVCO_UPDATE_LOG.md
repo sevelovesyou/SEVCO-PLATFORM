@@ -20210,3 +20210,111 @@ Verify that `ThemeToggle` renders as a compact icon button (h-7 w-7 or similar).
 
 ---
 
+## Task — tools-icon-right-nav
+> Merged: 2026-04-07
+
+# Task: Tools — icon-only trigger, move to right nav next to Cart
+
+## Goal
+- Remove the "Tools" text label and ChevronDown from the Tools nav trigger
+- Replace with a plain icon-only ghost button (h-8 w-8) showing only the Wrench icon
+- Move the ToolsDropdown component from the left desktop nav to the right nav, placed immediately to the LEFT of the cart (ShoppingBag) button
+
+---
+
+## Change 1 — ToolsDropdown trigger: icon-only button
+
+In `client/src/components/platform-header.tsx`, inside `function ToolsDropdown(...)`:
+
+Replace the current trigger:
+```tsx
+<div className="relative inline-flex">
+  <NavButton
+    label="Tools"
+    isActive={isActive}
+    onClick={() => setOpen((o) => !o)}
+    open={open}
+    icon={Wrench}
+    data-testid="nav-tools"
+  />
+</div>
+```
+
+With a plain icon-only button:
+```tsx
+<Tooltip>
+  <TooltipTrigger asChild>
+    <Button
+      variant={isActive ? "secondary" : "ghost"}
+      size="icon"
+      className="h-8 w-8"
+      onClick={() => setOpen((o) => !o)}
+      data-testid="nav-tools"
+      aria-label="Tools"
+    >
+      <Wrench className="h-4 w-4" />
+    </Button>
+  </TooltipTrigger>
+  <TooltipContent side="bottom">Tools</TooltipContent>
+</Tooltip>
+```
+
+Note: `ToolsDropdown` already has the `useDropdown()` hook's `ref` on its outer `<div className="relative" ref={ref}>` — the tooltip wrapper goes INSIDE that div so the `triggerRef` passed to `DropdownPanel` still works. The `triggerRef` for the portal panel is the outer `ref` div, which remains correct.
+
+---
+
+## Change 2 — Move ToolsDropdown from left nav to right nav
+
+### Remove from desktop left nav (around line 953)
+
+In the `<nav className="hidden lg:flex items-center gap-0.5 flex-1">` block, remove the entire `<ToolsDropdown ... />` call with all its props.
+
+### Add to right side actions (around line 1012)
+
+In the `{/* Right side actions */}` block (`<div className="flex items-center gap-1.5">`), add the `ToolsDropdown` immediately BEFORE the cart/ShoppingBag button. Place it inside the existing `<TooltipProvider>` wrapper that wraps the cart.
+
+The right nav order should be:
+1. Notifications bell (logged-in only) — existing
+2. **⚙️ Tools (Wrench icon-only)** ← INSERT HERE
+3. 🛒 Cart (ShoppingBag) — existing
+4. ⚡️ Sparks balance (logged-in only) — existing
+5. Hamburger/mobile menu — existing
+6. Account dropdown / Sign in — existing
+
+The ToolsDropdown call in the right nav keeps ALL the same props it had in the left nav:
+```tsx
+<ToolsDropdown
+  isActive={activeApp === "/notes" || activeApp === "/gallery" || activeApp === "/messages" || activeApp === "/tools"}
+  onSearchOpen={() => setSearchOpen(true)}
+  onChatOpen={() => setChatOpen(true)}
+  soundEnabled={soundEnabled}
+  onSoundToggle={() => {
+    if (soundEnabled) {
+      prevMusicVolumeRef.current = volume || 0.8;
+      setVolume(0);
+    } else {
+      setVolume(prevMusicVolumeRef.current);
+    }
+    toggleSound();
+    playClick();
+  }}
+  volume={volume}
+  onVolumeChange={setVolume}
+/>
+```
+
+---
+
+## Files to Edit
+- `client/src/components/platform-header.tsx` only
+
+## Acceptance Criteria
+- [ ] Left desktop nav no longer has a "Tools" text button — only SEVCO, Store, Services, Music, Projects, CMD
+- [ ] Right nav has a Wrench icon button between Notifications and Cart (on desktop)
+- [ ] Clicking the Wrench opens the Tools dropdown panel (same content as before)
+- [ ] Tooltip shows "Tools" on hover of the Wrench icon
+- [ ] Active state (wrench button highlighted) when on a tools-related page
+
+
+---
+

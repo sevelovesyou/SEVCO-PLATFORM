@@ -299,10 +299,6 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="flex items-center gap-1.5">
-            <Archive className="h-3 w-3" />
-            Archive
-          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>

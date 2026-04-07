@@ -20453,3 +20453,198 @@ Key changes from current:
 
 ---
 
+## Task — wiki-article-url-rewrite
+> Merged: 2026-04-07
+
+# Task: Wiki article URLs → /wiki/:category/:article-slug
+
+## Dependency
+**Must run AFTER Task #255 merges** (category URL rewrite: `/category/:slug` → `/wiki/:slug`).
+After #255, the route `/wiki/:slug` is taken by CategoryView.
+This task adds `/wiki/:categorySlug/:articleSlug` for articles and resolves all conflicts.
+
+---
+
+## Goal
+Change article URLs from `/wiki/:slug` to `/wiki/:category/:slug`.
+
+Examples:
+- Before: `/wiki/getting-started`
+- After: `/wiki/general/getting-started`
+
+Full URL hierarchy:
+```
+/wiki                           → Wiki home
+/wiki/:categorySlug             → Category view  (Task #255)
+/wiki/:categorySlug/:articleSlug → Article view  (This task)
+```
+
+---
+
+## Route Changes — `client/src/App.tsx`
+
+### 1. Add canonical article route
+Register BEFORE the `/wiki/:slug` category route:
+```tsx
+<Route path="/wiki/:categorySlug/:articleSlug" component={ArticleView} />
+```
+
+Route order must be:
+```tsx
+<Route path="/wiki" component={Home} />
+<Route path="/wiki/archive" component={WikiArchivePage} />  {/* exact, first */}
+<Route path="/wiki/:categorySlug/:articleSlug" component={ArticleView} />  {/* 2-segment */}
+<Route path="/wiki/:slug" component={CategoryView} />  {/* 1-segment, from #255 */}
+```
+
+### 2. Backward-compat: old `/wiki/:slug` article links
+After #255 merges, old article links like `/wiki/my-article` will hit CategoryView.
+CategoryView should try to find the category; if not found (404), redirect to the canonical article URL.
+
+In `client/src/pages/category-view.tsx`:
+```tsx
+// If category not found AND article exists at this slug, redirect to canonical
+const { data: articleFallback } = useQuery<Article>({
+  queryKey: ["/api/articles", slug],
+  enabled: !catLoading && !category,  // only when category 404
+});
+
+useEffect(() => {
+  if (!catLoading && !category && articleFallback?.category?.slug) {
+    navigate(`/wiki/${articleFallback.category.slug}/${articleFallback.slug}`, { replace: true });
+  }
+}, [catLoading, category, articleFallback]);
+```
+
+This gives a seamless redirect for any old article URLs.
+
+---
+
+## ArticleView Changes — `client/src/pages/article-view.tsx`
+
+### Update route matching
+```tsx
+// Before
+const [matchArticle, params] = useRoute("/wiki/:slug");
+const slug = params?.slug;
+
+// After — handle BOTH routes
+const [, paramsTwo] = useRoute("/wiki/:categorySlug/:articleSlug");
+const [, paramsOne] = useRoute("/wiki/:slug");
+const slug = paramsTwo?.articleSlug ?? paramsOne?.slug;
+```
+
+### Auto-redirect to canonical URL
+After loading the article, if accessed via the 1-segment URL but the canonical 2-segment URL is different, redirect:
+```tsx
+useEffect(() => {
+  if (article?.category?.slug && paramsTwo === null && paramsOne !== null) {
+    // Loaded via old /wiki/:slug — redirect to canonical
+    navigate(`/wiki/${article.category.slug}/${article.slug}`, { replace: true });
+  }
+}, [article]);
+```
+
+### Update OG URL
+```tsx
+ogUrl={`https://sevco.us/wiki/${article.category?.slug}/${article.slug}`}
+```
+
+---
+
+## Backend: include category slug in list endpoints
+
+The `/api/articles/recent` route calls `storage.getArticles()` which returns raw rows without joined category info. List views can't build canonical URLs without category slug.
+
+### Option A (recommended): Enrich `getArticles()` in `server/storage.ts`
+Update `getArticles()` to join the `categories` table and include `{ id, name, slug }` on each returned article.
+
+### Option B: Add a `categorySlug` virtual field
+Add a query that enriches the result after the fact.
+
+Either way, after this change, the API response for `/api/articles/recent` should include:
+```json
+{
+  "id": 1,
+  "slug": "getting-started",
+  "category": { "id": 2, "name": "General", "slug": "general" },
+  ...
+}
+```
+
+---
+
+## Article URL helper function
+
+Add to a shared utility location (e.g., `client/src/lib/wiki-urls.ts`):
+```ts
+export function articleUrl(article: { slug: string; category?: { slug: string } | null }): string {
+  if (article.category?.slug) {
+    return `/wiki/${article.category.slug}/${article.slug}`;
+  }
+  return `/wiki/${article.slug}`;  // fallback (still works via redirect)
+}
+```
+
+---
+
+## Update all article links to use `articleUrl()`
+
+Replace every `href={`/wiki/${article.slug}`}` with `href={articleUrl(article)}`.
+
+Files to update (~15 locations):
+- `client/src/components/crosslink-panel.tsx` line 27
+- `client/src/components/wikify-dialog.tsx` line 151 — use result slug + category
+- `client/src/components/app-sidebar.tsx` lines 207, 231 — recent articles list
+- `client/src/pages/wiki-archive-page.tsx` line 64
+- `client/src/pages/article-view.tsx` line 179 — inline wiki links in rendered article body (regex replacement → update pattern to `/wiki/$category/$slug` if possible, or leave as-is since inline links will redirect)
+- `client/src/pages/category-view.tsx` line 90
+- `client/src/pages/dashboard-page.tsx` line 265
+- `client/src/pages/review-queue.tsx` lines 107, 133
+- `client/src/pages/platform-page.tsx` lines 131, 451
+- `client/src/pages/music-artist-detail.tsx` line 167 — wikiArticleSlug only, no category — use fallback
+- `client/src/pages/project-detail.tsx` line 454 — wikiSlug only, no category — use fallback
+- `client/src/pages/gallery-page.tsx` line 135 — hardcoded `/wiki/contact` → use `/wiki/:cat/contact`
+- `client/src/pages/profile-page.tsx` line 1580
+- `client/src/pages/home.tsx` lines 131, 187
+- `client/src/pages/landing.tsx` lines 187, 953, 1095
+- `client/src/pages/about-page.tsx` lines 349-351 — hardcoded policy pages (need category slugs)
+- `client/src/pages/command-overview.tsx` line 454
+- `client/src/pages/command-changelog.tsx` line 400 — wikiSlug only
+
+**Note on hardcoded slugs** (music-artist-detail, project-detail, command-changelog, etc.):
+These only have the article `slug` / `wikiSlug` but not category info. Use `articleUrl({ slug })` which falls back to `/wiki/:slug` — backward compat redirect in CategoryView handles these automatically.
+
+---
+
+## Article editor navigation — `client/src/pages/article-editor.tsx`
+
+Lines 158, 174: `navigate(`/wiki/${result.slug}`)` 
+
+After save, the editor gets the full article result which includes category. Update:
+```ts
+navigate(articleUrl(result));
+```
+
+---
+
+## Files to Edit
+- `client/src/App.tsx`
+- `client/src/pages/article-view.tsx`
+- `client/src/pages/category-view.tsx` (fallback redirect)
+- `client/src/pages/article-editor.tsx`
+- `server/storage.ts` — `getArticles()` to join categories
+- `client/src/lib/wiki-urls.ts` (new helper file)
+- All ~15 link sites listed above
+
+## Acceptance Criteria
+- [ ] `/wiki/general/getting-started` loads the article correctly
+- [ ] `/wiki/getting-started` (old URL) redirects to `/wiki/general/getting-started`
+- [ ] Wiki sidebar article links use canonical 2-segment URLs
+- [ ] Category view article links use canonical 2-segment URLs
+- [ ] Article editor saves and navigates to canonical URL
+- [ ] No 404s on any existing wiki article links
+
+
+---
+

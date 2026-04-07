@@ -22233,3 +22233,53 @@ title: Social Sparks — notifications & leaderboard
 
 ---
 
+## Task — fix-wiki-articles-prod
+> Merged: 2026-04-07
+
+# Fix Wiki Articles: Cleanup, Category & Author
+
+  ## What & Why
+  Three interconnected wiki issues need fixing in production:
+
+  1. **Old task articles**: ~290 old platform-task-* and eng-task-* articles from before the wiki cleanup still exist in production (total 345 vs the expected 55). These were only deleted from dev DB directly — production never got the cleanup.
+
+  2. **Feature articles uncategorized**: The 25 SEVCO Platform feature articles seeded by Task #278 show as uncategorized because `seedFeatureArticles()` used a hardcoded `SEVCO_PLATFORM_CATEGORY_ID = 12`, but in production that category has a different ID.
+
+  3. **No author byline**: Article cards and article view pages show no author. The seed function doesn't set `authorId`, the article API doesn't return author data, and the UI has no author display at all.
+
+  ## Done looks like
+  - /wiki/engineering/sevco-platform shows exactly the 25 SEVCO Platform feature articles, all categorized correctly under Engineering > SEVCO Platform
+  - All other old task articles (platform-task-*, eng-task-*, engineering-task-*) are gone from the production wiki
+  - Each feature article card shows "by seve" (or similar author byline) on both the category listing and the article page itself
+  - The fix is idempotent — restarts don't re-delete or re-seed
+
+  ## Out of scope
+  - Editing the content of the 25 feature articles
+  - Adding author support to non-seeded user-created articles (author is already set for those via the POST /api/articles endpoint)
+
+  ## Tasks
+
+  1. **Fix seedFeatureArticles() in server/seed.ts** — Replace the hardcoded `SEVCO_PLATFORM_CATEGORY_ID = 12` constant with a dynamic lookup that queries the categories table by slug `"sevco-platform"`. Also look up the admin user by username `"seve"` and pass their ID as `authorId` when creating each article. Both lookups should fail gracefully (log a warning and fall back to null rather than crashing startup).
+
+  2. **Add startup migration to fix production data** — In `server/index.ts` (or a function called from `runStartupMigrations()`), add idempotent SQL/ORM operations to:
+     (a) Delete all articles whose slug matches the old auto-generated patterns: `platform-task-%`, `eng-task-%`, `engineering-task-%`. Skip deletion if fewer than 10 such articles exist (so dev is safe after cleanup).
+     (b) Re-categorize the 25 feature articles already in the DB: look up the SEVCO Platform category by slug and UPDATE their `category_id` to match. Identify them by their known slugs (the sentinel list from the seed function).
+
+  3. **Return author info from the article API** — In the `GET /api/articles/:slug` endpoint in `server/routes.ts`, if `article.authorId` is set, look up the user (username + displayName) and include it in the response as `author: { username, displayName } | null`. Also update the `getArticles()` path used by the category view to include `authorId` so the frontend can show it on cards.
+
+  4. **Add author byline to article view** — In `client/src/pages/article-view.tsx`, add a "by [username]" byline in the article header (next to the date badge), using the `author` object returned by the API. If no author, show nothing.
+
+  5. **Add author byline to article cards** — In `client/src/pages/category-view.tsx`, add a small "by [username]" line to each article card alongside the date. The category articles API response already includes `authorId`; the endpoint may need to be extended to join and return username.
+
+  ## Relevant files
+  - `server/seed.ts:1475-1492` — seedFeatureArticles() to fix
+  - `server/index.ts:475-500` — startup sequence where migration runs
+  - `server/routes.ts:1918-1952` — GET /api/articles/:slug endpoint
+  - `server/storage.ts:711-738` — getArticles() and getArticleBySlug() implementations
+  - `client/src/pages/article-view.tsx:271-316` — article header where byline goes
+  - `client/src/pages/category-view.tsx:173-207` — article card list where byline goes
+  - `shared/schema.ts:62` — articles.authorId column reference
+
+
+---
+

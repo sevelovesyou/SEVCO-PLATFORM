@@ -262,14 +262,15 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
   const { canCreateArticle } = usePermission();
 
   const items = [
-    { label: "Home",         href: "/",        icon: Home,                    desc: "Go to landing page",             show: true },
-    { label: "About",          href: "/about",    icon: BookOpen,               desc: "Learn about SEVCO",              show: true },
-    { label: "Wiki",           href: "/wiki",     icon: BookOpen,               desc: "Internal knowledge base",        show: true },
-    { label: "What's New",     href: "/platform", icon: LucideIcons.Rocket,     desc: "Platform updates & changelog",   show: true },
-    { label: "Contact",        href: "/contact",  icon: Mail,                   desc: "Get in touch",                   show: true },
-    { label: "Jobs",           href: "/jobs",     icon: Users,                  desc: "Open positions",                 show: true },
-    { label: "News",           href: "/news",     icon: LucideIcons.Newspaper,  desc: "Latest news & trends",           show: true },
-    { label: "Account",        href: "/account",  icon: User,                   desc: "Manage your profile",            show: true },
+    { label: "Home",         href: "/",          icon: Home,                    desc: "Go to landing page",             show: true },
+    { label: "About",        href: "/about",      icon: BookOpen,               desc: "Learn about SEVCO",              show: true },
+    { label: "Wiki",         href: "/wiki",       icon: BookOpen,               desc: "Internal knowledge base",        show: true },
+    { label: "What's New",   href: "/platform",   icon: LucideIcons.Rocket,     desc: "Platform updates & changelog",   show: true },
+    { label: "Pricing",      href: "/pricing",    icon: LucideIcons.Zap,        desc: "Buy ⚡️ Sparks packs",           show: true },
+    { label: "Contact",      href: "/contact",    icon: Mail,                   desc: "Get in touch",                   show: true },
+    { label: "Jobs",         href: "/jobs",       icon: Users,                  desc: "Open positions",                 show: true },
+    { label: "News",         href: "/news",       icon: LucideIcons.Newspaper,  desc: "Latest news & trends",           show: true },
+    { label: "Account",      href: "/account",    icon: User,                   desc: "Manage your profile",            show: true },
   ].filter((item) => item.show);
 
   return (
@@ -687,6 +688,21 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
   );
 }
 
+function NavSparksBalance() {
+  const { data } = useQuery<{ balance: number }>({
+    queryKey: ["/api/sparks/balance"],
+    staleTime: 2 * 60 * 1000,
+  });
+
+  return (
+    <Link href="/pricing" data-testid="nav-sparks-balance">
+      <button className="flex items-center gap-0.5 text-sm font-bold text-yellow-400 hover:text-yellow-300 transition-colors px-2 py-1 rounded-md hover:bg-yellow-400/10">
+        ⚡️ {data?.balance ?? "…"}
+      </button>
+    </Link>
+  );
+}
+
 export function PlatformHeader() {
   const { user, logout } = useAuth();
   const { role, canCreateArticle: canWikify } = usePermission();
@@ -774,6 +790,7 @@ export function PlatformHeader() {
     { label: "About",        href: "/about" },
     { label: "Wiki",         href: "/wiki" },
     ...(user ? [{ label: "Notes", href: "/notes" }] : []),
+    { label: "Pricing",      href: "/pricing" },
     { label: "Contact",      href: "/contact" },
     { label: "Jobs",         href: "/jobs" },
     { label: "Account",      href: "/account" },
@@ -892,6 +909,9 @@ export function PlatformHeader() {
               <TooltipContent side="bottom">Open Chat</TooltipContent>
             </Tooltip>
           )}
+
+          {/* Sparks balance — logged-in only */}
+          {user && <NavSparksBalance />}
 
           {/* Notification bell — logged-in only */}
           {user && (

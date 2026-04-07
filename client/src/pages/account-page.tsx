@@ -15,12 +15,140 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { User, Loader2, ExternalLink, Music } from "lucide-react";
+import { User, Loader2, ExternalLink, Music, Zap, ArrowRight } from "lucide-react";
 import { SiX } from "react-icons/si";
 import { Link } from "wouter";
 import { useSounds } from "@/hooks/use-sounds";
 import type { Artist } from "@shared/schema";
+import { formatDistanceToNow } from "date-fns";
+
+interface SparkTransaction {
+  id: number;
+  type: "purchase" | "free_allocation" | "admin_credit" | "admin_debit" | "usage" | "refund";
+  description: string;
+  amount: number;
+  createdAt: string;
+}
+
+const TRANSACTION_ICONS: Record<string, string> = {
+  purchase: "🛒",
+  free_allocation: "🎁",
+  admin_credit: "⚙️",
+  admin_debit: "⚙️",
+  usage: "⚡",
+  refund: "🔄",
+};
+
+function SparksSection() {
+  const { data: balanceData, isLoading: balanceLoading } = useQuery<{ balance: number }>({
+    queryKey: ["/api/sparks/balance"],
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const { data: transactions, isLoading: txLoading } = useQuery<SparkTransaction[]>({
+    queryKey: ["/api/sparks/transactions"],
+    queryFn: () => apiRequest("GET", "/api/sparks/transactions?limit=5").then((r) => r.json()),
+  });
+
+  return (
+    <Card data-testid="card-sparks">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Zap className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+          Sparks
+        </CardTitle>
+        <CardDescription>Your creative currency balance and recent activity.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Balance display */}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            {balanceLoading ? (
+              <Skeleton className="h-12 w-24" />
+            ) : (
+              <p className="text-5xl font-black text-yellow-400 dark:text-yellow-400 leading-none" data-testid="text-sparks-balance">
+                ⚡️ {(balanceData?.balance ?? 0).toLocaleString()}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">Your Sparks balance</p>
+          </div>
+          <Link href="/pricing">
+            <Button variant="outline" size="sm" className="gap-1.5 shrink-0" data-testid="link-get-more-sparks">
+              Get More Sparks
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          </Link>
+        </div>
+
+        <Separator />
+
+        {/* Recent transactions */}
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Recent Transactions
+          </p>
+          {txLoading ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                  <div className="flex-1 space-y-1">
+                    <Skeleton className="h-3.5 w-48" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <Skeleton className="h-4 w-12" />
+                </div>
+              ))}
+            </div>
+          ) : !transactions || transactions.length === 0 ? (
+            <div className="text-center py-4" data-testid="text-no-transactions">
+              <p className="text-sm text-muted-foreground">No transactions yet.</p>
+              <Link href="/pricing">
+                <span className="text-sm text-yellow-500 hover:text-yellow-400 transition-colors cursor-pointer inline-flex items-center gap-1 mt-1" data-testid="link-buy-first-pack">
+                  Buy your first pack <ArrowRight className="h-3 w-3" />
+                </span>
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {transactions.map((tx) => (
+                <div key={tx.id} className="flex items-center gap-3 py-1.5" data-testid={`row-transaction-${tx.id}`}>
+                  <span className="text-lg w-8 text-center shrink-0" aria-label={tx.type}>
+                    {TRANSACTION_ICONS[tx.type] ?? "⚡"}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate" data-testid={`text-tx-desc-${tx.id}`}>{tx.description}</p>
+                    <p className="text-xs text-muted-foreground" data-testid={`text-tx-date-${tx.id}`}>
+                      {formatDistanceToNow(new Date(tx.createdAt), { addSuffix: true })}
+                    </p>
+                  </div>
+                  <span
+                    className={`text-sm font-bold shrink-0 ${tx.amount >= 0 ? "text-green-500 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}
+                    data-testid={`text-tx-amount-${tx.id}`}
+                  >
+                    {tx.amount >= 0 ? "+" : ""}{tx.amount.toLocaleString()}
+                  </span>
+                </div>
+              ))}
+              <div className="pt-2 border-t border-border/60">
+                <Link href="/account?section=transactions">
+                  <span
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer inline-flex items-center gap-1"
+                    data-testid="link-view-all-transactions"
+                  >
+                    View all transactions <ArrowRight className="h-3 w-3" />
+                  </span>
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 function useLocalPrefs() {
   const [prefs, setPrefs] = useState<Record<string, boolean>>(() => {
@@ -372,6 +500,8 @@ export default function AccountPage() {
           </CardContent>
         </Card>
       )}
+
+      <SparksSection />
 
       <Card>
         <CardHeader>

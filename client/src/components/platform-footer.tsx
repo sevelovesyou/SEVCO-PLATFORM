@@ -161,6 +161,7 @@ export function PlatformFooter() {
         { label: "Store",    path: "/store" },
         { label: "Services", path: "/services" },
         { label: "Hosting",  path: "/domains" },
+        { label: "Pricing",  path: "/pricing" },
         { label: "Jobs",     path: "/jobs" },
       ],
     },

@@ -158,7 +158,7 @@ function buildServiceColumnGroups(services: Service[], categoryOrder?: string[])
   return groups;
 }
 
-const WIKI_PREFIXES = ["/wiki", "/edit/", "/new", "/search", "/review", "/wikify"];
+const WIKI_PREFIXES = ["/wiki", "/edit/", "/search", "/wikify"];
 
 function getActiveApp(location: string): string {
   if (location === "/") return "/";

@@ -339,7 +339,7 @@ export default function WikifyToolPage() {
         <div className="flex items-center gap-2">
           {suggestions.length > 0 && submittedCount > 0 && (
             <Button variant="outline" size="sm" asChild data-testid="button-view-review-queue">
-              <Link href="/review">
+              <Link href="/wiki/review">
                 <ArrowRight className="h-3.5 w-3.5 mr-1.5" />
                 Review Queue
               </Link>

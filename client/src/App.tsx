@@ -167,7 +167,7 @@ function WikiDoubleSlugView({ params }: { params?: { categorySlug?: string; arti
   return <ArticleView />;
 }
 
-const WIKI_PREFIXES = ["/wiki", "/edit/", "/new/", "/search", "/review", "/wikify"];
+const WIKI_PREFIXES = ["/wiki", "/edit/", "/search", "/wikify"];
 const COMMAND_PREFIXES = ["/command"];
 const SOCIAL_PREFIXES = ["/feed", "/account", "/profile", "/discover"];
 
@@ -226,6 +226,8 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/wiki" component={Home} />
       <Route path="/wiki/archive" component={() => <ProtectedRoute><WikiArchivePage /></ProtectedRoute>} />
+      <Route path="/wiki/new" component={() => <ProtectedRoute><ArticleEditor /></ProtectedRoute>} />
+      <Route path="/wiki/review" component={() => <ProtectedRoute><ReviewQueue /></ProtectedRoute>} />
       <Route path="/wiki/engineering/platform" component={() => <Redirect to="/wiki/engineering/sevco-platform" />} />
       <Route path="/category/:slug">
         {(params: { slug: string }) => <Redirect to={`/wiki/${params.slug}`} />}
@@ -273,8 +275,6 @@ function Router() {
       {/* Protected write/manage routes */}
       <Route path="/profile" component={ProfilePage} />
       <Route path="/edit/:slug" component={() => <ProtectedRoute><ArticleEditor /></ProtectedRoute>} />
-      <Route path="/new" component={() => <ProtectedRoute><ArticleEditor /></ProtectedRoute>} />
-      <Route path="/review" component={() => <ProtectedRoute><ReviewQueue /></ProtectedRoute>} />
       <Route path="/account" component={() => <ProtectedRoute><AccountPage /></ProtectedRoute>} />
       <Route path="/store/success" component={() => <ProtectedRoute><StoreSuccessPage /></ProtectedRoute>} />
       <Route path="/store/cancel" component={() => <ProtectedRoute><StoreCancelPage /></ProtectedRoute>} />

@@ -20862,3 +20862,72 @@ For now, the 2-segment fallback `/wiki/sevco-platform/:articleSlug` still works 
 
 ---
 
+## Task — wiki-landing-card-fix
+> Merged: 2026-04-07
+
+# Task: Fix "From the Wiki" landing section — 6 cards, proper card height
+
+## Problem
+The wiki article grid on the landing page has two issues:
+1. Only 5 articles are shown, leaving a gap in the 3-column grid on desktop
+2. Each card has a fixed `h-[110px] overflow-hidden` that clips content now that titles can be 2 lines (from the previous min-h fix), causing uneven spacing
+
+## Files
+`client/src/pages/landing.tsx`
+
+---
+
+## Fix 1 — Show 6 articles (line 310)
+
+```tsx
+// Before
+const recentArticles = articles.filter((a) => a.status === "published").slice(0, 5);
+
+// After
+const recentArticles = articles.filter((a) => a.status === "published").slice(0, 6);
+```
+
+---
+
+## Fix 2 — Remove fixed card height, use min-height instead (line 1483 + 1496)
+
+### Skeleton placeholder (line 1483)
+```tsx
+// Before
+<Skeleton key={i} className="h-28 w-full rounded-xl" />
+
+// After
+<Skeleton key={i} className="h-36 w-full rounded-xl" />
+```
+
+### Card div (line 1496)
+```tsx
+// Before
+className="group flex flex-col gap-2 p-4 rounded-xl border bg-background border-border/60 hover:bg-muted/60 hover:border-primary/30 transition-all duration-200 cursor-pointer h-[110px] overflow-hidden"
+
+// After
+className="group flex flex-col gap-2 p-4 rounded-xl border bg-background border-border/60 hover:bg-muted/60 hover:border-primary/30 transition-all duration-200 cursor-pointer min-h-[130px]"
+```
+
+Removing `h-[110px]` and `overflow-hidden`, replacing with `min-h-[130px]` so the card grows to accommodate 2-line titles without clipping, while staying consistent across all cards.
+
+Also remove the now-redundant `min-h-[2.5rem]` from the title paragraph added in the previous fix since the card min-height now handles the space:
+```tsx
+// Before
+<p className="text-sm font-semibold text-foreground line-clamp-2 leading-snug min-h-[2.5rem]">{article.title}</p>
+
+// After
+<p className="text-sm font-semibold text-foreground line-clamp-2 leading-snug">{article.title}</p>
+```
+
+---
+
+## Acceptance Criteria
+- [ ] 6 article cards are shown in the "From the Wiki" section
+- [ ] Cards fill the 3-column grid evenly (2 rows × 3 columns on desktop)
+- [ ] Cards are tall enough to show 2-line titles without clipping or cramping
+- [ ] All 6 cards have consistent height (equal spacing, no orphaned gap)
+
+
+---
+

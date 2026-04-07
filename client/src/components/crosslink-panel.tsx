@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Link2, Sparkles } from "lucide-react";
 import type { Article } from "@shared/schema";
+import { articleUrl } from "@/lib/wiki-urls";
 
 interface CrosslinkPanelProps {
   relatedArticles: Array<{
@@ -24,7 +25,7 @@ export function CrosslinkPanel({ relatedArticles }: CrosslinkPanelProps) {
       </div>
       <div className="space-y-2">
         {relatedArticles.map(({ article, relevanceScore, sharedKeywords }) => (
-          <Link key={article.id} href={`/wiki/${article.slug}`}>
+          <Link key={article.id} href={articleUrl(article)}>
             <Card className="p-3 hover-elevate active-elevate-2 cursor-pointer overflow-visible">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex-1 min-w-0">

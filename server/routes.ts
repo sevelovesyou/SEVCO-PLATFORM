@@ -1873,7 +1873,10 @@ export async function registerRoutes(
 
       await generateCrosslinks(article.id);
 
-      res.json(article);
+      const category = article.categoryId
+        ? (await storage.getCategories()).find((c) => c.id === article.categoryId) || null
+        : null;
+      res.json({ ...article, category: category ? { name: category.name, slug: category.slug } : null });
     } catch (err: any) {
       res.status(400).json({ message: err.message });
     }
@@ -1916,7 +1919,10 @@ export async function registerRoutes(
             });
           }
         }
-        return res.json(updated);
+        const archivedCategory = updated?.categoryId
+          ? (await storage.getCategories()).find((c) => c.id === updated.categoryId) || null
+          : null;
+        return res.json({ ...updated, category: archivedCategory ? { name: archivedCategory.name, slug: archivedCategory.slug } : null });
       }
 
       const canPublish = !!userRole && (CAN_PUBLISH_ARTICLES as string[]).includes(userRole);
@@ -1955,7 +1961,10 @@ export async function registerRoutes(
         }
       }
 
-      res.json(article);
+      const updatedCategory = article.categoryId
+        ? (await storage.getCategories()).find((c) => c.id === article.categoryId) || null
+        : null;
+      res.json({ ...article, category: updatedCategory ? { name: updatedCategory.name, slug: updatedCategory.slug } : null });
     } catch (err: any) {
       res.status(400).json({ message: err.message });
     }

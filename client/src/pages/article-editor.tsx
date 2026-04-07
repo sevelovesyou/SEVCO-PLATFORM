@@ -40,6 +40,7 @@ import {
   Link2,
 } from "lucide-react";
 import type { Article, Category, Citation } from "@shared/schema";
+import { articleUrl } from "@/lib/wiki-urls";
 import { usePermission } from "@/hooks/use-permission";
 import { Lock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -155,7 +156,7 @@ export default function ArticleEditor() {
       queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({ title: "Article created" });
-      navigate(`/wiki/${result.slug}`);
+      navigate(articleUrl(result));
     },
     onError: (err: Error) => {
       toast({ title: "Error creating article", description: err.message, variant: "destructive" });
@@ -171,7 +172,7 @@ export default function ArticleEditor() {
       queryClient.invalidateQueries({ queryKey: ["/api/revisions", "pending-count"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({ title: "Revision submitted for review" });
-      navigate(`/wiki/${result.slug}`);
+      navigate(articleUrl(result));
     },
     onError: (err: Error) => {
       toast({ title: "Error updating article", description: err.message, variant: "destructive" });

@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import type { Article } from "@shared/schema";
+import { articleUrl } from "@/lib/wiki-urls";
 
 export default function WikiArchivePage() {
   const { toast } = useToast();
@@ -61,7 +62,7 @@ export default function WikiArchivePage() {
             >
               <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
               <Link
-                href={`/wiki/${article.slug}`}
+                href={articleUrl(article)}
                 className="flex-1 min-w-0"
                 data-testid={`link-archived-article-${article.slug}`}
               >

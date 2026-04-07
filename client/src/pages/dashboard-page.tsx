@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
+import { articleUrl } from "@/lib/wiki-urls";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -262,7 +263,7 @@ function ContributionsList({ items, isLoading }: { items?: DashboardContribution
   return (
     <div className="flex flex-col gap-2">
       {items.map((item) => (
-        <Link key={item.id} href={`/wiki/${item.articleSlug}`}>
+        <Link key={item.id} href={articleUrl({ slug: item.articleSlug })}>
           <Card
             className="p-3 hover-elevate active-elevate-2 cursor-pointer overflow-visible"
             data-testid={`card-contribution-${item.id}`}

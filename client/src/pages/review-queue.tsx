@@ -19,9 +19,10 @@ import {
   Lock,
 } from "lucide-react";
 import type { Revision, Article } from "@shared/schema";
+import { articleUrl } from "@/lib/wiki-urls";
 
 interface RevisionWithArticle extends Revision {
-  article: Article;
+  article: Article & { category?: { id: number; name: string; slug: string } | null };
 }
 
 export default function ReviewQueue() {
@@ -104,7 +105,7 @@ export default function ReviewQueue() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <Link href={`/wiki/${revision.article?.slug}`}>
+              <Link href={revision.article ? articleUrl(revision.article) : "/wiki"}>
                 <span className="text-sm font-semibold text-primary hover:underline cursor-pointer" data-testid={`link-revision-article-${revision.id}`}>
                   {revision.article?.title || "Unknown Article"}
                 </span>
@@ -130,7 +131,7 @@ export default function ReviewQueue() {
               </p>
             )}
             <div className="flex items-center gap-1 mt-2 flex-wrap">
-              <Link href={`/wiki/${revision.article?.slug}`}>
+              <Link href={revision.article ? articleUrl(revision.article) : "/wiki"}>
                 <Button variant="ghost" size="sm" data-testid={`button-view-article-${revision.id}`}>
                   <Eye className="h-3 w-3 mr-1" />
                   View Article

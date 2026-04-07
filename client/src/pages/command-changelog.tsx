@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { articleUrl } from "@/lib/wiki-urls";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -397,7 +398,7 @@ export default function CommandChangelog() {
                       </Button>
                       {entry.wikiSlug && (
                         <a
-                          href={`/wiki/${entry.wikiSlug}`}
+                          href={articleUrl({ slug: entry.wikiSlug })}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-0.5 text-[10px] text-primary hover:underline"

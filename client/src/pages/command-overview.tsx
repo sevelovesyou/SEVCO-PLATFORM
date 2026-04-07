@@ -44,6 +44,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import type { Role, Resource, Note } from "@shared/schema";
+import { articleUrl } from "@/lib/wiki-urls";
 import { UserSnapshotPanel } from "@/components/user-snapshot-panel";
 
 const ROLE_COLORS: Record<string, string> = {
@@ -451,7 +452,7 @@ function ContributionsList({ items, isLoading }: { items?: DashboardContribution
   return (
     <div className="flex flex-col gap-2">
       {items.map((item) => (
-        <Link key={item.id} href={`/wiki/${item.articleSlug}`}>
+        <Link key={item.id} href={articleUrl({ slug: item.articleSlug })}>
           <Card
             className="p-3 hover-elevate active-elevate-2 cursor-pointer overflow-visible"
             data-testid={`card-contribution-${item.id}`}

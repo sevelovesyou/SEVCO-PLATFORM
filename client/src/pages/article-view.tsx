@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { PageHead } from "@/components/page-head";
+import { articleUrl } from "@/lib/wiki-urls";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -52,8 +53,9 @@ interface ArticleDetail extends Article {
 }
 
 export default function ArticleView() {
-  const [, params] = useRoute("/wiki/:slug");
-  const slug = params?.slug;
+  const [, paramsTwo] = useRoute("/wiki/:categorySlug/:articleSlug");
+  const [, paramsOne] = useRoute("/wiki/:slug");
+  const slug = paramsTwo?.articleSlug ?? paramsOne?.slug;
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const { canPublishArticles, canAccessArchive } = usePermission();
@@ -64,6 +66,12 @@ export default function ArticleView() {
     queryKey: ["/api/articles", slug],
     enabled: !!slug,
   });
+
+  useEffect(() => {
+    if (article?.category?.slug && paramsTwo === null && paramsOne !== null) {
+      navigate(`/wiki/${article.category.slug}/${article.slug}`, { replace: true });
+    }
+  }, [article]);
 
   const { data: platformSettings = {} } = useQuery<Record<string, string>>({
     queryKey: ["/api/platform-settings"],
@@ -191,13 +199,13 @@ export default function ArticleView() {
         title={article.title}
         description={article.summary || `Read the article "${article.title}" on the SEVCO Wiki.`}
         ogType="article"
-        ogUrl={`https://sevco.us/wiki/${article.slug}`}
+        ogUrl={`https://sevco.us/wiki/${article.category?.slug ? `${article.category.slug}/` : ""}${article.slug}`}
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "Article",
           "headline": article.title,
           "description": article.summary || undefined,
-          "url": `https://sevco.us/wiki/${article.slug}`,
+          "url": `https://sevco.us/wiki/${article.category?.slug ? `${article.category.slug}/` : ""}${article.slug}`,
           "dateModified": article.updatedAt,
           "publisher": {
             "@type": "Organization",

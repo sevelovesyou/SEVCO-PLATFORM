@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { SiDiscord, SiSpotify, SiApplemusic } from "react-icons/si";
 import type { Article, Product, FeedPost, Project, ChangelogCategory } from "@shared/schema";
+import { articleUrl } from "@/lib/wiki-urls";
 import { DEFAULT_SECTION_ORDER } from "@shared/section-order";
 import { HomeNewsAndMarkets } from "@/components/home-news-markets";
 import { UserSnapshotPanel } from "@/components/user-snapshot-panel";
@@ -182,9 +183,9 @@ function ProductCard({ product }: { product: Product }) {
   );
 }
 
-function ArticleCard({ article }: { article: Article }) {
+function ArticleCard({ article }: { article: Article & { category?: { id: number; name: string; slug: string } | null } }) {
   return (
-    <Link href={`/wiki/${article.slug}`}>
+    <Link href={articleUrl(article)}>
       <div
         className="group flex items-start gap-3 p-3 rounded-xl border bg-white/[0.03] border-white/8 hover:bg-white/[0.06] hover:border-white/15 transition-all duration-200 cursor-pointer"
         data-testid={`card-article-${article.id}`}
@@ -238,7 +239,7 @@ export default function Landing() {
     });
   }, [toast]);
 
-  const { data: articles = [], isLoading: artLoading } = useQuery<Article[]>({
+  const { data: articles = [], isLoading: artLoading } = useQuery<(Article & { category?: { id: number; name: string; slug: string } | null })[]>({
     queryKey: ["/api/articles/recent"],
     refetchInterval: 5 * 60 * 1000,
   });
@@ -950,7 +951,7 @@ export default function Landing() {
                             <p className="text-xs text-white/50 line-clamp-2 mb-3">{entry.description}</p>
                             <div className="mt-auto pt-2">
                               {entry.slug && (
-                                <Link href={`/wiki/${entry.slug}`}>
+                                <Link href={articleUrl({ slug: entry.slug })}>
                                   <span className="text-xs text-white/40 hover:text-white/70 transition-colors cursor-pointer">Read more →</span>
                                 </Link>
                               )}
@@ -1490,7 +1491,7 @@ export default function Landing() {
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {recentArticles.map((article) => (
-                        <Link key={article.id} href={`/wiki/${article.slug}`}>
+                        <Link key={article.id} href={articleUrl(article)}>
                           <div
                             className="group flex flex-col gap-2 p-4 rounded-xl border bg-background border-border/60 hover:bg-muted/60 hover:border-primary/30 transition-all duration-200 cursor-pointer h-[110px] overflow-hidden"
                             data-testid={`card-wiki-article-${article.id}`}

@@ -38,6 +38,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Category, Article } from "@shared/schema";
+import { articleUrl } from "@/lib/wiki-urls";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -63,7 +64,7 @@ export function AppSidebar() {
     queryKey: ["/api/categories"],
   });
 
-  const { data: recentArticles, isLoading: artLoading } = useQuery<Article[]>({
+  const { data: recentArticles, isLoading: artLoading } = useQuery<(Article & { category?: { id: number; name: string; slug: string } | null })[]>({
     queryKey: ["/api/articles", "recent"],
   });
 
@@ -202,9 +203,9 @@ export function AppSidebar() {
                     <SidebarMenuButton
                       asChild
                       tooltip={article.title}
-                      data-active={location === `/wiki/${article.slug}`}
+                      data-active={location === articleUrl(article)}
                     >
-                      <Link href={`/wiki/${article.slug}`} data-testid={`link-recent-${article.slug}`}>
+                      <Link href={articleUrl(article)} data-testid={`link-recent-${article.slug}`}>
                         <FileText className="h-4 w-4" />
                         <span className="truncate">{article.title}</span>
                       </Link>
@@ -228,7 +229,7 @@ export function AppSidebar() {
                     <div className="flex items-center gap-1 px-2 py-1 rounded-md text-muted-foreground w-full group hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors">
                       <FileText className="h-3.5 w-3.5 shrink-0" />
                       <Link
-                        href={`/wiki/${article.slug}`}
+                        href={articleUrl(article)}
                         className="flex-1 min-w-0 text-xs truncate"
                         data-testid={`link-archived-${article.slug}`}
                       >

@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollText, Zap, Wrench, TrendingUp, MoreHorizontal, ArrowRight, ChevronLeft } from "lucide-react";
 import { Link } from "wouter";
 import type { Changelog, ChangelogCategory } from "@shared/schema";
+import { articleUrl } from "@/lib/wiki-urls";
 
 const CATEGORY_META: Record<ChangelogCategory, { label: string; color: string; icon: React.ElementType }> = {
   feature:     { label: "Feature",     color: "bg-primary/10 text-primary border-primary/20",                                                  icon: Zap },
@@ -128,7 +129,7 @@ export default function ChangelogPage() {
                         </p>
                         {entry.wikiSlug && (
                           <Link
-                            href={`/wiki/${entry.wikiSlug}`}
+                            href={articleUrl({ slug: entry.wikiSlug })}
                             className="inline-flex items-center gap-1 mt-1.5 text-xs text-primary hover:underline font-medium"
                             data-testid={`link-wiki-article-${entry.id}`}
                           >

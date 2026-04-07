@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Disc, ChevronLeft, BookOpen, ArrowRight, Plus, Music, Play, BarChart2 } from "lucide-react";
 import type { Artist, Album, MusicTrack } from "@shared/schema";
+import { articleUrl } from "@/lib/wiki-urls";
 import { useSpotifyPlayer } from "@/hooks/use-spotify-player";
 import type { Playlist } from "@shared/schema";
 import { useEffect } from "react";
@@ -164,7 +165,7 @@ export default function MusicArtistDetail() {
           )}
           {artist.wikiArticleSlug && (
             <div className="mt-3">
-              <Link href={`/wiki/${artist.wikiArticleSlug}`}>
+              <Link href={articleUrl({ slug: artist.wikiArticleSlug })}>
                 <Button variant="outline" size="sm" className="gap-1.5">
                   <BookOpen className="h-3.5 w-3.5" />
                   Wiki Article

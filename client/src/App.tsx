@@ -187,6 +187,7 @@ function Router() {
       <Route path="/category/:slug">
         {(params: { slug: string }) => <Redirect to={`/wiki/${params.slug}`} />}
       </Route>
+      <Route path="/wiki/:categorySlug/:articleSlug" component={ArticleView} />
       <Route path="/wiki/:slug" component={WikiSlugView} />
       <Route path="/search" component={SearchPage} />
       <Route path="/music" component={MusicPage} />

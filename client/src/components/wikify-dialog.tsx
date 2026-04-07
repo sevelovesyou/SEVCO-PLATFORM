@@ -15,6 +15,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { BookOpen, Loader2, Sparkles } from "lucide-react";
 import type { NewsArticle } from "@/components/news-article-card";
 import { Link } from "wouter";
+import { articleUrl } from "@/lib/wiki-urls";
 
 const wikifySchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -54,7 +55,7 @@ type WikifyDialogProps = WikifyDialogArticleProps | WikifyDialogPostProps;
 
 export function WikifyDialog({ open, onClose, article, postTitle, postContent, postContext }: WikifyDialogProps) {
   const { toast } = useToast();
-  const [createdSlug, setCreatedSlug] = useState<string | null>(null);
+  const [createdArticle, setCreatedArticle] = useState<{ slug: string; category?: { slug: string } | null } | null>(null);
   const [aiDraftNotice, setAiDraftNotice] = useState(false);
 
   const defaultTitle = article ? article.title : (postTitle ?? "");
@@ -112,9 +113,9 @@ export function WikifyDialog({ open, onClose, article, postTitle, postContent, p
       });
       return res.json();
     },
-    onSuccess: (created: { slug: string }) => {
+    onSuccess: (created: { slug: string; category?: { slug: string } | null }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
-      setCreatedSlug(created.slug);
+      setCreatedArticle(created);
       toast({
         title: "Article wikified!",
         description: "The wiki article was created as a draft.",
@@ -126,13 +127,13 @@ export function WikifyDialog({ open, onClose, article, postTitle, postContent, p
   });
 
   function handleClose() {
-    setCreatedSlug(null);
+    setCreatedArticle(null);
     setAiDraftNotice(false);
     form.reset();
     onClose();
   }
 
-  if (createdSlug) {
+  if (createdArticle) {
     return (
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-md">
@@ -148,7 +149,7 @@ export function WikifyDialog({ open, onClose, article, postTitle, postContent, p
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={handleClose}>Close</Button>
             <Button asChild>
-              <Link href={`/wiki/${createdSlug}`} onClick={handleClose} data-testid="link-view-wikified-article">
+              <Link href={articleUrl(createdArticle)} onClick={handleClose} data-testid="link-view-wikified-article">
                 View Article →
               </Link>
             </Button>

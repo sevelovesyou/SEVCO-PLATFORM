@@ -117,7 +117,7 @@ export interface IStorage {
   getCategoryBySlug(slug: string): Promise<Category | undefined>;
   createCategory(category: InsertCategory): Promise<Category>;
 
-  getArticles(): Promise<Article[]>;
+  getArticles(): Promise<(Article & { category?: { id: number; name: string; slug: string } | null })[]>;
   getArticleById(id: number): Promise<Article | undefined>;
   getArticleBySlug(slug: string): Promise<Article | undefined>;
   getArticlesByCategory(categoryId: number): Promise<Article[]>;
@@ -663,8 +663,23 @@ export class DatabaseStorage implements IStorage {
     return cat;
   }
 
-  async getArticles(): Promise<Article[]> {
-    return db.select().from(articles).orderBy(desc(articles.updatedAt));
+  async getArticles(): Promise<(Article & { category?: { id: number; name: string; slug: string } | null })[]> {
+    const rows = await db
+      .select({
+        article: articles,
+        category: {
+          id: categories.id,
+          name: categories.name,
+          slug: categories.slug,
+        },
+      })
+      .from(articles)
+      .leftJoin(categories, eq(articles.categoryId, categories.id))
+      .orderBy(desc(articles.updatedAt));
+    return rows.map(({ article, category }) => ({
+      ...article,
+      category: category?.id ? category : null,
+    }));
   }
 
   async getArticleById(id: number): Promise<Article | undefined> {

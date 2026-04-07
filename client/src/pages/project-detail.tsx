@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { SiX, SiInstagram, SiYoutube, SiDiscord, SiGithub } from "react-icons/si";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
+import { articleUrl } from "@/lib/wiki-urls";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
@@ -451,7 +452,7 @@ export default function ProjectDetail() {
                 </h2>
                 <div className="flex flex-col gap-2">
                   {project.relatedWikiSlugs.map((wikiSlug) => (
-                    <Link key={wikiSlug} href={`/wiki/${wikiSlug}`}>
+                    <Link key={wikiSlug} href={articleUrl({ slug: wikiSlug })}>
                       <div
                         className="border border-border rounded-lg px-4 py-3 hover:bg-muted/50 transition-colors flex items-center justify-between group"
                         data-testid={`link-wiki-${wikiSlug}`}

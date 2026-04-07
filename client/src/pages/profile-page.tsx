@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
+import { articleUrl } from "@/lib/wiki-urls";
 import { useParams, Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { useMusicPlayer } from "@/contexts/music-player-context";
@@ -713,7 +714,7 @@ function ProfileEditPanel({
   );
 }
 
-type ArticleSnippet = { id: number; title: string; slug: string; summary: string | null; updatedAt: string };
+type ArticleSnippet = { id: number; title: string; slug: string; summary: string | null; updatedAt: string; category?: { id: number; name: string; slug: string } | null };
 
 function PostCard({ post, currentUserId, canDelete, onDelete }: {
   post: PostWithMeta;
@@ -1577,7 +1578,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
                 </div>
                 <div className="divide-y" style={{ borderColor: accentColor ? `${accentColor}11` : "var(--border)" }}>
                   {recentArticles.map((article) => (
-                    <a key={article.id} href={`/wiki/${article.slug}`}
+                    <a key={article.id} href={articleUrl(article)}
                       className="flex flex-col px-5 py-3 hover:opacity-80 transition-opacity"
                       data-testid={`link-contribution-${article.id}`}
                     >

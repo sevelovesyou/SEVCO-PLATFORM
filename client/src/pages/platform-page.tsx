@@ -15,6 +15,7 @@ import {
 import { SiX } from "react-icons/si";
 import { formatDistanceToNow } from "date-fns";
 import type { ChangelogCategory } from "@shared/schema";
+import { articleUrl } from "@/lib/wiki-urls";
 
 interface PlatformHistoryEntry {
   id: number;
@@ -128,7 +129,7 @@ function FeatureCard({ entry }: { entry: PlatformHistoryEntry }) {
       <div className="mt-auto pt-3 flex items-center justify-between">
         <span className="text-[10px] text-white/30">{formatRelative(entry.createdAt)}</span>
         {entry.slug && (
-          <Link href={`/wiki/${entry.slug}`}>
+          <Link href={articleUrl({ slug: entry.slug })}>
             <span className="inline-flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 font-medium transition-colors" data-testid={`link-feature-wiki-${entry.id}`}>
               Read more <ArrowRight className="h-2.5 w-2.5" />
             </span>
@@ -448,7 +449,7 @@ export default function PlatformPage() {
                             {entry.description}
                           </p>
                           {entry.slug && (
-                            <Link href={`/wiki/${entry.slug}`}>
+                            <Link href={articleUrl({ slug: entry.slug })}>
                               <span className="inline-flex items-center gap-1 mt-2 text-[11px] text-blue-400 hover:text-blue-300 font-medium transition-colors" data-testid={`link-entry-wiki-${entry.id}`}>
                                 Read more <ArrowRight className="h-2.5 w-2.5" />
                               </span>

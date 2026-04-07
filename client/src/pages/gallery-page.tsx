@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Link } from "wouter";
+import { articleUrl } from "@/lib/wiki-urls";
 import { Copy, ImageOff, ExternalLink, X } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import type { GalleryImage } from "@shared/schema";
@@ -132,7 +133,7 @@ export default function GalleryPage() {
             ? "No images in this category. Try another filter."
             : "The gallery is empty. Check back soon!"}
           action={
-            <Link href="/wiki/contact">
+            <Link href={articleUrl({ slug: "contact" })}>
               <Button variant="outline" size="sm" data-testid="link-gallery-empty-contact">Visit Discord</Button>
             </Link>
           }

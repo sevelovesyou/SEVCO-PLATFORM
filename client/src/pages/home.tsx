@@ -20,9 +20,10 @@ import {
   Bot,
 } from "lucide-react";
 import type { Article, Category } from "@shared/schema";
+import { articleUrl } from "@/lib/wiki-urls";
 
 export default function Home() {
-  const { data: articles, isLoading: artLoading } = useQuery<Article[]>({
+  const { data: articles, isLoading: artLoading } = useQuery<(Article & { category?: { id: number; name: string; slug: string } | null })[]>({
     queryKey: ["/api/articles", "recent"],
   });
 
@@ -128,7 +129,7 @@ export default function Home() {
       </div>
 
       {featuredArticle && (
-        <Link href={`/wiki/${featuredArticle.slug}`}>
+        <Link href={articleUrl(featuredArticle)}>
           <Card className="p-4 hover-elevate active-elevate-2 cursor-pointer overflow-visible">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="h-4 w-4 text-primary" />
@@ -184,7 +185,7 @@ export default function Home() {
                   </Card>
                 ))
               : publishedArticles.slice(0, 5).map((article) => (
-                  <Link key={article.id} href={`/wiki/${article.slug}`}>
+                  <Link key={article.id} href={articleUrl(article)}>
                     <Card
                       className="p-3 hover-elevate active-elevate-2 cursor-pointer overflow-visible"
                       data-testid={`card-article-${article.id}`}

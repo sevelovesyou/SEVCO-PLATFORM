@@ -1,4 +1,5 @@
-import { useRoute, Link } from "wouter";
+import { useEffect } from "react";
+import { useRoute, Link, useLocation } from "wouter";
 import { PageHead } from "@/components/page-head";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
@@ -13,15 +14,33 @@ import {
   Clock,
 } from "lucide-react";
 import type { Article, Category } from "@shared/schema";
+import { articleUrl } from "@/lib/wiki-urls";
+
+interface ArticleWithCategory extends Article {
+  category?: { id: number; name: string; slug: string } | null;
+}
 
 export default function CategoryView() {
   const [, params] = useRoute("/wiki/:slug");
   const slug = params?.slug;
+  const [, navigate] = useLocation();
 
-  const { data: category, isLoading: catLoading } = useQuery<Category & { articles: Article[] }>({
+  const { data: category, isLoading: catLoading } = useQuery<Category & { articles: ArticleWithCategory[] }>({
     queryKey: ["/api/categories", slug],
     enabled: !!slug,
+    retry: false,
   });
+
+  const { data: articleFallback } = useQuery<ArticleWithCategory>({
+    queryKey: ["/api/articles", slug],
+    enabled: !catLoading && !category,
+  });
+
+  useEffect(() => {
+    if (!catLoading && !category && articleFallback?.category?.slug) {
+      navigate(`/wiki/${articleFallback.category.slug}/${articleFallback.slug}`, { replace: true });
+    }
+  }, [catLoading, category, articleFallback]);
 
   if (catLoading) {
     return (
@@ -87,7 +106,7 @@ export default function CategoryView() {
 
       <div className="flex flex-col gap-3">
         {publishedArticles.map((article) => (
-          <Link key={article.id} href={`/wiki/${article.slug}`}>
+          <Link key={article.id} href={articleUrl({ slug: article.slug, category: { slug: category.slug } })}>
             <Card
               className="p-4 hover-elevate active-elevate-2 cursor-pointer overflow-visible"
               data-testid={`card-category-article-${article.id}`}

@@ -19783,3 +19783,39 @@ Ready to start?
 
 ---
 
+## Task — sparks-polish-account-home-route
+> Merged: 2026-04-07
+
+# Sparks — Account, Home & /sparks Route
+
+## What & Why
+Polish the Sparks feature in three places: surface it prominently on the Account page, market it on the Home page, and give it a dedicated public-facing `/sparks` route that smartly handles logged-in vs. logged-out states.
+
+## Done looks like
+- On the Account page, the Sparks section is the very first card the user sees, above all other content.
+- The Home page has a Sparks marketing section that describes what Sparks are and includes a prominent link to `/pricing`.
+- Visiting `/sparks` while logged in shows your current balance and a "Buy More" button that links to `/pricing`.
+- Visiting `/sparks` while logged out immediately redirects to `/pricing`.
+
+## Out of scope
+- Changes to the pricing page itself.
+- Changes to the Command Center Sparks admin tab.
+- Sparks transaction history page at `/account?section=transactions`.
+
+## Tasks
+1. **Account page — move Sparks to top**: Reorder the `SparksSection` component so it renders as the first card in the account page layout, above the profile/notification/settings sections.
+
+2. **Home page — Sparks marketing section**: Add a visually distinct section to the Home page that introduces Sparks (the platform currency), highlights key use-cases (AI tools, boosts, creative features), and includes a call-to-action button linking to `/pricing`. Position it naturally within the existing home page flow.
+
+3. **`/sparks` route**: Create a new page at `/sparks`. If the user is logged in, display their current Sparks balance (fetched from `/api/sparks/balance`), a short description of what Sparks are used for, and a "Buy More Sparks" button linking to `/pricing`. If the user is not authenticated, redirect them immediately to `/pricing`. Register the route in `App.tsx`.
+
+## Relevant files
+- `client/src/pages/account-page.tsx`
+- `client/src/pages/home.tsx`
+- `client/src/pages/pricing-page.tsx`
+- `client/src/pages/sparks-success-page.tsx`
+- `client/src/App.tsx`
+
+
+---
+

@@ -1285,8 +1285,16 @@ export default function Landing() {
                               data-testid={`card-project-${project.id}`}
                             >
                               <div className="flex items-start justify-between gap-2 mb-3">
-                                <div className="h-9 w-9 rounded-lg bg-green-600/15 flex items-center justify-center shrink-0">
-                                  <Folder className="h-4.5 w-4.5 text-green-400" style={{ height: "1.125rem", width: "1.125rem" }} />
+                                <div className="h-9 w-9 rounded-lg bg-green-600/15 flex items-center justify-center shrink-0 overflow-hidden">
+                                  {project.appIcon ? (
+                                    <img
+                                      src={resolveImageUrl(project.appIcon)}
+                                      alt={project.name}
+                                      className="h-9 w-9 rounded-lg object-cover"
+                                    />
+                                  ) : (
+                                    <Folder className="h-4.5 w-4.5 text-green-400" style={{ height: "1.125rem", width: "1.125rem" }} />
+                                  )}
                                 </div>
                                 <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyle.bg} ${statusStyle.text}`}>
                                   <span className={`h-1.5 w-1.5 rounded-full ${statusStyle.dot}`} />

@@ -21546,3 +21546,98 @@ article) remain unchanged.
 
 ---
 
+## Task — fix-radix-modal-hides-nav
+> Merged: 2026-04-07
+
+# Task: Fix — Radix Select/DropdownMenu modal mode hides platform nav header
+
+## Root Cause
+
+The platform header (`client/src/components/platform-header.tsx`) uses
+`position: sticky; top: 0; z-index: 50`. Sticky positioning only works when the
+element's scroll container is scrollable.
+
+Radix UI's `<Select>` and `<DropdownMenu>` components default to `modal={true}`,
+which applies `overflow: hidden` to `<body>` when the overlay opens. This removes
+the scrollable parent — breaking `position: sticky` — so the header immediately
+disappears/scrolls out of view.
+
+The same mechanism also shifts page content left (already patched for the account
+DropdownMenu with a one-off `modal={false}`, but the problem exists app-wide for
+every other Select and DropdownMenu instance).
+
+## Fix — Global component default (one change fixes the entire app)
+
+Both `<Select>` and `<DropdownMenu>` in the shadcn component files are currently
+bare re-exports of the Radix primitive. Wrap them so they default `modal={false}`:
+
+### `client/src/components/ui/select.tsx`
+```tsx
+// Before (line 9):
+const Select = SelectPrimitive.Root
+
+// After:
+const Select = ({
+  modal = false,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof SelectPrimitive.Root>) => (
+  <SelectPrimitive.Root modal={modal} {...props} />
+)
+```
+
+### `client/src/components/ui/dropdown-menu.tsx`
+```tsx
+// Before (line 7):
+const DropdownMenu = DropdownMenuPrimitive.Root
+
+// After:
+const DropdownMenu = ({
+  modal = false,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Root>) => (
+  <DropdownMenuPrimitive.Root modal={modal} {...props} />
+)
+```
+
+### `client/src/components/platform-header.tsx`
+Remove the one-off `modal={false}` from the account DropdownMenu that was added
+in Task #262 — it is now redundant because the global default handles it.
+
+```tsx
+// Before (line ~1108):
+<DropdownMenu modal={false}>
+
+// After:
+<DropdownMenu>
+```
+
+## Why This Is Safe
+
+- `modal={false}` is the correct default for menus and selects that are NOT
+  full-screen dialogs. Outside-click closing, focus trapping, and keyboard
+  navigation all continue to work.
+- `<Dialog>` and `<AlertDialog>` (which intentionally block the entire UI) are
+  separate Radix primitives — this change does NOT affect them.
+- `<Sheet>` is also separate — not affected.
+- Any site that genuinely needs `modal={true}` on a Select or DropdownMenu can
+  still pass `modal={true}` explicitly to override the default.
+
+## Files to Edit
+
+1. `client/src/components/ui/select.tsx` — wrap Select with `modal={false}` default
+2. `client/src/components/ui/dropdown-menu.tsx` — wrap DropdownMenu with `modal={false}` default
+3. `client/src/components/platform-header.tsx` — remove now-redundant `modal={false}`
+
+## Acceptance Criteria
+
+- [ ] Opening any `<Select>` dropdown does NOT hide the platform navigation header
+- [ ] Opening any `<DropdownMenu>` does NOT hide or shift the platform nav
+- [ ] CMD > Wiki filter dropdown works without hiding the nav
+- [ ] Article editor category/subcategory selects work without nav disappearing
+- [ ] All other selects across CMD pages (Store, Staff, Jobs, etc.) work correctly
+- [ ] Platform header remains visible at the top during any dropdown/select interaction
+- [ ] The account dropdown in the platform header still works (no regression)
+
+
+---
+

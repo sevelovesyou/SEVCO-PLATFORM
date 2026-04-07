@@ -19463,3 +19463,116 @@ Upgrade the social layer of the platform to feel more like X.com with SEVCO bran
 
 ---
 
+## Task — sparks-cmd-admin
+> Merged: 2026-04-07
+
+# Sparks Currency — CMD Admin Panel (Task 3 of 3)
+
+## Depends On
+Task 1 (Sparks Schema & Backend API) must be merged first.
+
+## What & Why
+Build the admin-only Sparks management panel in the Command Center so operators can monitor platform-wide Sparks activity, manually credit/debit users, and manage the pack catalog.
+
+## Done Looks Like
+- New "Sparks" entry appears in the CMD sidebar under Operations
+- Navigating to `/command/sparks` shows the admin panel
+- Platform metrics row: Total Sparks Issued | Active Users With Sparks | Total Packs | (future: Revenue)
+- Real-time transaction feed shows the last 20 transactions across all users, searchable/filterable
+- "Spark Controls" panel: search any user → enter amount (positive or negative) + reason → submit to credit or debit
+- Pack management table: list all packs, create new pack, edit, soft-delete — Stripe sync happens server-side
+- Accessible to admin role only (same guard as other CMD pages)
+
+## Page: `client/src/pages/command-sparks.tsx`
+
+### Layout (tabs)
+
+**Tab 1 — Overview:**
+- **Metrics row** (3 stat cards):
+  - ⚡️ Total Sparks Issued — from `GET /api/sparks/admin/stats`
+  - 👥 Active Users With Sparks — from same endpoint
+  - 📦 Active Packs — count from `GET /api/sparks/admin/packs`
+- **Recent Transactions Feed** (last 20, auto-refreshes every 30s):
+  - Table columns: Timestamp | User | Type badge | Description | Amount (color-coded ±)
+  - Type badges: color-coded (purchase=blue, free_allocation=green, admin_credit=purple, admin_debit=red, usage=orange, refund=gray)
+  - Compact rows, newest first
+
+**Tab 2 — Spark Controls (manual adjustment):**
+- **User search input** — live search by username or display name → dropdown autocomplete
+  - On select, shows user card: avatar, display name, username, current balance ⚡️
+- **Amount field** — integer input (positive to credit, negative to debit)
+  - Helper: toggle buttons "+100", "+500", "-100" as quick-fill shortcuts
+- **Description field** — free text, required
+- **Submit button** → `POST /api/sparks/admin/adjust` → success toast with new balance
+- Input validation: amount cannot be 0; description cannot be empty; user must be selected
+- After success: clear the form, show toast "⚡️ +{amount} credited to @{username}" (or debited)
+
+**Tab 3 — Transaction History:**
+- Full searchable transaction table
+- Filter controls:
+  - **User** — text input to filter by username (debounced 300ms, sends `userId` if match found)
+  - **Type** — select dropdown (All | purchase | free_allocation | admin_credit | admin_debit | usage | refund)
+  - **Date range** — two date pickers (from / to)
+- Paginated table (20 per page): Timestamp | User | Type | Description | Amount | Metadata (collapsible)
+- Export CSV button (client-side: use data already fetched, convert to CSV, trigger download)
+
+**Tab 4 — Pack Catalog:**
+- Table of all packs (including inactive): Name | Sparks | Price | Stripe IDs | Active | Sort Order | Actions
+- "New Pack" button → slide-out form:
+  - Name (text)
+  - Sparks amount (integer)
+  - Price (decimal input converted to cents)
+  - Sort order (integer)
+  - Submit → `POST /api/sparks/admin/packs` (server creates Stripe Product + Prices automatically)
+- Edit icon per row → same form pre-filled → `PATCH /api/sparks/admin/packs/:id`
+- Toggle active/inactive per row (PATCH active=true/false)
+- Delete icon → confirm dialog → `DELETE /api/sparks/admin/packs/:id`
+- Note per row: shows `stripePriceId` and `stripeRecurringPriceId` as copyable mono badges
+
+## CMD Sidebar (`client/src/components/command-sidebar.tsx`)
+Add "Sparks" entry to the Operations group:
+```tsx
+{ title: "Sparks", url: "/command/sparks", icon: Zap }
+```
+(Use `Zap` from lucide-react — the lightning bolt icon)
+
+## App.tsx
+Register route:
+```tsx
+<Route path="/command/sparks" component={CommandSparksPage} />
+```
+Wrapped in admin role guard (same pattern as other CMD routes).
+
+## Data Fetching (TanStack Query)
+
+```ts
+// Stats
+useQuery({ queryKey: ['/api/sparks/admin/stats'], refetchInterval: 30_000 })
+
+// Recent transactions (overview tab)
+useQuery({ queryKey: ['/api/sparks/admin/transactions', { limit: 20 }], refetchInterval: 30_000 })
+
+// Filtered transaction history (history tab)
+useQuery({ queryKey: ['/api/sparks/admin/transactions', filters], enabled: !!filtersReady })
+
+// Packs
+useQuery({ queryKey: ['/api/sparks/admin/packs'] })
+
+// Manual adjust mutation
+useMutation({ mutationFn: ({ userId, amount, description }) => apiRequest('POST', '/api/sparks/admin/adjust', ...) })
+// invalidates: ['/api/sparks/admin/transactions'], ['/api/sparks/admin/stats']
+```
+
+## Relevant Files
+- `client/src/pages/command-sparks.tsx` — new file
+- `client/src/components/command-sidebar.tsx` — add Sparks link under Operations
+- `client/src/App.tsx` — register /command/sparks route
+
+## Notes
+- The user search autocomplete in the Spark Controls tab should reuse the `/api/users` or `/api/users/search` endpoint if it exists; otherwise use a debounced query to a user search endpoint
+- CSV export is pure client-side: map the fetched transaction rows to CSV format and trigger a Blob download — no new backend endpoint needed
+- The pack catalog tab should note clearly that editing a pack's price creates a NEW Stripe Price (old prices remain active for existing subscribers) — show this as an info tooltip
+
+
+---
+

@@ -1,5 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
+import DOMPurify from "dompurify";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,67 @@ import { articleUrl } from "@/lib/wiki-urls";
 
 interface RevisionWithArticle extends Revision {
   article: Article & { category?: { id: number; name: string; slug: string } | null };
+}
+
+function sanitizeHtml(html: string): string {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ["a", "b", "i", "em", "strong", "p", "br", "ul", "ol", "li", "h2", "h3", "blockquote", "span"],
+    ALLOWED_ATTR: ["href", "class"],
+    ALLOW_DATA_ATTR: false,
+  });
+}
+
+function renderMarkdown(content: string): JSX.Element[] {
+  const lines = content.split("\n");
+  const elements: JSX.Element[] = [];
+
+  lines.forEach((line, i) => {
+    if (line.startsWith("## ")) {
+      elements.push(
+        <h2 key={i} className="text-base font-bold mt-3 mb-1">
+          {line.slice(3)}
+        </h2>
+      );
+    } else if (line.startsWith("### ")) {
+      elements.push(
+        <h3 key={i} className="text-sm font-semibold mt-2 mb-0.5">
+          {line.slice(4)}
+        </h3>
+      );
+    } else if (line.startsWith("> ")) {
+      elements.push(
+        <blockquote
+          key={i}
+          className="border-l-2 border-primary/30 pl-2 italic text-muted-foreground my-1 text-xs"
+        >
+          {line.slice(2)}
+        </blockquote>
+      );
+    } else if (line.startsWith("- ")) {
+      elements.push(
+        <ul key={i} className="list-disc list-inside text-xs my-0.5">
+          <li>{line.slice(2)}</li>
+        </ul>
+      );
+    } else if (line.trim() === "") {
+      elements.push(<br key={i} />);
+    } else {
+      const withLinks = line.replace(
+        /\[\[([^\]]+)\]\]/g,
+        '<a href="/wiki/$1" class="text-primary underline decoration-primary/30 hover:decoration-primary/60">$1</a>'
+      );
+      const safe = sanitizeHtml(withLinks);
+      elements.push(
+        <p
+          key={i}
+          className="text-xs leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: safe }}
+        />
+      );
+    }
+  });
+
+  return elements;
 }
 
 export default function ReviewQueue() {
@@ -78,7 +140,13 @@ export default function ReviewQueue() {
     );
   }
 
-  function RevisionCard({ revision }: { revision: RevisionWithArticle }) {
+  function RevisionCard({
+    revision,
+    showDiff = false,
+  }: {
+    revision: RevisionWithArticle;
+    showDiff?: boolean;
+  }) {
     const statusConfig: Record<string, { icon: typeof Clock; color: string; label: string }> = {
       pending: { icon: Clock, color: "text-yellow-600 dark:text-yellow-400", label: "Pending" },
       approved: { icon: CheckCircle, color: "text-green-600 dark:text-green-400", label: "Approved" },
@@ -89,79 +157,144 @@ export default function ReviewQueue() {
     const config = statusConfig[revision.status] || statusConfig.pending;
     const StatusIcon = config.icon;
 
+    const currentContent = revision.article?.content;
+    const proposedContent = revision.content;
+    const contentUnchanged =
+      currentContent !== undefined && currentContent === proposedContent;
+    const articleDeleted = !revision.article;
+
     return (
-      <Card className="p-4 overflow-visible" data-testid={`card-revision-${revision.id}`}>
-        <div className="flex items-start gap-3">
-          <div
-            className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${
-              revision.status === "pending"
-                ? "bg-yellow-500/10"
-                : revision.status === "approved"
-                ? "bg-green-500/10"
-                : "bg-destructive/10"
-            }`}
-          >
-            <StatusIcon className={`h-4 w-4 ${config.color}`} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Link href={revision.article ? articleUrl(revision.article) : "/wiki"}>
-                <span className="text-sm font-semibold text-primary hover:underline cursor-pointer" data-testid={`link-revision-article-${revision.id}`}>
-                  {revision.article?.title || "Unknown Article"}
-                </span>
-              </Link>
-              <Badge
-                variant={revision.status === "approved" ? "default" : revision.status === "rejected" ? "destructive" : "outline"}
-                className="text-[10px]"
-              >
-                {config.label}
-              </Badge>
+      <Card className="overflow-visible" data-testid={`card-revision-${revision.id}`}>
+        <div className="p-4">
+          <div className="flex items-start gap-3">
+            <div
+              className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${
+                revision.status === "pending"
+                  ? "bg-yellow-500/10"
+                  : revision.status === "approved"
+                  ? "bg-green-500/10"
+                  : "bg-destructive/10"
+              }`}
+            >
+              <StatusIcon className={`h-4 w-4 ${config.color}`} />
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              by <span className="font-medium">{revision.authorName}</span>
-              {" · "}
-              {new Date(revision.createdAt).toLocaleString()}
-            </p>
-            {revision.editSummary && (
-              <p className="text-xs mt-1">{revision.editSummary}</p>
-            )}
-            {revision.reviewNote && (
-              <p className="text-xs mt-1 italic text-muted-foreground border-l-2 border-primary/20 pl-2">
-                {revision.reviewNote}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Link href={revision.article ? articleUrl(revision.article) : "/wiki"}>
+                  <span
+                    className="text-sm font-semibold text-primary hover:underline cursor-pointer"
+                    data-testid={`link-revision-article-${revision.id}`}
+                  >
+                    {revision.article?.title || "Unknown Article"}
+                  </span>
+                </Link>
+                <Badge
+                  variant={
+                    revision.status === "approved"
+                      ? "default"
+                      : revision.status === "rejected"
+                      ? "destructive"
+                      : "outline"
+                  }
+                  className="text-[10px]"
+                >
+                  {config.label}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                by <span className="font-medium">{revision.authorName}</span>
+                {" · "}
+                {new Date(revision.createdAt).toLocaleString()}
               </p>
-            )}
-            <div className="flex items-center gap-1 mt-2 flex-wrap">
-              <Link href={revision.article ? articleUrl(revision.article) : "/wiki"}>
-                <Button variant="ghost" size="sm" data-testid={`button-view-article-${revision.id}`}>
-                  <Eye className="h-3 w-3 mr-1" />
-                  View Article
-                </Button>
-              </Link>
-              {revision.status === "pending" && (
-                <>
-                  <Button
-                    size="sm"
-                    onClick={() => approveMutation.mutate(revision.id)}
-                    disabled={approveMutation.isPending}
-                    data-testid={`button-approve-${revision.id}`}
-                  >
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Approve
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => rejectMutation.mutate(revision.id)}
-                    disabled={rejectMutation.isPending}
-                    data-testid={`button-reject-${revision.id}`}
-                  >
-                    <XCircle className="h-3 w-3 mr-1" />
-                    Reject
-                  </Button>
-                </>
+              {revision.editSummary && (
+                <p className="text-xs mt-1">{revision.editSummary}</p>
+              )}
+              {revision.reviewNote && (
+                <p className="text-xs mt-1 italic text-muted-foreground border-l-2 border-primary/20 pl-2">
+                  {revision.reviewNote}
+                </p>
               )}
             </div>
           </div>
+        </div>
+
+        {showDiff && (
+          <div className="border-t border-border" data-testid={`diff-panel-${revision.id}`}>
+            {articleDeleted ? (
+              <div className="px-4 py-3 text-xs text-muted-foreground italic">
+                Original article no longer available.
+              </div>
+            ) : contentUnchanged ? (
+              <div className="px-4 py-3 text-xs text-muted-foreground italic">
+                No content changes — only metadata or infobox was modified.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
+                <div className="p-4" data-testid={`panel-current-${revision.id}`}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                    Current Version
+                  </p>
+                  <div className="max-h-96 overflow-y-auto text-xs leading-relaxed space-y-1 prose prose-sm dark:prose-invert max-w-none">
+                    {currentContent
+                      ? currentContent.trimStart().startsWith("<")
+                        ? (
+                          <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(currentContent) }} />
+                        )
+                        : renderMarkdown(currentContent)
+                      : <span className="italic text-muted-foreground">No existing content.</span>
+                    }
+                  </div>
+                </div>
+                <div className="p-4 bg-green-500/5 dark:bg-green-900/10" data-testid={`panel-proposed-${revision.id}`}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                    Proposed Version
+                  </p>
+                  <div className="max-h-96 overflow-y-auto text-xs leading-relaxed space-y-1 prose prose-sm dark:prose-invert max-w-none">
+                    {proposedContent
+                      ? proposedContent.trimStart().startsWith("<")
+                        ? (
+                          <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(proposedContent) }} />
+                        )
+                        : renderMarkdown(proposedContent)
+                      : <span className="italic text-muted-foreground">No proposed content.</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="px-4 pb-4 pt-2 flex items-center gap-1 flex-wrap border-t border-border mt-0">
+          <Link href={revision.article ? articleUrl(revision.article) : "/wiki"}>
+            <Button variant="ghost" size="sm" data-testid={`button-view-article-${revision.id}`}>
+              <Eye className="h-3 w-3 mr-1" />
+              View Article
+            </Button>
+          </Link>
+          {revision.status === "pending" && (
+            <>
+              <Button
+                size="sm"
+                onClick={() => approveMutation.mutate(revision.id)}
+                disabled={approveMutation.isPending}
+                data-testid={`button-approve-${revision.id}`}
+              >
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => rejectMutation.mutate(revision.id)}
+                disabled={rejectMutation.isPending}
+                data-testid={`button-reject-${revision.id}`}
+              >
+                <XCircle className="h-3 w-3 mr-1" />
+                Reject
+              </Button>
+            </>
+          )}
         </div>
       </Card>
     );
@@ -209,7 +342,9 @@ export default function ReviewQueue() {
                   <p className="text-xs text-muted-foreground">No pending revisions to review</p>
                 </div>
               ) : (
-                pendingRevisions?.map((rev) => <RevisionCard key={rev.id} revision={rev} />)
+                pendingRevisions?.map((rev) => (
+                  <RevisionCard key={rev.id} revision={rev} showDiff={true} />
+                ))
               )}
         </TabsContent>
 
@@ -226,7 +361,9 @@ export default function ReviewQueue() {
                   </div>
                 </Card>
               ))
-            : allRevisions?.map((rev) => <RevisionCard key={rev.id} revision={rev} />)}
+            : allRevisions?.map((rev) => (
+                <RevisionCard key={rev.id} revision={rev} showDiff={false} />
+              ))}
         </TabsContent>
       </Tabs>
     </div>

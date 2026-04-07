@@ -19416,3 +19416,50 @@ useQuery({ queryKey: ['/api/paperclip/activity'],  refetchInterval: 60_000 })
 
 ---
 
+## Task — social-feed-follows-submenu
+> Merged: 2026-04-07
+
+# Social: Feed Tabs, Follow Hover Card & Social Submenu
+
+## What & Why
+Upgrade the social layer of the platform to feel more like X.com with SEVCO branding. This involves restructuring the Feed page tabs, adding a hover card on avatars that lets users follow each other inline, and adding a persistent social submenu sidebar to the Account, Profile, and Feed pages — matching the pattern used in Wiki and CMD.
+
+## Done looks like
+- The Feed page has a "Feed" tab showing all users' posts in reverse-chronological order (publicly visible, no login required to browse), and a "Following" tab showing only posts from people the logged-in user follows (requires login). The existing "Official" tab remains.
+- Hovering over any user's profile picture on a post shows a hover card with their display name, username, bio, follower/following counts, and a Follow/Unfollow button — without navigating away.
+- Account (`/account`), Profile (`/profile/:username`), and Feed (`/feed`) pages all display a collapsible social submenu sidebar (matching the look of the Wiki/CMD sidebars) containing:
+  - The logged-in user's profile card (avatar, display name, username, follower count, following count)
+  - Navigation links: Feed, Profile, Account
+  - An "Onboarding" section with checkable tasks: Add a profile photo, Write a bio, Make your first post, Follow someone, Connect a social link
+
+## Out of scope
+- Push notifications for follows or likes
+- DMs / direct messages
+- Changing the Official tab behavior
+- Any changes to the profile page itself beyond adding the sidebar
+
+## Tasks
+1. **Feed tab restructure** — Rename the "Timeline" tab to "Feed" and change its query to fetch all posts (`GET /api/posts` with no filter). Add a new "Following" tab that fetches posts filtered to accounts the logged-in user follows (use the existing `followedByUserId` option on `getPosts`). The Following tab should prompt unauthenticated users to log in. The Official tab stays as-is. Update the subtitle copy accordingly.
+
+2. **Follow hover card on post avatars** — On the `PostCard` component in the feed page, wrap the author avatar/username with a shadcn `HoverCard`. The hover card body shows: avatar, display name, username, bio snippet, follower and following counts, and a Follow/Unfollow button that calls the existing `POST /api/users/:username/follow` and `DELETE /api/users/:username/follow` endpoints. Apply the same hover card to admin feed post authors if they show an avatar.
+
+3. **Backend: onboarding progress endpoint** — Add a `GET /api/me/onboarding` endpoint that returns a JSON object with booleans for each onboarding task: `hasAvatar`, `hasBio`, `hasPost`, `hasFollow`, `hasSocialLink`. Compute these from existing user data and post/follow tables. No new schema changes needed.
+
+4. **Social submenu sidebar component** — Create a new `SocialSidebar` component (modeled after `AppSidebar`/`CommandSidebar`) using the shadcn Sidebar primitives. It contains: (a) a profile card section at the top showing the logged-in user's avatar, display name, username, and follower/following counts with links to their profile; (b) a Navigation group with links to Feed, Profile, and Account; (c) an Onboarding group listing the five tasks with check icons when complete — data comes from the new `/api/me/onboarding` endpoint. The sidebar should be collapsible.
+
+5. **Wire sidebar into social pages** — Wrap `/feed`, `/account`, and `/profile/:username` routes with a `SidebarProvider` + `SocialSidebar` layout in `App.tsx`, matching how the wiki routes use `AppSidebar`. The sidebar should only render its profile card and onboarding section when the user is logged in; otherwise show only the navigation links.
+
+## Relevant files
+- `client/src/pages/feed-page.tsx`
+- `client/src/pages/account-page.tsx`
+- `client/src/pages/profile-page.tsx`
+- `client/src/components/app-sidebar.tsx`
+- `client/src/components/command-sidebar.tsx`
+- `client/src/App.tsx`
+- `server/routes.ts:3846-3960`
+- `server/storage.ts:1410-1520`
+- `shared/schema.ts`
+
+
+---
+

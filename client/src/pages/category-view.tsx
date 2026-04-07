@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { PageHead } from "@/components/page-head";
 import { useQuery } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,28 +12,37 @@ import {
   ArrowLeft,
   ArrowRight,
   Clock,
+  Layers,
 } from "lucide-react";
 import type { Article, Category } from "@shared/schema";
 import { articleUrl } from "@/lib/wiki-urls";
 
-interface ArticleWithCategory extends Article {
+export interface ArticleWithCategory extends Article {
   category?: { id: number; name: string; slug: string } | null;
 }
 
-export default function CategoryView() {
-  const [, params] = useRoute("/wiki/:slug");
-  const slug = params?.slug;
+export interface CategoryWithArticles extends Category {
+  articles: ArticleWithCategory[];
+  subcategories?: Category[];
+}
+
+export default function CategoryView({ overrideData }: { overrideData?: CategoryWithArticles }) {
+  const [, paramsTwo] = useRoute("/wiki/:parentSlug/:childSlug");
+  const [, paramsOne] = useRoute("/wiki/:slug");
+  const slug = paramsTwo?.childSlug ?? paramsOne?.slug;
   const [, navigate] = useLocation();
 
-  const { data: category, isLoading: catLoading } = useQuery<Category & { articles: ArticleWithCategory[] }>({
+  const { data: fetchedData, isLoading: catLoading } = useQuery<CategoryWithArticles>({
     queryKey: ["/api/categories", slug],
-    enabled: !!slug,
+    enabled: !!slug && !overrideData,
     retry: false,
   });
 
+  const category = overrideData ?? fetchedData;
+
   const { data: articleFallback } = useQuery<ArticleWithCategory>({
     queryKey: ["/api/articles", slug],
-    enabled: !catLoading && !category,
+    enabled: !overrideData && !catLoading && !category,
   });
 
   useEffect(() => {
@@ -42,7 +51,7 @@ export default function CategoryView() {
     }
   }, [catLoading, category, articleFallback]);
 
-  if (catLoading) {
+  if (!overrideData && catLoading) {
     return (
       <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
         <Skeleton className="h-8 w-1/3" />
@@ -75,6 +84,9 @@ export default function CategoryView() {
   }
 
   const publishedArticles = category.articles?.filter((a) => a.status === "published") || [];
+  const subcategories = category.subcategories || [];
+
+  const parentSlug = paramsTwo?.parentSlug;
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
@@ -84,12 +96,29 @@ export default function CategoryView() {
         ogUrl={`https://sevco.us/wiki/${category.slug}`}
       />
       <div className="flex items-center gap-2 mb-2">
-        <Link href="/wiki">
-          <Button variant="ghost" size="sm" data-testid="button-back">
-            <ArrowLeft className="h-3 w-3 mr-1" />
-            Wiki
-          </Button>
-        </Link>
+        {parentSlug ? (
+          <>
+            <Link href="/wiki">
+              <Button variant="ghost" size="sm" data-testid="button-back-wiki">
+                <ArrowLeft className="h-3 w-3 mr-1" />
+                Wiki
+              </Button>
+            </Link>
+            <span className="text-muted-foreground text-xs">/</span>
+            <Link href={`/wiki/${parentSlug}`}>
+              <Button variant="ghost" size="sm" data-testid="button-back-parent">
+                {parentSlug.charAt(0).toUpperCase() + parentSlug.slice(1)}
+              </Button>
+            </Link>
+          </>
+        ) : (
+          <Link href="/wiki">
+            <Button variant="ghost" size="sm" data-testid="button-back">
+              <ArrowLeft className="h-3 w-3 mr-1" />
+              Wiki
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
@@ -98,6 +127,30 @@ export default function CategoryView() {
       </div>
       {category.description && (
         <p className="text-sm text-muted-foreground">{category.description}</p>
+      )}
+
+      {subcategories.length > 0 && (
+        <section className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Subcategories</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {subcategories.map((sub) => (
+              <Link key={sub.id} href={`/wiki/${category.slug}/${sub.slug}`}>
+                <Card
+                  className="hover-elevate active-elevate-2 cursor-pointer overflow-visible"
+                  data-testid={`card-subcategory-${sub.id}`}
+                >
+                  <CardContent className="p-3 flex items-center gap-2">
+                    <FolderOpen className="h-4 w-4 text-primary shrink-0" />
+                    <span className="text-sm font-medium">{sub.name}</span>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
 
       <div className="text-xs text-muted-foreground">

@@ -45,6 +45,7 @@ export const categories = pgTable("categories", {
   slug: text("slug").notNull().unique(),
   description: text("description"),
   icon: text("icon"),
+  parentId: integer("parent_id"),
 });
 
 export const articles = pgTable("articles", {

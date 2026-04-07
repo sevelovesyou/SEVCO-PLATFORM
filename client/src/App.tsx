@@ -29,7 +29,8 @@ import ArticleView from "@/pages/article-view";
 import ArticleEditor from "@/pages/article-editor";
 import SearchPage from "@/pages/search";
 import ReviewQueue from "@/pages/review-queue";
-import CategoryView from "@/pages/category-view";
+import CategoryView, { type CategoryWithArticles } from "@/pages/category-view";
+import type { Category } from "@shared/schema";
 import AuthPage from "@/pages/auth-page";
 import VerifyEmailPage from "@/pages/verify-email-page";
 import AccountPage from "@/pages/account-page";
@@ -113,14 +114,56 @@ import { FloatingMusicPlayer } from "@/components/floating-music-player";
 
 function WikiSlugView({ params }: { params?: { slug?: string } }) {
   const slug = params?.slug;
-  const { data: category, isLoading, isError } = useQuery<{ id: number } | null>({
+  const [, navigate] = useLocation();
+
+  const { data: category, isLoading, isError } = useQuery<CategoryWithArticles | null>({
     queryKey: ["/api/categories", slug],
     enabled: !!slug,
     retry: false,
   });
 
+  const allCatsQuery = useQuery<Category[]>({
+    queryKey: ["/api/categories"],
+    enabled: !!category?.parentId,
+  });
+
+  useEffect(() => {
+    if (category?.parentId && allCatsQuery.data) {
+      const parent = allCatsQuery.data.find((c) => c.id === category.parentId);
+      if (parent) {
+        navigate(`/wiki/${parent.slug}/${category.slug}`, { replace: true });
+      }
+    }
+  }, [category, allCatsQuery.data]);
+
   if (isLoading) return null;
-  if (!isError && category) return <CategoryView />;
+  if (!isError && category && !category.parentId) return <CategoryView />;
+  if (!isError && category?.parentId) {
+    if (allCatsQuery.isError || (allCatsQuery.data && !allCatsQuery.data.find((c) => c.id === category.parentId))) {
+      return <CategoryView />;
+    }
+    return null;
+  }
+  return <ArticleView />;
+}
+
+function WikiDoubleSlugView({ params }: { params?: { categorySlug?: string; articleSlug?: string } }) {
+  const parentSlug = params?.categorySlug;
+  const childSlug = params?.articleSlug;
+
+  const { data: subcatData, isLoading } = useQuery<CategoryWithArticles | null>({
+    queryKey: ["/api/categories", parentSlug, childSlug],
+    queryFn: () =>
+      fetch(`/api/categories/${parentSlug}/${childSlug}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+    enabled: !!parentSlug && !!childSlug,
+    retry: false,
+    staleTime: 60_000,
+  });
+
+  if (isLoading) return null;
+  if (subcatData) return <CategoryView overrideData={subcatData} />;
   return <ArticleView />;
 }
 
@@ -183,11 +226,11 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/wiki" component={Home} />
       <Route path="/wiki/archive" component={() => <ProtectedRoute><WikiArchivePage /></ProtectedRoute>} />
-      <Route path="/wiki/engineering/platform" component={() => <Redirect to="/wiki/sevco-platform" />} />
+      <Route path="/wiki/engineering/platform" component={() => <Redirect to="/wiki/engineering/sevco-platform" />} />
       <Route path="/category/:slug">
         {(params: { slug: string }) => <Redirect to={`/wiki/${params.slug}`} />}
       </Route>
-      <Route path="/wiki/:categorySlug/:articleSlug" component={ArticleView} />
+      <Route path="/wiki/:categorySlug/:articleSlug" component={WikiDoubleSlugView} />
       <Route path="/wiki/:slug" component={WikiSlugView} />
       <Route path="/search" component={SearchPage} />
       <Route path="/music" component={MusicPage} />

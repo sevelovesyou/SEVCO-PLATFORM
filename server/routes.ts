@@ -892,6 +892,14 @@ const ENGINEERING_TASKS: EngineeringTask[] = [
   },
 ];
 
+async function seedSevcoplatformParentId() {
+  const engCat = await storage.getCategoryBySlug("engineering");
+  const platformCat = await storage.getCategoryBySlug("sevco-platform");
+  if (engCat && platformCat && !platformCat.parentId) {
+    await storage.updateCategoryParent(platformCat.id, engCat.id);
+  }
+}
+
 async function seedEngineeringWikiArticles() {
   let engCategory = await storage.getCategoryBySlug("engineering");
   if (!engCategory) {
@@ -1498,6 +1506,7 @@ export async function registerRoutes(
   seedJobs().catch(console.error);
   seedEngineeringWikiArticles()
     .then(() => updateEngineeringArticleVersions())
+    .then(() => seedSevcoplatformParentId())
     .catch(console.error);
   // seedTaskChangelogEntries adds milestone-style entries (tasks 43–55) with eng-task-* slugs.
   // seedAllTasksToChangelog is the canonical seeder for all 191 platform tasks with platform-task-* slugs.
@@ -1653,11 +1662,24 @@ export async function registerRoutes(
     res.json(cats);
   });
 
+  app.get("/api/categories/:parentSlug/:childSlug", async (req, res) => {
+    const parent = await storage.getCategoryBySlug(req.params.parentSlug);
+    if (!parent) return res.status(404).json({ message: "Parent category not found" });
+    const allCats = await storage.getCategories();
+    const child = allCats.find((c) => c.slug === req.params.childSlug && c.parentId === parent.id);
+    if (!child) return res.status(404).json({ message: "Subcategory not found" });
+    const catArticles = await storage.getArticlesByCategory(child.id);
+    const subchildren = allCats.filter((c) => c.parentId === child.id);
+    res.json({ ...child, articles: catArticles.filter((a) => a.status !== "archived"), subcategories: subchildren });
+  });
+
   app.get("/api/categories/:slug", async (req, res) => {
     const cat = await storage.getCategoryBySlug(req.params.slug);
     if (!cat) return res.status(404).json({ message: "Category not found" });
     const catArticles = await storage.getArticlesByCategory(cat.id);
-    res.json({ ...cat, articles: catArticles.filter((a) => a.status !== "archived") });
+    const allCats = await storage.getCategories();
+    const subcategories = allCats.filter((c) => c.parentId === cat.id);
+    res.json({ ...cat, articles: catArticles.filter((a) => a.status !== "archived"), subcategories });
   });
 
   app.get("/api/articles/archived", requireAuth, requireRole(...CAN_ACCESS_ARCHIVE), async (_req, res) => {

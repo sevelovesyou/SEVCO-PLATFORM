@@ -22199,3 +22199,37 @@ title: Social Sparks — notifications & leaderboard
 
 ---
 
+## Task — seed-feature-articles-on-startup
+> Merged: 2026-04-07
+
+# Seed Feature Articles on Server Startup
+
+  ## What & Why
+  The 25 SEVCO Platform feature-area wiki articles were created directly in the dev database via a one-time manual script, but there is no server startup function that creates them in a fresh environment (including production). As a result, the production wiki is empty. The fix is to add a `seedFeatureArticles()` startup function — the same idempotent pattern used by all other seed functions — that creates the 25 articles if they do not already exist.
+
+  ## Done looks like
+  - On every server start, if the sentinel article (`authentication-access-control`) is missing, all 25 feature articles are created in the SEVCO Platform category (ID 12)
+  - If the articles already exist, the function skips silently (idempotent)
+  - The production wiki shows 25 feature-area articles immediately after the next deployment/restart
+  - No articles are recreated on subsequent restarts
+
+  ## Out of scope
+  - Changing the content of the articles (they are defined in the existing seeding script)
+  - Creating new articles beyond the 25 already defined
+
+  ## Tasks
+  1. **Add seedFeatureArticles() to server/seed.ts** — Port the 25 article definitions from `scripts/seed-feature-articles.js` into a new exported TypeScript function. Use the same slug-check sentinel pattern (`authentication-access-control`) to skip if already seeded. Use Drizzle ORM / storage to insert articles into category ID 12 (SEVCO Platform) with status published.
+
+  2. **Call seedFeatureArticles() in server/index.ts startup** — Import and call the new function in the startup sequence alongside the other seed calls (e.g., after `seedProjects`), with a `.catch()` error handler matching the existing pattern.
+
+  3. **Add seedFeatureArticles to runStartupMigrations or the startup chain comment** — Update the comment at line 487 in server/index.ts (currently "runWikiSeed disabled...") to reflect that seedFeatureArticles handles this now.
+
+  ## Relevant files
+  - `scripts/seed-feature-articles.js` — source of all 25 article definitions (content, slug, title, summary, tags)
+  - `server/seed.ts` — add the new seedFeatureArticles() function here
+  - `server/index.ts:475-490` — startup sequence where the call is added
+  - `server/storage.ts` — createArticle() method for inserting articles
+
+
+---
+

@@ -86,6 +86,7 @@ export default function ArticleEditor() {
   const [tagInput, setTagInput] = useState("");
   const [infoboxFields, setInfoboxFields] = useState<Array<{ key: string; value: string }>>([]);
   const [citations, setCitations] = useState<Array<{ title: string; url: string; text: string; format: string }>>([]);
+  const [selectedParentCategoryId, setSelectedParentCategoryId] = useState<number | null>(null);
 
   const { data: article } = useQuery<Article & { citations?: Citation[] }>({
     queryKey: ["/api/articles", slug],
@@ -110,7 +111,13 @@ export default function ArticleEditor() {
   });
 
   useEffect(() => {
-    if (article) {
+    if (article && categories) {
+      const artCat = categories.find((c) => c.id === article.categoryId);
+      if (artCat?.parentId) {
+        setSelectedParentCategoryId(artCat.parentId);
+      } else if (artCat) {
+        setSelectedParentCategoryId(artCat.id);
+      }
       form.reset({
         title: article.title,
         slug: article.slug,
@@ -140,7 +147,7 @@ export default function ArticleEditor() {
         );
       }
     }
-  }, [article, form]);
+  }, [article, categories, form]);
 
   const titleValue = form.watch("title");
   useEffect(() => {
@@ -312,33 +319,63 @@ export default function ArticleEditor() {
           />
 
           <div className="grid md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="categoryId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <Select
-                    onValueChange={(v) => field.onChange(v ? Number(v) : null)}
-                    value={field.value?.toString() || ""}
-                  >
-                    <FormControl>
-                      <SelectTrigger data-testid="select-category">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {categories?.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id.toString()}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
+            <div className="space-y-3">
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select
+                  onValueChange={(v) => {
+                    const id = v ? Number(v) : null;
+                    setSelectedParentCategoryId(id);
+                    form.setValue("categoryId", id);
+                  }}
+                  value={selectedParentCategoryId?.toString() || ""}
+                >
+                  <SelectTrigger data-testid="select-category">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories?.filter((c) => !c.parentId).map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id.toString()}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormItem>
+              {selectedParentCategoryId && (categories ?? []).some((c) => c.parentId === selectedParentCategoryId) && (
+                <FormField
+                  control={form.control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Subcategory <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
+                      <Select
+                        onValueChange={(v) => field.onChange(v ? Number(v) : selectedParentCategoryId)}
+                        value={
+                          field.value && field.value !== selectedParentCategoryId
+                            ? field.value.toString()
+                            : ""
+                        }
+                      >
+                        <FormControl>
+                          <SelectTrigger data-testid="select-subcategory">
+                            <SelectValue placeholder="Select subcategory" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories?.filter((c) => c.parentId === selectedParentCategoryId).map((sub) => (
+                            <SelectItem key={sub.id} value={sub.id.toString()}>
+                              {sub.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               )}
-            />
+            </div>
             <FormField
               control={form.control}
               name="infoboxType"

@@ -21266,3 +21266,242 @@ Wiki
 
 ---
 
+## Task — task-266
+> Merged: 2026-04-07
+
+---
+title: Wiki: full menu and category structure redesign with collapsible sidebar
+---
+# Task: Wiki full menu and category structure redesign
+
+## Background
+
+The wiki sidebar needs a major restructure with a defined category/subcategory
+hierarchy. This task covers:
+1. Seeding the DB with the new category/subcategory structure
+2. Redesigning the sidebar layout
+3. Adding a subcategory dropdown to the New Article form
+4. Recategorizing existing articles where appropriate
+
+## Desired Sidebar Structure
+
+```
+Main (/wiki — formerly "Home")
+Search
+New Article
+Wikify
+Review Queue
+
+General ^
+  - Projects (Overview of each Project)
+  - Services (Overview of each Service)
+  - Legal (TOS, Privacy, Refunds, etc)
+  - Resources
+
+Operations ^
+  - Processes & Workflows
+  - Suppliers & Partners
+  - Compliance
+  - Onboarding
+  - Finance
+  - Resources
+
+Engineering ^
+  - SEVCO Platform
+  - XWEET
+  - SEVBOOKS
+  - Directr
+  - Arc
+  - SEVCO SPHERE
+  - Resources
+
+Design ^
+  - SEVCO
+  - Brands
+  - UI/UX
+  - Resources
+
+Sales ^
+  - Processes
+  - Client Onboarding
+  - Market Research
+  - Resources
+
+Support ^
+  - How To
+  - Escalation Process
+  - FAQ
+  - Resources
+
+Recent Articles
+  - (3 most recent)
+
+Archive
+  - (most recently archived article)
+```
+
+Notes:
+- **Remove** "Changelog" from sidebar menu
+- **Remove** "Archive" from top nav; it moves to the bottom of the sidebar as
+  a standalone section showing the most recently archived article
+- Main categories (General, Operations, Engineering, Design, Sales, Support)
+  have a collapsible chevron (^) — expand/collapse their subcategories
+- "Engineering" category already exists in DB; SEVCO Platform is an existing
+  subcategory. Preserve existing slugs for Engineering and SEVCO Platform.
+
+## Part 1 — Database Seeding
+
+In `server/routes.ts` (or a dedicated seeder), add/verify categories and
+subcategories in the DB. The seeder should be idempotent (INSERT ... ON CONFLICT DO NOTHING).
+
+**Main categories to create** (if not already existing):
+- General (slug: `general`, icon: `Layers`)
+- Operations (slug: `operations`, icon: `Settings`)
+- Engineering (slug: `engineering`, icon: `Code2`) ← ALREADY EXISTS, preserve
+- Design (slug: `design`, icon: `Palette`)
+- Sales (slug: `sales`, icon: `TrendingUp`)
+- Support (slug: `support`, icon: `LifeBuoy`)
+
+**Subcategories to create** (parentId = parent category's id):
+
+General subcategories:
+- Projects (slug: `general-projects`, parent: general)
+- Services (slug: `general-services`, parent: general)
+- Legal (slug: `legal`, parent: general)
+- Resources (slug: `general-resources`, parent: general)
+
+Operations subcategories:
+- Processes & Workflows (slug: `operations-processes`, parent: operations)
+- Suppliers & Partners (slug: `operations-suppliers`, parent: operations)
+- Compliance (slug: `operations-compliance`, parent: operations)
+- Onboarding (slug: `operations-onboarding`, parent: operations)
+- Finance (slug: `operations-finance`, parent: operations)
+- Resources (slug: `operations-resources`, parent: operations)
+
+Engineering subcategories:
+- SEVCO Platform (slug: `sevco-platform`, parent: engineering) ← ALREADY EXISTS, preserve
+- XWEET (slug: `engineering-xweet`, parent: engineering)
+- SEVBOOKS (slug: `engineering-sevbooks`, parent: engineering)
+- Directr (slug: `engineering-directr`, parent: engineering)
+- Arc (slug: `engineering-arc`, parent: engineering)
+- SEVCO SPHERE (slug: `engineering-sevco-sphere`, parent: engineering)
+- Resources (slug: `engineering-resources`, parent: engineering)
+
+Design subcategories:
+- SEVCO (slug: `design-sevco`, parent: design)
+- Brands (slug: `design-brands`, parent: design)
+- UI/UX (slug: `design-uiux`, parent: design)
+- Resources (slug: `design-resources`, parent: design)
+
+Sales subcategories:
+- Processes (slug: `sales-processes`, parent: sales)
+- Client Onboarding (slug: `sales-onboarding`, parent: sales)
+- Market Research (slug: `sales-research`, parent: sales)
+- Resources (slug: `sales-resources`, parent: sales)
+
+Support subcategories:
+- How To (slug: `support-howto`, parent: support)
+- Escalation Process (slug: `support-escalation`, parent: support)
+- FAQ (slug: `support-faq`, parent: support)
+- Resources (slug: `support-resources`, parent: support)
+
+**Do NOT** add Legal as a top-level category — it becomes a subcategory under General.
+
+## Part 2 — Sidebar Redesign (`client/src/components/app-sidebar.tsx`)
+
+### Top section (static links)
+- Main (home icon, links to `/wiki`)
+- Search (links to `/search`)
+- New Article (links to `/wiki/new`) ← updated URL per Task #263
+- Wikify (links to `/wikify`)
+- Review Queue (links to `/wiki/review`) ← updated URL per Task #263 + staff+ only
+
+### Middle section (dynamic categories)
+Replace the current flat category list with a collapsible tree:
+- Fetch categories from `/api/categories` (returns all with parentId)
+- Group: main categories (parentId = null) + their subcategories
+- Each main category renders as a collapsible section (use shadcn `Collapsible` or
+  simple useState toggle)
+- Subcategories render as indented links under their parent
+
+Category links:
+- Main category header: `/wiki/:mainSlug` (e.g., `/wiki/engineering`)
+- Subcategory link: `/wiki/:mainSlug/:subSlug` (e.g., `/wiki/engineering/sevco-platform`)
+
+Collapsible state: persist to localStorage so user's expand/collapse is remembered.
+Default state: all collapsed.
+
+### Recent Articles section
+Already exists in sidebar — keep it (shows 3 most recent). Place it AFTER the
+categories section.
+
+### Archive section (bottom)
+Add a new bottom section showing:
+- "Archive" label with link to `/wiki/archive`
+- The single most recently archived article (from `/api/articles/recent?archived=true&limit=1`
+  or similar) as a link
+
+### Remove from sidebar
+- Changelog link
+- Archive link from top nav section (it moves to bottom)
+
+## Part 3 — New Article Form (`client/src/pages/article-editor.tsx`)
+
+Add a **Subcategory** dropdown to the article creation form:
+
+1. When user selects a Category, fetch subcategories for that category
+   (filter from `useQuery("/api/categories")` where `parentId === selectedCategoryId`)
+2. Show a "Subcategory (optional)" select dropdown below the Category select
+3. When a subcategory is selected, store its `categoryId` as the article's category
+   (subcategories ARE categories in the DB with their own id)
+4. The subcategory select should reset when the parent category changes
+
+The article's `categoryId` field already supports subcategory IDs — no schema change
+needed.
+
+## Part 4 — Recategorize existing articles
+
+After seeding, check if any existing articles are in categories that no longer
+make sense (e.g., articles in the old top-level "Legal" category should move to
+the new `legal` subcategory under General). Do this in the seeder:
+
+```sql
+UPDATE articles
+SET category_id = (SELECT id FROM categories WHERE slug = 'legal')
+WHERE category_id = (SELECT id FROM categories WHERE slug = 'legal' AND parent_id IS NOT NULL)
+```
+
+The key existing article assignments to check:
+- Any articles in old top-level "Legal" → move to `general > legal` subcategory
+- SEVCO Platform articles → stay in `engineering > sevco-platform` (already correct)
+
+## Part 5 — Home page category cards (`client/src/pages/home.tsx`)
+
+The hardcoded category cards on the wiki home page should now show the 6 main
+categories (General, Operations, Engineering, Design, Sales, Support) instead of
+whatever was there before. Update the hardcoded entries to match and update the
+"SEVCO Platform" card link to `/wiki/engineering/sevco-platform`.
+
+## Files to Edit
+
+- `server/routes.ts` — seeder for new categories/subcategories
+- `client/src/components/app-sidebar.tsx` — sidebar redesign
+- `client/src/pages/article-editor.tsx` — subcategory dropdown
+- `client/src/pages/home.tsx` — category cards update
+
+## Acceptance Criteria
+
+- [ ] DB has all 6 main categories and their subcategories seeded (idempotent)
+- [ ] Sidebar shows Main, Search, New Article, Wikify, Review Queue at top
+- [ ] Sidebar shows 6 collapsible main categories with their subcategories
+- [ ] Changelog link removed from sidebar
+- [ ] Archive moved to the bottom section of sidebar
+- [ ] Recent Articles section remains after the categories
+- [ ] Category expand/collapse state persists across page refreshes
+- [ ] New Article form has a subcategory dropdown (populated based on parent category)
+- [ ] Home page category cards show the 6 main categories
+- [ ] SEVCO Platform card links to `/wiki/engineering/sevco-platform`
+
+
+---
+

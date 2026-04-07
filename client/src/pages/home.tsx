@@ -18,6 +18,9 @@ import {
   Palette,
   Music,
   Bot,
+  Settings,
+  Code2,
+  LifeBuoy,
 } from "lucide-react";
 import type { Article, Category } from "@shared/schema";
 import { articleUrl } from "@/lib/wiki-urls";
@@ -168,48 +171,32 @@ export default function Home() {
             Categories
           </h2>
           <div className="flex flex-col gap-3">
-            <Link href="/wiki/sevco-platform">
-              <Card
-                className="p-3 hover-elevate active-elevate-2 cursor-pointer overflow-visible border-primary/20 bg-primary/5"
-                data-testid="card-category-sevco-platform"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Layers className="h-4 w-4 text-primary shrink-0" />
-                    <div>
-                      <h3 className="text-sm font-medium">SEVCO Platform</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">Complete platform development history — 191+ tasks documented</p>
-                    </div>
-                  </div>
-                  <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
-                </div>
-              </Card>
-            </Link>
-            {catLoading
-              ? Array.from({ length: 4 }).map((_, i) => (
-                  <Card key={i} className="p-3 overflow-visible">
-                    <Skeleton className="h-5 w-1/2 mb-1" />
-                    <Skeleton className="h-3 w-3/4" />
-                  </Card>
-                ))
-              : categories?.filter((cat) => cat.slug !== "sevco-platform").map((cat) => (
-                  <Link key={cat.id} href={`/wiki/${cat.slug}`}>
-                    <Card
-                      className="p-3 hover-elevate active-elevate-2 cursor-pointer overflow-visible"
-                      data-testid={`card-category-${cat.slug}`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <h3 className="text-sm font-medium">{cat.name}</h3>
-                          {cat.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{cat.description}</p>
-                          )}
-                        </div>
-                        <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+            {[
+              { slug: "general",     name: "General",     icon: Layers,     href: "/wiki/general",     description: "Projects, services, legal, and general resources." },
+              { slug: "operations",  name: "Operations",  icon: Settings,   href: "/wiki/operations",   description: "Processes, suppliers, compliance, onboarding, and finance." },
+              { slug: "engineering", name: "Engineering", icon: Code2,      href: "/wiki/engineering/sevco-platform",  description: "Platform development, projects, and technical docs." },
+              { slug: "design",      name: "Design",      icon: Palette,    href: "/wiki/design",       description: "Brand guidelines, UI/UX, and design resources." },
+              { slug: "sales",       name: "Sales",       icon: TrendingUp, href: "/wiki/sales",        description: "Sales processes, client onboarding, and market research." },
+              { slug: "support",     name: "Support",     icon: LifeBuoy,   href: "/wiki/support",      description: "How-to guides, escalation processes, and FAQ." },
+            ].map((cat) => (
+              <Link key={cat.slug} href={cat.href}>
+                <Card
+                  className={`p-3 hover-elevate active-elevate-2 cursor-pointer overflow-visible${cat.slug === "engineering" ? " border-primary/20 bg-primary/5" : ""}`}
+                  data-testid={`card-category-${cat.slug}`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <cat.icon className={`h-4 w-4 shrink-0${cat.slug === "engineering" ? " text-primary" : " text-muted-foreground"}`} />
+                      <div>
+                        <h3 className="text-sm font-medium">{cat.name}</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">{cat.description}</p>
                       </div>
-                    </Card>
-                  </Link>
-                ))}
+                    </div>
+                    <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                  </div>
+                </Card>
+              </Link>
+            ))}
           </div>
         </div>
       </div>

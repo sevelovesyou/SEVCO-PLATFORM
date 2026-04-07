@@ -1495,6 +1495,85 @@ async function seedAllTasksToChangelog() {
   }
 }
 
+async function seedWikiCategories() {
+  const MAIN_CATEGORIES = [
+    { name: "General",     slug: "general",     icon: "Layers",     description: "General knowledge base articles covering projects, services, legal, and resources." },
+    { name: "Operations",  slug: "operations",  icon: "Settings",   description: "Operational processes, supplier relations, compliance, onboarding, and finance." },
+    { name: "Engineering", slug: "engineering", icon: "Code2",      description: "Internal engineering task documentation and platform development history." },
+    { name: "Design",      slug: "design",      icon: "Palette",    description: "Design resources, brand guidelines, and UI/UX documentation." },
+    { name: "Sales",       slug: "sales",       icon: "TrendingUp", description: "Sales processes, client onboarding, and market research." },
+    { name: "Support",     slug: "support",     icon: "LifeBuoy",   description: "How-to guides, escalation processes, and frequently asked questions." },
+  ];
+
+  const SUBCATEGORIES: { name: string; slug: string; parentSlug: string }[] = [
+    { name: "Projects",           slug: "general-projects",        parentSlug: "general" },
+    { name: "Services",           slug: "general-services",        parentSlug: "general" },
+    { name: "Legal",              slug: "legal",                   parentSlug: "general" },
+    { name: "Resources",          slug: "general-resources",       parentSlug: "general" },
+    { name: "Processes & Workflows", slug: "operations-processes", parentSlug: "operations" },
+    { name: "Suppliers & Partners",  slug: "operations-suppliers", parentSlug: "operations" },
+    { name: "Compliance",         slug: "operations-compliance",   parentSlug: "operations" },
+    { name: "Onboarding",         slug: "operations-onboarding",   parentSlug: "operations" },
+    { name: "Finance",            slug: "operations-finance",      parentSlug: "operations" },
+    { name: "Resources",          slug: "operations-resources",    parentSlug: "operations" },
+    { name: "SEVCO Platform",     slug: "sevco-platform",          parentSlug: "engineering" },
+    { name: "XWEET",              slug: "engineering-xweet",       parentSlug: "engineering" },
+    { name: "SEVBOOKS",           slug: "engineering-sevbooks",    parentSlug: "engineering" },
+    { name: "Directr",            slug: "engineering-directr",     parentSlug: "engineering" },
+    { name: "Arc",                slug: "engineering-arc",         parentSlug: "engineering" },
+    { name: "SEVCO SPHERE",       slug: "engineering-sevco-sphere",parentSlug: "engineering" },
+    { name: "Resources",          slug: "engineering-resources",   parentSlug: "engineering" },
+    { name: "SEVCO",              slug: "design-sevco",            parentSlug: "design" },
+    { name: "Brands",             slug: "design-brands",           parentSlug: "design" },
+    { name: "UI/UX",              slug: "design-uiux",             parentSlug: "design" },
+    { name: "Resources",          slug: "design-resources",        parentSlug: "design" },
+    { name: "Processes",          slug: "sales-processes",         parentSlug: "sales" },
+    { name: "Client Onboarding",  slug: "sales-onboarding",        parentSlug: "sales" },
+    { name: "Market Research",    slug: "sales-research",          parentSlug: "sales" },
+    { name: "Resources",          slug: "sales-resources",         parentSlug: "sales" },
+    { name: "How To",             slug: "support-howto",           parentSlug: "support" },
+    { name: "Escalation Process", slug: "support-escalation",     parentSlug: "support" },
+    { name: "FAQ",                slug: "support-faq",             parentSlug: "support" },
+    { name: "Resources",          slug: "support-resources",       parentSlug: "support" },
+  ];
+
+  await db.execute(sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS parent_id integer`);
+  await db.execute(sql`ALTER TABLE categories DROP CONSTRAINT IF EXISTS categories_name_unique`);
+
+  for (const cat of MAIN_CATEGORIES) {
+    await db.execute(sql`
+      INSERT INTO categories (name, slug, icon, description)
+      VALUES (${cat.name}, ${cat.slug}, ${cat.icon}, ${cat.description})
+      ON CONFLICT (slug) DO NOTHING
+    `);
+  }
+
+  for (const sub of SUBCATEGORIES) {
+    const parent = await storage.getCategoryBySlug(sub.parentSlug);
+    if (!parent) continue;
+    await db.execute(sql`
+      INSERT INTO categories (name, slug, parent_id)
+      VALUES (${sub.name}, ${sub.slug}, ${parent.id})
+      ON CONFLICT (slug) DO NOTHING
+    `);
+    const existing = await storage.getCategoryBySlug(sub.slug);
+    if (existing && existing.parentId !== parent.id) {
+      await storage.updateCategoryParent(existing.id, parent.id);
+    }
+  }
+
+  const legalSubcat = await storage.getCategoryBySlug("legal");
+  if (legalSubcat) {
+    await db.execute(sql`
+      UPDATE articles
+      SET category_id = ${legalSubcat.id}
+      WHERE category_id IN (
+        SELECT id FROM categories WHERE slug = 'legal' AND parent_id IS NOT NULL
+      )
+    `);
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -1510,6 +1589,7 @@ export async function registerRoutes(
   seedEngineeringWikiArticles()
     .then(() => updateEngineeringArticleVersions())
     .then(() => seedSevcoplatformParentId())
+    .then(() => seedWikiCategories())
     .catch(console.error);
   // seedTaskChangelogEntries adds milestone-style entries (tasks 43–55) with eng-task-* slugs.
   // seedAllTasksToChangelog is the canonical seeder for all 191 platform tasks with platform-task-* slugs.

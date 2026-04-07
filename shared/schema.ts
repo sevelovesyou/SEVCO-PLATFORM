@@ -41,7 +41,7 @@ export const users = pgTable("users", {
 
 export const categories = pgTable("categories", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  name: text("name").notNull().unique(),
+  name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   description: text("description"),
   icon: text("icon"),

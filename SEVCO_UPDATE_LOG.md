@@ -20648,3 +20648,217 @@ navigate(articleUrl(result));
 
 ---
 
+## Task — wiki-subcategory-support
+> Merged: 2026-04-07
+
+# Task: Wiki subcategory support — Engineering > SEVCO Platform
+
+## Goal
+- Make "SEVCO Platform" a subcategory of "Engineering" (`parentId` already exists in schema)
+- Canonical URL for the subcategory: `/wiki/engineering/sevco-platform`
+- Existing `/wiki/sevco-platform` URL redirects to the canonical subcategory URL
+- Category pages show their subcategories in a dedicated section
+- The 2-segment route (currently articles only) gains disambiguation to also handle subcategory pages
+
+---
+
+## Step 1 — Seed `parentId` on sevco-platform
+
+In `server/routes.ts` (or `server/storage.ts`) where categories are seeded, add:
+```ts
+const engCat = await storage.getCategoryBySlug("engineering");
+const platformCat = await storage.getCategoryBySlug("sevco-platform");
+if (engCat && platformCat && !platformCat.parentId) {
+  await db.update(categories)
+    .set({ parentId: engCat.id })
+    .where(eq(categories.id, platformCat.id));
+}
+```
+This is a one-time safe update (guarded by `!platformCat.parentId`).
+
+---
+
+## Step 2 — Backend API changes
+
+### `GET /api/categories` — include `parentId` in response
+Already returned since it's part of the category table row. Confirm `parentId` is included.
+
+### `GET /api/categories/:slug` — include subcategories
+Update the route to also return a `subcategories` array:
+```ts
+app.get("/api/categories/:slug", async (req, res) => {
+  const cat = await storage.getCategoryBySlug(req.params.slug);
+  if (!cat) return res.status(404).json({ message: "Not found" });
+  const articles = await storage.getArticlesByCategory(cat.id);
+  const allCats = await storage.getCategories();
+  const subcategories = allCats.filter(c => c.parentId === cat.id);
+  res.json({ ...cat, articles, subcategories });
+});
+```
+
+### New route: `GET /api/categories/:parentSlug/:childSlug`
+Used by `WikiDoubleSlugView` to check if a 2-segment URL is a subcategory:
+```ts
+app.get("/api/categories/:parentSlug/:childSlug", async (req, res) => {
+  const parent = await storage.getCategoryBySlug(req.params.parentSlug);
+  if (!parent) return res.status(404).json({ message: "Parent category not found" });
+  const allCats = await storage.getCategories();
+  const child = allCats.find(c => c.slug === req.params.childSlug && c.parentId === parent.id);
+  if (!child) return res.status(404).json({ message: "Subcategory not found" });
+  const articles = await storage.getArticlesByCategory(child.id);
+  const subchildren = allCats.filter(c => c.parentId === child.id);
+  res.json({ ...child, articles, subcategories: subchildren });
+});
+```
+
+---
+
+## Step 3 — App.tsx routing
+
+Replace the hard route for article 2-segment URLs with a `WikiDoubleSlugView` that
+disambiguates between subcategory pages and article pages — same pattern as `WikiSlugView`.
+
+```tsx
+function WikiDoubleSlugView({ params }: { params?: { categorySlug?: string; articleSlug?: string } }) {
+  const parentSlug = params?.categorySlug;
+  const childSlug = params?.articleSlug;
+
+  // Check if childSlug is a subcategory of parentSlug
+  const { data: subcatData, isLoading } = useQuery({
+    queryKey: ["/api/categories", parentSlug, childSlug],
+    queryFn: () => fetch(`/api/categories/${parentSlug}/${childSlug}`)
+      .then(r => r.ok ? r.json() : null),
+    enabled: !!parentSlug && !!childSlug,
+    retry: false,
+    staleTime: 60_000,
+  });
+
+  if (isLoading) return <FullPageSkeleton />;
+  if (subcatData) return <CategoryView overrideData={subcatData} />;   // subcategory found → show category page
+  return <ArticleView />;  // not a subcategory → show article
+}
+```
+
+Route order in App.tsx:
+```tsx
+<Route path="/wiki" component={Home} />
+<Route path="/wiki/archive" component={WikiArchivePage} />
+<Route path="/wiki/:categorySlug/:articleSlug" component={WikiDoubleSlugView} />  {/* disambiguates */}
+<Route path="/wiki/:slug" component={WikiSlugView} />  {/* disambiguates category vs article */}
+```
+
+---
+
+## Step 4 — CategoryView changes (`client/src/pages/category-view.tsx`)
+
+### Accept `overrideData` prop (from WikiDoubleSlugView)
+Since the subcategory data is already fetched in `WikiDoubleSlugView`, avoid double-fetching:
+```tsx
+export default function CategoryView({ overrideData }: { overrideData?: CategoryWithArticles }) {
+  const [, paramsTwo] = useRoute("/wiki/:parentSlug/:childSlug");
+  const [, paramsOne] = useRoute("/wiki/:slug");
+  const slug = paramsTwo?.childSlug ?? paramsOne?.slug;
+
+  const { data: fetchedData, isLoading } = useQuery<CategoryWithArticles>({
+    queryKey: ["/api/categories", slug],
+    enabled: !!slug && !overrideData,
+  });
+
+  const category = overrideData ?? fetchedData;
+  ...
+```
+
+### Show subcategories section
+Above the articles list, add a "Subcategories" section when `category.subcategories` is non-empty:
+```tsx
+{category.subcategories?.length > 0 && (
+  <section>
+    <h2>Subcategories</h2>
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      {category.subcategories.map(sub => (
+        <Link key={sub.id} href={`/wiki/${category.slug}/${sub.slug}`}>
+          <Card>
+            <CardContent>{sub.name}</CardContent>
+          </Card>
+        </Link>
+      ))}
+    </div>
+  </section>
+)}
+```
+
+---
+
+## Step 5 — WikiSlugView fallback redirect (`client/src/App.tsx`)
+
+The existing `/wiki/sevco-platform` URL now needs to redirect to `/wiki/engineering/sevco-platform`.
+`WikiSlugView` already handles the category lookup. Extend it:
+```tsx
+// After resolving the category, check if it has a parent
+useEffect(() => {
+  if (categoryData?.parentId) {
+    const allCats = ...; // need parent slug
+    // Redirect to /wiki/:parentSlug/:categorySlug
+  }
+}, [categoryData]);
+```
+
+**Alternative** (simpler): In `WikiSlugView`, after getting the category, if `category.parentId` exists, fetch the parent to get its slug, then redirect to `/wiki/${parent.slug}/${category.slug}`.
+
+```tsx
+function WikiSlugView({ params }: { params?: { slug?: string } }) {
+  const slug = params?.slug;
+  const [, navigate] = useLocation();
+
+  const { data: categoryData, isLoading: catLoading } = useQuery({
+    queryKey: ["/api/categories", slug],
+    enabled: !!slug,
+    retry: false,
+  });
+
+  // If this is a subcategory, redirect to canonical /wiki/:parent/:child URL
+  const allCatsQuery = useQuery<Category[]>({
+    queryKey: ["/api/categories"],
+    enabled: !!categoryData?.parentId,
+  });
+
+  useEffect(() => {
+    if (categoryData?.parentId && allCatsQuery.data) {
+      const parent = allCatsQuery.data.find(c => c.id === categoryData.parentId);
+      if (parent) navigate(`/wiki/${parent.slug}/${categoryData.slug}`, { replace: true });
+    }
+  }, [categoryData, allCatsQuery.data]);
+
+  ...remaining WikiSlugView logic...
+}
+```
+
+---
+
+## Step 6 — Article links for subcategory articles
+
+Articles in the `sevco-platform` category:
+- Their `articleUrl()` returns `/wiki/sevco-platform/${article.slug}`
+- After redirect, user lands on `/wiki/engineering/sevco-platform/${article.slug}` (3-segment — currently no route)
+
+**This task does NOT add 3-segment article URLs** — that is a separate task.
+For now, the 2-segment fallback `/wiki/sevco-platform/:articleSlug` still works via `WikiSlugView`.
+
+---
+
+## Files to Edit
+- `server/routes.ts` — seed parentId; add GET /api/categories/:parentSlug/:childSlug
+- `client/src/App.tsx` — add WikiDoubleSlugView; update WikiSlugView for subcategory redirect
+- `client/src/pages/category-view.tsx` — accept overrideData prop; show subcategories section
+
+## Acceptance Criteria
+- [ ] `/wiki/engineering` shows "SEVCO Platform" as a subcategory card on the page
+- [ ] `/wiki/engineering/sevco-platform` loads the SEVCO Platform category page
+- [ ] `/wiki/sevco-platform` redirects to `/wiki/engineering/sevco-platform`
+- [ ] Existing articles in sevco-platform category still load (via 2-segment fallback)
+- [ ] No 404s on any existing wiki category or article URLs
+- [ ] Other top-level categories with no subcategories are unaffected
+
+
+---
+

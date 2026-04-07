@@ -821,7 +821,7 @@ function NavSparksBalance() {
         </div>
         <div className="border-t border-border pt-2">
           <Button
-            className="w-full"
+            className="w-full bg-[#0037ff] text-white hover:bg-[#0037ff]/90"
             size="sm"
             onClick={() => { setOpen(false); navigate("/pricing"); }}
             data-testid="button-nav-buy-sparks"

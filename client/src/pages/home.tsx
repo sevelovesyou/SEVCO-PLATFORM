@@ -117,7 +117,7 @@ export default function Home() {
           <div className="shrink-0">
             <Link href="/pricing">
               <Button
-                className="bg-yellow-400 text-yellow-900 hover:bg-yellow-300 font-bold gap-2"
+                className="bg-[#0037ff] text-white hover:bg-[#0037ff]/90 font-bold gap-2"
                 data-testid="button-sparks-cta"
               >
                 ⚡️

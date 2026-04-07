@@ -1606,7 +1606,7 @@ export default function Landing() {
                     <Link href="/sparks">
                       <Button
                         size="lg"
-                        className="bg-amber-500 hover:bg-amber-400 text-black font-semibold gap-2"
+                        className="bg-[#0037ff] hover:bg-[#0037ff]/90 text-white font-semibold gap-2"
                         data-testid="button-get-sparks"
                       >
                         <span>⚡️</span>

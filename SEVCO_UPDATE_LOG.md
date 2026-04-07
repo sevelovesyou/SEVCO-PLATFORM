@@ -21505,3 +21505,44 @@ whatever was there before. Update the hardcoded entries to match and update the
 
 ---
 
+## Task — fix-archive-duplicate-label
+> Merged: 2026-04-07
+
+# Task: Fix duplicate "Archive" label in wiki sidebar
+
+## Problem
+
+The wiki sidebar Archive section shows:
+- A non-clickable "Archive" group label (SidebarGroupLabel)
+- Immediately followed by a clickable "View Archive" link
+
+This produces two "Archive" entries visually. The label is redundant.
+
+## File to Edit
+
+`client/src/components/app-sidebar.tsx`
+
+## Change
+
+Remove the `<SidebarGroupLabel>` from the Archive `<SidebarGroup>` (lines ~302–305):
+
+```tsx
+// Remove this block:
+<SidebarGroupLabel className="flex items-center gap-1.5">
+  <Archive className="h-3 w-3" />
+  Archive
+</SidebarGroupLabel>
+```
+
+The `<SidebarGroupContent>` and its contents (View Archive link + recent archived
+article) remain unchanged.
+
+## Acceptance Criteria
+
+- [ ] The sidebar shows only one Archive entry — the clickable "View Archive" link
+- [ ] The recently archived article still appears below it
+- [ ] No other sidebar sections are affected
+
+
+---
+

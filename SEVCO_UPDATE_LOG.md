@@ -20318,3 +20318,138 @@ The ToolsDropdown call in the right nav keeps ALL the same props it had in the l
 
 ---
 
+## Task — tools-dropdown-layout-fix
+> Merged: 2026-04-07
+
+# Task: Tools dropdown — fix cut-off + reorder footer icons
+
+## Bug 1: Dropdown panel cut off on right side
+
+### Root Cause
+`DropdownPanel` uses `left: rect.left` from `getBoundingClientRect()` to position the portal panel.
+When the trigger (Wrench icon) is near the right edge of the viewport, `left + panelWidth` exceeds `window.innerWidth`, causing the panel to be clipped.
+
+### Fix: Right-align when near right edge
+
+In `DropdownPanel` (in `platform-header.tsx`), update the `useEffect` that calculates coordinates to detect overflow and flip to right-aligned positioning:
+
+```tsx
+useEffect(() => {
+  if (!triggerRef.current) return;
+  const rect = triggerRef.current.getBoundingClientRect();
+  const panelWidth = 256; // w-64 = 256px (or read from the className)
+  const wouldOverflow = rect.left + panelWidth > window.innerWidth - 8;
+  if (wouldOverflow) {
+    // Right-align: panel's right edge = trigger's right edge
+    setCoords({ top: rect.bottom + 6, left: Math.max(8, rect.right - panelWidth) });
+  } else {
+    setCoords({ top: rect.bottom + 6, left: rect.left });
+  }
+}, [triggerRef]);
+```
+
+This ensures the panel never goes off-screen. For all the left-side nav dropdowns (SEVCO, Store, Services, Music, Projects), `rect.left` is small enough that they won't overflow. For the Wrench (far right), it will automatically right-align.
+
+---
+
+## Bug 2: Footer icon layout + order
+
+### Current (wrong):
+```
+Row 1: [Search] [Chat] [Sound] [Slider──────]
+Row 2: [Theme]                              (wraps because flex-wrap)
+```
+
+### Target:
+```
+Row 1: [Search] [Chat] [Theme] [Sound]      (4 icon buttons, no wrapping)
+Row 2: [Slider──────────────────]           (only when sound is enabled)
+```
+
+### Fix in `ToolsDropdown` footer section (around line 729):
+
+Replace the current footer div structure with:
+
+```tsx
+<div className="mt-1 pt-2 border-t border-border/60 px-3 pb-2 space-y-1.5">
+  <TooltipProvider delayDuration={400}>
+    {/* Icon strip — one row, no wrapping */}
+    <div className="flex items-center gap-0.5">
+      {/* Search */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setOpen(false); onSearchOpen(); }} data-testid="dropdown-tools-search">
+            <Search className="h-3.5 w-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Search</TooltipContent>
+      </Tooltip>
+
+      {/* Chat (logged-in only) */}
+      {user && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setOpen(false); onChatOpen(); }} data-testid="dropdown-tools-chat">
+              <MessageCircle className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Chat</TooltipContent>
+        </Tooltip>
+      )}
+
+      {/* Theme toggle — between Chat and Sound */}
+      <ThemeToggle />
+
+      {/* Sound toggle */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onSoundToggle} data-testid="dropdown-tools-sound">
+            {soundEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{soundEnabled ? "Mute" : "Unmute"}</TooltipContent>
+      </Tooltip>
+    </div>
+
+    {/* Volume slider — row 2, only when sound enabled */}
+    {soundEnabled && (
+      <input
+        type="range"
+        min={0}
+        max={1}
+        step={0.05}
+        value={volume}
+        onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+        className="w-full h-1 accent-primary cursor-pointer"
+        aria-label="Volume"
+        data-testid="dropdown-tools-volume-slider"
+      />
+    )}
+  </TooltipProvider>
+
+  <Link href="/tools" onClick={() => setOpen(false)} data-testid="dropdown-tools-view-all">
+    <p className="text-[10px] text-muted-foreground/60 italic hover:text-muted-foreground transition-colors">View all tools →</p>
+  </Link>
+</div>
+```
+
+Key changes from current:
+- `flex-wrap` removed (was causing Theme to fall to line 2)
+- `gap-0.5` instead of `gap-1` (tighter so 4 icons fit comfortably in w-64)
+- `ThemeToggle` moved between Chat and Sound (was at the end)
+- Volume slider moved to its own row BELOW the icon strip, using `w-full` to stretch nicely
+
+---
+
+## Files to Edit
+- `client/src/components/platform-header.tsx` only
+
+## Acceptance Criteria
+- [ ] Tools dropdown panel is never cut off on the right — right-aligns automatically when near viewport edge
+- [ ] Footer row 1 shows exactly: Search | Chat | Theme | Sound — all on one line, no wrapping
+- [ ] Volume slider appears on row 2 (full width) only when sound is enabled
+- [ ] "View all tools →" link remains below everything
+
+
+---
+

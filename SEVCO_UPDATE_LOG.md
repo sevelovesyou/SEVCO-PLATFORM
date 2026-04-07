@@ -21641,3 +21641,109 @@ in Task #262 — it is now redundant because the global default handles it.
 
 ---
 
+## Task — wiki-category-new-article-button
+> Merged: 2026-04-07
+
+# Task: Add "New Article" button to category and subcategory pages
+
+## Feature Description
+
+Users with article creation permission (`canCreateArticle`) should see a
+"+ New Article" button on every category and subcategory page. Clicking it
+opens the article editor with the category/subcategory pre-filled.
+
+## Implementation
+
+### 1. category-view.tsx — Add button to page header
+
+In `client/src/pages/category-view.tsx`, import `usePermission` and add a
+button in the category page header area:
+
+```tsx
+import { usePermission } from "@/hooks/use-permission";
+import { Link } from "wouter";
+import { PlusCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+// Inside CategoryView:
+const { canCreateArticle } = usePermission();
+
+// In the JSX, alongside the category title/description:
+{canCreateArticle && (
+  <Link href={`/wiki/new?categoryId=${category.id}`}>
+    <Button size="sm" variant="outline" className="gap-1.5">
+      <PlusCircle className="h-3.5 w-3.5" />
+      New Article
+    </Button>
+  </Link>
+)}
+```
+
+Place this button in the category page header — right-aligned next to the
+category title, or below the description. Make it visible but not overpowering.
+
+### 2. article-editor.tsx — Read categoryId from URL query params
+
+When the article editor mounts at `/wiki/new?categoryId=<id>`, pre-select
+the category (and subcategory if applicable):
+
+```tsx
+import { useSearch } from "wouter";
+
+// Inside ArticleEditor:
+const searchString = useSearch();
+const searchParams = new URLSearchParams(searchString);
+const prefillCategoryId = searchParams.get("categoryId");
+
+// In the useEffect that runs on mount (when NOT editing an existing article):
+useEffect(() => {
+  if (editArticle || !prefillCategoryId || !categories) return;
+  const numId = Number(prefillCategoryId);
+  const cat = categories.find(c => c.id === numId);
+  if (!cat) return;
+
+  if (cat.parentId) {
+    // Pre-selected category is a subcategory
+    setSelectedParentCategoryId(String(cat.parentId));
+    form.setValue("categoryId", cat.id);
+  } else {
+    // Pre-selected category is a top-level category
+    setSelectedParentCategoryId(String(cat.id));
+    form.setValue("categoryId", cat.id);
+  }
+}, [prefillCategoryId, categories, editArticle]);
+```
+
+This should work for both:
+- Category page button → pre-fills top-level category
+- Subcategory page button → pre-fills the subcategory (with parent expanded)
+
+### 3. Breadcrumb/context in the editor (optional enhancement)
+
+If the editor detects a prefill categoryId, show a small contextual note:
+"Creating in: [Category Name] > [Subcategory Name]" near the category
+selector, so the user knows where the article will be filed.
+
+This is optional — if implementation adds too much complexity, skip it.
+
+## Files to Edit
+
+- `client/src/pages/category-view.tsx` — add "+ New Article" button
+- `client/src/pages/article-editor.tsx` — read `?categoryId=` param + pre-fill
+
+## Acceptance Criteria
+
+- [ ] A "+ New Article" button appears on every category page for users with
+  article creation permission (staff+)
+- [ ] A "+ New Article" button appears on every subcategory page for users with
+  article creation permission
+- [ ] Clicking the button on a category page opens `/wiki/new` with that
+  category pre-selected in the form
+- [ ] Clicking the button on a subcategory page opens `/wiki/new` with the
+  correct parent category and subcategory pre-selected
+- [ ] Users without article creation permission do NOT see the button
+- [ ] The button does not appear for logged-out users
+
+
+---
+

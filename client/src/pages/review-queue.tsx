@@ -102,25 +102,85 @@ export default function ReviewQueue() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: (revisionId: number) =>
-      apiRequest("PATCH", `/api/revisions/${revisionId}`, { status: "approved" }),
+    mutationFn: async (id: number) =>
+      apiRequest("PATCH", `/api/revisions/${id}`, { status: "approved" }),
+
+    onMutate: async (id: number) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/revisions", "pending"] });
+      await queryClient.cancelQueries({ queryKey: ["/api/revisions", "pending-count"] });
+      const previousPending = queryClient.getQueryData<RevisionWithArticle[]>(["/api/revisions", "pending"]);
+      const previousCount = queryClient.getQueryData<{ count: number }>(["/api/revisions", "pending-count"]);
+      queryClient.setQueryData<RevisionWithArticle[]>(
+        ["/api/revisions", "pending"],
+        (old) => (old ?? []).filter((r) => r.id !== id)
+      );
+      queryClient.setQueryData<{ count: number }>(
+        ["/api/revisions", "pending-count"],
+        (old) => ({ count: Math.max(0, (old?.count ?? 1) - 1) })
+      );
+      return { previousPending, previousCount };
+    },
+
+    onError: (_err: unknown, _id: number, context: { previousPending?: RevisionWithArticle[]; previousCount?: { count: number } } | undefined) => {
+      if (context?.previousPending) {
+        queryClient.setQueryData(["/api/revisions", "pending"], context.previousPending);
+      }
+      if (context?.previousCount) {
+        queryClient.setQueryData(["/api/revisions", "pending-count"], context.previousCount);
+      }
+      toast({ title: "Failed to approve", variant: "destructive" });
+    },
+
     onSuccess: () => {
+      toast({ title: "Revision approved and published" });
+    },
+
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/revisions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/revisions", "pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/revisions", "pending-count"] });
       queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
-      toast({ title: "Revision approved and published" });
     },
   });
 
   const rejectMutation = useMutation({
-    mutationFn: (revisionId: number) =>
-      apiRequest("PATCH", `/api/revisions/${revisionId}`, { status: "rejected" }),
+    mutationFn: async (id: number) =>
+      apiRequest("PATCH", `/api/revisions/${id}`, { status: "rejected" }),
+
+    onMutate: async (id: number) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/revisions", "pending"] });
+      await queryClient.cancelQueries({ queryKey: ["/api/revisions", "pending-count"] });
+      const previousPending = queryClient.getQueryData<RevisionWithArticle[]>(["/api/revisions", "pending"]);
+      const previousCount = queryClient.getQueryData<{ count: number }>(["/api/revisions", "pending-count"]);
+      queryClient.setQueryData<RevisionWithArticle[]>(
+        ["/api/revisions", "pending"],
+        (old) => (old ?? []).filter((r) => r.id !== id)
+      );
+      queryClient.setQueryData<{ count: number }>(
+        ["/api/revisions", "pending-count"],
+        (old) => ({ count: Math.max(0, (old?.count ?? 1) - 1) })
+      );
+      return { previousPending, previousCount };
+    },
+
+    onError: (_err: unknown, _id: number, context: { previousPending?: RevisionWithArticle[]; previousCount?: { count: number } } | undefined) => {
+      if (context?.previousPending) {
+        queryClient.setQueryData(["/api/revisions", "pending"], context.previousPending);
+      }
+      if (context?.previousCount) {
+        queryClient.setQueryData(["/api/revisions", "pending-count"], context.previousCount);
+      }
+      toast({ title: "Failed to reject", variant: "destructive" });
+    },
+
     onSuccess: () => {
+      toast({ title: "Revision rejected" });
+    },
+
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/revisions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/revisions", "pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/revisions", "pending-count"] });
-      toast({ title: "Revision rejected" });
     },
   });
 

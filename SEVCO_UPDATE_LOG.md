@@ -21747,3 +21747,123 @@ This is optional — if implementation adds too much complexity, skip it.
 
 ---
 
+## Task — task-270
+> Merged: 2026-04-07
+
+---
+title: Fix: Review Queue — approve/reject buttons persist until page refresh (add optimistic update)
+---
+# Task: Fix — Review Queue buttons persist after approve/reject (stale UI)
+
+## Root Cause
+
+In `client/src/pages/review-queue.tsx`, the `approveMutation` and `rejectMutation`
+call `queryClient.invalidateQueries()` in `onSuccess`. This triggers a background
+refetch, but the UI still renders the old data (with action buttons) until the
+network response returns. On a slow connection this can take 1-3 seconds, and
+even on fast connections the flash is visible.
+
+The fix is to use **optimistic updates** via `onMutate` to immediately remove the
+revision from the pending list in the cache — before the server responds.
+
+## Fix: Optimistic cache update in both mutations
+
+### approveMutation — add onMutate + onError rollback
+
+```tsx
+const approveMutation = useMutation({
+  mutationFn: async (id: number) =>
+    apiRequest("PATCH", `/api/revisions/${id}`, { status: "approved" }),
+
+  // Optimistically remove from pending list immediately
+  onMutate: async (id: number) => {
+    await queryClient.cancelQueries({ queryKey: ["/api/revisions", "pending"] });
+    const previousPending = queryClient.getQueryData<Revision[]>(["/api/revisions", "pending"]);
+    queryClient.setQueryData<Revision[]>(
+      ["/api/revisions", "pending"],
+      (old) => (old ?? []).filter((r) => r.id !== id)
+    );
+    return { previousPending };
+  },
+
+  onError: (_err, _id, context) => {
+    // Rollback on failure
+    if (context?.previousPending) {
+      queryClient.setQueryData(["/api/revisions", "pending"], context.previousPending);
+    }
+    toast({ title: "Failed to approve", variant: "destructive" });
+  },
+
+  onSuccess: () => {
+    toast({ title: "Revision approved" });
+  },
+
+  onSettled: () => {
+    // Always refetch for consistency
+    queryClient.invalidateQueries({ queryKey: ["/api/revisions"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/revisions", "pending"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/revisions", "pending-count"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+  },
+});
+```
+
+### rejectMutation — same pattern
+
+```tsx
+const rejectMutation = useMutation({
+  mutationFn: async (id: number) =>
+    apiRequest("PATCH", `/api/revisions/${id}`, { status: "rejected" }),
+
+  onMutate: async (id: number) => {
+    await queryClient.cancelQueries({ queryKey: ["/api/revisions", "pending"] });
+    const previousPending = queryClient.getQueryData<Revision[]>(["/api/revisions", "pending"]);
+    queryClient.setQueryData<Revision[]>(
+      ["/api/revisions", "pending"],
+      (old) => (old ?? []).filter((r) => r.id !== id)
+    );
+    return { previousPending };
+  },
+
+  onError: (_err, _id, context) => {
+    if (context?.previousPending) {
+      queryClient.setQueryData(["/api/revisions", "pending"], context.previousPending);
+    }
+    toast({ title: "Failed to reject", variant: "destructive" });
+  },
+
+  onSuccess: () => {
+    toast({ title: "Revision rejected" });
+  },
+
+  onSettled: () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/revisions"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/revisions", "pending"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/revisions", "pending-count"] });
+  },
+});
+```
+
+Key changes from current implementation:
+- `onSuccess` toast moved here (was already correct)
+- Invalidations moved to `onSettled` (runs on both success AND error)
+- Added `onMutate` for instant cache removal
+- Added `onError` for rollback + error toast
+
+## Files to Edit
+
+`client/src/pages/review-queue.tsx`
+
+## Acceptance Criteria
+
+- [ ] Clicking "Approve" immediately removes the revision card from the Pending tab
+  (no page refresh needed)
+- [ ] Clicking "Reject" immediately removes the revision card from the Pending tab
+- [ ] If the API call fails, the revision card reappears and an error toast shows
+- [ ] The "All Revisions" tab still shows all revisions (including newly approved/
+  rejected ones) after the background refetch completes
+- [ ] Pending count badge in the sidebar updates immediately
+
+
+---
+

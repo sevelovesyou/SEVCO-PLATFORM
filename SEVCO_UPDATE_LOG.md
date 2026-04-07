@@ -19576,3 +19576,210 @@ useMutation({ mutationFn: ({ userId, amount, description }) => apiRequest('POST'
 
 ---
 
+## Task — sparks-polish-and-pricing
+> Merged: 2026-04-07
+
+# Sparks — Polish, Pricing Page Redesign & Pack Seeding
+
+## What & Why
+Follow-up refinements to the Sparks currency feature based on user feedback. Covers: nav bar positioning and dropdown behaviour, Social sidebar balance display, removing the free monthly allocation, seeding the four official spark packs, and a full redesign of the /pricing page as a public marketing page.
+
+## Done Looks Like
+- Nav bar: ⚡️ balance sits between the cart icon and the user account box; clicking it opens a small popover showing balance + "Buy Sparks" button; clicking again closes it; shows ⚡️ 0 (not "…") when balance is zero
+- Social sidebar: ⚡️ balance shown in the user profile section
+- Free monthly allocation entirely removed from backend and frontend
+- Four official spark packs exist in the database on every fresh boot (auto-seeded at startup): Starter 100/$8, Boost 500/$36, Surge 1000/$69, Inferno 10,000/$600
+- Each pack on /pricing shows a discount % badge relative to the base rate ($0.08/spark)
+- /pricing is a full public marketing page: hero, use-cases grid, feature list, pack grid, FAQ — designed to convert visitors into buyers
+
+---
+
+## 1 — Nav Bar: Reposition & Dropdown (`platform-header.tsx`)
+
+### Reposition
+Current order: Search → Chat → **⚡️ Balance** → Notification → Cart → Account
+Required order: Search → Chat → Notification → Cart → **⚡️ Balance** → Account
+
+Move the `<NavSparksBalance />` render call in the JSX so it appears immediately before the user account dropdown block and after the cart button.
+
+### Fix "…" for zero balance
+In `NavSparksBalance`, the loading placeholder is currently shown any time `balance` is undefined. Change so:
+- While `isLoading` is true → show `⚡️ …`
+- Once query resolves (even if balance is 0) → show `⚡️ {balance}` (i.e. `⚡️ 0`)
+
+### Replace link with a Popover dropdown
+Convert `NavSparksBalance` from a `<Link>` wrapper to a `<Popover>` (shadcn):
+- **Trigger**: same ⚡️ button, open/close on click (controlled state)
+- **Content** (popover panel, ~220px wide):
+  - Header: "Sparks Balance" in small caps label
+  - Large balance display: `⚡️ {balance}` in bold (text-2xl)
+  - Divider
+  - "Buy Sparks" button (full width, primary) → navigates to `/pricing` and closes the popover
+  - Optional: last 1-line transaction teaser ("Last: +100 purchase · 2h ago") — only if transactions are already cached, otherwise omit
+- Clicking the trigger again closes the popover (standard Popover toggle behaviour)
+- Clicking outside closes the popover
+
+---
+
+## 2 — Social Sidebar: Spark Balance (`social-sidebar.tsx`)
+
+In the authenticated user's profile block (where avatar, display name, follower/following counts are shown), add a ⚡️ balance line below the follower/following counts:
+
+```tsx
+// Below the followers/following row
+<div className="flex items-center gap-1 text-xs text-yellow-400 font-semibold mt-1">
+  <Zap className="h-3 w-3" />
+  <span>{sparksBalance ?? '…'} Sparks</span>
+</div>
+```
+
+Fetch from `GET /api/sparks/balance` using the same query key `['/api/sparks/balance']` — TanStack deduplicates this with any existing balance queries in the nav bar. No new API work needed.
+
+---
+
+## 3 — Remove Free Monthly Allocation
+
+### Backend (`server/routes.ts`)
+In `GET /api/sparks/balance`, remove the `await storage.grantFreeMonthlyAllocation(userId)` call. The route becomes simply:
+```ts
+const balance = await storage.getUserSparksBalance(userId);
+res.json({ balance });
+```
+
+### Backend (`server/index.ts`)
+Remove the startup block that seeds `sparks.freeMonthlyAllocation` into `platform_settings`.
+
+### Frontend (`pricing-page.tsx`)
+Remove the footer note: "Free accounts receive {freeMonthlyAllocation} free Sparks every month automatically." The footer should be replaced with a clean legal/note line like: "Sparks never expire. Cancel recurring plans anytime from your account."
+
+### Note on storage method
+Leave `grantFreeMonthlyAllocation()` in `storage.ts` for now (it could be re-enabled later from CMD) — just stop calling it automatically. Also remove any UI in CMD that advertises the feature if present.
+
+---
+
+## 4 — Seed Official Spark Packs
+
+The four packs must exist in the database on every fresh boot. Implement a `seedSparkPacks()` function called from `server/index.ts` startup (after migrations):
+
+**Pack definitions:**
+| Name | Sparks | Price (cents) | $/spark | Discount vs base |
+|---|---|---|---|---|
+| Starter | 100 | 800 | $0.0800 | — (base rate) |
+| Boost | 500 | 3,600 | $0.0720 | 10% off |
+| Surge | 1,000 | 6,900 | $0.0690 | 14% off |
+| Inferno | 10,000 | 60,000 | $0.0600 | 25% off |
+
+**Seed logic** (`server/index.ts`):
+1. Query `spark_packs` — if any rows exist, skip seeding entirely (idempotent)
+2. If empty, for each pack definition:
+   a. Create a Stripe Product: `name: "{name} Spark Pack", metadata: { type: "spark_pack" }`
+   b. Create a one-time Stripe Price: `unit_amount: price, currency: "usd"`
+   c. Create a monthly recurring Stripe Price: same `unit_amount`, `recurring: { interval: "month" }`
+   d. Insert into `spark_packs` with the three Stripe IDs and `sortOrder: [0,1,2,3]`
+3. Log success: `[sparks] Seeded 4 spark packs`
+4. Wrap in try/catch — log warning and continue if Stripe is unavailable (don't crash startup)
+
+---
+
+## 5 — /Pricing Page Redesign (`pricing-page.tsx`)
+
+Completely replace the current minimal page with a full public marketing page. The page must work for unauthenticated visitors.
+
+### Section order:
+1. **Hero** — Bold headline, sub-copy, balance chip (if logged in), "Start with Sparks" CTA
+2. **Packs grid** — The 4 pack cards with discount badges
+3. **Use Cases** — What you can spend Sparks on
+4. **Features** — Why Sparks vs. a subscription
+5. **FAQ** — 4–5 common questions
+6. **Footer CTA** — Sign in / Buy now prompt
+
+---
+
+### Section 1: Hero
+```
+⚡️ Sparks
+Creative power, on demand.
+
+Buy exactly what you need. Use it whenever you want. Sparks never expire.
+
+[ ⚡️ 420  Your balance ]   ← shown only if logged in
+[ Get Started → ]           ← scrolls to packs grid
+```
+Dark full-width section with subtle lightning gradient background.
+
+### Section 2: Pack Grid
+Header: "Choose your pack" + today's date stamp removed, keep it clean.
+
+Each `SparkPackCard`:
+- Pack name (larger, bolder)
+- ⚡️ {sparks} — large display number
+- **Discount badge**: for packs beyond Starter, show a green pill: "Save 10%", "Save 14%", "Save 25%". Starter shows "Most popular" or nothing.
+- Price: `$X.XX` one-time
+- Recurring toggle: "Recur monthly — save 0% more" (same price, just auto-recharges)
+- "Buy Now" button — disabled+sign-in prompt for guests
+- Highlight the "Surge" (1,000) pack as "Best Value" with a ring/accent border
+
+Discount math (hardcoded, based on base rate of $0.08/spark):
+```ts
+const BASE_RATE = 0.08; // $ per spark
+const discountPct = Math.round((1 - (pack.price / 100) / (pack.sparks * BASE_RATE)) * 100);
+// Starter → 0%, Boost → 10%, Surge → 14%, Inferno → 25%
+```
+
+### Section 3: Use Cases
+6-card grid (2×3 or 3×2):
+| Icon | Title | Description |
+|---|---|---|
+| 🎨 | AI Art Generation | Generate images, album art, and visual concepts |
+| 🎵 | Music Tools | Access premium beat-making and mastering features |
+| 📝 | Content Creation | AI writing, copywriting, and caption tools |
+| 👁️ | Visibility Boosts | Pin posts, feature your profile, and amplify your reach |
+| 🤖 | Advanced AI Chat | Extended sessions with Grok, Claude, and GPT-4o |
+| 🔓 | Premium Features | Unlock advanced platform capabilities as they launch |
+
+### Section 4: Why Sparks
+3-column feature comparison:
+| Sparks | vs. Subscriptions |
+|---|---|
+| Pay for what you use | Pay monthly whether you use it or not |
+| Never expire | Reset every billing cycle |
+| Flexible — any feature | Locked to one plan tier |
+| Top up anytime | Wait for renewal |
+
+Style as a side-by-side callout with a checkmark/x pattern.
+
+### Section 5: FAQ
+Accordion (shadcn `Accordion` component), 5 questions:
+1. "What are Sparks?" — Platform currency for AI features, tools, and boosts.
+2. "Do Sparks expire?" — No. Paid Sparks roll over indefinitely.
+3. "What's recurring?" — Monthly auto-top-up. Cancel anytime from your account.
+4. "How do I use Sparks?" — They're automatically deducted when you use premium features.
+5. "Can I get a refund?" — Contact support within 7 days of purchase.
+
+### Section 6: Footer CTA
+Full-width dark strip:
+```
+Ready to start?
+⚡️ Buy your first Sparks pack and unlock the full SEVCO experience.
+[ Sign In & Buy ]  or  [ Browse Packs ↑ ]
+```
+
+---
+
+## Relevant Files
+- `client/src/components/platform-header.tsx` — reposition NavSparksBalance, add Popover dropdown, fix zero display
+- `client/src/components/social-sidebar.tsx` — add ⚡️ balance to user profile section
+- `server/routes.ts` — remove `grantFreeMonthlyAllocation` call from `/api/sparks/balance`
+- `server/index.ts` — remove free allocation seed; add `seedSparkPacks()` at startup
+- `client/src/pages/pricing-page.tsx` — full redesign as marketing page
+
+## Notes
+- Stripe pack seeding must be idempotent — check `spark_packs` table for any rows before creating
+- If `STRIPE_SECRET_KEY` is not set at startup, skip Stripe product creation but still insert rows with null Stripe IDs (the packs will still show on /pricing; checkout will fail gracefully until Stripe is configured)
+- The Popover in the nav should use `PopoverContent` with `align="end"` so it opens below the button on the right side
+- The discount percentages on the pricing page can be computed client-side from the pack's price and sparks count using the base rate formula — no backend changes needed
+- Do NOT touch `grantFreeMonthlyAllocation` in storage.ts — leave the method, just stop calling it
+
+
+---
+

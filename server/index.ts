@@ -87,6 +87,8 @@ async function seedSparkPacks() {
 }
 
 async function runStartupMigrations() {
+  // Task #283 — Fix missing link_url column in services table
+  await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS link_url text;`);
   // Task #260 — Fix missing parent_id column in categories table
   await pool.query(`ALTER TABLE categories ADD COLUMN IF NOT EXISTS parent_id integer;`);
   await pool.query(`ALTER TABLE categories DROP CONSTRAINT IF EXISTS categories_name_unique;`);

@@ -86,10 +86,10 @@ export default function ServicesListingPage() {
             From engineering and design to marketing and operations — the SEVCO team brings expertise across every discipline.
           </p>
           <div className="flex flex-wrap items-center gap-3 mt-4">
-            <Link href="/services">
+            <Link href="/pricing">
               <Button variant="destructive" size="lg" className="font-semibold gap-2 px-6" data-testid="button-services-primary-cta">
                 <ArrowRight className="h-4 w-4" />
-                View All Services
+                Get Started
               </Button>
             </Link>
             <Link href="/contact">

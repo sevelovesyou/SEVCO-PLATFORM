@@ -306,7 +306,7 @@ export default function Landing() {
 
   const pinnedPost = pinnedFeedPosts[0] ?? null;
 
-  const recentArticles = articles.filter((a) => a.status === "published").slice(0, 10);
+  const recentArticles = articles.filter((a) => a.status === "published").slice(0, 5);
   const featuredProducts = products.slice(0, 4);
   const latestProducts = [...products].sort((a, b) => b.id - a.id).slice(0, 3);
   const featuredProjects = projects.slice(0, 6);
@@ -367,6 +367,7 @@ export default function Landing() {
   const showNewsSection = toBool(settings["section.news.visible"]);
   const showIconPills = toBool(settings["section.iconPills.visible"]);
   const showWallpaper = toBool(settings["section.wallpaper.visible"]);
+  const showSparks = toBool(settings["section.sparks.visible"]);
 
   const sectionOrder: string[] = (() => {
     try {
@@ -1567,6 +1568,50 @@ export default function Landing() {
                         </Button>
                       </Link>
                     )}
+                  </div>
+                </div>
+              </section>
+            );
+
+          case "sparks":
+            if (!showSparks) return null;
+            return (
+              <section key="sparks" className="relative overflow-hidden bg-gradient-to-br from-amber-900/60 via-background to-yellow-900/30 border-t border-white/5 px-6 py-20 md:py-28 text-center">
+                <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+                  <div className="absolute top-0 left-1/3 w-[400px] h-[400px] rounded-full bg-amber-500/10 blur-[100px] motion-safe:animate-[pulse_10s_ease-in-out_infinite]" />
+                  <div className="absolute bottom-0 right-1/3 w-[300px] h-[300px] rounded-full bg-yellow-600/10 blur-[80px] motion-safe:animate-[pulse_8s_ease-in-out_infinite_3s]" />
+                </div>
+                <div className="relative z-10 max-w-xl mx-auto">
+                  <div className="flex items-center justify-center gap-3 mb-4">
+                    <div
+                      className="h-10 w-10 rounded-xl flex items-center justify-center"
+                      style={{ background: "rgba(245,158,11,0.15)", backdropFilter: "blur(8px)" }}
+                    >
+                      <span className="text-xl">⚡️</span>
+                    </div>
+                    <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/20 text-xs font-semibold">
+                      Creative Currency
+                    </Badge>
+                  </div>
+                  <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
+                    <span className="bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 bg-clip-text text-transparent">
+                      ⚡️ Sparks — SEVCO's creative currency
+                    </span>
+                  </h2>
+                  <p className="text-muted-foreground text-sm leading-relaxed mb-8">
+                    Sparks power your creative journey on SEVCO. Use them to unlock AI tools, access premium music features, and fuel creative boosts across the platform.
+                  </p>
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <Link href="/sparks">
+                      <Button
+                        size="lg"
+                        className="bg-amber-500 hover:bg-amber-400 text-black font-semibold gap-2"
+                        data-testid="button-get-sparks"
+                      >
+                        <span>⚡️</span>
+                        Get Sparks →
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </section>

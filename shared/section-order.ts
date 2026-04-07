@@ -9,6 +9,7 @@ export const DEFAULT_SECTION_ORDER: string[] = [
   "servicesShowstopper",
   "projectsShowstopper",
   "wikiLatest",
+  "sparks",
   "communityCta",
   "signupCta",
 ];

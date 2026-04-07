@@ -59,6 +59,7 @@ const SECTION_KEYS = [
   { key: "section.bulletin.visible", label: "Bulletin", description: "Pinned announcement post displayed near the top of the home page" },
   { key: "section.iconPills.visible", label: "Feature Pills", description: "Icon pill strip below the hero showing platform features" },
   { key: "section.wallpaper.visible", label: "Wallpaper of the Day", description: "Full-width latest wallpaper from the Gallery" },
+  { key: "section.sparks.visible", label: "Sparks", description: "Sparks marketing section with CTA linking to /sparks" },
 ];
 
 const SECTION_KEY_META: Record<string, { label: string; description: string }> = Object.fromEntries(

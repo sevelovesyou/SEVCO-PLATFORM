@@ -288,6 +288,7 @@ export default function ArticleView() {
               <Clock className="h-3 w-3" />
               {new Date(article.updatedAt).toLocaleDateString()}
             </span>
+            {user?.id !== article.authorId && (
             <TooltipProvider>
               <Tooltip open={sparkTooltip}>
                 <TooltipTrigger asChild>
@@ -312,6 +313,7 @@ export default function ArticleView() {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">

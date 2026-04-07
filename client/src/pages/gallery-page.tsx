@@ -262,6 +262,7 @@ export default function GalleryPage() {
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   </Button>
+                  {user?.id !== image.uploadedBy && (
                   <TooltipProvider>
                     <Tooltip open={sparkTooltips[image.id] ?? false}>
                       <TooltipTrigger asChild>
@@ -286,6 +287,7 @@ export default function GalleryPage() {
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
+                  )}
                 </div>
               </div>
             </div>

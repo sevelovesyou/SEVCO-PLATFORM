@@ -307,7 +307,7 @@ export default function Landing() {
 
   const pinnedPost = pinnedFeedPosts[0] ?? null;
 
-  const recentArticles = articles.filter((a) => a.status === "published").slice(0, 5);
+  const recentArticles = articles.filter((a) => a.status === "published").slice(0, 6);
   const featuredProducts = products.slice(0, 4);
   const latestProducts = [...products].sort((a, b) => b.id - a.id).slice(0, 3);
   const featuredProjects = projects.slice(0, 6);
@@ -1480,7 +1480,7 @@ export default function Landing() {
                   {artLoading ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {Array.from({ length: 6 }).map((_, i) => (
-                        <Skeleton key={i} className="h-28 w-full rounded-xl" />
+                        <Skeleton key={i} className="h-36 w-full rounded-xl" />
                       ))}
                     </div>
                   ) : recentArticles.length === 0 ? (
@@ -1493,7 +1493,7 @@ export default function Landing() {
                       {recentArticles.map((article) => (
                         <Link key={article.id} href={articleUrl(article)}>
                           <div
-                            className="group flex flex-col gap-2 p-4 rounded-xl border bg-background border-border/60 hover:bg-muted/60 hover:border-primary/30 transition-all duration-200 cursor-pointer h-[110px] overflow-hidden"
+                            className="group flex flex-col gap-2 p-4 rounded-xl border bg-background border-border/60 hover:bg-muted/60 hover:border-primary/30 transition-all duration-200 cursor-pointer min-h-[130px]"
                             data-testid={`card-wiki-article-${article.id}`}
                           >
                             <div className="flex items-center gap-2">
@@ -1502,7 +1502,7 @@ export default function Landing() {
                                 <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-full truncate max-w-[100px]">{article.tags[0]}</span>
                               )}
                             </div>
-                            <p className="text-sm font-semibold text-foreground line-clamp-2 leading-snug min-h-[2.5rem]">{article.title}</p>
+                            <p className="text-sm font-semibold text-foreground line-clamp-2 leading-snug">{article.title}</p>
                             <p className="text-xs text-muted-foreground mt-auto">
                               {article.createdAt
                                 ? formatDistanceToNow(new Date(article.createdAt), { addSuffix: true })

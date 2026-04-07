@@ -14,13 +14,12 @@ import {
   ArrowRight, Users, Star, ChevronRight, Pin,
   Zap, Globe, Layers, CheckCircle, Code2,
   Palette, BarChart3, Megaphone, Camera, Building2,
-  TrendingUp, ExternalLink, Newspaper, Wrench, MoreHorizontal,
+  TrendingUp, Newspaper, Wrench, MoreHorizontal,
 } from "lucide-react";
 import { SiDiscord, SiSpotify, SiApplemusic } from "react-icons/si";
 import type { Article, Product, FeedPost, Project, ChangelogCategory } from "@shared/schema";
-import type { NewsCategory } from "@shared/schema";
 import { DEFAULT_SECTION_ORDER } from "@shared/section-order";
-import { NewsEditorial } from "@/components/news-editorial";
+import { HomeNewsAndMarkets } from "@/components/home-news-markets";
 import { UserSnapshotPanel } from "@/components/user-snapshot-panel";
 import { formatDistanceToNow } from "date-fns";
 import planetIconWhite from "@assets/SEVCO_App_Icon_-_Artboard_71_1774998179682.png";
@@ -223,14 +222,6 @@ type FeedPostWithAuthor = FeedPost & {
   author: { username: string; displayName: string | null; avatarUrl: string | null } | null;
 };
 
-interface NewsItem {
-  title: string;
-  link: string;
-  source?: string;
-  pubDate?: string;
-  category?: string;
-  description?: string;
-}
 
 export default function Landing() {
   const { user } = useAuth();
@@ -267,16 +258,6 @@ export default function Landing() {
     },
   });
 
-  const { data: newsCategories = [] } = useQuery<NewsCategory[]>({
-    queryKey: ["/api/news"],
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: newsFeed = [] } = useQuery<NewsItem[]>({
-    queryKey: ["/api/news/feed/all"],
-    staleTime: 5 * 60 * 1000,
-  });
-
   interface PlatformHistoryEntry {
     id: number;
     title: string;
@@ -290,15 +271,6 @@ export default function Landing() {
   const { data: changelogEntries = [], isLoading: changelogLoading } = useQuery<PlatformHistoryEntry[]>({
     queryKey: ["/api/platform-history"],
   });
-
-  interface XStatus { configured: boolean; handle?: string }
-  const { data: xStatus } = useQuery<XStatus>({
-    queryKey: ["/api/social/x/status"],
-  });
-
-  const xHandles = (settings["social.x.handles"] || "sevelovesu")
-    .split(",").map((h: string) => h.trim()).filter(Boolean);
-  const xMaxTweets = parseInt(settings["social.x.maxTweets"] ?? "12") || 12;
 
   const pinnedPost = pinnedFeedPosts[0] ?? null;
 
@@ -355,15 +327,12 @@ export default function Landing() {
   const showStorePreview = toBool(settings["section.storePreview.visible"]);
   const showServicesShowstopper = toBool(settings["section.servicesShowstopper.visible"]);
   const showProjectsShowstopper = toBool(settings["section.projectsShowstopper.visible"]);
-  const showNewsTeaser = toBool(settings["section.newsTeaser.visible"]);
   const showSignupCta = toBool(settings["section.signupCta.visible"]);
   const showWikiLatest = toBool(settings["section.wikiLatest.visible"]);
   const showCommunityCta = toBool(settings["section.communityCta.visible"]);
   const showBulletin = toBool(settings["section.bulletin.visible"]);
   const showFeedSection = toBool(settings["section.feed.visible"]);
   const showNewsSection = toBool(settings["section.news.visible"]);
-  const showXFeedSection = settings["section.xFeed.visible"] !== "false";
-  const xEnabled = settings["social.x.enabled"] !== "false";
 
   const sectionOrder: string[] = (() => {
     try {
@@ -385,10 +354,7 @@ export default function Landing() {
   const projectsRef = useIntersectionObserver();
   const recordsRef = useIntersectionObserver();
   const featurePillsRef = useIntersectionObserver();
-  const newsTeaserRef = useIntersectionObserver();
   const signupCtaRef = useIntersectionObserver();
-
-  const newsTeaserItems = newsFeed.slice(0, 3);
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden" data-page="landing">
@@ -997,26 +963,9 @@ export default function Landing() {
             );
 
           case "news":
-          case "xFeed": {
-            const newsIdx = sectionOrder.indexOf("news");
-            const xFeedIdx = sectionOrder.indexOf("xFeed");
-            const bothPresent = newsIdx !== -1 && xFeedIdx !== -1;
-            if (bothPresent) {
-              const firstKey = newsIdx < xFeedIdx ? "news" : "xFeed";
-              if (sectionKey !== firstKey) return null;
-            }
-            if ((!showNewsSection && !showXFeedSection) || newsCategories.length === 0) return null;
             return (
-              <NewsEditorial
-                key="news-xfeed"
-                newsCategories={newsCategories}
-                xHandles={xHandles}
-                xMaxTweets={xMaxTweets}
-                xEnabled={xEnabled && xStatus?.configured === true}
-                condensed
-              />
+              <HomeNewsAndMarkets key="news" showNewsSection={showNewsSection} />
             );
-          }
 
           case "storePreview":
             if (!showStorePreview) return null;
@@ -1350,81 +1299,6 @@ export default function Landing() {
                         }}
                       />
                     ))}
-                  </div>
-                </div>
-              </section>
-            );
-
-          case "newsTeaser":
-            if (!showNewsTeaser) return null;
-            return (
-              <section
-                key="newsTeaser"
-                ref={newsTeaserRef.ref}
-                className="relative overflow-hidden bg-[#09090f] border-y border-white/5"
-                data-testid="section-news-teaser"
-              >
-                <div className={`max-w-6xl mx-auto px-6 py-12 transition-all duration-700 ${newsTeaserRef.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-                  <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
-                        <Newspaper className="h-4 w-4 text-yellow-400" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-widest text-yellow-400/80">Latest News</p>
-                        <h2 className="text-lg font-bold text-foreground">From the creator economy.</h2>
-                      </div>
-                    </div>
-                    <Link href="/news">
-                      <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" data-testid="link-view-all-news">
-                        View All News <ArrowRight className="h-3.5 w-3.5" />
-                      </Button>
-                    </Link>
-                  </div>
-                  <div className="relative overflow-x-auto scrollbar-none" style={{ WebkitOverflowScrolling: "touch" }}>
-                    <div className="flex gap-4 pb-2 min-w-min">
-                      {newsTeaserItems.length === 0
-                        ? Array.from({ length: 3 }).map((_, i) => (
-                            <div key={i} className="flex-shrink-0 w-72 rounded-xl border border-border/40 p-4" data-testid={`card-news-teaser-${i}`}>
-                              <Skeleton className="h-3 w-16 mb-3" />
-                              <Skeleton className="h-4 w-full mb-1.5" />
-                              <Skeleton className="h-4 w-3/4" />
-                            </div>
-                          ))
-                        : newsTeaserItems.map((item, i) => (
-                            <a
-                              key={i}
-                              href={item.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="group flex-shrink-0 w-72 rounded-xl border border-border/40 bg-white/[0.02] hover:bg-white/[0.04] hover:border-yellow-500/20 p-4 transition-all duration-200 cursor-pointer block"
-                              data-testid={`card-news-teaser-${i}`}
-                            >
-                              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                {item.category && (
-                                  <Badge className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20 text-[10px] font-semibold">
-                                    {item.category}
-                                  </Badge>
-                                )}
-                                {item.source && (
-                                  <span className="text-[10px] font-semibold uppercase tracking-widest text-yellow-400/60 flex items-center gap-1">
-                                    <ExternalLink className="h-3 w-3" />
-                                    {item.source}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-sm font-semibold text-foreground line-clamp-3 group-hover:text-yellow-300/90 transition-colors leading-snug">
-                                {item.title}
-                              </p>
-                              {item.pubDate && (
-                                <p className="text-[10px] text-muted-foreground mt-3">
-                                  {new Date(item.pubDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                                </p>
-                              )}
-                            </a>
-                          ))
-                      }
-                    </div>
                   </div>
                 </div>
               </section>

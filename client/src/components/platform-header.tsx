@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { Link, useLocation } from "wouter";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -182,7 +183,10 @@ function useDropdown() {
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      const inTrigger = ref.current && ref.current.contains(target);
+      const inPanel = (target as HTMLElement).closest?.("[data-dropdown-panel]");
+      if (!inTrigger && !inPanel) setOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -192,8 +196,11 @@ function useDropdown() {
     if (!open || !ref.current) return;
     const container = ref.current;
     function handleKeyDown(e: KeyboardEvent) {
-      if (!container.contains(document.activeElement)) return;
-      const panel = container.querySelector("[data-dropdown-panel]");
+      const activeEl = document.activeElement;
+      const inTrigger = container.contains(activeEl);
+      const inPanel = activeEl?.closest?.("[data-dropdown-panel]");
+      if (!inTrigger && !inPanel) return;
+      const panel = document.querySelector("[data-dropdown-panel]");
       if (!panel) return;
       const items = Array.from(panel.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), [role='menuitem'], [tabindex]:not([tabindex='-1'])"));
       if (items.length === 0) return;
@@ -253,11 +260,28 @@ function NavButton({
   );
 }
 
-function DropdownPanel({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div data-dropdown-panel className={`absolute top-full left-0 mt-1.5 rounded-xl border bg-popover shadow-xl z-50 overflow-hidden ${className}`}>
+function DropdownPanel({ children, className = "", triggerRef }: {
+  children: React.ReactNode;
+  className?: string;
+  triggerRef: React.RefObject<HTMLDivElement>;
+}) {
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    setCoords({ top: rect.bottom + 6, left: rect.left });
+  }, [triggerRef]);
+
+  return createPortal(
+    <div
+      data-dropdown-panel
+      style={{ top: coords.top, left: coords.left }}
+      className={`fixed rounded-xl border bg-popover shadow-xl z-[200] overflow-hidden ${className}`}
+    >
       {children}
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -288,7 +312,7 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
         data-testid="nav-home"
       />
       {open && (
-        <DropdownPanel className="w-64">
+        <DropdownPanel triggerRef={ref} className="w-64">
           <div className="p-2">
             {items.map((item) => (
               <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
@@ -333,7 +357,7 @@ function StoreDropdown({ isActive }: { isActive: boolean }) {
         data-testid="nav-store"
       />
       {open && (
-        <DropdownPanel className="w-52">
+        <DropdownPanel triggerRef={ref} className="w-52">
           <div className="p-2">
             <Link href="/store" onClick={() => setOpen(false)}>
               <div
@@ -405,7 +429,7 @@ function ServicesDropdown({ isActive, platformSettings }: { isActive: boolean; p
         <ChevronDown className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} />
       </Button>
       {open && (
-        <DropdownPanel className="w-[640px]">
+        <DropdownPanel triggerRef={ref} className="w-[640px]">
           {/* Featured platform offerings */}
           <div className="p-3 grid grid-cols-3 gap-2 border-b border-border/60">
             <Link href="/hosting" onClick={() => setOpen(false)}>
@@ -498,7 +522,7 @@ function MusicDropdown({ isActive }: { isActive: boolean }) {
         data-testid="nav-music"
       />
       {open && (
-        <DropdownPanel className="w-64">
+        <DropdownPanel triggerRef={ref} className="w-64">
           <div className="p-2">
             {items.map((item) => (
               <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
@@ -546,7 +570,7 @@ function ProjectsDropdown({ isActive }: { isActive: boolean }) {
       />
 
       {open && (
-        <DropdownPanel className="w-72">
+        <DropdownPanel triggerRef={ref} className="w-72">
           <div className="p-2">
             {featuredProjects.length === 0 ? (
               <p className="text-xs text-muted-foreground px-2 py-3 text-center">No projects yet</p>
@@ -621,7 +645,23 @@ function ProjectsDropdown({ isActive }: { isActive: boolean }) {
   );
 }
 
-function ToolsDropdown({ isActive }: { isActive: boolean }) {
+function ToolsDropdown({
+  isActive,
+  onSearchOpen,
+  onChatOpen,
+  soundEnabled,
+  onSoundToggle,
+  volume,
+  onVolumeChange,
+}: {
+  isActive: boolean;
+  onSearchOpen: () => void;
+  onChatOpen: () => void;
+  soundEnabled: boolean;
+  onSoundToggle: () => void;
+  volume: number;
+  onVolumeChange: (v: number) => void;
+}) {
   const { open, setOpen, ref } = useDropdown();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -659,7 +699,7 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
         />
       </div>
       {open && (
-        <DropdownPanel className="w-64">
+        <DropdownPanel triggerRef={ref} className="w-64">
           <div className="p-2">
             {allItems.map((item) => {
               const locked = !!(user && !item.requiredRoles.includes(user.role));
@@ -681,7 +721,56 @@ function ToolsDropdown({ isActive }: { isActive: boolean }) {
                 </button>
               );
             })}
-            <div className="mt-1 pt-1.5 border-t border-border/60 px-3 pb-1">
+            <div className="mt-1 pt-2 border-t border-border/60 px-3 pb-2 space-y-2">
+              <TooltipProvider delayDuration={400}>
+                <div className="flex items-center gap-1 flex-wrap">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setOpen(false); onSearchOpen(); }} data-testid="dropdown-tools-search">
+                        <Search className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Search</TooltipContent>
+                  </Tooltip>
+
+                  {user && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setOpen(false); onChatOpen(); }} data-testid="dropdown-tools-chat">
+                          <MessageCircle className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Chat</TooltipContent>
+                    </Tooltip>
+                  )}
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onSoundToggle} data-testid="dropdown-tools-sound">
+                        {soundEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{soundEnabled ? "Mute" : "Unmute"}</TooltipContent>
+                  </Tooltip>
+
+                  {soundEnabled && (
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={volume}
+                      onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+                      className="w-20 h-1 accent-primary cursor-pointer"
+                      aria-label="Volume"
+                      data-testid="dropdown-tools-volume-slider"
+                    />
+                  )}
+
+                  <ThemeToggle />
+                </div>
+              </TooltipProvider>
+
               <Link href="/tools" onClick={() => setOpen(false)} data-testid="dropdown-tools-view-all">
                 <p className="text-[10px] text-muted-foreground/60 italic hover:text-muted-foreground transition-colors">View all tools →</p>
               </Link>
@@ -861,7 +950,24 @@ export function PlatformHeader() {
           <ServicesDropdown isActive={activeApp === "/services"} platformSettings={platformSettings} />
           <MusicDropdown isActive={activeApp === "/music"} />
           <ProjectsDropdown isActive={activeApp === "/projects"} />
-          <ToolsDropdown isActive={activeApp === "/notes" || activeApp === "/gallery" || activeApp === "/messages" || activeApp === "/tools"} />
+          <ToolsDropdown
+            isActive={activeApp === "/notes" || activeApp === "/gallery" || activeApp === "/messages" || activeApp === "/tools"}
+            onSearchOpen={() => setSearchOpen(true)}
+            onChatOpen={() => setChatOpen(true)}
+            soundEnabled={soundEnabled}
+            onSoundToggle={() => {
+              if (soundEnabled) {
+                prevMusicVolumeRef.current = volume || 0.8;
+                setVolume(0);
+              } else {
+                setVolume(prevMusicVolumeRef.current);
+              }
+              toggleSound();
+              playClick();
+            }}
+            volume={volume}
+            onVolumeChange={setVolume}
+          />
 
           {canAccessCMD && (
             <Link href="/command">
@@ -905,42 +1011,6 @@ export function PlatformHeader() {
         {/* Right side actions */}
         <div className="flex items-center gap-1.5">
           <TooltipProvider delayDuration={400}>
-          {/* Search button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setSearchOpen(true)}
-                data-testid="button-open-search"
-                aria-label="Open search"
-              >
-                <Search className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Search</TooltipContent>
-          </Tooltip>
-
-          {/* Chat button — logged-in only */}
-          {user && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setChatOpen(true)}
-                  data-testid="button-open-chat"
-                  aria-label="Open chat"
-                >
-                  <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Open Chat</TooltipContent>
-            </Tooltip>
-          )}
-
           {/* Notification bell — logged-in only */}
           {user && (
             <Tooltip>
@@ -1057,49 +1127,9 @@ export function PlatformHeader() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => {
-                  if (soundEnabled) {
-                    prevMusicVolumeRef.current = volume || 0.8;
-                    setVolume(0);
-                  } else {
-                    setVolume(prevMusicVolumeRef.current);
-                  }
-                  toggleSound();
-                  playClick();
-                }}
-                aria-label={soundEnabled ? "Mute sounds" : "Unmute sounds"}
-                data-testid="button-sound-toggle"
-              >
-                {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-              </Button>
-              <ThemeToggle />
             </>
           ) : (
             <>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => {
-                  if (soundEnabled) {
-                    prevMusicVolumeRef.current = volume || 0.8;
-                    setVolume(0);
-                  } else {
-                    setVolume(prevMusicVolumeRef.current);
-                  }
-                  toggleSound();
-                  playClick();
-                }}
-                aria-label={soundEnabled ? "Mute sounds" : "Unmute sounds"}
-                data-testid="button-sound-toggle-guest"
-              >
-                {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-              </Button>
-              <ThemeToggle />
               <Link href="/auth">
                 <Button size="sm" className="h-8 text-xs" data-testid="button-sign-in">
                   Sign in

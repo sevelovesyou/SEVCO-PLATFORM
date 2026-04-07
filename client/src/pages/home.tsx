@@ -174,7 +174,7 @@ export default function Home() {
             {[
               { slug: "general",     name: "General",     icon: Layers,     href: "/wiki/general",     description: "Projects, services, legal, and general resources." },
               { slug: "operations",  name: "Operations",  icon: Settings,   href: "/wiki/operations",   description: "Processes, suppliers, compliance, onboarding, and finance." },
-              { slug: "engineering", name: "Engineering", icon: Code2,      href: "/wiki/engineering/sevco-platform",  description: "Platform development, projects, and technical docs." },
+              { slug: "engineering", name: "Engineering", icon: Code2,      href: "/wiki/engineering",  description: "Platform development, projects, and technical docs." },
               { slug: "design",      name: "Design",      icon: Palette,    href: "/wiki/design",       description: "Brand guidelines, UI/UX, and design resources." },
               { slug: "sales",       name: "Sales",       icon: TrendingUp, href: "/wiki/sales",        description: "Sales processes, client onboarding, and market research." },
               { slug: "support",     name: "Support",     icon: LifeBuoy,   href: "/wiki/support",      description: "How-to guides, escalation processes, and FAQ." },

@@ -90,6 +90,7 @@ async function seedSparkPacks() {
 async function runStartupMigrations() {
   // Task #260 — Fix missing parent_id column in categories table
   await pool.query(`ALTER TABLE categories ADD COLUMN IF NOT EXISTS parent_id integer;`);
+  await pool.query(`ALTER TABLE categories DROP CONSTRAINT IF EXISTS categories_name_unique;`);
   // Task #100 — X OAuth
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS x_id TEXT;`);
   await pool.query(`ALTER TABLE users ALTER COLUMN password DROP NOT NULL;`);

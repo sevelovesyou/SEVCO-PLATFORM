@@ -22292,3 +22292,27 @@ title: Fix wiki articles: cleanup, category & author byline
 
 ---
 
+## Task — fix-engineering-card-link
+> Merged: 2026-04-07
+
+# Fix Engineering Card Link on Wiki Home
+
+  ## What & Why
+  The Engineering card on the wiki home page (/wiki) links to /wiki/engineering/sevco-platform (the SEVCO Platform subcategory) instead of /wiki/engineering. This was an intentional shortcut that is now incorrect since the SEVCO Platform subcategory exists properly.
+
+  ## Done looks like
+  - Clicking the Engineering card on /wiki navigates to /wiki/engineering (the Engineering category page)
+  - The SEVCO Platform subcategory is still accessible by drilling into Engineering
+
+  ## Out of scope
+  - Changing the card's appearance or description
+
+  ## Tasks
+  1. **Fix the href** — Change the Engineering card href from `/wiki/engineering/sevco-platform` to `/wiki/engineering` in the home page category list.
+
+  ## Relevant files
+  - `client/src/pages/home.tsx:177`
+
+
+---
+

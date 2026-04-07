@@ -46,6 +46,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import {
   Rss,
   Zap,
   Flag,
@@ -64,6 +69,9 @@ import {
   Send,
   Lock,
   BookOpen,
+  UserPlus,
+  UserCheck,
+  Users,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { insertFeedPostSchema, insertPostSchema } from "@shared/schema";
@@ -83,6 +91,16 @@ type PostWithMeta = {
 type ReplyWithAuthor = {
   id: number; postId: number; authorId: string; content: string; createdAt: string;
   author: PostAuthor;
+};
+
+type AuthorProfile = {
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  bio: string | null;
+  followerCount: number;
+  followingCount: number;
+  isFollowing: boolean;
 };
 
 const TYPE_META: Record<FeedPostType, { label: string; color: string; icon: React.ElementType }> = {
@@ -133,6 +151,105 @@ function AvatarIcon({ user, size = "sm" }: { user: { username?: string; displayN
       {user?.avatarUrl && <AvatarImage src={resolveImageUrl(user.avatarUrl)} />}
       <AvatarFallback className="text-xs font-bold">{initials}</AvatarFallback>
     </Avatar>
+  );
+}
+
+function AuthorHoverCard({ username, children, currentUserId, currentUsername }: { username: string; children: React.ReactNode; currentUserId?: string; currentUsername?: string }) {
+  const { toast } = useToast();
+  const { data: profile, isLoading } = useQuery<AuthorProfile>({
+    queryKey: [`/api/users/${username}/profile`],
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${username}/profile`);
+      return res.json();
+    },
+    staleTime: 30_000,
+  });
+
+  const followMutation = useMutation({
+    mutationFn: () =>
+      profile?.isFollowing
+        ? apiRequest("DELETE", `/api/users/${username}/follow`)
+        : apiRequest("POST", `/api/users/${username}/follow`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${username}/profile`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/me/onboarding"] });
+    },
+    onError: () => toast({ title: "Failed to update follow", variant: "destructive" }),
+  });
+
+  const isSelf = !!(currentUsername && username === currentUsername);
+
+  return (
+    <HoverCard openDelay={300} closeDelay={150}>
+      <HoverCardTrigger asChild>{children}</HoverCardTrigger>
+      <HoverCardContent className="w-72 p-4" side="top" align="start">
+        {isLoading ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="space-y-1">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            </div>
+            <Skeleton className="h-3 w-full" />
+          </div>
+        ) : profile ? (
+          <div className="space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-3 min-w-0">
+                <Link href={`/profile/${username}`}>
+                  <Avatar className="h-10 w-10 shrink-0 cursor-pointer hover:opacity-90 transition-opacity">
+                    {profile.avatarUrl && <AvatarImage src={resolveImageUrl(profile.avatarUrl)} />}
+                    <AvatarFallback className="text-sm font-bold">
+                      {(profile.displayName || username).charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
+                <div className="min-w-0">
+                  <Link href={`/profile/${username}`}>
+                    <p className="text-sm font-semibold leading-none hover:underline cursor-pointer truncate" data-testid={`hovercard-name-${username}`}>
+                      {profile.displayName || username}
+                    </p>
+                  </Link>
+                  <p className="text-xs text-muted-foreground mt-0.5">@{username}</p>
+                </div>
+              </div>
+              {currentUserId && !isSelf && (
+                <Button
+                  size="sm"
+                  variant={profile.isFollowing ? "outline" : "default"}
+                  className="h-7 text-xs shrink-0"
+                  onClick={() => followMutation.mutate()}
+                  disabled={followMutation.isPending}
+                  data-testid={`button-hovercard-follow-${username}`}
+                >
+                  {profile.isFollowing ? (
+                    <><UserCheck className="h-3 w-3 mr-1" />Following</>
+                  ) : (
+                    <><UserPlus className="h-3 w-3 mr-1" />Follow</>
+                  )}
+                </Button>
+              )}
+            </div>
+            {profile.bio && (
+              <p className="text-xs text-muted-foreground line-clamp-2" data-testid={`hovercard-bio-${username}`}>
+                {profile.bio}
+              </p>
+            )}
+            <div className="flex items-center gap-3 text-xs">
+              <span className="text-muted-foreground" data-testid={`hovercard-followers-${username}`}>
+                <span className="font-semibold text-foreground">{profile.followerCount ?? 0}</span> followers
+              </span>
+              <span className="text-muted-foreground" data-testid={`hovercard-following-${username}`}>
+                <span className="font-semibold text-foreground">{profile.followingCount ?? 0}</span> following
+              </span>
+            </div>
+          </div>
+        ) : null}
+      </HoverCardContent>
+    </HoverCard>
   );
 }
 
@@ -213,12 +330,14 @@ function ReplyThread({ postId, onClose }: { postId: number; onClose: () => void 
 function SocialPostCard({
   post,
   currentUserId,
+  currentUsername,
   isAdmin,
   isStaffPlus,
   onDelete,
 }: {
   post: PostWithMeta;
   currentUserId?: string;
+  currentUsername?: string;
   isAdmin?: boolean;
   isStaffPlus?: boolean;
   onDelete: (id: number) => void;
@@ -243,17 +362,23 @@ function SocialPostCard({
     <>
     <Card className="p-4 overflow-visible transition-shadow hover:shadow-sm" data-testid={`card-post-${post.id}`}>
       <div className="flex gap-3">
-        <Link href={`/profile/${post.author.username}`}>
-          <AvatarIcon user={post.author} size="md" />
-        </Link>
+        <AuthorHoverCard username={post.author.username} currentUserId={currentUserId} currentUsername={currentUsername}>
+          <Link href={`/profile/${post.author.username}`}>
+            <span className="cursor-pointer">
+              <AvatarIcon user={post.author} size="md" />
+            </span>
+          </Link>
+        </AuthorHoverCard>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="flex items-center flex-wrap gap-1.5">
-              <Link href={`/profile/${post.author.username}`}>
-                <span className="text-sm font-semibold hover:underline cursor-pointer" data-testid={`text-post-author-${post.id}`}>
-                  {authorName}
-                </span>
-              </Link>
+              <AuthorHoverCard username={post.author.username} currentUserId={currentUserId} currentUsername={currentUsername}>
+                <Link href={`/profile/${post.author.username}`}>
+                  <span className="text-sm font-semibold hover:underline cursor-pointer" data-testid={`text-post-author-${post.id}`}>
+                    {authorName}
+                  </span>
+                </Link>
+              </AuthorHoverCard>
               <span className="text-xs text-muted-foreground">@{post.author.username}</span>
               <span className="text-xs text-muted-foreground">·</span>
               <span className="text-xs text-muted-foreground">{formatRelativeTime(post.createdAt)}</span>
@@ -358,11 +483,15 @@ function SocialPostCard({
 function AdminFeedCard({
   post,
   canManage,
+  currentUserId,
+  currentUsername,
   onDelete,
   onTogglePin,
 }: {
   post: FeedPostWithAuthor;
   canManage: boolean;
+  currentUserId?: string;
+  currentUsername?: string;
   onDelete: (id: number) => void;
   onTogglePin: (id: number, pinned: boolean) => void;
 }) {
@@ -374,14 +503,30 @@ function AdminFeedCard({
   return (
     <Card className={`p-4 overflow-visible transition-shadow hover:shadow-sm border-l-2 border-l-primary/30 ${post.pinned ? "border-primary/30 bg-primary/[0.02]" : ""}`} data-testid={`card-feed-${post.id}`}>
       <div className="flex gap-3">
-        <Avatar className="h-9 w-9 shrink-0">
-          {post.author?.avatarUrl && <AvatarImage src={resolveImageUrl(post.author.avatarUrl)} />}
-          <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">{initials}</AvatarFallback>
-        </Avatar>
+        {post.author?.username ? (
+          <AuthorHoverCard username={post.author.username} currentUserId={currentUserId} currentUsername={currentUsername}>
+            <span className="cursor-default">
+              <Avatar className="h-9 w-9 shrink-0">
+                {post.author?.avatarUrl && <AvatarImage src={resolveImageUrl(post.author.avatarUrl)} />}
+                <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">{initials}</AvatarFallback>
+              </Avatar>
+            </span>
+          </AuthorHoverCard>
+        ) : (
+          <Avatar className="h-9 w-9 shrink-0">
+            <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">{initials}</AvatarFallback>
+          </Avatar>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1.5">
             <div className="flex items-center flex-wrap gap-1.5">
-              <span className="text-sm font-semibold leading-none" data-testid={`text-feed-author-${post.id}`}>{authorName}</span>
+              {post.author?.username ? (
+                <AuthorHoverCard username={post.author.username} currentUserId={currentUserId} currentUsername={currentUsername}>
+                  <span className="text-sm font-semibold leading-none cursor-default" data-testid={`text-feed-author-${post.id}`}>{authorName}</span>
+                </AuthorHoverCard>
+              ) : (
+                <span className="text-sm font-semibold leading-none" data-testid={`text-feed-author-${post.id}`}>{authorName}</span>
+              )}
               <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${meta.color}`}>
                 <IconComp className="h-2.5 w-2.5" />
                 {meta.label}
@@ -451,7 +596,7 @@ export default function FeedPage() {
   const [postComposerOpen, setPostComposerOpen] = useState(false);
   const [deleteFeedId, setDeleteFeedId] = useState<number | null>(null);
   const [deletePostId, setDeletePostId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<"timeline" | "official">("timeline");
+  const [activeTab, setActiveTab] = useState<"feed" | "following" | "official">("feed");
 
   const { data: feedPosts, isLoading: feedLoading } = useQuery<FeedPostWithAuthor[]>({
     queryKey: ["/api/feed"],
@@ -459,7 +604,17 @@ export default function FeedPage() {
 
   const { data: socialPosts, isLoading: postsLoading } = useQuery<PostWithMeta[]>({
     queryKey: ["/api/posts"],
-    enabled: !!user,
+    enabled: activeTab === "feed",
+  });
+
+  const { data: followingPosts, isLoading: followingLoading } = useQuery<PostWithMeta[]>({
+    queryKey: ["/api/posts", "following"],
+    queryFn: async () => {
+      const res = await fetch("/api/posts?followingOnly=true");
+      if (!res.ok) throw new Error("Failed to load following posts");
+      return res.json();
+    },
+    enabled: activeTab === "following" && !!user,
   });
 
   const adminForm = useForm<FeedFormValues>({
@@ -507,6 +662,7 @@ export default function FeedPage() {
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/me/onboarding"] });
       postForm.reset();
       setPostComposerOpen(false);
       toast({ title: "Post published" });
@@ -521,9 +677,16 @@ export default function FeedPage() {
   });
 
   const tabs = [
-    { id: "timeline" as const, label: "Timeline" },
+    { id: "feed" as const, label: "Feed" },
+    { id: "following" as const, label: "Following" },
     { id: "official" as const, label: "Official" },
   ];
+
+  const tabSubtitles: Record<string, string> = {
+    feed: "All posts from the community",
+    following: "Posts from people you follow",
+    official: "Official updates from SEVCO",
+  };
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
@@ -542,7 +705,7 @@ export default function FeedPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight" data-testid="text-feed-title">Feed</h1>
-              <p className="text-sm text-muted-foreground">Posts from people you follow</p>
+              <p className="text-sm text-muted-foreground">{tabSubtitles[activeTab]}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -558,7 +721,7 @@ export default function FeedPage() {
                 Official Post
               </Button>
             )}
-            {user && activeTab === "timeline" && (
+            {user && activeTab === "feed" && (
               <Button
                 size="sm"
                 className="gap-1.5 shrink-0"
@@ -591,20 +754,9 @@ export default function FeedPage() {
         ))}
       </div>
 
-      {/* Timeline tab — social posts */}
-      {activeTab === "timeline" && (
+      {/* Feed tab — all social posts */}
+      {activeTab === "feed" && (
         <>
-          {!user && (
-            <Card className="p-6 mb-5 text-center border-dashed">
-              <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-              <p className="text-sm font-medium mb-1">Sign in to see your timeline</p>
-              <p className="text-xs text-muted-foreground mb-3">Posts from people you follow will appear here</p>
-              <Link href="/auth">
-                <Button size="sm" data-testid="button-feed-signin">Sign in</Button>
-              </Link>
-            </Card>
-          )}
-
           {user && postComposerOpen && (
             <Card className="p-4 mb-5 overflow-visible">
               <Form {...postForm}>
@@ -677,19 +829,71 @@ export default function FeedPage() {
                 </Card>
               ))}
             </div>
-          ) : user && (socialPosts ?? []).length === 0 ? (
+          ) : (socialPosts ?? []).length === 0 ? (
             <div className="text-center py-20 text-muted-foreground">
               <MessageCircle className="h-10 w-10 mx-auto mb-3 opacity-30" />
               <p className="text-sm font-medium mb-1">No posts yet</p>
-              <p className="text-xs">{canManageFeed ? "Be the first to post in the timeline." : "Follow other members to see their posts here, or write your first post above."}</p>
+              <p className="text-xs">Be the first to post something!</p>
             </div>
-          ) : !user && (socialPosts ?? []).length === 0 ? null : (
+          ) : (
             <div className="flex flex-col gap-3">
               {(socialPosts ?? []).map((post) => (
                 <SocialPostCard
                   key={post.id}
                   post={post}
                   currentUserId={user?.id}
+                  currentUsername={user?.username}
+                  isAdmin={canManageFeed}
+                  isStaffPlus={isStaffPlus}
+                  onDelete={(id) => setDeletePostId(id)}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Following tab — posts from followed users */}
+      {activeTab === "following" && (
+        <>
+          {!user ? (
+            <Card className="p-6 mb-5 text-center border-dashed">
+              <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+              <p className="text-sm font-medium mb-1">Sign in to see your following feed</p>
+              <p className="text-xs text-muted-foreground mb-3">Posts from people you follow will appear here</p>
+              <Link href="/auth">
+                <Button size="sm" data-testid="button-feed-signin">Sign in</Button>
+              </Link>
+            </Card>
+          ) : followingLoading ? (
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="p-4">
+                  <div className="flex gap-3">
+                    <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-32 mb-2" />
+                      <Skeleton className="h-3 w-full mb-1" />
+                      <Skeleton className="h-3 w-3/4" />
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (followingPosts ?? []).length === 0 ? (
+            <div className="text-center py-20 text-muted-foreground">
+              <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-medium mb-1">Nothing here yet</p>
+              <p className="text-xs">Follow other members to see their posts here.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {(followingPosts ?? []).map((post) => (
+                <SocialPostCard
+                  key={post.id}
+                  post={post}
+                  currentUserId={user?.id}
+                  currentUsername={user?.username}
                   isAdmin={canManageFeed}
                   isStaffPlus={isStaffPlus}
                   onDelete={(id) => setDeletePostId(id)}
@@ -823,6 +1027,8 @@ export default function FeedPage() {
                   key={post.id}
                   post={post}
                   canManage={canManageFeed}
+                  currentUserId={user?.id}
+                  currentUsername={user?.username}
                   onDelete={(id) => setDeleteFeedId(id)}
                   onTogglePin={(id, pinned) => pinMutation.mutate({ id, pinned })}
                 />

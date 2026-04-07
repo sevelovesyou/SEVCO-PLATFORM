@@ -3843,20 +3843,39 @@ export async function registerRoutes(
   });
 
   // Social posts
-  app.get("/api/posts", requireAuth, async (req: any, res) => {
+  app.get("/api/posts", async (req: any, res) => {
     try {
       const userId = (req.query.userId as string) || undefined;
       const currentUserId = req.user?.id;
-      const userRole = req.user?.role as Role;
       const limit = Math.min(parseInt((req.query.limit as string) || "50"), 100);
-      const timeline = !userId;
-      const isPrivilegedUser = ["admin", "executive", "staff"].includes(userRole);
-      const result = await storage.getPosts({
-        userId,
-        followedByUserId: timeline && !isPrivilegedUser ? currentUserId : undefined,
-        limit,
-      });
+      const followingOnly = req.query.followingOnly === "true";
+      let result;
+      if (followingOnly) {
+        if (!currentUserId) return res.status(401).json({ message: "Login required" });
+        result = await storage.getPosts({ followedByUserId: currentUserId, limit });
+      } else {
+        result = await storage.getPosts({ userId, currentUserId, limit });
+      }
       res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/me/onboarding", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const hasAvatar = !!(user.avatarUrl && user.avatarUrl.trim().length > 0);
+      const hasBio = !!(user.bio && user.bio.trim().length > 0);
+      const userPosts = await storage.getPosts({ userId, limit: 1 });
+      const hasPost = userPosts.length > 0;
+      const followingCount = await storage.getFollowingCount(userId);
+      const hasFollow = followingCount > 0;
+      const socialLinks = user.socialLinks as Record<string, string | null> | null;
+      const hasSocialLink = !!(socialLinks && Object.values(socialLinks).some((v) => v && v.trim().length > 0));
+      res.json({ hasAvatar, hasBio, hasPost, hasFollow, hasSocialLink });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

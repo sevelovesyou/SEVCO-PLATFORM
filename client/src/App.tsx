@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { CommandSidebar } from "@/components/command-sidebar";
+import { SocialSidebar } from "@/components/social-sidebar";
 import { PlatformHeader } from "@/components/platform-header";
 import { PlatformFooter } from "@/components/platform-footer";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
@@ -55,6 +56,7 @@ import MusicListenPage from "@/pages/music-listen-page";
 import MusicPlaylistsPage from "@/pages/music-playlists-page";
 import MusicBeatsPage from "@/pages/music-beats-page";
 import NotFound from "@/pages/not-found";
+import FeedPage from "@/pages/feed-page";
 
 import { CommandPageLayout } from "@/pages/command-page";
 import CommandOverview from "@/pages/command-overview";
@@ -106,6 +108,7 @@ import { FloatingMusicPlayer } from "@/components/floating-music-player";
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new/", "/search", "/review", "/category/", "/wikify"];
 const COMMAND_PREFIXES = ["/command"];
+const SOCIAL_PREFIXES = ["/feed", "/account", "/profile"];
 
 function isWikiRoute(location: string): boolean {
   return WIKI_PREFIXES.some(
@@ -116,6 +119,12 @@ function isWikiRoute(location: string): boolean {
 function isCommandRoute(location: string): boolean {
   return COMMAND_PREFIXES.some(
     (prefix) => location === prefix || location.startsWith(prefix + "/")
+  );
+}
+
+function isSocialRoute(location: string): boolean {
+  return SOCIAL_PREFIXES.some(
+    (prefix) => location === prefix || location.startsWith(prefix + "/") || location.startsWith(prefix + "?")
   );
 }
 
@@ -183,7 +192,7 @@ function Router() {
       <Route path="/hosting" component={HostingPage} />
       <Route path="/minecraft" component={MinecraftPage} />
       <Route path="/contact" component={ContactPage} />
-      <Route path="/feed" component={() => <Redirect to="/" />} />
+      <Route path="/feed" component={FeedPage} />
       <Route path="/changelog" component={() => <Redirect to="/platform" />} />
       <Route path="/platform" component={PlatformPage} />
       <Route path="/jobs" component={JobsPage} />
@@ -670,6 +679,7 @@ function AppShell() {
 
   const showWikiSidebar = !!user && isWikiRoute(location);
   const showCommandSidebar = !!user && isCommandRoute(location);
+  const showSocialSidebar = isSocialRoute(location);
 
   return (
     <SidebarProvider
@@ -687,6 +697,7 @@ function AppShell() {
         <div className="flex flex-1 min-w-0 overflow-hidden">
           {showWikiSidebar && <AppSidebar />}
           {showCommandSidebar && <CommandSidebar />}
+          {showSocialSidebar && !showWikiSidebar && !showCommandSidebar && <SocialSidebar />}
           <main
             id="main-content"
             className="flex-1 min-w-0 flex flex-col"

@@ -240,7 +240,7 @@ export interface IStorage {
   updateFeedPost(id: number, data: Partial<InsertFeedPost>): Promise<FeedPost>;
   deleteFeedPost(id: number): Promise<void>;
 
-  getPosts(options: { userId?: string; followedByUserId?: string; limit?: number }): Promise<PostWithMeta[]>;
+  getPosts(options: { userId?: string; followedByUserId?: string; currentUserId?: string; limit?: number }): Promise<PostWithMeta[]>;
   getPostById(id: number): Promise<Post | undefined>;
   createPost(data: InsertPost & { authorId: string }): Promise<Post>;
   deletePost(id: number, authorId: string): Promise<void>;
@@ -1442,9 +1442,10 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async getPosts({ userId, followedByUserId, limit = 50 }: { userId?: string; followedByUserId?: string; limit?: number }): Promise<PostWithMeta[]> {
+  async getPosts({ userId, followedByUserId, currentUserId, limit = 50 }: { userId?: string; followedByUserId?: string; currentUserId?: string; limit?: number }): Promise<PostWithMeta[]> {
+    const viewerUserId = currentUserId ?? followedByUserId;
     if (userId) {
-      return this.getPostsBase(eq(posts.authorId, userId), followedByUserId, limit);
+      return this.getPostsBase(eq(posts.authorId, userId), viewerUserId, limit);
     }
     if (followedByUserId) {
       const followingIds = db
@@ -1453,11 +1454,11 @@ export class DatabaseStorage implements IStorage {
         .where(eq(userFollows.followerId, followedByUserId));
       return this.getPostsBase(
         sql`(${posts.authorId} IN (${followingIds}) OR ${posts.authorId} = ${followedByUserId})`,
-        followedByUserId,
+        viewerUserId,
         limit
       );
     }
-    return this.getPostsBase(undefined, undefined, limit);
+    return this.getPostsBase(undefined, viewerUserId, limit);
   }
 
   async getPostById(id: number): Promise<Post | undefined> {

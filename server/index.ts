@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { seedDatabase, promoteFounderToAdmin, markExistingUsersVerified, seedProjects, seedServices, seedPlaylists, seedStoreProducts, migrateServiceCategories, seedFeatureArticles } from "./seed";
+import { seedDatabase, promoteFounderToAdmin, markExistingUsersVerified, seedProjects, seedServices, seedPlaylists, seedStoreProducts, migrateServiceCategories, seedFeatureArticles, seedInfrastructureServices } from "./seed";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { WebhookHandlers } from "./webhookHandlers";
@@ -549,6 +549,7 @@ async function initStripe() {
   await markExistingUsersVerified().catch((err) => console.error("Email verify migration error:", err));
   await seedProjects().catch((err) => console.error("Project seed error:", err));
   await seedServices().catch((err) => console.error("Service seed error:", err));
+  await seedInfrastructureServices().catch((err) => console.error("Infrastructure services seed error:", err));
   await migrateServiceCategories().catch((err) => console.error("Service category migration error:", err));
   await seedPlaylists().catch((err) => console.error("Playlist seed error:", err));
   await seedStoreProducts().catch((err) => console.error("Store products seed error:", err));

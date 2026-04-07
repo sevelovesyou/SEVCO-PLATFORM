@@ -1472,6 +1472,40 @@ The Changelog in CMD → Platform shows the same data as /platform but in a more
   },
 ];
 
+export async function seedInfrastructureServices() {
+  const hosting = await storage.getServiceBySlug("sevco-hosting");
+  if (!hosting) {
+    await storage.createService({
+      name: "SEVCO Hosting",
+      slug: "sevco-hosting",
+      category: "Infrastructure",
+      iconName: "Server",
+      linkUrl: "/hosting",
+      tagline: "Websites, game servers, VPS & more",
+      description: "Reliable, managed hosting solutions for your websites, game servers, VPS, and web applications.",
+      featured: false,
+      status: "active",
+    });
+    console.log("[seed] Created SEVCO Hosting service.");
+  }
+
+  const domains = await storage.getServiceBySlug("domain-registration");
+  if (!domains) {
+    await storage.createService({
+      name: "Domain Registration",
+      slug: "domain-registration",
+      category: "Infrastructure",
+      iconName: "Globe",
+      linkUrl: "/domains",
+      tagline: "Register and manage domain names",
+      description: "Register and manage domain names for your brand, business, or project.",
+      featured: false,
+      status: "active",
+    });
+    console.log("[seed] Created Domain Registration service.");
+  }
+}
+
 export async function seedFeatureArticles() {
   const sentinel = await storage.getArticleBySlug("authentication-access-control");
   if (sentinel) return;

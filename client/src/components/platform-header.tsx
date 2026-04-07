@@ -83,6 +83,7 @@ import {
   Globe,
   Search,
   HardDrive,
+  Server,
   Wrench,
   Images,
   MessageCircle,
@@ -139,6 +140,7 @@ const SERVICE_ICON_MAP: Record<string, React.ElementType> = {
   Handshake, Target, HeadphonesIcon, BookOpen, Briefcase,
   Creative: Sparkles, Technology: Code2, Marketing: Megaphone,
   Business: Briefcase, Media: Music, Support: HeadphonesIcon,
+  Infrastructure: Server,
 };
 
 function buildServiceColumnGroups(services: Service[], categoryOrder?: string[]): string[][] {
@@ -439,19 +441,6 @@ function ServicesDropdown({ isActive, platformSettings }: { isActive: boolean; p
       </Button>
       {open && (
         <DropdownPanel triggerRef={ref} className="w-[640px]">
-          {/* Featured platform offerings */}
-          <div className="p-3 grid grid-cols-3 gap-2 border-b border-border/60">
-            <Link href="/hosting" onClick={() => setOpen(false)}>
-              <div className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group" data-testid="dropdown-services-hosting">
-                <HardDrive className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-foreground leading-none group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">Hosting</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">Websites, game servers, VPS & more</p>
-                </div>
-              </div>
-            </Link>
-          </div>
-
           {/* Professional services by category */}
           <div className="p-3 grid grid-cols-3 gap-2">
             {serviceColumnGroups.map((pair) => (

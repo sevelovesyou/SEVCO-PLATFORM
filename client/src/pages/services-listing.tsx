@@ -14,12 +14,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { Service } from "@shared/schema";
 
 const CATEGORY_BORDER_COLORS: Record<string, string> = {
-  Technology: "border-l-blue-500",
-  Creative:   "border-l-blue-600",
-  Marketing:  "border-l-red-700",
-  Business:   "border-l-green-500",
-  Media:      "border-l-yellow-500",
-  Support:    "border-l-pink-500",
+  Technology:     "border-l-blue-500",
+  Creative:       "border-l-blue-600",
+  Marketing:      "border-l-red-700",
+  Business:       "border-l-green-500",
+  Media:          "border-l-yellow-500",
+  Support:        "border-l-pink-500",
+  Infrastructure: "border-l-teal-500",
 };
 
 const DEFAULT_SOCIAL_PROOF_ITEMS = [
@@ -33,19 +34,20 @@ const DEFAULT_SOCIAL_PROOF_ITEMS = [
 const ICON_MAP: Record<string, React.ElementType> = {
   Code2, Plug, Lightbulb, Palette, MousePointer2, Sparkles,
   FileText, Share2, TrendingUp, ClipboardList, Settings2,
-  Handshake, Target, BookOpen, HeadphonesIcon,
+  Handshake, Target, BookOpen, HeadphonesIcon, Server, Globe,
 };
 
 const CATEGORY_STYLES: Record<string, { accent: string; badge: string }> = {
-  Technology: { accent: "text-blue-600 dark:text-blue-400",    badge: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20" },
-  Creative:   { accent: "text-blue-600 dark:text-blue-400", badge: "bg-blue-600/10 text-blue-700 dark:text-blue-300 border-blue-600/20" },
-  Marketing:  { accent: "text-red-700 dark:text-red-500", badge: "bg-red-700/10 text-red-800 dark:text-red-300 border-red-700/20" },
-  Business:   { accent: "text-green-600 dark:text-green-400",   badge: "bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/20" },
-  Media:      { accent: "text-yellow-600 dark:text-yellow-500", badge: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 border-yellow-500/20" },
-  Support:    { accent: "text-pink-600 dark:text-pink-400",     badge: "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/20" },
+  Technology:     { accent: "text-blue-600 dark:text-blue-400",    badge: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20" },
+  Creative:       { accent: "text-blue-600 dark:text-blue-400",    badge: "bg-blue-600/10 text-blue-700 dark:text-blue-300 border-blue-600/20" },
+  Marketing:      { accent: "text-red-700 dark:text-red-500",      badge: "bg-red-700/10 text-red-800 dark:text-red-300 border-red-700/20" },
+  Business:       { accent: "text-green-600 dark:text-green-400",  badge: "bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/20" },
+  Media:          { accent: "text-yellow-600 dark:text-yellow-500",badge: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 border-yellow-500/20" },
+  Support:        { accent: "text-pink-600 dark:text-pink-400",    badge: "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/20" },
+  Infrastructure: { accent: "text-teal-600 dark:text-teal-400",   badge: "bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/20" },
 };
 
-const CATEGORY_ORDER = ["Technology", "Creative", "Marketing", "Business", "Media", "Support"];
+const CATEGORY_ORDER = ["Technology", "Creative", "Marketing", "Business", "Media", "Support", "Infrastructure"];
 
 export default function ServicesListingPage() {
   const { data: services, isLoading } = useQuery<Service[]>({
@@ -249,60 +251,6 @@ export default function ServicesListingPage() {
             <p className="text-sm">Check back soon.</p>
           </div>
         )}
-
-        {/* Infrastructure section */}
-        <div className="mt-12 mb-8" data-testid="section-infrastructure">
-          <div className="flex items-center gap-3 mb-5">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-400">Infrastructure</h2>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-          <div className="grid md:grid-cols-2 gap-4">
-            <Link href="/hosting">
-              <div
-                data-testid="card-infra-hosting"
-                className="group border border-teal-500/20 rounded-xl p-6 bg-gradient-to-br from-teal-500/5 to-background hover:border-teal-500/40 hover:shadow-sm transition-all cursor-pointer"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="p-2.5 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 shrink-0">
-                    <Server className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-base">SEVCO Hosting</h3>
-                      <Badge variant="outline" className="text-xs bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/20">
-                        Infrastructure
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">Reliable, managed hosting solutions for your websites and web applications.</p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
-                </div>
-              </div>
-            </Link>
-            <Link href="/domains">
-              <div
-                data-testid="card-infra-domains"
-                className="group border border-teal-500/20 rounded-xl p-6 bg-gradient-to-br from-teal-500/5 to-background hover:border-teal-500/40 hover:shadow-sm transition-all cursor-pointer"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="p-2.5 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 shrink-0">
-                    <Globe className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-base">Domain Registration</h3>
-                      <Badge variant="outline" className="text-xs bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/20">
-                        Infrastructure
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">Register and manage domain names for your brand, business, or project.</p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
-                </div>
-              </div>
-            </Link>
-          </div>
-        </div>
 
         <div className="mt-8 border rounded-2xl p-8 md:p-10 bg-muted/30 text-center">
           <h2 className="text-2xl font-bold mb-3">Ready to work together?</h2>

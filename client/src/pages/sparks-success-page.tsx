@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { CheckCircle, Loader2, Zap } from "lucide-react";
+import { CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -103,7 +103,7 @@ export default function SparksSuccessPage() {
                 className="gap-2"
                 data-testid="button-buy-more"
               >
-                <Zap className="h-4 w-4" />
+                ⚡️
                 Buy more Sparks
               </Button>
             </Link>
@@ -114,7 +114,7 @@ export default function SparksSuccessPage() {
       {status === "error" && (
         <div className="flex flex-col items-center gap-6 text-center max-w-md">
           <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center">
-            <Zap className="h-10 w-10 text-muted-foreground opacity-40" />
+            <span className="text-4xl opacity-40">⚡️</span>
           </div>
           <div>
             <h1 className="text-2xl font-bold mb-2" data-testid="text-error-title">

@@ -15,7 +15,6 @@ import {
   FolderOpen,
   TrendingUp,
   Layers,
-  Zap,
   Palette,
   Music,
   Bot,
@@ -91,7 +90,7 @@ export default function Home() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+              <span className="text-base">⚡️</span>
               <span className="text-sm font-bold text-yellow-500 uppercase tracking-wider">Sparks</span>
             </div>
             <p className="text-base font-semibold leading-snug">
@@ -120,7 +119,7 @@ export default function Home() {
                 className="bg-yellow-400 text-yellow-900 hover:bg-yellow-300 font-bold gap-2"
                 data-testid="button-sparks-cta"
               >
-                <Zap className="h-4 w-4 fill-current" />
+                ⚡️
                 Get Sparks
               </Button>
             </Link>

@@ -33,7 +33,6 @@ import {
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Zap,
   Users,
   Package,
   Plus,
@@ -248,7 +247,7 @@ function TransactionTable({
                   tx.amount >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                 }`}
               >
-                ⚡ {formatAmount(tx.amount)}
+                ⚡️ {formatAmount(tx.amount)}
               </TableCell>
               {showMeta && tx.metadata && (
                 <TableCell>
@@ -303,7 +302,7 @@ function OverviewTab() {
         <StatCard
           label="Total Sparks Issued"
           value={(stats?.totalIssued ?? 0).toLocaleString()}
-          icon={Zap}
+          icon={() => <span className="text-lg">⚡️</span>}
           loading={statsLoading}
         />
         <StatCard
@@ -323,7 +322,7 @@ function OverviewTab() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Zap className="h-4 w-4" />
+            ⚡️
             Recent Transactions
             <span className="text-xs font-normal text-muted-foreground ml-auto">Auto-refreshes every 30s</span>
           </CardTitle>
@@ -399,8 +398,8 @@ function SparkControlsTab() {
       const username = selectedUser?.username ?? "user";
       const verb = amount >= 0 ? "credited to" : "debited from";
       toast({
-        title: `⚡ ${formatAmount(amount)} ${verb} @${username}`,
-        description: data?.newBalance != null ? `New balance: ⚡ ${data.newBalance.toLocaleString()}` : undefined,
+        title: `⚡️ ${formatAmount(amount)} ${verb} @${username}`,
+        description: data?.newBalance != null ? `New balance: ⚡️ ${data.newBalance.toLocaleString()}` : undefined,
       });
       form.reset({ amount: 0, description: "" });
       setSelectedUser(null);
@@ -512,7 +511,7 @@ function SparkControlsTab() {
                 </div>
                 {userBalance != null && (
                   <div className="text-sm font-mono font-semibold text-muted-foreground">
-                    ⚡ {userBalance.balance.toLocaleString()}
+                    ⚡️ {userBalance.balance.toLocaleString()}
                   </div>
                 )}
               </div>
@@ -594,7 +593,7 @@ function SparkControlsTab() {
                 disabled={adjustMutation.isPending || !selectedUser}
                 data-testid="button-submit-adjustment"
               >
-                <Zap className="h-4 w-4 mr-2" />
+                <span className="mr-2">⚡️</span>
                 {adjustMutation.isPending ? "Submitting…" : "Apply Adjustment"}
               </Button>
             </form>
@@ -915,7 +914,7 @@ function PackCatalogTab() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead className="text-right">⚡ Sparks</TableHead>
+                    <TableHead className="text-right">⚡️ Sparks</TableHead>
                     <TableHead className="text-right">Price</TableHead>
                     <TableHead>Stripe IDs</TableHead>
                     <TableHead className="text-center">Sort</TableHead>
@@ -1123,7 +1122,7 @@ export default function CommandSparksPage() {
 
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Zap className="h-6 w-6" />
+          ⚡️
           Sparks
         </h1>
         <p className="text-sm text-muted-foreground mt-1">

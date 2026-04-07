@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { User, Loader2, ExternalLink, Music, Zap, ArrowRight } from "lucide-react";
+import { User, Loader2, ExternalLink, Music, ArrowRight } from "lucide-react";
 import { SiX } from "react-icons/si";
 import { Link } from "wouter";
 import { useSounds } from "@/hooks/use-sounds";
@@ -37,7 +37,7 @@ const TRANSACTION_ICONS: Record<string, string> = {
   free_allocation: "🎁",
   admin_credit: "⚙️",
   admin_debit: "⚙️",
-  usage: "⚡",
+  usage: "⚡️",
   refund: "🔄",
 };
 
@@ -56,7 +56,7 @@ function SparksSection() {
     <Card data-testid="card-sparks">
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
-          <Zap className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+          ⚡️
           Sparks
         </CardTitle>
         <CardDescription>Your creative currency balance and recent activity.</CardDescription>
@@ -116,7 +116,7 @@ function SparksSection() {
               {transactions.map((tx) => (
                 <div key={tx.id} className="flex items-center gap-3 py-1.5" data-testid={`row-transaction-${tx.id}`}>
                   <span className="text-lg w-8 text-center shrink-0" aria-label={tx.type}>
-                    {TRANSACTION_ICONS[tx.type] ?? "⚡"}
+                    {TRANSACTION_ICONS[tx.type] ?? "⚡️"}
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate" data-testid={`text-tx-desc-${tx.id}`}>{tx.description}</p>

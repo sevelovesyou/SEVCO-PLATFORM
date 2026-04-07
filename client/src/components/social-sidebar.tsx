@@ -23,7 +23,6 @@ import {
   MessageSquare,
   Users,
   Link as LinkIcon,
-  Zap,
   Compass,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -136,8 +135,7 @@ export function SocialSidebar() {
                       </span>
                     </div>
                     <div className="flex items-center gap-1 text-xs text-yellow-400 font-semibold mt-1" data-testid="text-social-sidebar-sparks">
-                      <Zap className="h-3 w-3" />
-                      <span>{sparksData?.balance ?? "…"} Sparks</span>
+                      <span>⚡️ {sparksData?.balance ?? "…"} Sparks</span>
                     </div>
                   </div>
                 </div>

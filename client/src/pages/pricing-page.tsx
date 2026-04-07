@@ -16,7 +16,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2,
-  Zap,
   Check,
   X,
   ArrowDown,
@@ -261,7 +260,6 @@ export default function PricingPage() {
                 className="inline-flex items-center gap-2 bg-yellow-400/15 border border-yellow-400/40 rounded-full px-5 py-2 text-sm font-semibold text-yellow-300"
                 data-testid="chip-balance"
               >
-                <Zap className="h-4 w-4 fill-current" />
                 ⚡️ {balance.toLocaleString()} — Your balance
               </div>
             )}
@@ -297,7 +295,7 @@ export default function PricingPage() {
             </>
           ) : !packs || packs.length === 0 ? (
             <div className="col-span-full text-center py-12 text-muted-foreground" data-testid="text-no-packs">
-              <Zap className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <span className="text-4xl block text-center mb-3 opacity-30">⚡️</span>
               <p className="font-medium">Spark packs coming soon</p>
               <p className="text-sm mt-1">Check back later for purchasing options.</p>
             </div>
@@ -350,7 +348,7 @@ export default function PricingPage() {
         <div className="overflow-hidden rounded-xl border border-border">
           <div className="grid grid-cols-2 bg-muted/50">
             <div className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-yellow-500 flex items-center gap-1.5">
-              <Zap className="h-3.5 w-3.5 fill-current" /> Sparks
+              ⚡️ Sparks
             </div>
             <div className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground border-l border-border">
               vs. Subscriptions

@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Zap, ArrowRight, Palette, Music, Bot, Sparkles, Eye } from "lucide-react";
+import { ArrowRight, Palette, Music, Bot, Sparkles, Eye } from "lucide-react";
 
 const SPARK_USES = [
   { icon: Palette, label: "AI Art Generation", description: "Generate images, album art, and visual concepts on demand." },
@@ -44,14 +44,14 @@ export default function SparksPage() {
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-6 space-y-6" data-testid="sparks-page">
       <div className="flex items-center gap-2">
-        <Zap className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+        <span className="text-xl">⚡️</span>
         <h1 className="text-xl font-bold">Sparks</h1>
       </div>
 
       <Card data-testid="card-sparks-balance">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Zap className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+            ⚡️
             Your Balance
           </CardTitle>
           <CardDescription>
@@ -78,7 +78,7 @@ export default function SparksPage() {
                 className="bg-yellow-400 text-yellow-900 hover:bg-yellow-300 font-bold gap-2 shrink-0"
                 data-testid="button-buy-more-sparks"
               >
-                <Zap className="h-4 w-4 fill-current" />
+                ⚡️
                 Buy More Sparks
               </Button>
             </Link>

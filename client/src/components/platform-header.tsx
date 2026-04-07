@@ -95,7 +95,7 @@ import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { ChatSheet } from "@/components/chat-sheet";
 import { useSounds } from "@/hooks/use-sounds";
 import { useMusicPlayer } from "@/contexts/music-player-context";
-import { Volume2, VolumeX, Bell, Zap } from "lucide-react";
+import { Volume2, VolumeX, Bell } from "lucide-react";
 import type { Project, Service } from "@shared/schema";
 import { NotificationDropdown } from "@/components/notification-dropdown";
 
@@ -716,7 +716,7 @@ function NavSparksBalance() {
       <PopoverContent align="end" className="w-56 p-3 space-y-3">
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Sparks Balance</p>
         <div className="flex items-center gap-1.5">
-          <Zap className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+          <span className="text-xl">⚡️</span>
           <span className="text-2xl font-bold">{isLoading ? "…" : (data?.balance ?? 0).toLocaleString()}</span>
         </div>
         <div className="border-t border-border pt-2">

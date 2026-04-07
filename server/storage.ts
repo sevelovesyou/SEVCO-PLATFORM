@@ -259,6 +259,9 @@ export interface IStorage {
   getPostById(id: number): Promise<Post | undefined>;
   createPost(data: InsertPost & { authorId: string }): Promise<Post>;
   deletePost(id: number, authorId: string): Promise<void>;
+  repostPost(originalPostId: number, userId: string): Promise<Post>;
+  unrepostPost(originalPostId: number, userId: string): Promise<void>;
+  hasReposted(originalPostId: number, userId: string): Promise<boolean>;
 
   likePost(postId: number, userId: string): Promise<void>;
   unlikePost(postId: number, userId: string): Promise<void>;
@@ -273,6 +276,8 @@ export interface IStorage {
   getFollowing(userId: string): Promise<FollowUser[]>;
   getFollowerCount(userId: string): Promise<number>;
   getFollowingCount(userId: string): Promise<number>;
+  getTopFollowedUsers(limit: number, currentUserId?: string): Promise<DiscoverUser[]>;
+  searchUsers(query: string, currentUserId?: string): Promise<DiscoverUser[]>;
 
   getPlatformSettings(): Promise<Record<string, string>>;
   setPlatformSettings(entries: Record<string, string>): Promise<void>;
@@ -473,9 +478,10 @@ export type SearchAllResult = {
 };
 
 export type PostAuthor = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
-export type PostWithMeta = Post & { author: PostAuthor; likeCount: number; replyCount: number; likedByCurrentUser: boolean };
+export type PostWithMeta = Post & { author: PostAuthor; likeCount: number; replyCount: number; likedByCurrentUser: boolean; repostedByCurrentUser?: boolean; originalPost?: { id: number; content: string; imageUrl: string | null; author: PostAuthor } | null };
 export type ReplyWithAuthor = PostReply & { author: PostAuthor };
 export type FollowUser = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
+export type DiscoverUser = { id: string; username: string; displayName: string | null; avatarUrl: string | null; followerCount: number; isFollowing: boolean };
 
 export type StaffUserWithNode = {
   id: string;
@@ -676,10 +682,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getArticlesByAuthor(authorName: string): Promise<Article[]> {
+    const authoredArticleIds = db
+      .selectDistinct({ id: revisions.articleId })
+      .from(revisions)
+      .where(eq(revisions.authorName, authorName));
     return db.select().from(articles)
-      .where(eq(articles.authorName, authorName))
+      .where(sql`${articles.id} IN (${authoredArticleIds})`)
       .orderBy(desc(articles.updatedAt))
-      .limit(10);
+      .limit(20);
   }
 
   async searchArticles(query: string): Promise<Article[]> {
@@ -1455,6 +1465,15 @@ export class DatabaseStorage implements IStorage {
         likedByCurrentUser: currentUserId
           ? sql<boolean>`EXISTS(SELECT 1 FROM post_likes WHERE post_id = ${posts.id} AND user_id = ${currentUserId})`
           : sql<boolean>`false`,
+        repostedByCurrentUser: currentUserId
+          ? sql<boolean>`EXISTS(SELECT 1 FROM posts p2 WHERE p2.repost_of = COALESCE(${posts.repostOf}, ${posts.id}) AND p2.author_id = ${currentUserId})`
+          : sql<boolean>`false`,
+        originalContent: sql<string | null>`(SELECT op.content FROM posts op WHERE op.id = ${posts.repostOf})`,
+        originalImageUrl: sql<string | null>`(SELECT op.image_url FROM posts op WHERE op.id = ${posts.repostOf})`,
+        originalAuthorId: sql<string | null>`(SELECT op.author_id FROM posts op WHERE op.id = ${posts.repostOf})`,
+        originalAuthorUsername: sql<string | null>`(SELECT u.username FROM posts op JOIN users u ON u.id = op.author_id WHERE op.id = ${posts.repostOf})`,
+        originalAuthorDisplayName: sql<string | null>`(SELECT u.display_name FROM posts op JOIN users u ON u.id = op.author_id WHERE op.id = ${posts.repostOf})`,
+        originalAuthorAvatarUrl: sql<string | null>`(SELECT u.avatar_url FROM posts op JOIN users u ON u.id = op.author_id WHERE op.id = ${posts.repostOf})`,
       })
       .from(posts)
       .innerJoin(users, eq(posts.authorId, users.id))
@@ -1468,6 +1487,18 @@ export class DatabaseStorage implements IStorage {
       likeCount: r.likeCount,
       replyCount: r.replyCount,
       likedByCurrentUser: r.likedByCurrentUser,
+      repostedByCurrentUser: r.repostedByCurrentUser,
+      originalPost: r.post.repostOf ? {
+        id: r.post.repostOf,
+        content: r.originalContent ?? "",
+        imageUrl: r.originalImageUrl,
+        author: {
+          id: r.originalAuthorId ?? "",
+          username: r.originalAuthorUsername ?? "",
+          displayName: r.originalAuthorDisplayName,
+          avatarUrl: r.originalAuthorAvatarUrl,
+        },
+      } : null,
     }));
   }
 
@@ -1577,6 +1608,76 @@ export class DatabaseStorage implements IStorage {
   async getFollowingCount(userId: string): Promise<number> {
     const [r] = await db.select({ count: sql<number>`count(*)::int` }).from(userFollows).where(eq(userFollows.followerId, userId));
     return r?.count || 0;
+  }
+
+  async repostPost(originalPostId: number, userId: string): Promise<Post> {
+    const original = await this.getPostById(originalPostId);
+    if (!original) throw new Error("Post not found");
+    const existing = await this.hasReposted(originalPostId, userId);
+    if (existing) throw new Error("Already reposted");
+    const [row] = await db.insert(posts).values({
+      authorId: userId,
+      content: "",
+      imageUrl: null,
+      repostOf: originalPostId,
+    }).returning();
+    return row;
+  }
+
+  async unrepostPost(originalPostId: number, userId: string): Promise<void> {
+    await db.delete(posts).where(
+      and(eq(posts.authorId, userId), eq(posts.repostOf, originalPostId))
+    );
+  }
+
+  async hasReposted(originalPostId: number, userId: string): Promise<boolean> {
+    const [row] = await db.select({ id: posts.id }).from(posts).where(
+      and(eq(posts.authorId, userId), eq(posts.repostOf, originalPostId))
+    );
+    return !!row;
+  }
+
+  async getTopFollowedUsers(limit: number, currentUserId?: string): Promise<DiscoverUser[]> {
+    const rows = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+        followerCount: sql<number>`(SELECT COUNT(*) FROM user_follows WHERE following_id = ${users.id})::int`,
+      })
+      .from(users)
+      .orderBy(sql`(SELECT COUNT(*) FROM user_follows WHERE following_id = ${users.id}) DESC`)
+      .limit(limit);
+
+    const result: DiscoverUser[] = [];
+    for (const row of rows) {
+      const isFollowing = currentUserId ? await this.isFollowing(currentUserId, row.id) : false;
+      result.push({ ...row, isFollowing });
+    }
+    return result;
+  }
+
+  async searchUsers(query: string, currentUserId?: string): Promise<DiscoverUser[]> {
+    const pattern = `%${query}%`;
+    const rows = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+        followerCount: sql<number>`(SELECT COUNT(*) FROM user_follows WHERE following_id = ${users.id})::int`,
+      })
+      .from(users)
+      .where(or(ilike(users.username, pattern), ilike(users.displayName, pattern)))
+      .limit(20);
+
+    const result: DiscoverUser[] = [];
+    for (const row of rows) {
+      const isFollowing = currentUserId ? await this.isFollowing(currentUserId, row.id) : false;
+      result.push({ ...row, isFollowing });
+    }
+    return result;
   }
 
   async getPlatformSettings(): Promise<Record<string, string>> {

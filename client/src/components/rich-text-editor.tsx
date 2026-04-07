@@ -422,6 +422,14 @@ export function RichTextEditor({ value, onChange, placeholder, className, showTo
     onImageUploadReady?.(handleImageButtonClick);
   }, [onImageUploadReady, handleImageButtonClick]);
 
+  useEffect(() => {
+    if (!editor) return;
+    const currentHtml = editor.getHTML();
+    if (value !== currentHtml) {
+      editor.commands.setContent(value || "", false);
+    }
+  }, [value, editor]);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;

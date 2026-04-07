@@ -445,6 +445,7 @@ export const posts = pgTable("posts", {
   authorId: varchar("author_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
   imageUrl: text("image_url"),
+  repostOf: integer("repost_of").references((): AnyPgColumn => posts.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -470,6 +471,8 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
   author: one(users, { fields: [posts.authorId], references: [users.id] }),
   likes: many(postLikes),
   replies: many(postReplies),
+  originalPost: one(posts, { fields: [posts.repostOf], references: [posts.id], relationName: "reposts" }),
+  reposts: many(posts, { relationName: "reposts" }),
 }));
 
 export const postLikesRelations = relations(postLikes, ({ one }) => ({
@@ -487,7 +490,7 @@ export const userFollowsRelations = relations(userFollows, ({ one }) => ({
   following: one(users, { fields: [userFollows.followingId], references: [users.id], relationName: "following" }),
 }));
 
-export const insertPostSchema = createInsertSchema(posts).omit({ id: true, createdAt: true, authorId: true });
+export const insertPostSchema = createInsertSchema(posts).omit({ id: true, createdAt: true, authorId: true, repostOf: true });
 export const insertPostReplySchema = createInsertSchema(postReplies).omit({ id: true, createdAt: true, authorId: true, postId: true });
 
 export type Post = typeof posts.$inferSelect;

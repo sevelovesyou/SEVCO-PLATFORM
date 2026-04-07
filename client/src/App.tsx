@@ -57,6 +57,7 @@ import MusicPlaylistsPage from "@/pages/music-playlists-page";
 import MusicBeatsPage from "@/pages/music-beats-page";
 import NotFound from "@/pages/not-found";
 import FeedPage from "@/pages/feed-page";
+import DiscoverPage from "@/pages/discover-page";
 import PricingPage from "@/pages/pricing-page";
 import SparksSuccessPage from "@/pages/sparks-success-page";
 import SparksPage from "@/pages/sparks-page";
@@ -112,7 +113,7 @@ import { FloatingMusicPlayer } from "@/components/floating-music-player";
 
 const WIKI_PREFIXES = ["/wiki", "/edit/", "/new/", "/search", "/review", "/category/", "/wikify"];
 const COMMAND_PREFIXES = ["/command"];
-const SOCIAL_PREFIXES = ["/feed", "/account", "/profile"];
+const SOCIAL_PREFIXES = ["/feed", "/account", "/profile", "/discover"];
 
 function isWikiRoute(location: string): boolean {
   return WIKI_PREFIXES.some(
@@ -197,6 +198,7 @@ function Router() {
       <Route path="/minecraft" component={MinecraftPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/feed" component={FeedPage} />
+      <Route path="/discover" component={DiscoverPage} />
       <Route path="/pricing" component={PricingPage} />
       <Route path="/sparks/success" component={SparksSuccessPage} />
       <Route path="/sparks" component={SparksPage} />

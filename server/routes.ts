@@ -3968,6 +3968,54 @@ export async function registerRoutes(
     }
   });
 
+  // Repost routes
+  app.post("/api/posts/:id/repost", requireAuth, async (req: any, res) => {
+    try {
+      const postId = parseInt(req.params.id);
+      if (isNaN(postId)) return res.status(400).json({ message: "Invalid id" });
+      const repost = await storage.repostPost(postId, req.user.id);
+      res.status(201).json(repost);
+    } catch (err: any) {
+      if (err.message === "Already reposted") return res.status(409).json({ message: err.message });
+      if (err.message === "Post not found") return res.status(404).json({ message: err.message });
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/posts/:id/repost", requireAuth, async (req: any, res) => {
+    try {
+      const postId = parseInt(req.params.id);
+      if (isNaN(postId)) return res.status(400).json({ message: "Invalid id" });
+      await storage.unrepostPost(postId, req.user.id);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Discover / user search routes
+  app.get("/api/users/top", async (req: any, res) => {
+    try {
+      const currentUserId = req.user?.id;
+      const topUsers = await storage.getTopFollowedUsers(10, currentUserId);
+      res.json(topUsers);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/users/search", async (req: any, res) => {
+    try {
+      const q = (req.query.q as string) || "";
+      if (!q.trim()) return res.json([]);
+      const currentUserId = req.user?.id;
+      const results = await storage.searchUsers(q, currentUserId);
+      res.json(results);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // User follow routes
   app.get("/api/users/:username/profile", async (req, res) => {
     try {
@@ -4058,7 +4106,7 @@ export async function registerRoutes(
       const profile = await storage.getUserByUsername(req.params.username);
       if (!profile) return res.status(404).json({ message: "User not found" });
       const currentUserId = req.user?.id;
-      const userPosts = await storage.getPosts({ userId: profile.id, followedByUserId: currentUserId });
+      const userPosts = await storage.getPosts({ userId: profile.id, currentUserId });
       res.json(userPosts);
     } catch (err: any) {
       res.status(500).json({ message: err.message });

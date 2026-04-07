@@ -63,6 +63,7 @@ import {
   Disc,
   Play,
   BarChart2,
+  Repeat2,
 } from "lucide-react";
 import { SiDiscord, SiInstagram, SiX, SiTiktok } from "react-icons/si";
 import { SevcoLogo } from "@/components/sevco-logo";
@@ -141,9 +142,11 @@ type PublicUser = {
 };
 
 type PostAuthor = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
+type OriginalPostInfo = { id: number; content: string; imageUrl: string | null; author: PostAuthor };
 type PostWithMeta = {
-  id: number; authorId: string; content: string; imageUrl: string | null; createdAt: string;
-  author: PostAuthor; likeCount: number; replyCount: number; likedByCurrentUser: boolean;
+  id: number; authorId: string; content: string; imageUrl: string | null; createdAt: string; repostOf?: number | null;
+  author: PostAuthor; likeCount: number; replyCount: number; likedByCurrentUser: boolean; repostedByCurrentUser?: boolean;
+  originalPost?: OriginalPostInfo | null;
 };
 type FollowUser = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
 
@@ -735,11 +738,39 @@ function PostCard({ post, currentUserId, canDelete, onDelete }: {
     onError: () => toast({ title: "Failed to update like", variant: "destructive" }),
   });
 
+  const isRepost = !!post.repostOf;
+  const originalPostId = post.repostOf ?? post.id;
+  const authorName = post.author.displayName || post.author.username;
+
+  const repostMutation = useMutation({
+    mutationFn: () =>
+      post.repostedByCurrentUser
+        ? apiRequest("DELETE", `/api/posts/${originalPostId}/repost`)
+        : apiRequest("POST", `/api/posts/${originalPostId}/repost`),
+    onSuccess: () => {
+      import("@/lib/queryClient").then(({ queryClient }) => {
+        queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      });
+      toast({ title: post.repostedByCurrentUser ? "Repost removed" : "Reposted!" });
+    },
+    onError: () => toast({ title: "Failed to repost", variant: "destructive" }),
+  });
+
   return (
     <Card className="p-4 overflow-visible" data-testid={`card-profile-post-${post.id}`}>
+      {isRepost && (
+        <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+          <Repeat2 className="h-3.5 w-3.5" />
+          <span>{authorName} reposted</span>
+        </div>
+      )}
       <div className="flex gap-2.5">
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1.5">
+            {isRepost && post.originalPost && (
+              <span className="text-xs font-medium text-muted-foreground">@{post.originalPost.author.username}</span>
+            )}
             <span className="text-xs text-muted-foreground">{formatRelativeTime(post.createdAt)}</span>
             {canDelete && (
               <DropdownMenu>
@@ -756,10 +787,12 @@ function PostCard({ post, currentUserId, canDelete, onDelete }: {
               </DropdownMenu>
             )}
           </div>
-          <p className="text-sm leading-relaxed whitespace-pre-wrap mb-2">{post.content}</p>
-          {post.imageUrl && (
+          <p className="text-sm leading-relaxed whitespace-pre-wrap mb-2">
+            {isRepost && post.originalPost ? post.originalPost.content : post.content}
+          </p>
+          {(isRepost ? post.originalPost?.imageUrl : post.imageUrl) && (
             <div className="mb-2 rounded-xl overflow-hidden border">
-              <img src={resolveImageUrl(post.imageUrl)} alt="Post" className="w-full max-h-48 object-cover" loading="lazy" />
+              <img src={resolveImageUrl((isRepost ? post.originalPost?.imageUrl : post.imageUrl) as string)} alt="Post" className="w-full max-h-48 object-cover" loading="lazy" />
             </div>
           )}
           <div className="flex items-center gap-4">
@@ -780,6 +813,16 @@ function PostCard({ post, currentUserId, canDelete, onDelete }: {
               <MessageCircle className="h-3.5 w-3.5" />
               <span>{post.replyCount}</span>
             </button>
+            {currentUserId && (currentUserId !== post.authorId || isRepost) && (
+              <button
+                className={`flex items-center gap-1.5 text-xs transition-colors ${post.repostedByCurrentUser ? "text-green-500" : "text-muted-foreground hover:text-green-500"} cursor-pointer`}
+                onClick={() => repostMutation.mutate()}
+                disabled={repostMutation.isPending}
+                data-testid={`button-profile-repost-${post.id}`}
+              >
+                <Repeat2 className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
           {repliesOpen && (
             <div className="mt-3 pt-3 border-t">

@@ -72,6 +72,7 @@ import {
   UserPlus,
   UserCheck,
   Users,
+  Repeat2,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { insertFeedPostSchema, insertPostSchema } from "@shared/schema";
@@ -84,9 +85,11 @@ type FeedPostWithAuthor = FeedPost & {
 };
 
 type PostAuthor = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
+type OriginalPostInfo = { id: number; content: string; imageUrl: string | null; author: PostAuthor };
 type PostWithMeta = {
-  id: number; authorId: string; content: string; imageUrl: string | null; createdAt: string;
-  author: PostAuthor; likeCount: number; replyCount: number; likedByCurrentUser: boolean;
+  id: number; authorId: string; content: string; imageUrl: string | null; createdAt: string; repostOf?: number | null;
+  author: PostAuthor; likeCount: number; replyCount: number; likedByCurrentUser: boolean; repostedByCurrentUser?: boolean;
+  originalPost?: OriginalPostInfo | null;
 };
 type ReplyWithAuthor = {
   id: number; postId: number; authorId: string; content: string; createdAt: string;
@@ -348,6 +351,8 @@ function SocialPostCard({
   const isOwner = currentUserId === post.authorId;
   const canDelete = isOwner || isAdmin;
   const authorName = post.author.displayName || post.author.username;
+  const isRepost = !!post.repostOf;
+  const originalPostId = post.repostOf ?? post.id;
 
   const likeMutation = useMutation({
     mutationFn: () =>
@@ -358,28 +363,52 @@ function SocialPostCard({
     onError: () => toast({ title: "Failed to update like", variant: "destructive" }),
   });
 
+  const repostMutation = useMutation({
+    mutationFn: () =>
+      post.repostedByCurrentUser
+        ? apiRequest("DELETE", `/api/posts/${originalPostId}/repost`)
+        : apiRequest("POST", `/api/posts/${originalPostId}/repost`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      toast({ title: post.repostedByCurrentUser ? "Repost removed" : "Reposted!" });
+    },
+    onError: (err: any) => toast({ title: "Failed to repost", variant: "destructive" }),
+  });
+
   return (
     <>
     <Card className="p-4 overflow-visible transition-shadow hover:shadow-sm" data-testid={`card-post-${post.id}`}>
+      {isRepost && (
+        <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2 pl-1">
+          <Repeat2 className="h-3.5 w-3.5" />
+          <span>{authorName} reposted</span>
+        </div>
+      )}
       <div className="flex gap-3">
-        <AuthorHoverCard username={post.author.username} currentUserId={currentUserId} currentUsername={currentUsername}>
-          <Link href={`/profile/${post.author.username}`}>
+        <AuthorHoverCard username={isRepost && post.originalPost ? post.originalPost.author.username : post.author.username} currentUserId={currentUserId} currentUsername={currentUsername}>
+          <Link href={`/profile/${isRepost && post.originalPost ? post.originalPost.author.username : post.author.username}`}>
             <span className="cursor-pointer">
-              <AvatarIcon user={post.author} size="md" />
+              <AvatarIcon user={isRepost && post.originalPost ? post.originalPost.author : post.author} size="md" />
             </span>
           </Link>
         </AuthorHoverCard>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="flex items-center flex-wrap gap-1.5">
-              <AuthorHoverCard username={post.author.username} currentUserId={currentUserId} currentUsername={currentUsername}>
-                <Link href={`/profile/${post.author.username}`}>
-                  <span className="text-sm font-semibold hover:underline cursor-pointer" data-testid={`text-post-author-${post.id}`}>
-                    {authorName}
-                  </span>
-                </Link>
-              </AuthorHoverCard>
-              <span className="text-xs text-muted-foreground">@{post.author.username}</span>
+              {(() => {
+                const displayAuthor = isRepost && post.originalPost ? post.originalPost.author : post.author;
+                const displayName = displayAuthor.displayName || displayAuthor.username;
+                return (
+                  <AuthorHoverCard username={displayAuthor.username} currentUserId={currentUserId} currentUsername={currentUsername}>
+                    <Link href={`/profile/${displayAuthor.username}`}>
+                      <span className="text-sm font-semibold hover:underline cursor-pointer" data-testid={`text-post-author-${post.id}`}>
+                        {displayName}
+                      </span>
+                    </Link>
+                  </AuthorHoverCard>
+                );
+              })()}
+              <span className="text-xs text-muted-foreground">@{isRepost && post.originalPost ? post.originalPost.author.username : post.author.username}</span>
               <span className="text-xs text-muted-foreground">·</span>
               <span className="text-xs text-muted-foreground">{formatRelativeTime(post.createdAt)}</span>
             </div>
@@ -405,13 +434,13 @@ function SocialPostCard({
           </div>
 
           <p className="text-sm leading-relaxed whitespace-pre-wrap mb-2" data-testid={`text-post-content-${post.id}`}>
-            {post.content}
+            {isRepost && post.originalPost ? post.originalPost.content : post.content}
           </p>
 
-          {post.imageUrl && (
+          {(isRepost ? post.originalPost?.imageUrl : post.imageUrl) && (
             <div className="mt-2 mb-3 rounded-xl overflow-hidden border">
               <img
-                src={resolveImageUrl(post.imageUrl)}
+                src={resolveImageUrl((isRepost ? post.originalPost?.imageUrl : post.imageUrl) as string)}
                 alt="Post image"
                 className="w-full max-h-72 object-cover"
                 data-testid={`img-post-${post.id}`}
@@ -442,6 +471,21 @@ function SocialPostCard({
               <MessageCircle className="h-4 w-4" />
               <span data-testid={`text-reply-count-${post.id}`}>{post.replyCount}</span>
             </button>
+
+            {currentUserId && (!isOwner || isRepost) && (
+              <button
+                className={`flex items-center gap-1.5 text-xs transition-colors ${
+                  post.repostedByCurrentUser
+                    ? "text-green-500"
+                    : "text-muted-foreground hover:text-green-500"
+                } cursor-pointer`}
+                onClick={() => repostMutation.mutate()}
+                disabled={repostMutation.isPending}
+                data-testid={`button-repost-${post.id}`}
+              >
+                <Repeat2 className="h-4 w-4" />
+              </button>
+            )}
 
             {isStaffPlus && (
               <TooltipProvider>

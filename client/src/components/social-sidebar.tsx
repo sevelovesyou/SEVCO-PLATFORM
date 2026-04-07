@@ -24,6 +24,7 @@ import {
   Users,
   Link as LinkIcon,
   Zap,
+  Compass,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -70,6 +71,7 @@ export function SocialSidebar() {
 
   const navItems = [
     { title: "Feed", url: "/feed", icon: Rss },
+    { title: "Discover", url: "/discover", icon: Compass },
     { title: "Profile", url: user?.username ? `/profile/${user.username}` : "/profile", icon: User },
     { title: "Account", url: "/account", icon: Settings },
   ];

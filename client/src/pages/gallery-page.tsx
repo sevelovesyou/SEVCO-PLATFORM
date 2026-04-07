@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { PageHead } from "@/components/page-head";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,9 +12,10 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link } from "wouter";
 import { articleUrl } from "@/lib/wiki-urls";
-import { Copy, ImageOff, ExternalLink, X } from "lucide-react";
+import { Copy, ImageOff, ExternalLink, X, Zap } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import type { GalleryImage } from "@shared/schema";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
@@ -44,16 +47,24 @@ const TABS = [
 
 const SKELETON_HEIGHTS = ["h-40", "h-64", "h-48", "h-56", "h-32", "h-72", "h-44", "h-60"];
 
+type GalleryImageWithSpark = GalleryImage & {
+  sparkCount?: number;
+  isSparkedByMe?: boolean;
+  uploaderName?: string | null;
+};
+
 export default function GalleryPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("all");
-  const [lightboxImage, setLightboxImage] = useState<GalleryImage | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<GalleryImageWithSpark | null>(null);
+  const [sparkTooltips, setSparkTooltips] = useState<Record<number, boolean>>({});
 
   const queryKey = activeTab === "all"
     ? ["/api/gallery"]
     : ["/api/gallery", activeTab];
 
-  const { data: images, isLoading } = useQuery<GalleryImage[]>({
+  const { data: images, isLoading } = useQuery<GalleryImageWithSpark[]>({
     queryKey,
     queryFn: async () => {
       const url = activeTab === "all" ? "/api/gallery" : `/api/gallery?category=${activeTab}`;
@@ -62,6 +73,34 @@ export default function GalleryPage() {
       return res.json();
     },
   });
+
+  const { data: dailyQuota } = useQuery<{ given: number; limit: number; remaining: number }>({
+    queryKey: ["/api/sparks/daily-quota"],
+    enabled: !!user,
+  });
+  const dailyLimitReached = (dailyQuota?.remaining ?? 1) === 0;
+
+  const sparkMutation = useMutation({
+    mutationFn: (imageId: number) => apiRequest("POST", `/api/gallery/${imageId}/spark`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/gallery"] }),
+    onError: (err: any) => {
+      if (err?.status === 429 || err?.message?.includes("429")) {
+        toast({ title: "Daily limit reached", description: "You can give 10 sparks per day." });
+      } else if (err?.status === 403 || err?.message?.includes("403")) {
+        toast({ title: "Cannot spark your own content", variant: "destructive" });
+      }
+    },
+  });
+
+  function handleSpark(image: GalleryImageWithSpark) {
+    if (!user) return;
+    if (image.isSparkedByMe) {
+      setSparkTooltips((prev) => ({ ...prev, [image.id]: true }));
+      setTimeout(() => setSparkTooltips((prev) => ({ ...prev, [image.id]: false })), 2000);
+      return;
+    }
+    sparkMutation.mutate(image.id);
+  }
 
   async function copyLink(imageUrl: string, title: string) {
     try {
@@ -173,6 +212,15 @@ export default function GalleryPage() {
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">Members only</Badge>
                   </div>
                 )}
+                {(image.sparkCount ?? 0) > 0 && (
+                  <div
+                    className="absolute bottom-1.5 left-1.5 flex items-center gap-0.5 bg-black/60 text-amber-400 rounded-md px-1.5 py-0.5 text-[10px] font-semibold backdrop-blur-sm"
+                    data-testid={`badge-gallery-spark-overlay-${image.id}`}
+                  >
+                    <Zap className="h-2.5 w-2.5 fill-amber-400" />
+                    <span>{image.sparkCount}</span>
+                  </div>
+                )}
               </button>
               <div className="p-3 flex flex-col gap-2">
                 <div className="flex items-start justify-between gap-2">
@@ -187,7 +235,12 @@ export default function GalleryPage() {
                     {CATEGORY_LABELS[image.category] ?? image.category}
                   </Badge>
                 </div>
-                <div className="flex gap-1.5">
+                {image.uploaderName && (
+                  <p className="text-[10px] text-muted-foreground" data-testid={`text-gallery-uploader-${image.id}`}>
+                    by @{image.uploaderName}
+                  </p>
+                )}
+                <div className="flex gap-1.5 items-center">
                   <Button
                     size="sm"
                     variant="outline"
@@ -209,6 +262,30 @@ export default function GalleryPage() {
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   </Button>
+                  <TooltipProvider>
+                    <Tooltip open={sparkTooltips[image.id] ?? false}>
+                      <TooltipTrigger asChild>
+                        <button
+                          className={`flex items-center gap-1 text-xs transition-colors h-7 px-1.5 rounded ${
+                            image.isSparkedByMe
+                              ? "text-amber-500"
+                              : dailyLimitReached && !image.isSparkedByMe
+                              ? "text-muted-foreground opacity-40 cursor-not-allowed"
+                              : "text-muted-foreground hover:text-amber-500"
+                          } ${!user ? "opacity-50 cursor-default" : ""}`}
+                          onClick={() => handleSpark(image)}
+                          disabled={dailyLimitReached && !image.isSparkedByMe}
+                          data-testid={`button-gallery-spark-${image.id}`}
+                        >
+                          <Zap className={`h-3 w-3 ${image.isSparkedByMe ? "fill-amber-500" : ""}`} />
+                          <span>{image.sparkCount ?? 0}</span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        {image.isSparkedByMe ? "Already sparked!" : dailyLimitReached ? "Daily spark limit reached (10/day)" : "Spark this image"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </div>
             </div>

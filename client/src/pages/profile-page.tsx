@@ -58,6 +58,7 @@ import {
   UserPlus,
   UserCheck,
   Settings,
+  Zap,
   Lock,
   Star,
   Music,
@@ -147,6 +148,7 @@ type OriginalPostInfo = { id: number; content: string; imageUrl: string | null; 
 type PostWithMeta = {
   id: number; authorId: string; content: string; imageUrl: string | null; createdAt: string; repostOf?: number | null;
   author: PostAuthor; likeCount: number; replyCount: number; likedByCurrentUser: boolean; repostedByCurrentUser?: boolean;
+  sparkCount?: number; isSparkedByMe?: boolean;
   originalPost?: OriginalPostInfo | null;
 };
 type FollowUser = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
@@ -1209,6 +1211,15 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
     },
   });
 
+  const { data: topSparkedPosts } = useQuery<PostWithMeta[]>({
+    queryKey: ["/api/users", profile.username, "top-sparked-posts"],
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${profile.username}/top-sparked-posts`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
   const followMutation = useMutation({
     mutationFn: () =>
       profile.isFollowing
@@ -1607,6 +1618,45 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
           </div>
         )}
       </div>
+
+      {/* Top Sparked Posts */}
+      {topSparkedPosts && topSparkedPosts.length > 0 && (
+        <div className="mt-6">
+          <div
+            className="rounded-xl border overflow-hidden"
+            style={{ background: bgColor ? `${bgColor}88` : "var(--card)", borderColor: accentColor ? `${accentColor}33` : "var(--border)" }}
+            data-testid="section-top-sparked-posts"
+          >
+            <div
+              className="px-5 py-3 border-b flex items-center gap-2"
+              style={{ borderColor: accentColor ? `${accentColor}22` : "var(--border)" }}
+            >
+              <Zap className="h-3.5 w-3.5 text-amber-500" />
+              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: accentColor ? `${accentColor}99` : "var(--muted-foreground)" }}>
+                Top Posts
+              </span>
+            </div>
+            <div className="divide-y" style={{ borderColor: accentColor ? `${accentColor}11` : "var(--border)" }}>
+              {topSparkedPosts.map((post) => (
+                <div key={post.id} className="px-5 py-3 flex items-start gap-3" data-testid={`top-sparked-post-${post.id}`}>
+                  <div className="flex items-center gap-1 text-amber-500 shrink-0 mt-0.5">
+                    <Zap className="h-3.5 w-3.5 fill-amber-500" />
+                    <span className="text-xs font-semibold">{post.sparkCount ?? 0}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm line-clamp-2" style={{ color: accentColor || "var(--foreground)" }}>
+                      {post.repostOf && post.originalPost ? post.originalPost.content : post.content}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5" data-testid={`top-sparked-post-time-${post.id}`}>
+                      {formatRelativeTime(post.createdAt)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {profile.linkedArtistId && (
         <ArtistMusicSection

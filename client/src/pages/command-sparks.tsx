@@ -1110,6 +1110,228 @@ function PackCatalogTab() {
   );
 }
 
+interface SocialSparkStats {
+  totalPostSparksGiven: number;
+  totalArticleSparksGiven: number;
+  totalGallerySparksGiven: number;
+  totalSocialRewardsIssued: number;
+  uniqueAuthorsRewarded: number;
+  topRewardedCreatorThisMonth: { username: string; displayName: string | null; sparksReceived: number } | null;
+  topSparkedPosts: Array<{ postId: number; sparkCount: number; authorUsername: string; contentPreview: string }>;
+  topSparkedArticles: Array<{ articleId: number; sparkCount: number; title: string; slug: string }>;
+  topSparkedImages: Array<{ imageId: number; sparkCount: number; title: string; uploaderUsername: string | null }>;
+  topItems: Array<{ type: string; title: string; sparkCount: number; id: number | string; slug?: string; authorUsername?: string; uploaderUsername?: string }>;
+}
+
+function CreatorRewardPoolTab() {
+  const { data: stats, isLoading } = useQuery<SocialSparkStats>({
+    queryKey: ["/api/sparks/social-stats"],
+    refetchInterval: 60_000,
+  });
+
+  const totalGiven = (stats?.totalPostSparksGiven ?? 0) + (stats?.totalArticleSparksGiven ?? 0) + (stats?.totalGallerySparksGiven ?? 0);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <StatCard
+          label="Total Social Sparks"
+          value={totalGiven.toLocaleString()}
+          icon={() => <span className="text-lg">⚡</span>}
+          loading={isLoading}
+        />
+        <StatCard
+          label="Post Sparks"
+          value={(stats?.totalPostSparksGiven ?? 0).toLocaleString()}
+          icon={Users}
+          loading={isLoading}
+        />
+        <StatCard
+          label="Article Sparks"
+          value={(stats?.totalArticleSparksGiven ?? 0).toLocaleString()}
+          icon={Package}
+          loading={isLoading}
+        />
+        <StatCard
+          label="Gallery Sparks"
+          value={(stats?.totalGallerySparksGiven ?? 0).toLocaleString()}
+          icon={() => <span className="text-lg">🖼️</span>}
+          loading={isLoading}
+        />
+        <StatCard
+          label="Creators Rewarded"
+          value={(stats?.uniqueAuthorsRewarded ?? 0).toLocaleString()}
+          icon={() => <span className="text-lg">🏆</span>}
+          loading={isLoading}
+        />
+      </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <span>🏆</span> Top Rewarded Creator This Month
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-8 w-64" />
+          ) : stats?.topRewardedCreatorThisMonth ? (
+            <div className="flex items-center gap-3" data-testid="top-rewarded-creator">
+              <span className="text-2xl">🥇</span>
+              <div>
+                <p className="font-semibold text-sm">
+                  {stats.topRewardedCreatorThisMonth.displayName ?? stats.topRewardedCreatorThisMonth.username}
+                  <span className="text-muted-foreground font-normal ml-1.5 text-xs">@{stats.topRewardedCreatorThisMonth.username}</span>
+                </p>
+                <p className="text-xs text-amber-500 flex items-center gap-1 mt-0.5">
+                  <span>⚡</span>
+                  <span>{stats.topRewardedCreatorThisMonth.sparksReceived} sparks received this month</span>
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No reward data yet this month.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <span>⚡</span> Top 10 Sparked Content (All Types)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-4 space-y-2">
+              {Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+            </div>
+          ) : !stats?.topItems?.length ? (
+            <p className="text-sm text-muted-foreground p-4">No sparked content yet.</p>
+          ) : (
+            <div className="divide-y">
+              {stats.topItems.map((item, idx) => (
+                <div key={`${item.type}-${item.id}`} className="px-4 py-2.5 flex items-start gap-3" data-testid={`row-top-item-${item.type}-${item.id}`}>
+                  <span className="text-muted-foreground text-xs font-mono w-5 shrink-0 mt-0.5">#{idx + 1}</span>
+                  <span className="text-amber-500 font-semibold text-xs shrink-0 mt-0.5">⚡ {item.sparkCount}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wide ${
+                        item.type === "post" ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" :
+                        item.type === "article" ? "bg-purple-500/10 text-purple-600 dark:text-purple-400" :
+                        "bg-green-500/10 text-green-600 dark:text-green-400"
+                      }`}>{item.type}</span>
+                      {item.type === "article" && item.slug ? (
+                        <a href={`/wiki/${item.slug}`} className="text-xs hover:underline text-primary truncate">{item.title}</a>
+                      ) : (
+                        <span className="text-xs truncate">{item.title}</span>
+                      )}
+                    </div>
+                    {item.authorUsername && (
+                      <p className="text-[10px] text-muted-foreground">@{item.authorUsername}</p>
+                    )}
+                    {item.uploaderUsername && (
+                      <p className="text-[10px] text-muted-foreground">@{item.uploaderUsername}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <span>⚡</span> Top Sparked Posts
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="p-4 space-y-2">
+                {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+              </div>
+            ) : !stats?.topSparkedPosts?.length ? (
+              <p className="text-sm text-muted-foreground p-4">No sparked posts yet.</p>
+            ) : (
+              <div className="divide-y">
+                {stats.topSparkedPosts.map((p) => (
+                  <div key={p.postId} className="px-4 py-2.5 flex items-start gap-2" data-testid={`row-top-post-${p.postId}`}>
+                    <span className="text-amber-500 font-semibold text-xs shrink-0 mt-0.5">⚡ {p.sparkCount}</span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-muted-foreground">@{p.authorUsername}</p>
+                      <p className="text-xs truncate">{p.contentPreview}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <span>⚡</span> Top Sparked Articles
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="p-4 space-y-2">
+                {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+              </div>
+            ) : !stats?.topSparkedArticles?.length ? (
+              <p className="text-sm text-muted-foreground p-4">No sparked articles yet.</p>
+            ) : (
+              <div className="divide-y">
+                {stats.topSparkedArticles.map((a) => (
+                  <div key={a.articleId} className="px-4 py-2.5 flex items-center gap-2" data-testid={`row-top-article-${a.articleId}`}>
+                    <span className="text-amber-500 font-semibold text-xs shrink-0">⚡ {a.sparkCount}</span>
+                    <a href={`/wiki/${a.slug}`} className="text-xs hover:underline truncate text-primary">{a.title}</a>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <span>⚡</span> Top Sparked Gallery
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="p-4 space-y-2">
+                {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+              </div>
+            ) : !stats?.topSparkedImages?.length ? (
+              <p className="text-sm text-muted-foreground p-4">No sparked images yet.</p>
+            ) : (
+              <div className="divide-y">
+                {stats.topSparkedImages.map((img) => (
+                  <div key={img.imageId} className="px-4 py-2.5 flex items-center gap-2" data-testid={`row-top-image-${img.imageId}`}>
+                    <span className="text-amber-500 font-semibold text-xs shrink-0">⚡ {img.sparkCount}</span>
+                    <div className="min-w-0">
+                      <p className="text-xs truncate">{img.title}</p>
+                      {img.uploaderUsername && (
+                        <p className="text-[10px] text-muted-foreground">@{img.uploaderUsername}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 export default function CommandSparksPage() {
   return (
     <div className="space-y-6 p-6">
@@ -1136,6 +1358,7 @@ export default function CommandSparksPage() {
           <TabsTrigger value="controls" data-testid="tab-controls">Spark Controls</TabsTrigger>
           <TabsTrigger value="history" data-testid="tab-history">Transaction History</TabsTrigger>
           <TabsTrigger value="catalog" data-testid="tab-catalog">Pack Catalog</TabsTrigger>
+          <TabsTrigger value="social" data-testid="tab-social">Creator Rewards</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -1149,6 +1372,9 @@ export default function CommandSparksPage() {
         </TabsContent>
         <TabsContent value="catalog">
           <PackCatalogTab />
+        </TabsContent>
+        <TabsContent value="social">
+          <CreatorRewardPoolTab />
         </TabsContent>
       </Tabs>
     </div>

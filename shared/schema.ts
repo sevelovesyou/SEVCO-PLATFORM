@@ -59,6 +59,7 @@ export const articles = pgTable("articles", {
   infoboxType: text("infobox_type"),
   infoboxData: jsonb("infobox_data"),
   tags: text("tags").array(),
+  authorId: varchar("author_id").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -710,12 +711,31 @@ export const galleryImages = pgTable("gallery_images", {
   altText: text("alt_text"),
   displayOrder: integer("display_order").notNull().default(0),
   isPublic: boolean("is_public").notNull().default(true),
+  uploadedBy: varchar("uploaded_by").references((): AnyPgColumn => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertGalleryImageSchema = createInsertSchema(galleryImages).omit({ id: true, createdAt: true });
 export type GalleryImage = typeof galleryImages.$inferSelect;
 export type InsertGalleryImage = z.infer<typeof insertGalleryImageSchema>;
+
+export const postSparks = pgTable("post_sparks", {
+  postId: integer("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("post_sparks_post_user_idx").on(t.postId, t.userId)]);
+
+export const articleSparks = pgTable("article_sparks", {
+  articleId: integer("article_id").notNull().references(() => articles.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("article_sparks_article_user_idx").on(t.articleId, t.userId)]);
+
+export const gallerySparks = pgTable("gallery_sparks", {
+  imageId: integer("image_id").notNull().references(() => galleryImages.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("gallery_sparks_image_user_idx").on(t.imageId, t.userId)]);
 
 export const spotifyArtists = pgTable("spotify_artists", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),

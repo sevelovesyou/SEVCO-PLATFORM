@@ -36,9 +36,12 @@ import {
   ShieldCheck,
   Archive,
   RefreshCw,
+  Zap,
 } from "lucide-react";
 import type { Article, Citation, Revision } from "@shared/schema";
 import { usePermission } from "@/hooks/use-permission";
+import { useAuth } from "@/hooks/use-auth";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 interface ArticleDetail extends Article {
@@ -50,6 +53,8 @@ interface ArticleDetail extends Article {
     sharedKeywords: string[] | null;
   }>;
   category?: { name: string; slug: string } | null;
+  sparkCount?: number;
+  isSparkedByMe?: boolean;
 }
 
 export default function ArticleView() {
@@ -59,6 +64,8 @@ export default function ArticleView() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const { canPublishArticles, canAccessArchive } = usePermission();
+  const { user } = useAuth();
+  const [sparkTooltip, setSparkTooltip] = useState(false);
 
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
 
@@ -66,6 +73,12 @@ export default function ArticleView() {
     queryKey: ["/api/articles", slug],
     enabled: !!slug,
   });
+
+  const { data: dailyQuota } = useQuery<{ given: number; limit: number; remaining: number }>({
+    queryKey: ["/api/sparks/daily-quota"],
+    enabled: !!user,
+  });
+  const dailyLimitReached = (dailyQuota?.remaining ?? 1) === 0;
 
   useEffect(() => {
     if (article?.category?.slug && paramsTwo === null && paramsOne !== null) {
@@ -127,6 +140,28 @@ export default function ArticleView() {
       toast({ title: "Failed to republish article", variant: "destructive" });
     },
   });
+
+  const sparkMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/articles/${slug}/spark`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/articles", slug] }),
+    onError: (err: any) => {
+      if (err?.status === 429 || err?.message?.includes("429")) {
+        toast({ title: "Daily limit reached", description: "You can give 10 sparks per day." });
+      } else if (err?.status === 403 || err?.message?.includes("403")) {
+        toast({ title: "Cannot spark your own content", variant: "destructive" });
+      }
+    },
+  });
+
+  function handleSpark() {
+    if (!user) return;
+    if (article?.isSparkedByMe) {
+      setSparkTooltip(true);
+      setTimeout(() => setSparkTooltip(false), 2000);
+      return;
+    }
+    sparkMutation.mutate();
+  }
 
   if (isLoading) {
     return (
@@ -253,6 +288,30 @@ export default function ArticleView() {
               <Clock className="h-3 w-3" />
               {new Date(article.updatedAt).toLocaleDateString()}
             </span>
+            <TooltipProvider>
+              <Tooltip open={sparkTooltip}>
+                <TooltipTrigger asChild>
+                  <button
+                    className={`flex items-center gap-1 text-xs transition-colors ${
+                      article.isSparkedByMe
+                        ? "text-amber-500"
+                        : dailyLimitReached && !article.isSparkedByMe
+                        ? "text-muted-foreground opacity-40 cursor-not-allowed"
+                        : "text-muted-foreground hover:text-amber-500"
+                    } ${!user ? "opacity-50 cursor-default" : ""}`}
+                    onClick={handleSpark}
+                    disabled={sparkMutation.isPending || (dailyLimitReached && !article.isSparkedByMe)}
+                    data-testid="button-article-spark"
+                  >
+                    <Zap className={`h-3.5 w-3.5 ${article.isSparkedByMe ? "fill-amber-500 text-amber-500" : ""}`} />
+                    <span data-testid="text-article-spark-count">{article.sparkCount ?? 0}</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  {article.isSparkedByMe ? "Already sparked!" : dailyLimitReached ? "Daily spark limit reached (10/day)" : "Spark this article"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
         <div className="flex items-center gap-2">

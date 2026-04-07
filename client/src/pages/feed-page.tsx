@@ -89,6 +89,7 @@ type OriginalPostInfo = { id: number; content: string; imageUrl: string | null; 
 type PostWithMeta = {
   id: number; authorId: string; content: string; imageUrl: string | null; createdAt: string; repostOf?: number | null;
   author: PostAuthor; likeCount: number; replyCount: number; likedByCurrentUser: boolean; repostedByCurrentUser?: boolean;
+  sparkCount: number; isSparkedByMe: boolean;
   originalPost?: OriginalPostInfo | null;
 };
 type ReplyWithAuthor = {
@@ -337,6 +338,7 @@ function SocialPostCard({
   isAdmin,
   isStaffPlus,
   onDelete,
+  dailySparksRemaining,
 }: {
   post: PostWithMeta;
   currentUserId?: string;
@@ -344,15 +346,21 @@ function SocialPostCard({
   isAdmin?: boolean;
   isStaffPlus?: boolean;
   onDelete: (id: number) => void;
+  dailySparksRemaining?: number;
 }) {
   const { toast } = useToast();
   const [repliesOpen, setRepliesOpen] = useState(false);
   const [wikifyOpen, setWikifyOpen] = useState(false);
+  const [sparkTooltip, setSparkTooltip] = useState(false);
   const isOwner = currentUserId === post.authorId;
+  const dailyLimitReached = dailySparksRemaining === 0;
   const canDelete = isOwner || isAdmin;
   const authorName = post.author.displayName || post.author.username;
   const isRepost = !!post.repostOf;
   const originalPostId = post.repostOf ?? post.id;
+  const sparkCount = post.sparkCount ?? 0;
+  const isSparkedByMe = post.isSparkedByMe ?? false;
+  const hasGlow = sparkCount >= 5;
 
   const likeMutation = useMutation({
     mutationFn: () =>
@@ -375,9 +383,34 @@ function SocialPostCard({
     onError: (err: any) => toast({ title: "Failed to repost", variant: "destructive" }),
   });
 
+  const sparkMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/posts/${post.id}/spark`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/posts"] }),
+    onError: (err: any) => {
+      if (err?.message?.includes("429") || err?.status === 429) {
+        toast({ title: "Daily limit reached", description: "You can give 10 sparks per day." });
+      } else if (err?.message?.includes("403") || err?.status === 403) {
+        toast({ title: "Cannot spark your own content", variant: "destructive" });
+      }
+    },
+  });
+
+  function handleSpark() {
+    if (!currentUserId) return;
+    if (isSparkedByMe) {
+      setSparkTooltip(true);
+      setTimeout(() => setSparkTooltip(false), 2000);
+      return;
+    }
+    sparkMutation.mutate();
+  }
+
   return (
     <>
-    <Card className="p-4 overflow-visible transition-shadow hover:shadow-sm" data-testid={`card-post-${post.id}`}>
+    <Card
+      className={`p-4 overflow-visible transition-shadow hover:shadow-sm ${hasGlow ? "ring-1 ring-amber-400/50 shadow-[0_0_8px_2px_rgba(251,191,36,0.15)]" : ""}`}
+      data-testid={`card-post-${post.id}`}
+    >
       {isRepost && (
         <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2 pl-1">
           <Repeat2 className="h-3.5 w-3.5" />
@@ -486,6 +519,31 @@ function SocialPostCard({
                 <Repeat2 className="h-4 w-4" />
               </button>
             )}
+
+            <TooltipProvider>
+              <Tooltip open={sparkTooltip}>
+                <TooltipTrigger asChild>
+                  <button
+                    className={`flex items-center gap-1.5 text-xs transition-colors relative ${
+                      isSparkedByMe
+                        ? "text-amber-500"
+                        : (dailyLimitReached && !isSparkedByMe)
+                        ? "text-muted-foreground opacity-40 cursor-not-allowed"
+                        : "text-muted-foreground hover:text-amber-500"
+                    } ${!currentUserId ? "opacity-50 cursor-default" : dailyLimitReached && !isSparkedByMe ? "" : "cursor-pointer"}`}
+                    onClick={handleSpark}
+                    disabled={sparkMutation.isPending || (dailyLimitReached && !isSparkedByMe)}
+                    data-testid={`button-spark-${post.id}`}
+                  >
+                    <Zap className={`h-4 w-4 ${isSparkedByMe ? "fill-amber-500 text-amber-500" : ""}`} />
+                    <span data-testid={`text-spark-count-${post.id}`}>{sparkCount}</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  {isSparkedByMe ? "Already sparked!" : dailyLimitReached ? "Daily spark limit reached (10/day)" : "Spark this post"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
             {isStaffPlus && (
               <TooltipProvider>
@@ -649,6 +707,11 @@ export default function FeedPage() {
   const { data: socialPosts, isLoading: postsLoading } = useQuery<PostWithMeta[]>({
     queryKey: ["/api/posts"],
     enabled: activeTab === "feed",
+  });
+
+  const { data: dailyQuota } = useQuery<{ given: number; limit: number; remaining: number }>({
+    queryKey: ["/api/sparks/daily-quota"],
+    enabled: !!user,
   });
 
   const { data: followingPosts, isLoading: followingLoading } = useQuery<PostWithMeta[]>({
@@ -890,6 +953,7 @@ export default function FeedPage() {
                   isAdmin={canManageFeed}
                   isStaffPlus={isStaffPlus}
                   onDelete={(id) => setDeletePostId(id)}
+                  dailySparksRemaining={dailyQuota?.remaining}
                 />
               ))}
             </div>
@@ -941,6 +1005,7 @@ export default function FeedPage() {
                   isAdmin={canManageFeed}
                   isStaffPlus={isStaffPlus}
                   onDelete={(id) => setDeletePostId(id)}
+                  dailySparksRemaining={dailyQuota?.remaining}
                 />
               ))}
             </div>

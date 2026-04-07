@@ -1961,7 +1961,7 @@ export async function registerRoutes(
     res.json(arts);
   });
 
-  app.get("/api/articles/:slug", async (req, res) => {
+  app.get("/api/articles/:slug", async (req: any, res) => {
     const article = await storage.getArticleBySlug(req.params.slug);
     if (!article) return res.status(404).json({ message: "Article not found" });
 
@@ -1979,6 +1979,9 @@ export async function registerRoutes(
       ? (await storage.getCategories()).find((c) => c.id === article.categoryId) || null
       : null;
 
+    const currentUserId = req.user?.id as string | undefined;
+    const { sparkCount, isSparkedByMe } = await storage.getArticleSparkInfo(article.id, currentUserId);
+
     res.json({
       ...article,
       citations: articleCitations,
@@ -1989,6 +1992,8 @@ export async function registerRoutes(
         sharedKeywords: cl.sharedKeywords,
       })),
       category: category ? { name: category.name, slug: category.slug } : null,
+      sparkCount,
+      isSparkedByMe,
     });
   });
 
@@ -2004,6 +2009,7 @@ export async function registerRoutes(
       const article = await storage.createArticle({
         ...articleData,
         status: articleStatus,
+        authorId: (req.user as any)?.id ?? null,
       });
 
       await storage.createRevision({
@@ -4182,6 +4188,49 @@ export async function registerRoutes(
     }
   });
 
+  // Social spark routes
+  app.post("/api/posts/:id/spark", requireAuth, async (req: any, res) => {
+    try {
+      const postId = parseInt(req.params.id);
+      if (isNaN(postId)) return res.status(400).json({ message: "Invalid id" });
+      const result = await storage.sparkPost(postId, req.user.id);
+      if (result.selfSpark) return res.status(403).json({ message: "Cannot spark your own content" });
+      if (result.rateLimited) return res.status(429).json({ message: "Daily spark limit reached (10 per day)" });
+      if (result.alreadySparked) return res.status(409).json({ message: "Already sparked" });
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/articles/:slug/spark", requireAuth, async (req: any, res) => {
+    try {
+      const article = await storage.getArticleBySlug(req.params.slug);
+      if (!article) return res.status(404).json({ message: "Article not found" });
+      const result = await storage.sparkArticle(article.id, req.user.id);
+      if (result.selfSpark) return res.status(403).json({ message: "Cannot spark your own content" });
+      if (result.rateLimited) return res.status(429).json({ message: "Daily spark limit reached (10 per day)" });
+      if (result.alreadySparked) return res.status(409).json({ message: "Already sparked" });
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/gallery/:id/spark", requireAuth, async (req: any, res) => {
+    try {
+      const imageId = parseInt(req.params.id);
+      if (isNaN(imageId)) return res.status(400).json({ message: "Invalid id" });
+      const result = await storage.sparkGalleryImage(imageId, req.user.id);
+      if (result.selfSpark) return res.status(403).json({ message: "Cannot spark your own content" });
+      if (result.rateLimited) return res.status(429).json({ message: "Daily spark limit reached (10 per day)" });
+      if (result.alreadySparked) return res.status(409).json({ message: "Already sparked" });
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // Discover / user search routes
   app.get("/api/users/top", async (req: any, res) => {
     try {
@@ -4297,6 +4346,17 @@ export async function registerRoutes(
       const currentUserId = req.user?.id;
       const userPosts = await storage.getPosts({ userId: profile.id, currentUserId });
       res.json(userPosts);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/users/:username/top-sparked-posts", async (req: any, res) => {
+    try {
+      const profile = await storage.getUserByUsername(req.params.username);
+      if (!profile) return res.status(404).json({ message: "User not found" });
+      const posts = await storage.getTopSparkedPostsByUser(profile.id, 3);
+      res.json(posts);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -4695,23 +4755,34 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/gallery", async (req, res) => {
+  app.get("/api/gallery", async (req: any, res) => {
     try {
       const category = req.query.category as string | undefined;
-      const isLoggedIn = !!(req as any).user;
+      const isLoggedIn = !!req.user;
       const images = await storage.getGalleryImages(
         category || undefined,
         isLoggedIn ? undefined : true,
       );
-      res.json(images);
+      const currentUserId = req.user?.id as string | undefined;
+      const enriched = await Promise.all(images.map(async (img) => {
+        const { sparkCount, isSparkedByMe } = await storage.getGallerySparkInfo(img.id, currentUserId);
+        let uploaderName: string | null = null;
+        if (img.uploadedBy) {
+          const uploader = await storage.getUser(img.uploadedBy);
+          uploaderName = uploader?.displayName || uploader?.username || null;
+        }
+        return { ...img, sparkCount, isSparkedByMe, uploaderName };
+      }));
+      res.json(enriched);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });
 
-  app.post("/api/gallery", requireAuth, requireRole("admin", "executive", "staff"), async (req, res) => {
+  app.post("/api/gallery", requireAuth, requireRole("admin", "executive", "staff"), async (req: any, res) => {
     try {
-      const parsed = insertGalleryImageSchema.safeParse(req.body);
+      const bodyWithUploader = { ...req.body, uploadedBy: req.user.id };
+      const parsed = insertGalleryImageSchema.safeParse(bodyWithUploader);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.message });
       const image = await storage.createGalleryImage(parsed.data);
       res.status(201).json(image);
@@ -8282,11 +8353,56 @@ export async function registerRoutes(
 
   // ===== Sparks Currency Routes =====
 
+  app.get("/api/sparks/social-stats", async (_req, res) => {
+    try {
+      const stats = await storage.getSocialSparkStats();
+      const topSparkedPosts = stats.topItems
+        .filter((i) => i.type === "post")
+        .map((i) => ({
+          postId: Number(i.id),
+          sparkCount: i.sparkCount,
+          authorUsername: i.authorUsername ?? "",
+          contentPreview: i.title,
+        }));
+      const topSparkedArticles = stats.topItems
+        .filter((i) => i.type === "article")
+        .map((i) => ({ articleId: Number(i.id), sparkCount: i.sparkCount, title: i.title, slug: i.slug ?? String(i.id) }));
+      const topSparkedImages = stats.topItems
+        .filter((i) => i.type === "gallery")
+        .map((i) => ({ imageId: Number(i.id), sparkCount: i.sparkCount, title: i.title, uploaderUsername: i.uploaderUsername ?? null }));
+      res.json({
+        totalSocialRewardsIssued: stats.totalIssued,
+        uniqueAuthorsRewarded: stats.uniqueAuthorsRewarded,
+        totalPostSparksGiven: stats.totalPostSparksGiven,
+        totalArticleSparksGiven: stats.totalArticleSparksGiven,
+        totalGallerySparksGiven: stats.totalGallerySparksGiven,
+        topRewardedCreatorThisMonth: stats.topRewardedCreatorThisMonth,
+        topSparkedPosts,
+        topSparkedArticles,
+        topSparkedImages,
+        topItems: stats.topItems,
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/sparks/balance", requireAuth, async (req, res) => {
     try {
       const userId = (req.user as any)?.id as string;
       const balance = await storage.getUserSparksBalance(userId);
       res.json({ balance });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/sparks/daily-quota", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id as string;
+      const given = await storage.getUserDailySparksGiven(userId);
+      const limit = 10;
+      res.json({ given, limit, remaining: Math.max(0, limit - given) });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

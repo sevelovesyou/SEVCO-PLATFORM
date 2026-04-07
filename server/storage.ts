@@ -58,6 +58,7 @@ import {
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
   posts, postLikes, postReplies, userFollows,
   noteCollaborators, noteAttachments, platformSettings, brandAssets, resources, galleryImages, spotifyArtists,
+  postSparks, articleSparks, gallerySparks,
   contactSubmissions,
   staffOrgNodes,
   chatChannels, chatMessages,
@@ -460,6 +461,23 @@ export interface IStorage {
   deleteSparkPack(id: number): Promise<void>;
   grantFreeMonthlyAllocation(userId: string): Promise<boolean>;
   isSparkSessionProcessed(stripeSessionId: string): Promise<boolean>;
+
+  getUserDailySparksGiven(userId: string): Promise<number>;
+  sparkPost(postId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
+  sparkArticle(articleId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
+  sparkGalleryImage(imageId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
+  getArticleSparkInfo(articleId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }>;
+  getGallerySparkInfo(imageId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }>;
+  getTopSparkedPostsByUser(userId: string, limit?: number): Promise<Array<{ id: number; content: string; imageUrl: string | null; createdAt: Date; sparkCount: number }>>;
+  getSocialSparkStats(): Promise<{
+    totalIssued: number;
+    uniqueAuthorsRewarded: number;
+    totalPostSparksGiven: number;
+    totalArticleSparksGiven: number;
+    totalGallerySparksGiven: number;
+    topRewardedCreatorThisMonth: { username: string; displayName: string | null; sparksReceived: number } | null;
+    topItems: Array<{ type: string; title: string; sparkCount: number; id: number | string; slug?: string; authorUsername?: string; uploaderUsername?: string }>;
+  }>;
 }
 
 export type SearchResultItem = {
@@ -481,7 +499,7 @@ export type SearchAllResult = {
 };
 
 export type PostAuthor = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
-export type PostWithMeta = Post & { author: PostAuthor; likeCount: number; replyCount: number; likedByCurrentUser: boolean; repostedByCurrentUser?: boolean; originalPost?: { id: number; content: string; imageUrl: string | null; author: PostAuthor } | null };
+export type PostWithMeta = Post & { author: PostAuthor; likeCount: number; replyCount: number; likedByCurrentUser: boolean; repostedByCurrentUser?: boolean; sparkCount: number; isSparkedByMe: boolean; originalPost?: { id: number; content: string; imageUrl: string | null; author: PostAuthor } | null };
 export type ReplyWithAuthor = PostReply & { author: PostAuthor };
 export type FollowUser = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
 export type DiscoverUser = { id: string; username: string; displayName: string | null; avatarUrl: string | null; followerCount: number; isFollowing: boolean };
@@ -1499,6 +1517,10 @@ export class DatabaseStorage implements IStorage {
         repostedByCurrentUser: currentUserId
           ? sql<boolean>`EXISTS(SELECT 1 FROM posts p2 WHERE p2.repost_of = COALESCE(${posts.repostOf}, ${posts.id}) AND p2.author_id = ${currentUserId})`
           : sql<boolean>`false`,
+        sparkCount: sql<number>`(SELECT COUNT(*) FROM post_sparks WHERE post_id = ${posts.id})::int`,
+        isSparkedByMe: currentUserId
+          ? sql<boolean>`EXISTS(SELECT 1 FROM post_sparks WHERE post_id = ${posts.id} AND user_id = ${currentUserId})`
+          : sql<boolean>`false`,
         originalContent: sql<string | null>`(SELECT op.content FROM posts op WHERE op.id = ${posts.repostOf})`,
         originalImageUrl: sql<string | null>`(SELECT op.image_url FROM posts op WHERE op.id = ${posts.repostOf})`,
         originalAuthorId: sql<string | null>`(SELECT op.author_id FROM posts op WHERE op.id = ${posts.repostOf})`,
@@ -1519,6 +1541,8 @@ export class DatabaseStorage implements IStorage {
       replyCount: r.replyCount,
       likedByCurrentUser: r.likedByCurrentUser,
       repostedByCurrentUser: r.repostedByCurrentUser,
+      sparkCount: r.sparkCount,
+      isSparkedByMe: r.isSparkedByMe,
       originalPost: r.post.repostOf ? {
         id: r.post.repostOf,
         content: r.originalContent ?? "",
@@ -3042,6 +3066,197 @@ export class DatabaseStorage implements IStorage {
       .where(eq(sparkTransactions.stripeSessionId, stripeSessionId))
       .limit(1);
     return !!existing;
+  }
+
+  async getUserDailySparksGiven(userId: string): Promise<number> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const postCount = await db
+      .select({ count: countFn() })
+      .from(postSparks)
+      .where(and(eq(postSparks.userId, userId), gte(postSparks.createdAt, today)));
+    const articleCount = await db
+      .select({ count: countFn() })
+      .from(articleSparks)
+      .where(and(eq(articleSparks.userId, userId), gte(articleSparks.createdAt, today)));
+    const galleryCount = await db
+      .select({ count: countFn() })
+      .from(gallerySparks)
+      .where(and(eq(gallerySparks.userId, userId), gte(gallerySparks.createdAt, today)));
+    return (postCount[0]?.count ?? 0) + (articleCount[0]?.count ?? 0) + (galleryCount[0]?.count ?? 0);
+  }
+
+  async sparkPost(postId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }> {
+    const [post] = await db.select({ authorId: posts.authorId }).from(posts).where(eq(posts.id, postId)).limit(1);
+    if (post?.authorId === userId) return { alreadySparked: false, rateLimited: false, selfSpark: true };
+    const [existing] = await db.select().from(postSparks).where(and(eq(postSparks.postId, postId), eq(postSparks.userId, userId))).limit(1);
+    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
+    const dailyCount = await this.getUserDailySparksGiven(userId);
+    if (dailyCount >= 10) return { alreadySparked: false, rateLimited: true, selfSpark: false };
+    await db.insert(postSparks).values({ postId, userId });
+    if (post?.authorId) {
+      await this.creditSparks(post.authorId, 1, "social_reward", `Spark received on post #${postId}`, { metadata: { postId, fromUserId: userId } });
+    }
+    return { alreadySparked: false, rateLimited: false, selfSpark: false };
+  }
+
+  async sparkArticle(articleId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }> {
+    const [article] = await db.select({ authorId: articles.authorId }).from(articles).where(eq(articles.id, articleId)).limit(1);
+    if (article?.authorId === userId) return { alreadySparked: false, rateLimited: false, selfSpark: true };
+    const [existing] = await db.select().from(articleSparks).where(and(eq(articleSparks.articleId, articleId), eq(articleSparks.userId, userId))).limit(1);
+    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
+    const dailyCount = await this.getUserDailySparksGiven(userId);
+    if (dailyCount >= 10) return { alreadySparked: false, rateLimited: true, selfSpark: false };
+    await db.insert(articleSparks).values({ articleId, userId });
+    if (article?.authorId) {
+      await this.creditSparks(article.authorId, 1, "social_reward", `Spark received on article #${articleId}`, { metadata: { articleId, fromUserId: userId } });
+    }
+    return { alreadySparked: false, rateLimited: false, selfSpark: false };
+  }
+
+  async getArticleSparkInfo(articleId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }> {
+    const [scRow] = await db.select({ count: countFn() }).from(articleSparks).where(eq(articleSparks.articleId, articleId));
+    const sparkCount = scRow?.count ?? 0;
+    let isSparkedByMe = false;
+    if (userId) {
+      const [sm] = await db.select().from(articleSparks).where(and(eq(articleSparks.articleId, articleId), eq(articleSparks.userId, userId))).limit(1);
+      isSparkedByMe = !!sm;
+    }
+    return { sparkCount, isSparkedByMe };
+  }
+
+  async getGallerySparkInfo(imageId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }> {
+    const [scRow] = await db.select({ count: countFn() }).from(gallerySparks).where(eq(gallerySparks.imageId, imageId));
+    const sparkCount = scRow?.count ?? 0;
+    let isSparkedByMe = false;
+    if (userId) {
+      const [sm] = await db.select().from(gallerySparks).where(and(eq(gallerySparks.imageId, imageId), eq(gallerySparks.userId, userId))).limit(1);
+      isSparkedByMe = !!sm;
+    }
+    return { sparkCount, isSparkedByMe };
+  }
+
+  async sparkGalleryImage(imageId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }> {
+    const [image] = await db.select({ uploadedBy: galleryImages.uploadedBy }).from(galleryImages).where(eq(galleryImages.id, imageId)).limit(1);
+    if (image?.uploadedBy === userId) return { alreadySparked: false, rateLimited: false, selfSpark: true };
+    const [existing] = await db.select().from(gallerySparks).where(and(eq(gallerySparks.imageId, imageId), eq(gallerySparks.userId, userId))).limit(1);
+    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
+    const dailyCount = await this.getUserDailySparksGiven(userId);
+    if (dailyCount >= 10) return { alreadySparked: false, rateLimited: true, selfSpark: false };
+    await db.insert(gallerySparks).values({ imageId, userId });
+    if (image?.uploadedBy) {
+      await this.creditSparks(image.uploadedBy, 1, "social_reward", `Spark received on gallery image #${imageId}`, { metadata: { imageId, fromUserId: userId } });
+    }
+    return { alreadySparked: false, rateLimited: false, selfSpark: false };
+  }
+
+  async getTopSparkedPostsByUser(userId: string, limit = 3): Promise<Array<{ id: number; content: string; imageUrl: string | null; createdAt: Date; sparkCount: number }>> {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const rows = await db
+      .select({
+        id: posts.id,
+        content: posts.content,
+        imageUrl: posts.imageUrl,
+        createdAt: posts.createdAt,
+        sparkCount: sql<number>`COUNT(${postSparks.postId})::int`,
+      })
+      .from(posts)
+      .innerJoin(postSparks, and(eq(postSparks.postId, posts.id), gte(postSparks.createdAt, startOfMonth)))
+      .where(eq(posts.authorId, userId))
+      .groupBy(posts.id)
+      .orderBy(sql`COUNT(${postSparks.postId}) DESC`)
+      .limit(limit);
+    return rows;
+  }
+
+  async getSocialSparkStats(): Promise<{
+    totalIssued: number;
+    uniqueAuthorsRewarded: number;
+    totalPostSparksGiven: number;
+    totalArticleSparksGiven: number;
+    totalGallerySparksGiven: number;
+    topRewardedCreatorThisMonth: { username: string; displayName: string | null; sparksReceived: number } | null;
+    topItems: Array<{ type: string; title: string; sparkCount: number; id: number | string; slug?: string; authorUsername?: string; uploaderUsername?: string }>;
+  }> {
+    const [totalRow] = await db
+      .select({ total: sql<number>`COALESCE(SUM(${sparkTransactions.amount}), 0)::int` })
+      .from(sparkTransactions)
+      .where(eq(sparkTransactions.type, "social_reward"));
+    const [uniqueRow] = await db
+      .select({ count: sql<number>`COUNT(DISTINCT ${sparkTransactions.userId})::int` })
+      .from(sparkTransactions)
+      .where(eq(sparkTransactions.type, "social_reward"));
+    const [postTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(postSparks);
+    const [articleTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(articleSparks);
+    const [galleryTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(gallerySparks);
+    const topPosts = await db
+      .select({
+        id: posts.id,
+        title: sql<string>`LEFT(${posts.content}, 80)`,
+        sparkCount: sql<number>`COUNT(*)::int`,
+        authorUsername: users.username,
+      })
+      .from(postSparks)
+      .innerJoin(posts, eq(posts.id, postSparks.postId))
+      .innerJoin(users, eq(users.id, posts.authorId))
+      .groupBy(posts.id, users.username)
+      .orderBy(sql`COUNT(*) DESC`)
+      .limit(10);
+    const topArticles = await db
+      .select({ id: articles.id, title: articles.title, slug: articles.slug, sparkCount: sql<number>`COUNT(*)::int` })
+      .from(articleSparks)
+      .innerJoin(articles, eq(articles.id, articleSparks.articleId))
+      .groupBy(articles.id, articles.title, articles.slug)
+      .orderBy(sql`COUNT(*) DESC`)
+      .limit(10);
+    const topGallery = await db
+      .select({
+        id: galleryImages.id,
+        title: galleryImages.title,
+        sparkCount: sql<number>`COUNT(*)::int`,
+        uploaderUsername: sql<string | null>`(SELECT u.username FROM users u WHERE u.id = ${galleryImages.uploadedBy})`,
+      })
+      .from(gallerySparks)
+      .innerJoin(galleryImages, eq(galleryImages.id, gallerySparks.imageId))
+      .groupBy(galleryImages.id, galleryImages.title)
+      .orderBy(sql`COUNT(*) DESC`)
+      .limit(10);
+    const combined = [
+      ...topPosts.map((p) => ({ type: "post", title: p.title, sparkCount: p.sparkCount, id: p.id, authorUsername: p.authorUsername })),
+      ...topArticles.map((a) => ({ type: "article", title: a.title, sparkCount: a.sparkCount, id: a.id, slug: a.slug })),
+      ...topGallery.map((g) => ({ type: "gallery", title: g.title, sparkCount: g.sparkCount, id: g.id, uploaderUsername: g.uploaderUsername ?? undefined })),
+    ].sort((a, b) => b.sparkCount - a.sparkCount).slice(0, 10);
+    // Top rewarded creator this calendar month
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const topCreatorRows = await db
+      .select({
+        userId: sparkTransactions.userId,
+        sparksReceived: sql<number>`SUM(${sparkTransactions.amount})::int`,
+        username: users.username,
+        displayName: users.displayName,
+      })
+      .from(sparkTransactions)
+      .innerJoin(users, eq(users.id, sparkTransactions.userId))
+      .where(and(eq(sparkTransactions.type, "social_reward"), gte(sparkTransactions.createdAt, startOfMonth)))
+      .groupBy(sparkTransactions.userId, users.username, users.displayName)
+      .orderBy(sql`SUM(${sparkTransactions.amount}) DESC`)
+      .limit(1);
+    const topCreator = topCreatorRows[0]
+      ? { username: topCreatorRows[0].username, displayName: topCreatorRows[0].displayName ?? null, sparksReceived: topCreatorRows[0].sparksReceived }
+      : null;
+    return {
+      totalIssued: totalRow?.total ?? 0,
+      uniqueAuthorsRewarded: uniqueRow?.count ?? 0,
+      totalPostSparksGiven: postTotalRow?.total ?? 0,
+      totalArticleSparksGiven: articleTotalRow?.total ?? 0,
+      totalGallerySparksGiven: galleryTotalRow?.total ?? 0,
+      topRewardedCreatorThisMonth: topCreator,
+      topItems: combined,
+    };
   }
 }
 

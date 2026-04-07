@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 import { Link, useLocation } from "wouter";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { usePermission } from "@/hooks/use-permission";
@@ -265,12 +265,13 @@ function DropdownPanel({ children, className = "", triggerRef }: {
   className?: string;
   triggerRef: React.RefObject<HTMLDivElement>;
 }) {
-  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    const panelWidth = 256;
+    const panelWidth = panelRef.current?.offsetWidth ?? 256;
     const wouldOverflow = rect.left + panelWidth > window.innerWidth - 8;
     if (wouldOverflow) {
       setCoords({ top: rect.bottom + 6, left: Math.max(8, rect.right - panelWidth) });
@@ -279,8 +280,10 @@ function DropdownPanel({ children, className = "", triggerRef }: {
     }
   }, [triggerRef]);
 
+  if (!coords) return null;
   return createPortal(
     <div
+      ref={panelRef}
       data-dropdown-panel
       style={{ top: coords.top, left: coords.left }}
       className={`fixed rounded-xl border bg-popover shadow-xl z-[200] overflow-hidden ${className}`}

@@ -22316,3 +22316,40 @@ title: Fix wiki articles: cleanup, category & author byline
 
 ---
 
+## Task — services-link-override
+> Merged: 2026-04-07
+
+# Service Optional Link Override
+
+  ## What & Why
+  When creating or editing a service, staff should be able to set an optional "Link" that overrides where the service card and nav item navigate to. If set, clicking the service goes to that URL (internal like /security, or external like https://...) instead of the service detail page /services/:slug. This lets services like "Cyber Security" link directly to a dedicated page.
+
+  ## Done looks like
+  - The CMD Services create/edit form has a new optional "Link Override" field (URL input, with placeholder like "/security or https://example.com")
+  - Services with a link override navigate to that URL when clicked from /services listing
+  - Services with a link override navigate to that URL when clicked from the nav mega-menu
+  - Services without a link override behave exactly as today (/services/:slug)
+  - Internal links (starting with /) use the wouter <Link> component; external links (starting with http) open in a new tab via <a href target="_blank">
+
+  ## Out of scope
+  - Changing the service detail page itself
+  - Adding a link field to jobs or any other entity
+
+  ## Tasks
+  1. **Schema migration** — Add an optional `linkUrl` text column (nullable) to the `services` table in `shared/schema.ts`. Run `npm run db:push` to apply.
+
+  2. **CMD Services form** — Add `linkUrl` to the form Zod schema (optional URL string), default value (empty string), and a new FormField with a URL Input and description "Overrides the detail page link — use /path for internal or https:// for external". Place it after the Slug field.
+
+  3. **Services listing page** — Update each `<Link href={`/services/${service.slug}`}>` to check if `service.linkUrl` is set: if it starts with "http", render an `<a href={service.linkUrl} target="_blank" rel="noopener noreferrer">` wrapper instead; otherwise use `<Link href={service.linkUrl || `/services/${service.slug}`}>`.
+
+  4. **Nav mega-menu** — Apply the same link override logic to the service links in the nav mega-menu (`platform-header.tsx` around line 474).
+
+  ## Relevant files
+  - `shared/schema.ts:236-247` — services table definition
+  - `client/src/pages/command-services.tsx:43-97,121-260` — form schema, defaults, and form fields
+  - `client/src/pages/services-listing.tsx:156,205` — service card links
+  - `client/src/components/platform-header.tsx:474` — nav mega-menu service links
+
+
+---
+

@@ -688,16 +688,21 @@ function ToolsDropdown({
 
   return (
     <div className="relative" ref={ref}>
-      <div className="relative inline-flex">
-        <NavButton
-          label="Tools"
-          isActive={isActive}
-          onClick={() => setOpen((o) => !o)}
-          open={open}
-          icon={Wrench}
-          data-testid="nav-tools"
-        />
-      </div>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant={isActive ? "secondary" : "ghost"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setOpen((o) => !o)}
+            data-testid="nav-tools"
+            aria-label="Tools"
+          >
+            <Wrench className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Tools</TooltipContent>
+      </Tooltip>
       {open && (
         <DropdownPanel triggerRef={ref} className="w-64">
           <div className="p-2">
@@ -950,24 +955,6 @@ export function PlatformHeader() {
           <ServicesDropdown isActive={activeApp === "/services"} platformSettings={platformSettings} />
           <MusicDropdown isActive={activeApp === "/music"} />
           <ProjectsDropdown isActive={activeApp === "/projects"} />
-          <ToolsDropdown
-            isActive={activeApp === "/notes" || activeApp === "/gallery" || activeApp === "/messages" || activeApp === "/tools"}
-            onSearchOpen={() => setSearchOpen(true)}
-            onChatOpen={() => setChatOpen(true)}
-            soundEnabled={soundEnabled}
-            onSoundToggle={() => {
-              if (soundEnabled) {
-                prevMusicVolumeRef.current = volume || 0.8;
-                setVolume(0);
-              } else {
-                setVolume(prevMusicVolumeRef.current);
-              }
-              toggleSound();
-              playClick();
-            }}
-            volume={volume}
-            onVolumeChange={setVolume}
-          />
 
           {canAccessCMD && (
             <Link href="/command">
@@ -1040,6 +1027,26 @@ export function PlatformHeader() {
               <TooltipContent side="bottom">Notifications{unreadNotifCount > 0 ? ` (${unreadNotifCount})` : ""}</TooltipContent>
             </Tooltip>
           )}
+
+          {/* Tools dropdown */}
+          <ToolsDropdown
+            isActive={activeApp === "/notes" || activeApp === "/gallery" || activeApp === "/messages" || activeApp === "/tools"}
+            onSearchOpen={() => setSearchOpen(true)}
+            onChatOpen={() => setChatOpen(true)}
+            soundEnabled={soundEnabled}
+            onSoundToggle={() => {
+              if (soundEnabled) {
+                prevMusicVolumeRef.current = volume || 0.8;
+                setVolume(0);
+              } else {
+                setVolume(prevMusicVolumeRef.current);
+              }
+              toggleSound();
+              playClick();
+            }}
+            volume={volume}
+            onVolumeChange={setVolume}
+          />
 
           {/* Cart button */}
           <Tooltip>

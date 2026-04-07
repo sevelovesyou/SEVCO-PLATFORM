@@ -218,6 +218,31 @@ async function runStartupMigrations() {
     SELECT DISTINCT category_name FROM products
     WHERE category_name IS NOT NULL AND category_name != ''
     ON CONFLICT (name) DO NOTHING;`);
+  // Task #242 — Sparks currency
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS sparks_balance integer NOT NULL DEFAULT 0;`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS spark_transactions (
+    id SERIAL PRIMARY KEY,
+    user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    amount integer NOT NULL,
+    type text NOT NULL,
+    description text NOT NULL,
+    stripe_session_id text,
+    metadata jsonb,
+    created_at timestamp NOT NULL DEFAULT NOW()
+  );`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS spark_packs (
+    id SERIAL PRIMARY KEY,
+    name text NOT NULL,
+    sparks integer NOT NULL,
+    price integer NOT NULL,
+    stripe_price_id text,
+    stripe_product_id text,
+    stripe_recurring_price_id text,
+    active boolean NOT NULL DEFAULT true,
+    sort_order integer NOT NULL DEFAULT 0
+  );`);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS spark_txn_stripe_session_idx ON spark_transactions (stripe_session_id) WHERE stripe_session_id IS NOT NULL;`);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS spark_txn_free_allocation_month_idx ON spark_transactions (user_id, date_trunc('month', created_at)) WHERE type = 'free_allocation';`);
   // Task #236 — Live Markets
   await pool.query(`CREATE TABLE IF NOT EXISTS market_data (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -350,6 +375,18 @@ async function initStripe() {
   await checkEmailCredentials().catch((err) => console.warn("[email] Startup credential check failed:", err?.message ?? err));
   logEmptyBodyEmails().catch((err) => console.warn("[email] Backfill check error:", err?.message ?? err));
   runWikiSeed().catch((err) => console.error("Wiki seed error:", err));
+  // Seed Sparks platform setting default
+  await (async () => {
+    try {
+      const currentSettings = await storage.getPlatformSettings();
+      if (!currentSettings["sparks.freeMonthlyAllocation"]) {
+        await storage.setPlatformSetting("sparks.freeMonthlyAllocation", "50");
+      }
+    } catch (err: any) {
+      console.warn("[sparks] Failed to seed sparks.freeMonthlyAllocation setting:", err?.message ?? err);
+    }
+  })();
+
   // Seed default X (Twitter) handles for SEVCO social feed
   await (async () => {
     try {

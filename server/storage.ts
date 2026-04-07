@@ -51,6 +51,8 @@ import {
   type SystemMailboxEmail, type InsertSystemMailboxEmail,
   type MarketData, type InsertMarketData,
   type NewsItem,
+  type SparkTransaction, type InsertSparkTransaction,
+  type SparkPack, type InsertSparkPack,
   users, categories, articles, revisions, citations, crosslinks,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
@@ -77,9 +79,22 @@ import {
   storeCategories,
   marketData,
   newsItems,
+  sparkTransactions,
+  sparkPacks,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, asc, and, sql, ilike, or, inArray, gte, lte, count as countFn } from "drizzle-orm";
+import { eq, desc, asc, and, sql, ilike, or, inArray, gte, lte, count as countFn, type SQL } from "drizzle-orm";
+
+export class InsufficientSparksError extends Error {
+  readonly currentBalance: number;
+  readonly requested: number;
+  constructor(currentBalance: number, requested: number) {
+    super(`Insufficient Sparks: balance ${currentBalance} < requested ${requested}`);
+    this.name = "InsufficientSparksError";
+    this.currentBalance = currentBalance;
+    this.requested = requested;
+  }
+}
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -423,6 +438,20 @@ export interface IStorage {
   getLatestMarketData(): Promise<MarketData[]>;
   upsertMarketData(items: InsertMarketData[]): Promise<void>;
   deleteExpiredMarketData(olderThanMinutes?: number): Promise<void>;
+
+  getUserSparksBalance(userId: string): Promise<number>;
+  creditSparks(userId: string, amount: number, type: string, description: string, opts?: { stripeSessionId?: string; metadata?: object }): Promise<void>;
+  debitSparks(userId: string, amount: number, type: string, description: string, opts?: { metadata?: object; allowOverdraft?: boolean }): Promise<void>;
+  getUserSparkTransactions(userId: string, limit?: number, offset?: number): Promise<SparkTransaction[]>;
+  getAllSparkTransactions(filters?: { userId?: string; type?: string; dateFrom?: Date; dateTo?: Date }, limit?: number, offset?: number): Promise<SparkTransaction[]>;
+  getSparkStats(): Promise<{ totalIssued: number; activeUsersWithSparks: number }>;
+  listSparkPacks(activeOnly?: boolean): Promise<SparkPack[]>;
+  getSparkPack(id: number): Promise<SparkPack | undefined>;
+  upsertSparkPack(data: InsertSparkPack): Promise<SparkPack>;
+  updateSparkPack(id: number, data: Partial<InsertSparkPack>): Promise<SparkPack>;
+  deleteSparkPack(id: number): Promise<void>;
+  grantFreeMonthlyAllocation(userId: string): Promise<boolean>;
+  isSparkSessionProcessed(stripeSessionId: string): Promise<boolean>;
 }
 
 export type SearchResultItem = {
@@ -2715,6 +2744,162 @@ export class DatabaseStorage implements IStorage {
   async deleteExpiredMarketData(olderThanMinutes = 30): Promise<void> {
     const cutoff = new Date(Date.now() - olderThanMinutes * 60 * 1000);
     await db.delete(marketData).where(lte(marketData.fetchedAt, cutoff));
+  }
+
+  async getUserSparksBalance(userId: string): Promise<number> {
+    const [user] = await db.select({ sparksBalance: users.sparksBalance }).from(users).where(eq(users.id, userId));
+    return user?.sparksBalance ?? 0;
+  }
+
+  private async applyCreditInTx(
+    tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+    userId: string,
+    amount: number,
+    type: string,
+    description: string,
+    opts?: { stripeSessionId?: string; metadata?: object },
+  ): Promise<void> {
+    await tx
+      .update(users)
+      .set({ sparksBalance: sql`${users.sparksBalance} + ${amount}` })
+      .where(eq(users.id, userId));
+    await tx.insert(sparkTransactions).values({
+      userId,
+      amount,
+      type,
+      description,
+      stripeSessionId: opts?.stripeSessionId ?? null,
+      metadata: opts?.metadata ?? null,
+    });
+  }
+
+  async creditSparks(userId: string, amount: number, type: string, description: string, opts?: { stripeSessionId?: string; metadata?: object }): Promise<void> {
+    await db.transaction(async (tx) => {
+      await this.applyCreditInTx(tx, userId, amount, type, description, opts);
+    });
+  }
+
+  async debitSparks(userId: string, amount: number, type: string, description: string, opts?: { metadata?: object; allowOverdraft?: boolean }): Promise<void> {
+    await db.transaction(async (tx) => {
+      const [user] = await tx
+        .select({ sparksBalance: users.sparksBalance })
+        .from(users)
+        .where(eq(users.id, userId))
+        .for("update");
+      const current = user?.sparksBalance ?? 0;
+      if (!opts?.allowOverdraft && current < amount) {
+        throw new InsufficientSparksError(current, amount);
+      }
+      await tx
+        .update(users)
+        .set({ sparksBalance: sql`${users.sparksBalance} - ${amount}` })
+        .where(eq(users.id, userId));
+      await tx.insert(sparkTransactions).values({
+        userId,
+        amount: -amount,
+        type,
+        description,
+        stripeSessionId: null,
+        metadata: opts?.metadata ?? null,
+      });
+    });
+  }
+
+  async getUserSparkTransactions(userId: string, limit = 20, offset = 0): Promise<SparkTransaction[]> {
+    return db
+      .select()
+      .from(sparkTransactions)
+      .where(eq(sparkTransactions.userId, userId))
+      .orderBy(desc(sparkTransactions.createdAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getAllSparkTransactions(filters?: { userId?: string; type?: string; dateFrom?: Date; dateTo?: Date }, limit = 50, offset = 0): Promise<SparkTransaction[]> {
+    const conditions: SQL[] = [];
+    if (filters?.userId) conditions.push(eq(sparkTransactions.userId, filters.userId));
+    if (filters?.type) conditions.push(eq(sparkTransactions.type, filters.type));
+    if (filters?.dateFrom) conditions.push(gte(sparkTransactions.createdAt, filters.dateFrom));
+    if (filters?.dateTo) conditions.push(lte(sparkTransactions.createdAt, filters.dateTo));
+
+    const query = db.select().from(sparkTransactions).orderBy(desc(sparkTransactions.createdAt)).limit(limit).offset(offset);
+    if (conditions.length > 0) {
+      return query.where(and(...conditions));
+    }
+    return query;
+  }
+
+  async getSparkStats(): Promise<{ totalIssued: number; activeUsersWithSparks: number }> {
+    const [issuedRow] = await db
+      .select({ total: sql<number>`COALESCE(SUM(${sparkTransactions.amount}), 0)` })
+      .from(sparkTransactions)
+      .where(sql`${sparkTransactions.amount} > 0`);
+    const [activeRow] = await db
+      .select({ count: countFn() })
+      .from(users)
+      .where(sql`${users.sparksBalance} > 0`);
+    return {
+      totalIssued: Number(issuedRow?.total ?? 0),
+      activeUsersWithSparks: Number(activeRow?.count ?? 0),
+    };
+  }
+
+  async listSparkPacks(activeOnly = false): Promise<SparkPack[]> {
+    const query = db.select().from(sparkPacks).orderBy(sparkPacks.sortOrder);
+    if (activeOnly) {
+      return query.where(eq(sparkPacks.active, true));
+    }
+    return query;
+  }
+
+  async getSparkPack(id: number): Promise<SparkPack | undefined> {
+    const [pack] = await db.select().from(sparkPacks).where(eq(sparkPacks.id, id));
+    return pack || undefined;
+  }
+
+  async upsertSparkPack(data: InsertSparkPack): Promise<SparkPack> {
+    const [pack] = await db.insert(sparkPacks).values(data).returning();
+    return pack;
+  }
+
+  async updateSparkPack(id: number, data: Partial<InsertSparkPack>): Promise<SparkPack> {
+    const [pack] = await db.update(sparkPacks).set(data).where(eq(sparkPacks.id, id)).returning();
+    return pack;
+  }
+
+  async deleteSparkPack(id: number): Promise<void> {
+    await db.update(sparkPacks).set({ active: false }).where(eq(sparkPacks.id, id));
+  }
+
+  async grantFreeMonthlyAllocation(userId: string): Promise<boolean> {
+    const settings = await this.getPlatformSettings();
+    const rawAmount = parseInt(settings["sparks.freeMonthlyAllocation"] ?? "50", 10);
+    const allocationAmount = Number.isFinite(rawAmount) && rawAmount > 0 ? rawAmount : 50;
+
+    let granted = false;
+    try {
+      await db.transaction(async (tx) => {
+        await this.applyCreditInTx(tx, userId, allocationAmount, "free_allocation", "Monthly free Sparks");
+        granted = true;
+      });
+    } catch (err: any) {
+      const isUniqueViolation = err?.code === '23505' ||
+        err?.message?.includes('spark_txn_free_allocation_month_idx');
+      if (isUniqueViolation) {
+        return false;
+      }
+      throw err;
+    }
+    return granted;
+  }
+
+  async isSparkSessionProcessed(stripeSessionId: string): Promise<boolean> {
+    const [existing] = await db
+      .select()
+      .from(sparkTransactions)
+      .where(eq(sparkTransactions.stripeSessionId, stripeSessionId))
+      .limit(1);
+    return !!existing;
   }
 }
 

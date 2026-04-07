@@ -14,6 +14,7 @@ import {
 } from "./middleware/permissions";
 import type { Role, InsertJob, InsertArticle, Email, NewsItem } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertStoreCategorySchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema, updateUserTaskSchema, updateStaffTaskSchema, insertUserTaskSchema, insertStaffTaskSchema, insertDomainSchema, insertMusicTrackSchema, adminCreateUserSchema } from "@shared/schema";
+import { InsufficientSparksError } from "./storage";
 import { fetchNewsArticles, generateGrokSummaryForTweet } from "./news";
 import { getAggregatorStatus, forceRefresh as forceAggregatorRefresh } from "./news-aggregator";
 import { getNewsAiSettings, getMaxRequestsPerHour, getApiConfig, summarizeArticle as grokSummarize, generateNewsImage as grokImage, askGrokAboutArticle, searchNewsWithGrok, generateDailyBriefing, generateTrendingCommentary, streamSummarizeArticle, streamAskGrok } from "./grok-news";
@@ -8037,6 +8038,257 @@ export async function registerRoutes(
       if (companyId !== undefined) updates["paperclip.companyId"] = companyId.trim();
       if (Object.keys(updates).length > 0) await storage.setPlatformSettings(updates);
       res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ===== Sparks Currency Routes =====
+
+  app.get("/api/sparks/balance", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id as string;
+      await storage.grantFreeMonthlyAllocation(userId);
+      const balance = await storage.getUserSparksBalance(userId);
+      res.json({ balance });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/sparks/transactions", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id as string;
+      const limit = parseInt(req.query.limit as string ?? "20", 10);
+      const offset = parseInt(req.query.offset as string ?? "0", 10);
+      const txs = await storage.getUserSparkTransactions(userId, limit, offset);
+      res.json(txs);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/sparks/checkout", requireAuth, async (req, res) => {
+    try {
+      const { packId, recurring } = z.object({ packId: z.number(), recurring: z.boolean().optional().default(false) }).parse(req.body);
+      const userId = (req.user as any)?.id as string;
+      const pack = await storage.getSparkPack(packId);
+      if (!pack) return res.status(404).json({ message: "Pack not found" });
+      if (!pack.active) return res.status(400).json({ message: "Pack is not available" });
+
+      const priceId = recurring ? pack.stripeRecurringPriceId : pack.stripePriceId;
+      if (!priceId) return res.status(400).json({ message: "Stripe price not configured for this pack" });
+
+      const host = req.get("host");
+      const proto = req.headers["x-forwarded-proto"] || req.protocol;
+      const baseUrl = `${proto}://${host}`;
+
+      const stripe = await getUncachableStripeClient();
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        mode: recurring ? "subscription" : "payment",
+        line_items: [{ price: priceId, quantity: 1 }],
+        metadata: {
+          sevco_user_id: userId,
+          spark_pack_id: String(packId),
+          sparks: String(pack.sparks),
+          recurring: String(recurring),
+        },
+        success_url: `${baseUrl}/sparks/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/pricing`,
+      });
+
+      res.json({ url: session.url });
+    } catch (err: any) {
+      if (err?.name === "ZodError") return res.status(400).json({ message: "Invalid request body" });
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/sparks/packs", async (_req, res) => {
+    try {
+      const packs = await storage.listSparkPacks(true);
+      res.json(packs);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/sparks/admin/stats", requireAuth, requireRole("admin"), async (_req, res) => {
+    try {
+      const stats = await storage.getSparkStats();
+      res.json(stats);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/sparks/admin/transactions", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const userId = req.query.userId as string | undefined;
+      const type = req.query.type as string | undefined;
+      const dateFrom = req.query.dateFrom ? new Date(req.query.dateFrom as string) : undefined;
+      const dateTo = req.query.dateTo ? new Date(req.query.dateTo as string) : undefined;
+      const limit = parseInt(req.query.limit as string ?? "50", 10);
+      const offset = parseInt(req.query.offset as string ?? "0", 10);
+      const txs = await storage.getAllSparkTransactions({ userId, type, dateFrom, dateTo }, limit, offset);
+      res.json(txs);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/sparks/admin/adjust", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const { userId, amount, description } = z.object({
+        userId: z.string(),
+        amount: z.number().int(),
+        description: z.string().min(1),
+      }).parse(req.body);
+
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      if (amount > 0) {
+        await storage.creditSparks(userId, amount, "admin_credit", description);
+      } else if (amount < 0) {
+        await storage.debitSparks(userId, Math.abs(amount), "admin_debit", description);
+      } else {
+        return res.status(400).json({ message: "Amount cannot be zero" });
+      }
+
+      const balance = await storage.getUserSparksBalance(userId);
+      res.json({ ok: true, balance });
+    } catch (err: any) {
+      if (err?.name === "ZodError") return res.status(400).json({ message: "Invalid request body" });
+      if (err instanceof InsufficientSparksError) return res.status(400).json({ message: err.message, currentBalance: err.currentBalance, requested: err.requested });
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/sparks/admin/packs", requireAuth, requireRole("admin"), async (_req, res) => {
+    try {
+      const packs = await storage.listSparkPacks(false);
+      res.json(packs);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/sparks/admin/packs", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const { name, sparks, price, sortOrder } = z.object({
+        name: z.string().min(1),
+        sparks: z.number().int().positive(),
+        price: z.number().int().positive(),
+        sortOrder: z.number().int().optional().default(0),
+      }).parse(req.body);
+
+      const stripe = await getUncachableStripeClient();
+
+      const product = await stripe.products.create({
+        name,
+        metadata: { type: "spark_pack" },
+      });
+
+      const oneTimePrice = await stripe.prices.create({
+        product: product.id,
+        unit_amount: price,
+        currency: "usd",
+      });
+
+      const recurringPrice = await stripe.prices.create({
+        product: product.id,
+        unit_amount: price,
+        currency: "usd",
+        recurring: { interval: "month" },
+      });
+
+      const pack = await storage.upsertSparkPack({
+        name,
+        sparks,
+        price,
+        sortOrder,
+        stripeProductId: product.id,
+        stripePriceId: oneTimePrice.id,
+        stripeRecurringPriceId: recurringPrice.id,
+        active: true,
+      });
+
+      res.json(pack);
+    } catch (err: any) {
+      if (err?.name === "ZodError") return res.status(400).json({ message: "Invalid request body" });
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/sparks/admin/packs/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid pack id" });
+
+      const existing = await storage.getSparkPack(id);
+      if (!existing) return res.status(404).json({ message: "Pack not found" });
+
+      const data = z.object({
+        name: z.string().min(1).optional(),
+        sparks: z.number().int().positive().optional(),
+        price: z.number().int().positive().optional(),
+        sortOrder: z.number().int().optional(),
+        active: z.boolean().optional(),
+      }).parse(req.body);
+
+      const updates: Partial<import("@shared/schema").InsertSparkPack> = { ...data };
+
+      if (data.price !== undefined && data.price !== existing.price && existing.stripeProductId) {
+        const stripe = await getUncachableStripeClient();
+        const newOneTime = await stripe.prices.create({
+          product: existing.stripeProductId,
+          unit_amount: data.price,
+          currency: "usd",
+        });
+        const newRecurring = await stripe.prices.create({
+          product: existing.stripeProductId,
+          unit_amount: data.price,
+          currency: "usd",
+          recurring: { interval: "month" },
+        });
+        updates.stripePriceId = newOneTime.id;
+        updates.stripeRecurringPriceId = newRecurring.id;
+      }
+
+      const pack = await storage.updateSparkPack(id, updates);
+      res.json(pack);
+    } catch (err: any) {
+      if (err?.name === "ZodError") return res.status(400).json({ message: "Invalid request body" });
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/sparks/admin/packs/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid pack id" });
+      await storage.deleteSparkPack(id);
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/sparks/success", requireAuth, async (req, res) => {
+    try {
+      const sessionId = req.query.session_id as string;
+      if (!sessionId) return res.status(400).json({ message: "session_id required" });
+      const userId = (req.user as any)?.id as string;
+      const stripe = await getUncachableStripeClient();
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      if (session.metadata?.sevco_user_id !== userId) {
+        return res.status(403).json({ message: "Session does not belong to the current user" });
+      }
+      const sparks = parseInt(session.metadata?.sparks ?? "0", 10);
+      const balance = await storage.getUserSparksBalance(userId);
+      res.json({ sparks, newBalance: balance });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

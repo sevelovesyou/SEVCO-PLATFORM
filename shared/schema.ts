@@ -36,6 +36,7 @@ export const users = pgTable("users", {
   profileAccentGradient: boolean("profile_accent_gradient").default(false),
   profileShowFollowers: boolean("profile_show_followers").default(true),
   linkedArtistId: integer("linked_artist_id").references((): AnyPgColumn => artists.id),
+  sparksBalance: integer("sparks_balance").notNull().default(0),
 });
 
 export const categories = pgTable("categories", {
@@ -1091,3 +1092,34 @@ export const newsItems = pgTable("news_items", {
 ]);
 
 export type NewsItem = typeof newsItems.$inferSelect;
+
+export const sparkTransactions = pgTable("spark_transactions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  amount: integer("amount").notNull(),
+  type: text("type").notNull(),
+  description: text("description").notNull(),
+  stripeSessionId: text("stripe_session_id"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const sparkPacks = pgTable("spark_packs", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  sparks: integer("sparks").notNull(),
+  price: integer("price").notNull(),
+  stripePriceId: text("stripe_price_id"),
+  stripeProductId: text("stripe_product_id"),
+  stripeRecurringPriceId: text("stripe_recurring_price_id"),
+  active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export const insertSparkTransactionSchema = createInsertSchema(sparkTransactions).omit({ id: true, createdAt: true });
+export type SparkTransaction = typeof sparkTransactions.$inferSelect;
+export type InsertSparkTransaction = z.infer<typeof insertSparkTransactionSchema>;
+
+export const insertSparkPackSchema = createInsertSchema(sparkPacks).omit({ id: true });
+export type SparkPack = typeof sparkPacks.$inferSelect;
+export type InsertSparkPack = z.infer<typeof insertSparkPackSchema>;

@@ -19990,3 +19990,223 @@ If everything works as expected, no code change needed — just verify.
 
 ---
 
+## Task — navbar-dropdown-glitch-tools-redesign
+> Merged: 2026-04-07
+
+# Task: Fix navbar dropdown glitch + Tools dropdown utility bar
+
+## Bug: Dropdown resize glitch / nav bar hiding
+
+### Root Cause
+All custom dropdown panels (`DropdownPanel`) use `absolute top-full left-0` positioning inside a `<div className="relative">` that is a flex child of the nav bar. When a panel opens, in certain scroll states:
+1. The absolutely positioned panel can extend past `overflow: hidden` ancestors, triggering browser layout recalculation
+2. The reflow causes the page to momentarily re-measure heights, shifting the sticky header
+
+### Fix: Use `createPortal` for all DropdownPanel instances
+
+Update `DropdownPanel` to render its content into `document.body` via React's `createPortal`, positioned with `position: fixed` coordinates calculated from the trigger element's `getBoundingClientRect()`.
+
+**Implementation pattern:**
+
+```tsx
+import { createPortal } from "react-dom";
+
+function DropdownPanel({ children, className = "", triggerRef }: {
+  children: React.ReactNode;
+  className?: string;
+  triggerRef: React.RefObject<HTMLElement>;
+}) {
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    setCoords({ top: rect.bottom + 6, left: rect.left });
+  }, [triggerRef]);
+
+  return createPortal(
+    <div
+      data-dropdown-panel
+      style={{ top: coords.top, left: coords.left }}
+      className={`fixed rounded-xl border bg-popover shadow-xl z-[200] overflow-hidden ${className}`}
+    >
+      {children}
+    </div>,
+    document.body
+  );
+}
+```
+
+Since `DropdownPanel` now needs a `triggerRef`, each dropdown's `<div className="relative" ref={ref}>` already has the `ref` from `useDropdown()` — pass it as `triggerRef` to `DropdownPanel`.
+
+Update every call site of `DropdownPanel` to pass the `ref` from `useDropdown()`:
+- `HomeDropdown` → `<DropdownPanel triggerRef={ref} className="w-72">`
+- `StoreDropdown` → `<DropdownPanel triggerRef={ref} ...>`
+- `ServicesDropdown` → `<DropdownPanel triggerRef={ref} ...>`
+- `MusicDropdown` → `<DropdownPanel triggerRef={ref} ...>`
+- `ProjectsDropdown` → `<DropdownPanel triggerRef={ref} ...>`
+- `ToolsDropdown` → `<DropdownPanel triggerRef={ref} className="w-72">`
+- `NavSparksBalance` (popover) — already uses Radix Popover, likely fine; check if it glitches
+
+Also update `useDropdown`'s click-outside handler: since the panel is now in the portal, `ref.current.contains(e.target)` won't catch clicks inside the panel. Fix by also giving the portal div a `data-dropdown-panel` attribute and checking `e.target.closest("[data-dropdown-panel]")` in the outside-click listener.
+
+Updated `useDropdown` click-outside handler:
+```ts
+function handleClickOutside(e: MouseEvent) {
+  const target = e.target as Node;
+  const inTrigger = ref.current && ref.current.contains(target);
+  const inPanel = (target as HTMLElement).closest?.("[data-dropdown-panel]");
+  if (!inTrigger && !inPanel) setOpen(false);
+}
+```
+
+---
+
+## Feature: Tools dropdown utility bar
+
+### What to move OUT of the right nav
+Remove these icon buttons from the right-side `<div className="flex items-center gap-1.5">`:
+- Search button (Search icon, opens SearchOverlay)
+- Chat button (Chat icon, opens ChatSheet)
+- Sound toggle button (Volume2/VolumeX icon)
+- `<ThemeToggle />` component
+
+Keep in right nav: Notifications bell, ⚡️ Sparks balance, Cart, Account dropdown.
+
+### What to add to the Tools dropdown
+At the bottom of the `ToolsDropdown` panel, replace the current "View all tools →" footer with a two-row utility footer:
+
+**Row 1 — utility icons strip:**
+```
+[ 🔍 Search ]  [ 💬 Chat ]  [ 🔊 Sound + slider ]  [ 🌙 Theme ]
+```
+
+Render as a compact flex row of icon buttons with tooltips.
+
+**Row 2 — "View all tools →" link** (keep existing, just below the icons)
+
+### Implementation
+
+**Pass additional props to ToolsDropdown:**
+```tsx
+<ToolsDropdown
+  isActive={...}
+  onSearchOpen={() => setSearchOpen(true)}
+  onChatOpen={() => setChatOpen(true)}
+  soundEnabled={soundEnabled}
+  onSoundToggle={() => { /* existing toggle logic */ toggleSound(); }}
+  volume={volume}
+  onVolumeChange={setVolume}
+/>
+```
+
+**Inside ToolsDropdown**, add the utility bar section:
+```tsx
+<div className="mt-1 pt-2 border-t border-border/60 px-3 pb-2 space-y-2">
+  {/* Utility icon strip */}
+  <div className="flex items-center gap-1">
+    {/* Search */}
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setOpen(false); onSearchOpen(); }}>
+            <Search className="h-3.5 w-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Search</TooltipContent>
+      </Tooltip>
+
+      {/* Chat (if user logged in) */}
+      {user && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setOpen(false); onChatOpen(); }}>
+              <MessageCircle className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Chat</TooltipContent>
+        </Tooltip>
+      )}
+
+      {/* Sound toggle + volume slider */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onSoundToggle}>
+            {soundEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{soundEnabled ? "Mute" : "Unmute"}</TooltipContent>
+      </Tooltip>
+
+      {/* Inline volume slider — visible only when sound is enabled */}
+      {soundEnabled && (
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.05}
+          value={volume}
+          onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+          className="w-20 h-1 accent-primary cursor-pointer"
+          aria-label="Volume"
+        />
+      )}
+
+      {/* Theme toggle — rendered via ThemeToggle component, compact */}
+      <ThemeToggle />
+    </TooltipProvider>
+  </div>
+
+  {/* View all tools link */}
+  <Link href="/tools" onClick={() => setOpen(false)} data-testid="dropdown-tools-view-all">
+    <p className="text-[10px] text-muted-foreground/60 italic hover:text-muted-foreground transition-colors">View all tools →</p>
+  </Link>
+</div>
+```
+
+**Import additions in ToolsDropdown function scope:**
+- `MessageCircle` from lucide-react (already imported via the parent file likely)
+- `Volume2`, `VolumeX` from lucide-react
+- `ThemeToggle` — already imported at the top of platform-header.tsx
+
+**Update `ToolsDropdown` function signature:**
+```tsx
+function ToolsDropdown({
+  isActive,
+  onSearchOpen,
+  onChatOpen,
+  soundEnabled,
+  onSoundToggle,
+  volume,
+  onVolumeChange,
+}: {
+  isActive: boolean;
+  onSearchOpen: () => void;
+  onChatOpen: () => void;
+  soundEnabled: boolean;
+  onSoundToggle: () => void;
+  volume: number;
+  onVolumeChange: (v: number) => void;
+}) { ... }
+```
+
+### ThemeToggle component check
+Verify that `ThemeToggle` renders as a compact icon button (h-7 w-7 or similar). If it's larger, wrap it in a size-normalizing container or add a `compact` prop.
+
+---
+
+## Files to Edit
+- `client/src/components/platform-header.tsx` — all changes above
+
+## Acceptance Criteria
+- [ ] Opening any nav dropdown (SEVCO, Store, Services, Music, Projects, Tools) causes NO layout reflow, page resize, or nav bar flicker
+- [ ] Tools dropdown bottom bar shows Search, Chat (when logged in), Sound toggle + slider, and Theme toggle
+- [ ] Search, Chat, Sound toggle, and ThemeToggle are REMOVED from the right side of the nav bar
+- [ ] Right nav has: Notifications, ⚡️ Sparks, Cart, Account — and nothing else
+- [ ] Clicking Search/Chat in the Tools dropdown opens the correct overlay/sheet
+- [ ] Volume slider works and persists (adjusts music player volume)
+- [ ] Dark/light toggle in Tools dropdown works correctly
+
+
+---
+

@@ -281,6 +281,8 @@ export default function AccountPage() {
         )}
       </div>
 
+      <SparksSection />
+
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
@@ -500,8 +502,6 @@ export default function AccountPage() {
           </CardContent>
         </Card>
       )}
-
-      <SparksSection />
 
       <Card>
         <CardHeader>

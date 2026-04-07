@@ -15,6 +15,10 @@ import {
   FolderOpen,
   TrendingUp,
   Layers,
+  Zap,
+  Palette,
+  Music,
+  Bot,
 } from "lucide-react";
 import type { Article, Category } from "@shared/schema";
 
@@ -77,6 +81,51 @@ export default function Home() {
             </p>
           </Card>
         ))}
+      </div>
+
+      {/* Sparks marketing section */}
+      <div
+        className="rounded-xl border border-yellow-400/30 bg-gradient-to-br from-yellow-400/5 via-yellow-400/10 to-transparent p-5"
+        data-testid="section-sparks-marketing"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+              <span className="text-sm font-bold text-yellow-500 uppercase tracking-wider">Sparks</span>
+            </div>
+            <p className="text-base font-semibold leading-snug">
+              The SEVCO creative currency — buy once, use anywhere.
+            </p>
+            <p className="text-sm text-muted-foreground max-w-lg">
+              Power AI tools, generate visuals, access beats and premium features, and boost your visibility — all with Sparks. No subscription required.
+            </p>
+            <div className="flex flex-wrap gap-3 pt-1">
+              {[
+                { icon: Palette, label: "AI Art" },
+                { icon: Music, label: "Music Tools" },
+                { icon: Bot, label: "AI Chat" },
+                { icon: Sparkles, label: "Creative Features" },
+              ].map(({ icon: Icon, label }) => (
+                <span key={label} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Icon className="h-3.5 w-3.5 text-yellow-500" />
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="shrink-0">
+            <Link href="/pricing">
+              <Button
+                className="bg-yellow-400 text-yellow-900 hover:bg-yellow-300 font-bold gap-2"
+                data-testid="button-sparks-cta"
+              >
+                <Zap className="h-4 w-4 fill-current" />
+                Get Sparks
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
 
       {featuredArticle && (

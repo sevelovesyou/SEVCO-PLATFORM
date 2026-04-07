@@ -59,6 +59,7 @@ import NotFound from "@/pages/not-found";
 import FeedPage from "@/pages/feed-page";
 import PricingPage from "@/pages/pricing-page";
 import SparksSuccessPage from "@/pages/sparks-success-page";
+import SparksPage from "@/pages/sparks-page";
 
 import { CommandPageLayout } from "@/pages/command-page";
 import CommandOverview from "@/pages/command-overview";
@@ -198,6 +199,7 @@ function Router() {
       <Route path="/feed" component={FeedPage} />
       <Route path="/pricing" component={PricingPage} />
       <Route path="/sparks/success" component={SparksSuccessPage} />
+      <Route path="/sparks" component={SparksPage} />
       <Route path="/changelog" component={() => <Redirect to="/platform" />} />
       <Route path="/platform" component={PlatformPage} />
       <Route path="/jobs" component={JobsPage} />

@@ -22071,3 +22071,42 @@ patches. The duplicate in seedWikiCategories can remain as a safety net.
 
 ---
 
+## Task — security-page
+> Merged: 2026-04-07
+
+# Security Marketing Page
+
+  ## What & Why
+  Create a public `/security` page that markets SEVCO's security posture and cybersecurity services to clients and prospects. The page should feel premium, trustworthy, and visually impressive — matching the quality of the Hosting marketing page — using the exact content points from the provided brief. Not linked in navigation (accessible by direct URL only, e.g. from footer or contact page).
+
+  ## Done looks like
+  - A fully public page at `/security` that works without login
+  - Dark hero section (green/cyan color scheme for trust + tech) with animated gradient blobs, subtle grid overlay, a pill label, gradient-clipped headline ("Security is Our Foundation, Not a Feature"), subheading, and two CTAs (Get an Audit → /contact, Learn More → scroll)
+  - A trust-signal bar beneath the hero with 4 animated stat pills: "230+ Security Rules", "99.999% Uptime", "Zero Breaches", "24/7 Monitoring"
+  - **Core Platform Security** section — 4 cards with icons, titles, and detail text covering: Enterprise Auth & RBAC, Supabase Postgres Fortress, Automated Audit Intelligence (squirrelscan / 230+ rules), Continuous Secret Scanning
+  - **What We Protect** section — icon grid listing all protected asset types (websites, user data, financial records, AI agents, music catalog, e-commerce, job applications, private notes, API integrations)
+  - **Compliance & Trust** section — 3 large badge cards for SOC 2 Type II readiness, ISO 27001 readiness, and GDPR alignment, each with a shield/check icon and a short description
+  - **Cybersecurity Services** section — 4 service cards: Free & Paid Security Audits, Penetration Testing & Red Teaming, 24/7 Monitoring & Incident Response, Security-as-a-Service; each with pricing hint and a CTA
+  - **Why SEVCO** differentiators section — 3-column layout covering "Security is Native", "AI in a Hardened Env", "One Platform, One Standard"
+  - Final CTA section with a bold call to action and a "Get a Free Audit" button linking to /contact
+  - Route registered in App.tsx at `/security`; no nav links added anywhere
+
+  ## Out of scope
+  - Any backend changes
+  - Adding the page to the main navigation or footer (user specifically excluded this)
+  - Actual audit tooling or form on this page (just links to /contact)
+
+  ## Tasks
+  1. **Create `security-page.tsx`** — Build the complete page component following the dark-mode marketing page pattern from `hosting-page.tsx`. Use green/cyan/emerald accent colors throughout. Include all sections: hero (with animated blobs + grid), trust-stat bar, core security features (4 cards), what we protect (icon grid), compliance badges (3 cards), cybersecurity services (4 cards), SEVCO differentiators (3 columns), and final CTA. Add `PageHead` with appropriate title and meta description. All interactive elements get `data-testid` attributes.
+
+  2. **Register route** — In `App.tsx`, import `SecurityPage` and add `<Route path="/security" component={SecurityPage} />` with the other public marketing routes. Do not add it to any nav, dropdown, or footer component.
+
+  ## Relevant files
+  - `client/src/pages/hosting-page.tsx` (design pattern to follow)
+  - `client/src/pages/about-page.tsx` (secondary reference)
+  - `client/src/App.tsx` (route registration)
+  - `client/src/components/page-head.tsx`
+
+
+---
+

@@ -21085,3 +21085,62 @@ is invisible until coords resolve (Fix 2), this extra pass won't flash.
 
 ---
 
+## Task — fix-account-dropdown-scroll-shift
+> Merged: 2026-04-07
+
+# Task: Fix account dropdown causes page to shift left
+
+## Root Cause
+
+The user account menu in `client/src/components/platform-header.tsx` uses
+Radix UI's `<DropdownMenu>` component (shadcn wrapper). Radix defaults to
+`modal={true}`, which:
+
+1. Locks body scroll when the dropdown is open
+2. Adds `padding-right` to `<body>` equal to the browser scrollbar width
+   (typically ~15px) to compensate for the scrollbar disappearing
+
+When the page is short enough that no scrollbar is present, step 2 adds 15px
+of right padding to the body — pushing all content LEFT by ~15px (half an inch).
+
+This is exactly the shift the user reports: "scoots the whole page over to the
+left like half an inch" when clicking the account dropdown.
+
+## File to Edit
+
+`client/src/components/platform-header.tsx` — line ~1108
+
+## Fix
+
+Add `modal={false}` to the `<DropdownMenu>` that wraps the account/user menu:
+
+```tsx
+// Before (line ~1108)
+<DropdownMenu>
+  <DropdownMenuTrigger asChild>
+
+// After
+<DropdownMenu modal={false}>
+  <DropdownMenuTrigger asChild>
+```
+
+`modal={false}` disables scroll locking and the body padding compensation, so
+the page layout is not affected at all when the dropdown opens or closes.
+
+## Why this is safe
+
+- The dropdown still closes on outside click (Radix handles this internally)
+- The dropdown still traps focus correctly
+- Nothing else in the header uses `<DropdownMenu>` — all other dropdowns use
+  the custom `DropdownPanel` (createPortal) — so only this one component needs
+  the fix
+
+## Acceptance Criteria
+
+- [ ] Clicking the user/account menu button does NOT shift the page content left
+- [ ] The dropdown still opens and closes correctly
+- [ ] "My Profile", "Account", and "Sign out" links still work
+
+
+---
+

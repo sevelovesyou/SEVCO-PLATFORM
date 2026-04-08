@@ -22382,3 +22382,41 @@ title: Fix wiki articles: cleanup, category & author byline
 
 ---
 
+## Task — seed-infrastructure-services
+> Merged: 2026-04-07
+
+# Seed Hosting & Domains as Proper DB Services
+
+  ## What & Why
+  SEVCO Hosting and Domain Registration are hardcoded as static "Infrastructure" section cards in the services listing page and as a hardcoded featured item in the nav mega-menu. This means they don't appear in CMD (which only manages DB services), they look visually different from all other service categories, and they can't be edited or reordered from the admin panel.
+
+  The fix moves them into the database as proper services in the "Infrastructure" category (using the `linkUrl` feature from Task #282 to override navigation to /hosting and /domains), removes the hardcoded cards, and adds Infrastructure to the category style maps so it renders identically to all other categories.
+
+  ## Done looks like
+  - Hosting and Domain Registration appear in CMD → Services alongside all other services
+  - /services shows an Infrastructure category section styled the same as Technology, Creative, etc. (same border-left, same category header, same card layout)
+  - Clicking Hosting or Domain Registration navigates to /hosting or /domains respectively (via linkUrl)
+  - The nav mega-menu shows Hosting and Domains under an Infrastructure column, rendered from DB data, with the same look as other service rows
+  - No hardcoded cards or special sections remain for Infrastructure
+
+  ## Out of scope
+  - Editing the /hosting or /domains landing pages
+  - Changing any other nav items
+
+  ## Tasks
+
+  1. **Seed Hosting & Domains into the DB** — Add a `seedInfrastructureServices()` function to `server/seed.ts` that idempotently creates two services if they don't exist (check by slug): "SEVCO Hosting" (slug: "sevco-hosting", category: "Infrastructure", iconName: "Server", linkUrl: "/hosting", tagline: "Websites, game servers, VPS & more") and "Domain Registration" (slug: "domain-registration", category: "Infrastructure", iconName: "Globe", linkUrl: "/domains", tagline: "Register and manage domain names"). Call this from the startup sequence in `server/index.ts`.
+
+  2. **Remove hardcoded Infrastructure section from services-listing.tsx** — Delete the entire hardcoded Infrastructure section (lines 253-305 with `data-testid="section-infrastructure"`). Add "Infrastructure" to both `CATEGORY_ORDER` (append after "Support") and `CATEGORY_STYLES` (use teal accent: `{ accent: "text-teal-600 dark:text-teal-400", badge: "bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/20" }`). Also add `Server` and `Globe` icons (already imported) to the `ICON_MAP` constant.
+
+  3. **Remove hardcoded Hosting from nav and add Infrastructure to icon map** — Remove the hardcoded Hosting featured item in the `DropdownPanel` in `platform-header.tsx` (the top featured section div at line ~443-453 that only shows Hosting as one item). Add `Infrastructure: Server` to `SERVICE_ICON_MAP` so the Infrastructure category has the right icon in the nav column header.
+
+  ## Relevant files
+  - `server/seed.ts:1475-1492` — seed file where new function goes (near end)
+  - `server/index.ts:475-500` — startup sequence to call new seed function
+  - `client/src/pages/services-listing.tsx:16-48,61-65,253-305` — CATEGORY_BORDER_COLORS, CATEGORY_STYLES, CATEGORY_ORDER, hardcoded section
+  - `client/src/components/platform-header.tsx:136-159,443-453` — SERVICE_ICON_MAP, hardcoded featured Hosting div
+
+
+---
+

@@ -184,9 +184,16 @@ interface GameStore {
   setShowTab: (s: boolean) => void;
   nearSphere: boolean;
   setNearSphere: (n: boolean) => void;
+  gameInventory: Record<string, number>;
+  setGameInventory: (inv: Record<string, number>) => void;
+  addToInventory: (blockId: string | number, amount: number) => void;
+  showInventory: boolean;
+  setShowInventory: (s: boolean) => void;
+  pickupToast: string;
+  setPickupToast: (msg: string) => void;
 }
 
-const useGameStore = create<GameStore>((set) => ({
+const useGameStore = create<GameStore>((set, get) => ({
   selectedBlock: 1,
   setSelectedBlock: (b) => set({ selectedBlock: b }),
   speed: 0,
@@ -207,6 +214,18 @@ const useGameStore = create<GameStore>((set) => ({
   setShowTab: (s) => set({ showTab: s }),
   nearSphere: false,
   setNearSphere: (n) => set({ nearSphere: n }),
+  gameInventory: {},
+  setGameInventory: (inv) => set({ gameInventory: inv, crystalsCollected: inv["7"] ?? 0 }),
+  addToInventory: (blockId, amount) => {
+    const key = String(blockId);
+    const inv = { ...get().gameInventory };
+    inv[key] = Math.max(0, (inv[key] ?? 0) + amount);
+    set({ gameInventory: inv, crystalsCollected: inv["7"] ?? 0 });
+  },
+  showInventory: false,
+  setShowInventory: (s) => set({ showInventory: s }),
+  pickupToast: "",
+  setPickupToast: (msg) => set({ pickupToast: msg }),
 }));
 
 function makeRng(seed: number): () => number {
@@ -825,7 +844,7 @@ interface SceneProps {
   progress: Progress;
   savedBuilds: SavedBuild[];
   otherPlayers: OtherPlayer[];
-  onSave: (modified: Map<string, number>, currentPlanetId: number, crystals: number) => void;
+  onSave: (modified: Map<string, number>, currentPlanetId: number, inventory: Record<string, number>) => void;
   onPositionUpdate: (x: number, y: number, z: number) => void;
   onCrystalCollected: (count: number) => void;
   onPlanetSwitch: (newIndex: number) => void;
@@ -946,6 +965,10 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
         return;
       }
       if (e.key === "Tab") { e.preventDefault(); useGameStore.getState().setShowTab(true); return; }
+      if (e.key === "i" || e.key === "I" || e.key === "b" || e.key === "B") {
+        useGameStore.getState().setShowInventory(!useGameStore.getState().showInventory);
+        return;
+      }
       const num = parseInt(e.key, 10);
       if (num >= 1 && num <= 9) { setSelectedBlock(BLOCK_TYPES[num - 1]?.id ?? 1); return; }
       keysRef.current[e.key.toLowerCase()] = true;
@@ -975,10 +998,25 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
 
       if (e.button === 0) {
         const blockVal = getVoxel(planetData, result.gx, result.gy, result.gz);
-        if (blockVal === CRYSTAL_ID) {
-          const newCount = useGameStore.getState().crystalsCollected + 1;
-          setCrystalsCollected(newCount);
-          onCrystalCollected(newCount);
+        const LEAF_FLOWER_IDS = new Set([13, 14, 15, 21, 22, 23, 24]);
+        const ALIEN_IDS = new Set([19, 20]);
+        let shouldDrop = true;
+        if (LEAF_FLOWER_IDS.has(blockVal)) {
+          shouldDrop = Math.random() < 0.5;
+        }
+        if (shouldDrop) {
+          useGameStore.getState().addToInventory(blockVal, 1);
+          if (blockVal === CRYSTAL_ID) {
+            const newCount = useGameStore.getState().crystalsCollected;
+            setCrystalsCollected(newCount);
+            onCrystalCollected(newCount);
+          }
+          if (ALIEN_IDS.has(blockVal) && Math.random() < 0.2) {
+            useGameStore.getState().addToInventory("artifact", 1);
+          }
+          const blockName = (BLOCK_TYPES as readonly { id: number; name: string; color: number }[]).find((b) => b.id === blockVal)?.name ?? `Block ${blockVal}`;
+          useGameStore.getState().setPickupToast(`+1 ${blockName}`);
+          setTimeout(() => useGameStore.getState().setPickupToast(""), 1800);
         }
         setVoxel(planetData, result.gx, result.gy, result.gz, 0);
         trackModification(activePlanet?.id ?? 0, result.gx, result.gy, result.gz, 0);
@@ -986,8 +1024,11 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
         const { prevGx, prevGy, prevGz } = result;
         if (prevGx >= 0 && prevGx < GRID_SIZE && prevGy >= 0 && prevGy < GRID_SIZE && prevGz >= 0 && prevGz < GRID_SIZE) {
           const sb = useGameStore.getState().selectedBlock;
+          const inv = useGameStore.getState().gameInventory;
+          if ((inv[String(sb)] ?? 0) <= 0) return;
           setVoxel(planetData, prevGx, prevGy, prevGz, sb);
           trackModification(activePlanet?.id ?? 0, prevGx, prevGy, prevGz, sb);
+          useGameStore.getState().addToInventory(sb, -1);
         }
       }
 
@@ -1210,7 +1251,7 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
       lastSave.current = state.clock.elapsedTime;
       const mods = modifiedVoxelsMap.get(activePlanet.id);
       if (mods && mods.size > 0) {
-        onSave(new Map(mods), activePlanet.id, useGameStore.getState().crystalsCollected);
+        onSave(new Map(mods), activePlanet.id, useGameStore.getState().gameInventory);
       }
     }
 
@@ -1304,13 +1345,26 @@ function trackModification(planetId: number, gx: number, gy: number, gz: number,
 }
 
 function HUD({ planet, sparksBalance, progress }: { planet: Planet | null; sparksBalance: number; progress: Progress | null }) {
-  const { selectedBlock, setSelectedBlock, speed, altitude, inVehicle, pointerLocked, crystalsCollected, nearSphere } = useGameStore();
+  const { selectedBlock, setSelectedBlock, speed, altitude, inVehicle, pointerLocked, crystalsCollected, nearSphere, gameInventory, showInventory, setShowInventory, pickupToast } = useGameStore();
+
+  const allBlockTypes = BLOCK_TYPES as readonly { id: number; name: string; color: number }[];
+  const artifactCount = gameInventory["artifact"] ?? 0;
   return (
     <div className="absolute inset-0 pointer-events-none select-none" data-testid="freeball-hud">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" data-testid="freeball-crosshair">
         <div className="w-5 h-0.5 bg-white/80 absolute top-1/2 -translate-y-1/2 left-0" />
         <div className="h-5 w-0.5 bg-white/80 absolute left-1/2 -translate-x-1/2 top-0" />
       </div>
+
+      {pickupToast && (
+        <div
+          className="absolute top-[calc(50%+36px)] left-1/2 -translate-x-1/2 bg-black/70 text-white text-xs px-3 py-1 rounded-full font-mono pointer-events-none"
+          data-testid="freeball-pickup-toast"
+          style={{ transition: "opacity 0.3s" }}
+        >
+          {pickupToast}
+        </div>
+      )}
 
       <div className="absolute top-3 right-3 flex flex-col items-end gap-1" data-testid="freeball-info">
         {planet && <div className="bg-black/60 text-white text-xs px-2 py-1 rounded font-mono">{planet.name} ({planet.type})</div>}
@@ -1324,25 +1378,38 @@ function HUD({ planet, sparksBalance, progress }: { planet: Planet | null; spark
         {crystalsCollected > 0 && (
           <div className="bg-black/60 text-cyan-400 text-xs px-2 py-1 rounded font-mono">Crystals: {crystalsCollected}/{CRYSTAL_CRAFT_AMOUNT}</div>
         )}
+        {artifactCount > 0 && (
+          <div className="bg-black/60 text-purple-400 text-xs px-2 py-1 rounded font-mono" data-testid="freeball-artifact-count">Artifacts: {artifactCount}</div>
+        )}
       </div>
 
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1" data-testid="freeball-hotbar">
         {BLOCK_TYPES.slice(0, 9).map((b) => {
           const hex = b.color.toString(16).padStart(6, "0");
+          const qty = gameInventory[String(b.id)] ?? 0;
+          const depleted = qty <= 0;
           return (
             <div
               key={b.id}
               data-testid={`freeball-hotbar-block-${b.id}`}
-              className={`w-10 h-10 rounded border-2 flex items-center justify-center cursor-pointer pointer-events-auto ${selectedBlock === b.id ? "border-white scale-110" : "border-white/30"}`}
+              className={`w-10 h-10 rounded border-2 flex items-center justify-center pointer-events-auto relative ${selectedBlock === b.id ? "border-white scale-110" : "border-white/30"} ${depleted ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
               style={{ backgroundColor: `#${hex}40` }}
-              onClick={() => setSelectedBlock(b.id)}
-              title={b.name}
+              onClick={() => { if (!depleted) setSelectedBlock(b.id); }}
+              title={`${b.name} (${qty})`}
             >
               <div className="w-5 h-5 rounded-sm" style={{ backgroundColor: `#${hex}` }} />
+              <span className="absolute bottom-0 right-0.5 text-white text-[9px] font-bold leading-tight font-mono drop-shadow" data-testid={`freeball-hotbar-qty-${b.id}`}>{qty}</span>
             </div>
           );
         })}
       </div>
+
+      {nearSphere && !inVehicle && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-8 bg-black/80 text-white px-4 py-2 rounded-lg border border-white/20 flex items-center gap-3 backdrop-blur-sm animate-in fade-in zoom-in duration-200" data-testid="freeball-sphere-prompt">
+          <div className="w-8 h-8 rounded bg-blue-500/20 flex items-center justify-center border border-blue-500/40 text-blue-400 font-bold">E</div>
+          <span className="text-sm font-medium tracking-tight">Press E to board SPHERE</span>
+        </div>
+      )}
 
       {!pointerLocked && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-12 text-white/60 text-sm text-center pointer-events-none">
@@ -1352,7 +1419,7 @@ function HUD({ planet, sparksBalance, progress }: { planet: Planet | null; spark
 
       {pointerLocked && (
         <div className="absolute bottom-20 left-3 text-white/40 text-xs" data-testid="freeball-controls-hint">
-          WASD move · Space jump · Shift sprint/boost · LMB break · RMB place · E enter/exit SPHERE · T third-person · Tab players · Esc menu
+          WASD move · Space jump · Shift sprint/boost · LMB break · RMB place · E enter/exit SPHERE · T third-person · I inventory · Tab players · Esc menu
         </div>
       )}
 
@@ -1365,6 +1432,56 @@ function HUD({ planet, sparksBalance, progress }: { planet: Planet | null; spark
       {progress?.unlockedSphere && (
         <div className="absolute top-3 left-3 bg-black/60 text-blue-400 text-xs px-2 py-1 rounded font-mono" data-testid="freeball-sphere-status">
           SPHERE ready (E)
+        </div>
+      )}
+
+      {showInventory && (
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto"
+          style={{ zIndex: 50 }}
+          data-testid="freeball-inventory-panel"
+        >
+          <div className="bg-black/85 backdrop-blur-sm border border-white/20 rounded-xl p-4 w-[420px] max-h-[70vh] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-white font-bold text-sm tracking-wide">Inventory</span>
+              <button
+                className="text-white/50 hover:text-white text-xs px-2 py-0.5 rounded border border-white/20 hover:border-white/50 transition-colors"
+                onClick={() => setShowInventory(false)}
+                data-testid="freeball-inventory-close"
+              >
+                Close [I]
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1">
+              <div className="grid grid-cols-4 gap-2">
+                {allBlockTypes.map((b) => {
+                  const qty = gameInventory[String(b.id)] ?? 0;
+                  const hex = b.color.toString(16).padStart(6, "0");
+                  return (
+                    <div
+                      key={b.id}
+                      className={`flex flex-col items-center gap-1 bg-white/5 rounded-lg p-2 border border-white/10 ${qty === 0 ? "opacity-30" : ""}`}
+                      data-testid={`freeball-inv-item-${b.id}`}
+                    >
+                      <div className="w-7 h-7 rounded" style={{ backgroundColor: `#${hex}` }} />
+                      <span className="text-white/70 text-[9px] text-center leading-tight font-mono">{b.name}</span>
+                      <span className="text-white font-bold text-xs font-mono">{qty}</span>
+                    </div>
+                  );
+                })}
+                {artifactCount > 0 && (
+                  <div
+                    className="flex flex-col items-center gap-1 bg-white/5 rounded-lg p-2 border border-purple-400/30"
+                    data-testid="freeball-inv-item-artifact"
+                  >
+                    <div className="w-7 h-7 rounded bg-purple-500 flex items-center justify-center text-sm">✦</div>
+                    <span className="text-purple-300 text-[9px] text-center leading-tight font-mono">Alien Artifact</span>
+                    <span className="text-white font-bold text-xs font-mono">{artifactCount}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -1613,11 +1730,26 @@ export default function FreeballPage() {
       const idx = planets.findIndex((p) => p.id === progress.currentPlanetId);
       if (idx !== -1) setActivePlanetIndex(idx);
     }
-    const savedCrystals = typeof progress.inventory?.crystals === "number" ? progress.inventory.crystals : 0;
-    if (savedCrystals > 0) {
-      setCrystalsCollected(savedCrystals);
-      useGameStore.getState().setCrystalsCollected(savedCrystals);
+    const savedInventory: Record<string, number> = {};
+    if (progress.inventory && typeof progress.inventory === "object") {
+      for (const [k, v] of Object.entries(progress.inventory)) {
+        if (typeof v === "number") {
+          if (k === "crystals") {
+            savedInventory["7"] = Math.max(savedInventory["7"] ?? 0, v);
+          } else {
+            savedInventory[k] = v;
+          }
+        }
+      }
     }
+    const totalItems = Object.values(savedInventory).reduce((a, b) => a + b, 0);
+    if (totalItems === 0) {
+      savedInventory["1"] = (savedInventory["1"] ?? 0) + 10;
+      savedInventory["2"] = (savedInventory["2"] ?? 0) + 10;
+      savedInventory["3"] = (savedInventory["3"] ?? 0) + 10;
+    }
+    useGameStore.getState().setGameInventory(savedInventory);
+    setCrystalsCollected(savedInventory["7"] ?? 0);
   }, [progress, planets]);
 
   const activePlanet = planets[activePlanetIndex] ?? null;
@@ -1687,17 +1819,17 @@ export default function FreeballPage() {
     },
   });
 
-  const handleSave = useCallback((modified: Map<string, number>, currentPlanetId: number, crystals: number) => {
+  const handleSave = useCallback((modified: Map<string, number>, currentPlanetId: number, inventory: Record<string, number>) => {
     if (modified.size > 0) saveMutation.mutate({ modified, planetId: currentPlanetId });
-    progressMutation.mutate({ currentPlanetId, inventory: { crystals } });
+    progressMutation.mutate({ currentPlanetId, inventory });
   }, []);
 
   const handleManualSave = useCallback(() => {
     if (!activePlanetId) return;
     const mods = modifiedVoxelsMap.get(activePlanetId);
     if (mods && mods.size > 0) saveMutation.mutate({ modified: new Map(mods), planetId: activePlanetId });
-    progressMutation.mutate({ currentPlanetId: activePlanetId, inventory: { crystals: crystalsCollected } });
-  }, [activePlanetId, crystalsCollected]);
+    progressMutation.mutate({ currentPlanetId: activePlanetId, inventory: useGameStore.getState().gameInventory });
+  }, [activePlanetId]);
 
   const handlePositionUpdate = useCallback((x: number, y: number, z: number) => {
     if (!activePlanetId) return;
@@ -1713,7 +1845,7 @@ export default function FreeballPage() {
     useGameStore.getState().setCrystalsCollected(count);
     if (count >= CRYSTAL_CRAFT_AMOUNT && !progress?.unlockedSphere) {
       apiRequest("PATCH", "/api/freeball/progress", {
-        inventory: { crystals: count },
+        inventory: useGameStore.getState().gameInventory,
         ...(activePlanetId ? { currentPlanetId: activePlanetId } : {}),
       }).then(() => {
         unlockSphereMutation.mutate();

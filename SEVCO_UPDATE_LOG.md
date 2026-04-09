@@ -18277,18 +18277,15 @@ This makes `/images/tracks/library/track.mp3?download=1` generate a signed URL w
 
 ---
 
-<<<<<<< HEAD
 ## Task — store-categories-management
 > Merged: 2026-04-06
 
-=======
 ## Task — task-232
 > Merged: 2026-04-06
 
 ---
 title: Store — categories management for staff+ (table, API, CMD tab, product dropdown)
 ---
->>>>>>> 2d37fc2 (Post-merge setup completed successfully)
 # Store — Categories Management (staff+)
 
 ## What & Why
@@ -21747,7 +21744,6 @@ This is optional — if implementation adds too much complexity, skip it.
 
 ---
 
-<<<<<<< HEAD
 ## Task — task-270
 > Merged: 2026-04-07
 
@@ -21864,7 +21860,7 @@ Key changes from current implementation:
 - [ ] The "All Revisions" tab still shows all revisions (including newly approved/
   rejected ones) after the background refetch completes
 - [ ] Pending count badge in the sidebar updates immediately
-=======
+
 ## Task — task-271
 > Merged: 2026-04-07
 
@@ -21981,7 +21977,6 @@ queryClient.invalidateQueries({ queryKey: ["/api/categories", newCategorySlug] }
 - [ ] When opening an article for editing, the correct parent category AND
   subcategory are pre-selected in the dropdowns
 - [ ] Content changes (revision) still work correctly alongside metadata changes
->>>>>>> ac82ae7 (Post-merge setup completed successfully)
 
 
 ---
@@ -22233,18 +22228,15 @@ title: Social Sparks — notifications & leaderboard
 
 ---
 
-<<<<<<< HEAD
 ## Task — fix-wiki-articles-prod
 > Merged: 2026-04-07
 
-=======
 ## Task — task-280
 > Merged: 2026-04-07
 
 ---
 title: Fix wiki articles: cleanup, category & author byline
 ---
->>>>>>> 11319be (Post-merge setup completed successfully)
 # Fix Wiki Articles: Cleanup, Category & Author
 
   ## What & Why
@@ -22537,6 +22529,12 @@ All bugs are isolated to `client/src/pages/freeball.tsx`.
 ## Task — freeball-inventory-items-collectibles
 > Merged: 2026-04-09
 
+## Task — task-291
+> Merged: 2026-04-09
+
+---
+title: Freeball — inventory, items & collectibles
+---
 # Freeball — Inventory, Items & Collectibles
 
 ## What & Why

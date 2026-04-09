@@ -305,6 +305,19 @@ html, body {
 .wiki-sidebar {
   --sidebar-accent: var(--nav-sub-accent);
   --sidebar-accent-foreground: var(--nav-sub-accent-foreground);
+  transition: top 250ms ease-in-out, height 250ms ease-in-out;
+}
+
+.cmd-sidebar,
+.social-sidebar {
+  transition: top 250ms ease-in-out, height 250ms ease-in-out;
+}
+
+html.nav-hidden .wiki-sidebar,
+html.nav-hidden .cmd-sidebar,
+html.nav-hidden .social-sidebar {
+  top: 0 !important;
+  height: 100svh !important;
 }
 
 .wiki-sidebar [data-active="true"][data-slot="sidebar-menu-button"]::before {

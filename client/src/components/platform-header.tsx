@@ -881,6 +881,10 @@ export function PlatformHeader() {
 
   const [navHidden, setNavHidden] = useState(() => localStorage.getItem("nav-hidden") === "true");
 
+  useEffect(() => {
+    document.documentElement.classList.toggle("nav-hidden", navHidden);
+  }, [navHidden]);
+
   const toggleNavHidden = () => {
     setNavHidden((prev) => {
       const next = !prev;

@@ -1,4 +1,5 @@
-import { useRef, useEffect, type RefObject } from "react";
+import { useRef, useEffect, useState, type RefObject } from "react";
+import ReactDOM from "react-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -34,6 +35,7 @@ function TypeIcon({ type }: { type: string }) {
 export function NotificationDropdown({ open, onClose, triggerRef }: NotificationDropdownProps) {
   const [, navigate] = useLocation();
   const ref = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<{ top: number; right: number } | null>(null);
 
   const { data: notifs = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
@@ -57,6 +59,20 @@ export function NotificationDropdown({ open, onClose, triggerRef }: Notification
   });
 
   useEffect(() => {
+    if (!open) {
+      setPosition(null);
+      return;
+    }
+    if (triggerRef?.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 4,
+        right: window.innerWidth - rect.right,
+      });
+    }
+  }, [open, triggerRef]);
+
+  useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
       const target = e.target as Node;
@@ -69,7 +85,7 @@ export function NotificationDropdown({ open, onClose, triggerRef }: Notification
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open, onClose, triggerRef]);
 
-  if (!open) return null;
+  if (!open || !position) return null;
 
   function handleNotifClick(n: Notification) {
     if (!n.isRead) {
@@ -83,11 +99,12 @@ export function NotificationDropdown({ open, onClose, triggerRef }: Notification
 
   const hasUnread = notifs.some((n) => !n.isRead);
 
-  return (
+  return ReactDOM.createPortal(
     <div
       ref={ref}
       data-testid="notification-dropdown"
-      className="absolute right-0 top-full mt-1 w-[340px] rounded-xl border bg-popover shadow-xl z-50 overflow-hidden"
+      className="fixed w-[340px] rounded-xl border bg-popover shadow-xl z-[9999] overflow-hidden"
+      style={{ top: position.top, right: position.right }}
     >
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
         <p className="text-sm font-semibold">Notifications</p>
@@ -164,6 +181,7 @@ export function NotificationDropdown({ open, onClose, triggerRef }: Notification
           </button>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -1,10 +1,9 @@
 #!/bin/bash
 set -e
-npm install
 
-# Apply schema changes non-interactively. If it prompts, auto-select "no" (safe default).
-# Schema changes also run on server startup via runStartupMigrations() as a safety net.
-yes "" | npm run db:push -- --force 2>&1 || echo "[post-merge] db:push completed (startup migrations also handle schema)"
+# Note: Package installation is handled by Replit's package manager automatically.
+# Schema changes are applied on server startup via runStartupMigrations() in server/index.ts.
+# This script only handles post-merge content updates (wiki + changelog).
 
 LATEST_TASK=$(ls -t .local/tasks/*.md 2>/dev/null | head -1)
 if [ -n "$LATEST_TASK" ]; then

@@ -22420,3 +22420,66 @@ title: Fix wiki articles: cleanup, category & author byline
 
 ---
 
+## Task — freeball-spherical-worlds-overhaul
+> Merged: 2026-04-09
+
+# Freeball — Spherical Worlds Overhaul
+
+## What & Why
+A major upgrade to the Freeball game bringing it closer to the reference screenshots: smaller and more vibrant voxels, true spherical planets with radial gravity, a walking/jumping character, foliage (trees, flowers), animated water, a seamless atmosphere-to-space transition, and ship travel between planets with unique biome environments.
+
+## Done looks like
+- Blocks are noticeably smaller and rendered with a richer, more saturated color palette (vibrant greens, warm browns, bright blues) matching the reference screenshot aesthetic
+- Each planet is a visible sphere in space — terrain wraps around it like a globe; flying up from the surface reveals the whole planet hanging in space
+- Gravity pulls the player toward the nearest planet center at all times; on the surface this feels like normal down-force, in space it weakens with distance
+- The character can walk on any face of the spherical surface, jump naturally, and is blocked by terrain collisions
+- Trees (wood trunk + leafy canopy) and flowers are procedurally placed on terrain as decorative voxel structures; water fills low-lying areas with a shimmering animated plane
+- Flying the SEVCO SPHERE upward smoothly transitions the sky from atmospheric blue/orange haze → star-filled deep space with no hard cutoff
+- In the SPHERE, the player can accelerate fast enough to cross to other planets, each of which has a distinct biome (lush green, desert, ice, alien purple) with matching block colors and foliage
+- At least 4 planets are visible as spheres from space with unique appearances
+
+## Out of scope
+- Procedural caves or underground tunnels
+- Multiplayer synchronization of the new physics (presence system stays as-is)
+- Mobile/touch controls
+- Any changes outside of `client/src/pages/freeball.tsx` and `server/freeball-routes.ts`
+
+## Tasks
+
+1. **Smaller, vibrant voxel blocks** — Reduce the voxel scale constant and update `BLOCK_TYPES` with a richer, more saturated palette for every block type. Increase terrain generation density to compensate for smaller blocks so planets feel full.
+
+2. **Spherical planet terrain generation** — Replace the flat chunk-based `generateChunk` with a spherical terrain generator that projects noise onto a sphere surface. Voxels are placed radially outward from a planet center; chunk coordinates map to latitude/longitude on the sphere. Each planet type (Verdania, Cratera, Glacius, Xenara) gets distinct noise parameters and biome block sets.
+
+3. **Radial gravity & surface character controller** — Replace the fixed downward gravity with a per-frame force directed from the player toward the nearest planet center, scaled by distance. Update the walking/jump controller so "forward" and "up" are always relative to the planet surface normal, allowing the player to walk naturally on all sides of the sphere.
+
+4. **Foliage and water** — Add procedural tree placement (wood trunk column + spherical leaf cluster) and scattered flower/grass-tuft decorations during terrain generation. Add an animated water plane at a biome-specific "sea level" radius on each planet with a translucent animated shader/material.
+
+5. **Seamless atmosphere-to-space transition** — Replace the hard sky/stars toggle with a continuous system: as altitude increases the `Sky` component's atmosphere scattering parameters fade and the `Stars` component opacity increases. Add a glow/haze layer near the planet surface visible from space.
+
+6. **Multi-planet space travel & unique biomes** — Expand the planet list to at least 4 planets with well-separated positions. Update the SPHERE flight controller so high-speed travel between them is practical (boost mode). Each planet renders as a colored sphere mesh visible from space. Landing on a new planet loads its unique spherical terrain and biome colors automatically.
+
+## Resources & Suggestions for the Executor
+
+The following open references are highly relevant and should be consulted:
+
+- **Spherical voxel world technique**: "Voxel Planet" by Sebastian Lague — https://www.youtube.com/watch?v=R9cPkiwqiO0 and his open-source Unity repo (algorithm is portable to Three.js)
+- **Greedy meshing on spheres**: https://0fps.net/2012/07/07/meshing-minecraft-part-2/ — extend the existing greedy mesher for curved surface UV unwrapping
+- **Three.js atmospheric scattering**: https://threejs.org/examples/#webgl_shaders_sky — the `Sky` drei component wraps this; tweak `turbidity`, `rayleigh`, `mieCoefficient` based on altitude
+- **Simplex noise on a sphere** (projection technique): https://github.com/nicktindall/cyclon.p2p — or simply project 3D noise at `(sin(lat)*cos(lon), sin(lat)*sin(lon), cos(lat))` coordinates
+- **Rapier custom gravity**: https://rapier.rs/docs/user_guides/javascript/rigid_bodies#gravity — use `rigidBody.setGravityScale(0)` and apply manual impulse each frame toward planet center
+- **Suggested next improvements after this task**:
+  - Ambient occlusion per voxel face for depth perception
+  - Procedural cave systems using 3D noise
+  - Day/night cycle unique to each planet's rotation speed
+  - Inventory/crafting expanded with biome-specific resources
+  - Warp gates between planets as an alternative to ship travel
+
+## Relevant files
+- `client/src/pages/freeball.tsx`
+- `server/freeball-routes.ts`
+- `attached_assets/Screenshot_2026-04-09_at_12.29.20_AM_1775752843092.png`
+- `attached_assets/hq720_1775753192380.jpg`
+
+
+---
+

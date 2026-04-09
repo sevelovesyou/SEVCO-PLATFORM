@@ -22483,3 +22483,54 @@ The following open references are highly relevant and should be consulted:
 
 ---
 
+## Task — freeball-game-bug-fixes
+> Merged: 2026-04-09
+
+# Freeball — 4 Core Game Bug Fixes
+
+## What & Why
+
+Fix four gameplay bugs that make Freeball frustrating to play:
+
+1. **See-through blocks** — solid walls disappear when the camera gets close or at certain angles.
+2. **Flat/ugly planets** — all blocks render as a single flat color with no depth or texture variation.
+3. **Player gets stuck everywhere** — the player snaggs on any 1-block step, ledge, or corner and can't push through.
+4. **Block breaking off-crosshair** — left-clicking breaks a block that isn't under the crosshair; happens because the raycast starts from the player's feet, not the camera.
+
+All bugs are isolated to `client/src/pages/freeball.tsx`.
+
+## Done looks like
+
+- Standing next to or inside a cave/wall shows the wall as solid from all angles — no geometry disappears.
+- Planets look visually rich: top faces of blocks are bright, side faces mid-tone, undersides darker; plus a subtle per-block color variation so terrain doesn't look like flat plastic.
+- Player can walk over single-block ledges without getting stuck; diagonal corners no longer trap the player.
+- Left-clicking breaks the block exactly under the crosshair, matching the block highlight outline. Right-click places against the same face. The highlight outline is accurate too.
+
+## Out of scope
+
+- Procedural texture maps or image-based textures (vertex color shading only).
+- Multiplayer desync / lag compensation.
+- Any backend, API, or database changes.
+
+## Tasks
+
+1. **Fix see-through blocks** — In `PlanetVoxelMesh`, change the `meshLambertMaterial` from `side={THREE.FrontSide}` to `side={THREE.DoubleSide}` so every mesh face renders regardless of which direction the camera approaches from.
+
+2. **Add directional shading to vertex colors** — In `buildPlanetGeometry`, after computing the block color for each face, multiply the RGB values by a shading factor based on the face normal direction. Top faces (normal.y > 0 most aligned to planet-up) get full brightness (~1.0), side faces ~0.75, bottom/underside faces ~0.55. Also add a small seeded random variation (±5% per block instance) so adjacent blocks of the same type look slightly different. This gives the terrain visual depth without any texture files.
+
+3. **Fix collision — step-up and corner probes** — In `playerCollides`, add 4 diagonal probes (right+fwd, right-fwd, left+fwd, left-fwd) at the same horizontal radius. In the physics loop (inside `useFrame`), when a horizontal move is blocked by `playerCollides`, try the same move after lifting the position by `VOXEL_SCALE * 0.55` first — if that passes collision, apply it (step-up). This lets the player walk over single-block lips without getting snagged.
+
+4. **Fix raycast origin — break/place on crosshair** — In the `onMouseDown` handler, change the `raycastPlanet` call to originate from `camera.position` instead of `playerPos.current`. In `VoxelHighlight`, change its `raycastPlanet` call to also originate from `camera.position` (pass the camera position as a prop or read it directly inside the component via `useThree`). This aligns both the visual highlight and the actual block interaction with the center of the screen.
+
+## Relevant files
+
+- `client/src/pages/freeball.tsx:524-545` — `playerCollides` function
+- `client/src/pages/freeball.tsx:365-470` — `buildPlanetGeometry` greedy mesh builder
+- `client/src/pages/freeball.tsx:583-597` — `PlanetVoxelMesh` component with the material
+- `client/src/pages/freeball.tsx:778-795` — `VoxelHighlight` component
+- `client/src/pages/freeball.tsx:926-962` — `onMouseDown` handler with raycast
+- `client/src/pages/freeball.tsx:1056-1108` — player movement physics (step-up goes here)
+
+
+---
+

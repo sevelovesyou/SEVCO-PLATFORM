@@ -22639,3 +22639,29 @@ Power users (especially those using Freeball or focused reading on the wiki) wan
 
 ---
 
+## Task — freeball-nav-visible-by-default
+> Merged: 2026-04-09
+
+# Show Nav Bar on Freeball Routes
+
+## What & Why
+When a user has previously hidden the nav bar, it stays hidden even when they navigate to Freeball. The nav bar should automatically become visible whenever the user is on any Freeball route (`/freeball` or `/freeball/play`), so they can access platform navigation without having to manually reveal it.
+
+## Done looks like
+- Navigating to `/freeball` or `/freeball/play` always shows the nav bar, regardless of any previously saved "nav hidden" preference.
+- The user's hidden preference is preserved for non-Freeball routes (i.e., if they had it hidden before Freeball, it returns to hidden when they leave).
+- The floating planet restore button does not appear while on Freeball routes.
+
+## Out of scope
+- Changing how the nav hide/show toggle works on other pages.
+- Persisting the nav-visible state specifically for Freeball.
+
+## Tasks
+1. In `PlatformHeader`, add a route-aware effect that sets `navHidden` to `false` whenever the current location starts with `/freeball`, and restores the stored preference when leaving the Freeball routes.
+
+## Relevant files
+- `client/src/components/platform-header.tsx:882-894,980-983,1450`
+
+
+---
+

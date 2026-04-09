@@ -428,6 +428,23 @@ function buildPlanetGeometry(data: Uint8Array): PlanetGeo | null {
           const blockDef = BLOCK_TYPES.find((t) => t.id === bt) ?? BLOCK_TYPES[2];
           const c = new THREE.Color(blockDef.color);
 
+          // Directional shading based on face normal
+          // Top faces (normal.y > 0) get full brightness, sides mid-tone, bottoms darker
+          const ny = normal[1];
+          let shade: number;
+          if (ny > 0.5) shade = 1.0;
+          else if (ny < -0.5) shade = 0.55;
+          else shade = 0.75;
+
+          // Small seeded per-block variation (±5%) to break up flat plastic look
+          const blockSeed = (a * 1000 + b * 100 + layer * 10 + (dir > 0 ? 1 : 0)) * 2654435761;
+          const variation = 1.0 + ((blockSeed % 100) / 100 - 0.5) * 0.1;
+          const finalShade = shade * variation;
+
+          c.r = Math.min(1, c.r * finalShade);
+          c.g = Math.min(1, c.g * finalShade);
+          c.b = Math.min(1, c.b * finalShade);
+
           const base: [number, number, number] = [0, 0, 0];
           base[w] = (dir === 1 ? layer + 1 : layer) - GRID_HALF;
           base[u] = a - GRID_HALF;
@@ -532,6 +549,10 @@ function playerCollides(pos: THREE.Vector3, data: Uint8Array, center: THREE.Vect
     new THREE.Vector3(0, 0, 0),
     localRight, localRight.clone().negate(),
     localFwd, localFwd.clone().negate(),
+    localRight.clone().add(localFwd),
+    localRight.clone().sub(localFwd),
+    localRight.clone().negate().add(localFwd),
+    localRight.clone().negate().sub(localFwd),
     up.clone().multiplyScalar(VOXEL_SCALE * 1.6),
     up.clone().multiplyScalar(-VOXEL_SCALE * 0.1),
   ];
@@ -591,7 +612,7 @@ function PlanetVoxelMesh({ data, center, revision, planetId }: { data: Uint8Arra
         <bufferAttribute attach="attributes-color" args={[geo.colors, 3]} />
         <bufferAttribute attach="index" args={[geo.indices, 1]} />
       </bufferGeometry>
-      <meshLambertMaterial vertexColors side={THREE.FrontSide} />
+      <meshLambertMaterial vertexColors side={THREE.DoubleSide} />
     </mesh>
   );
 }
@@ -775,13 +796,13 @@ function CustomStars({ opacity }: { opacity: number }) {
   );
 }
 
-function VoxelHighlight({ playerPos, direction, data, center }: {
-  playerPos: THREE.Vector3;
+function VoxelHighlight({ direction, data, center }: {
   direction: THREE.Vector3;
   data: Uint8Array;
   center: THREE.Vector3;
 }) {
-  const result = raycastPlanet(playerPos, direction, data, center, 8);
+  const { camera } = useThree();
+  const result = raycastPlanet(camera.position, direction, data, center, 8);
   if (!result.hit) return null;
   const wx = (result.gx - GRID_HALF + 0.5) * VOXEL_SCALE + center.x;
   const wy = (result.gy - GRID_HALF + 0.5) * VOXEL_SCALE + center.y;
@@ -934,7 +955,7 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
 
       const dir = new THREE.Vector3();
       camera.getWorldDirection(dir);
-      const result = raycastPlanet(playerPos.current, dir, planetData, planetCenter, 8);
+      const result = raycastPlanet(camera.position, dir, planetData, planetCenter, 8);
       if (!result.hit) return;
 
       if (e.button === 0) {
@@ -1080,8 +1101,14 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
       if (!playerCollides(newPos, planetData, planetCenter, up)) {
         playerPos.current.copy(newPos);
       } else {
-        const tv = playerVel.current.clone().projectOnPlane(up);
-        playerVel.current.sub(tv);
+        // Step-up: try same move after lifting by ~0.55 voxels (single-block ledge)
+        const stepUpPos = newPos.clone().addScaledVector(up, VOXEL_SCALE * 0.55);
+        if (!playerCollides(stepUpPos, planetData, planetCenter, up)) {
+          playerPos.current.copy(stepUpPos);
+        } else {
+          const tv = playerVel.current.clone().projectOnPlane(up);
+          playerVel.current.sub(tv);
+        }
       }
 
       const newPos2 = playerPos.current.clone().add(radialMove);
@@ -1197,7 +1224,6 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
 
       {!inVehicle && (
         <VoxelHighlight
-          playerPos={playerPos.current}
           direction={cameraDir.current}
           data={planetData}
           center={planetCenter}

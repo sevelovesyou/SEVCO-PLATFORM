@@ -53,8 +53,8 @@ interface CurrentUser {
   username: string;
 }
 
-const VOXEL_SCALE = 0.7;
-const PLANET_RADIUS = 24;
+const VOXEL_SCALE = 0.45;
+const PLANET_RADIUS = 30;
 const GRID_SIZE = 64;
 const GRID_HALF = 32;
 const CRYSTAL_ID = 7;
@@ -182,6 +182,8 @@ interface GameStore {
   setCrystalsCollected: (c: number) => void;
   showTab: boolean;
   setShowTab: (s: boolean) => void;
+  nearSphere: boolean;
+  setNearSphere: (n: boolean) => void;
 }
 
 const useGameStore = create<GameStore>((set) => ({
@@ -203,6 +205,8 @@ const useGameStore = create<GameStore>((set) => ({
   setCrystalsCollected: (c) => set({ crystalsCollected: c }),
   showTab: false,
   setShowTab: (s) => set({ showTab: s }),
+  nearSphere: false,
+  setNearSphere: (n) => set({ nearSphere: n }),
 }));
 
 function makeRng(seed: number): () => number {
@@ -539,7 +543,7 @@ function worldToGrid(worldPos: THREE.Vector3, planetCenter: THREE.Vector3): [num
 }
 
 function playerCollides(pos: THREE.Vector3, data: Uint8Array, center: THREE.Vector3, up: THREE.Vector3): boolean {
-  const r = VOXEL_SCALE * 0.35;
+  const r = VOXEL_SCALE * 0.42;
   const right = new THREE.Vector3(1, 0, 0);
   if (Math.abs(up.dot(right)) > 0.9) right.set(0, 0, 1);
   const localRight = right.clone().cross(up).normalize().multiplyScalar(r);
@@ -863,7 +867,13 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
 
   const playerPos = useRef(spawnPos.clone());
   const playerVel = useRef(new THREE.Vector3(0, 0, 0));
-  const spherePos = useRef(spawnPos.clone().add(new THREE.Vector3(2, 0, 2)));
+  const spawnTangent = new THREE.Vector3(1, 0, 0).cross(spawnUp).normalize();
+  if (spawnTangent.lengthSq() < 0.01) spawnTangent.set(0, 0, 1);
+  // Start sphere 4 blocks above surface level, offset tangentially — gravity will ground it in frames
+  const sphereSpawnBase = planetCenter.clone()
+    .addScaledVector(spawnUp, PLANET_RADIUS * VOXEL_SCALE + VOXEL_SCALE * 4)
+    .addScaledVector(spawnTangent, 3 * VOXEL_SCALE);
+  const spherePos = useRef(sphereSpawnBase);
   const sphereVel = useRef(new THREE.Vector3(0, 0, 0));
   const onGround = useRef(false);
 
@@ -889,7 +899,12 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
     const newSpawn = planetCenter.clone().addScaledVector(up, (PLANET_RADIUS + 5) * VOXEL_SCALE);
     playerPos.current.copy(newSpawn);
     playerVel.current.set(0, 0, 0);
-    spherePos.current.copy(newSpawn).add(new THREE.Vector3(2, 0, 2));
+    const tangent = new THREE.Vector3(1, 0, 0).cross(up).normalize();
+    if (tangent.lengthSq() < 0.01) tangent.set(0, 0, 1);
+    // Place sphere 4 blocks above surface, offset tangentially — gravity will ground it in frames
+    spherePos.current.copy(planetCenter)
+      .addScaledVector(up, PLANET_RADIUS * VOXEL_SCALE + VOXEL_SCALE * 4)
+      .addScaledVector(tangent, 3 * VOXEL_SCALE);
     sphereVel.current.set(0, 0, 0);
     refForward.current.set(0, 0, -1);
     pitchRef.current = 0;
@@ -921,7 +936,7 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
       if (e.key === "t" || e.key === "T") { setThirdPerson(!useGameStore.getState().thirdPerson); return; }
       if (e.key === "e" || e.key === "E") {
         if (!useGameStore.getState().inVehicle) {
-          if (progressRef.current.unlockedSphere && playerPos.current.distanceTo(spherePos.current) < 4) setInVehicle(true);
+          if (progressRef.current.unlockedSphere && playerPos.current.distanceTo(spherePos.current) < 6) setInVehicle(true);
         } else {
           setInVehicle(false);
           const up = playerPos.current.clone().sub(planetCenterRef.current).normalize();
@@ -1075,6 +1090,54 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
       }
 
     } else {
+      // Apply gravity and physics to the SPHERE when not piloted
+      {
+        // Compute nearest center from SPHERE position (not player position)
+        let sphereNearestCenter = planetCenter;
+        let sphereNearestDist = spherePos.current.distanceTo(planetCenter);
+        for (let pi = 0; pi < planets.length; pi++) {
+          const pc = PLANET_POSITIONS[pi];
+          if (!pc) continue;
+          const d = spherePos.current.distanceTo(pc);
+          if (d < sphereNearestDist) { sphereNearestDist = d; sphereNearestCenter = pc; }
+        }
+        const sphereToCenter = sphereNearestCenter.clone().sub(spherePos.current);
+        const sphereDist = sphereToCenter.length();
+        const sphereUp = sphereDist > 0.1
+          ? spherePos.current.clone().sub(sphereNearestCenter).normalize()
+          : new THREE.Vector3(0, 1, 0);
+        sphereVel.current.addScaledVector(sphereToCenter.normalize(), GRAVITY_STRENGTH * clampedDt);
+        spherePos.current.addScaledVector(sphereVel.current, clampedDt);
+
+        // Voxel-aware ground settle: step downward until hitting solid voxel or absolute floor
+        const sphereRadius = VOXEL_SCALE * 0.8;
+        const maxDrop = VOXEL_SCALE * 4;
+        const step = VOXEL_SCALE * 0.25;
+        let dropped = 0;
+        let hitGround = false;
+        const probe = spherePos.current.clone();
+        while (dropped < maxDrop) {
+          probe.addScaledVector(sphereUp, -step);
+          dropped += step;
+          const [sgx, sgy, sgz] = worldToGrid(probe, sphereNearestCenter);
+          if (getVoxel(planetData, sgx, sgy, sgz) !== 0) {
+            // Snap sphere to just above the hit voxel
+            spherePos.current.copy(probe).addScaledVector(sphereUp, step + sphereRadius);
+            hitGround = true;
+            break;
+          }
+        }
+        if (hitGround) {
+          const radialVelS = sphereVel.current.dot(sphereUp);
+          if (radialVelS < 0) sphereVel.current.addScaledVector(sphereUp, -radialVelS);
+          sphereVel.current.multiplyScalar(0.7);
+        }
+      }
+
+      // Update HUD sphere proximity state
+      const sphereDist6 = playerPos.current.distanceTo(spherePos.current);
+      useGameStore.getState().setNearSphere(sphereDist6 < 6);
+
       const speed = keys["shift"] ? SPRINT_SPEED : WALK_SPEED;
       const moveDir = new THREE.Vector3();
       if (keys["w"]) moveDir.add(refForward.current);
@@ -1101,9 +1164,9 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
       if (!playerCollides(newPos, planetData, planetCenter, up)) {
         playerPos.current.copy(newPos);
       } else {
-        // Step-up: try same move after lifting by ~0.55 voxels (single-block ledge)
-        const stepUpPos = newPos.clone().addScaledVector(up, VOXEL_SCALE * 0.55);
-        if (!playerCollides(stepUpPos, planetData, planetCenter, up)) {
+        // Step-up: try same move after lifting by 1 full voxel — gate on onGround to avoid mid-air jitter
+        const stepUpPos = newPos.clone().addScaledVector(up, VOXEL_SCALE * 1.0);
+        if (onGround.current && !playerCollides(stepUpPos, planetData, planetCenter, up)) {
           playerPos.current.copy(stepUpPos);
         } else {
           const tv = playerVel.current.clone().projectOnPlane(up);
@@ -1241,7 +1304,7 @@ function trackModification(planetId: number, gx: number, gy: number, gz: number,
 }
 
 function HUD({ planet, sparksBalance, progress }: { planet: Planet | null; sparksBalance: number; progress: Progress | null }) {
-  const { selectedBlock, setSelectedBlock, speed, altitude, inVehicle, pointerLocked, crystalsCollected } = useGameStore();
+  const { selectedBlock, setSelectedBlock, speed, altitude, inVehicle, pointerLocked, crystalsCollected, nearSphere } = useGameStore();
   return (
     <div className="absolute inset-0 pointer-events-none select-none" data-testid="freeball-hud">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" data-testid="freeball-crosshair">
@@ -1293,9 +1356,92 @@ function HUD({ planet, sparksBalance, progress }: { planet: Planet | null; spark
         </div>
       )}
 
+      {progress?.unlockedSphere && !inVehicle && nearSphere && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-black/80 text-blue-300 text-sm px-4 py-2 rounded-lg font-mono border border-blue-500/40" data-testid="freeball-sphere-prompt">
+          Press E to board SPHERE
+        </div>
+      )}
+
       {progress?.unlockedSphere && (
         <div className="absolute top-3 left-3 bg-black/60 text-blue-400 text-xs px-2 py-1 rounded font-mono" data-testid="freeball-sphere-status">
           SPHERE ready (E)
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface SparkPack {
+  id: number;
+  name: string;
+  sparks: number;
+  price: number;
+}
+
+function SparksStoreTab({ sparksBalance }: { sparksBalance: number }) {
+  const { data: packs, isLoading, isError } = useQuery<SparkPack[]>({ queryKey: ["/api/sparks/packs"] });
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  const checkoutMutation = useMutation({
+    mutationFn: ({ packId }: { packId: number }) =>
+      apiRequest("POST", "/api/sparks/checkout", { packId, recurring: false }).then((r) => r.json()),
+    onSuccess: (data: { url: string }) => {
+      setCheckoutError(null);
+      if (data?.url) window.open(data.url, "_blank");
+    },
+    onError: (err: Error) => {
+      setCheckoutError(err.message ?? "Checkout failed. Try again.");
+    },
+  });
+
+  return (
+    <div data-testid="freeball-sparks-store">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-yellow-400 text-sm font-semibold">Your balance</span>
+        <span className="text-yellow-300 text-sm font-mono" data-testid="sparks-store-balance">⚡ {sparksBalance.toLocaleString()}</span>
+      </div>
+      {checkoutError && (
+        <div className="text-red-400 text-xs text-center py-2 mb-2 bg-red-950/30 rounded" data-testid="sparks-store-checkout-error">{checkoutError}</div>
+      )}
+      {isLoading && (
+        <div className="space-y-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-14 bg-gray-800 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      )}
+      {isError && (
+        <div className="text-red-400 text-xs text-center py-4" data-testid="sparks-store-error">Failed to load packs. Try again later.</div>
+      )}
+      {!isLoading && !isError && packs && packs.length === 0 && (
+        <div className="text-gray-500 text-xs text-center py-4" data-testid="sparks-store-empty">No packs available yet.</div>
+      )}
+      {!isLoading && !isError && packs && packs.length > 0 && (
+        <div className="space-y-2">
+          {packs.map((pack) => (
+            <div
+              key={pack.id}
+              className="flex items-center justify-between bg-gray-800 border border-gray-700 rounded-lg px-3 py-2"
+              data-testid={`sparks-store-pack-${pack.id}`}
+            >
+              <div>
+                <div className="text-white text-xs font-semibold">{pack.name}</div>
+                <div className="text-yellow-400 text-xs">⚡ {pack.sparks.toLocaleString()}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-white text-xs font-bold" data-testid={`sparks-store-price-${pack.id}`}>${(pack.price / 100).toFixed(2)}</span>
+                <Button
+                  data-testid={`sparks-store-buy-${pack.id}`}
+                  size="sm"
+                  className="h-7 text-xs bg-yellow-500 hover:bg-yellow-400 text-yellow-950"
+                  disabled={checkoutMutation.isPending}
+                  onClick={() => checkoutMutation.mutate({ packId: pack.id })}
+                >
+                  Buy
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -1312,56 +1458,83 @@ function PauseMenu({ onResume, onSave, onExit, planets, progress, onUnlockSphere
   sparksBalance: number;
   crystalsCollected: number;
 }) {
+  const [activeTab, setActiveTab] = useState<"game" | "sparks">("game");
   const canCraftSphere = crystalsCollected >= CRYSTAL_CRAFT_AMOUNT;
   const canBuySphere = sparksBalance >= SPHERE_SPARKS_COST;
 
   return (
     <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-50" data-testid="freeball-pause-menu">
-      <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-80 shadow-2xl">
+      <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-80 shadow-2xl max-h-[90vh] overflow-y-auto">
         <h2 className="text-white text-xl font-bold mb-1">FREEBALL</h2>
-        <p className="text-gray-400 text-xs mb-2">Paused · {planets.length} planets in galaxy</p>
-        <div className="flex flex-wrap gap-1 mb-4">
-          {planets.map((p) => (
-            <span key={p.id} className="text-xs bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded">{p.name}</span>
-          ))}
+        <p className="text-gray-400 text-xs mb-3">Paused · {planets.length} planets in galaxy</p>
+
+        <div className="flex gap-1 mb-4 bg-gray-800 rounded-lg p-1">
+          <button
+            data-testid="freeball-tab-game"
+            className={`flex-1 text-xs py-1.5 rounded-md font-semibold transition-colors ${activeTab === "game" ? "bg-blue-700 text-white" : "text-gray-400 hover:text-white"}`}
+            onClick={() => setActiveTab("game")}
+          >
+            Game
+          </button>
+          <button
+            data-testid="freeball-tab-sparks"
+            className={`flex-1 text-xs py-1.5 rounded-md font-semibold transition-colors ${activeTab === "sparks" ? "bg-yellow-600 text-white" : "text-gray-400 hover:text-white"}`}
+            onClick={() => setActiveTab("sparks")}
+          >
+            Buy Sparks ⚡
+          </button>
         </div>
 
-        <div className="flex flex-col gap-2 mb-5">
-          <Button data-testid="freeball-btn-resume" onClick={onResume} className="w-full bg-blue-700 hover:bg-blue-600">Resume</Button>
-          <Button data-testid="freeball-btn-save" onClick={onSave} variant="outline" className="w-full border-gray-600 text-white hover:bg-gray-700">Save Game</Button>
-        </div>
+        {activeTab === "game" && (
+          <>
+            <div className="flex flex-wrap gap-1 mb-4">
+              {planets.map((p) => (
+                <span key={p.id} className="text-xs bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded">{p.name}</span>
+              ))}
+            </div>
 
-        {!progress?.unlockedSphere && (
-          <div className="border border-blue-900 rounded-lg p-3 mb-4 bg-blue-950/40">
-            <h3 className="text-blue-300 text-sm font-semibold mb-2">⚡ SEVCO SPHERE</h3>
-            <p className="text-gray-400 text-xs mb-3">
-              {canCraftSphere ? "You have enough Crystals to craft it!" : `Collect ${CRYSTAL_CRAFT_AMOUNT} Crystals or spend ${SPHERE_SPARKS_COST} Sparks to unlock the SPHERE and travel between planets.`}
-            </p>
-            <p className="text-yellow-400 text-xs mb-3">Sparks: {sparksBalance} · Crystals: {crystalsCollected}/{CRYSTAL_CRAFT_AMOUNT}</p>
+            <div className="flex flex-col gap-2 mb-5">
+              <Button data-testid="freeball-btn-resume" onClick={onResume} className="w-full bg-blue-700 hover:bg-blue-600">Resume</Button>
+              <Button data-testid="freeball-btn-save" onClick={onSave} variant="outline" className="w-full border-gray-600 text-white hover:bg-gray-700">Save Game</Button>
+            </div>
+
+            {!progress?.unlockedSphere && (
+              <div className="border border-blue-900 rounded-lg p-3 mb-4 bg-blue-950/40">
+                <h3 className="text-blue-300 text-sm font-semibold mb-2">⚡ SEVCO SPHERE</h3>
+                <p className="text-gray-400 text-xs mb-3">
+                  {canCraftSphere ? "You have enough Crystals to craft it!" : `Collect ${CRYSTAL_CRAFT_AMOUNT} Crystals or spend ${SPHERE_SPARKS_COST} Sparks to unlock the SPHERE and travel between planets.`}
+                </p>
+                <p className="text-yellow-400 text-xs mb-3">Sparks: {sparksBalance} · Crystals: {crystalsCollected}/{CRYSTAL_CRAFT_AMOUNT}</p>
+                <Button
+                  data-testid="freeball-btn-unlock-sphere"
+                  onClick={onUnlockSphere}
+                  disabled={!canCraftSphere && !canBuySphere}
+                  className="w-full bg-blue-700 hover:bg-blue-600 text-xs h-8"
+                >
+                  {canCraftSphere ? "Craft SPHERE (20 Crystals)" : `Buy SPHERE (${SPHERE_SPARKS_COST} Sparks)`}
+                </Button>
+              </div>
+            )}
+            {progress?.unlockedSphere && (
+              <div className="border border-green-900 rounded-lg p-3 mb-4 bg-green-950/40">
+                <p className="text-green-400 text-sm">✓ SPHERE unlocked — fly to other planets!</p>
+              </div>
+            )}
+
             <Button
-              data-testid="freeball-btn-unlock-sphere"
-              onClick={onUnlockSphere}
-              disabled={!canCraftSphere && !canBuySphere}
-              className="w-full bg-blue-700 hover:bg-blue-600 text-xs h-8"
+              data-testid="freeball-btn-exit"
+              onClick={onExit}
+              variant="ghost"
+              className="w-full text-gray-400 hover:text-red-400 hover:bg-red-950/30"
             >
-              {canCraftSphere ? "Craft SPHERE (20 Crystals)" : `Buy SPHERE (${SPHERE_SPARKS_COST} Sparks)`}
+              Exit to Platform
             </Button>
-          </div>
-        )}
-        {progress?.unlockedSphere && (
-          <div className="border border-green-900 rounded-lg p-3 mb-4 bg-green-950/40">
-            <p className="text-green-400 text-sm">✓ SPHERE unlocked — fly to other planets!</p>
-          </div>
+          </>
         )}
 
-        <Button
-          data-testid="freeball-btn-exit"
-          onClick={onExit}
-          variant="ghost"
-          className="w-full text-gray-400 hover:text-red-400 hover:bg-red-950/30"
-        >
-          Exit to Platform
-        </Button>
+        {activeTab === "sparks" && (
+          <SparksStoreTab sparksBalance={sparksBalance} />
+        )}
       </div>
     </div>
   );

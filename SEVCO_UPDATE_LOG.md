@@ -22534,3 +22534,66 @@ All bugs are isolated to `client/src/pages/freeball.tsx`.
 
 ---
 
+## Task — freeball-inventory-items-collectibles
+> Merged: 2026-04-09
+
+# Freeball — Inventory, Items & Collectibles
+
+## What & Why
+
+Right now Freeball has no real resource loop. Players can break and place blocks freely with no cost or collection — it's more of a demo than a game. The inventory column already exists in the database (`Record<string, number>` JSONB on `user_galaxy_progress`) and the save mutation already supports writing to it, but only `crystals` is ever stored.
+
+This task builds the full resource/inventory system:
+- Every broken block drops into the player's inventory as a collectible item
+- The hotbar becomes an item selector that only allows placing blocks the player actually owns
+- A dedicated inventory panel lets the player see and manage what they've collected
+- The full inventory persists to the backend on every auto-save and manual save
+- Rare collectible items (crystals, alien artifacts, music nodes) give players reasons to explore different planets
+
+## Done looks like
+
+- Breaking a block adds 1 of that block type to the player's inventory. A small "+1 Grass" (or block name) toast briefly appears near the crosshair to confirm the pickup.
+- The hotbar shows a quantity badge on each slot. Slots with 0 quantity are visually grayed out and clicking them does nothing. Players can only place blocks they have at least 1 of.
+- Pressing **I** (or **B**) while in-game opens a compact inventory panel overlay (without releasing pointer lock — the panel floats over the HUD). It displays a grid of all collected item types with their colored block icon and current quantity. Pressing the same key or Escape closes it.
+- Rare drops: Crystal blocks (ID 7) drop 1 crystal as before, plus the crystal counts toward the sphere-craft total. Alien Surface/Rock blocks (IDs 19/20) have a 20% chance to drop an "alien artifact" (tracked as key `"artifact"` in inventory). Music Node blocks (ID 8) drop as collectible nodes that display as a special item.
+- Players start with a small starter kit (10 grass, 10 dirt, 10 stone) on their very first session so they can immediately start building before mining.
+- Leaf and flower blocks have a 50% drop rate (chance-based, not guaranteed).
+- The full inventory (all block quantities + special items) is written to the backend on every save — replacing the current behavior that only saved `crystals`.
+- On game load, the full saved inventory is hydrated back into the game state, including crystal count.
+
+## Out of scope
+
+- A crafting table UI (crystal → sphere unlock already handled in pause menu).
+- Item trading between players.
+- Any new database columns or schema changes — the existing `inventory` JSONB column is sufficient.
+- Backend route changes — the existing `PATCH /api/freeball/progress` already accepts `inventory`.
+
+## Tasks
+
+1. **Expand Zustand game store** — Add `gameInventory: Record<string, number>` to the Zustand store with a `setGameInventory` setter and an `addToInventory(blockId: string | number, amount: number)` action that increments the count for that item key. Keep `crystalsCollected` in sync as a derived alias for `gameInventory["7"] ?? 0` (or update it simultaneously) so the existing sphere-craft logic still works.
+
+2. **Hydrate inventory on load** — In the `useEffect` that runs when `progress` arrives from the API, read all keys from `progress.inventory` (not just `crystals`) and load them into `gameInventory`. If this is the player's very first session (all inventory keys are 0 or missing), grant the starter kit (10 grass, 10 dirt, 10 stone).
+
+3. **Block drop on mining** — In the `onMouseDown` handler (left-click path), after removing the block from `planetData`, call `addToInventory(blockId, 1)` for the block that was broken. Apply chance-based drop rules: leaf/flower blocks drop at 50% probability; alien blocks (19, 20) also roll a 20% chance to additionally add 1 `"artifact"` to inventory. Show a brief "+1 [Block Name]" pickup indicator near the crosshair (a short-lived absolutely positioned div using `useState` + `setTimeout`).
+
+4. **Gate block placement on inventory** — In the `onMouseDown` right-click path, before placing a block, check that `gameInventory[selectedBlock] > 0`. If not, do nothing. If yes, place the block and call `addToInventory(selectedBlock, -1)` to deduct one from inventory.
+
+5. **Inventory panel UI** — Add keyboard listener for `"i"` and `"b"` keys to toggle a `showInventory` boolean in the Zustand store (or local state in the HUD). Render the panel as an absolutely positioned overlay in the HUD component (pointer-events enabled, dark glassmorphic card, grid of item tiles, scrollable). Each tile shows the block's color swatch, name, and quantity. Tiles with quantity 0 are shown at reduced opacity.
+
+6. **Update hotbar with quantities** — On each hotbar slot, overlay a small quantity badge (bottom-right of the slot) showing the player's current count for that block type from `gameInventory`. Slots with count 0 get `opacity-40` and a "not-allowed" cursor to indicate they can't be placed.
+
+7. **Persist full inventory on save** — Update `handleSave` and `handleManualSave` to serialize the entire `gameInventory` object (from the Zustand store) as the `inventory` field sent to `progressMutation`. Remove the old `{ crystals: n }` partial write.
+
+## Relevant files
+
+- `client/src/pages/freeball.tsx:187-206` — Zustand `useGameStore` (add inventory state here)
+- `client/src/pages/freeball.tsx:947-983` — `onMouseDown` handler (block break/place logic)
+- `client/src/pages/freeball.tsx:1243-1302` — `HUD` component (inventory panel + quantity badges on hotbar)
+- `client/src/pages/freeball.tsx:1436-1448` — progress hydration `useEffect`
+- `client/src/pages/freeball.tsx:1517-1527` — `handleSave` and `handleManualSave` (update inventory write)
+- `client/src/pages/freeball.tsx:73-98` — `BLOCK_TYPES` array (reference for block names/colors in inventory UI)
+- `server/freeball-routes.ts:100-140` — `PATCH /api/freeball/progress` route (already accepts `inventory`)
+
+
+---
+

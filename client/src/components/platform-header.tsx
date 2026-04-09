@@ -989,7 +989,7 @@ export function PlatformHeader() {
       className={`transition-[max-height] duration-[250ms] ease-in-out overflow-hidden${navHidden ? " max-h-0" : " max-h-16"}`}
     >
     <header
-      className={`sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm transition-transform duration-[250ms] ease-in-out${navHidden ? " -translate-y-full" : " translate-y-0"}`}
+      className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm"
       data-testid="platform-header"
       role="banner"
     >

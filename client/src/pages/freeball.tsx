@@ -1,17 +1,14 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Sky, Stars, PointerLockControls, Html } from "@react-three/drei";
-import { Physics, RigidBody, CuboidCollider } from "@react-three/rapier";
-import type { RapierRigidBody } from "@react-three/rapier";
+import { Html } from "@react-three/drei";
 import * as THREE from "three";
 import { create } from "zustand";
-import { createNoise2D } from "simplex-noise";
+import { createNoise3D } from "simplex-noise";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 
 interface Planet {
   id: number;
@@ -56,27 +53,115 @@ interface CurrentUser {
   username: string;
 }
 
-const BLOCK_TYPES = [
-  { id: 1,  name: "Grass",            color: 0x4CAF50 },
-  { id: 2,  name: "Dirt",             color: 0x8B6914 },
-  { id: 3,  name: "Stone",            color: 0x9E9E9E },
-  { id: 4,  name: "Wood",             color: 0xA0522D },
-  { id: 5,  name: "Glass",            color: 0xB2EBF2 },
-  { id: 6,  name: "SEVCO-Blue Metal", color: 0x1565C0 },
-  { id: 7,  name: "Crystal",          color: 0xE1F5FE },
-  { id: 8,  name: "Music Node",       color: 0xFF6F00 },
-  { id: 9,  name: "Project Tile",     color: 0x6A1B9A },
-  { id: 10, name: "Sand",             color: 0xF9A825 },
-  { id: 11, name: "Snow",             color: 0xECEFF1 },
-  { id: 12, name: "Void Block",       color: 0x212121 },
-] as const;
-
+const VOXEL_SCALE = 0.7;
+const PLANET_RADIUS = 24;
+const GRID_SIZE = 64;
+const GRID_HALF = 32;
 const CRYSTAL_ID = 7;
 const CRYSTAL_CRAFT_AMOUNT = 20;
 const SPHERE_SPARKS_COST = 500;
-const CHUNK_SIZE = 16;
-const FLOAT_ORIGIN_SNAP = 64;
-const SPACE_ALTITUDE = 60;
+const EYE_HEIGHT = VOXEL_SCALE * 2.2;
+const GRAVITY_STRENGTH = 18;
+const JUMP_IMPULSE = 8;
+const WALK_SPEED = 5;
+const SPRINT_SPEED = 9;
+const SHIP_THRUST = 35;
+const SHIP_BOOST_THRUST = 70;
+const WATER_LEVEL_OFFSET = -2;
+const ATMOSPHERE_SCALE = 2.5;
+
+const BLOCK_TYPES = [
+  { id: 1,  name: "Grass",          color: 0x2ECC40 },
+  { id: 2,  name: "Dirt",           color: 0x8B4513 },
+  { id: 3,  name: "Stone",          color: 0x757575 },
+  { id: 4,  name: "Wood",           color: 0x8B5E3C },
+  { id: 5,  name: "Glass",          color: 0x81D4FA },
+  { id: 6,  name: "SEVCO-Blue Metal", color: 0x1565C0 },
+  { id: 7,  name: "Crystal",        color: 0x00E5FF },
+  { id: 8,  name: "Music Node",     color: 0xFF6D00 },
+  { id: 9,  name: "Project Tile",   color: 0x7B1FA2 },
+  { id: 10, name: "Sand",           color: 0xFFD54F },
+  { id: 11, name: "Snow",           color: 0xF0F0F0 },
+  { id: 12, name: "Void Block",     color: 0x1A1A1A },
+  { id: 13, name: "Leaves",         color: 0x00C853 },
+  { id: 14, name: "Flower Red",     color: 0xFF1744 },
+  { id: 15, name: "Flower Pink",    color: 0xFF4081 },
+  { id: 16, name: "Ice",            color: 0xB3E5FC },
+  { id: 17, name: "Red Rock",       color: 0xBF360C },
+  { id: 18, name: "Cactus",         color: 0x558B2F },
+  { id: 19, name: "Alien Surface",  color: 0xAA00FF },
+  { id: 20, name: "Alien Rock",     color: 0x6200EA },
+  { id: 21, name: "Alien Leaf",     color: 0xE040FB },
+  { id: 22, name: "Flower Yellow",  color: 0xFFEB3B },
+  { id: 23, name: "Autumn Leaves",  color: 0xFF6F00 },
+  { id: 24, name: "Dark Leaves",    color: 0x1B5E20 },
+] as const;
+
+interface BiomeConfig {
+  surface: number;
+  sub: number;
+  deep: number;
+  hasWater: boolean;
+  waterColor: number;
+  treeTrunk: number;
+  treeLeaf: number;
+  flowerBlocks: number[];
+  treeChance: number;
+  flowerChance: number;
+  terrainAmp: number;
+  noiseFreq: number;
+}
+
+const BIOME_CONFIGS: Record<string, BiomeConfig> = {
+  verdania: {
+    surface: 1, sub: 2, deep: 3,
+    hasWater: true, waterColor: 0x0288D1,
+    treeTrunk: 4, treeLeaf: 13,
+    flowerBlocks: [14, 15, 22],
+    treeChance: 0.06, flowerChance: 0.1,
+    terrainAmp: 5, noiseFreq: 1.5,
+  },
+  desert: {
+    surface: 10, sub: 17, deep: 3,
+    hasWater: false, waterColor: 0,
+    treeTrunk: 18, treeLeaf: 0,
+    flowerBlocks: [],
+    treeChance: 0.015, flowerChance: 0,
+    terrainAmp: 3, noiseFreq: 1.2,
+  },
+  ice: {
+    surface: 11, sub: 16, deep: 3,
+    hasWater: true, waterColor: 0x81D4FA,
+    treeTrunk: 16, treeLeaf: 7,
+    flowerBlocks: [11],
+    treeChance: 0.025, flowerChance: 0.03,
+    terrainAmp: 4, noiseFreq: 1.8,
+  },
+  alien: {
+    surface: 19, sub: 20, deep: 12,
+    hasWater: true, waterColor: 0xAB47BC,
+    treeTrunk: 20, treeLeaf: 21,
+    flowerBlocks: [19, 21],
+    treeChance: 0.04, flowerChance: 0.08,
+    terrainAmp: 6, noiseFreq: 2.0,
+  },
+};
+
+const PLANET_POSITIONS = [
+  new THREE.Vector3(0, 0, 0),
+  new THREE.Vector3(280, 50, -120),
+  new THREE.Vector3(-220, -30, 260),
+  new THREE.Vector3(200, 70, 300),
+];
+
+const PLANET_VISUALS: Record<string, { color: number; glow: number }> = {
+  verdania: { color: 0x2ECC40, glow: 0x81D4FA },
+  desert: { color: 0xFFB74D, glow: 0xFF8A65 },
+  ice: { color: 0xE3F2FD, glow: 0x81D4FA },
+  alien: { color: 0xAA00FF, glow: 0xE040FB },
+};
+
+const PLANET_LANDING_RANGE = PLANET_RADIUS * VOXEL_SCALE * 2.5;
 
 interface GameStore {
   selectedBlock: number;
@@ -97,8 +182,6 @@ interface GameStore {
   setCrystalsCollected: (c: number) => void;
   showTab: boolean;
   setShowTab: (s: boolean) => void;
-  renderDistance: number;
-  setRenderDistance: (d: number) => void;
 }
 
 const useGameStore = create<GameStore>((set) => ({
@@ -120,129 +203,253 @@ const useGameStore = create<GameStore>((set) => ({
   setCrystalsCollected: (c) => set({ crystalsCollected: c }),
   showTab: false,
   setShowTab: (s) => set({ showTab: s }),
-  renderDistance: 3,
-  setRenderDistance: (d) => set({ renderDistance: d }),
 }));
 
-function generateChunk(cx: number, cz: number, seed: number): Uint8Array {
-  const noise2D = createNoise2D(() => (seed * 0.987654321 + cx * 0.31 + cz * 0.17) % 1);
-  const data = new Uint8Array(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
-  for (let lx = 0; lx < CHUNK_SIZE; lx++) {
-    for (let lz = 0; lz < CHUNK_SIZE; lz++) {
-      const wx = cx * CHUNK_SIZE + lx;
-      const wz = cz * CHUNK_SIZE + lz;
-      const n = noise2D(wx * 0.05, wz * 0.05);
-      const height = Math.floor(((n + 1) / 2) * 8) + 4;
-      for (let ly = 0; ly < CHUNK_SIZE; ly++) {
-        let block = 0;
-        if (ly < height - 3) block = 3;
-        else if (ly < height - 1) block = 2;
-        else if (ly === height - 1) block = 1;
-        if (block === 3 && Math.abs(noise2D(wx * 0.3, wz * 0.3)) > 0.85) block = CRYSTAL_ID;
-        data[lx + lz * CHUNK_SIZE + ly * CHUNK_SIZE * CHUNK_SIZE] = block;
+function makeRng(seed: number): () => number {
+  let s = Math.abs(seed % 2147483646) + 1;
+  return () => {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
+function gridIndex(gx: number, gy: number, gz: number): number {
+  return gx + gy * GRID_SIZE + gz * GRID_SIZE * GRID_SIZE;
+}
+
+function getVoxel(data: Uint8Array, gx: number, gy: number, gz: number): number {
+  if (gx < 0 || gx >= GRID_SIZE || gy < 0 || gy >= GRID_SIZE || gz < 0 || gz >= GRID_SIZE) return 0;
+  return data[gridIndex(gx, gy, gz)];
+}
+
+function setVoxel(data: Uint8Array, gx: number, gy: number, gz: number, val: number): void {
+  if (gx < 0 || gx >= GRID_SIZE || gy < 0 || gy >= GRID_SIZE || gz < 0 || gz >= GRID_SIZE) return;
+  data[gridIndex(gx, gy, gz)] = val;
+}
+
+function generatePlanetData(seed: number, biomeType: string): Uint8Array {
+  const biome = BIOME_CONFIGS[biomeType] || BIOME_CONFIGS.verdania;
+  const rng = makeRng(seed);
+  const noise = createNoise3D(rng);
+  const data = new Uint8Array(GRID_SIZE * GRID_SIZE * GRID_SIZE);
+
+  for (let gx = 0; gx < GRID_SIZE; gx++) {
+    for (let gy = 0; gy < GRID_SIZE; gy++) {
+      for (let gz = 0; gz < GRID_SIZE; gz++) {
+        const x = gx - GRID_HALF;
+        const y = gy - GRID_HALF;
+        const z = gz - GRID_HALF;
+        const dist = Math.sqrt(x * x + y * y + z * z);
+        if (dist < 1) continue;
+
+        const nx = x / PLANET_RADIUS;
+        const ny = y / PLANET_RADIUS;
+        const nz = z / PLANET_RADIUS;
+
+        const terrainNoise =
+          noise(nx * biome.noiseFreq, ny * biome.noiseFreq, nz * biome.noiseFreq) * biome.terrainAmp +
+          noise(nx * biome.noiseFreq * 2, ny * biome.noiseFreq * 2, nz * biome.noiseFreq * 2) * biome.terrainAmp * 0.5 +
+          noise(nx * biome.noiseFreq * 4, ny * biome.noiseFreq * 4, nz * biome.noiseFreq * 4) * biome.terrainAmp * 0.25;
+
+        const maxSurfaceRadius = GRID_HALF - 2;
+        const surfaceRadius = Math.min(PLANET_RADIUS + terrainNoise, maxSurfaceRadius);
+
+        if (dist <= surfaceRadius) {
+          const depth = surfaceRadius - dist;
+          let blockId: number;
+          if (depth < 1) blockId = biome.surface;
+          else if (depth < 3) blockId = biome.sub;
+          else blockId = biome.deep;
+
+          if (depth > 3 && Math.abs(noise(nx * 8, ny * 8, nz * 8)) > 0.82) {
+            blockId = CRYSTAL_ID;
+          }
+
+          data[gridIndex(gx, gy, gz)] = blockId;
+        }
       }
     }
   }
+
+  addFoliage(data, seed, biome);
   return data;
 }
 
-function getBlock(data: Uint8Array, lx: number, ly: number, lz: number): number {
-  if (lx < 0 || lx >= CHUNK_SIZE || ly < 0 || ly >= CHUNK_SIZE || lz < 0 || lz >= CHUNK_SIZE) return 0;
-  return data[lx + lz * CHUNK_SIZE + ly * CHUNK_SIZE * CHUNK_SIZE];
+function addFoliage(data: Uint8Array, seed: number, biome: BiomeConfig): void {
+  const rng = makeRng(seed + 99999);
+  const treeNoise = createNoise3D(makeRng(seed + 54321));
+
+  for (let gx = 2; gx < GRID_SIZE - 2; gx++) {
+    for (let gy = 2; gy < GRID_SIZE - 2; gy++) {
+      for (let gz = 2; gz < GRID_SIZE - 2; gz++) {
+        if (data[gridIndex(gx, gy, gz)] !== biome.surface) continue;
+
+        const x = gx - GRID_HALF;
+        const y = gy - GRID_HALF;
+        const z = gz - GRID_HALF;
+        const dist = Math.sqrt(x * x + y * y + z * z);
+        if (dist < 2) continue;
+
+        const nx = x / dist;
+        const ny = y / dist;
+        const nz = z / dist;
+
+        const outGx = Math.round(gx + nx);
+        const outGy = Math.round(gy + ny);
+        const outGz = Math.round(gz + nz);
+        if (outGx < 0 || outGx >= GRID_SIZE || outGy < 0 || outGy >= GRID_SIZE || outGz < 0 || outGz >= GRID_SIZE) continue;
+        if (data[gridIndex(outGx, outGy, outGz)] !== 0) continue;
+
+        const noiseVal = treeNoise(x * 0.12, y * 0.12, z * 0.12);
+
+        if (biome.treeTrunk > 0 && noiseVal > (1 - biome.treeChance * 12)) {
+          const trunkH = 3 + Math.floor(rng() * 3);
+          for (let h = 1; h <= trunkH; h++) {
+            const tx = Math.round(gx + nx * h);
+            const ty = Math.round(gy + ny * h);
+            const tz = Math.round(gz + nz * h);
+            if (tx >= 0 && tx < GRID_SIZE && ty >= 0 && ty < GRID_SIZE && tz >= 0 && tz < GRID_SIZE) {
+              if (data[gridIndex(tx, ty, tz)] === 0) data[gridIndex(tx, ty, tz)] = biome.treeTrunk;
+            }
+          }
+          if (biome.treeLeaf > 0) {
+            const cx = Math.round(gx + nx * (trunkH + 1));
+            const cy = Math.round(gy + ny * (trunkH + 1));
+            const cz = Math.round(gz + nz * (trunkH + 1));
+            const lr = 2;
+            for (let dx = -lr; dx <= lr; dx++) {
+              for (let dy = -lr; dy <= lr; dy++) {
+                for (let dz = -lr; dz <= lr; dz++) {
+                  if (dx * dx + dy * dy + dz * dz > lr * lr + 1) continue;
+                  const px = cx + dx, py = cy + dy, pz = cz + dz;
+                  if (px >= 0 && px < GRID_SIZE && py >= 0 && py < GRID_SIZE && pz >= 0 && pz < GRID_SIZE) {
+                    if (data[gridIndex(px, py, pz)] === 0) {
+                      const leafType = rng() > 0.7 && biomeHasMultiLeaves(biome) ? pickAltLeaf(biome, rng) : biome.treeLeaf;
+                      data[gridIndex(px, py, pz)] = leafType;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } else if (biome.flowerBlocks.length > 0 && noiseVal < (-1 + biome.flowerChance * 12)) {
+          const fb = biome.flowerBlocks[Math.floor(rng() * biome.flowerBlocks.length)];
+          if (data[gridIndex(outGx, outGy, outGz)] === 0) {
+            data[gridIndex(outGx, outGy, outGz)] = fb;
+          }
+        }
+      }
+    }
+  }
 }
 
-function setBlock(data: Uint8Array, lx: number, ly: number, lz: number, val: number): Uint8Array {
-  const copy = new Uint8Array(data);
-  copy[lx + lz * CHUNK_SIZE + ly * CHUNK_SIZE * CHUNK_SIZE] = val;
-  return copy;
+function biomeHasMultiLeaves(biome: BiomeConfig): boolean {
+  return biome === BIOME_CONFIGS.verdania;
 }
 
-interface ChunkGeo {
+function pickAltLeaf(biome: BiomeConfig, rng: () => number): number {
+  if (biome === BIOME_CONFIGS.verdania) {
+    const alts = [13, 23, 24];
+    return alts[Math.floor(rng() * alts.length)];
+  }
+  return biome.treeLeaf;
+}
+
+interface PlanetGeo {
   positions: Float32Array;
   normals: Float32Array;
   colors: Float32Array;
   indices: Uint32Array;
 }
 
-// Greedy meshing: merges adjacent coplanar same-type faces into quads
-function buildChunkGeometry(data: Uint8Array): ChunkGeo | null {
+function buildPlanetGeometry(data: Uint8Array): PlanetGeo | null {
   const positions: number[] = [];
   const normals: number[] = [];
   const colors: number[] = [];
   const indices: number[] = [];
+  const S = GRID_SIZE;
+  const scale = VOXEL_SCALE;
 
   const AXES = [
-    { u: 1, v: 2, w: 0, dir: 1,  normal: [1, 0, 0]  },
+    { u: 1, v: 2, w: 0, dir: 1,  normal: [1, 0, 0] },
     { u: 1, v: 2, w: 0, dir: -1, normal: [-1, 0, 0] },
-    { u: 0, v: 2, w: 1, dir: 1,  normal: [0, 1, 0]  },
+    { u: 0, v: 2, w: 1, dir: 1,  normal: [0, 1, 0] },
     { u: 0, v: 2, w: 1, dir: -1, normal: [0, -1, 0] },
-    { u: 0, v: 1, w: 2, dir: 1,  normal: [0, 0, 1]  },
+    { u: 0, v: 1, w: 2, dir: 1,  normal: [0, 0, 1] },
     { u: 0, v: 1, w: 2, dir: -1, normal: [0, 0, -1] },
   ] as const;
 
   for (const { u, v, w, dir, normal } of AXES) {
-    for (let layer = 0; layer < CHUNK_SIZE; layer++) {
-      const mask = new Int16Array(CHUNK_SIZE * CHUNK_SIZE);
-      for (let a = 0; a < CHUNK_SIZE; a++) {
-        for (let b = 0; b < CHUNK_SIZE; b++) {
+    for (let layer = 0; layer < S; layer++) {
+      const mask = new Int16Array(S * S);
+      let hasAny = false;
+      for (let a = 0; a < S; a++) {
+        for (let b = 0; b < S; b++) {
           const coord: [number, number, number] = [0, 0, 0];
-          coord[w] = layer;
-          coord[u] = a;
-          coord[v] = b;
-          const cur = getBlock(data, coord[0], coord[1], coord[2]);
-          const neighborLayer = layer + dir;
+          coord[w] = layer; coord[u] = a; coord[v] = b;
+          const cur = getVoxel(data, coord[0], coord[1], coord[2]);
+          if (cur === 0) continue;
+          const nl = layer + dir;
           let neighbor = 0;
-          if (neighborLayer >= 0 && neighborLayer < CHUNK_SIZE) {
+          if (nl >= 0 && nl < S) {
             const nc: [number, number, number] = [0, 0, 0];
-            nc[w] = neighborLayer;
-            nc[u] = a;
-            nc[v] = b;
-            neighbor = getBlock(data, nc[0], nc[1], nc[2]);
+            nc[w] = nl; nc[u] = a; nc[v] = b;
+            neighbor = getVoxel(data, nc[0], nc[1], nc[2]);
           }
-          mask[a + b * CHUNK_SIZE] = (cur !== 0 && neighbor === 0) ? cur : 0;
+          if (neighbor === 0) { mask[a + b * S] = cur; hasAny = true; }
         }
       }
+      if (!hasAny) continue;
 
-      const used = new Uint8Array(CHUNK_SIZE * CHUNK_SIZE);
-      for (let a = 0; a < CHUNK_SIZE; a++) {
-        for (let b = 0; b < CHUNK_SIZE; b++) {
-          const idx = a + b * CHUNK_SIZE;
+      const used = new Uint8Array(S * S);
+      for (let a = 0; a < S; a++) {
+        for (let b = 0; b < S; b++) {
+          const idx = a + b * S;
           if (used[idx] || mask[idx] === 0) continue;
-          const blockType = mask[idx];
+          const bt = mask[idx];
 
           let width = 1;
-          while (a + width < CHUNK_SIZE && !used[(a + width) + b * CHUNK_SIZE] && mask[(a + width) + b * CHUNK_SIZE] === blockType) width++;
+          while (a + width < S && !used[(a + width) + b * S] && mask[(a + width) + b * S] === bt) width++;
 
           let height = 1;
-          outer: while (b + height < CHUNK_SIZE) {
+          outer: while (b + height < S) {
             for (let k = a; k < a + width; k++) {
-              if (used[k + (b + height) * CHUNK_SIZE] || mask[k + (b + height) * CHUNK_SIZE] !== blockType) break outer;
+              if (used[k + (b + height) * S] || mask[k + (b + height) * S] !== bt) break outer;
             }
             height++;
           }
 
           for (let db = 0; db < height; db++) {
             for (let da = 0; da < width; da++) {
-              used[(a + da) + (b + db) * CHUNK_SIZE] = 1;
+              used[(a + da) + (b + db) * S] = 1;
             }
           }
 
-          const blockDef = BLOCK_TYPES.find((bt) => bt.id === blockType) ?? BLOCK_TYPES[2];
+          const blockDef = BLOCK_TYPES.find((t) => t.id === bt) ?? BLOCK_TYPES[2];
           const c = new THREE.Color(blockDef.color);
+
           const base: [number, number, number] = [0, 0, 0];
-          base[w] = dir === 1 ? layer + 1 : layer;
-          base[u] = a;
-          base[v] = b;
+          base[w] = (dir === 1 ? layer + 1 : layer) - GRID_HALF;
+          base[u] = a - GRID_HALF;
+          base[v] = b - GRID_HALF;
 
-          const corners: [number, number, number][] = [[...base], [...base], [...base], [...base]];
-          corners[1][u] += width;
-          corners[2][u] += width;
-          corners[2][v] += height;
-          corners[3][v] += height;
+          const corners: [number, number, number][] = [
+            [base[0] * scale, base[1] * scale, base[2] * scale],
+            [base[0] * scale, base[1] * scale, base[2] * scale],
+            [base[0] * scale, base[1] * scale, base[2] * scale],
+            [base[0] * scale, base[1] * scale, base[2] * scale],
+          ];
+          corners[1][u] += width * scale;
+          corners[2][u] += width * scale;
+          corners[2][v] += height * scale;
+          corners[3][v] += height * scale;
 
-          const orderedCorners = dir === 1 ? [corners[0], corners[1], corners[2], corners[3]] : [corners[0], corners[3], corners[2], corners[1]];
+          const ordered = dir === 1
+            ? [corners[0], corners[1], corners[2], corners[3]]
+            : [corners[0], corners[3], corners[2], corners[1]];
+
           const baseIdx = positions.length / 3;
-          for (const corner of orderedCorners) {
+          for (const corner of ordered) {
             positions.push(corner[0], corner[1], corner[2]);
             normals.push(normal[0], normal[1], normal[2]);
             colors.push(c.r, c.g, c.b);
@@ -262,44 +469,122 @@ function buildChunkGeometry(data: Uint8Array): ChunkGeo | null {
   };
 }
 
-const worldChunks: Map<string, Uint8Array> = new Map();
-const dirtyChunks: Set<string> = new Set();
+const planetDataCache = new Map<number, Uint8Array>();
+const modifiedVoxelsMap = new Map<number, Map<string, number>>();
 
-function chunkKey(cx: number, cz: number) { return `${cx},${cz}`; }
+const planetBuildsApplied = new Map<number, string>();
 
-function getOrGenChunk(cx: number, cz: number, seed: number): Uint8Array {
-  const key = chunkKey(cx, cz);
-  if (!worldChunks.has(key)) worldChunks.set(key, generateChunk(cx, cz, seed));
-  return worldChunks.get(key)!;
+function buildsFingerprint(builds: SavedBuild[]): string {
+  let h = 0;
+  for (const b of builds) {
+    const entries = Object.entries(b.voxelData);
+    h = (h * 31 + entries.length) | 0;
+    for (const [k, v] of entries) h = (h * 31 + k.length + v) | 0;
+  }
+  return `${builds.length}:${h}`;
 }
 
-function worldGetBlock(wx: number, wy: number, wz: number, seed: number): number {
-  if (wy < 0 || wy >= CHUNK_SIZE) return 0;
-  const cx = Math.floor(wx / CHUNK_SIZE);
-  const cz = Math.floor(wz / CHUNK_SIZE);
-  const lx = ((wx % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
-  const lz = ((wz % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
-  return getBlock(getOrGenChunk(cx, cz, seed), lx, wy, lz);
+function getOrCreatePlanetData(planetId: number, seed: number, biomeType: string, savedBuilds: SavedBuild[]): Uint8Array {
+  const buildsKey = buildsFingerprint(savedBuilds);
+  const prevKey = planetBuildsApplied.get(planetId) ?? "";
+  if (planetDataCache.has(planetId) && prevKey === buildsKey) return planetDataCache.get(planetId)!;
+
+  const data = generatePlanetData(seed, biomeType);
+  for (const build of savedBuilds) {
+    const cx = (build.chunkX || 0) * GRID_SIZE;
+    const cy = (build.chunkY || 0) * GRID_SIZE;
+    const cz = (build.chunkZ || 0) * GRID_SIZE;
+    for (const [key, val] of Object.entries(build.voxelData)) {
+      const [gx, gy, gz] = key.split(",").map(Number);
+      setVoxel(data, gx + cx, gy + cy, gz + cz, val);
+    }
+  }
+  const localMods = modifiedVoxelsMap.get(planetId);
+  if (localMods) {
+    localMods.forEach((val, key) => {
+      const [gx, gy, gz] = key.split(",").map(Number);
+      setVoxel(data, gx, gy, gz, val);
+    });
+  }
+  planetBuildsApplied.set(planetId, buildsKey);
+  planetDataCache.set(planetId, data);
+  return data;
 }
 
-function worldSetBlock(wx: number, wy: number, wz: number, val: number, seed: number): void {
-  if (wy < 0 || wy >= CHUNK_SIZE) return;
-  const cx = Math.floor(wx / CHUNK_SIZE);
-  const cz = Math.floor(wz / CHUNK_SIZE);
-  const lx = ((wx % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
-  const lz = ((wz % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
-  const key = chunkKey(cx, cz);
-  worldChunks.set(key, setBlock(getOrGenChunk(cx, cz, seed), lx, wy, lz, val));
-  dirtyChunks.add(key);
+
+function worldToGrid(worldPos: THREE.Vector3, planetCenter: THREE.Vector3): [number, number, number] {
+  const local = worldPos.clone().sub(planetCenter);
+  return [
+    Math.floor(local.x / VOXEL_SCALE + GRID_HALF),
+    Math.floor(local.y / VOXEL_SCALE + GRID_HALF),
+    Math.floor(local.z / VOXEL_SCALE + GRID_HALF),
+  ];
 }
 
-function ChunkMesh({ cx, cz, seed, revision }: { cx: number; cz: number; seed: number; revision: number }) {
-  void revision;
-  const data = getOrGenChunk(cx, cz, seed);
-  const geo = buildChunkGeometry(data);
+function playerCollides(pos: THREE.Vector3, data: Uint8Array, center: THREE.Vector3, up: THREE.Vector3): boolean {
+  const r = VOXEL_SCALE * 0.35;
+  const right = new THREE.Vector3(1, 0, 0);
+  if (Math.abs(up.dot(right)) > 0.9) right.set(0, 0, 1);
+  const localRight = right.clone().cross(up).normalize().multiplyScalar(r);
+  const localFwd = up.clone().cross(localRight).normalize().multiplyScalar(r);
+
+  const offsets = [
+    new THREE.Vector3(0, 0, 0),
+    localRight, localRight.clone().negate(),
+    localFwd, localFwd.clone().negate(),
+    up.clone().multiplyScalar(VOXEL_SCALE * 1.6),
+    up.clone().multiplyScalar(-VOXEL_SCALE * 0.1),
+  ];
+
+  for (const off of offsets) {
+    const check = pos.clone().add(off);
+    const [gx, gy, gz] = worldToGrid(check, center);
+    if (getVoxel(data, gx, gy, gz) !== 0) return true;
+  }
+  return false;
+}
+
+function groundCheck(pos: THREE.Vector3, data: Uint8Array, center: THREE.Vector3, up: THREE.Vector3): boolean {
+  const check = pos.clone().addScaledVector(up, -VOXEL_SCALE * 0.3);
+  const [gx, gy, gz] = worldToGrid(check, center);
+  return getVoxel(data, gx, gy, gz) !== 0;
+}
+
+interface RayResult {
+  hit: boolean;
+  gx: number;
+  gy: number;
+  gz: number;
+  prevGx: number;
+  prevGy: number;
+  prevGz: number;
+}
+
+function raycastPlanet(origin: THREE.Vector3, dir: THREE.Vector3, data: Uint8Array, center: THREE.Vector3, maxDist = 8): RayResult {
+  const pos = origin.clone();
+  const d = dir.clone().normalize();
+  const step = VOXEL_SCALE * 0.25;
+  let [pgx, pgy, pgz] = worldToGrid(pos, center);
+  for (let t = 0; t < maxDist; t += step) {
+    pos.addScaledVector(d, step);
+    const [gx, gy, gz] = worldToGrid(pos, center);
+    if (gx < 0 || gx >= GRID_SIZE || gy < 0 || gy >= GRID_SIZE || gz < 0 || gz >= GRID_SIZE) {
+      pgx = gx; pgy = gy; pgz = gz;
+      continue;
+    }
+    if (data[gridIndex(gx, gy, gz)] !== 0) {
+      return { hit: true, gx, gy, gz, prevGx: pgx, prevGy: pgy, prevGz: pgz };
+    }
+    pgx = gx; pgy = gy; pgz = gz;
+  }
+  return { hit: false, gx: 0, gy: 0, gz: 0, prevGx: 0, prevGy: 0, prevGz: 0 };
+}
+
+function PlanetVoxelMesh({ data, center, revision, planetId }: { data: Uint8Array; center: THREE.Vector3; revision: number; planetId: number }) {
+  const geo = useMemo(() => buildPlanetGeometry(data), [revision, planetId]);
   if (!geo) return null;
   return (
-    <mesh position={[cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE]} castShadow receiveShadow>
+    <mesh position={center} castShadow receiveShadow>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[geo.positions, 3]} />
         <bufferAttribute attach="attributes-normal" args={[geo.normals, 3]} />
@@ -311,71 +596,87 @@ function ChunkMesh({ cx, cz, seed, revision }: { cx: number; cz: number; seed: n
   );
 }
 
-// Flat invisible collider for the voxel surface — used by Rapier for ground detection
-function TerrainCollider({ cx, cz, seed }: { cx: number; cz: number; seed: number }) {
-  const noise2D = createNoise2D(() => (seed * 0.987654321 + cx * 0.31 + cz * 0.17) % 1);
-  const wx = cx * CHUNK_SIZE + CHUNK_SIZE / 2;
-  const wz = cz * CHUNK_SIZE + CHUNK_SIZE / 2;
-  const n = noise2D(wx * 0.05, wz * 0.05);
-  const surfaceY = Math.floor(((n + 1) / 2) * 8) + 4;
+function WaterShell({ center, biomeType }: { center: THREE.Vector3; biomeType: string }) {
+  const biome = BIOME_CONFIGS[biomeType] || BIOME_CONFIGS.verdania;
+  const matRef = useRef<THREE.ShaderMaterial>(null);
+  const meshRef = useRef<THREE.Mesh>(null);
+  useFrame(({ clock }) => {
+    if (matRef.current) {
+      matRef.current.uniforms.uTime.value = clock.getElapsedTime();
+    }
+  });
+  if (!biome.hasWater) return null;
+  const waterRadius = (PLANET_RADIUS + WATER_LEVEL_OFFSET) * VOXEL_SCALE;
+  const waterColor = new THREE.Color(biome.waterColor);
   return (
-    <RigidBody type="fixed" position={[cx * CHUNK_SIZE, surfaceY, cz * CHUNK_SIZE]}>
-      <CuboidCollider args={[CHUNK_SIZE / 2, 0.5, CHUNK_SIZE / 2]} />
-    </RigidBody>
+    <mesh ref={meshRef} position={center}>
+      <sphereGeometry args={[waterRadius, 48, 48]} />
+      <shaderMaterial
+        ref={matRef}
+        transparent
+        side={THREE.DoubleSide}
+        depthWrite={false}
+        uniforms={{
+          uTime: { value: 0 },
+          uColor: { value: waterColor },
+          uSeaLevel: { value: waterRadius },
+        }}
+        vertexShader={`
+          varying vec3 vWorldPos;
+          varying vec3 vNormal;
+          uniform float uTime;
+          void main() {
+            vec3 pos = position;
+            float wave = sin(pos.x * 3.0 + uTime * 1.5) * 0.08
+                       + sin(pos.z * 4.0 + uTime * 1.2) * 0.06
+                       + cos(pos.y * 2.5 + uTime * 0.8) * 0.05;
+            pos += normalize(pos) * wave;
+            vWorldPos = (modelMatrix * vec4(pos, 1.0)).xyz;
+            vNormal = normalize(normalMatrix * normal);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+          }
+        `}
+        fragmentShader={`
+          uniform vec3 uColor;
+          uniform float uTime;
+          varying vec3 vWorldPos;
+          varying vec3 vNormal;
+          void main() {
+            float fresnel = pow(1.0 - abs(dot(normalize(vNormal), vec3(0.0, 1.0, 0.0))), 2.0);
+            float shimmer = sin(vWorldPos.x * 8.0 + uTime * 2.0) * sin(vWorldPos.z * 8.0 + uTime * 1.5) * 0.15 + 0.85;
+            float alpha = mix(0.35, 0.6, fresnel) * shimmer;
+            vec3 col = uColor * (0.9 + 0.1 * shimmer);
+            col += vec3(0.15, 0.15, 0.2) * fresnel;
+            gl_FragColor = vec4(col, alpha);
+          }
+        `}
+      />
+    </mesh>
   );
 }
 
-function Terrain({ playerPos, seed, renderDistance, chunkRevisions }: {
-  playerPos: THREE.Vector3;
-  seed: number;
-  renderDistance: number;
-  chunkRevisions: Map<string, number>;
+function DistantPlanetSphere({ position, planetType, visualRadius }: {
+  position: THREE.Vector3;
+  planetType: string;
+  visualRadius: number;
 }) {
-  const pcx = Math.floor(playerPos.x / CHUNK_SIZE);
-  const pcz = Math.floor(playerPos.z / CHUNK_SIZE);
-  const chunks: { cx: number; cz: number }[] = [];
-  for (let dx = -renderDistance; dx <= renderDistance; dx++) {
-    for (let dz = -renderDistance; dz <= renderDistance; dz++) {
-      chunks.push({ cx: pcx + dx, cz: pcz + dz });
-    }
-  }
+  const vis = PLANET_VISUALS[planetType] || PLANET_VISUALS.verdania;
+  const meshRef = useRef<THREE.Mesh>(null);
+  useFrame((_, dt) => {
+    if (meshRef.current) meshRef.current.rotation.y += dt * 0.02;
+  });
   return (
-    <>
-      {chunks.map(({ cx, cz }) => {
-        const key = chunkKey(cx, cz);
-        return (
-          <group key={key}>
-            <ChunkMesh cx={cx} cz={cz} seed={seed} revision={chunkRevisions.get(key) ?? 0} />
-            <TerrainCollider cx={cx} cz={cz} seed={seed} />
-          </group>
-        );
-      })}
-    </>
+    <group position={position}>
+      <mesh ref={meshRef}>
+        <sphereGeometry args={[visualRadius, 24, 24]} />
+        <meshStandardMaterial color={vis.color} roughness={0.8} />
+      </mesh>
+      <mesh>
+        <sphereGeometry args={[visualRadius * 1.15, 24, 24]} />
+        <meshBasicMaterial color={vis.glow} transparent opacity={0.12} side={THREE.BackSide} />
+      </mesh>
+    </group>
   );
-}
-
-interface RaycastResult {
-  hit: boolean;
-  wx: number;
-  wy: number;
-  wz: number;
-  normal: THREE.Vector3;
-}
-
-function raycastVoxel(origin: THREE.Vector3, direction: THREE.Vector3, seed: number, maxDist = 6): RaycastResult {
-  const pos = origin.clone();
-  const dir = direction.clone().normalize();
-  const step = 0.1;
-  let prevWx = Math.floor(pos.x), prevWy = Math.floor(pos.y), prevWz = Math.floor(pos.z);
-  for (let d = 0; d < maxDist; d += step) {
-    pos.addScaledVector(dir, step);
-    const wx = Math.floor(pos.x), wy = Math.floor(pos.y), wz = Math.floor(pos.z);
-    if (worldGetBlock(wx, wy, wz, seed) !== 0) {
-      return { hit: true, wx, wy, wz, normal: new THREE.Vector3(prevWx - wx, prevWy - wy, prevWz - wz) };
-    }
-    prevWx = wx; prevWy = wy; prevWz = wz;
-  }
-  return { hit: false, wx: 0, wy: 0, wz: 0, normal: new THREE.Vector3() };
 }
 
 function SevcoSphere({ position, visible }: { position: THREE.Vector3; visible: boolean }) {
@@ -416,31 +717,14 @@ function OtherPlayers({ players }: { players: OtherPlayer[] }) {
 function SunFlare({ position, intensity }: { position: [number, number, number]; intensity: number }) {
   const meshRef = useRef<THREE.Mesh>(null);
   useFrame(({ camera }) => {
-    if (!meshRef.current) return;
-    meshRef.current.lookAt(camera.position);
+    if (meshRef.current) meshRef.current.lookAt(camera.position);
   });
   const alpha = Math.pow(Math.max(0, intensity), 0.5);
   return (
     <group position={position}>
       <mesh ref={meshRef}>
         <planeGeometry args={[28, 28]} />
-        <meshBasicMaterial
-          color={new THREE.Color(1, 0.95, 0.7)}
-          transparent
-          opacity={0.55 * alpha}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
-      <mesh>
-        <planeGeometry args={[14, 14]} />
-        <meshBasicMaterial
-          color={new THREE.Color(1, 1, 1)}
-          transparent
-          opacity={0.7 * alpha}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
+        <meshBasicMaterial color={new THREE.Color(1, 0.95, 0.7)} transparent opacity={0.55 * alpha} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
       <pointLight color={0xffeebb} intensity={intensity * 1.5} distance={400} decay={1.5} />
     </group>
@@ -450,99 +734,127 @@ function SunFlare({ position, intensity }: { position: [number, number, number];
 function Sun({ dayTime }: { dayTime: number }) {
   const angle = dayTime * Math.PI * 2;
   const intensity = Math.max(0, Math.sin(angle));
-  const sunPos: [number, number, number] = [Math.cos(angle) * 150, Math.sin(angle) * 150, 0];
+  const sunPos: [number, number, number] = [Math.cos(angle) * 200, Math.sin(angle) * 200, 0];
   return (
     <>
-      <directionalLight
-        position={sunPos}
-        intensity={intensity * 2 + 0.3}
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-      />
+      <directionalLight position={sunPos} intensity={intensity * 2 + 0.3} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
       <ambientLight intensity={0.3 + intensity * 0.4} />
       {intensity > 0.05 && <SunFlare position={sunPos} intensity={intensity} />}
     </>
   );
 }
 
-function DistantPlanet({ planet }: { planet: Planet }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  useFrame((_, dt) => {
-    if (meshRef.current) meshRef.current.rotation.y += dt * 0.05;
+function CustomStars({ opacity }: { opacity: number }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const positions = useMemo(() => {
+    const arr = new Float32Array(5000 * 3);
+    const rng = makeRng(12345);
+    for (let i = 0; i < 5000; i++) {
+      const theta = rng() * Math.PI * 2;
+      const phi = Math.acos(rng() * 2 - 1);
+      const r = 250 + rng() * 150;
+      arr[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      arr[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      arr[i * 3 + 2] = r * Math.cos(phi);
+    }
+    return arr;
+  }, []);
+  useFrame(({ camera }) => {
+    if (groupRef.current) groupRef.current.position.copy(camera.position);
   });
+  if (opacity < 0.01) return null;
   return (
-    <mesh ref={meshRef} position={[300, 120, -400]}>
-      <sphereGeometry args={[planet.size * 0.2, 24, 24]} />
-      <meshStandardMaterial color={planet.type === "moon" ? 0xBDBDBD : 0x4CAF50} roughness={0.9} />
-    </mesh>
+    <group ref={groupRef}>
+      <points>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+        </bufferGeometry>
+        <pointsMaterial size={2} color={0xffffff} transparent opacity={opacity} sizeAttenuation={false} />
+      </points>
+    </group>
   );
 }
 
-function VoxelHighlight({ playerPos, direction, seed }: { playerPos: THREE.Vector3; direction: THREE.Vector3; seed: number }) {
-  const result = raycastVoxel(playerPos, direction, seed, 6);
+function VoxelHighlight({ playerPos, direction, data, center }: {
+  playerPos: THREE.Vector3;
+  direction: THREE.Vector3;
+  data: Uint8Array;
+  center: THREE.Vector3;
+}) {
+  const result = raycastPlanet(playerPos, direction, data, center, 8);
   if (!result.hit) return null;
+  const wx = (result.gx - GRID_HALF + 0.5) * VOXEL_SCALE + center.x;
+  const wy = (result.gy - GRID_HALF + 0.5) * VOXEL_SCALE + center.y;
+  const wz = (result.gz - GRID_HALF + 0.5) * VOXEL_SCALE + center.z;
   return (
-    <mesh position={[result.wx + 0.5, result.wy + 0.5, result.wz + 0.5]}>
-      <boxGeometry args={[1.01, 1.01, 1.01]} />
+    <mesh position={[wx, wy, wz]}>
+      <boxGeometry args={[VOXEL_SCALE * 1.02, VOXEL_SCALE * 1.02, VOXEL_SCALE * 1.02]} />
       <meshBasicMaterial color={0xffffff} wireframe opacity={0.4} transparent />
     </mesh>
   );
 }
 
-// Canonical world-space center of each planet's "gravity well" (the voxel terrain origin).
-// Planet 1 (Verdania) is centered at the origin; Planet 2 (Cratera) is placed 800 units away.
-// These positions are in the SPHERE's travel space (not terrain-local coordinates).
-const PLANET_CENTERS: Record<number, THREE.Vector3> = {
-  0: new THREE.Vector3(8, 0, 8),     // Verdania — origin planet
-  1: new THREE.Vector3(808, 0, 8),   // Cratera  — 800 units along X
-};
-// Distance threshold: switch active planet when SPHERE is within landing range of target
-const PLANET_LANDING_RANGE = 60;
-// Minimum altitude before inter-planet travel engagement
-const LAUNCH_ALT = 20;
-
 interface SceneProps {
-  planet: Planet;
-  planetIndex: number;
-  secondPlanet: Planet | null;
-  secondPlanetIndex: number;
+  planets: Planet[];
+  activePlanetIndex: number;
   progress: Progress;
   savedBuilds: SavedBuild[];
   otherPlayers: OtherPlayer[];
-  onSave: (chunks: { cx: number; cy: number; cz: number; data: Uint8Array }[], currentPlanetId: number, crystals: number) => void;
+  onSave: (modified: Map<string, number>, currentPlanetId: number, crystals: number) => void;
   onPositionUpdate: (x: number, y: number, z: number) => void;
   onCrystalCollected: (count: number) => void;
-  onPlanetSwitch: (planet: Planet) => void;
+  onPlanetSwitch: (newIndex: number) => void;
 }
 
-function Scene({ planet, planetIndex, secondPlanet, secondPlanetIndex, progress, savedBuilds, otherPlayers, onSave, onPositionUpdate, onCrystalCollected, onPlanetSwitch }: SceneProps) {
+function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers, onSave, onPositionUpdate, onCrystalCollected, onPlanetSwitch }: SceneProps) {
   const { camera, gl } = useThree();
   const {
-    selectedBlock, setSelectedBlock,
+    setSelectedBlock,
     inVehicle, setInVehicle,
     paused, setPaused,
     setPointerLocked,
     thirdPerson, setThirdPerson,
     setSpeed, setAltitude,
     crystalsCollected, setCrystalsCollected,
-    renderDistance,
   } = useGameStore();
 
-  // Rapier rigid body refs for player and sphere
-  const playerRb = useRef<RapierRigidBody>(null);
-  const sphereRb = useRef<RapierRigidBody>(null);
+  const activePlanet = planets[activePlanetIndex];
+  const planetCenter = PLANET_POSITIONS[activePlanetIndex] || PLANET_POSITIONS[0];
+  const biomeType = activePlanet?.type || "verdania";
 
-  // Visual/camera position refs (updated from Rapier each frame)
-  const playerPos = useRef(new THREE.Vector3(8, 20, 8));
-  const spherePos = useRef(new THREE.Vector3(4, 18, 4));
-  // Floating origin offset to prevent floating-point drift
-  const originOffset = useRef(new THREE.Vector3(0, 0, 0));
-  const worldGroupRef = useRef<THREE.Group>(null);
+  const [geoRevision, setGeoRevision] = useState(0);
+  const prevBuildsRef = useRef(savedBuilds);
 
-  const controlsRef = useRef<{ unlock: () => void } | null>(null);
+  const planetData = useMemo(() => {
+    if (!activePlanet) return new Uint8Array(GRID_SIZE * GRID_SIZE * GRID_SIZE);
+    return getOrCreatePlanetData(activePlanet.id, activePlanet.seed, biomeType, savedBuilds);
+  }, [activePlanet?.id, savedBuilds]);
+
+  useEffect(() => {
+    if (prevBuildsRef.current !== savedBuilds) {
+      prevBuildsRef.current = savedBuilds;
+      setGeoRevision((r) => r + 1);
+    }
+  }, [savedBuilds]);
+
+  const spawnUp = new THREE.Vector3(0, 1, 0);
+  const spawnPos = planetCenter.clone().addScaledVector(spawnUp, (PLANET_RADIUS + 3) * VOXEL_SCALE);
+
+  const playerPos = useRef(spawnPos.clone());
+  const playerVel = useRef(new THREE.Vector3(0, 0, 0));
+  const spherePos = useRef(spawnPos.clone().add(new THREE.Vector3(2, 0, 2)));
+  const sphereVel = useRef(new THREE.Vector3(0, 0, 0));
+  const onGround = useRef(false);
+
+  const refForward = useRef(new THREE.Vector3(0, 0, -1));
+  const pitchRef = useRef(0);
+  const mouseDelta = useRef({ x: 0, y: 0 });
+
   const keysRef = useRef<Record<string, boolean>>({});
-  const [chunkRevisions, setChunkRevisions] = useState<Map<string, number>>(new Map());
+  const progressRef = useRef(progress);
+  progressRef.current = progress;
+  const planetCenterRef = useRef(planetCenter);
+  planetCenterRef.current = planetCenter;
   const dayTimeRef = useRef(0.25);
   const [dayTime, setDayTimeState] = useState(0.25);
   const lastSave = useRef(0);
@@ -550,51 +862,50 @@ function Scene({ planet, planetIndex, secondPlanet, secondPlanetIndex, progress,
   const lastDayUpdate = useRef(0);
   const lastHudUpdate = useRef(0);
 
-  // Apply floating origin: shift world group so player stays near scene origin
-  function applyFloatingOrigin(pos: THREE.Vector3) {
-    let shifted = false;
-    if (Math.abs(pos.x - originOffset.current.x) > FLOAT_ORIGIN_SNAP) {
-      originOffset.current.x = Math.round(pos.x / FLOAT_ORIGIN_SNAP) * FLOAT_ORIGIN_SNAP;
-      shifted = true;
-    }
-    if (Math.abs(pos.z - originOffset.current.z) > FLOAT_ORIGIN_SNAP) {
-      originOffset.current.z = Math.round(pos.z / FLOAT_ORIGIN_SNAP) * FLOAT_ORIGIN_SNAP;
-      shifted = true;
-    }
-    if (shifted && worldGroupRef.current) {
-      worldGroupRef.current.position.set(-originOffset.current.x, 0, -originOffset.current.z);
-    }
-  }
+  useEffect(() => {
+    if (!activePlanet) return;
+    const up = new THREE.Vector3(0, 1, 0);
+    const newSpawn = planetCenter.clone().addScaledVector(up, (PLANET_RADIUS + 5) * VOXEL_SCALE);
+    playerPos.current.copy(newSpawn);
+    playerVel.current.set(0, 0, 0);
+    spherePos.current.copy(newSpawn).add(new THREE.Vector3(2, 0, 2));
+    sphereVel.current.set(0, 0, 0);
+    refForward.current.set(0, 0, -1);
+    pitchRef.current = 0;
+  }, [activePlanet?.id]);
 
   useEffect(() => {
-    for (const build of savedBuilds) {
-      for (const [key, val] of Object.entries(build.voxelData)) {
-        const [lx, ly, lz] = key.split(",").map(Number);
-        worldSetBlock(
-          build.chunkX * CHUNK_SIZE + lx,
-          build.chunkY * CHUNK_SIZE + ly,
-          build.chunkZ * CHUNK_SIZE + lz,
-          val,
-          planet.seed
-        );
-      }
-    }
-  }, [savedBuilds, planet.seed]);
+    const canvas = gl.domElement;
+    const onMouseMove = (e: MouseEvent) => {
+      if (document.pointerLockElement !== canvas) return;
+      mouseDelta.current.x += e.movementX;
+      mouseDelta.current.y += e.movementY;
+    };
+    const onLockChange = () => {
+      const locked = document.pointerLockElement === canvas;
+      setPointerLocked(locked);
+      if (!locked && !useGameStore.getState().paused) setPaused(true);
+    };
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("pointerlockchange", onLockChange);
+    return () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("pointerlockchange", onLockChange);
+    };
+  }, []);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { setPaused(true); controlsRef.current?.unlock(); return; }
+      if (e.key === "Escape") { setPaused(true); document.exitPointerLock(); return; }
       if (e.key === "t" || e.key === "T") { setThirdPerson(!useGameStore.getState().thirdPerson); return; }
       if (e.key === "e" || e.key === "E") {
-        if (!inVehicle) {
-          if (playerPos.current.distanceTo(spherePos.current) < 3) setInVehicle(true);
+        if (!useGameStore.getState().inVehicle) {
+          if (progressRef.current.unlockedSphere && playerPos.current.distanceTo(spherePos.current) < 4) setInVehicle(true);
         } else {
           setInVehicle(false);
-          playerPos.current.copy(spherePos.current).add(new THREE.Vector3(0, 2, 0));
-          if (playerRb.current) {
-            playerRb.current.setTranslation({ x: playerPos.current.x, y: playerPos.current.y, z: playerPos.current.z }, true);
-            playerRb.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
-          }
+          const up = playerPos.current.clone().sub(planetCenterRef.current).normalize();
+          playerPos.current.copy(spherePos.current).addScaledVector(up, 2);
+          playerVel.current.set(0, 0, 0);
         }
         return;
       }
@@ -610,187 +921,209 @@ function Scene({ planet, planetIndex, secondPlanet, secondPlanetIndex, progress,
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     return () => { window.removeEventListener("keydown", onKeyDown); window.removeEventListener("keyup", onKeyUp); };
-  }, [inVehicle]);
+  }, []);
 
   useEffect(() => {
+    const canvas = gl.domElement;
     const onMouseDown = (e: MouseEvent) => {
-      if (!useGameStore.getState().pointerLocked || paused) return;
+      if (document.pointerLockElement !== canvas) {
+        if (!useGameStore.getState().paused) canvas.requestPointerLock();
+        return;
+      }
+      if (useGameStore.getState().paused || useGameStore.getState().inVehicle) return;
+
       const dir = new THREE.Vector3();
       camera.getWorldDirection(dir);
-      const result = raycastVoxel(playerPos.current, dir, planet.seed, 6);
+      const result = raycastPlanet(playerPos.current, dir, planetData, planetCenter, 8);
       if (!result.hit) return;
+
       if (e.button === 0) {
-        if (worldGetBlock(result.wx, result.wy, result.wz, planet.seed) === CRYSTAL_ID) {
-          const newCount = crystalsCollected + 1;
+        const blockVal = getVoxel(planetData, result.gx, result.gy, result.gz);
+        if (blockVal === CRYSTAL_ID) {
+          const newCount = useGameStore.getState().crystalsCollected + 1;
           setCrystalsCollected(newCount);
           onCrystalCollected(newCount);
         }
-        worldSetBlock(result.wx, result.wy, result.wz, 0, planet.seed);
+        setVoxel(planetData, result.gx, result.gy, result.gz, 0);
+        trackModification(activePlanet?.id ?? 0, result.gx, result.gy, result.gz, 0);
       } else if (e.button === 2) {
-        const px = result.wx + result.normal.x;
-        const py = result.wy + result.normal.y;
-        const pz = result.wz + result.normal.z;
-        if (py >= 0 && py < CHUNK_SIZE) worldSetBlock(px, py, pz, useGameStore.getState().selectedBlock, planet.seed);
+        const { prevGx, prevGy, prevGz } = result;
+        if (prevGx >= 0 && prevGx < GRID_SIZE && prevGy >= 0 && prevGy < GRID_SIZE && prevGz >= 0 && prevGz < GRID_SIZE) {
+          const sb = useGameStore.getState().selectedBlock;
+          setVoxel(planetData, prevGx, prevGy, prevGz, sb);
+          trackModification(activePlanet?.id ?? 0, prevGx, prevGy, prevGz, sb);
+        }
       }
-      const cx = Math.floor(result.wx / CHUNK_SIZE);
-      const cz = Math.floor(result.wz / CHUNK_SIZE);
-      const key = chunkKey(cx, cz);
-      dirtyChunks.add(key);
-      setChunkRevisions((prev) => { const next = new Map(prev); next.set(key, (next.get(key) ?? 0) + 1); return next; });
+
+      setGeoRevision((r) => r + 1);
     };
-    gl.domElement.addEventListener("mousedown", onMouseDown);
-    return () => gl.domElement.removeEventListener("mousedown", onMouseDown);
-  }, [paused, crystalsCollected, planet.seed]);
+    canvas.addEventListener("mousedown", onMouseDown);
+    return () => canvas.removeEventListener("mousedown", onMouseDown);
+  }, [planetData, activePlanet?.id]);
 
   useFrame((state, dt) => {
-    if (paused) return;
+    if (paused || !activePlanet) return;
+    const clampedDt = Math.min(dt, 0.05);
 
-    dayTimeRef.current = (dayTimeRef.current + dt / (20 * 60)) % 1;
+    dayTimeRef.current = (dayTimeRef.current + clampedDt / (20 * 60)) % 1;
     if (state.clock.elapsedTime - lastDayUpdate.current > 5) {
       lastDayUpdate.current = state.clock.elapsedTime;
       setDayTimeState(dayTimeRef.current);
     }
 
+    const dx = mouseDelta.current.x;
+    const dy = mouseDelta.current.y;
+    mouseDelta.current.x = 0;
+    mouseDelta.current.y = 0;
+
     const keys = keysRef.current;
-    const camDir = new THREE.Vector3();
-    camera.getWorldDirection(camDir);
+    const activePos = inVehicle ? spherePos.current : playerPos.current;
+    const activeVel = inVehicle ? sphereVel.current : playerVel.current;
 
-    // Surface "up" is the outward normal from the active planet's center, projected to player/sphere position.
-    // This gives center-directed gravity: gravity always pulls toward the planet center's surface (y=0 plane).
-    const activePlanetCenter = PLANET_CENTERS[planetIndex] ?? PLANET_CENTERS[0];
+    let nearestCenter = planetCenter;
+    let nearestDist = activePos.distanceTo(planetCenter);
+    for (let pi = 0; pi < planets.length; pi++) {
+      const pc = PLANET_POSITIONS[pi];
+      if (!pc) continue;
+      const d = activePos.distanceTo(pc);
+      if (d < nearestDist) { nearestDist = d; nearestCenter = pc; }
+    }
 
-    const camRight = new THREE.Vector3().crossVectors(camDir, new THREE.Vector3(0, 1, 0)).normalize();
+    const toCenter = nearestCenter.clone().sub(activePos);
+    const distFromCenter = toCenter.length();
+    const surfaceRadius = PLANET_RADIUS * VOXEL_SCALE;
+    const altitude = distFromCenter - surfaceRadius;
+    const atmosphereHeight = surfaceRadius * ATMOSPHERE_SCALE;
+    const inAtmosphere = altitude < atmosphereHeight;
 
-    if (inVehicle && sphereRb.current) {
-      const linvel = sphereRb.current.linvel();
-      const vel = new THREE.Vector3(linvel.x, linvel.y, linvel.z);
+    const up = distFromCenter > 0.1
+      ? activePos.clone().sub(nearestCenter).normalize()
+      : new THREE.Vector3(0, 1, 0);
 
-      // Compute altitude relative to active planet's center (surface = y=0 of terrain space)
-      const distToSurface = spherePos.current.y - activePlanetCenter.y;
-      const inSpace = distToSurface > SPACE_ALTITUDE;
-      const thrust = inSpace ? 40 : 18;
-      const impulseScale = thrust * dt;
+    refForward.current.projectOnPlane(up).normalize();
+    if (refForward.current.lengthSq() < 0.01) {
+      refForward.current.set(1, 0, 0).projectOnPlane(up).normalize();
+    }
 
-      // In space: full 6-DoF thrust; near surface: only horizontal + explicit vertical
-      if (keys["w"]) vel.addScaledVector(new THREE.Vector3(-camDir.x, inSpace ? -camDir.y : 0, -camDir.z).normalize(), impulseScale);
-      if (keys["s"]) vel.addScaledVector(new THREE.Vector3(camDir.x, inSpace ? camDir.y : 0, camDir.z).normalize(), impulseScale);
-      if (keys["a"]) vel.addScaledVector(camRight.clone().negate(), impulseScale);
-      if (keys["d"]) vel.addScaledVector(camRight, impulseScale);
-      if (keys[" "]) vel.y += impulseScale;
-      if (keys["shift"]) vel.y -= impulseScale;
+    const yawQuat = new THREE.Quaternion().setFromAxisAngle(up, -dx * 0.002);
+    refForward.current.applyQuaternion(yawQuat).projectOnPlane(up).normalize();
+    pitchRef.current = Math.max(-1.4, Math.min(1.4, pitchRef.current - dy * 0.002));
 
-      // Apply center-directed gravity to the velocity when not in deep space
-      // Direction toward planet center (outward normal from center = upward from surface)
-      if (!inSpace) {
-        const gravDir = new THREE.Vector3(0, -9.81, 0); // toward y=0 surface
-        vel.addScaledVector(gravDir, dt);
+    const cosPitch = Math.cos(pitchRef.current);
+    const sinPitch = Math.sin(pitchRef.current);
+    const lookDir = refForward.current.clone().multiplyScalar(cosPitch).addScaledVector(up, sinPitch).normalize();
+
+    const localRight = new THREE.Vector3().crossVectors(up, refForward.current).normalize();
+
+    if (inVehicle) {
+      const inSpace = altitude > surfaceRadius * 0.5;
+      const thrust = keys["shift"] ? SHIP_BOOST_THRUST : SHIP_THRUST;
+
+      if (keys["w"]) sphereVel.current.addScaledVector(lookDir, thrust * clampedDt);
+      if (keys["s"]) sphereVel.current.addScaledVector(lookDir.clone().negate(), thrust * clampedDt);
+      if (keys["a"]) sphereVel.current.addScaledVector(localRight.clone().negate(), thrust * clampedDt);
+      if (keys["d"]) sphereVel.current.addScaledVector(localRight, thrust * clampedDt);
+      if (keys[" "]) sphereVel.current.addScaledVector(up, thrust * clampedDt);
+
+      if (inSpace) {
+        const gravScale = Math.max(0, 1 - altitude / (surfaceRadius * 5));
+        sphereVel.current.addScaledVector(toCenter.normalize(), GRAVITY_STRENGTH * 0.3 * gravScale * clampedDt);
+      } else {
+        sphereVel.current.addScaledVector(toCenter.normalize(), GRAVITY_STRENGTH * clampedDt);
       }
 
       const drag = inSpace ? 0.998 : 0.97;
-      vel.multiplyScalar(drag);
-      sphereRb.current.setLinvel({ x: vel.x, y: vel.y, z: vel.z }, true);
+      sphereVel.current.multiplyScalar(Math.pow(drag, clampedDt * 60));
+      spherePos.current.addScaledVector(sphereVel.current, clampedDt);
 
-      const t = sphereRb.current.translation();
-      spherePos.current.set(t.x, t.y, t.z);
-
-      if (!thirdPerson) {
-        camera.position.copy(spherePos.current).add(new THREE.Vector3(0, 0.5, 0));
-      } else {
-        camera.position.copy(spherePos.current).add(camDir.clone().negate().multiplyScalar(6)).add(new THREE.Vector3(0, 2, 0));
-      }
-
-      // Continuous interplanetary travel: compare distance from SPHERE to both planet centers.
-      // When the SPHERE is launched high enough and travels toward planet 2, switch when it's
-      // within PLANET_LANDING_RANGE of the destination planet and farther from the origin planet.
-      if (secondPlanet !== null && progress.unlockedSphere && distToSurface > LAUNCH_ALT) {
-        const destCenter = PLANET_CENTERS[secondPlanetIndex] ?? new THREE.Vector3(808, 0, 8);
-        const distToOrigin = spherePos.current.distanceTo(activePlanetCenter);
-        const distToDest = spherePos.current.distanceTo(destCenter);
-        // Switch when closer to destination than origin and within landing range
-        if (distToDest < PLANET_LANDING_RANGE && distToDest < distToOrigin) {
-          onPlanetSwitch(secondPlanet);
+      const distToActivePlanet = spherePos.current.distanceTo(planetCenter);
+      for (let pi = 0; pi < planets.length; pi++) {
+        if (pi === activePlanetIndex) continue;
+        const otherCenter = PLANET_POSITIONS[pi] || PLANET_POSITIONS[0];
+        const distToOther = spherePos.current.distanceTo(otherCenter);
+        if (distToOther < PLANET_LANDING_RANGE && distToOther < distToActivePlanet) {
+          onPlanetSwitch(pi);
+          return;
         }
       }
 
-      if (state.clock.elapsedTime - lastHudUpdate.current > 0.1) {
-        lastHudUpdate.current = state.clock.elapsedTime;
-        setSpeed(Math.round(vel.length() * 10) / 10);
-        setAltitude(Math.round(distToSurface));
+      if (!thirdPerson) {
+        camera.position.copy(spherePos.current).addScaledVector(up, 0.5);
+      } else {
+        camera.position.copy(spherePos.current).addScaledVector(lookDir, -6).addScaledVector(up, 2);
       }
 
-    } else if (!inVehicle && playerRb.current) {
-      // Walking on planet surface: movement relative to surface normal (up = away from planet center).
-      // The surface normal at the player's position points from planet center toward player (outward).
-      // For a flat terrain model, this simplifies to: up = +Y, horizontal = XZ plane.
-      const surfaceUp = new THREE.Vector3(
-        playerPos.current.x - activePlanetCenter.x,
-        playerPos.current.y - activePlanetCenter.y + 8, // ensure upward bias on flat terrain
-        playerPos.current.z - activePlanetCenter.z,
-      ).normalize();
-      // Project camera forward and right onto the surface tangent plane
-      const forward = new THREE.Vector3().copy(camDir).projectOnPlane(surfaceUp).normalize();
-      const right = new THREE.Vector3().crossVectors(forward, surfaceUp).negate().normalize();
-
+    } else {
+      const speed = keys["shift"] ? SPRINT_SPEED : WALK_SPEED;
       const moveDir = new THREE.Vector3();
-      const speed = keys["shift"] ? 8 : 5;
-      if (keys["w"]) moveDir.add(forward);
-      if (keys["s"]) moveDir.addScaledVector(forward, -1);
-      if (keys["a"]) moveDir.add(right);
-      if (keys["d"]) moveDir.addScaledVector(right, -1);
-      if (moveDir.length() > 0) moveDir.normalize();
+      if (keys["w"]) moveDir.add(refForward.current);
+      if (keys["s"]) moveDir.addScaledVector(refForward.current, -1);
+      if (keys["a"]) moveDir.addScaledVector(localRight, -1);
+      if (keys["d"]) moveDir.add(localRight);
+      if (moveDir.lengthSq() > 0) moveDir.normalize();
 
-      const linvel = playerRb.current.linvel();
-      // Set horizontal velocity; preserve Rapier's Y (gravity) component
-      playerRb.current.setLinvel({
-        x: moveDir.x * speed,
-        y: linvel.y,
-        z: moveDir.z * speed,
-      }, true);
+      const radialVel = up.clone().multiplyScalar(playerVel.current.dot(up));
+      playerVel.current.copy(moveDir.multiplyScalar(speed)).add(radialVel);
 
-      // Jump when near surface (low downward velocity = on ground)
-      if ((keys[" "] || keys["spacebar"]) && linvel.y > -1 && linvel.y < 2) {
-        playerRb.current.applyImpulse({ x: 0, y: 8, z: 0 }, true);
+      const footGravScale = Math.min(1, (surfaceRadius * 3) / Math.max(distFromCenter, 0.1));
+      playerVel.current.addScaledVector(toCenter.normalize(), GRAVITY_STRENGTH * footGravScale * clampedDt);
+
+      if ((keys[" "] || keys["spacebar"]) && onGround.current) {
+        playerVel.current.addScaledVector(up, JUMP_IMPULSE);
+        onGround.current = false;
       }
 
-      const t = playerRb.current.translation();
-      playerPos.current.set(t.x, t.y, t.z);
+      const tangentialMove = playerVel.current.clone().projectOnPlane(up).multiplyScalar(clampedDt);
+      const radialMove = up.clone().multiplyScalar(playerVel.current.dot(up) * clampedDt);
 
-      if (playerPos.current.y < -20) {
-        playerRb.current.setTranslation({ x: 8, y: 20, z: 8 }, true);
-        playerRb.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      const newPos = playerPos.current.clone().add(tangentialMove);
+      if (!playerCollides(newPos, planetData, planetCenter, up)) {
+        playerPos.current.copy(newPos);
+      } else {
+        const tv = playerVel.current.clone().projectOnPlane(up);
+        playerVel.current.sub(tv);
+      }
+
+      const newPos2 = playerPos.current.clone().add(radialMove);
+      if (!playerCollides(newPos2, planetData, planetCenter, up)) {
+        playerPos.current.copy(newPos2);
+        onGround.current = groundCheck(playerPos.current, planetData, planetCenter, up);
+      } else {
+        const rv = playerVel.current.dot(up);
+        playerVel.current.addScaledVector(up, -rv);
+        if (rv < 0) onGround.current = true;
+      }
+
+      if (distFromCenter < surfaceRadius * 0.3) {
+        const safePos = planetCenter.clone().addScaledVector(up.length() > 0 ? up : new THREE.Vector3(0, 1, 0), surfaceRadius + 3 * VOXEL_SCALE);
+        playerPos.current.copy(safePos);
+        playerVel.current.set(0, 0, 0);
       }
 
       if (!thirdPerson) {
-        camera.position.copy(playerPos.current);
+        camera.position.copy(playerPos.current).addScaledVector(up, EYE_HEIGHT);
       } else {
-        camera.position.copy(playerPos.current).add(camDir.clone().negate().multiplyScalar(5)).add(new THREE.Vector3(0, 2, 0));
-      }
-
-      const alt = playerPos.current.y - activePlanetCenter.y;
-      if (state.clock.elapsedTime - lastHudUpdate.current > 0.1) {
-        lastHudUpdate.current = state.clock.elapsedTime;
-        setSpeed(Math.round(moveDir.length() * speed * 10) / 10);
-        setAltitude(Math.round(alt));
+        camera.position.copy(playerPos.current).addScaledVector(lookDir, -5).addScaledVector(up, 2);
       }
     }
 
-    // Floating origin
-    applyFloatingOrigin(inVehicle ? spherePos.current : playerPos.current);
+    camera.up.copy(up);
+    camera.lookAt(camera.position.clone().add(lookDir));
 
-    // Auto-save every 45s
+    if (state.clock.elapsedTime - lastHudUpdate.current > 0.1) {
+      lastHudUpdate.current = state.clock.elapsedTime;
+      setSpeed(Math.round(activeVel.length() * 10) / 10);
+      setAltitude(Math.round(altitude));
+    }
+
     if (state.clock.elapsedTime - lastSave.current > 45) {
       lastSave.current = state.clock.elapsedTime;
-      const toSave: { cx: number; cy: number; cz: number; data: Uint8Array }[] = [];
-      dirtyChunks.forEach((key) => {
-        const [cx, cz] = key.split(",").map(Number);
-        const data = worldChunks.get(key);
-        if (data) toSave.push({ cx, cy: 0, cz, data });
-      });
-      dirtyChunks.clear();
-      onSave(toSave, planet.id, useGameStore.getState().crystalsCollected);
+      const mods = modifiedVoxelsMap.get(activePlanet.id);
+      if (mods && mods.size > 0) {
+        onSave(new Map(mods), activePlanet.id, useGameStore.getState().crystalsCollected);
+      }
     }
 
-    // Presence every 2s
     if (state.clock.elapsedTime - lastPresence.current > 2) {
       lastPresence.current = state.clock.elapsedTime;
       const pos = inVehicle ? spherePos.current : playerPos.current;
@@ -798,71 +1131,87 @@ function Scene({ planet, planetIndex, secondPlanet, secondPlanetIndex, progress,
     }
   });
 
-  const cameraDir = new THREE.Vector3();
-  camera.getWorldDirection(cameraDir);
+  const cameraDir = useRef(new THREE.Vector3());
+  camera.getWorldDirection(cameraDir.current);
 
-  // Rapier gravity: disabled at space altitude (handled manually), standard downward near surface
-  const gravityY = -20;
+  const surfaceRadius = PLANET_RADIUS * VOXEL_SCALE;
+  const activePos = inVehicle ? spherePos.current : playerPos.current;
+  const distFromCenter = activePos.distanceTo(planetCenter);
+  const altitude = distFromCenter - surfaceRadius;
+  const atmosphereFactor = Math.max(0, Math.min(1, 1 - altitude / (surfaceRadius * ATMOSPHERE_SCALE)));
+  const starOpacity = Math.max(0, Math.min(1, 1 - atmosphereFactor));
+
+  const spaceColor = new THREE.Color(0x050510);
+  const skyBaseColor = biomeType === "alien" ? new THREE.Color(0x2D0050) : new THREE.Color(0x5B9BD5);
+  const bgColor = spaceColor.clone().lerp(skyBaseColor, atmosphereFactor * 0.6);
+
+  const fogNear = 15 + (1 - atmosphereFactor) * 300;
+  const fogFar = 60 + (1 - atmosphereFactor) * 600;
 
   return (
     <>
-      <color attach="background" args={[0x1a1a2e]} />
-      <fog attach="fog" args={[0x1a1a2e, 60, 180]} />
+      <color attach="background" args={[bgColor.r, bgColor.g, bgColor.b]} />
+      <fog attach="fog" args={[bgColor, fogNear, fogFar]} />
 
       <Sun dayTime={dayTime} />
-      <Sky sunPosition={[Math.cos(dayTime * Math.PI * 2) * 150, Math.sin(dayTime * Math.PI * 2) * 150, 0]} />
-      <Stars radius={300} depth={50} count={5000} factor={4} />
+      <CustomStars opacity={starOpacity} />
 
-      <group ref={worldGroupRef}>
-        <Physics gravity={[0, gravityY, 0]}>
-          <Terrain playerPos={playerPos.current} seed={planet.seed} renderDistance={renderDistance} chunkRevisions={chunkRevisions} />
+      <PlanetVoxelMesh data={planetData} center={planetCenter} revision={geoRevision} planetId={activePlanet?.id ?? 0} />
+      <WaterShell center={planetCenter} biomeType={biomeType} />
 
-          {/* Player rigid body */}
-          <RigidBody
-            ref={playerRb}
-            position={[8, 20, 8]}
-            colliders="capsule"
-            lockRotations
-            linearDamping={0.5}
-            enabledRotations={[false, false, false]}
-          >
-            <mesh visible={thirdPerson} castShadow>
-              <capsuleGeometry args={[0.3, 1.2, 4, 8]} />
-              <meshLambertMaterial color={0x4FC3F7} />
-            </mesh>
-          </RigidBody>
+      {atmosphereFactor > 0.01 && (
+        <mesh position={planetCenter}>
+          <sphereGeometry args={[surfaceRadius * 1.3, 32, 32]} />
+          <meshBasicMaterial
+            color={biomeType === "alien" ? 0x7B1FA2 : 0x87CEEB}
+            transparent
+            opacity={0.08 * atmosphereFactor}
+            side={THREE.BackSide}
+          />
+        </mesh>
+      )}
 
-          {/* SPHERE rigid body (kinematic when in vehicle for full Newtonian control) */}
-          {progress.unlockedSphere && (
-            <RigidBody
-              ref={sphereRb}
-              position={[4, 18, 4]}
-              colliders="ball"
-              type={inVehicle ? "kinematic-velocity-based" : "dynamic"}
-              gravityScale={inVehicle && spherePos.current.y > SPACE_ALTITUDE ? 0 : 1}
-              linearDamping={0}
-            >
-              <SevcoSphere position={new THREE.Vector3(0, 0, 0)} visible />
-            </RigidBody>
-          )}
+      {planets.map((p, i) => {
+        if (i === activePlanetIndex) return null;
+        const pos = PLANET_POSITIONS[i] || PLANET_POSITIONS[0];
+        const dist = activePos.distanceTo(pos);
+        if (dist > 800) return null;
+        const visRadius = Math.max(surfaceRadius, surfaceRadius * (100 / Math.max(dist, 1)));
+        return (
+          <DistantPlanetSphere
+            key={p.id}
+            position={pos}
+            planetType={p.type}
+            visualRadius={Math.min(visRadius, surfaceRadius * 2)}
+          />
+        );
+      })}
 
-          {!progress.unlockedSphere && (
-            <SevcoSphere position={spherePos.current} visible />
-          )}
-        </Physics>
+      {(inVehicle && thirdPerson) && (
+        <SevcoSphere position={spherePos.current} visible />
+      )}
 
-        <VoxelHighlight playerPos={playerPos.current} direction={cameraDir} seed={planet.seed} />
-        <OtherPlayers players={otherPlayers} />
-        {secondPlanet && <DistantPlanet planet={secondPlanet} />}
-      </group>
+      {!inVehicle && (
+        <SevcoSphere position={spherePos.current} visible />
+      )}
 
-      <PointerLockControls
-        ref={controlsRef}
-        onLock={() => setPointerLocked(true)}
-        onUnlock={() => setPointerLocked(false)}
-      />
+      {!inVehicle && (
+        <VoxelHighlight
+          playerPos={playerPos.current}
+          direction={cameraDir.current}
+          data={planetData}
+          center={planetCenter}
+        />
+      )}
+
+      <OtherPlayers players={otherPlayers} />
     </>
   );
+}
+
+function trackModification(planetId: number, gx: number, gy: number, gz: number, val: number): void {
+  if (!modifiedVoxelsMap.has(planetId)) modifiedVoxelsMap.set(planetId, new Map());
+  modifiedVoxelsMap.get(planetId)!.set(`${gx},${gy},${gz}`, val);
 }
 
 function HUD({ planet, sparksBalance, progress }: { planet: Planet | null; sparksBalance: number; progress: Progress | null }) {
@@ -875,7 +1224,7 @@ function HUD({ planet, sparksBalance, progress }: { planet: Planet | null; spark
       </div>
 
       <div className="absolute top-3 right-3 flex flex-col items-end gap-1" data-testid="freeball-info">
-        {planet && <div className="bg-black/60 text-white text-xs px-2 py-1 rounded font-mono">{planet.name}</div>}
+        {planet && <div className="bg-black/60 text-white text-xs px-2 py-1 rounded font-mono">{planet.name} ({planet.type})</div>}
         <div className="bg-black/60 text-yellow-400 text-xs px-2 py-1 rounded font-mono">⚡ {sparksBalance}</div>
         {inVehicle && (
           <>
@@ -914,7 +1263,7 @@ function HUD({ planet, sparksBalance, progress }: { planet: Planet | null; spark
 
       {pointerLocked && (
         <div className="absolute bottom-20 left-3 text-white/40 text-xs" data-testid="freeball-controls-hint">
-          WASD move · Space jump · Shift sprint · LMB break · RMB place · E enter/exit SPHERE · T third-person · Tab players · Esc menu
+          WASD move · Space jump · Shift sprint/boost · LMB break · RMB place · E enter/exit SPHERE · T third-person · Tab players · Esc menu
         </div>
       )}
 
@@ -937,7 +1286,6 @@ function PauseMenu({ onResume, onSave, onExit, planets, progress, onUnlockSphere
   sparksBalance: number;
   crystalsCollected: number;
 }) {
-  const { renderDistance, setRenderDistance } = useGameStore();
   const canCraftSphere = crystalsCollected >= CRYSTAL_CRAFT_AMOUNT;
   const canBuySphere = sparksBalance >= SPHERE_SPARKS_COST;
 
@@ -945,7 +1293,12 @@ function PauseMenu({ onResume, onSave, onExit, planets, progress, onUnlockSphere
     <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-50" data-testid="freeball-pause-menu">
       <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-80 shadow-2xl">
         <h2 className="text-white text-xl font-bold mb-1">FREEBALL</h2>
-        <p className="text-gray-400 text-xs mb-5">Paused · {planets[0]?.name ?? "Galaxy"}</p>
+        <p className="text-gray-400 text-xs mb-2">Paused · {planets.length} planets in galaxy</p>
+        <div className="flex flex-wrap gap-1 mb-4">
+          {planets.map((p) => (
+            <span key={p.id} className="text-xs bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded">{p.name}</span>
+          ))}
+        </div>
 
         <div className="flex flex-col gap-2 mb-5">
           <Button data-testid="freeball-btn-resume" onClick={onResume} className="w-full bg-blue-700 hover:bg-blue-600">Resume</Button>
@@ -971,21 +1324,9 @@ function PauseMenu({ onResume, onSave, onExit, planets, progress, onUnlockSphere
         )}
         {progress?.unlockedSphere && (
           <div className="border border-green-900 rounded-lg p-3 mb-4 bg-green-950/40">
-            <p className="text-green-400 text-sm">✓ SPHERE unlocked — fly high to reach {planets[1]?.name ?? "Planet 2"}!</p>
+            <p className="text-green-400 text-sm">✓ SPHERE unlocked — fly to other planets!</p>
           </div>
         )}
-
-        <div className="border border-gray-700 rounded-lg p-3 mb-4">
-          <h3 className="text-gray-300 text-sm font-semibold mb-2">Settings</h3>
-          <span className="text-gray-400 text-xs">Render Distance: {renderDistance}</span>
-          <Slider
-            data-testid="freeball-slider-render-distance"
-            min={1} max={6} step={1}
-            value={[renderDistance]}
-            onValueChange={([v]) => setRenderDistance(v)}
-            className="w-full mt-1"
-          />
-        </div>
 
         <Button
           data-testid="freeball-btn-exit"
@@ -1066,7 +1407,6 @@ export default function FreeballPage() {
   const { data: progress } = useQuery<Progress>({ queryKey: ["/api/freeball/progress"] });
   const { data: sparksData } = useQuery<{ balance: number }>({ queryKey: ["/api/sparks/balance"] });
 
-  // Hydrate from persisted progress on first load (runs once when both data sets are available)
   useEffect(() => {
     if (!progress || !planets.length || progressHydrated.current) return;
     progressHydrated.current = true;
@@ -1076,14 +1416,12 @@ export default function FreeballPage() {
     }
     const savedCrystals = typeof progress.inventory?.crystals === "number" ? progress.inventory.crystals : 0;
     if (savedCrystals > 0) {
-      // Sync into both React state and the Zustand store so autosave reads the correct value
       setCrystalsCollected(savedCrystals);
       useGameStore.getState().setCrystalsCollected(savedCrystals);
     }
   }, [progress, planets]);
 
   const activePlanet = planets[activePlanetIndex] ?? null;
-  const secondPlanet = planets[activePlanetIndex === 0 ? 1 : 0] ?? null;
   const activePlanetId = activePlanet?.id ?? null;
 
   const { data: savedBuilds = [] } = useQuery<SavedBuild[]>({
@@ -1108,28 +1446,31 @@ export default function FreeballPage() {
 
   useEffect(() => {
     return () => {
-      worldChunks.clear();
-      dirtyChunks.clear();
+      planetDataCache.clear();
+      modifiedVoxelsMap.clear();
+      planetBuildsApplied.clear();
     };
   }, []);
 
   const saveMutation = useMutation({
-    mutationFn: async (chunks: { cx: number; cy: number; cz: number; data: Uint8Array }[]) => {
-      if (!activePlanetId) return;
-      for (const chunk of chunks) {
-        const voxelData: Record<string, number> = {};
-        for (let lx = 0; lx < CHUNK_SIZE; lx++) {
-          for (let ly = 0; ly < CHUNK_SIZE; ly++) {
-            for (let lz = 0; lz < CHUNK_SIZE; lz++) {
-              const v = chunk.data[lx + lz * CHUNK_SIZE + ly * CHUNK_SIZE * CHUNK_SIZE];
-              if (v !== 0) voxelData[`${lx},${ly},${lz}`] = v;
-            }
-          }
-        }
-        await apiRequest("POST", `/api/freeball/builds/${activePlanetId}`, {
-          chunkX: chunk.cx, chunkY: chunk.cy, chunkZ: chunk.cz, voxelData,
+    mutationFn: async ({ modified, planetId }: { modified: Map<string, number>; planetId: number }) => {
+      const voxelData: Record<string, number> = {};
+      const savedSnapshot = new Map<string, number>();
+      modified.forEach((val, key) => { voxelData[key] = val; savedSnapshot.set(key, val); });
+      await apiRequest("POST", `/api/freeball/builds/${planetId}`, {
+        chunkX: 0, chunkY: 0, chunkZ: 0, voxelData,
+      });
+      return { planetId, savedSnapshot };
+    },
+    onSuccess: ({ planetId: savedPlanetId, savedSnapshot }) => {
+      const currentMods = modifiedVoxelsMap.get(savedPlanetId);
+      if (currentMods) {
+        savedSnapshot.forEach((savedVal, key) => {
+          if (currentMods.get(key) === savedVal) currentMods.delete(key);
         });
+        if (currentMods.size === 0) modifiedVoxelsMap.delete(savedPlanetId);
       }
+      qc.invalidateQueries({ queryKey: ["/api/freeball/builds", savedPlanetId] });
     },
   });
 
@@ -1147,19 +1488,16 @@ export default function FreeballPage() {
     },
   });
 
-  const handleSave = useCallback((chunks: { cx: number; cy: number; cz: number; data: Uint8Array }[], currentPlanetId: number, crystals: number) => {
-    if (chunks.length > 0) saveMutation.mutate(chunks);
+  const handleSave = useCallback((modified: Map<string, number>, currentPlanetId: number, crystals: number) => {
+    if (modified.size > 0) saveMutation.mutate({ modified, planetId: currentPlanetId });
     progressMutation.mutate({ currentPlanetId, inventory: { crystals } });
   }, []);
 
   const handleManualSave = useCallback(() => {
-    const toSave: { cx: number; cy: number; cz: number; data: Uint8Array }[] = [];
-    worldChunks.forEach((data, key) => {
-      const [cx, cz] = key.split(",").map(Number);
-      toSave.push({ cx, cy: 0, cz, data });
-    });
-    if (toSave.length > 0) saveMutation.mutate(toSave);
-    if (activePlanetId) progressMutation.mutate({ currentPlanetId: activePlanetId, inventory: { crystals: crystalsCollected } });
+    if (!activePlanetId) return;
+    const mods = modifiedVoxelsMap.get(activePlanetId);
+    if (mods && mods.size > 0) saveMutation.mutate({ modified: new Map(mods), planetId: activePlanetId });
+    progressMutation.mutate({ currentPlanetId: activePlanetId, inventory: { crystals: crystalsCollected } });
   }, [activePlanetId, crystalsCollected]);
 
   const handlePositionUpdate = useCallback((x: number, y: number, z: number) => {
@@ -1175,14 +1513,12 @@ export default function FreeballPage() {
     setCrystalsCollected(count);
     useGameStore.getState().setCrystalsCollected(count);
     if (count >= CRYSTAL_CRAFT_AMOUNT && !progress?.unlockedSphere) {
-      // Persist crystals to DB first, then unlock once inventory is authoritative
       apiRequest("PATCH", "/api/freeball/progress", {
         inventory: { crystals: count },
         ...(activePlanetId ? { currentPlanetId: activePlanetId } : {}),
       }).then(() => {
         unlockSphereMutation.mutate();
       }).catch(() => {
-        // If persist fails, still attempt unlock — server will recheck DB
         unlockSphereMutation.mutate();
       });
     }
@@ -1193,21 +1529,23 @@ export default function FreeballPage() {
   }, []);
 
   const handleUnlockSphere = useCallback(() => {
-    // Both crafting (crystals) and buying (Sparks) route through the server endpoint,
-    // which validates the unlock conditions and debits the appropriate resource.
     unlockSphereMutation.mutate();
     setPaused(false);
   }, []);
 
-  const handlePlanetSwitch = useCallback((planet: Planet) => {
-    const idx = planets.findIndex((p) => p.id === planet.id);
-    if (idx === -1) return;
-    worldChunks.clear();
-    dirtyChunks.clear();
-    setActivePlanetIndex(idx);
+  const handlePlanetSwitch = useCallback((newIndex: number) => {
+    if (newIndex < 0 || newIndex >= planets.length) return;
+    if (activePlanetId) {
+      const mods = modifiedVoxelsMap.get(activePlanetId);
+      if (mods && mods.size > 0) saveMutation.mutate({ modified: new Map(mods), planetId: activePlanetId });
+    }
+    const planet = planets[newIndex];
+    planetDataCache.delete(planet.id);
+    planetBuildsApplied.delete(planet.id);
+    setActivePlanetIndex(newIndex);
     progressMutation.mutate({ currentPlanetId: planet.id });
     qc.invalidateQueries({ queryKey: ["/api/freeball/builds", planet.id] });
-  }, [planets]);
+  }, [planets, activePlanetId]);
 
   if (!user) {
     return (
@@ -1219,19 +1557,17 @@ export default function FreeballPage() {
 
   return (
     <div className="fixed inset-0 bg-black z-[100]" data-testid="freeball-page">
-      {activePlanet && (
+      {activePlanet && planets.length > 0 && (
         <Canvas
           className="w-full h-full"
-          camera={{ fov: 75, near: 0.1, far: 500, position: [8, 20, 8] }}
+          camera={{ fov: 75, near: 0.1, far: 1000, position: [0, (PLANET_RADIUS + 5) * VOXEL_SCALE, 0] }}
           gl={{ antialias: false }}
           shadows
           onContextMenu={(e) => e.preventDefault()}
         >
           <Scene
-            planet={activePlanet}
-            planetIndex={activePlanetIndex}
-            secondPlanet={secondPlanet}
-            secondPlanetIndex={activePlanetIndex === 0 ? 1 : 0}
+            planets={planets}
+            activePlanetIndex={activePlanetIndex}
             progress={progress ?? { userId: "", currentPlanetId: null, sparksSpent: 0, unlockedSphere: false, inventory: {} }}
             savedBuilds={savedBuilds}
             otherPlayers={otherPlayers}

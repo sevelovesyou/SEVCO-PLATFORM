@@ -11,8 +11,10 @@ interface AuthRequest extends Request {
 }
 
 const CANONICAL_PLANETS = [
-  { name: "Verdania", seed: 42, type: "earth", size: 200 },
-  { name: "Cratera", seed: 137, type: "moon", size: 120 },
+  { name: "Verdania", seed: 42, type: "verdania", size: 200 },
+  { name: "Cratera", seed: 137, type: "desert", size: 150 },
+  { name: "Glacius", seed: 256, type: "ice", size: 180 },
+  { name: "Xenara", seed: 789, type: "alien", size: 160 },
 ];
 
 interface PlanetRow {
@@ -43,13 +45,16 @@ function mapProgress(r: ProgressRow) {
 }
 
 async function ensurePlanetsSeeded(): Promise<{ id: number; name: string; seed: number; type: string; size: number; ownerUserId: string | null }[]> {
-  // Always seed and return exactly the two canonical planets in order
+  // Always seed and return exactly the four canonical planets in order
   const result: { id: number; name: string; seed: number; type: string; size: number; ownerUserId: string | null }[] = [];
   for (const p of CANONICAL_PLANETS) {
     const existing = await pool.query<PlanetRow>(`SELECT * FROM galaxy_planets WHERE name = $1`, [p.name]);
     if (existing.rows.length > 0) {
       const r = existing.rows[0];
-      result.push({ id: r.id, name: r.name, seed: r.seed, type: r.type, size: r.size, ownerUserId: r.owner_user_id });
+      if (r.type !== p.type || r.seed !== p.seed || r.size !== p.size) {
+        await pool.query(`UPDATE galaxy_planets SET type = $1, seed = $2, size = $3 WHERE id = $4`, [p.type, p.seed, p.size, r.id]);
+      }
+      result.push({ id: r.id, name: r.name, seed: p.seed, type: p.type, size: p.size, ownerUserId: r.owner_user_id });
     } else {
       const ins = await pool.query<PlanetRow>(
         `INSERT INTO galaxy_planets (name, seed, type, size) VALUES ($1, $2, $3, $4) RETURNING *`,
@@ -192,7 +197,7 @@ router.post("/builds/:planetId", requireAuth, async (req, res) => {
       `INSERT INTO user_voxel_builds (user_id, planet_id, chunk_x, chunk_y, chunk_z, voxel_data)
        VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (user_id, planet_id, chunk_x, chunk_y, chunk_z)
-       DO UPDATE SET voxel_data = EXCLUDED.voxel_data`,
+       DO UPDATE SET voxel_data = user_voxel_builds.voxel_data::jsonb || EXCLUDED.voxel_data::jsonb`,
       [userId, planetId, chunkX, chunkY, chunkZ, JSON.stringify(voxelData)]
     );
     res.json({ ok: true });

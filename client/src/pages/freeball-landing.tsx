@@ -109,7 +109,7 @@ export default function FreeBallLandingPage() {
           </div>
 
           <h1
-            className="text-5xl sm:text-7xl md:text-8xl font-black tracking-tighter mb-4 leading-none select-none"
+            className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-4 leading-none select-none"
             style={{
               background: "linear-gradient(135deg, #7dd3fc 0%, #3b82f6 40%, #a855f7 80%, #ec4899 100%)",
               WebkitBackgroundClip: "text",
@@ -122,9 +122,11 @@ export default function FreeBallLandingPage() {
             FREEBALL
           </h1>
 
-          <p className="mt-4 text-base sm:text-lg text-white/60 max-w-2xl mx-auto leading-relaxed" data-testid="hero-tagline">
+          <p className="mt-4 text-xl md:text-2xl text-white/70 max-w-2xl mx-auto font-light leading-relaxed" data-testid="hero-tagline">
             Explore alien worlds. Build anything. Leave your mark on shared planets.
-            A browser-based voxel space game woven into the SEVCO platform — no download, no setup.
+          </p>
+          <p className="mt-2 text-sm text-white/40 max-w-xl mx-auto">
+            A browser-based voxel space exploration game built on the SEVCO platform — part game, part creative sandbox, part social world.
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3" data-testid="hero-ctas">
@@ -202,9 +204,6 @@ export default function FreeBallLandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold text-white">The World</h2>
-            <p className="mt-3 text-sm text-white/50 max-w-xl mx-auto">
-              Every planet is alive. Every build is saved. Every session is shared.
-            </p>
           </div>
           <div className="grid sm:grid-cols-3 gap-5">
             {FEATURE_CARDS.map((card) => (

@@ -885,6 +885,15 @@ export function PlatformHeader() {
     document.documentElement.classList.toggle("nav-hidden", navHidden);
   }, [navHidden]);
 
+  useEffect(() => {
+    const isFreeball = location.startsWith("/freeball");
+    if (isFreeball) {
+      setNavHidden(false);
+    } else {
+      setNavHidden(localStorage.getItem("nav-hidden") === "true");
+    }
+  }, [location]);
+
   const toggleNavHidden = () => {
     setNavHidden((prev) => {
       const next = !prev;

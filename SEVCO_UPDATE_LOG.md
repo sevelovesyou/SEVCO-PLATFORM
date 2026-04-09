@@ -22595,3 +22595,47 @@ This task builds the full resource/inventory system:
 
 ---
 
+## Task — nav-hide-toggle
+> Merged: 2026-04-09
+
+# Nav Hide Toggle — Tools Dropdown
+
+## What & Why
+
+Power users (especially those using Freeball or focused reading on the wiki) want to collapse the nav bar completely for a full-screen feel, while still being able to bring it back without navigating to another page. The toggle lives in the Tools dropdown so it's always one click away.
+
+## Done looks like
+
+- The bottom of the Tools dropdown has a new "Hide navigation" row (with an EyeOff icon) below the existing "View all tools →" link, separated by a thin divider. Clicking it closes the dropdown and hides the nav bar.
+- When the nav is hidden, the header slides out of view upward with a smooth CSS transition (250ms). The body no longer has top padding reserved for the header so page content fills the full viewport.
+- When the nav is hidden, a small fixed floating button appears in the top-right corner of the screen (above all other content, z-index high). It shows a small stylized planet icon (Globe icon with a subtle ring/glow effect — `rounded-full bg-background/80 border border-border/60 shadow-md backdrop-blur-sm`). Hovering shows a tooltip "Show navigation". Clicking it slides the nav back down.
+- The hidden/shown state is saved to `localStorage` under the key `"nav-hidden"` so it persists across page reloads.
+- When the nav is visible again, the Tools dropdown item updates to show "Hide navigation" (EyeOff). There is no "Show" entry in the dropdown since the dropdown itself requires the nav to be visible.
+
+## Out of scope
+
+- Per-route nav visibility (nav is hidden/shown globally regardless of current page).
+- Mobile nav sheet (the hamburger menu on mobile is unaffected — only the desktop header).
+- Any changes to sidebar visibility, sidebars continue to work normally.
+- Backend or database changes.
+
+## Tasks
+
+1. **Nav hidden state** — In `PlatformHeader`, add a `navHidden` boolean state initialized from `localStorage.getItem("nav-hidden") === "true"`. Write a `toggleNavHidden` handler that flips the state and syncs to localStorage. Pass it down as a prop to `ToolsDropdown`.
+
+2. **Tools dropdown hide row** — In `ToolsDropdown`, add an `onHideNav` prop. Below the existing "View all tools →" link, add a thin separator then a button row labeled "Hide navigation" with an `EyeOff` icon (same style as the other icon buttons in the footer area of the dropdown). Clicking it calls `onHideNav()` and closes the dropdown.
+
+3. **Header hide animation** — On the `<header>` element, apply a CSS transition: `transition-transform duration-[250ms] ease-in-out`. When `navHidden` is true, add `translate-y-[-100%]` (or `-translate-y-full`); when false, `translate-y-0`. Also conditionally remove the layout spacer (`h-14` or equivalent padding div below the header in the layout) when hidden so content fills full height.
+
+4. **Floating planet button** — Render a fixed floating button conditionally when `navHidden` is true. Position: `fixed top-2 right-3 z-[200]`. Style: `h-8 w-8 rounded-full bg-background/80 border border-border/60 shadow-lg backdrop-blur-sm flex items-center justify-center hover:scale-110 transition-transform cursor-pointer`. Icon: `Globe` from lucide-react with `h-4 w-4` and a subtle glow via `drop-shadow(0 0 4px hsl(var(--primary)/0.6))` on the icon, or simply use the existing platform logo/icon if available. Wrap in a `Tooltip` showing "Show navigation". Clicking it calls `toggleNavHidden`.
+
+## Relevant files
+
+- `client/src/components/platform-header.tsx:656-795` — `ToolsDropdown` component
+- `client/src/components/platform-header.tsx:849-908` — `PlatformHeader` state setup (add navHidden state here)
+- `client/src/components/platform-header.tsx:951` — `<header>` element (apply transition class here)
+- `client/src/App.tsx` — check if there is a layout spacer div below the header that needs conditional hiding
+
+
+---
+

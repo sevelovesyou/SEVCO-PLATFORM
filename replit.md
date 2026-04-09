@@ -36,6 +36,7 @@ The platform is built with a modern web stack:
         - **News**: An AI-enhanced news feed with trending topics, breaking news, article bookmarking, and personalized preferences.
         - **Jobs**: A job board with application forms and administrative management.
         - **Notes**: Personal note-taking application with search, pinning, and color-coding.
+        - **Freeball** (`/freeball`): A browser-based voxel space exploration game built with Three.js / @react-three/fiber. Features procedural chunked terrain (simplex-noise), first-person WASD + PointerLock controls, voxel break/place, day/night cycle (Sky/Stars), the SEVCO SPHERE vehicle (Sparks shop unlock or Crystal crafting), multiplayer presence polling, global in-game chat, auto-save to DB, and a dark HUD overlay. New DB tables: `galaxy_planets`, `user_voxel_builds`, `user_galaxy_progress`. New API: `/api/freeball/*` (planets, progress, builds, unlock-sphere, chat, presence).
     - **Sparks Economy**: Platform currency with content sparking (posts, wiki articles, gallery images), spark notifications, and a public leaderboard at `/sparks/leaderboard`. The `content_sparks` table tracks who sparked what. Notifications of type `"spark"` get yellow ⚡ styling in the dropdown and a pulse animation on the bell icon.
 
 ## External Dependencies
@@ -49,3 +50,4 @@ The platform is built with a modern web stack:
 - **AI Services**: Grok AI (for news summarization, image generation, etc.)
 - **Hosting Management**: Hostinger API (for VPS, domains, catalog, WHOIS)
 - **Frontend Libraries**: React, Vite, TailwindCSS, Shadcn UI, Wouter, TanStack Query
+- **3D / Game Engine**: Three.js, @react-three/fiber, @react-three/drei, @react-three/rapier, simplex-noise, zustand (used by Freeball)

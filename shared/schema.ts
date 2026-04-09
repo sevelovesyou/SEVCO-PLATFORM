@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, serial, timestamp, jsonb, boolean, real, pgEnum, uniqueIndex, index, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, serial, timestamp, jsonb, boolean, real, pgEnum, uniqueIndex, index, primaryKey, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -1166,3 +1166,45 @@ export const contentSparks = pgTable("content_sparks", {
 export const insertContentSparkSchema = createInsertSchema(contentSparks).omit({ id: true, createdAt: true });
 export type ContentSpark = typeof contentSparks.$inferSelect;
 export type InsertContentSpark = z.infer<typeof insertContentSparkSchema>;
+
+// Task #285 — Freeball voxel space game
+
+export const galaxyPlanets = pgTable("galaxy_planets", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  seed: integer("seed").notNull(),
+  type: text("type").notNull(),
+  size: integer("size").notNull(),
+  ownerUserId: varchar("owner_user_id").references(() => users.id, { onDelete: "set null" }),
+});
+
+export const userVoxelBuilds = pgTable("user_voxel_builds", {
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  planetId: integer("planet_id").notNull().references(() => galaxyPlanets.id, { onDelete: "cascade" }),
+  chunkX: integer("chunk_x").notNull(),
+  chunkY: integer("chunk_y").notNull(),
+  chunkZ: integer("chunk_z").notNull(),
+  voxelData: jsonb("voxel_data").notNull(),
+}, (t) => [
+  primaryKey({ name: "user_voxel_builds_pk", columns: [t.userId, t.planetId, t.chunkX, t.chunkY, t.chunkZ] }),
+]);
+
+export const userGalaxyProgress = pgTable("user_galaxy_progress", {
+  userId: varchar("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  currentPlanetId: integer("current_planet_id").references(() => galaxyPlanets.id, { onDelete: "set null" }),
+  sparksSpent: integer("sparks_spent").notNull().default(0),
+  unlockedSphere: boolean("unlocked_sphere").notNull().default(false),
+  inventory: jsonb("inventory").notNull().default({}),
+});
+
+export const insertGalaxyPlanetSchema = createInsertSchema(galaxyPlanets).omit({ id: true });
+export type GalaxyPlanet = typeof galaxyPlanets.$inferSelect;
+export type InsertGalaxyPlanet = z.infer<typeof insertGalaxyPlanetSchema>;
+
+export const insertUserVoxelBuildSchema = createInsertSchema(userVoxelBuilds);
+export type UserVoxelBuild = typeof userVoxelBuilds.$inferSelect;
+export type InsertUserVoxelBuild = z.infer<typeof insertUserVoxelBuildSchema>;
+
+export const insertUserGalaxyProgressSchema = createInsertSchema(userGalaxyProgress);
+export type UserGalaxyProgress = typeof userGalaxyProgress.$inferSelect;
+export type InsertUserGalaxyProgress = z.infer<typeof insertUserGalaxyProgressSchema>;

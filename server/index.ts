@@ -436,6 +436,32 @@ async function runStartupMigrations() {
     console.warn('[startup] sevco-platform category not found — skipped feature article re-categorization');
   }
 
+  // Task #285 — Freeball voxel space game
+  await pool.query(`CREATE TABLE IF NOT EXISTS galaxy_planets (
+    id SERIAL PRIMARY KEY,
+    name text NOT NULL,
+    seed integer NOT NULL,
+    type text NOT NULL,
+    size integer NOT NULL,
+    owner_user_id varchar REFERENCES users(id) ON DELETE SET NULL
+  );`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS user_voxel_builds (
+    user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    planet_id integer NOT NULL REFERENCES galaxy_planets(id) ON DELETE CASCADE,
+    chunk_x integer NOT NULL,
+    chunk_y integer NOT NULL,
+    chunk_z integer NOT NULL,
+    voxel_data jsonb NOT NULL,
+    PRIMARY KEY (user_id, planet_id, chunk_x, chunk_y, chunk_z)
+  );`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS user_galaxy_progress (
+    user_id varchar PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    current_planet_id integer REFERENCES galaxy_planets(id) ON DELETE SET NULL,
+    sparks_spent integer NOT NULL DEFAULT 0,
+    unlocked_sphere boolean NOT NULL DEFAULT false,
+    inventory jsonb NOT NULL DEFAULT '{}'
+  );`);
+
   console.log("[startup] migrations applied");
 }
 

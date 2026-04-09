@@ -176,6 +176,7 @@ function getActiveApp(location: string): string {
   if (location.startsWith("/gallery")) return "/gallery";
   if (location.startsWith("/messages")) return "/messages";
   if (location.startsWith("/tools")) return "/tools";
+  if (location.startsWith("/freeball")) return "/freeball";
   return "";
 }
 
@@ -980,6 +981,24 @@ export function PlatformHeader() {
           <MusicDropdown isActive={activeApp === "/music"} />
           <ProjectsDropdown isActive={activeApp === "/projects"} />
 
+          {user && (
+            <Link href="/freeball">
+              <Button
+                variant={activeApp === "/freeball" ? "secondary" : "ghost"}
+                size="sm"
+                className={`gap-1.5 h-8 text-xs font-medium ${
+                  activeApp === "/freeball"
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                data-testid="nav-freeball"
+              >
+                <Globe className="h-3.5 w-3.5" />
+                Freeball
+              </Button>
+            </Link>
+          )}
+
           {canAccessCMD && (
             <Link href="/command">
               <Button
@@ -1292,6 +1311,7 @@ export function PlatformHeader() {
             <CollapsibleContent>
               <div className="pl-4 space-y-0.5 py-1">
                 {[
+                  { label: "Freeball", href: "/freeball",       testId: "mobile-nav-tools-freeball", requiredRoles: ["user","client","partner","staff","executive","admin"] },
                   { label: "Notes",   href: "/notes",          testId: "mobile-nav-tools-notes",   requiredRoles: ["user","client","partner","staff","executive","admin"] },
                   { label: "Tasks",   href: "/tools/tasks",   testId: "mobile-nav-tools-tasks",   requiredRoles: ["user","client","partner","staff","executive","admin"] },
                   { label: "Domains", href: "/tools/domains", testId: "mobile-nav-tools-domains", requiredRoles: ["user","client","partner","staff","executive","admin"] },

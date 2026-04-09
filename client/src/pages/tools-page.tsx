@@ -10,6 +10,7 @@ import {
   Mail,
   Wand2,
   Globe,
+  Orbit,
   ChevronDown,
   Lock,
   Wrench,
@@ -29,6 +30,23 @@ interface Tool {
 }
 
 const TOOLS: Tool[] = [
+  {
+    name: "Freeball",
+    href: "/freeball",
+    icon: Orbit,
+    description: "A browser-based voxel space exploration game. Build with blocks, unlock the SEVCO SPHERE, and travel between planets.",
+    features: [
+      "Procedural voxel terrain",
+      "Build & destroy blocks",
+      "Unlock the SEVCO SPHERE",
+      "Explore 2 planets",
+    ],
+    accessLabel: "Free with account",
+    accessVariant: "free",
+    requiredRoles: ["user", "client", "partner", "staff", "executive", "admin"],
+    accentColor: "hover:shadow-blue-500/20",
+    glowColor: "group-hover:border-blue-500/40",
+  },
   {
     name: "Notes",
     href: "/notes",

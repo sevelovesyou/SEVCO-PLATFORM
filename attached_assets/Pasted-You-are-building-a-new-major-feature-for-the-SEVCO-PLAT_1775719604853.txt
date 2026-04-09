@@ -1,0 +1,76 @@
+You are building a new major feature for the SEVCO PLATFORM called **Freeball** — a browser-based, voxel survival space exploration game.
+
+**Overall Vision (MVP scope for this run):**
+- Finite galaxy with **1 sun + exactly 2 procedural planets** (Planet 1 = starting Earth-like world with continents; Planet 2 = smaller, different biome moon/planet).
+- Player starts **on foot** on Planet 1 in survival mode (humanoid character, higher-resolution voxels than classic Minecraft).
+- Gather resources, craft, build/destroy detailed voxels on planetary surfaces.
+- Unlock the **SEVCO SPHERE** spherical vehicle for smooth planetary flight and quick travel between the two planets.
+- Beautiful Cosmos-Journeyer-style visuals: realistic solar lighting, lens flare/glare, day/night cycle, infinite space feel with floating-origin.
+- Use existing SEVCO auth, Sparks currency, and Tailwind theme.
+- Multiplayer scaffolding: real-time player positions/names visible + global in-game chat (full co-building/fighting in future runs).
+
+**Technical Requirements (add these exactly):**
+- Install via npm: three @react-three/fiber @react-three/drei @react-three/rapier simplex-noise zustand
+- Use React + Vite + existing Tailwind setup.
+- Add new route: `/freeball` (protected with requireAuth middleware, only for logged-in users).
+- Create new page component: `client/src/pages/Freeball.tsx`
+- Update `shared/schema.ts` with these new tables (use Drizzle):
+  - `galaxy_planets` (id, name, seed, type, size, ownerUserId nullable)
+  - `user_voxel_builds` (userId, planetId, chunkX, chunkY, chunkZ, voxelData jsonb)
+  - `user_galaxy_progress` (userId, currentPlanetId, sparksSpent, unlockedSphere boolean default false, inventory jsonb)
+- Add server routes in `server/routes.ts` or new file for save/load builds and progress.
+- Reuse existing Sparks system for in-game shop (buy special blocks, fuel, etc.).
+
+**Step-by-step implementation order the Agent must follow:**
+
+1. Update `shared/schema.ts` with the three new tables above + relations. Export all Insert/Select types.
+
+2. Add the new protected route `/freeball` in the router.
+
+3. Create the main page `client/src/pages/Freeball.tsx` with:
+   - Fullscreen Three.js canvas via @react-three/fiber.
+   - Scene: 1 bright sun (point light + lens flare), 2 procedural planets (different seeds/sizes/biomes).
+   - Player starts on Planet 1 surface, on foot (humanoid voxel character with simple animations).
+   - First-person controls (WASD + mouse look + jump + sprint).
+   - Voxel terrain system on each planet surface (chunked, greedy meshing, face-snapping placement).
+   - Hotbar (1-9 keys) with 12 themed blocks (SEVCO-blue metal, crystal, music node, project logo, grass/dirt/stone, glass, etc.).
+   - Left click = destroy, right click = place.
+   - Basic survival: inventory, simple crafting (wood → tools → better blocks).
+
+4. Add SEVCO SPHERE vehicle:
+   - Unlockable via simple crafting or Sparks purchase.
+   - Enter/exit vehicle mode.
+   - Newtonian flight physics (different speed for low-altitude planetary vs interplanetary travel between the two planets).
+   - Smooth seamless transition from surface to space and between planets.
+
+5. Lighting & visuals:
+   - Realistic sun lighting with glare/lens flare.
+   - Procedural skybox + atmosphere.
+   - Day/night cycle on planets.
+   - High-quality voxel rendering with proper shadows where possible.
+
+6. Persistence & integration:
+   - Auto-save voxel builds and player progress every 45 seconds + manual save.
+   - Load last planet + builds on enter.
+   - Integrate existing Sparks: simple in-game shop panel to buy premium blocks/fuel.
+
+7. Multiplayer scaffolding:
+   - Use Supabase Realtime to show other logged-in players as simple avatars with usernames.
+   - In-game global chat panel (send/receive messages visible to everyone in the galaxy).
+   - Player list sidebar showing who is on which planet.
+
+8. UI/Polish:
+   - Clean dark HUD matching SEVCO brand (crosshair, hotbar, speed/altitude, Sparks balance).
+   - Esc = pause menu (save, shop, exit to platform, settings).
+   - Third-person toggle for character/Sphere.
+   - Responsive + keyboard shortcuts documented.
+   - All in-game text and branding should refer to the game as **Freeball**.
+
+9. Performance:
+   - Use floating origin to keep precision.
+   - Chunk loading/unloading.
+   - Reasonable draw distance (keep it smooth on Replit).
+
+After building, test the full flow: login → /freeball → walk around Planet 1 → build something → craft/unlock Sphere → fly to Planet 2 → build there → see other players/chat if possible.
+
+Make everything production-grade, well-commented, and ready for future expansions (more planets, full authoritative multiplayer, resource scarcity).

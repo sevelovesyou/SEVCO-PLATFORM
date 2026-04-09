@@ -92,6 +92,7 @@ import {
   Wand2,
   Lock,
   Drum,
+  EyeOff,
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { ChatSheet } from "@/components/chat-sheet";
@@ -661,6 +662,7 @@ function ToolsDropdown({
   onSoundToggle,
   volume,
   onVolumeChange,
+  onHideNav,
 }: {
   isActive: boolean;
   onSearchOpen: () => void;
@@ -669,6 +671,7 @@ function ToolsDropdown({
   onSoundToggle: () => void;
   volume: number;
   onVolumeChange: (v: number) => void;
+  onHideNav: () => void;
 }) {
   const { open, setOpen, ref } = useDropdown();
   const { user } = useAuth();
@@ -787,6 +790,17 @@ function ToolsDropdown({
               <Link href="/tools" onClick={() => setOpen(false)} data-testid="dropdown-tools-view-all">
                 <p className="text-[10px] text-muted-foreground/60 italic hover:text-muted-foreground transition-colors">View all tools →</p>
               </Link>
+
+              <div className="border-t border-border/60 mt-1.5 pt-1.5">
+                <button
+                  className="w-full text-left flex items-center gap-2 px-1 py-1 rounded-md hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
+                  data-testid="dropdown-tools-hide-nav"
+                  onClick={() => { setOpen(false); onHideNav(); }}
+                >
+                  <EyeOff className="h-3.5 w-3.5 text-muted-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
+                  <span className="text-[10px] text-muted-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">Hide navigation</span>
+                </button>
+              </div>
             </div>
           </div>
         </DropdownPanel>
@@ -864,6 +878,16 @@ export function PlatformHeader() {
     WIKI_PREFIXES.some((p) => location === p || location.startsWith(p)) ||
     location === "/command" || location.startsWith("/command/")
   );
+
+  const [navHidden, setNavHidden] = useState(() => localStorage.getItem("nav-hidden") === "true");
+
+  const toggleNavHidden = () => {
+    setNavHidden((prev) => {
+      const next = !prev;
+      localStorage.setItem("nav-hidden", String(next));
+      return next;
+    });
+  };
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSection, setMobileSection] = useState<string | null>(null);
@@ -948,8 +972,11 @@ export function PlatformHeader() {
 
   return (
     <>
+    <div
+      className={`transition-[max-height] duration-[250ms] ease-in-out overflow-hidden${navHidden ? " max-h-0" : " max-h-16"}`}
+    >
     <header
-      className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm"
+      className={`sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm transition-transform duration-[250ms] ease-in-out${navHidden ? " -translate-y-full" : " translate-y-0"}`}
       data-testid="platform-header"
       role="banner"
     >
@@ -1092,6 +1119,7 @@ export function PlatformHeader() {
             }}
             volume={volume}
             onVolumeChange={setVolume}
+            onHideNav={toggleNavHidden}
           />
 
           {/* Cart button */}
@@ -1410,9 +1438,31 @@ export function PlatformHeader() {
         </SheetContent>
       </Sheet>
     </header>
+    </div>
 
     <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
     <ChatSheet open={chatOpen} onClose={() => setChatOpen(false)} />
+
+    {navHidden && (
+      <TooltipProvider delayDuration={400}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              className="fixed top-2 right-3 z-[200] h-8 w-8 rounded-full bg-background/80 border border-border/60 shadow-lg backdrop-blur-sm flex items-center justify-center hover:scale-110 transition-transform cursor-pointer"
+              onClick={toggleNavHidden}
+              data-testid="button-show-nav"
+              aria-label="Show navigation"
+            >
+              <Globe
+                className="h-4 w-4"
+                style={{ filter: "drop-shadow(0 0 4px hsl(var(--primary) / 0.6))" }}
+              />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Show navigation</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )}
     </>
   );
 }

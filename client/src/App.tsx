@@ -108,6 +108,7 @@ import NewsPage from "@/pages/news-page";
 import WikifyToolPage from "@/pages/wikify-tool-page";
 import ToolsPage from "@/pages/tools-page";
 import FreeballPage from "@/pages/freeball";
+import FreeBallLandingPage from "@/pages/freeball-landing";
 import PlatformPage from "@/pages/platform-page";
 import MessagesPage from "@/pages/messages-page";
 import FullscreenChatPage from "@/pages/fullscreen-chat-page";
@@ -361,7 +362,8 @@ function Router() {
       <Route path="/tools/tasks" component={() => <ProtectedRoute><TasksPage /></ProtectedRoute>} />
       <Route path="/wikify" component={() => <ProtectedRoute requiredRole={["partner", "staff", "executive", "admin"]}><WikifyToolPage /></ProtectedRoute>} />
       <Route path="/tools" component={ToolsPage} />
-      <Route path="/freeball" component={() => <ProtectedRoute><FreeballPage /></ProtectedRoute>} />
+      <Route path="/freeball" component={FreeBallLandingPage} />
+      <Route path="/freeball/play" component={() => <ProtectedRoute><FreeballPage /></ProtectedRoute>} />
       <Route path="/gallery" component={GalleryPage} />
       <Route path="/command/gallery" component={() => (
         <ProtectedRoute requiredRole="admin">

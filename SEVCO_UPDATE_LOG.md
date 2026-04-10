@@ -22665,3 +22665,37 @@ When a user has previously hidden the nav bar, it stays hidden even when they na
 
 ---
 
+## Task — fix-sticky-header-and-tooltips
+> Merged: 2026-04-10
+
+# Fix Sticky Header & Hidden Tooltips
+
+## What & Why
+The nav-hide feature wraps the `<header>` in an outer `<div>` with `overflow-hidden` and `max-h-0|max-h-16`. This single wrapper causes two separate bugs:
+
+1. **Sticky header scrolls away** — `position: sticky` breaks when any ancestor between the sticky element and the scroll container has `overflow` set to anything other than `visible`. The outer wrapper becomes the implicit scroll container, so the header can't stick.
+
+2. **Tooltips hidden** — The `overflow-hidden` outer wrapper clips the tooltip trigger area and can interfere with tooltip visibility, particularly for tooltips inside the header (Tools button, Notifications, Cart, Menu, etc.).
+
+## Done looks like
+- The platform header sticks at the top of the viewport while scrolling when the nav is visible
+- Tooltips on all header buttons (Tools, Notifications, Cart, Menu, etc.) appear correctly on hover
+- The nav-hide animation still works smoothly (header collapses to 0 height and re-expands)
+- The floating "Show navigation" restore button continues to work when the nav is hidden
+- Sidebar positioning is unaffected
+
+## Out of scope
+- Changes to sidebar layout or App.tsx
+- Changes to tooltip styles or z-index values
+
+## Tasks
+1. **Remove the outer overflow-hidden wrapper** — Delete the wrapping `<div>` with `transition-[max-height] overflow-hidden max-h-0|max-h-16` that surrounds the `<header>` element (around line 988–990 and its closing tag).
+
+2. **Move collapse animation to the header itself** — Apply the height-collapse transition directly on the `<header>`: use `overflow-hidden transition-[height] duration-[250ms] ease-in-out` with `h-0` (hidden) or `h-12` (visible) toggled by `navHidden`. `overflow-hidden` on the sticky element itself does not break sticky positioning. Radix tooltip content renders via portal to `document.body` so it is not clipped by the header's own `overflow-hidden`.
+
+## Relevant files
+- `client/src/components/platform-header.tsx:986-995,1459-1477`
+
+
+---
+

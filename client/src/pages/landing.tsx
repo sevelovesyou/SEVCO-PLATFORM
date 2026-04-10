@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { ShaderBackground } from "@/components/shader-background";
 import { StaggerGrid } from "@/components/stagger-grid";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -230,6 +231,19 @@ export default function Landing() {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const mouseRef = useRef<[number, number]>([0, 0]);
+  const prefersReducedMotion = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }, []);
+  const [heroScrollY, setHeroScrollY] = useState(0);
+
+  useEffect(() => {
+    const onScroll = () => setHeroScrollY(Math.min(window.scrollY, 500));
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const handleCopyWallpaperLink = useCallback((url: string) => {
     const absoluteUrl = url.startsWith("http") ? url : `${window.location.origin}${url}`;
     navigator.clipboard.writeText(absoluteUrl).then(() => {
@@ -410,37 +424,70 @@ export default function Landing() {
         }}
       />
 
-      {/* ── HERO — glassmorphism + aurora blobs ── */}
+      {/* ── HERO — GLSL shader background ── */}
       <section
-        className="relative overflow-hidden bg-[#07070f] text-white min-h-[90vh] flex items-center"
-        style={heroBgUrl ? {
-          backgroundImage: `url(${resolveImageUrl(heroBgUrl)})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        } : undefined}
+        className="relative overflow-hidden bg-[#07070f] text-white min-h-screen flex items-center"
         data-testid="section-hero"
+        onPointerMove={(e) => {
+          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          mouseRef.current = [
+            ((e.clientX - rect.left) / rect.width) * 2 - 1,
+            -(((e.clientY - rect.top) / rect.height) * 2 - 1),
+          ];
+        }}
       >
-        {/* Aurora blobs */}
-        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full bg-red-700/25 blur-[140px] motion-safe:animate-[pulse_8s_ease-in-out_infinite]" />
-          <div className="absolute -bottom-32 -right-40 w-[600px] h-[600px] rounded-full bg-indigo-600/20 blur-[140px] motion-safe:animate-[pulse_10s_ease-in-out_infinite_2s]" />
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[300px] rounded-full bg-red-900/15 blur-[100px] motion-safe:animate-[pulse_12s_ease-in-out_infinite_4s]" />
-        </div>
+        {/* Shader background — replaces aurora blobs */}
+        {!prefersReducedMotion && !heroBgUrl ? (
+          <ShaderBackground
+            mouse={mouseRef}
+            className="absolute inset-0 w-full h-full"
+          />
+        ) : (
+          /* Reduced-motion or custom bg fallback — static gradient */
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={heroBgUrl ? {
+              backgroundImage: `url(${resolveImageUrl(heroBgUrl)})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            } : {
+              background: "radial-gradient(ellipse 80% 60% at 20% 30%, rgba(190,0,7,0.28) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 70%, rgba(28,84,224,0.22) 0%, transparent 55%), #07071a",
+            }}
+            aria-hidden="true"
+          />
+        )}
 
-        {/* Subtle grid overlay */}
+        {/* Overlay: semi-transparent gradient to keep text readable over the shader */}
         <div
-          className="absolute inset-0 pointer-events-none opacity-[0.03]"
+          className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage:
-              "linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
-            backgroundSize: "56px 56px",
+            background: heroBgUrl
+              ? `rgba(7,7,15,${heroOverlayOpacity})`
+              : "linear-gradient(135deg, rgba(7,7,26,0.72) 0%, rgba(7,7,15,0.42) 50%, rgba(7,7,26,0.68) 100%)",
           }}
           aria-hidden="true"
         />
 
-        {heroBgUrl && <div className="absolute inset-0 bg-[#07070f] pointer-events-none" style={{ opacity: heroOverlayOpacity }} />}
+        {/* Subtle dot-grid texture */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+            maskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%)",
+          }}
+          aria-hidden="true"
+        />
 
-        <div className="relative z-10 max-w-6xl mx-auto px-6 py-20 md:py-32 w-full">
+        {/* Content — fades + rises gently on scroll */}
+        <div
+          className="relative z-10 max-w-6xl mx-auto px-6 py-24 md:py-36 w-full"
+          style={{
+            opacity: Math.max(0, 1 - heroScrollY / 380),
+            transform: `translateY(${heroScrollY * 0.12}px)`,
+            willChange: "opacity, transform",
+          }}
+        >
           <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
             {/* Left — headline + CTAs */}
             <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left gap-6">

@@ -27,6 +27,7 @@ import bcrypt from "bcryptjs";
 import * as hostinger from "./hostinger";
 import { registerSpotifyRoutes } from "./spotify";
 import { registerWikifyToolRoutes } from "./wikify-tool";
+import { registerLensProxy } from "./lens-proxy";
 import { freeballRouter } from "./freeball-routes";
 import { sitesRouter } from "./sites-routes";
 import {
@@ -4496,6 +4497,7 @@ export async function registerRoutes(
 
   registerSpotifyRoutes(app);
   registerWikifyToolRoutes(app);
+  registerLensProxy(app);
   app.use("/api/freeball", freeballRouter);
   app.use("/api/sites", sitesRouter);
 

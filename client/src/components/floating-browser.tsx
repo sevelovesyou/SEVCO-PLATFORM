@@ -7,6 +7,10 @@ import {
 } from "lucide-react";
 import { useLens } from "@/contexts/lens-context";
 
+function proxyUrl(url: string): string {
+  return `/api/lens/proxy?url=${encodeURIComponent(url)}`;
+}
+
 function normalizeUrl(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed) return "https://sevco.us";
@@ -53,7 +57,7 @@ export function FloatingBrowser() {
     if (!isLoading) return;
     const t = setTimeout(() => {
       setSlowLoad(true);
-    }, 12000);
+    }, 5000);
     return () => clearTimeout(t);
   }, [isLoading, loadedUrl]);
 
@@ -337,7 +341,7 @@ export function FloatingBrowser() {
 
             <iframe
               key={`${loadedUrl}-${refreshKey}`}
-              src={loadedUrl}
+              src={proxyUrl(loadedUrl)}
               className="w-full h-full border-none"
               sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-downloads"
               referrerPolicy="strict-origin-when-cross-origin"

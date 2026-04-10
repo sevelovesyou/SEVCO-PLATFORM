@@ -1,0 +1,18 @@
+ Add a brand new creative tool to the SEVCO PLATFORM called **SEVCO Canvas** at the exact route `/canvas`.
+
+It must be a full-screen infinite canvas graphic editor that perfectly matches the clean, open, dark dotted-grid aesthetic shown in the current CanvasHTML prototype screenshot (subtle white dots on dark background, minimal floating UI, spacious and professional feel).
+
+Use **@tldraw/tldraw** (latest version) as the foundation because it delivers true infinite canvas + powerful vector editing out of the box. Heavily customize the UI to match our existing Tailwind dark theme, shadcn/ui components, and the exact SEVCO color palette defined in tailwind.config.ts.
+
+**Must-have features (in priority order):**
+1. Infinite pan/zoom canvas with the exact same subtle dotted grid background as the screenshot.
+2. Left toolbar: Select tool, Hand (pan), Rectangle, Ellipse, Arrow, Text, Image upload, Pen/Brush, and a prominent **AI Generate** button at the top of the toolbar.
+3. Right properties panel (slides in when any object is selected): fill/stroke color pickers using our theme colors, opacity, shadows, gradients, text styling (fonts from our theme, sizes, alignment), layer order controls.
+4. Top bar: SEVCO Canvas logo/title on the left, New Project, Save, Load, Undo/Redo, Export (PNG, SVG, PDF, JSON), and Share button.
+5. Deep inference.sh integration: the AI Generate button opens a clean prompt modal, runs `infsh app run falai/flux-dev-lora` (or the best available high-quality model), and automatically places the generated image as a fully editable object on the canvas.
+6. Light image editing: when an image is selected, show quick controls in the properties panel (brightness, contrast, saturation, crop, flip, basic filters).
+7. Full vector/logo creation power: shapes, text, grouping, alignment tools, boolean operations if available, path editing.
+8. Auto-save projects to Supabase: create a new table `canvas_projects` with columns (id, user_id, name, tldraw_json, thumbnail_url, created_at, updated_at). Auto-save every 5 seconds + manual Save button.
+9. Use our existing auth system, layout wrapper, and UI components so it feels 100% native to SEVCO.
+
+Start by installing `@tldraw/tldraw` and any required dependencies, then create the page at `client/src/pages/Canvas.tsx` (or wherever our routing expects it) and add the route `/canvas` to the router. Make the whole experience feel professional, fast, and fun — like a simplified Kittl but with the exact open-canvas vibe from the screenshot.

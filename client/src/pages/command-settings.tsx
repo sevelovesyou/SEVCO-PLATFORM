@@ -23,6 +23,7 @@ import {
   ChevronUp, ChevronDown, Settings2, Layout, Star, BarChart2, CheckCircle2, AlertCircle,
   Mail, Send, Search, X, Sparkles, TrendingUp, FileText, Bot,
 } from "lucide-react";
+import { ShaderSettingsPanel } from "@/components/shader-settings-panel";
 import { Slider } from "@/components/ui/slider";
 import { FileUploadWithFallback } from "@/components/file-upload";
 import type { BrandAsset, InsertBrandAsset, PlatformSocialLink } from "@shared/schema";
@@ -2135,6 +2136,10 @@ export default function CommandSettings() {
                       Save Hero
                     </Button>
                   </div>
+
+                  <Separator />
+
+                  <ShaderSettingsPanel settings={settings} />
                 </CardContent>
               </Card>
 

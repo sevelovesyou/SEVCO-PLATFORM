@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { ShaderHeroBackground } from "@/components/ShaderHeroBackground";
+import { ShaderBackground, PALETTE_PRESETS, type PaletteId } from "@/components/shader-background";
 import { StaggerGrid } from "@/components/stagger-grid";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -335,6 +335,26 @@ export default function Landing() {
   const heroText = settings["hero.text"] || DEFAULT_HERO_TEXT;
   const heroOverlayOpacity = settings["hero.overlayOpacity"] ? parseInt(settings["hero.overlayOpacity"]) / 100 : 0.7;
 
+  const shaderEnabled = settings["hero.shader.enabled"] !== "false";
+  const shaderTimeScale = parseFloat(settings["hero.shader.speed"] ?? "1.0");
+  const shaderMouseStrength = parseFloat(settings["hero.shader.mouseStrength"] ?? "0.5");
+  const shaderNoiseScale = parseFloat(settings["hero.shader.noiseScale"] ?? "1.0");
+  const shaderVignetteStrength = parseFloat(settings["hero.shader.vignetteStrength"] ?? "0.6");
+  const shaderOverlayStrength = parseFloat(settings["hero.shader.overlayStrength"] ?? "0.45");
+  const shaderPalette = (settings["hero.shader.palette"] ?? "cosmic") as PaletteId;
+  const shaderPaletteColors: [string, string, string, string, string] = shaderPalette === "custom"
+    ? [
+        settings["hero.shader.colorBase"]      ?? "#07071a",
+        settings["hero.shader.colorShadow"]    ?? "#1f1066",
+        settings["hero.shader.colorMid"]       ?? "#1c54e0",
+        settings["hero.shader.colorHighlight"] ?? "#be0007",
+        settings["hero.shader.colorPeak"]      ?? "#d93b0c",
+      ]
+    : (() => {
+        const p = PALETTE_PRESETS[shaderPalette as Exclude<PaletteId, "custom">] ?? PALETTE_PRESETS.cosmic;
+        return [p.base, p.shadow, p.mid, p.highlight, p.peak] as [string, string, string, string, string];
+      })();
+
   const btn1Color = settings["hero.button1.color"];
   const btn2Color = settings["hero.button2.color"];
   const btn1IconName = settings["hero.button1.icon"];
@@ -441,14 +461,19 @@ export default function Landing() {
           ];
         }}
       >
-        {/* Shader background */}
-        {!prefersReducedMotion && !heroBgUrl ? (
-          <ShaderHeroBackground
+        {/* Shader background — replaces aurora blobs */}
+        {!prefersReducedMotion && !heroBgUrl && shaderEnabled ? (
+          <ShaderBackground
             mouse={mouseRef}
             isMobile={isMobilePerfMode}
+            timeScale={shaderTimeScale}
+            mouseStrength={shaderMouseStrength}
+            noiseScale={shaderNoiseScale}
+            vignetteStrength={shaderVignetteStrength}
+            paletteColors={shaderPaletteColors}
           />
         ) : (
-          /* Reduced-motion or custom bg fallback — static gradient, no animation */
+          /* Reduced-motion, custom bg, or shader disabled — static gradient */
           <div
             className="absolute inset-0 pointer-events-none"
             style={heroBgUrl ? {
@@ -468,7 +493,7 @@ export default function Landing() {
           style={{
             background: heroBgUrl
               ? `rgba(7,7,15,${heroOverlayOpacity})`
-              : "linear-gradient(to bottom, rgba(7,7,26,0.10) 0%, rgba(7,7,26,0.0) 35%, rgba(7,7,26,0.55) 100%), linear-gradient(to right, rgba(7,7,26,0.40) 0%, transparent 30%, transparent 70%, rgba(7,7,26,0.35) 100%)",
+              : `rgba(7,7,15,${shaderOverlayStrength})`,
           }}
           aria-hidden="true"
         />

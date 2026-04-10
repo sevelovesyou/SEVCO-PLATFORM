@@ -1,0 +1,284 @@
+import { useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { RotateCcw, Zap } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { PALETTE_PRESETS, type PaletteId } from "@/components/shader-background";
+
+export const SHADER_DEFAULTS = {
+  "hero.shader.enabled":         "true",
+  "hero.shader.speed":           "1.0",
+  "hero.shader.mouseStrength":   "0.5",
+  "hero.shader.palette":         "cosmic",
+  "hero.shader.noiseScale":      "1.0",
+  "hero.shader.vignetteStrength":"0.6",
+  "hero.shader.overlayStrength": "0.45",
+  "hero.shader.colorBase":       "#07071a",
+  "hero.shader.colorShadow":     "#1f1066",
+  "hero.shader.colorMid":        "#1c54e0",
+  "hero.shader.colorHighlight":  "#be0007",
+  "hero.shader.colorPeak":       "#d93b0c",
+};
+
+const SPEED_STEPS = [
+  { label: "Slow",    value: 0.25 },
+  { label: "Normal",  value: 1.0  },
+  { label: "Fast",    value: 1.5  },
+  { label: "Blazing", value: 2.0  },
+];
+
+const MOUSE_STEPS = [
+  { label: "Off",    value: 0.0  },
+  { label: "Subtle", value: 0.25 },
+  { label: "Medium", value: 0.5  },
+  { label: "Strong", value: 1.0  },
+];
+
+const NOISE_STEPS = [
+  { label: "Fine",   value: 0.5 },
+  { label: "Medium", value: 1.0 },
+  { label: "Coarse", value: 3.0 },
+];
+
+function snapToStep(val: number, steps: { value: number }[]): number {
+  return steps.reduce((prev, curr) =>
+    Math.abs(curr.value - val) < Math.abs(prev.value - val) ? curr : prev
+  ).value;
+}
+
+function indexOfStep(val: number, steps: { value: number }[]): number {
+  return steps.findIndex((s) => s.value === val) ?? 0;
+}
+
+interface ShaderSettingsPanelProps {
+  settings: Record<string, string>;
+}
+
+export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
+  const { toast } = useToast();
+
+  const mutation = useMutation({
+    mutationFn: async (entries: Record<string, string>) => {
+      return apiRequest("PUT", "/api/platform-settings", entries);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/platform-settings"] });
+      toast({ title: "Shader settings saved" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Save failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  function save(key: string, value: string) {
+    mutation.mutate({ [key]: value });
+  }
+
+  const enabled = settings["hero.shader.enabled"] !== "false";
+  const speed = parseFloat(settings["hero.shader.speed"] ?? SHADER_DEFAULTS["hero.shader.speed"]);
+  const mouseStrength = parseFloat(settings["hero.shader.mouseStrength"] ?? SHADER_DEFAULTS["hero.shader.mouseStrength"]);
+  const palette = (settings["hero.shader.palette"] ?? "cosmic") as PaletteId;
+  const noiseScale = parseFloat(settings["hero.shader.noiseScale"] ?? SHADER_DEFAULTS["hero.shader.noiseScale"]);
+  const vignetteStrength = parseFloat(settings["hero.shader.vignetteStrength"] ?? SHADER_DEFAULTS["hero.shader.vignetteStrength"]);
+  const overlayStrength = parseFloat(settings["hero.shader.overlayStrength"] ?? SHADER_DEFAULTS["hero.shader.overlayStrength"]);
+  const colorBase = settings["hero.shader.colorBase"] ?? SHADER_DEFAULTS["hero.shader.colorBase"];
+  const colorShadow = settings["hero.shader.colorShadow"] ?? SHADER_DEFAULTS["hero.shader.colorShadow"];
+  const colorMid = settings["hero.shader.colorMid"] ?? SHADER_DEFAULTS["hero.shader.colorMid"];
+  const colorHighlight = settings["hero.shader.colorHighlight"] ?? SHADER_DEFAULTS["hero.shader.colorHighlight"];
+  const colorPeak = settings["hero.shader.colorPeak"] ?? SHADER_DEFAULTS["hero.shader.colorPeak"];
+
+  const speedIdx = indexOfStep(snapToStep(speed, SPEED_STEPS), SPEED_STEPS);
+  const mouseIdx = indexOfStep(snapToStep(mouseStrength, MOUSE_STEPS), MOUSE_STEPS);
+  const noiseIdx = indexOfStep(snapToStep(noiseScale, NOISE_STEPS), NOISE_STEPS);
+
+  function resetDefaults() {
+    mutation.mutate({ ...SHADER_DEFAULTS });
+  }
+
+  return (
+    <Accordion type="single" collapsible>
+      <AccordionItem value="shader" className="border rounded-lg px-4">
+        <AccordionTrigger className="py-3 hover:no-underline">
+          <span className="flex items-center gap-2 text-sm font-semibold">
+            <Zap className="h-4 w-4 text-primary" />
+            Shader
+          </span>
+        </AccordionTrigger>
+        <AccordionContent className="pb-4 space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Enable Shader</p>
+              <p className="text-xs text-muted-foreground">When off, a static gradient is shown instead.</p>
+            </div>
+            <Switch
+              checked={enabled}
+              onCheckedChange={(v) => save("hero.shader.enabled", v ? "true" : "false")}
+              data-testid="switch-shader-enabled"
+            />
+          </div>
+
+          <Separator />
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Animation Speed</Label>
+              <span className="text-xs text-muted-foreground">{SPEED_STEPS[speedIdx]?.label ?? "Normal"}</span>
+            </div>
+            <Slider
+              min={0}
+              max={SPEED_STEPS.length - 1}
+              step={1}
+              value={[speedIdx]}
+              onValueChange={([i]) => save("hero.shader.speed", String(SPEED_STEPS[i].value))}
+              data-testid="slider-shader-speed"
+            />
+            <div className="flex justify-between text-[10px] text-muted-foreground">
+              {SPEED_STEPS.map((s) => <span key={s.label}>{s.label}</span>)}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Mouse Sensitivity</Label>
+              <span className="text-xs text-muted-foreground">{MOUSE_STEPS[mouseIdx]?.label ?? "Medium"}</span>
+            </div>
+            <Slider
+              min={0}
+              max={MOUSE_STEPS.length - 1}
+              step={1}
+              value={[mouseIdx]}
+              onValueChange={([i]) => save("hero.shader.mouseStrength", String(MOUSE_STEPS[i].value))}
+              data-testid="slider-shader-mouse"
+            />
+            <div className="flex justify-between text-[10px] text-muted-foreground">
+              {MOUSE_STEPS.map((s) => <span key={s.label}>{s.label}</span>)}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Noise Scale</Label>
+              <span className="text-xs text-muted-foreground">{NOISE_STEPS[noiseIdx]?.label ?? "Medium"}</span>
+            </div>
+            <Slider
+              min={0}
+              max={NOISE_STEPS.length - 1}
+              step={1}
+              value={[noiseIdx]}
+              onValueChange={([i]) => save("hero.shader.noiseScale", String(NOISE_STEPS[i].value))}
+              data-testid="slider-shader-noise"
+            />
+            <div className="flex justify-between text-[10px] text-muted-foreground">
+              {NOISE_STEPS.map((s) => <span key={s.label}>{s.label}</span>)}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Vignette Strength</Label>
+              <span className="text-xs text-muted-foreground">{Math.round(vignetteStrength * 100)}%</span>
+            </div>
+            <Slider
+              min={0}
+              max={100}
+              step={1}
+              value={[Math.round(vignetteStrength * 100)]}
+              onValueChange={([v]) => save("hero.shader.vignetteStrength", String(v / 100))}
+              data-testid="slider-shader-vignette"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Overlay Strength</Label>
+              <span className="text-xs text-muted-foreground">{Math.round(overlayStrength * 100)}%</span>
+            </div>
+            <Slider
+              min={0}
+              max={100}
+              step={1}
+              value={[Math.round(overlayStrength * 100)]}
+              onValueChange={([v]) => save("hero.shader.overlayStrength", String(v / 100))}
+              data-testid="slider-shader-overlay"
+            />
+            <p className="text-xs text-muted-foreground">Controls the semi-transparent overlay that keeps text readable.</p>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-2">
+            <Label className="text-sm">Color Palette</Label>
+            <Select
+              value={palette}
+              onValueChange={(v) => save("hero.shader.palette", v)}
+            >
+              <SelectTrigger data-testid="select-shader-palette">
+                <SelectValue placeholder="Select palette" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cosmic">Cosmic Tide (default)</SelectItem>
+                <SelectItem value="ocean">Deep Ocean</SelectItem>
+                <SelectItem value="ember">Ember</SelectItem>
+                <SelectItem value="midnight">Midnight</SelectItem>
+                <SelectItem value="custom">Custom</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {palette === "custom" && (
+            <div className="space-y-3 pl-1">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Custom Colors</p>
+              {[
+                { key: "hero.shader.colorBase",      label: "Base",      value: colorBase },
+                { key: "hero.shader.colorShadow",    label: "Shadow",    value: colorShadow },
+                { key: "hero.shader.colorMid",       label: "Mid",       value: colorMid },
+                { key: "hero.shader.colorHighlight", label: "Highlight", value: colorHighlight },
+                { key: "hero.shader.colorPeak",      label: "Peak",      value: colorPeak },
+              ].map(({ key, label, value }) => (
+                <div key={key} className="flex items-center gap-3">
+                  <div className="relative shrink-0">
+                    <div
+                      className="h-7 w-7 rounded-md border border-border"
+                      style={{ backgroundColor: value }}
+                    />
+                    <input
+                      type="color"
+                      value={value}
+                      onChange={(e) => save(key, e.target.value)}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7"
+                      data-testid={`color-picker-shader-${label.toLowerCase()}`}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium">{label}</p>
+                    <p className="text-[10px] text-muted-foreground font-mono">{value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-end pt-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 text-muted-foreground"
+              onClick={resetDefaults}
+              disabled={mutation.isPending}
+              data-testid="button-reset-shader"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Reset to defaults
+            </Button>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  );
+}

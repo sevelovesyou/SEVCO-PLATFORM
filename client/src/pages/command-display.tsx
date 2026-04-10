@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Save, Image, Type, Eye, EyeOff, Globe, Link2, Package, Pencil, Trash2, Plus, Palette, RotateCcw, AlignLeft, Layers } from "lucide-react";
+import { ShaderSettingsPanel } from "@/components/shader-settings-panel";
 import { Slider } from "@/components/ui/slider";
 import { FileUploadWithFallback } from "@/components/file-upload";
 import type { BrandAsset, InsertBrandAsset } from "@shared/schema";
@@ -734,6 +735,10 @@ export default function CommandDisplay() {
               Save Hero
             </Button>
           </div>
+
+          <Separator />
+
+          <ShaderSettingsPanel settings={settings} />
         </CardContent>
       </Card>
 

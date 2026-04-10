@@ -985,11 +985,8 @@ export function PlatformHeader() {
 
   return (
     <>
-    <div
-      className={`transition-[max-height] duration-[250ms] ease-in-out overflow-hidden${navHidden ? " max-h-0" : " max-h-16"}`}
-    >
     <header
-      className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm"
+      className={`sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm overflow-hidden transition-[height] duration-[250ms] ease-in-out${navHidden ? " h-0" : " h-12"}`}
       data-testid="platform-header"
       role="banner"
     >
@@ -1451,7 +1448,6 @@ export function PlatformHeader() {
         </SheetContent>
       </Sheet>
     </header>
-    </div>
 
     <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
     <ChatSheet open={chatOpen} onClose={() => setChatOpen(false)} />

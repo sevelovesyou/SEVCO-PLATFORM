@@ -23776,3 +23776,37 @@ Three small UI polish changes requested after the Canvas merge:
 
 ---
 
+## Task — news-card-layout-fix
+> Merged: 2026-04-10
+
+# News Card Layout Fix
+
+## What & Why
+The /news article card grid has three visible issues:
+1. Cards in the same row are different heights, leaving uneven whitespace between rows.
+2. On compact-variant cards, the WikifyButton renders outside the card's `<a>` element as a separate `<div className="mt-1 flex justify-end px-1">`. This extra div adds height below each card, making rows misaligned and the icon appears to overlap adjacent cards below.
+3. The grid's unused-space problem comes from cards not stretching to fill their cell height uniformly.
+
+## Done looks like
+- All article cards in the same grid row are the same height — no uneven gaps or staircase effect
+- The Wikify button on compact cards is tucked inside the card boundary (positioned absolutely on hover, matching how the bookmark button behaves), with no extra div outside the card that adds height
+- No Wikify icon visually overlapping or floating between rows on small cards
+- Spacing between rows is consistent and tight
+
+## Out of scope
+- Redesigning the card visual style
+- Changing the grid column counts
+- Masonry/waterfall layout (keep the regular CSS grid)
+
+## Tasks
+1. **Fix WikifyButton placement in compact card** — Remove the `<div className="mt-1 flex justify-end px-1"><WikifyButton /></div>` that sits outside the card's `<a>` element in the compact variant. Reposition the WikifyButton absolutely inside the card (e.g., bottom-right, visible on group hover), matching the existing pattern used for the BookmarkButton overlay, so it adds zero height to the card's flex container.
+
+2. **Enforce uniform card height in grids** — Ensure each card's outermost wrapper uses `h-full` so CSS grid's default `align-items: stretch` makes every card fill its row. Check any wrappers in `news-page.tsx` that render compact/medium cards and add `h-full` where missing.
+
+## Relevant files
+- `client/src/components/news-article-card.tsx:464-531`
+- `client/src/pages/news-page.tsx:396-468`
+
+
+---
+

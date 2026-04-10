@@ -93,6 +93,7 @@ import {
   Lock,
   Drum,
   EyeOff,
+  Compass,
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { ChatSheet } from "@/components/chat-sheet";
@@ -101,6 +102,7 @@ import { useMusicPlayer } from "@/contexts/music-player-context";
 import { Volume2, VolumeX, Bell } from "lucide-react";
 import type { Project, Service } from "@shared/schema";
 import { NotificationDropdown } from "@/components/notification-dropdown";
+import { useLens } from "@/contexts/lens-context";
 
 function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
   if (!name) return null;
@@ -658,6 +660,7 @@ function ToolsDropdown({
   isActive,
   onSearchOpen,
   onChatOpen,
+  onLensOpen,
   soundEnabled,
   onSoundToggle,
   volume,
@@ -667,6 +670,7 @@ function ToolsDropdown({
   isActive: boolean;
   onSearchOpen: () => void;
   onChatOpen: () => void;
+  onLensOpen: () => void;
   soundEnabled: boolean;
   onSoundToggle: () => void;
   volume: number;
@@ -759,6 +763,15 @@ function ToolsDropdown({
                       <TooltipContent>Chat</TooltipContent>
                     </Tooltip>
                   )}
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setOpen(false); onLensOpen(); }} data-testid="dropdown-tools-lens">
+                        <Compass className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Lens</TooltipContent>
+                  </Tooltip>
 
                   <ThemeToggle />
 
@@ -865,6 +878,7 @@ export function PlatformHeader() {
   const { role, canCreateArticle: canWikify } = usePermission();
   const { openCart, itemCount } = useCart();
   const { toast } = useToast();
+  const { openLens } = useLens();
   const [location, navigate] = useLocation();
   const { data: platformSettings } = useQuery<Record<string, string>>({
     queryKey: ["/api/platform-settings"],
@@ -901,6 +915,17 @@ export function PlatformHeader() {
       return next;
     });
   };
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        openLens();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [openLens]);
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSection, setMobileSection] = useState<string | null>(null);
@@ -1116,6 +1141,7 @@ export function PlatformHeader() {
             isActive={activeApp === "/notes" || activeApp === "/gallery" || activeApp === "/messages" || activeApp === "/tools"}
             onSearchOpen={() => setSearchOpen(true)}
             onChatOpen={() => setChatOpen(true)}
+            onLensOpen={() => openLens()}
             soundEnabled={soundEnabled}
             onSoundToggle={() => {
               if (soundEnabled) {

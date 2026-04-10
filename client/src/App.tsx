@@ -116,6 +116,8 @@ import MessagesPage from "@/pages/messages-page";
 import FullscreenChatPage from "@/pages/fullscreen-chat-page";
 import { FloatingChatProvider } from "@/contexts/floating-chat-context";
 import { FloatingChatWindows } from "@/components/floating-chat-window";
+import { LensProvider } from "@/contexts/lens-context";
+import { FloatingBrowser } from "@/components/floating-browser";
 import { MusicPlayerProvider } from "@/contexts/music-player-context";
 import { FloatingMusicPlayer } from "@/components/floating-music-player";
 
@@ -820,18 +822,21 @@ function App() {
           <AuthProvider>
             <CartProvider>
               <SpotifyPlayerProvider>
-                <FloatingChatProvider>
-                  <MusicPlayerProvider>
-                    <TooltipProvider>
-                      <DynamicHead />
-                      <PlatformColorInjector />
-                      <AppShell />
-                      <FloatingChatWindows />
-                      <FloatingMusicPlayer />
-                      <Toaster />
-                    </TooltipProvider>
-                  </MusicPlayerProvider>
-                </FloatingChatProvider>
+                <LensProvider>
+                  <FloatingChatProvider>
+                    <MusicPlayerProvider>
+                      <TooltipProvider>
+                        <DynamicHead />
+                        <PlatformColorInjector />
+                        <AppShell />
+                        <FloatingChatWindows />
+                        <FloatingBrowser />
+                        <FloatingMusicPlayer />
+                        <Toaster />
+                      </TooltipProvider>
+                    </MusicPlayerProvider>
+                  </FloatingChatProvider>
+                </LensProvider>
               </SpotifyPlayerProvider>
             </CartProvider>
           </AuthProvider>

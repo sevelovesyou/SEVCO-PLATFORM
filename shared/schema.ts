@@ -1208,3 +1208,55 @@ export type InsertUserVoxelBuild = z.infer<typeof insertUserVoxelBuildSchema>;
 export const insertUserGalaxyProgressSchema = createInsertSchema(userGalaxyProgress);
 export type UserGalaxyProgress = typeof userGalaxyProgress.$inferSelect;
 export type InsertUserGalaxyProgress = z.infer<typeof insertUserGalaxyProgressSchema>;
+
+// ── SEVCO Sites ───────────────────────────────────────────────────────────────
+
+export const userWebsites = pgTable("user_websites", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description"),
+  isPublished: boolean("is_published").notNull().default(false),
+  contentJson: jsonb("content_json").notNull().default(sql`'{}'::jsonb`),
+  themeJson: jsonb("theme_json").notNull().default(sql`'{}'::jsonb`),
+  customDomain: text("custom_domain"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("user_websites_user_id_idx").on(table.userId),
+  index("user_websites_custom_domain_idx").on(table.customDomain),
+]);
+
+export const websitePages = pgTable("website_pages", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  websiteId: integer("website_id").notNull().references(() => userWebsites.id, { onDelete: "cascade" }),
+  slug: text("slug").notNull(),
+  isHomepage: boolean("is_homepage").notNull().default(false),
+  contentJson: jsonb("content_json").notNull().default(sql`'{}'::jsonb`),
+  meta: jsonb("meta").notNull().default(sql`'{}'::jsonb`),
+}, (table) => [
+  index("website_pages_website_id_idx").on(table.websiteId),
+  uniqueIndex("website_pages_website_id_slug_idx").on(table.websiteId, table.slug),
+]);
+
+export const userWebsitesRelations = relations(userWebsites, ({ one, many }) => ({
+  user: one(users, { fields: [userWebsites.userId], references: [users.id] }),
+  pages: many(websitePages),
+}));
+
+export const websitePagesRelations = relations(websitePages, ({ one }) => ({
+  website: one(userWebsites, { fields: [websitePages.websiteId], references: [userWebsites.id] }),
+}));
+
+export const insertUserWebsiteSchema = createInsertSchema(userWebsites).omit({
+  id: true, createdAt: true, updatedAt: true,
+});
+export type InsertUserWebsite = z.infer<typeof insertUserWebsiteSchema>;
+export type UserWebsite = typeof userWebsites.$inferSelect;
+
+export const insertWebsitePageSchema = createInsertSchema(websitePages).omit({
+  id: true,
+});
+export type InsertWebsitePage = z.infer<typeof insertWebsitePageSchema>;
+export type WebsitePage = typeof websitePages.$inferSelect;

@@ -462,6 +462,38 @@ async function runStartupMigrations() {
     inventory jsonb NOT NULL DEFAULT '{}'
   );`);
 
+  // Task #298 — SEVCO Sites
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_websites (
+      id SERIAL PRIMARY KEY,
+      user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      slug TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      description TEXT,
+      is_published BOOLEAN NOT NULL DEFAULT FALSE,
+      content_json JSONB NOT NULL DEFAULT '{}',
+      theme_json JSONB NOT NULL DEFAULT '{}',
+      custom_domain TEXT,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS user_websites_user_id_idx ON user_websites(user_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS user_websites_custom_domain_idx ON user_websites(custom_domain) WHERE custom_domain IS NOT NULL`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS website_pages (
+      id SERIAL PRIMARY KEY,
+      website_id INTEGER NOT NULL REFERENCES user_websites(id) ON DELETE CASCADE,
+      slug TEXT NOT NULL,
+      is_homepage BOOLEAN NOT NULL DEFAULT FALSE,
+      content_json JSONB NOT NULL DEFAULT '{}',
+      meta JSONB NOT NULL DEFAULT '{}'
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS website_pages_website_id_idx ON website_pages(website_id)`);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS website_pages_website_id_slug_idx ON website_pages(website_id, slug)`);
+
   console.log("[startup] migrations applied");
 }
 

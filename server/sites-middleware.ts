@@ -1,6 +1,26 @@
 import { Request, Response, NextFunction } from "express";
 import { pool } from "./db";
 
+// ── CSS value sanitizer (prevent injection via user-controlled theme/block data) ─
+function sanitizeCssValue(value: string): string {
+  return String(value).replace(/[<>"'`\\{}()\n\r]/g, "");
+}
+
+// ── Font family mapping ───────────────────────────────────────────────────────
+const FONT_FAMILY_MAP: Record<string, string> = {
+  system: "system-ui, -apple-system, sans-serif",
+  "system-ui": "system-ui, -apple-system, sans-serif",
+  serif: "Georgia, 'Times New Roman', serif",
+  mono: "ui-monospace, 'Cascadia Code', 'Fira Code', monospace",
+  monospace: "ui-monospace, 'Cascadia Code', 'Fira Code', monospace",
+  rounded: "'Nunito', 'Varela Round', system-ui, sans-serif",
+};
+
+function resolveFontFamily(raw: string): string {
+  const key = (raw || "").toLowerCase().trim();
+  return FONT_FAMILY_MAP[key] || "system-ui, -apple-system, sans-serif";
+}
+
 // ── Block renderer: content_json → HTML ──────────────────────────────────────
 function renderBlock(block: any): string {
   if (!block || !block.type) return "";
@@ -9,7 +29,7 @@ function renderBlock(block: any): string {
 
   switch (block.type) {
     case "hero":
-      return `<section class="sevco-hero" style="padding:6rem 2rem;text-align:center;background:${escape(block.bgColor || "#111")};color:${escape(block.color || "#fff")}">
+      return `<section class="sevco-hero" style="padding:6rem 2rem;text-align:center;background:${sanitizeCssValue(block.bgColor || "#111")};color:${sanitizeCssValue(block.color || "#fff")}">
         <h1 style="font-size:3rem;font-weight:800;margin:0 0 1rem">${escape(block.heading || "")}</h1>
         ${block.subheading ? `<p style="font-size:1.25rem;opacity:.8;margin:0 0 2rem">${escape(block.subheading)}</p>` : ""}
         ${block.ctaText ? `<a href="${escape(block.ctaHref || "#")}" style="display:inline-block;padding:.75rem 2rem;background:#fff;color:#111;border-radius:8px;font-weight:700;text-decoration:none">${escape(block.ctaText)}</a>` : ""}
@@ -56,10 +76,10 @@ function renderPageHtml(site: any, pageContentJson: any, meta: any): string {
   const bodyContent = blocks.map(renderBlock).join("\n");
 
   const theme = site.theme_json || {};
-  const primaryColor = theme.primaryColor || "#3b82f6";
-  const fontFamily = theme.fontFamily || "system-ui, sans-serif";
-  const bgColor = theme.bgColor || "#ffffff";
-  const textColor = theme.textColor || "#111827";
+  const primaryColor = sanitizeCssValue(theme.primaryColor || "#3b82f6");
+  const fontFamily = resolveFontFamily(theme.fontFamily || "system");
+  const bgColor = sanitizeCssValue(theme.bgColor || "#ffffff");
+  const textColor = sanitizeCssValue(theme.textColor || "#111827");
 
   return `<!DOCTYPE html>
 <html lang="en">

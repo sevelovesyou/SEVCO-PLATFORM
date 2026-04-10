@@ -101,6 +101,7 @@ function doProxyRequest(
           Accept:
             "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
           "Accept-Language": "en-US,en;q=0.5",
+          "Accept-Encoding": "identity",
         },
       },
       (proxyRes) => {
@@ -153,19 +154,62 @@ function doProxyRequest(
         // Allow framing only from same origin (our app)
         res.setHeader("X-Frame-Options", "SAMEORIGIN");
 
-        // Enforce a size limit (~8 MB)
-        let size = 0;
-        const MAX = 8 * 1024 * 1024;
+        const contentType = (proxyRes.headers["content-type"] || "").toLowerCase();
+        const isHtml = contentType.includes("text/html");
 
-        proxyRes.on("data", (chunk: Buffer) => {
-          size += chunk.length;
-          if (size > MAX) {
-            res.destroy();
-            proxyReq.destroy();
-          }
-        });
+        if (isHtml) {
+          // Buffer the full body so we can inject a <base> tag.
+          // content-length must be removed since body length will change.
+          res.removeHeader("content-length");
 
-        proxyRes.pipe(res);
+          const chunks: Buffer[] = [];
+          let size = 0;
+          const MAX = 8 * 1024 * 1024;
+
+          proxyRes.on("data", (chunk: Buffer) => {
+            size += chunk.length;
+            if (size > MAX) {
+              res.destroy();
+              proxyReq.destroy();
+              return;
+            }
+            chunks.push(chunk);
+          });
+
+          proxyRes.on("end", () => {
+            if (res.destroyed) return;
+            let html = Buffer.concat(chunks).toString("utf-8");
+
+            // Inject <base href="..."> so relative assets resolve to origin
+            const baseTag = `<base href="${targetUrl.origin}/">`;
+            if (/<head(\s[^>]*)?>/i.test(html)) {
+              html = html.replace(/<head(\s[^>]*)?>/i, (m) => m + baseTag);
+            } else {
+              // No <head> — prepend so it applies to everything below
+              html = baseTag + html;
+            }
+
+            res.end(html);
+          });
+
+          proxyRes.on("error", () => {
+            if (!res.headersSent) res.status(502).json({ error: "Stream error" });
+          });
+        } else {
+          // Non-HTML (CSS, JS, images, fonts …) — stream as before
+          let size = 0;
+          const MAX = 8 * 1024 * 1024;
+
+          proxyRes.on("data", (chunk: Buffer) => {
+            size += chunk.length;
+            if (size > MAX) {
+              res.destroy();
+              proxyReq.destroy();
+            }
+          });
+
+          proxyRes.pipe(res);
+        }
       }
     );
 

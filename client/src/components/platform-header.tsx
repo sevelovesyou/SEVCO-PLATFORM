@@ -1367,6 +1367,19 @@ export function PlatformHeader() {
                   }
                 >
                   <DropdownMenuItem asChild>
+                    <Link href="/feed" data-testid="link-feed">
+                      <LucideIcons.Rss className="h-3.5 w-3.5 mr-2" />
+                      Feed
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/discover" data-testid="link-explore">
+                      <LucideIcons.Compass className="h-3.5 w-3.5 mr-2" />
+                      Explore
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
                     <Link href={`/profile/${user.username}`} data-testid="link-my-profile">
                       <User className="h-3.5 w-3.5 mr-2" />
                       My Profile

@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { requireAuth } from "./middleware/permissions";
 import { pool } from "./db";
 import { z } from "zod";
+import { renderPageHtml, renderFallbackHtml } from "./sites-renderer";
 
 function isPgUniqueViolation(err: unknown): boolean {
   return typeof err === "object" && err !== null && (err as Record<string, unknown>)["code"] === "23505";
@@ -12,6 +13,43 @@ const router = Router();
 interface AuthRequest extends Request {
   user?: { id: string; username: string; role: string };
 }
+
+// ── Public render endpoint — called by Cloudflare Worker for *.sev.cx ──────
+router.get("/render/:slug", async (req: Request, res: Response) => {
+  const { slug } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT w.*, p.content_json AS homepage_content, p.meta AS homepage_meta
+       FROM user_websites w
+       LEFT JOIN website_pages p ON p.website_id = w.id AND p.is_homepage = TRUE
+       WHERE w.is_published = TRUE AND w.slug = $1
+       LIMIT 1`,
+      [slug]
+    );
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+
+    if (result.rows.length === 0) {
+      return res.status(404).send(renderFallbackHtml(`${slug}.sev.cx`));
+    }
+
+    const site = result.rows[0];
+    const pageContent =
+      typeof site.homepage_content === "string"
+        ? JSON.parse(site.homepage_content)
+        : site.homepage_content || { blocks: [] };
+    const pageMeta =
+      typeof site.homepage_meta === "string"
+        ? JSON.parse(site.homepage_meta)
+        : site.homepage_meta || {};
+
+    return res.status(200).send(renderPageHtml(site, pageContent, pageMeta));
+  } catch (err) {
+    console.error("[sites] render error:", err);
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    return res.status(500).send(renderFallbackHtml(`${slug}.sev.cx`));
+  }
+});
 
 const createSiteSchema = z.object({
   slug: z.string().min(2).max(60).regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers, and hyphens only"),

@@ -467,13 +467,13 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
     };
     return (
       <>
-        <div className="group flex flex-col relative" data-testid={`card-news-compact-${encodeURIComponent(article.link).slice(0, 30)}`}>
+        <div className="group flex flex-col relative h-full" data-testid={`card-news-compact-${encodeURIComponent(article.link).slice(0, 30)}`}>
           <a
             href={article.link}
             target={onCardClick ? undefined : "_blank"}
             rel="noopener noreferrer"
             onClick={handleCompactClick}
-            className="block rounded-xl border bg-card overflow-hidden hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer"
+            className="block rounded-xl border bg-card overflow-hidden hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer h-full"
           >
             <div className="relative aspect-video overflow-hidden">
               {displayUrl ? (
@@ -522,7 +522,7 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <BookmarkButton article={article} categoryLabel={categoryLabel} size="xs" />
           </div>
-          <div className="mt-1 flex justify-end px-1">
+          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <WikifyButton onClick={() => setWikifyOpen(true)} testId="button-wikify-compact" />
           </div>
         </div>

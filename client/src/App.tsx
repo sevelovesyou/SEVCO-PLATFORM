@@ -782,6 +782,7 @@ function AppShell() {
         Skip to main content
       </a>
       <div className="flex flex-col min-h-screen w-full overflow-x-clip">
+        <div className="nav-spacer" aria-hidden="true" />
         <PlatformHeader />
         <div className="flex flex-1 min-w-0 overflow-hidden">
           {showWikiSidebar && <AppSidebar />}

@@ -299,6 +299,17 @@ html, body {
   }
 }
 
+/* ── Nav spacer: holds layout gap the fixed header floats over ── */
+.nav-spacer {
+  height: 3rem;
+  flex-shrink: 0;
+  transition: height 250ms ease-in-out;
+}
+
+html.nav-hidden .nav-spacer {
+  height: 0;
+}
+
 /* ── Wiki sidebar: use sub-menu colors for hover/active ── */
 /* When --nav-sub-accent is set (overriding the default muted value), apply it
    as the sidebar accent so SidebarMenuButton picks up the sub-menu color. */

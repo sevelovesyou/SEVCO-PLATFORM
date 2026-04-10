@@ -23695,3 +23695,52 @@ first parameter. No new variable needed.
 
 ---
 
+## Task — sevco-canvas
+> Merged: 2026-04-10
+
+# SEVCO Canvas — Infinite Canvas Editor
+
+## What & Why
+Add a full-screen infinite canvas graphic editor at `/canvas` built on `@tldraw/tldraw`. The editor should feel like a simplified Kittl — professional, fast, and native to the SEVCO dark theme. It integrates AI image generation via inference.sh (`falai/flux-dev-lora`) and auto-saves projects to Postgres.
+
+## Done looks like
+- Navigating to `/canvas` opens a full-screen dark infinite canvas editor with a subtle dotted-grid background
+- Left toolbar has: Select, Hand/Pan, Rectangle, Ellipse, Arrow, Text, Image Upload, Pen/Brush, and a prominent **AI Generate** button at the top
+- Top bar shows: SEVCO Canvas logo, New, Save, Load, Undo/Redo, Export (PNG/SVG/JSON), Share button
+- Clicking **AI Generate** opens a prompt modal; submitting it calls `falai/flux-dev-lora` via `infsh` on the backend and places the returned image onto the canvas as an editable object
+- When an object is selected, a right properties panel slides in showing fill/stroke color, opacity, text styling (font, size, alignment), layer order, and — for images — basic adjustments (brightness, contrast, flip)
+- Projects auto-save to `canvas_projects` (Postgres) every 5 seconds; the Save button does a manual save; Load opens a project picker
+- The `/canvas` route is protected (requires login), appears in the platform header Tools dropdown, and uses the existing layout wrapper (no sidebar)
+- The editor's background, toolbar, and modals match the SEVCO dark color palette defined in `index.css` and `tailwind.config.ts`
+
+## Out of scope
+- Boolean path operations (not supported by tldraw out of the box)
+- PDF export (PNG, SVG, JSON only)
+- Real-time multiplayer / shared collaborative editing
+- Video generation or animation
+
+## Tasks
+
+1. **Install tldraw and add DB table** — Install `@tldraw/tldraw` package, add a `CREATE TABLE IF NOT EXISTS canvas_projects` migration in `server/index.ts` (columns: `id SERIAL PRIMARY KEY`, `user_id VARCHAR NOT NULL`, `name TEXT`, `tldraw_json JSONB`, `thumbnail_url TEXT`, `created_at TIMESTAMPTZ DEFAULT NOW()`, `updated_at TIMESTAMPTZ DEFAULT NOW()`).
+
+2. **Canvas API routes** — Create `server/canvas-routes.ts` with CRUD endpoints: `GET /api/canvas` (list user's projects), `GET /api/canvas/:id` (load one), `POST /api/canvas` (create), `PUT /api/canvas/:id` (save/update), `DELETE /api/canvas/:id`. Add a `POST /api/canvas/ai-generate` endpoint (auth required) that runs `infsh app run falai/flux-dev-lora --input '{"prompt":"..."}' --json` via `child_process.exec`, parses the output URL, and returns it as JSON. Register `canvasRouter` at `/api/canvas` in `server/routes.ts`.
+
+3. **Canvas page — editor shell** — Create `client/src/pages/canvas-page.tsx` as a full-screen page (no sidebar, header visible) that renders the tldraw `<Tldraw>` component with dark background (`#0d0d0f`), subtle white dot grid matching the existing SEVCO aesthetic. Wire the `/canvas` protected route in `client/src/App.tsx`. Add a "Canvas" link to the Tools dropdown in `client/src/components/platform-header.tsx`.
+
+4. **Custom tldraw UI — toolbar, topbar, and properties panel** — Override tldraw's default UI using its component override API: replace the default toolbar with a custom left toolbar (Select, Hand, Rectangle, Ellipse, Arrow, Text, Image, Pen, plus AI Generate button at top), add a custom top bar with logo, New/Save/Load/Undo/Redo/Export/Share controls, and implement a right-side properties panel that appears on selection (fill, stroke, opacity, text style, layer order; brightness/contrast/flip for images). Style everything using Tailwind dark classes and shadcn/ui components matching the SEVCO palette.
+
+5. **AI Generate flow + auto-save** — Wire the AI Generate button to open a shadcn/ui Dialog with a prompt textarea; on submit call `POST /api/canvas/ai-generate`, show a loading state, then insert the returned image URL as a tldraw `TLImageShape` at the viewport center. Implement 5-second debounced auto-save using tldraw's `onChange` store listener that calls `PUT /api/canvas/:id`. Implement the Load dialog listing existing projects and the Export button (PNG via tldraw's `exportToBlob`, SVG and JSON directly).
+
+## Relevant files
+- `server/index.ts`
+- `server/routes.ts`
+- `client/src/App.tsx`
+- `client/src/components/platform-header.tsx`
+- `client/src/index.css`
+- `tailwind.config.ts`
+- `server/sites-routes.ts`
+- `server/freeball-routes.ts`
+
+
+---
+

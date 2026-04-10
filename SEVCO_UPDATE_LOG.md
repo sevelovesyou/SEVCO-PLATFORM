@@ -22879,3 +22879,409 @@ to show the dashboard for logged-in users or this landing page for guests.
 
 ---
 
+## Task — sevco-lens-browser
+> Merged: 2026-04-10
+
+# SEVCO Lens — Floating In-App Browser
+
+## Context
+
+Add a floating, draggable, resizable in-app browser ("Lens") to the SEVCO
+platform. It follows the exact same drag/resize/portal pattern as the existing
+`floating-chat-window.tsx`. Users open it from the Tools dropdown (icon next to
+Chat) or via `Cmd/Ctrl + Shift + B` from anywhere in the platform.
+
+## Done looks like
+
+- `client/src/contexts/lens-context.tsx` — context with `isOpen`, `url`,
+  `openLens(url?)`, `closeLens()`
+- `client/src/components/floating-browser.tsx` — self-contained floating window
+  with browser chrome, sandbox iframe, history navigation
+- `client/src/App.tsx` — `LensProvider` wrapping the app, `<FloatingBrowser />`
+  rendered alongside `<FloatingChatWindows />`
+- `client/src/components/platform-header.tsx` — Lens button in the Tools
+  dropdown footer row + `Cmd/Ctrl+Shift+B` keyboard shortcut
+- No backend changes needed
+
+---
+
+## 1. `client/src/contexts/lens-context.tsx` — new file
+
+```tsx
+import { createContext, useContext, useState } from "react";
+
+type LensContextType = {
+  isOpen: boolean;
+  currentUrl: string;
+  openLens: (url?: string) => void;
+  closeLens: () => void;
+  setCurrentUrl: (url: string) => void;
+};
+
+const LensContext = createContext<LensContextType | null>(null);
+
+const DEFAULT_URL = "https://sevco.us";
+
+export function LensProvider({ children }: { children: React.ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [currentUrl, setCurrentUrl] = useState(DEFAULT_URL);
+
+  function openLens(url?: string) {
+    if (url) setCurrentUrl(url);
+    setIsOpen(true);
+  }
+
+  function closeLens() {
+    setIsOpen(false);
+  }
+
+  return (
+    <LensContext.Provider value={{ isOpen, currentUrl, openLens, closeLens, setCurrentUrl }}>
+      {children}
+    </LensContext.Provider>
+  );
+}
+
+export function useLens() {
+  const ctx = useContext(LensContext);
+  if (!ctx) throw new Error("useLens must be used inside LensProvider");
+  return ctx;
+}
+```
+
+---
+
+## 2. `client/src/components/floating-browser.tsx` — new file
+
+### State
+```ts
+position: { x: number; y: number }   // initial: center of viewport
+size:     { width: number; height: number }  // initial: 860 × 560
+minimized: boolean
+addressInput: string          // what's in the address bar (controlled)
+loadedUrl:    string          // what's actually loaded in iframe (committed)
+history:      string[]        // forward/back stack
+historyIndex: number          // current position in history
+isLoading:    boolean
+loadError:    boolean         // true if iframe fails to load
+```
+
+### Initial position
+Calculate on first render so it's centered:
+```ts
+const initX = Math.max(40, (window.innerWidth  - 860) / 2);
+const initY = Math.max(48, (window.innerHeight - 560) / 2);
+```
+
+### Size constraints
+- Min: 360 × 280
+- Max: `window.innerWidth - 40` × `window.innerHeight - 60`
+
+### URL normalisation helper
+```ts
+function normalizeUrl(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return "https://sevco.us";
+  // Already looks like a URL
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  // Looks like a bare domain
+  if (/^[\w-]+(\.[\w-]+)+/.test(trimmed)) return `https://${trimmed}`;
+  // Treat as search query
+  return `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`;
+}
+```
+
+### Navigation functions
+- **`navigate(url)`** — normalize the URL, commit it as `loadedUrl`, push to
+  `history`, reset `historyIndex`, set `isLoading = true`, set `loadError = false`
+- **`goBack()`** — decrement `historyIndex`, set `loadedUrl` + `addressInput` from history
+- **`goForward()`** — increment `historyIndex`
+- **`refresh()`** — bump a `refreshKey` counter; use it as `key` on the iframe
+  to force remount
+
+### Load error detection
+Iframes don't fire `onError` for blocked-by-X-Frame-Options responses. Use a
+timeout approach:
+
+```ts
+useEffect(() => {
+  if (!isLoading) return;
+  const t = setTimeout(() => {
+    // If still loading after 12 seconds, show a soft warning
+    // (don't mark as hard error — slow pages exist)
+    setSlowLoad(true);
+  }, 12000);
+  return () => clearTimeout(t);
+}, [isLoading, loadedUrl]);
+```
+
+For the iframe `onLoad` event: clear `isLoading` and `slowLoad`. For `onError`:
+set `loadError = true`.
+
+### Security / sandbox attributes
+```html
+<iframe
+  src={loadedUrl}
+  sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-downloads"
+  referrerpolicy="strict-origin-when-cross-origin"
+  allow="autoplay; encrypted-media; picture-in-picture"
+  loading="eager"
+  onLoad={() => { setIsLoading(false); setSlowLoad(false); }}
+  onError={() => { setIsLoading(false); setLoadError(true); }}
+/>
+```
+
+Note: intentionally omit `allow-same-origin` from sandbox to protect the parent
+page from the framed content.
+
+### Layout structure
+
+```
+┌──────────────────────────────────────────┐
+│ ··· Lens                          _ ×   │  ← title bar (drag handle)
+├──────────────────────────────────────────┤
+│ [←] [→] [↺] [🌐 | address input   ] [⤢] │  ← nav bar
+├──────────────────────────────────────────┤
+│                                          │
+│              <iframe>                    │  ← flex-1
+│                                          │
+├──────────────────────────────────────────┤
+│  "This site can't be displayed" overlay  │  ← shown only on slowLoad/error
+└──────────────────────────────────────────┘
+                                        ◢   ← resize grip
+```
+
+### Title bar
+Same pattern as `floating-chat-window.tsx`:
+- `cursor-grab active:cursor-grabbing` with mouse+touch drag handlers
+- `GripHorizontal` icon (leftmost)
+- `Compass` icon (lucide) + "Lens" text
+- Right side: minimize button (`Minus`), close button (`X`)
+
+### Nav bar
+```tsx
+<div className="flex items-center gap-1.5 px-2 py-1.5 border-b bg-muted/30">
+  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={goBack} disabled={historyIndex <= 0}>
+    <ChevronLeft className="h-3.5 w-3.5" />
+  </Button>
+  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={goForward} disabled={historyIndex >= history.length - 1}>
+    <ChevronRight className="h-3.5 w-3.5" />
+  </Button>
+  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={refresh}>
+    {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+  </Button>
+
+  {/* Address bar */}
+  <form onSubmit={(e) => { e.preventDefault(); navigate(addressInput); }} className="flex-1 flex items-center gap-1.5 bg-background border border-border/60 rounded-md px-2 h-7">
+    <Globe className="h-3 w-3 text-muted-foreground/60 shrink-0" />
+    <input
+      type="text"
+      value={addressInput}
+      onChange={(e) => setAddressInput(e.target.value)}
+      onFocus={(e) => e.target.select()}
+      className="flex-1 bg-transparent text-xs outline-none text-foreground placeholder:text-muted-foreground/50 min-w-0"
+      placeholder="Enter a URL or search..."
+      data-testid="lens-address-bar"
+    />
+  </form>
+
+  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => window.open(loadedUrl, "_blank")} title="Open in new tab">
+    <ExternalLink className="h-3.5 w-3.5" />
+  </Button>
+</div>
+```
+
+### Iframe area
+```tsx
+<div className="flex-1 relative overflow-hidden bg-white dark:bg-white">
+  {/* Loading bar */}
+  {isLoading && (
+    <div className="absolute top-0 left-0 right-0 h-0.5 z-10 bg-primary/20">
+      <div className="h-full bg-primary animate-[progress_2s_ease-in-out_infinite]" style={{ width: "60%" }} />
+    </div>
+  )}
+
+  <iframe
+    key={`${loadedUrl}-${refreshKey}`}
+    src={loadedUrl}
+    className="w-full h-full border-none"
+    sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-downloads"
+    referrerPolicy="strict-origin-when-cross-origin"
+    title="Lens Browser"
+    onLoad={() => { setIsLoading(false); setSlowLoad(false); setLoadError(false); }}
+    onError={() => { setIsLoading(false); setLoadError(true); }}
+    data-testid="lens-iframe"
+  />
+
+  {/* Blocked/error overlay */}
+  {(loadError || slowLoad) && (
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/95 backdrop-blur-sm z-20 gap-3">
+      <div className="text-center max-w-xs">
+        <div className="text-3xl mb-2">🔒</div>
+        <p className="text-sm font-medium">
+          {loadError ? "This page couldn't be loaded" : "This page is taking a while"}
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {loadError
+            ? "The site may not allow embedding, or the URL is invalid."
+            : "The site may be blocking Lens, or the server is slow."}
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <Button size="sm" variant="outline" onClick={() => window.open(loadedUrl, "_blank")}>
+          <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+          Open in browser
+        </Button>
+        {slowLoad && (
+          <Button size="sm" variant="ghost" onClick={() => setSlowLoad(false)}>
+            Keep waiting
+          </Button>
+        )}
+      </div>
+    </div>
+  )}
+</div>
+```
+
+### Drag & resize
+Copy the exact mouse+touch drag/resize handlers from `floating-chat-window.tsx`
+(lines 347–465). No changes needed — they work the same way.
+
+### Progress bar animation
+Add to `index.css`:
+```css
+@keyframes progress {
+  0%   { transform: translateX(-100%); width: 40%; }
+  50%  { transform: translateX(60%);  width: 60%; }
+  100% { transform: translateX(200%); width: 40%; }
+}
+```
+
+### Full component export
+```tsx
+export function FloatingBrowser() {
+  const { isOpen, currentUrl, closeLens, setCurrentUrl } = useLens();
+  if (!isOpen) return null;
+  // ... all state and handlers ...
+  return createPortal(<div ref={windowRef} className="fixed z-[200] flex flex-col rounded-xl border border-border shadow-2xl bg-background overflow-hidden" style={{ left, top, width, height }}>
+    {/* title bar */}
+    {/* nav bar */}
+    {/* iframe area */}
+    {/* resize grip */}
+  </div>, document.body);
+}
+```
+
+Use `createPortal` (same as notifications) to render at the root so z-index works.
+
+---
+
+## 3. `client/src/App.tsx` — 3 lines
+
+Import:
+```tsx
+import { LensProvider } from "@/contexts/lens-context";
+import { FloatingBrowser } from "@/components/floating-browser";
+```
+
+Wrap the existing `<FloatingChatProvider>` with `<LensProvider>`, and add
+`<FloatingBrowser />` immediately after `<FloatingChatWindows />`:
+
+```tsx
+<LensProvider>
+  <FloatingChatProvider>
+    ...
+    <FloatingChatWindows />
+    <FloatingBrowser />
+    ...
+  </FloatingChatProvider>
+</LensProvider>
+```
+
+---
+
+## 4. `client/src/components/platform-header.tsx` — two changes
+
+### A. Lens button in ToolsDropdown
+
+Update `ToolsDropdown` props to add `onLensOpen: () => void`.
+
+In the bottom-row icon strip (after the Chat button, before ThemeToggle):
+
+```tsx
+<Tooltip>
+  <TooltipTrigger asChild>
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-7 w-7"
+      onClick={() => { setOpen(false); onLensOpen(); }}
+      data-testid="dropdown-tools-lens"
+    >
+      <Compass className="h-3.5 w-3.5" />
+    </Button>
+  </TooltipTrigger>
+  <TooltipContent>Lens</TooltipContent>
+</Tooltip>
+```
+
+Add `Compass` to the lucide imports at the top.
+
+At the call site (around line 1115), wire it up:
+```tsx
+<ToolsDropdown
+  ...
+  onLensOpen={() => openLens()}
+/>
+```
+
+And import + call `useLens` in `PlatformHeader`:
+```tsx
+import { useLens } from "@/contexts/lens-context";
+// inside PlatformHeader:
+const { openLens } = useLens();
+```
+
+### B. Keyboard shortcut
+
+In the main `PlatformHeader` component, add a global keydown listener:
+
+```tsx
+useEffect(() => {
+  function handleKeyDown(e: KeyboardEvent) {
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "b") {
+      e.preventDefault();
+      openLens();
+    }
+  }
+  window.addEventListener("keydown", handleKeyDown);
+  return () => window.removeEventListener("keydown", handleKeyDown);
+}, [openLens]);
+```
+
+---
+
+## Design notes
+
+- Title bar: same `bg-muted/60 border-b` as the chat windows — visually consistent
+- Nav bar: `bg-muted/30` — slightly lighter to look like browser chrome
+- Iframe area: **always white background** regardless of dark mode (`bg-white dark:bg-white`) — websites render in their own theme
+- The window z-index is `z-[200]` (higher than chat windows at `z-50`) so it renders on top
+- Compass icon in both the toolbar button and the title bar for brand consistency
+- The resize grip SVG: copy from `floating-chat-window.tsx` lines 536-539
+
+## Imports needed in floating-browser.tsx
+```tsx
+import { createPortal } from "react-dom";
+import { useRef, useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  GripHorizontal, Compass, Minus, X, ChevronLeft, ChevronRight,
+  RefreshCw, Loader2, Globe, ExternalLink
+} from "lucide-react";
+import { useLens } from "@/contexts/lens-context";
+```
+
+
+---
+

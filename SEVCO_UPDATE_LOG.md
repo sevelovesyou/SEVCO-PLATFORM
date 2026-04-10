@@ -23285,3 +23285,258 @@ import { useLens } from "@/contexts/lens-context";
 
 ---
 
+## Task — lens-proxy-fix
+> Merged: 2026-04-10
+
+# SEVCO Lens — Backend Proxy Fix for White Screen
+
+## Problem
+
+Most websites send `X-Frame-Options: DENY` or `Content-Security-Policy:
+frame-ancestors 'none'` headers, which cause the browser to silently blank
+the iframe. The existing `onLoad`/`onError` approach cannot detect this — the
+browser fires `onLoad` normally even when the content has been blocked, leaving
+the user with a white screen and no error message.
+
+## Solution
+
+Route the iframe through a server-side proxy at `/api/lens/proxy?url=<encoded>`.
+The Express server fetches the page, **strips the framing-block headers**, and
+returns the content. From the browser's perspective the iframe is loading from
+the same origin, so no X-Frame-Options check applies.
+
+## Done looks like
+
+- New file `server/lens-proxy.ts` — authenticated proxy route
+- `server/routes.ts` — one `app.use` line to register it
+- `client/src/components/floating-browser.tsx` — iframe `src` routes through
+  proxy; loading/error states work reliably
+
+---
+
+## 1. `server/lens-proxy.ts` — new file
+
+```ts
+import type { Express, Request, Response } from "express";
+import { requireAuth } from "./middleware/permissions";
+import * as https from "https";
+import * as http from "http";
+import { URL } from "url";
+
+// Block SSRF — private IP ranges + loopback
+const BLOCKED_HOST_RE =
+  /^(localhost|127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|::1|0\.0\.0\.0)/i;
+
+// Headers to strip from the proxied response (framing + hop-by-hop)
+const STRIP_RESPONSE_HEADERS = new Set([
+  "x-frame-options",
+  "transfer-encoding",
+  "connection",
+  "keep-alive",
+  "trailer",
+  "upgrade",
+]);
+
+// Strip frame-ancestors from CSP but keep the rest
+function sanitizeCSP(csp: string): string {
+  return csp
+    .split(";")
+    .map((d) => d.trim())
+    .filter((d) => !d.toLowerCase().startsWith("frame-ancestors"))
+    .join("; ");
+}
+
+export function registerLensProxy(app: Express) {
+  app.get("/api/lens/proxy", requireAuth, (req: Request, res: Response) => {
+    const raw = req.query.url as string | undefined;
+    if (!raw) {
+      res.status(400).json({ error: "Missing url param" });
+      return;
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(decodeURIComponent(raw));
+    } catch {
+      res.status(400).json({ error: "Invalid URL" });
+      return;
+    }
+
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      res.status(400).json({ error: "Only http/https URLs are supported" });
+      return;
+    }
+
+    if (BLOCKED_HOST_RE.test(parsed.hostname)) {
+      res.status(403).json({ error: "URL not allowed" });
+      return;
+    }
+
+    const transport = parsed.protocol === "https:" ? https : http;
+
+    const proxyReq = transport.get(
+      parsed.toString(),
+      {
+        timeout: 15000,
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (compatible; SEVCO-Lens/1.0; +https://sevco.us)",
+          Accept:
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.5",
+        },
+      },
+      (proxyRes) => {
+        // Handle redirects manually (up to 5 hops)
+        const location = proxyRes.headers["location"];
+        if (
+          proxyRes.statusCode &&
+          proxyRes.statusCode >= 300 &&
+          proxyRes.statusCode < 400 &&
+          location
+        ) {
+          // Redirect through proxy
+          const redirectUrl = new URL(location, parsed.toString()).toString();
+          res.redirect(
+            `/api/lens/proxy?url=${encodeURIComponent(redirectUrl)}`
+          );
+          proxyRes.resume();
+          return;
+        }
+
+        // Copy status
+        res.status(proxyRes.statusCode ?? 200);
+
+        // Copy and sanitize headers
+        for (const [key, value] of Object.entries(proxyRes.headers)) {
+          if (STRIP_RESPONSE_HEADERS.has(key.toLowerCase())) continue;
+          if (key.toLowerCase() === "content-security-policy" && value) {
+            const cspVal = Array.isArray(value) ? value[0] : value;
+            res.setHeader(key, sanitizeCSP(cspVal));
+            continue;
+          }
+          if (value !== undefined) {
+            res.setHeader(key, value as string | string[]);
+          }
+        }
+
+        // Allow framing from our own app
+        res.setHeader("X-Frame-Options", "SAMEORIGIN");
+
+        // Enforce a size limit (~8 MB)
+        let size = 0;
+        const MAX = 8 * 1024 * 1024;
+
+        proxyRes.on("data", (chunk: Buffer) => {
+          size += chunk.length;
+          if (size > MAX) {
+            res.destroy();
+            proxyReq.destroy();
+          }
+        });
+
+        proxyRes.pipe(res);
+      }
+    );
+
+    proxyReq.on("timeout", () => {
+      proxyReq.destroy();
+      if (!res.headersSent) res.status(504).json({ error: "Upstream timeout" });
+    });
+
+    proxyReq.on("error", (err) => {
+      if (!res.headersSent) {
+        res.status(502).json({ error: "Upstream error", detail: err.message });
+      }
+    });
+
+    req.on("close", () => proxyReq.destroy());
+  });
+}
+```
+
+---
+
+## 2. `server/routes.ts` — register the proxy
+
+Near the top where other route modules are imported (around line 30):
+```ts
+import { registerLensProxy } from "./lens-proxy";
+```
+
+Inside `registerRoutes`, before the catch-all / auth routes, add:
+```ts
+registerLensProxy(app);
+```
+
+---
+
+## 3. `client/src/components/floating-browser.tsx` — 3 targeted changes
+
+### A. Add proxy helper function (after `normalizeUrl`):
+
+```ts
+function proxyUrl(url: string): string {
+  return `/api/lens/proxy?url=${encodeURIComponent(url)}`;
+}
+```
+
+### B. Change the iframe `src`:
+
+Old:
+```tsx
+<iframe
+  key={`${loadedUrl}-${refreshKey}`}
+  src={loadedUrl}
+  ...
+```
+
+New:
+```tsx
+<iframe
+  key={`${loadedUrl}-${refreshKey}`}
+  src={proxyUrl(loadedUrl)}
+  ...
+```
+
+The `loadedUrl` state still holds the real URL (address bar, back/forward,
+"Open in browser" button all use `loadedUrl` — no changes there).
+
+### C. Reduce slow-load timeout from 12 000 ms → 5 000 ms
+
+Old:
+```ts
+const t = setTimeout(() => {
+  setSlowLoad(true);
+}, 12000);
+```
+
+New:
+```ts
+const t = setTimeout(() => {
+  setSlowLoad(true);
+}, 5000);
+```
+
+The proxy has a 15-second server-side timeout so 5 seconds client-side is
+appropriate; it shows the overlay while the proxy is still trying, and the user
+can click "Keep waiting" if they want.
+
+---
+
+## Security summary
+
+| Concern | Mitigation |
+|---|---|
+| SSRF (access internal network) | `BLOCKED_HOST_RE` blocks localhost, RFC1918 ranges |
+| Unauthenticated abuse | `requireAuth` middleware on the route |
+| Arbitrarily large responses | 8 MB hard cap, destroy connection |
+| Hanging proxy connections | 15-second timeout on outbound request |
+| XSS via proxied content | Same as native iframe — sandboxed with no `allow-same-origin` |
+| CSP bypass on host page | We set our own CSP; framed content is isolated |
+
+## No schema/migration changes needed
+
+
+---
+

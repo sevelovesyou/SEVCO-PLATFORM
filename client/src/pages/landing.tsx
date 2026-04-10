@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { ShaderBackground } from "@/components/shader-background";
+import { ShaderHeroBackground } from "@/components/ShaderHeroBackground";
 import { StaggerGrid } from "@/components/stagger-grid";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -236,6 +236,10 @@ export default function Landing() {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }, []);
+  const isMobilePerfMode = useMemo(() => {
+    if (typeof navigator === "undefined") return false;
+    return (navigator.hardwareConcurrency ?? 8) <= 4;
+  }, []);
   const [heroScrollY, setHeroScrollY] = useState(0);
 
   useEffect(() => {
@@ -426,7 +430,8 @@ export default function Landing() {
 
       {/* ── HERO — GLSL shader background ── */}
       <section
-        className="relative overflow-hidden bg-[#07070f] text-white min-h-screen flex items-center"
+        className="relative overflow-hidden bg-[#07070f] text-white flex items-center"
+        style={{ height: "100dvh", minHeight: "600px" }}
         data-testid="section-hero"
         onPointerMove={(e) => {
           const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -436,14 +441,14 @@ export default function Landing() {
           ];
         }}
       >
-        {/* Shader background — replaces aurora blobs */}
+        {/* Shader background */}
         {!prefersReducedMotion && !heroBgUrl ? (
-          <ShaderBackground
+          <ShaderHeroBackground
             mouse={mouseRef}
-            className="absolute inset-0 w-full h-full"
+            isMobile={isMobilePerfMode}
           />
         ) : (
-          /* Reduced-motion or custom bg fallback — static gradient */
+          /* Reduced-motion or custom bg fallback — static gradient, no animation */
           <div
             className="absolute inset-0 pointer-events-none"
             style={heroBgUrl ? {
@@ -451,19 +456,19 @@ export default function Landing() {
               backgroundSize: "cover",
               backgroundPosition: "center",
             } : {
-              background: "radial-gradient(ellipse 80% 60% at 20% 30%, rgba(190,0,7,0.28) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 70%, rgba(28,84,224,0.22) 0%, transparent 55%), #07071a",
+              background: "radial-gradient(ellipse 80% 60% at 20% 30%, rgba(190,0,7,0.32) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 70%, rgba(28,84,224,0.28) 0%, transparent 55%), linear-gradient(160deg, #0b0830 0%, #07071a 50%, #100510 100%)",
             }}
             aria-hidden="true"
           />
         )}
 
-        {/* Overlay: semi-transparent gradient to keep text readable over the shader */}
+        {/* Directional overlay — transparent center-top, stronger at edges/bottom */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background: heroBgUrl
               ? `rgba(7,7,15,${heroOverlayOpacity})`
-              : "linear-gradient(135deg, rgba(7,7,26,0.72) 0%, rgba(7,7,15,0.42) 50%, rgba(7,7,26,0.68) 100%)",
+              : "linear-gradient(to bottom, rgba(7,7,26,0.10) 0%, rgba(7,7,26,0.0) 35%, rgba(7,7,26,0.55) 100%), linear-gradient(to right, rgba(7,7,26,0.40) 0%, transparent 30%, transparent 70%, rgba(7,7,26,0.35) 100%)",
           }}
           aria-hidden="true"
         />
@@ -501,7 +506,13 @@ export default function Landing() {
               </div>
 
               <div>
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4 leading-[1.1]">
+                <h1
+                  className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-extrabold mb-4 leading-[1.05]"
+                  style={{
+                    letterSpacing: "-0.03em",
+                    textShadow: "0 0 40px rgba(190,0,7,0.35), 0 2px 24px rgba(0,0,0,0.6)",
+                  }}
+                >
                   {/* Word-by-word staggered reveal animation */}
                   {heroHeadline
                     ? heroHeadline.split(" ").map((word, i) => {
@@ -557,7 +568,7 @@ export default function Landing() {
                         );
                       })}
                 </h1>
-                <p className="text-white/50 text-base md:text-lg max-w-lg leading-relaxed">
+                <p className="text-white/80 text-base md:text-lg max-w-lg leading-relaxed">
                   {heroText}
                 </p>
               </div>

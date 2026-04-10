@@ -897,6 +897,68 @@ export function PlatformHeader() {
 
   const [navHidden, setNavHidden] = useState(() => localStorage.getItem("nav-hidden") === "true");
 
+  const [headerScrollY, setHeaderScrollY] = useState(0);
+  const [mousePct, setMousePct] = useState(0.5);
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains("dark")
+  );
+  const prefersReducedMotion = typeof window !== "undefined"
+    ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    : false;
+  const headerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => setHeaderScrollY(window.scrollY);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (prefersReducedMotion) return;
+    const header = headerRef.current;
+    if (!header) return;
+    let lastRaf = 0;
+    const handlePointerMove = (e: PointerEvent) => {
+      if (lastRaf) return;
+      lastRaf = requestAnimationFrame(() => {
+        const rect = header.getBoundingClientRect();
+        setMousePct((e.clientX - rect.left) / rect.width);
+        lastRaf = 0;
+      });
+    };
+    header.addEventListener("pointermove", handlePointerMove);
+    return () => header.removeEventListener("pointermove", handlePointerMove);
+  }, [prefersReducedMotion]);
+
+  const opacityFrac = Math.min(headerScrollY / 500, 1);
+  const glassStyle: React.CSSProperties = isDark
+    ? {
+        background: `rgba(0,0,0,${0.12 + opacityFrac * 0.23})`,
+        boxShadow: "0 1px 0 rgba(255,255,255,0.06), 0 4px 24px rgba(0,0,0,0.22)",
+      }
+    : {
+        background: `rgba(255,255,255,${0.55 + opacityFrac * 0.23})`,
+        boxShadow: "0 1px 0 rgba(0,0,0,0.08), 0 4px 20px rgba(0,0,0,0.08)",
+      };
+  const specularGradient = isDark
+    ? `linear-gradient(to right, transparent, rgba(255,255,255,0.28) ${mousePct * 100}%, transparent)`
+    : `linear-gradient(to right, transparent, rgba(0,0,0,0.06) ${mousePct * 100}%, transparent)`;
+  const borderClass = isDark ? "border-white/[0.12]" : "border-black/[0.08]";
+  const volumeGradientClass = isDark
+    ? "from-white/[0.07] to-transparent"
+    : "from-white/[0.40] to-transparent";
+
   useEffect(() => {
     document.documentElement.classList.toggle("nav-hidden", navHidden);
   }, [navHidden]);
@@ -1013,11 +1075,24 @@ export function PlatformHeader() {
   return (
     <>
     <header
-      className={`fixed top-0 left-0 right-0 w-full z-50 border-b bg-background/95 backdrop-blur-sm transition-transform duration-[250ms] ease-in-out${navHidden ? " -translate-y-full" : " translate-y-0"}`}
+      ref={headerRef}
+      className={`fixed top-0 left-0 right-0 w-full z-50 border-b backdrop-blur-2xl transition-transform duration-[250ms] ease-in-out ${borderClass}${navHidden ? " -translate-y-full" : " translate-y-0"}`}
+      style={glassStyle}
       data-testid="platform-header"
       role="banner"
     >
-      <div className="flex h-12 items-center gap-2 px-3">
+      {/* Specular highlight strip along top edge */}
+      <div
+        className="absolute top-0 left-0 right-0 h-px pointer-events-none z-0"
+        style={{ background: specularGradient }}
+        aria-hidden="true"
+      />
+      {/* Inner volume gradient for glass depth */}
+      <div
+        className={`absolute inset-0 bg-gradient-to-b ${volumeGradientClass} pointer-events-none z-0`}
+        aria-hidden="true"
+      />
+      <div className="flex h-12 items-center gap-2 px-3 relative z-10">
         <Link href="/" className="shrink-0">
           <div className="flex items-center gap-2 cursor-pointer" data-testid="link-platform-home">
             <img
@@ -1038,7 +1113,7 @@ export function PlatformHeader() {
         <div className="w-px h-5 bg-border mx-1 hidden lg:block" />
 
         {/* Desktop nav */}
-        <nav className="hidden lg:flex items-center gap-0.5 flex-1" aria-label="Main navigation" data-testid="nav-app-switcher">
+        <nav className="hidden lg:flex items-center gap-0.5 flex-1" aria-label="Main navigation" data-testid="nav-app-switcher" style={isDark ? { filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.5))" } : undefined}>
           <HomeDropdown isActive={activeApp === "/"} />
           <StoreDropdown isActive={activeApp === "/store"} />
           <ServicesDropdown isActive={activeApp === "/services"} platformSettings={platformSettings} />

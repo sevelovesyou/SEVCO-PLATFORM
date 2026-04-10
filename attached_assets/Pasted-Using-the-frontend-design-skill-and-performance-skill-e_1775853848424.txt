@@ -1,0 +1,21 @@
+Using the frontend-design skill and performance skill, enhance the header/navigation bar (the top bar that currently has a solid dark background) so it has a premium "liquid glass" or advanced frosted glass effect over the animated shader background in the hero.
+
+**Goals:**
+- The header should feel like modern liquid glass / Apple-style frosted glass: semi-transparent with strong backdrop blur, subtle inner glow/highlights, soft borders, and a slight liquid/distortion effect that reacts gently to the shader movement or mouse.
+- It must let the beautiful shader background show through clearly (the shader should be visible and "refracted" or blurred behind the glass) without making text hard to read.
+- Keep it sticky/fixed at the top.
+- Maintain excellent contrast and readability for the logo, nav links, and any buttons or user menu.
+- Add subtle dynamic touches: very light refraction or chromatic aberration from the shader behind it, soft specular highlights that move with the mouse or shader flow, and a thin liquid-like edge highlight.
+
+**Technical Approach (prefer this order):**
+1. First try a high-quality CSS-only version using `backdrop-filter: blur()`, `bg-black/30` or `bg-white/10`, `border border-white/20`, and subtle box-shadow for depth. Make it feel "liquid" with a light SVG filter or multiple layered pseudo-elements if needed.
+2. If that doesn't look premium enough over the Three.js shader, integrate it with React Three Fiber: render a thin 3D plane or use MeshTransmissionMaterial (from @react-three/drei) for the header so it truly refracts/distorts the shader behind it with thickness, roughness, and distortion parameters.
+3. The effect should feel cohesive with the existing shader — not fighting it.
+
+**Constraints:**
+- Keep it performant (60fps, no jank on mobile, respect prefers-reduced-motion).
+- Fully responsive.
+- Match our current Tailwind theme, colors, and typography.
+- Do not break the existing header functionality or layout.
+
+First, locate and analyze the current header component.

@@ -23810,3 +23810,64 @@ The /news article card grid has three visible issues:
 
 ---
 
+## Task — shader-settings-cmd
+> Merged: 2026-04-10
+
+# Shader Settings in Command Center
+
+## What & Why
+The hero shader added in #308 has no admin controls — speed, mouse sensitivity, color palette, vignette, and overlay strength are all hard-coded. Admins need a live-editable "Shader" panel inside the Hero Editor (Platform Settings → Display) in both `command-display.tsx` and `command-settings.tsx`. All values persist in the existing `platform_settings` key-value table (no schema changes required).
+
+## Done looks like
+- A "Shader" accordion section appears inside the Hero Editor in both CMD Display and CMD Settings pages
+- Admins can toggle the shader on/off (when off, the static gradient fallback is used)
+- Animation Speed slider: Slow / Normal / Fast / Blazing (maps to a time-scale multiplier 0.25–2.0)
+- Mouse Sensitivity slider: Off / Subtle / Medium / Strong (maps to distortion coefficient 0.0–0.12)
+- Color Palette dropdown: Cosmic Tide (default SEVCO palette), Deep Ocean (teal/cyan/blue), Ember (orange/amber/red), Midnight (deep monochrome blue), Custom
+- When Custom is selected: five hex color pickers appear (Base, Shadow, Mid, Highlight, Peak)
+- Noise Scale slider: Fine / Medium / Coarse — zooms the FBM noise field in or out
+- Vignette Strength slider: 0–100% — controls how dark the corners are
+- Overlay Strength slider: 0–100% — controls the semi-transparent content-readability layer over the shader
+- A "Reset to defaults" button in the shader panel restores all shader settings to their defaults
+- Changes save instantly on blur/change (matching existing pattern in CMD) with the same save mutation used elsewhere; a toast confirms each save
+- The landing page hero reads all new settings keys and passes them as props/uniforms to the `ShaderHeroBackground` component so changes are immediately visible on refresh
+
+## Out of scope
+- Real-time preview of the shader inside the CMD editor (the landing page itself reflects the changes on save/refresh)
+- Additional shader effects beyond the uniforms listed (particles, post-processing, etc.)
+- Mobile-specific shader settings UI (desktop CMD only)
+- Changing the `platform_settings` schema — all new keys go into the existing key-value store
+
+## New settings keys (all `platform_settings` key-value entries)
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `hero.shader.enabled` | `"true"/"false"` | `"true"` | Whether the live shader is active |
+| `hero.shader.speed` | float string `"0.25"–"2.0"` | `"1.0"` | Time scale multiplier |
+| `hero.shader.mouseStrength` | float string `"0.0"–"1.0"` | `"0.5"` | Distortion coefficient scale |
+| `hero.shader.palette` | enum string | `"cosmic"` | Preset palette name |
+| `hero.shader.noiseScale` | float string `"0.5"–"3.0"` | `"1.0"` | FBM noise zoom |
+| `hero.shader.vignetteStrength` | float string `"0.0"–"1.0"` | `"0.6"` | Corner vignette darkness |
+| `hero.shader.overlayStrength` | float string `"0.0"–"1.0"` | `"0.45"` | Readability overlay opacity |
+| `hero.shader.colorBase` | hex string | `"#07071a"` | Custom: base/background color |
+| `hero.shader.colorShadow` | hex string | `"#1f1066"` | Custom: shadow/deep color |
+| `hero.shader.colorMid` | hex string | `"#1c54e0"` | Custom: midtone color |
+| `hero.shader.colorHighlight` | hex string | `"#be0007"` | Custom: highlight color |
+| `hero.shader.colorPeak` | hex string | `"#d93b0c"` | Custom: peak/hotspot color |
+
+## Tasks
+
+1. **Add shader props to `ShaderHeroBackground`** — Extend the component's `props` interface to accept: `timeScale`, `mouseStrength`, `noiseScale`, `vignetteStrength`, `paletteColors` (5-color array). Add corresponding `uTimeScale`, `uMouseStrength`, `uNoiseScale`, `uVignetteStrength`, and `uColor0`–`uColor4` uniforms to the GLSL fragment shader. Replace the hard-coded constants in the fragment shader with these uniforms. The `paletteColors` prop accepts an array of 5 hex strings that get converted to `vec3` uniforms. Also expose the named palette presets as a constant map of 5-color arrays so the host can look them up by name.
+
+2. **Read shader settings in `landing.tsx` and wire to component** — Read all twelve `hero.shader.*` keys from the settings object. Derive the 5-color array (from the preset map or the 5 custom hex keys). Pass all values as props to `ShaderHeroBackground`. When `hero.shader.enabled` is `"false"`, skip the Canvas and render only the static gradient fallback.
+
+3. **Build the Shader Settings panel UI** — Create a reusable `ShaderSettingsPanel` component (can live inline in a shared section or as a small extracted component) that renders: an Enable toggle, Speed/Mouse/Noise/Vignette/Overlay sliders, a Palette dropdown, and (conditionally) 5 color pickers for custom palette. Each control calls the existing save mutation on change/blur. Include a "Reset defaults" button that batch-saves all shader keys back to their defaults. Wire this panel into the Hero Editor section of both `command-display.tsx` and `command-settings.tsx`.
+
+## Relevant files
+- `client/src/components/shader-background.tsx`
+- `client/src/pages/landing.tsx:237-248,329-360,440-493`
+- `client/src/pages/command-display.tsx`
+- `client/src/pages/command-settings.tsx`
+
+
+---
+

@@ -24254,3 +24254,28 @@ Restructure the absolute bottom overlay: combine title and buttons in a single `
 
 ---
 
+## Task — feed-explore-account-dropdown
+> Merged: 2026-04-10
+
+# Add Feed & Explore to Account Dropdown
+
+## What & Why
+Add links to the Feed and Explore (Discover) pages in the Account dropdown menu in the platform header, so users can quickly navigate to those pages from anywhere in the app.
+
+## Done looks like
+- The Account dropdown contains two new items: "Feed" (linking to `/feed`) and "Explore" (linking to `/discover`), placed above the existing "My Profile" and "Account" items (or in a logical grouping)
+- Each new item has an appropriate icon and a `data-testid` attribute
+
+## Out of scope
+- Changes to the Feed or Discover pages themselves
+- Changes to the mobile drawer navigation
+
+## Tasks
+1. Add "Feed" and "Explore" dropdown menu items to the Account dropdown in the platform header, with appropriate icons and test IDs.
+
+## Relevant files
+- `client/src/components/platform-header.tsx:1287-1324`
+
+
+---
+

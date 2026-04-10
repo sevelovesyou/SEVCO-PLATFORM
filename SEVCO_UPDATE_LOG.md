@@ -24148,3 +24148,72 @@ The hero shader added in #308 has no admin controls — speed, mouse sensitivity
 
 ---
 
+## Task — liquid-glass-header
+> Merged: 2026-04-10
+
+# Liquid Glass Header over Shader Hero
+
+## What & Why
+The current header uses `bg-background/95 backdrop-blur-sm` — effectively opaque with only 4px of blur. Over the new GLSL shader hero it looks like a solid dark bar that completely blocks the background. This task replaces it with a true liquid-glass / Apple-style frosted glass header: deeply translucent, strongly blurred, multi-layered with specular highlights and a subtle bottom glow — so the animated shader visibly flows through the glass while all text stays perfectly readable. Both dark mode (over the hero shader) and light mode (interior pages) get properly tuned glass.
+
+## Done looks like
+- The header is visibly translucent: the flowing GLSL shader beneath is clearly "refracted" through the header glass — the user can see colors and motion from the shader behind the nav bar
+- A thin specular highlight line runs along the top edge of the header (like light catching a glass edge), and a softer glow runs along the bottom
+- A very subtle inner gradient from `rgba(255,255,255,0.08)` (top of header) to transparent (bottom) gives volumetric glass depth in dark mode
+- All nav text, logo, and buttons maintain excellent readability (contrast ≥ 4.5:1) via text-shadow and/or slightly elevated text color
+- The glass transitions smoothly: at scroll position 0 (full-hero view) it is maximally transparent; as the user scrolls past the hero the header gains a touch more opacity (≤ 40% opaque at max — still glassy, never opaque)
+- Moving the mouse left/right across the header causes the specular highlight strip to subtly shift, giving a liquid-lens feel
+- `prefers-reduced-motion`: no mouse-reactive specular animation, static glass only
+- Fully responsive — the mobile drawer header gets the same glass treatment
+- 60fps — no Three.js / WebGL added; pure CSS + a tiny scroll/mouse listener
+- The icon-only collapsed state and the full nav state both look correct with the glass
+- **Dark mode (hero + dark pages):** glass tinted dark — `rgba(0,0,0,0.12)` → `rgba(0,0,0,0.35)` on scroll
+- **Light mode (interior pages):** glass tinted white — `rgba(255,255,255,0.55)` → `rgba(255,255,255,0.78)` on scroll; border and specular are dark-tinted (`rgba(0,0,0,0.08)`) instead of white; text-shadow drops are omitted (dark text on light glass already has contrast); the inner volume gradient runs from `rgba(255,255,255,0.4)` (top) to `rgba(255,255,255,0.0)` (bottom) for a milky frosted-glass depth
+
+## Technical approach (CSS-first, no new WebGL)
+Replace the single header `className` string and add thin absolutely-positioned child elements for the specular highlight strip and inner volume gradient. No external libraries needed.
+
+**Glass layer stack (inside the `<header>`, dark mode):**
+1. Base tint: `rgba(0,0,0,0.12)` — scroll-ramped via inline `style`
+2. Blur: `backdrop-blur-2xl` (40px)
+3. Top specular: `h-px w-full absolute top-0` — `linear-gradient(to right, transparent, rgba(255,255,255,0.28) at mouse X%, transparent)` (mouse-reactive)
+4. Inner volume: `absolute inset-0 bg-gradient-to-b from-white/[0.07] to-transparent pointer-events-none`
+5. Bottom glow: `box-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 4px 24px rgba(0,0,0,0.22)` via inline style
+6. Border: `border-b border-white/[0.12]`
+7. Text: `drop-shadow(0 1px 4px rgba(0,0,0,0.5))` on nav links via a wrapper class
+
+**Glass layer stack (light mode — detected via `isDark` from `useTheme` / `document.documentElement.classList`):**
+1. Base tint: `rgba(255,255,255,0.55)` — scroll-ramped to `rgba(255,255,255,0.78)`
+2. Blur: `backdrop-blur-2xl` (same)
+3. Top specular: `linear-gradient(to right, transparent, rgba(0,0,0,0.06) at mouse X%, transparent)` — dark micro-shimmer instead of bright white
+4. Inner volume: `from-white/[0.40] to-transparent` — milky white frosted depth
+5. Bottom glow: `box-shadow: 0 1px 0 rgba(0,0,0,0.08), 0 4px 20px rgba(0,0,0,0.08)` — subtle shadow
+6. Border: `border-b border-black/[0.08]`
+7. Text: no text-shadow needed (dark foreground on light glass already contrasts)
+
+**Scroll opacity ramp:**
+- `headerScrollY` state — `window.addEventListener("scroll", ...)` inside the component
+- `opacityFrac = Math.min(scrollY / 500, 1)`
+- Dark: `background: rgba(0,0,0,${0.12 + opacityFrac * 0.23})`
+- Light: `background: rgba(255,255,255,${0.55 + opacityFrac * 0.23})`
+
+**Mouse specular (guarded by `prefers-reduced-motion`):**
+- `mousePct` state (0.0–1.0 of header width)
+- Throttled `pointermove` on `<header>`
+- Specular width: 30% of header, centred on `mousePct`
+
+## Out of scope
+- Three.js / MeshTransmissionMaterial integration
+- Changing header layout, links, dropdown menus, or any functional behavior
+- Changes to any page other than the header component itself
+
+## Tasks
+
+1. **Upgrade header glass in `platform-header.tsx`** — Replace `bg-background/95 backdrop-blur-sm border-b` with `backdrop-blur-2xl` plus a scroll-reactive + theme-reactive inline background style. Detect dark/light mode via `document.documentElement.classList.contains("dark")` (reactive to class changes via a `MutationObserver`). Add a `headerScrollY` state wired to a passive scroll listener. Add a `mousePct` state wired to a throttled `pointermove` on the `<header>` (skipped under `prefers-reduced-motion`). Add three absolutely-positioned child divs inside `<header>` before the flex content: (a) `h-px w-full top-0 left-0` specular strip with mouse-reactive gradient, (b) `inset-0` inner volume gradient, and the existing content wrapped in `relative z-10`. Apply the appropriate border class and inline box-shadow per mode. Add a subtle `filter: drop-shadow(0 1px 4px rgba(0,0,0,0.5))` CSS class to nav link wrappers in dark mode only for readability.
+
+## Relevant files
+- `client/src/components/platform-header.tsx:1013-1020`
+
+
+---
+

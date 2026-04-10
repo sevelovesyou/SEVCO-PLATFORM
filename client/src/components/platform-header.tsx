@@ -94,6 +94,7 @@ import {
   Drum,
   EyeOff,
   Compass,
+  Layers,
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { ChatSheet } from "@/components/chat-sheet";
@@ -686,6 +687,7 @@ function ToolsDropdown({
     { label: "Notes",   href: "/notes",        icon: StickyNote,   desc: "Personal & shared notes",               requiredRoles: ["user","client","partner","staff","executive","admin"] },
     { label: "Tasks",   href: "/tools/tasks",    icon: CheckSquare,  desc: "Personal to-do list & staff board",     requiredRoles: ["user","client","partner","staff","executive","admin"] },
     { label: "Canvas",  href: "/canvas",         icon: Palette,      desc: "Infinite canvas & AI image editor",     requiredRoles: ["user","client","partner","staff","executive","admin"] },
+    { label: "Sites",   href: "/sites",          icon: Layers,       desc: "Manage your SEVCO Sites",               requiredRoles: ["user","client","partner","staff","executive","admin"] },
     { label: "Domains", href: "/tools/domains", icon: Globe,        desc: "Search & register domain names",        requiredRoles: ["user","client","partner","staff","executive","admin"] },
     { label: "Gallery", href: "/gallery",        icon: Images,       desc: "Quick-copy images for your profile",    requiredRoles: ["user","client","partner","staff","executive","admin"] },
     { label: "Email",   href: "/messages",       icon: Mail,         desc: `${user?.username ?? "your"}@sevco.us`,  requiredRoles: ["client","partner","staff","executive","admin"] },
@@ -774,6 +776,15 @@ function ToolsDropdown({
                     <TooltipContent>Lens</TooltipContent>
                   </Tooltip>
 
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setOpen(false); onHideNav(); }} data-testid="dropdown-tools-hide-nav">
+                        <EyeOff className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Hide navigation</TooltipContent>
+                  </Tooltip>
+
                   <ThemeToggle />
 
                   <Tooltip>
@@ -805,16 +816,6 @@ function ToolsDropdown({
                 <p className="text-[10px] text-muted-foreground/60 italic hover:text-muted-foreground transition-colors">View all tools →</p>
               </Link>
 
-              <div className="border-t border-border/60 mt-1.5 pt-1.5">
-                <button
-                  className="w-full text-left flex items-center gap-2 px-1 py-1 rounded-md hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
-                  data-testid="dropdown-tools-hide-nav"
-                  onClick={() => { setOpen(false); onHideNav(); }}
-                >
-                  <EyeOff className="h-3.5 w-3.5 text-muted-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
-                  <span className="text-[10px] text-muted-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">Hide navigation</span>
-                </button>
-              </div>
             </div>
           </div>
         </DropdownPanel>

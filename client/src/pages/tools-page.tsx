@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Lock,
   Wrench,
+  Layers,
 } from "lucide-react";
 
 interface Tool {
@@ -97,6 +98,23 @@ const TOOLS: Tool[] = [
     requiredRoles: ["user", "client", "partner", "staff", "executive", "admin"],
     accentColor: "hover:shadow-cyan-500/20",
     glowColor: "group-hover:border-cyan-500/40",
+  },
+  {
+    name: "Sites",
+    href: "/sites",
+    icon: Layers,
+    description: "Build and manage your SEVCO Sites — create pages, customize sections, and publish your presence.",
+    features: [
+      "Drag-and-drop page builder",
+      "Customizable sections",
+      "Publish & manage sites",
+      "Personal SEVCO domain",
+    ],
+    accessLabel: "Free with account",
+    accessVariant: "free",
+    requiredRoles: ["user", "client", "partner", "staff", "executive", "admin"],
+    accentColor: "hover:shadow-indigo-500/20",
+    glowColor: "group-hover:border-indigo-500/40",
   },
   {
     name: "Gallery",

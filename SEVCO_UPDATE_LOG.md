@@ -22699,3 +22699,183 @@ The nav-hide feature wraps the `<header>` in an outer `<div>` with `overflow-hid
 
 ---
 
+## Task — sevco-sites-landing
+> Merged: 2026-04-10
+
+# SEVCO Sites — Marketing Landing Page at /sites
+
+## Dependencies
+
+**No dependencies** — this is a standalone marketing page. It can be built and
+merged in parallel with the schema/API task. The page does not call any
+`/api/sites` endpoints and has no auth requirement (public page).
+
+When a logged-in user visits `/sites` they will be redirected to the dashboard
+(handled by the Builder UI task). When a logged-out user visits `/sites`, they
+should see this marketing page. In this task, just build the page — the routing
+guard (checking auth → show dashboard or marketing page) is handled in the
+Builder UI task. For now route `/sites` directly to this landing page.
+
+## Done looks like
+
+- `client/src/pages/sites-landing.tsx` exists with a premium, distinctive marketing
+  page for SEVCO Sites.
+- Route `/sites` is registered in `client/src/App.tsx`.
+- The page renders correctly without a login (public).
+- Design feels premium and NOT generic — follows the frontend-design skill.
+- All interactive elements have `data-testid` attributes.
+
+---
+
+## Design direction
+
+**Aesthetic**: Sleek, product-launch dark mode. Magazine editorial typography
+meets SaaS precision. Think Vercel or Linear but with SEVCO's distinct energy.
+
+**Color palette**:
+- Background: near-black `#080808`
+- Surface: `#111` and `#1a1a1a`
+- Accent: electric blue `#3b82f6`
+- Text: `#f5f5f5` primary, `#6b7280` secondary
+- Highlight: a very subtle blue-to-purple gradient on the hero headline
+
+**Typography**:
+- Do NOT use Inter or Space Grotesk
+- Use Google Fonts: `Syne` (display/headings, geometric + distinctive) +
+  `DM Sans` (body, friendly + modern)
+- Import via `<link>` in the component using a `<Helmet>`-style approach (or
+  add a `<style>` tag with `@import url(...)` inside the JSX head — actually
+  just add the font link inside the component with a style tag on the `<div>`)
+- Actually, import the font in the component via `useEffect` / dynamic `<link>`
+  tag injection, or simply set font-family and reference it in inline styles
+  knowing the app likely already loads system fonts. Better: use Tailwind's
+  `font-mono` for the `sev.cx` slug display and keep body clean with system-ui
+  but with stylized headings using letter-spacing and weight.
+
+Actually for simplicity and correctness within the Vite+Tailwind setup:
+- Use `className` with Tailwind and `style` props where specific fonts are needed
+- For the hero headline, use `font-black tracking-tighter` — lean into the
+  Tailwind type system
+
+**Layout**: Full-page scroll with distinct sections:
+
+---
+
+## Sections
+
+### 1. Hero
+```
+SEVCO Sites
+Build your world at yourbrand.sev.cx
+
+[Start building free]   [See examples →]
+
+Subtle animated grid background (CSS only: 
+  a `::before` pseudo-element with a CSS 
+  grid pattern using `background-image: 
+  linear-gradient(...)` at 1px lines)
+```
+
+The domain `yourbrand.sev.cx` should pulse or fade in letter by letter (CSS
+animation). Use a typewriter-style animation on the sev.cx domain display.
+
+### 2. Feature grid (3 columns)
+Cards with icon + title + description:
+- **Your domain, instantly** — Get `yourbrand.sev.cx` the moment you publish.
+  No setup, no DNS headaches. (Globe icon)
+- **Drag-and-drop blocks** — Hero sections, galleries, contact forms, embeds.
+  Your page, your way. (Layers icon)
+- **Theme in seconds** — Colors, fonts, feel. One panel, endless combinations.
+  (Paintbrush icon)
+- **Built-in security** — Every site gets CSP headers, XSS protection, and
+  HTTPS by default. (Shield icon)
+- **Custom domains soon** — Bring your own domain — CNAME support is coming.
+  (Link icon)
+- **Free forever** — Your first site on sev.cx is always free.
+  (Zap icon)
+
+### 3. How it works (numbered steps)
+Horizontal step flow on desktop, vertical on mobile:
+1. **Sign in** — Create your SEVCO account (free in 30 seconds)
+2. **Choose your address** — Pick your `slug.sev.cx` domain
+3. **Build your page** — Drag blocks, customize theme, write content
+4. **Publish** — One click to go live on your sev.cx address
+
+### 4. CTA banner
+Dark card with gradient border:
+```
+Ready to build?
+Your site lives at yourbrand.sev.cx — claim it now.
+
+[Create your free site →]
+```
+Button links to `/auth?redirect=/sites` (or `/auth` if redirect isn't supported).
+
+### 5. Footer note
+Small, centered:
+```
+SEVCO Sites is part of the SEVCO platform • sevco.us
+Powered by sev.cx
+```
+
+---
+
+## Implementation
+
+```tsx
+// client/src/pages/sites-landing.tsx
+import { Link } from "wouter";
+import { Globe, Layers, Paintbrush, Shield, Link2, Zap, ArrowRight, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+// Use inline styles for the bg grid pattern, Tailwind for everything else
+
+export default function SitesLandingPage() {
+  return (
+    <div className="min-h-screen bg-[#080808] text-[#f5f5f5]">
+      {/* Hero */}
+      {/* Feature grid */}
+      {/* How it works */}
+      {/* CTA banner */}
+      {/* Footer note */}
+    </div>
+  );
+}
+```
+
+### CSS grid background (inline style on hero section):
+```javascript
+const gridBg = {
+  backgroundImage: `
+    linear-gradient(rgba(59,130,246,.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,.08) 1px, transparent 1px)
+  `,
+  backgroundSize: "48px 48px",
+};
+```
+
+### Domain animation:
+Animate the `yourbrand.sev.cx` text with a CSS `@keyframes` blink on the cursor
+or use a simple fade-in animation. Keep it CSS-only in a `<style jsx>` block —
+actually inject via a `<style>` tag returned inside the component root div.
+
+---
+
+## App.tsx change
+
+Add at the top with other page imports:
+```tsx
+import SitesLandingPage from "@/pages/sites-landing";
+```
+
+Add the route (place it near `/store`, `/services`, `/projects`):
+```tsx
+<Route path="/sites" component={SitesLandingPage} />
+```
+
+Note: When the Builder UI task (Task #300) merges, this route will be updated
+to show the dashboard for logged-in users or this landing page for guests.
+
+
+---
+

@@ -14,6 +14,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetClose,
 } from "@/components/ui/sheet";
 import {
   Dialog,
@@ -34,6 +35,7 @@ import {
   Trash2,
   Maximize2,
   ExternalLink,
+  X,
 } from "lucide-react";
 import type { ChatChannel, User, AiAgent, AiMessage } from "@shared/schema";
 import { AiMessageRenderer, useCodePreview, CodePreviewDrawer } from "@/components/ai-message-renderer";
@@ -205,12 +207,12 @@ function ChannelView({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 p-3 border-b bg-background shrink-0 pr-10">
+      <div className="flex items-center gap-2 p-3 border-b bg-background shrink-0">
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack} data-testid="button-chat-back" aria-label="Back to channels">
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
         <Hash className="h-4 w-4 text-muted-foreground shrink-0" />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold truncate">{channel.name}</p>
           {channel.description && (
             <p className="text-[11px] text-muted-foreground truncate">{channel.description}</p>
@@ -229,6 +231,11 @@ function ChannelView({
             <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
           </Button>
         )}
+        <SheetClose asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" aria-label="Close chat">
+            <X className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </SheetClose>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0" data-testid="channel-messages">
@@ -287,7 +294,7 @@ function DmView({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 p-3 border-b bg-background shrink-0 pr-10">
+      <div className="flex items-center gap-2 p-3 border-b bg-background shrink-0">
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack} data-testid="button-dm-back" aria-label="Back to conversations">
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
@@ -308,6 +315,11 @@ function DmView({
             <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
           </Button>
         )}
+        <SheetClose asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" aria-label="Close chat">
+            <X className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </SheetClose>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0" data-testid="dm-messages">
@@ -508,7 +520,7 @@ function AiAgentView({ agent, onBack, onPopOut }: { agent: AiAgent; onBack: () =
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 p-3 border-b bg-background shrink-0 pr-10">
+      <div className="flex items-center gap-2 p-3 border-b bg-background shrink-0">
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack} data-testid="button-ai-back" aria-label="Back to AI agents">
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
@@ -547,6 +559,11 @@ function AiAgentView({ agent, onBack, onPopOut }: { agent: AiAgent; onBack: () =
             <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
           </Button>
         )}
+        <SheetClose asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" aria-label="Close chat">
+            <X className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </SheetClose>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0" data-testid="ai-messages">
@@ -695,12 +712,12 @@ export function ChatSheet({ open, onClose }: { open: boolean; onClose: () => voi
   return (
     <>
       <Sheet open={open} onOpenChange={(o) => !o && handleClose()}>
-        <SheetContent side="right" className="w-[400px] p-0 flex flex-col">
+        <SheetContent side="right" className="w-[400px] p-0 flex flex-col [&>button]:hidden">
           {view.type === "list" && (
             <>
               <SheetHeader className="p-3 border-b shrink-0">
-                <div className="flex items-center gap-2 pr-8">
-                  <SheetTitle className="flex items-center gap-2 text-base">
+                <div className="flex items-center gap-2">
+                  <SheetTitle className="flex items-center gap-2 text-base flex-1">
                     <MessageCircle className="h-4 w-4" />
                     Chat
                   </SheetTitle>
@@ -714,6 +731,11 @@ export function ChatSheet({ open, onClose }: { open: boolean; onClose: () => voi
                   >
                     <Maximize2 className="h-4 w-4" aria-hidden="true" />
                   </Button>
+                  <SheetClose asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground shrink-0" aria-label="Close chat">
+                      <X className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </SheetClose>
                 </div>
               </SheetHeader>
 

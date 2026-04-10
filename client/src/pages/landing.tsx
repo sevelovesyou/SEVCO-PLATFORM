@@ -798,47 +798,49 @@ export default function Landing() {
         wallpaperLoading ? (
           <div className="w-full bg-black/40 animate-pulse" style={{ minHeight: "40vh" }} data-testid="section-wallpaper-loading" />
         ) : wallpaperUrl ? (
-          <section className="relative w-full overflow-hidden bg-black" style={{ minHeight: "60vh" }} data-testid="section-wallpaper">
+          <section className="relative w-full overflow-hidden bg-black min-h-[40vh] sm:min-h-[60vh]" data-testid="section-wallpaper">
             <img
               src={wallpaperUrl}
               alt="Wallpaper of the Day"
-              className="w-full h-full object-cover"
-              style={{ minHeight: "60vh", maxHeight: "80vh", display: "block" }}
+              className="w-full h-full object-cover max-h-[80vh] block"
             />
-            <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
-            <div className="absolute bottom-4 right-4 flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="bg-black/40 text-white hover:bg-black/60 backdrop-blur-sm h-8 px-3 text-xs"
-                onClick={() => handleCopyWallpaperLink(wallpaperUrl)}
-                data-testid="button-wallpaper-copy-link"
-              >
-                <Link2 className="h-3.5 w-3.5 mr-1.5" /> Copy Link
-              </Button>
-              <a href={wallpaperUrl} download target="_blank" rel="noopener noreferrer">
+            <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+            <div className="absolute bottom-0 inset-x-0 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/50 shrink-0">Wallpaper of the Day</p>
+              <div className="flex items-center gap-2">
                 <Button
                   size="sm"
                   variant="ghost"
                   className="bg-black/40 text-white hover:bg-black/60 backdrop-blur-sm h-8 px-3 text-xs"
-                  data-testid="button-wallpaper-download"
+                  onClick={() => handleCopyWallpaperLink(wallpaperUrl)}
+                  data-testid="button-wallpaper-copy-link"
                 >
-                  <Download className="h-3.5 w-3.5 mr-1.5" /> Download
+                  <Link2 className="h-3.5 w-3.5 sm:mr-1.5" />
+                  <span className="sr-only sm:not-sr-only">Copy Link</span>
                 </Button>
-              </a>
-              <Link href="/gallery">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="bg-black/40 text-white hover:bg-black/60 backdrop-blur-sm h-8 px-3 text-xs"
-                  data-testid="button-wallpaper-gallery"
-                >
-                  <Images className="h-3.5 w-3.5 mr-1.5" /> Gallery
-                </Button>
-              </Link>
-            </div>
-            <div className="absolute bottom-4 left-4">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/50">Wallpaper of the Day</p>
+                <a href={wallpaperUrl} download target="_blank" rel="noopener noreferrer">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="bg-black/40 text-white hover:bg-black/60 backdrop-blur-sm h-8 px-3 text-xs"
+                    data-testid="button-wallpaper-download"
+                  >
+                    <Download className="h-3.5 w-3.5 sm:mr-1.5" />
+                    <span className="sr-only sm:not-sr-only">Download</span>
+                  </Button>
+                </a>
+                <Link href="/gallery">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="bg-black/40 text-white hover:bg-black/60 backdrop-blur-sm h-8 px-3 text-xs"
+                    data-testid="button-wallpaper-gallery"
+                  >
+                    <Images className="h-3.5 w-3.5 sm:mr-1.5" />
+                    <span className="sr-only sm:not-sr-only">Gallery</span>
+                  </Button>
+                </Link>
+              </div>
             </div>
           </section>
         ) : null

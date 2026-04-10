@@ -40,6 +40,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
+  SheetClose,
 } from "@/components/ui/sheet";
 import * as LucideIcons from "lucide-react";
 import {
@@ -1335,10 +1336,20 @@ export function PlatformHeader() {
       </div>
 
       <Sheet open={mobileOpen} onOpenChange={(o) => { setMobileOpen(o); if (!o) setMobileSection(null); }}>
-        <SheetContent side="right" className="w-80 p-0 overflow-y-auto" data-testid="mobile-nav-drawer">
-          <SheetHeader className="sr-only">
-            <SheetTitle>Navigation</SheetTitle>
-            <SheetDescription>Site navigation menu</SheetDescription>
+        <SheetContent side="right" className="w-80 p-0 overflow-y-auto [&>button]:hidden" data-testid="mobile-nav-drawer">
+          <SheetHeader className="flex flex-row items-center justify-between px-3 border-b h-12 shrink-0">
+            <SheetTitle className="sr-only">Navigation</SheetTitle>
+            <SheetDescription className="sr-only">Site navigation menu</SheetDescription>
+            <img
+              src={resolveImageUrl(platformSettings?.["platform.logoUrl"] || null) || wordmarkBlack}
+              alt="SEVCO"
+              className="h-6 object-contain"
+            />
+            <SheetClose asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Close navigation">
+                <LucideIcons.X className="h-4 w-4" />
+              </Button>
+            </SheetClose>
           </SheetHeader>
           <nav className="px-3 py-4 space-y-0.5" aria-label="Mobile navigation">
           <Collapsible open={mobileSection === "home"} onOpenChange={(o) => setMobileSection(o ? "home" : null)}>

@@ -23540,3 +23540,158 @@ can click "Keep waiting" if they want.
 
 ---
 
+## Task — lens-base-tag-injection
+> Merged: 2026-04-10
+
+# Lens Proxy — Base Tag Injection to Fix Broken Styling
+
+## Problem
+
+The proxy strips `X-Frame-Options` and serves HTML from the upstream server.
+However, the HTML contains relative asset paths like `/_next/static/…`,
+`/styles.css`, `../icons/sprite.svg` etc. Since the iframe's document origin is
+now `https://sevco.us` (our domain), the browser resolves all those relative
+paths against **our** server, gets 404s, and the page renders with no CSS or JS.
+
+## Solution
+
+When the proxy forwards a `text/html` response, **buffer the full body**, inject
+`<base href="<target-origin>/">` immediately after the opening `<head>` tag (or
+prepend it if no `<head>` exists), then send the modified HTML.
+
+This makes every relative URL in the page resolve correctly against the original
+host, so CSS, JS, fonts, and images all load from the right place.
+
+## Done looks like
+
+- `server/lens-proxy.ts` is the **only file changed**
+- HTML responses are buffered, `<base>` is injected, styled pages render correctly
+- Non-HTML responses (CSS, JS, images, JSON, etc.) are still streamed as-before
+
+---
+
+## Exact changes to `server/lens-proxy.ts`
+
+### A. Suppress upstream content-encoding on HTML requests
+
+Add `Accept-Encoding: identity` to the outbound request headers so the proxy
+receives uncompressed HTML. (Compressed body + buffering + text injection is
+complex; for CSS/JS that stream through untouched, gzip is fine but we need to
+negotiate per-request. The simplest correct approach: **always request
+identity**. Performance impact is minimal — browser-to-proxy leg is localhost,
+and the proxy-to-upstream leg is the only hop that matters for compression.)
+
+Update the headers inside `doProxyRequest`:
+
+```ts
+headers: {
+  "User-Agent":
+    "Mozilla/5.0 (compatible; SEVCO-Lens/1.0; +https://sevco.us)",
+  Accept:
+    "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.5",
+  "Accept-Encoding": "identity",   // ← ADD THIS
+},
+```
+
+### B. Replace the pipe logic with content-type-aware handling
+
+Replace this block (currently at the end of the `proxyRes` callback):
+
+```ts
+// Enforce a size limit (~8 MB)
+let size = 0;
+const MAX = 8 * 1024 * 1024;
+
+proxyRes.on("data", (chunk: Buffer) => {
+  size += chunk.length;
+  if (size > MAX) {
+    res.destroy();
+    proxyReq.destroy();
+  }
+});
+
+proxyRes.pipe(res);
+```
+
+With the following:
+
+```ts
+const contentType = (proxyRes.headers["content-type"] || "").toLowerCase();
+const isHtml = contentType.includes("text/html");
+
+if (isHtml) {
+  // Buffer the full body so we can inject a <base> tag.
+  // content-length must be removed since body length will change.
+  res.removeHeader("content-length");
+
+  const chunks: Buffer[] = [];
+  let size = 0;
+  const MAX = 8 * 1024 * 1024;
+
+  proxyRes.on("data", (chunk: Buffer) => {
+    size += chunk.length;
+    if (size > MAX) {
+      res.destroy();
+      proxyReq.destroy();
+      return;
+    }
+    chunks.push(chunk);
+  });
+
+  proxyRes.on("end", () => {
+    if (res.destroyed) return;
+    let html = Buffer.concat(chunks).toString("utf-8");
+
+    // Inject <base href="..."> so relative assets resolve to origin
+    const baseTag = `<base href="${targetUrl.origin}/">`;
+    if (/<head(\s[^>]*)?>/i.test(html)) {
+      html = html.replace(/<head(\s[^>]*)?>/i, (m) => m + baseTag);
+    } else {
+      // No <head> — prepend so it applies to everything below
+      html = baseTag + html;
+    }
+
+    res.end(html);
+  });
+
+  proxyRes.on("error", () => {
+    if (!res.headersSent) res.status(502).json({ error: "Stream error" });
+  });
+} else {
+  // Non-HTML (CSS, JS, images, fonts …) — stream as before
+  let size = 0;
+  const MAX = 8 * 1024 * 1024;
+
+  proxyRes.on("data", (chunk: Buffer) => {
+    size += chunk.length;
+    if (size > MAX) {
+      res.destroy();
+      proxyReq.destroy();
+    }
+  });
+
+  proxyRes.pipe(res);
+}
+```
+
+Note: `targetUrl` is already in scope inside `doProxyRequest` — it's the
+first parameter. No new variable needed.
+
+---
+
+## Why this works
+
+| Scenario | Before | After |
+|---|---|---|
+| `<link href="/styles.css">` | resolves to `sevco.us/styles.css` → 404 | resolves to `original-site.com/styles.css` ✓ |
+| `<script src="/_next/static/…">` | 404 on our server | loads from original site ✓ |
+| `<img src="../images/logo.png">` | wrong relative path | correct ✓ |
+| Absolute `https://cdn.example.com/…` | unchanged | unchanged ✓ |
+| Non-HTML (CSS/JS/images) | streamed through | still streamed ✓ |
+
+## No frontend or schema changes needed
+
+
+---
+

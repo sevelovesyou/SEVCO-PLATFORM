@@ -24217,3 +24217,40 @@ Replace the single header `className` string and add thin absolutely-positioned 
 
 ---
 
+## Task — mobile-ui-fixes
+> Merged: 2026-04-10
+
+# Mobile UI Bug Fixes (3 issues)
+
+## What & Why
+Three layout/alignment bugs reported on mobile. All are targeted, surgical fixes to existing components — no new features, no schema changes.
+
+## Done looks like
+- Mobile nav drawer: the X close button sits in its own visible header row (SEVCO logo left, X right) — the collapsible chevrons in the nav list are never within visual proximity of the X
+- Chat sidebar: the ExternalLink (expand) icon and the X close icon are vertically centred on the same baseline in the header row, exactly like the back-arrow and avatar are
+- Wallpaper section: on mobile the "Wallpaper of the Day" label and the action buttons (Copy Link / Download / Gallery) do not overlap; the image does not bleed outside the horizontal viewport; the section height is proportional on mobile
+
+## Out of scope
+- Any change to nav item order, links, or business logic
+- Desktop layouts (only mobile breakpoints affected)
+- Other pages or components not listed here
+
+## Tasks
+
+### Fix 1 — Mobile nav drawer close button overlap (`platform-header.tsx`)
+Change `SheetHeader className="sr-only"` to a visible header strip: logo/wordmark on the left, `SheetClose` icon button on the right, with a bottom border, giving it a fixed height of 48px. The nav `<nav>` then starts naturally below this header. Remove any manual `top-*` close-button hacks. This ensures the Sheet's close X is always separated from the nav collapsible chevrons by the full header height.
+
+### Fix 2 — Chat sidebar header icon alignment (`chat-sheet.tsx`)
+In each view component's header div (lines ~208, ~290, ~511): remove `pr-10`. Add an `onClose` callback prop threaded from the parent `ChatSheet` through to each view (ChannelView, DmView, AiView). Render a `SheetClose`-wrapped icon Button at the end of each header's flex row — right after the ExternalLink button — so both icons share the same `items-center` flex context. The header is already `flex items-center gap-2`, so placing both buttons there aligns them on the same baseline automatically.
+
+### Fix 3 — Wallpaper of the Day mobile layout (`landing.tsx`)
+Restructure the absolute bottom overlay: combine title and buttons in a single `absolute bottom-0 inset-x-0` container with a gradient backing. On mobile (`flex-col`), show the title line then the buttons below it. On `sm:` and above, revert to side-by-side (`flex-row justify-between items-end`). Change buttons to show icon-only on xs (`<span className="sr-only">`) and icon+label on `sm:`. Fix the image: remove `min-height: 60vh` inline style from the `<img>` tag; keep it only on the `<section>` wrapper but reduce to `min-height: 40vh` on mobile with `sm:min-height: 60vh` via a responsive Tailwind class.
+
+## Relevant files
+- `client/src/components/platform-header.tsx:1337-1343` (SheetHeader)
+- `client/src/components/chat-sheet.tsx:206-232,288-315,509-555` (view headers)
+- `client/src/pages/landing.tsx:801-843` (wallpaper section)
+
+
+---
+

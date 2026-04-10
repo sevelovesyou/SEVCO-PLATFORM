@@ -1,0 +1,41 @@
+Add SEVCO Sites — a full website builder as a service using the new domain sev.cx.
+
+1. Update / create these tables in shared/schema.ts (Drizzle + Zod):
+   - user_websites (
+       id, 
+       user_id (references users.id), 
+       slug (unique), 
+       title, 
+       description, 
+       is_published (default false), 
+       content_json (jsonb for page structure), 
+       custom_domain (text, nullable for Phase 1 custom domains), 
+       created_at, 
+       updated_at
+     )
+   - website_pages (id, website_id, slug, is_homepage, content_json, meta jsonb)
+
+   Use supabase-postgres-best-practices skill for indexes, constraints, and relations.
+
+2. Create API routes in the server:
+   - GET/POST/PUT /api/sites (CRUD for user's websites)
+   - POST /api/sites/:slug/publish
+   - GET /api/sites/:slug (with pages)
+
+3. Add a middleware called sevcoSitesMiddleware (place it early in the Express route stack):
+   - If req.hostname ends with ".sev.cx", extract the slug (everything before .sev.cx)
+   - Query user_websites for a published site with that slug (or custom_domain match for future custom domains)
+   - If found, render the homepage (or requested page) from content_json into clean HTML with proper meta tags
+   - Add strict CSP headers and security headers
+   - If no site found, serve a friendly fallback page: "This site is powered by SEVCO Sites • Built on sev.cx" with a link back to the platform
+
+4. Build a clean, production-grade frontend builder UI (use frontend-design skill):
+   - Drag-and-drop block editor (Hero, Text, Gallery, Embed, Contact, etc.)
+   - Live preview pane
+   - Theme customizer (colors, fonts, matching SEVCO Tailwind)
+   - "Publish" button that calls the backend and allows the user to create a usersite.sev.cx domain for their site for free
+   - My Sites dashboard listing all user's sites with preview links and publish status
+
+5. Make the whole feature feel premium and distinctive — no generic AI look.
+
+Use existing auth, permissions, and performance best practices. After this, the app should fully support *.sev.cx subdomains and be ready for custom domain CNAME support in the next step.

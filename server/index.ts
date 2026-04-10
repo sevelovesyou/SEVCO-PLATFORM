@@ -463,6 +463,18 @@ async function runStartupMigrations() {
     inventory jsonb NOT NULL DEFAULT '{}'
   );`);
 
+  // Task #305 — SEVCO Canvas
+  await pool.query(`CREATE TABLE IF NOT EXISTS canvas_projects (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL DEFAULT 'Untitled Project',
+    tldraw_json JSONB,
+    thumbnail_url TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS canvas_projects_user_id_idx ON canvas_projects(user_id)`);
+
   // Task #298 — SEVCO Sites
   await pool.query(`
     CREATE TABLE IF NOT EXISTS user_websites (

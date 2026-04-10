@@ -685,6 +685,7 @@ function ToolsDropdown({
   const allItems = [
     { label: "Notes",   href: "/notes",        icon: StickyNote,   desc: "Personal & shared notes",               requiredRoles: ["user","client","partner","staff","executive","admin"] },
     { label: "Tasks",   href: "/tools/tasks",    icon: CheckSquare,  desc: "Personal to-do list & staff board",     requiredRoles: ["user","client","partner","staff","executive","admin"] },
+    { label: "Canvas",  href: "/canvas",         icon: Palette,      desc: "Infinite canvas & AI image editor",     requiredRoles: ["user","client","partner","staff","executive","admin"] },
     { label: "Domains", href: "/tools/domains", icon: Globe,        desc: "Search & register domain names",        requiredRoles: ["user","client","partner","staff","executive","admin"] },
     { label: "Gallery", href: "/gallery",        icon: Images,       desc: "Quick-copy images for your profile",    requiredRoles: ["user","client","partner","staff","executive","admin"] },
     { label: "Email",   href: "/messages",       icon: Mail,         desc: `${user?.username ?? "your"}@sevco.us`,  requiredRoles: ["client","partner","staff","executive","admin"] },

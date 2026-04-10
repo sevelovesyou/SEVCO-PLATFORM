@@ -30,6 +30,7 @@ import { registerWikifyToolRoutes } from "./wikify-tool";
 import { registerLensProxy } from "./lens-proxy";
 import { freeballRouter } from "./freeball-routes";
 import { sitesRouter } from "./sites-routes";
+import { canvasRouter } from "./canvas-routes";
 import {
   getGA4Status,
   getRealtimeActiveUsers,
@@ -4500,6 +4501,7 @@ export async function registerRoutes(
   registerLensProxy(app);
   app.use("/api/freeball", freeballRouter);
   app.use("/api/sites", sitesRouter);
+  app.use("/api/canvas", canvasRouter);
 
   app.get("/api/meta", async (_req, res) => {
     try {

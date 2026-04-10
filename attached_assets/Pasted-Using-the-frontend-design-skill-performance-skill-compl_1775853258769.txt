@@ -1,0 +1,18 @@
+Using the frontend-design skill + performance skill, completely redesign and replace the current hero section on the main landing page.
+
+The current hero is too static, the background is clipped/not covering the full viewport, it's too dark with low contrast, and the shader barely reacts to cursor movement. Make it visually stunning and on-brand for SEVCO (creative tech + music + community platform).
+
+**Core Requirements:**
+- Full-bleed hero that covers 100vh (or 100dvh) with no clipping. The animated background must fill the entire hero area behind the content.
+- Background: A high-quality, continuously animated custom GLSL shader using React Three Fiber + @react-three/drei. 
+  - Style: Dark cosmic / fluid nebula / liquid aurora feel with deep blues, purples, subtle red accents (matching our brand). Slow organic flowing noise, gentle volumetric waves, soft glowing particles or distortion that feels premium and alive.
+  - Strong, visible movement — not subtle/weak.
+  - Clear mouse/touch interaction: cursor position should create noticeable ripple, attraction, or distortion effect on the shader (like a magnetic field or light source following the mouse).
+  - Subtle parallax on scroll if possible.
+- Overlay: A smart semi-transparent dark gradient/mesh (stronger at the bottom or sides) so the headline and text stay highly readable with excellent contrast. Do not let the shader overpower the text.
+- Typography & Layout: Keep the SEVCO logo (planet icon) top-right. Headline "A creative community platform built by creators, for creators." with "creators" in red. Subheadline below. Two buttons ("Go to Platform" red, "Shop the Store" outlined). Make the layout feel bold, spacious, and modern — use our current Tailwind theme and fonts.
+- Performance: Must be 60fps smooth on desktop and mobile. Use a single Plane with shader material (no heavy post-processing). Respect `prefers-reduced-motion` (fallback to a slower or static version). Lazy load the shader if needed.
+- Accessibility: High contrast text, reduced motion support, no flashing/strobing.
+- Code: Production-ready, clean, well-commented. Create a new `ShaderHeroBackground.tsx` component if helpful, then integrate it perfectly into the hero. Use existing project structure, Tailwind classes, and any current hooks.
+
+First, analyze the current hero component and its background implementation.

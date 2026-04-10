@@ -109,6 +109,7 @@ import WikifyToolPage from "@/pages/wikify-tool-page";
 import ToolsPage from "@/pages/tools-page";
 import FreeballPage from "@/pages/freeball";
 import FreeBallLandingPage from "@/pages/freeball-landing";
+import SitesLandingPage from "@/pages/sites-landing";
 import PlatformPage from "@/pages/platform-page";
 import MessagesPage from "@/pages/messages-page";
 import FullscreenChatPage from "@/pages/fullscreen-chat-page";
@@ -251,6 +252,7 @@ function Router() {
       <Route path="/music/artists/:slug" component={MusicArtistDetail} />
       <Route path="/music/albums/new" component={() => <ProtectedRoute><MusicAlbumForm /></ProtectedRoute>} />
       <Route path="/music/albums/:slug" component={MusicAlbumDetail} />
+      <Route path="/sites" component={SitesLandingPage} />
       <Route path="/store" component={StorePage} />
       <Route path="/store/products/:slug" component={StoreProductDetail} />
       <Route path="/services" component={ServicesListingPage} />

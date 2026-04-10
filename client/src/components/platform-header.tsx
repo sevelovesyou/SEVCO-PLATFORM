@@ -275,6 +275,15 @@ function DropdownPanel({ children, className = "", triggerRef }: {
 }) {
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   useLayoutEffect(() => {
     if (!triggerRef.current) return;
@@ -288,14 +297,29 @@ function DropdownPanel({ children, className = "", triggerRef }: {
     }
   }, [triggerRef]);
 
+  const glassStyle: React.CSSProperties = isDark
+    ? {
+        background: "rgba(8,8,20,0.62)",
+        boxShadow: "0 0 0 1px rgba(255,255,255,0.09), 0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.22)",
+      }
+    : {
+        background: "rgba(252,252,255,0.70)",
+        boxShadow: "0 0 0 1px rgba(0,0,0,0.06), 0 20px 40px rgba(0,0,0,0.12)",
+      };
+
+  const borderClass = isDark ? "border-white/[0.10]" : "border-black/[0.07]";
+
   if (!coords) return null;
   return createPortal(
     <div
       ref={panelRef}
       data-dropdown-panel
-      style={{ top: coords.top, left: coords.left }}
-      className={`fixed rounded-xl border bg-popover shadow-xl z-[200] overflow-hidden ${className}`}
+      style={{ top: coords.top, left: coords.left, ...glassStyle }}
+      className={`fixed rounded-xl border ${borderClass} backdrop-blur-2xl z-[200] overflow-hidden ${className}`}
     >
+      {isDark && (
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-white/15 to-transparent flex-shrink-0" />
+      )}
       {children}
     </div>,
     document.body
@@ -832,6 +856,15 @@ function NavSparksBalance() {
     queryKey: ["/api/sparks/balance"],
     staleTime: 2 * 60 * 1000,
   });
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   const balanceDisplay = isLoading ? "…" : (data?.balance ?? 0);
 
@@ -845,7 +878,22 @@ function NavSparksBalance() {
           ⚡️ {balanceDisplay}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-56 p-3 space-y-3">
+      <PopoverContent
+        align="end"
+        className="w-56 p-3 space-y-3 bg-transparent backdrop-blur-2xl border-0"
+        style={isDark
+          ? {
+              background: "rgba(8,8,20,0.62)",
+              boxShadow: "0 0 0 1px rgba(255,255,255,0.09), 0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.22)",
+              border: "1px solid rgba(255,255,255,0.10)",
+            }
+          : {
+              background: "rgba(252,252,255,0.70)",
+              boxShadow: "0 0 0 1px rgba(0,0,0,0.06), 0 20px 40px rgba(0,0,0,0.12)",
+              border: "1px solid rgba(0,0,0,0.07)",
+            }
+        }
+      >
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Sparks Balance</p>
         <div className="flex items-center gap-1.5">
           <span className="text-xl">⚡️</span>
@@ -1302,7 +1350,22 @@ export function PlatformHeader() {
                     </span>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuContent
+                  align="end"
+                  className="w-44 bg-transparent backdrop-blur-2xl border-0"
+                  style={isDark
+                    ? {
+                        background: "rgba(8,8,20,0.62)",
+                        boxShadow: "0 0 0 1px rgba(255,255,255,0.09), 0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.22)",
+                        border: "1px solid rgba(255,255,255,0.10)",
+                      }
+                    : {
+                        background: "rgba(252,252,255,0.70)",
+                        boxShadow: "0 0 0 1px rgba(0,0,0,0.06), 0 20px 40px rgba(0,0,0,0.12)",
+                        border: "1px solid rgba(0,0,0,0.07)",
+                      }
+                  }
+                >
                   <DropdownMenuItem asChild>
                     <Link href={`/profile/${user.username}`} data-testid="link-my-profile">
                       <User className="h-3.5 w-3.5 mr-2" />

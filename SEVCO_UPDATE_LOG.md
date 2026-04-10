@@ -23744,3 +23744,35 @@ Add a full-screen infinite canvas graphic editor at `/canvas` built on `@tldraw/
 
 ---
 
+## Task — header-hide-nav-icon-sites-link
+> Merged: 2026-04-10
+
+# Header tweaks + Sites in Tools
+
+## What & Why
+Three small UI polish changes requested after the Canvas merge:
+1. The "Hide navigation" button in the Tools dropdown is too prominent as a full-width labeled button — reduce it to an icon-only button in the existing icon row.
+2. SEVCO Sites is not discoverable — add it to the Tools dropdown and the `/tools` page.
+3. Restart the app workflow which failed after the Canvas task merged.
+
+## Done looks like
+- In the Tools dropdown, the Hide Navigation control is a small icon-only button (EyeOff icon, tooltip "Hide navigation") placed between the Lens (Compass) icon and the ThemeToggle in the icon row — the full-width labeled button at the bottom is removed
+- The Tools dropdown lists a "Sites" link that navigates to `/sites`
+- The `/tools` page includes a Sites card alongside the existing tool entries
+- App loads cleanly after workflow restart
+
+## Out of scope
+- Any other header or navigation redesign
+- Changes to the Sites page itself
+
+## Tasks
+1. **Move Hide Navigation to icon row** — In `platform-header.tsx`, remove the full-width labeled "Hide navigation" button block at the bottom of the dropdown. Add an icon-only `EyeOff` tooltip button in the icon row between the Lens button and `<ThemeToggle />`.
+2. **Add Sites to Tools dropdown and page** — In `platform-header.tsx`, add a Sites link entry in the Tools dropdown list (alongside Wikify, Email, etc.). In `tools-page.tsx`, add a Sites card/entry pointing to `/sites`.
+
+## Relevant files
+- `client/src/components/platform-header.tsx:755-824`
+- `client/src/pages/tools-page.tsx`
+
+
+---
+

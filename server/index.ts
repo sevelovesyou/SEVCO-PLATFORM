@@ -13,6 +13,7 @@ import { logEmptyBodyEmails } from "./email";
 import { pool } from "./db";
 import { fetchAllMarketData } from "./market-data";
 import { startNewsAggregator } from "./news-aggregator";
+import { sevcoSitesMiddleware } from "./sites-middleware";
 
 const SPARK_PACK_DEFS = [
   { name: "Starter",  sparks: 100,    price: 800,    sortOrder: 0 },
@@ -533,6 +534,9 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+// SEVCO Sites: handle *.sev.cx subdomains before anything else
+app.use(sevcoSitesMiddleware);
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

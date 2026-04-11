@@ -24441,3 +24441,49 @@ Implements three interrelated Command Wiki features that keep the wiki growing a
 
 ---
 
+## Task — task-319
+> Merged: 2026-04-11
+
+---
+title: Wiki LLM Cost Dashboard
+---
+# Wiki LLM Cost Dashboard
+
+## What & Why
+Every LLM-powered wiki operation (Gap Analysis, Re-wikify, Source Ingestion, Wikify generation, Semantic Re-linking) will log its token usage. This task builds the storage layer for that logging and the Command Wiki dashboard that shows monthly spend broken down by operation type — so admins can see exactly what the wiki is costing and make informed decisions about usage.
+
+## Done looks like
+- A `wiki_llm_usage` table stores a record per LLM call: `operation` (gap_analysis | rewikify | wikify | ingest_url | ingest_academic | ingest_pdf | semantic_relink), `model`, `inputTokens`, `outputTokens`, `estimatedCostUsd`, `userId`, `articleId` (nullable), `createdAt`
+- Costs are computed server-side at log time using a hardcoded rate table (Claude Haiku: $0.0008/1K input, $0.004/1K output; Sonnet: $0.003/1K input, $0.015/1K output — updatable in CMD settings)
+- Command Wiki → Wiki tab has a "AI Cost" section showing:
+  - Current month total estimated spend (large number, prominent)
+  - A bar or table breakdown by operation type for the current month
+  - A month selector to view historical months
+  - A per-operation rate card showing the current model and cost-per-call estimate
+- All existing wiki LLM call sites (wikify-tool.ts, gap analysis, re-wikify, semantic relink, source ingestion) write a usage log record after each successful call
+- Admins can set a monthly spend alert threshold in CMD; when the month's total exceeds it, a yellow warning banner appears in the Cost section
+
+## Out of scope
+- Real-time cost alerts via email or webhook (visual warning in CMD only)
+- Automatic operation throttling when budget is exceeded (informational only in Tier 1)
+- Per-user cost attribution in the UI (logged in DB but not surfaced in dashboard)
+
+## Tasks
+1. **`wiki_llm_usage` table** — Add the usage logging table to the Drizzle schema with all columns described above. Add a storage method `logWikiLlmUsage(entry)` and a query method `getWikiLlmUsageSummary(year, month)` that returns totals grouped by operation. Run `db:push`.
+
+2. **Usage logging integration** — In every existing and new LLM call site across the wiki tools (wikify analyze, wikify generate-source, gap analysis, re-wikify, semantic relink, all ingest endpoints), add a `logWikiLlmUsage` call after each successful LLM response, passing actual token counts from the API response and the computed cost.
+
+3. **Cost rate configuration** — Add `wiki.llmRates` key to `platform_settings` storing a JSON object of model → {inputPer1k, outputPer1k} rates. Add a simple rate card editor in CMD Wiki settings so admins can update rates if OpenRouter pricing changes.
+
+4. **Cost Dashboard UI** — Add an "AI Cost" panel to Command Wiki → Wiki tab. Show current month total spend prominently, a breakdown table by operation (operation name, call count, total tokens, total cost), a month picker for historical data, and a configurable alert threshold input that saves to `platform_settings`.
+
+## Relevant files
+- `server/routes.ts`
+- `server/storage.ts`
+- `server/wikify-tool.ts`
+- `shared/schema.ts`
+- `client/src/pages/command-wiki.tsx`
+
+
+---
+

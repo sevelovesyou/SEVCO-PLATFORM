@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAuth, requireRole, CAN_CREATE_ARTICLE } from "./middleware/permissions";
 import { getApiConfig } from "./grok-news";
 import { storage } from "./storage";
+import { logWikiLlmUsage } from "./wiki-llm-cost";
 import type { Role } from "@shared/schema";
 import multer from "multer";
 import { JSDOM } from "jsdom";
@@ -406,12 +407,16 @@ export function registerWikifyToolRoutes(app: Express) {
           return res.status(502).json({ message: "AI generation failed", detail: errText.slice(0, 200) });
         }
 
-        const data = await aiRes.json() as AiChatResponse;
+        const data = await aiRes.json() as AiChatResponse & { usage?: { prompt_tokens?: number; completion_tokens?: number } };
         const raw = data?.choices?.[0]?.message?.content?.trim() ?? "";
 
-        if (data.usage) {
-          console.log(`[wikify/analyze] tokens: prompt=${data.usage.prompt_tokens} completion=${data.usage.completion_tokens} total=${data.usage.total_tokens}`);
-        }
+        logWikiLlmUsage({
+          operation: "wikify",
+          model: config.modelName,
+          inputTokens: data?.usage?.prompt_tokens ?? 0,
+          outputTokens: data?.usage?.completion_tokens ?? 0,
+          userId: req.user?.id,
+        }).catch(() => {});
 
         const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
         let rawArticles: unknown[];
@@ -499,8 +504,16 @@ export function registerWikifyToolRoutes(app: Express) {
           return res.status(502).json({ message: "AI generation failed", detail: errText.slice(0, 200) });
         }
 
-        const data = await aiRes.json() as AiChatResponse;
+        const data = await aiRes.json() as AiChatResponse & { usage?: { prompt_tokens?: number; completion_tokens?: number } };
         const text = data?.choices?.[0]?.message?.content?.trim() ?? "";
+
+        logWikiLlmUsage({
+          operation: "rewikify",
+          model: config.modelName,
+          inputTokens: data?.usage?.prompt_tokens ?? 0,
+          outputTokens: data?.usage?.completion_tokens ?? 0,
+          userId: req.user?.id,
+        }).catch(() => {});
 
         return res.json({ text });
       } catch (err: unknown) {

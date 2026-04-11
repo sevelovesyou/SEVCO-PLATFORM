@@ -59,10 +59,14 @@ import {
   Settings2,
   ChevronUp,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
   RotateCcw,
+  DollarSign,
+  Save,
 } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import type { Category, Article } from "@shared/schema";
@@ -177,6 +181,26 @@ interface BackfillResponse {
 type SortField = "stubText" | "totalOccurrences" | "articleCount";
 type SortDir = "asc" | "desc";
 
+interface LlmCostRow {
+  operation: string;
+  callCount: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalCostUsd: number;
+}
+
+interface LlmCostResponse {
+  year: number;
+  month: number;
+  rows: LlmCostRow[];
+  totalCost: number;
+  totalCalls: number;
+  alertThreshold: number;
+}
+
+interface LlmRatesResponse {
+  rates: Record<string, { inputPer1k: number; outputPer1k: number }>;
+}
 
 export default function CommandWiki() {
   const { role } = usePermission();
@@ -187,8 +211,7 @@ export default function CommandWiki() {
   const isExecutivePlus = role === "admin" || role === "executive";
   const canIngest = role === "admin" || role === "executive" || role === "staff" || role === "partner";
   const isAdmin = role === "admin";
-  const [activeTab, setActiveTab] = useState<"subcategories" | "sources" | "freshness" | "gap-analysis" | "settings">("freshness");
-
+  const [activeTab, setActiveTab] = useState<"subcategories" | "sources" | "freshness" | "gap-analysis" | "settings" | "ai-cost">("freshness");
   const [filterParentId, setFilterParentId] = useState<string>("all");
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -208,6 +231,13 @@ export default function CommandWiki() {
     field: "totalOccurrences",
     dir: "desc",
   });
+
+  const now = new Date();
+  const [costYear, setCostYear] = useState(now.getFullYear());
+  const [costMonth, setCostMonth] = useState(now.getMonth() + 1);
+  const [alertThresholdInput, setAlertThresholdInput] = useState("");
+  const [editingRates, setEditingRates] = useState<Record<string, { inputPer1k: string; outputPer1k: string }>>({});
+  const [ratesEditing, setRatesEditing] = useState(false);
 
   const [urlInput, setUrlInput] = useState("");
   const [academicType, setAcademicType] = useState<"doi" | "pubmed" | "arxiv">("doi");
@@ -247,6 +277,46 @@ export default function CommandWiki() {
 
   const { data: platformSettings } = useQuery<Record<string, string>>({
     queryKey: ["/api/platform-settings"],
+  });
+
+  const { data: costData, isLoading: costLoading } = useQuery<LlmCostResponse>({
+    queryKey: ["/api/tools/wiki/llm-cost", costYear, costMonth],
+    queryFn: async () => {
+      const res = await fetch(`/api/tools/wiki/llm-cost?year=${costYear}&month=${costMonth}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch cost data");
+      return res.json();
+    },
+    enabled: isExecutivePlus && activeTab === "ai-cost",
+  });
+
+  const { data: ratesData, isLoading: ratesLoading } = useQuery<LlmRatesResponse>({
+    queryKey: ["/api/tools/wiki/llm-rates"],
+    enabled: isExecutivePlus && activeTab === "ai-cost",
+  });
+
+  const saveThresholdMutation = useMutation({
+    mutationFn: (threshold: number) =>
+      apiRequest("PUT", "/api/tools/wiki/llm-alert-threshold", { threshold }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tools/wiki/llm-cost", costYear, costMonth] });
+      toast({ title: "Alert threshold saved" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const saveRatesMutation = useMutation({
+    mutationFn: (rates: Record<string, { inputPer1k: number; outputPer1k: number }>) =>
+      apiRequest("PUT", "/api/tools/wiki/llm-rates", { rates }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tools/wiki/llm-rates"] });
+      setRatesEditing(false);
+      toast({ title: "Rates saved" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
   });
 
   const mainCategories = allCategories?.filter((c) => c.parentId === null) ?? [];
@@ -433,6 +503,59 @@ export default function CommandWiki() {
     } finally {
       setRewikifyingId(null);
     }
+  }
+
+  function navigateCostMonth(dir: -1 | 1) {
+    let newMonth = costMonth + dir;
+    let newYear = costYear;
+    if (newMonth < 1) { newMonth = 12; newYear -= 1; }
+    if (newMonth > 12) { newMonth = 1; newYear += 1; }
+    setCostMonth(newMonth);
+    setCostYear(newYear);
+  }
+
+  function formatMonthLabel(year: number, month: number) {
+    return new Date(year, month - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  }
+
+  function operationLabel(op: string) {
+    const labels: Record<string, string> = {
+      wikify: "Wikify Generate",
+      rewikify: "Wikify Source",
+      semantic_relink: "Semantic Re-link",
+      gap_analysis: "Gap Analysis",
+      ingest_url: "URL Ingest",
+      ingest_academic: "Academic Ingest",
+      ingest_pdf: "PDF Ingest",
+    };
+    return labels[op] ?? op;
+  }
+
+  function handleSaveThreshold() {
+    const val = parseFloat(alertThresholdInput);
+    if (isNaN(val) || val < 0) {
+      toast({ title: "Invalid threshold", variant: "destructive" });
+      return;
+    }
+    saveThresholdMutation.mutate(val);
+  }
+
+  function startEditRates() {
+    if (!ratesData) return;
+    const editable: Record<string, { inputPer1k: string; outputPer1k: string }> = {};
+    for (const [key, v] of Object.entries(ratesData.rates)) {
+      editable[key] = { inputPer1k: String(v.inputPer1k), outputPer1k: String(v.outputPer1k) };
+    }
+    setEditingRates(editable);
+    setRatesEditing(true);
+  }
+
+  function handleSaveRates() {
+    const rates: Record<string, { inputPer1k: number; outputPer1k: number }> = {};
+    for (const [key, v] of Object.entries(editingRates)) {
+      rates[key] = { inputPer1k: parseFloat(v.inputPer1k) || 0, outputPer1k: parseFloat(v.outputPer1k) || 0 };
+    }
+    saveRatesMutation.mutate(rates);
   }
 
   function openRename(cat: Category) {
@@ -772,7 +895,7 @@ export default function CommandWiki() {
       )}
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 h-auto p-1 bg-muted/50 border mb-4">
+        <TabsList className="flex w-full h-auto p-1 bg-muted/50 border mb-4 flex-wrap gap-0.5">
           <TabsTrigger value="freshness" className="py-2 text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
             <RefreshCw className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Freshness Dashboard</span>
@@ -793,11 +916,21 @@ export default function CommandWiki() {
             <span className="hidden sm:inline">Source Library</span>
             <span className="sm:hidden">Sources</span>
           </TabsTrigger>
+          {isExecutivePlus && (
+            <TabsTrigger value="ai-cost" className="py-2 text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm" data-testid="tab-ai-cost">
+              <DollarSign className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">AI Cost</span>
+              <span className="sm:hidden">Cost</span>
+            </TabsTrigger>
+          )}
           {isAdmin && (
             <TabsTrigger value="settings" className="py-2 text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Settings2 className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Settings</span>
               <span className="sm:hidden">Config</span>
+            </TabsTrigger>
+          )}
+        </TabsList>
 
         {/* Freshness Dashboard */}
         <TabsContent value="freshness">
@@ -1528,30 +1661,163 @@ export default function CommandWiki() {
             </Card>
           </TabsContent>
         )}
+
+        {/* AI Cost Tab */}
+        {isExecutivePlus && (
+          <TabsContent value="ai-cost">
+            <div className="space-y-4" data-testid="section-ai-cost">
+              {/* Alert banner when over threshold */}
+              {costData && costData.alertThreshold > 0 && costData.totalCost > costData.alertThreshold && (
+                <div className="flex items-center gap-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300" data-testid="banner-cost-alert">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <p className="text-sm font-medium">
+                    Monthly AI spend (${costData.totalCost.toFixed(4)}) has exceeded the alert threshold of ${costData.alertThreshold.toFixed(2)}.
+                  </p>
+                </div>
+              )}
+              {/* Month selector + Total spend */}
+              <Card className="p-5 space-y-4">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-semibold" data-testid="text-ai-cost-heading">AI Cost Overview</h3>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigateCostMonth(-1)} data-testid="button-cost-prev-month" title="Previous month">
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm font-medium min-w-[130px] text-center" data-testid="text-cost-month">
+                      {formatMonthLabel(costYear, costMonth)}
+                    </span>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigateCostMonth(1)} disabled={costYear === now.getFullYear() && costMonth === now.getMonth() + 1} data-testid="button-cost-next-month" title="Next month">
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                {costLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-14 w-48" />
+                    <Skeleton className="h-8 w-full" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-end gap-4 flex-wrap">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-0.5">Total Estimated Spend</p>
+                        <p className="text-4xl font-bold tabular-nums" data-testid="text-total-cost">
+                          ${costData?.totalCost.toFixed(4) ?? "0.0000"}
+                        </p>
+                      </div>
+                      <div className="pb-1">
+                        <p className="text-xs text-muted-foreground mb-0.5">Total AI Calls</p>
+                        <p className="text-2xl font-semibold tabular-nums" data-testid="text-total-calls">
+                          {costData?.totalCalls ?? 0}
+                        </p>
+                      </div>
+                    </div>
+                    {!costData || costData.rows.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-2" data-testid="text-no-cost-data">No AI usage recorded for this month.</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm" data-testid="table-cost-breakdown">
+                          <thead>
+                            <tr className="border-b bg-muted/30">
+                              <th className="text-left px-2 py-2 text-xs font-medium text-muted-foreground">Operation</th>
+                              <th className="text-right px-2 py-2 text-xs font-medium text-muted-foreground">Calls</th>
+                              <th className="text-right px-2 py-2 text-xs font-medium text-muted-foreground">Input Tokens</th>
+                              <th className="text-right px-2 py-2 text-xs font-medium text-muted-foreground">Output Tokens</th>
+                              <th className="text-right px-2 py-2 text-xs font-medium text-muted-foreground">Est. Cost</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {costData.rows.map((row, idx) => (
+                              <tr key={row.operation} className="border-b last:border-0 hover:bg-muted/20" data-testid={`row-cost-${idx}`}>
+                                <td className="px-2 py-2 font-medium" data-testid={`text-cost-op-${idx}`}>{operationLabel(row.operation)}</td>
+                                <td className="px-2 py-2 text-right tabular-nums">{row.callCount}</td>
+                                <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{row.totalInputTokens.toLocaleString()}</td>
+                                <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{row.totalOutputTokens.toLocaleString()}</td>
+                                <td className="px-2 py-2 text-right tabular-nums font-medium">${row.totalCostUsd.toFixed(4)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </>
+                )}
+              </Card>
+              {/* Alert threshold */}
+              <Card className="p-5 space-y-3">
+                <h3 className="text-sm font-semibold">Monthly Spend Alert</h3>
+                <p className="text-xs text-muted-foreground">Set a monthly spend threshold. A warning banner will appear when the month's total exceeds it.</p>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                    <Input type="number" min="0" step="0.01" className="pl-6 w-36 text-sm" placeholder={costData ? String(costData.alertThreshold) : "0.00"} value={alertThresholdInput} onChange={(e) => setAlertThresholdInput(e.target.value)} data-testid="input-alert-threshold" />
+                  </div>
+                  <Button size="sm" onClick={handleSaveThreshold} disabled={saveThresholdMutation.isPending || !alertThresholdInput} className="gap-1.5" data-testid="button-save-threshold">
+                    {saveThresholdMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                    Save
+                  </Button>
+                  {costData && costData.alertThreshold > 0 && (
+                    <span className="text-xs text-muted-foreground">Current: ${costData.alertThreshold.toFixed(2)}/mo</span>
+                  )}
+                </div>
+              </Card>
+              {/* Rate Card */}
+              <Card className="p-5 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-semibold">Model Rate Card</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Cost per 1,000 tokens used to estimate spend. Update if OpenRouter pricing changes.</p>
+                  </div>
+                  {!ratesEditing && (
+                    <Button variant="outline" size="sm" onClick={startEditRates} disabled={ratesLoading || !ratesData} data-testid="button-edit-rates" className="shrink-0">Edit</Button>
+                  )}
+                </div>
+                {ratesLoading ? (
+                  <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
+                ) : ratesEditing ? (
+                  <div className="space-y-3">
+                    {Object.entries(editingRates).map(([model, vals]) => (
+                      <div key={model} className="grid grid-cols-[1fr_auto_auto] gap-2 items-center" data-testid={`row-rate-edit-${model}`}>
+                        <span className="text-sm font-medium capitalize">{model}</span>
+                        <div className="flex items-center gap-1">
+                          <Label className="text-xs text-muted-foreground whitespace-nowrap">In/1K $</Label>
+                          <Input type="number" step="0.0001" min="0" className="h-7 w-24 text-xs" value={vals.inputPer1k} onChange={(e) => setEditingRates((prev) => ({ ...prev, [model]: { ...prev[model], inputPer1k: e.target.value } }))} data-testid={`input-rate-input-${model}`} />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Label className="text-xs text-muted-foreground whitespace-nowrap">Out/1K $</Label>
+                          <Input type="number" step="0.0001" min="0" className="h-7 w-24 text-xs" value={vals.outputPer1k} onChange={(e) => setEditingRates((prev) => ({ ...prev, [model]: { ...prev[model], outputPer1k: e.target.value } }))} data-testid={`input-rate-output-${model}`} />
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex gap-2 pt-1">
+                      <Button size="sm" onClick={handleSaveRates} disabled={saveRatesMutation.isPending} className="gap-1.5" data-testid="button-save-rates">
+                        {saveRatesMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                        Save Rates
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setRatesEditing(false)} data-testid="button-cancel-rates">Cancel</Button>
+                    </div>
+                  </div>
+                ) : ratesData ? (
+                  <div className="space-y-1.5">
+                    {Object.entries(ratesData.rates).map(([model, vals]) => (
+                      <div key={model} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/50" data-testid={`row-rate-${model}`}>
+                        <span className="text-sm font-medium capitalize">{model}</span>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span>In: <span className="font-mono text-foreground">${vals.inputPer1k}/1K</span></span>
+                          <span>Out: <span className="font-mono text-foreground">${vals.outputPer1k}/1K</span></span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </Card>
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
-
-      {/* Dialogs */}
-      <AlertDialog open={deleteSourceId !== null} onOpenChange={(open) => !open && setDeleteSourceId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove Source</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to remove this source? This will not delete any articles created from it, but the citation link will be broken.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deleteSourceId && deleteSourceMutation.mutate(deleteSourceId)}
-              disabled={deleteSourceMutation.isPending}
-            >
-              {deleteSourceMutation.isPending ? "Removing..." : "Remove"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
         <DialogContent data-testid="dialog-add-subcategory">
           <DialogHeader>

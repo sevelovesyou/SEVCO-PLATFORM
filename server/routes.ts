@@ -27,6 +27,7 @@ import bcrypt from "bcryptjs";
 import * as hostinger from "./hostinger";
 import { registerSpotifyRoutes } from "./spotify";
 import { registerWikifyToolRoutes } from "./wikify-tool";
+import { logWikiLlmUsage } from "./wiki-llm-cost";
 import { resolveArticleLinks, resolveLinksInContent } from "./wiki-link-resolver";
 import { registerLensProxy } from "./lens-proxy";
 import { freeballRouter } from "./freeball-routes";
@@ -137,12 +138,22 @@ Return an empty array [] if no strong semantic connections exist. Do not include
 
     if (!res.ok) return;
 
-    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { total_tokens?: number } };
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } };
     const rawContent = data?.choices?.[0]?.message?.content?.trim() ?? "";
-    const tokenUsage = data?.usage?.total_tokens ?? 0;
+    const inputTokens = data?.usage?.prompt_tokens ?? 0;
+    const outputTokens = data?.usage?.completion_tokens ?? 0;
+    const tokenUsage = data?.usage?.total_tokens ?? (inputTokens + outputTokens);
     const elapsed = Date.now() - startTime;
 
     console.log(`[wiki-relink] article=${articleId} tokens=${tokenUsage} ms=${elapsed}`);
+
+    logWikiLlmUsage({
+      operation: "semantic_relink",
+      model: config.modelName,
+      inputTokens,
+      outputTokens,
+      articleId,
+    }).catch(() => {});
 
     let parsed: Array<{ targetArticleId: number; suggestedAnchorText: string; suggestedContext: string }> = [];
     try {
@@ -4755,6 +4766,70 @@ export async function registerRoutes(
       res.status(500).json({ message: err.message });
     }
   });
+
+  // ── Wiki LLM Cost Dashboard Routes (Task #319) ───────────────────────────────
+
+  app.get("/api/tools/wiki/llm-cost", requireAuth, requireRole("admin", "executive"), async (req, res) => {
+    try {
+      const now = new Date();
+      const year = parseInt((req.query.year as string) || String(now.getFullYear()), 10);
+      const month = parseInt((req.query.month as string) || String(now.getMonth() + 1), 10);
+      if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+        return res.status(400).json({ message: "Invalid year or month" });
+      }
+      const rows = await storage.getWikiLlmUsageSummary(year, month);
+      const totalCost = rows.reduce((sum, r) => sum + r.totalCostUsd, 0);
+      const totalCalls = rows.reduce((sum, r) => sum + r.callCount, 0);
+      const settings = await storage.getPlatformSettings();
+      const alertThreshold = parseFloat(settings["wiki.llmAlertThreshold"] || "0") || 0;
+      res.json({ year, month, rows, totalCost, totalCalls, alertThreshold });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/tools/wiki/llm-rates", requireAuth, requireRole("admin", "executive"), async (_req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      const raw = settings["wiki.llmRates"];
+      const defaultRates = {
+        "claude-haiku": { inputPer1k: 0.0008, outputPer1k: 0.004 },
+        "claude-sonnet": { inputPer1k: 0.003, outputPer1k: 0.015 },
+        "default": { inputPer1k: 0.001, outputPer1k: 0.005 },
+      };
+      const rates = raw ? JSON.parse(raw) : defaultRates;
+      res.json({ rates });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put("/api/tools/wiki/llm-rates", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const { rates } = req.body as { rates?: Record<string, { inputPer1k: number; outputPer1k: number }> };
+      if (!rates || typeof rates !== "object") {
+        return res.status(400).json({ message: "rates object required" });
+      }
+      await storage.setPlatformSetting("wiki.llmRates", JSON.stringify(rates));
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put("/api/tools/wiki/llm-alert-threshold", requireAuth, requireRole("admin", "executive"), async (req, res) => {
+    try {
+      const { threshold } = req.body as { threshold?: number };
+      if (typeof threshold !== "number" || threshold < 0) {
+        return res.status(400).json({ message: "threshold must be a non-negative number" });
+      }
+      await storage.setPlatformSetting("wiki.llmAlertThreshold", String(threshold));
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.use("/api/freeball", freeballRouter);
   app.use("/api/sites", sitesRouter);
   app.use("/api/canvas", canvasRouter);

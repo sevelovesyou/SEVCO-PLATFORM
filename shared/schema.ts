@@ -1222,6 +1222,27 @@ export const insertUserGalaxyProgressSchema = createInsertSchema(userGalaxyProgr
 export type UserGalaxyProgress = typeof userGalaxyProgress.$inferSelect;
 export type InsertUserGalaxyProgress = z.infer<typeof insertUserGalaxyProgressSchema>;
 
+// ── Wiki LLM Cost Logging (Task #319) ────────────────────────────────────────
+
+export const wikiLlmUsage = pgTable("wiki_llm_usage", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  operation: text("operation").notNull(), // "gap_analysis" | "rewikify" | "wikify" | "ingest_url" | "ingest_academic" | "ingest_pdf" | "semantic_relink"
+  model: text("model").notNull(),
+  inputTokens: integer("input_tokens").notNull().default(0),
+  outputTokens: integer("output_tokens").notNull().default(0),
+  estimatedCostUsd: real("estimated_cost_usd").notNull().default(0),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
+  articleId: integer("article_id").references(() => articles.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("wiki_llm_usage_created_at_idx").on(t.createdAt),
+  index("wiki_llm_usage_operation_idx").on(t.operation),
+]);
+
+export const insertWikiLlmUsageSchema = createInsertSchema(wikiLlmUsage).omit({ id: true, createdAt: true });
+export type WikiLlmUsage = typeof wikiLlmUsage.$inferSelect;
+export type InsertWikiLlmUsage = z.infer<typeof insertWikiLlmUsageSchema>;
+
 // ── Wiki Semantic Re-linking (Task #318) ─────────────────────────────────────
 
 export const wikiLinkSuggestions = pgTable("wiki_link_suggestions", {

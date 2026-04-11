@@ -91,6 +91,9 @@ import {
   wikiLinkSuggestions,
   type WikiLinkSuggestion,
   type InsertWikiLinkSuggestion,
+  wikiLlmUsage,
+  type WikiLlmUsage,
+  type InsertWikiLlmUsage,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, and, sql, ilike, or, inArray, gte, lte, count as countFn, type SQL } from "drizzle-orm";
@@ -512,6 +515,9 @@ export interface IStorage {
   getWikiLinkSuggestions(sourceArticleId: number, status?: string): Promise<import("@shared/schema").WikiLinkSuggestion[]>;
   upsertWikiLinkSuggestions(sourceArticleId: number, suggestions: import("@shared/schema").InsertWikiLinkSuggestion[]): Promise<void>;
   updateWikiLinkSuggestionStatus(id: number, status: string): Promise<import("@shared/schema").WikiLinkSuggestion>;
+
+  logWikiLlmUsage(entry: InsertWikiLlmUsage): Promise<WikiLlmUsage>;
+  getWikiLlmUsageSummary(year: number, month: number): Promise<Array<{ operation: string; callCount: number; totalInputTokens: number; totalOutputTokens: number; totalCostUsd: number }>>;
 }
 
 export type SearchResultItem = {
@@ -3537,6 +3543,28 @@ export class DatabaseStorage implements IStorage {
       .where(eq(wikiLinkSuggestions.id, id))
       .returning();
     return updated;
+  }
+
+  async logWikiLlmUsage(entry: InsertWikiLlmUsage): Promise<WikiLlmUsage> {
+    const [created] = await db.insert(wikiLlmUsage).values(entry).returning();
+    return created;
+  }
+
+  async getWikiLlmUsageSummary(year: number, month: number): Promise<Array<{ operation: string; callCount: number; totalInputTokens: number; totalOutputTokens: number; totalCostUsd: number }>> {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 1);
+    const rows = await db.select({
+      operation: wikiLlmUsage.operation,
+      callCount: sql<number>`cast(count(*) as int)`,
+      totalInputTokens: sql<number>`cast(coalesce(sum(${wikiLlmUsage.inputTokens}), 0) as int)`,
+      totalOutputTokens: sql<number>`cast(coalesce(sum(${wikiLlmUsage.outputTokens}), 0) as int)`,
+      totalCostUsd: sql<number>`coalesce(sum(${wikiLlmUsage.estimatedCostUsd}), 0)`,
+    })
+      .from(wikiLlmUsage)
+      .where(and(gte(wikiLlmUsage.createdAt, startDate), lte(wikiLlmUsage.createdAt, endDate)))
+      .groupBy(wikiLlmUsage.operation)
+      .orderBy(sql`sum(${wikiLlmUsage.estimatedCostUsd}) desc`);
+    return rows;
   }
 }
 

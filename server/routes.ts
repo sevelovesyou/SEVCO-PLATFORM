@@ -9018,6 +9018,7 @@ export async function registerRoutes(
 
       res.json(pack);
     } catch (err: any) {
+      console.error("[sparks/admin/packs POST] Error:", err?.message ?? err);
       if (err?.name === "ZodError") return res.status(400).json({ message: "Invalid request body" });
       res.status(500).json({ message: err.message });
     }

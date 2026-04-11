@@ -806,7 +806,9 @@ function PackCatalogTab() {
         price: Math.round(data.price * 100),
         sortOrder: data.sortOrder,
       });
-      return res.json();
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.message || `Server error ${res.status}`);
+      return body;
     },
     onSuccess: () => {
       toast({ title: "Pack created" });
@@ -814,7 +816,7 @@ function PackCatalogTab() {
       setSheetOpen(false);
       form.reset();
     },
-    onError: () => toast({ title: "Failed to create pack", variant: "destructive" }),
+    onError: (err: any) => toast({ title: "Failed to create pack", description: err.message, variant: "destructive" }),
   });
 
   const updateMutation = useMutation({

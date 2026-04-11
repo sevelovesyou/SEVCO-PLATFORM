@@ -24688,3 +24688,109 @@ function DynamicBackground() {
 
 ---
 
+## Task — post-image-lightbox
+> Merged: 2026-04-11
+
+# Post image lightbox — click photo to see full image
+
+## Goal
+When a user clicks a photo in a post (anywhere on the platform), it opens a
+full-screen overlay showing the full-size image. Clicking outside the image or
+pressing Escape closes it.
+
+## Component to create: `client/src/components/image-lightbox.tsx`
+
+A simple shared lightbox component:
+- Props: `src: string | null`, `onClose: () => void`
+- Renders a fixed full-screen backdrop (semi-transparent dark) when `src` is truthy
+- Centers the full image, constrained to viewport (`max-w-screen max-h-screen object-contain`)
+- Close on: clicking backdrop, pressing Escape (useEffect keydown listener)
+- Show a close button (X) in the top-right corner
+- Animate in with a fade/scale (simple CSS transition)
+- `data-testid="lightbox-overlay"`, `data-testid="lightbox-image"`,
+  `data-testid="button-lightbox-close"`
+
+```tsx
+export function ImageLightbox({ src, onClose }: { src: string | null; onClose: () => void }) {
+  useEffect(() => {
+    if (!src) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [src, onClose]);
+
+  if (!src) return null;
+  return (
+    <div
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/80"
+      onClick={onClose}
+      data-testid="lightbox-overlay"
+    >
+      <img
+        src={src}
+        alt="Full size"
+        className="max-w-[95vw] max-h-[95vh] object-contain rounded shadow-2xl"
+        onClick={e => e.stopPropagation()}
+        data-testid="lightbox-image"
+      />
+      <button
+        className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-1.5 hover:bg-black/80 transition-colors"
+        onClick={onClose}
+        data-testid="button-lightbox-close"
+      >
+        <X className="h-5 w-5" />
+      </button>
+    </div>
+  );
+}
+```
+
+## Changes to `client/src/pages/feed-page.tsx`
+
+1. Add `lightboxUrl` state: `const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);`
+2. Make the image clickable in the post card (line ~673):
+   ```tsx
+   {post.mediaUrl && (
+     <div className="mt-2 mb-2 rounded-md overflow-hidden border cursor-pointer"
+          onClick={() => setLightboxUrl(resolveImageUrl(post.mediaUrl!))}>
+       <img src={resolveImageUrl(post.mediaUrl)} alt="Feed media"
+            className="w-full max-h-72 object-cover hover:opacity-90 transition-opacity"
+            loading="lazy" data-testid={`img-feed-media-${post.id}`} />
+     </div>
+   )}
+   ```
+   Note: `setLightboxUrl` must be passed down to the `PostCard` sub-component as a prop
+   (or lifted into FeedPage and passed via prop to `PostCard`).
+
+3. Render `<ImageLightbox>` at the bottom of `FeedPage` return:
+   ```tsx
+   <ImageLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />
+   ```
+
+## Changes to `client/src/pages/profile-page.tsx`
+
+1. Add `lightboxUrl` state in the component containing the post list.
+2. Make the post image clickable (line ~796-798):
+   ```tsx
+   {(isRepost ? post.originalPost?.imageUrl : post.imageUrl) && (
+     <div className="cursor-pointer"
+          onClick={() => setLightboxUrl(resolveImageUrl(...))}>
+       <img ... className="w-full max-h-48 object-cover hover:opacity-90 transition-opacity" />
+     </div>
+   )}
+   ```
+3. Render `<ImageLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />`.
+
+## Files
+- `client/src/components/image-lightbox.tsx` — new shared lightbox component
+- `client/src/pages/feed-page.tsx` — wire up lightbox for `mediaUrl` images
+- `client/src/pages/profile-page.tsx` — wire up lightbox for post `imageUrl` images
+
+## Done
+- Clicking any post photo opens full-size view in a dark overlay
+- Clicking outside or pressing Escape closes it
+- Close button visible in top-right corner
+
+
+---
+

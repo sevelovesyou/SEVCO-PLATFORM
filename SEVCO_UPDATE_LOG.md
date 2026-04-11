@@ -26698,3 +26698,256 @@ After installation restart the workflow to verify compilation succeeds.
 
 ---
 
+## Task — canvas-ui-cleanup
+> Merged: 2026-04-11
+
+# Canvas UI: collapse color picker, remove HUD bar, remove SEVCO logo
+
+## Three UI issues to fix in `client/src/pages/canvas-page.tsx`
+
+---
+
+### Fix 1 — Collapse the color picker in the left toolbar
+
+**Problem**: The color picker at the bottom of the left toolbar renders 12 color swatches
+in a 2×6 grid. This forces the toolbar to be ~96px wide, much wider than the 30px tool
+buttons above it. It looks inconsistent and wastes space.
+
+**Fix**: Replace the 12-swatch grid with a single color indicator swatch (showing the
+current active color, 18×18px) at the bottom of the toolbar. Clicking it opens a
+compact popover/dropdown with all 12 preset swatches plus a native color input for
+custom colors.
+
+The swatch trigger sits flush in the toolbar (same 30×30 button footprint as other
+tools). The popover should appear to the right of the toolbar and have the same glass
+pill style (`glassPill` object) as the rest of the UI.
+
+Remove the two-row grid (lines 1235–1265). Add a `ColorPickerButton` sub-component:
+
+```tsx
+function ColorPickerButton({
+  activeColor,
+  onChange,
+}: {
+  activeColor: string;
+  onChange: (c: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        title="Color"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: 30, height: 30,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'none', border: 'none', cursor: 'pointer',
+          borderRadius: 7, padding: 5,
+        }}
+        data-testid="button-tool-color"
+      >
+        {/* Swatch showing active color */}
+        <div style={{
+          width: 16, height: 16, borderRadius: 4,
+          background: activeColor || '#6366f1',
+          border: '1.5px solid rgba(255,255,255,0.25)',
+        }} />
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            left: 38,
+            top: -4,
+            ...glassPill,
+            flexDirection: 'column',
+            gap: 3,
+            padding: 6,
+            zIndex: 20,
+          }}
+        >
+          {/* 4 rows × 3 cols (or 2×6) of swatches */}
+          {[0, 1].map(row => (
+            <div key={row} style={{ display: 'flex', gap: 3 }}>
+              {PRESET_COLORS.slice(row * 6, row * 6 + 6).map(c => (
+                <button
+                  key={c}
+                  onClick={() => { onChange(c); setOpen(false); }}
+                  title={c}
+                  style={{
+                    width: 16, height: 16,
+                    borderRadius: 4,
+                    background: c,
+                    border: activeColor === c
+                      ? '1.5px solid white'
+                      : '1px solid rgba(255,255,255,0.15)',
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                />
+              ))}
+            </div>
+          ))}
+          {/* Custom color input */}
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 4, marginTop: 2 }}>
+            <button
+              onClick={() => inputRef.current?.click()}
+              style={{
+                fontSize: 9,
+                color: 'rgba(255,255,255,0.4)',
+                background: 'none',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 4,
+                padding: '2px 6px',
+                cursor: 'pointer',
+                width: '100%',
+              }}
+            >
+              Custom…
+            </button>
+            <input
+              ref={inputRef}
+              type="color"
+              value={activeColor || '#6366f1'}
+              onChange={e => onChange(e.target.value)}
+              style={{ position: 'absolute', opacity: 0, width: 1, height: 1, top: 0, left: 0, pointerEvents: 'none' }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+Add a click-outside handler to close the popover when clicking elsewhere.
+
+In the left toolbar JSX, replace the old color grid div with:
+```tsx
+<div style={dividerStyle} />
+<ColorPickerButton
+  activeColor={activeColor}
+  onChange={c => {
+    setActiveColor(c);
+    activeColorRef.current = c;
+    const fc = fabricRef.current;
+    if (fc) {
+      fc.getActiveObjects().forEach(obj => obj.set({ stroke: c }));
+      fc.requestRenderAll();
+      scheduleAutoSave();
+    }
+  }}
+/>
+```
+
+---
+
+### Fix 2 — Remove the HUD bar, float glass pills directly over the canvas
+
+**Problem**: The canvas currently has a dedicated 40px bar at `top: 3rem; height: 40px`
+(the floating HUD wrapper div). This looks like a "second nav bar" to the user. The glass
+pills (project name left, actions right) are positioned inside this 40px wrapper.
+
+**Fix**:
+1. Remove the 40px HUD wrapper div entirely.
+2. Change canvas container top from `calc(3rem + 40px)` → `3rem`.
+3. Reposition the two glass pills as absolute elements inside the canvas container div,
+   so they float over the canvas:
+   - Left pill: `position: absolute; left: 12; top: 12; z-index: 10`
+   - Right pill: `position: absolute; right: 12; top: 12; z-index: 10`
+
+The glass pills already have `pointerEvents: 'auto'` so interactivity is preserved.
+The canvas container (`containerRef`) already has `overflow: hidden` but the pills should
+render within the visible canvas area.
+
+**Before** (current structure):
+```
+[HUD bar div fixed top:3rem h:40px z-60]
+  [left pill absolute left:12 top:4]
+  [right pill absolute right:12 top:4]
+[Canvas container fixed top:calc(3rem+40px) bottom:0]
+  [dot grid bg]
+  [fabric canvas]
+  [left toolbar centered vertically]
+  [properties panel]
+  [zoom controls bottom-right]
+```
+
+**After** (new structure):
+```
+[Canvas container fixed top:3rem bottom:0]
+  [dot grid bg]
+  [fabric canvas]
+  [left pill absolute left:12 top:12 z:10]         ← moved inside canvas container
+  [right pill absolute right:12 top:12 z:10]        ← moved inside canvas container
+  [left toolbar centered vertically z:10]
+  [properties panel z:10]
+  [zoom controls bottom-right z:10]
+```
+
+---
+
+### Fix 3 — Remove the SEVCO logo watermark from the canvas
+
+**Problem**: A white, uneditable SEVCO logo (planet icon + "SEVCO" text) appears on the
+left side of the canvas area. It cannot be selected or moved. This is likely one of:
+
+(a) A DOM element from the platform layout rendering behind the canvas fixed container
+    (e.g. something in the `<main>` flow that wasn't covered by the dark background)
+(b) A Fabric.js object that was left on the canvas from initialization or a saved state
+
+**Diagnosis steps** (do first):
+- Inspect the DOM in the browser devtools to find the element
+- Check if it's inside the `<canvas>` element (a Fabric.js object) or in the HTML layer
+- If it's in the HTML layer: check which component renders it and remove/hide it for the `/canvas` route
+
+**Fix**:
+
+Option A — if it's a DOM element behind the canvas:
+Add a full-viewport background div as the very first child of the canvas container,
+ensuring the dark background covers any platform layout elements:
+```tsx
+{/* Full viewport cover — ensures no platform layout elements bleed through */}
+<div style={{ position: 'fixed', inset: 0, background: '#0a0a0f', zIndex: -1 }} />
+```
+Place this BEFORE the `CanvasDotGridBackground` in the canvas container.
+
+Option B — if it's a Fabric.js object on the canvas:
+In the Fabric.js initialization (`useEffect` that creates `FabricCanvas`), after `fc` is
+created, call `fc.clear()` to ensure a completely blank canvas on first load. The
+`handleLoadProject` already calls `fc.clear()` before loading. But on initial mount,
+if there's no project loaded, the canvas should be blank.
+
+Option C — if it's a platform layout element:
+Find the component rendering the SEVCO logo (likely somewhere in the platform footer or
+background) and conditionally hide it on the `/canvas` route using `useLocation()` from
+wouter:
+```tsx
+const [location] = useLocation();
+if (location === '/canvas') return null;
+```
+
+**Default action**: Apply Option A (add a fixed full-viewport background cover) which
+works regardless of the cause. Then verify if the logo is gone. If not, investigate
+further with the other options.
+
+---
+
+## Files to change
+
+- `client/src/pages/canvas-page.tsx` — all three fixes
+
+## After changes
+
+Restart the workflow and verify:
+1. Left toolbar stays narrow (same width as the 30px tool buttons) with just a single color swatch at the bottom
+2. Canvas fills the full area below the main nav (no second bar visible)
+3. Glass pills float over the canvas at the top corners
+4. No SEVCO logo visible on the canvas
+
+
+---
+

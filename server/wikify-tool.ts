@@ -12,9 +12,9 @@ import dns from "dns/promises";
 import net from "net";
 import { XMLParser } from "fast-xml-parser";
 import { createRequire } from "module";
-const _require = createRequire(import.meta.url);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const pdfParse = _require("pdf-parse") as (buf: Buffer) => Promise<{ text: string; numpages: number }>;
+const pdfParse = createRequire(process.cwd() + "/index.js")("pdf-parse") as (
+  buf: Buffer
+) => Promise<{ text: string; numpages: number }>;
 
 const upload = multer({
   storage: multer.memoryStorage(),

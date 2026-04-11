@@ -170,15 +170,16 @@ function CanvasToolbar({
         width: "48px",
         background: "#0d0d0f",
         borderColor: "#1e1e24",
+        pointerEvents: "none",
       }}
       data-testid="canvas-left-toolbar"
-      onPointerDown={(e) => e.stopPropagation()}
     >
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        style={{ display: "none" }}
+        style={{ display: "none", pointerEvents: "auto" }}
+        onPointerDown={(e) => e.stopPropagation()}
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) onImageUpload(file);
@@ -186,7 +187,7 @@ function CanvasToolbar({
         }}
       />
 
-      <div className="w-full px-1.5 mb-1">
+      <div className="w-full px-1.5 mb-1" style={{ pointerEvents: "auto" }} onPointerDown={(e) => e.stopPropagation()}>
         <AiGenerateModal onGenerate={onAiGenerate} />
       </div>
 
@@ -215,6 +216,7 @@ function CanvasToolbar({
             key={tool.id}
             title={tool.label}
             onClick={handleClick}
+            onPointerDown={(e) => e.stopPropagation()}
             className="flex items-center justify-center rounded transition-all"
             style={{
               width: 34,
@@ -222,6 +224,7 @@ function CanvasToolbar({
               background: isActive ? "rgba(99,102,241,0.25)" : "transparent",
               border: isActive ? "1px solid rgba(99,102,241,0.6)" : "1px solid transparent",
               color: isActive ? "#a5b4fc" : "rgba(255,255,255,0.45)",
+              pointerEvents: "auto",
             }}
             data-testid={`button-canvas-tool-${tool.id.replace(":", "-")}`}
           >
@@ -1457,6 +1460,11 @@ export default function CanvasPage() {
   const handleMount = useCallback(
     (editor: Editor) => {
       editorRef.current = editor;
+
+      const existing = Array.from(editor.getCurrentPageShapeIds());
+      if (existing.length > 0) {
+        editor.deleteShapes(existing);
+      }
 
       syncStylesFromEditor(editor);
 

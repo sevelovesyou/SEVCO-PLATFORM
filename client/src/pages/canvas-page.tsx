@@ -35,6 +35,57 @@ import {
   Loader2,
 } from "lucide-react";
 
+const tldrawGlassCSS = `
+.tlui-main-toolbar__inner {
+  background: rgba(10, 10, 18, 0.72) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+}
+.tlui-contextual-toolbar {
+  background: rgba(10, 10, 18, 0.72) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.5) !important;
+}
+.tlui-navigation-panel {
+  background: rgba(10, 10, 18, 0.72) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+}
+.tlui-menu-zone {
+  background: rgba(10, 10, 18, 0.72) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.5) !important;
+}
+.tlui-button:hover {
+  background: rgba(255,255,255,0.08) !important;
+}
+.tlui-button[data-state="selected"],
+.tlui-button[aria-checked="true"] {
+  background: rgba(99,102,241,0.25) !important;
+  color: rgba(165,162,255,1) !important;
+}
+.tlui-popover__content,
+.tlui-menu,
+.tlui-menu__group {
+  background: rgba(12, 12, 20, 0.88) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+`;
+
 interface CanvasProject {
   id: number;
   name: string;
@@ -75,6 +126,43 @@ class CustomImageShapeUtil extends ImageShapeUtil {
 }
 
 const CUSTOM_SHAPE_UTILS = [CustomImageShapeUtil];
+
+function CanvasDotGridBackground() {
+  const [mouse, setMouse] = useState({ x: -9999, y: -9999 });
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => setMouse({ x: e.clientX, y: e.clientY });
+    window.addEventListener('mousemove', onMove);
+    return () => window.removeEventListener('mousemove', onMove);
+  }, []);
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        background: '#0a0a0f',
+        backgroundImage:
+          'radial-gradient(circle, rgba(255,255,255,0.18) 1px, transparent 1px)',
+        backgroundSize: '28px 28px',
+        pointerEvents: 'none',
+      }}
+    >
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: `radial-gradient(500px circle at ${mouse.x}px ${mouse.y}px,
+            rgba(99,102,241,0.12) 0%,
+            rgba(139,92,246,0.06) 35%,
+            transparent 70%)`,
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+    </div>
+  );
+}
 
 function AiGenerateModal({ onGenerate }: { onGenerate: (prompt: string) => Promise<void> }) {
   const [open, setOpen] = useState(false);
@@ -544,6 +632,8 @@ export default function CanvasPage() {
   const handleMount = useCallback((editor: Editor) => {
     editorRef.current = editor;
 
+    editor.user.updateUserPreferences({ colorScheme: 'dark' });
+
     editor.store.listen(
       () => {
         if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
@@ -759,8 +849,16 @@ export default function CanvasPage() {
   return (
     <>
       <div
-        className="fixed left-0 right-0 z-[60] border-b flex-shrink-0"
-        style={{ top: "3rem", height: "44px", background: "#0d0d0f", borderColor: "#1e1e24" }}
+        className="fixed left-0 right-0 z-[60] border-b"
+        style={{
+          top: '3rem',
+          height: '44px',
+          background: 'rgba(8, 8, 14, 0.82)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          borderColor: 'rgba(255,255,255,0.08)',
+          boxShadow: '0 1px 0 rgba(255,255,255,0.04)',
+        }}
         data-testid="canvas-page"
       >
         <CanvasTopBar
@@ -782,11 +880,13 @@ export default function CanvasPage() {
         className="fixed left-0 right-0 bottom-0"
         style={{ top: "calc(3rem + 44px)" }}
       >
+        <style>{tldrawGlassCSS}</style>
         <Tldraw
           persistenceKey={persistenceKey.current}
           shapeUtils={CUSTOM_SHAPE_UTILS}
           onMount={handleMount}
           autoFocus
+          components={{ Background: CanvasDotGridBackground }}
         />
       </div>
 

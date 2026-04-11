@@ -263,8 +263,6 @@ export default function WikifyToolPage() {
     let publishedCount = 0;
     let draftCount = 0;
     let failCount = 0;
-    let publishedCount = 0;
-    let draftCount = 0;
 
     for (let i = 0; i < selectedSuggestions.length; i++) {
       const s = selectedSuggestions[i];

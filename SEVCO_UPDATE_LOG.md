@@ -25912,3 +25912,659 @@ Add `Pencil` to the lucide-react import list.
 
 ---
 
+## Task — canvas-tldraw-to-fabric
+> Merged: 2026-04-11
+
+# Replace tldraw with Fabric.js (MIT, commercial-free)
+
+## Why
+
+tldraw requires a commercial license for production deployments. Fabric.js is
+fully MIT-licensed and gives us complete control over the canvas UI, tools,
+and styling with no watermark restrictions.
+
+## Scope
+
+1. Uninstall `@tldraw/tldraw` and `@tldraw/editor` packages
+2. Install `fabric` (v6, latest)
+3. Completely rewrite `client/src/pages/canvas-page.tsx`
+4. No backend changes — the `/api/canvas` routes work with any JSON blob stored
+   in the `tldraw_json` column; Fabric.js JSON will be stored there instead
+5. `App.tsx` canvas route bypass (skip AnimatedPage) stays as-is
+
+---
+
+## Package changes
+
+```bash
+# Install Fabric.js v6
+npm install fabric
+
+# Uninstall tldraw
+npm uninstall @tldraw/tldraw @tldraw/editor
+```
+
+Also remove `import "@tldraw/tldraw/tldraw.css"` — no longer needed.
+
+---
+
+## Architecture
+
+### Layout (same fixed structure as before, zero changes to App.tsx)
+
+```
+[platform header]       fixed; top: 0; height: 3rem; z-50
+[canvas HUD bar]        fixed; top: 3rem; height: 40px; z-[60]   ← minimal floating HUD
+[canvas content]        fixed; top: calc(3rem + 40px); inset: rest
+  ├─ [dot grid bg]      absolute; inset: 0; CSS background; pointer-events: none
+  ├─ [cursor glow]      fixed; inset: 0; radial-gradient overlay; pointer-events: none
+  ├─ [fabric canvas]    absolute; inset: 0; transparent bg
+  ├─ [left toolbar]     absolute; left: 12px; top: 50%; glass pill; pointer-events: auto
+  ├─ [props panel]      absolute; right: 12px; top: 50%; glass pill (shown when selected)
+  └─ [zoom controls]    absolute; right: 12px; bottom: 12px; glass pill
+```
+
+---
+
+## State
+
+```typescript
+type Tool = 'select' | 'pan' | 'pencil' | 'rect' | 'ellipse' | 'line' | 'text';
+
+const [activeTool, setActiveTool] = useState<Tool>('select');
+const [activeColor, setActiveColor] = useState('#6366f1');   // indigo default
+const [activeFill, setActiveFill] = useState('');            // transparent default
+const [strokeWidth, setStrokeWidth] = useState(2);
+const [zoomLevel, setZoomLevel] = useState(100);             // percent
+const [selectedObjects, setSelectedObjects] = useState(0);   // count of selected
+```
+
+---
+
+## Fabric.js Canvas Setup
+
+```typescript
+import {
+  Canvas as FabricCanvas,
+  Rect as FabricRect,
+  Ellipse as FabricEllipse,
+  Line as FabricLine,
+  IText as FabricIText,
+  Image as FabricImage,
+  PencilBrush,
+  Point,
+} from 'fabric';
+
+const containerRef = useRef<HTMLDivElement>(null);
+const canvasElRef = useRef<HTMLCanvasElement>(null);
+const fabricRef = useRef<FabricCanvas | null>(null);
+
+useEffect(() => {
+  const container = containerRef.current!;
+  const el = canvasElRef.current!;
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+
+  const fc = new FabricCanvas(el, {
+    width, height,
+    backgroundColor: '',               // transparent — dot grid shows through
+    selection: true,
+    preserveObjectStacking: true,
+    stopContextMenu: true,
+    fireRightClick: true,
+  });
+
+  fabricRef.current = fc;
+
+  // --- Zoom (mouse wheel) ---
+  fc.on('mouse:wheel', (opt) => {
+    let z = fc.getZoom() * (0.999 ** opt.e.deltaY);
+    z = Math.min(20, Math.max(0.05, z));
+    fc.zoomToPoint(new Point(opt.e.offsetX, opt.e.offsetY), z);
+    setZoomLevel(Math.round(z * 100));
+    opt.e.preventDefault();
+  });
+
+  // --- Pan + tool interaction (single listener, refs for active values) ---
+  let isDragging = false, lastX = 0, lastY = 0;
+  let drawStart = { x: 0, y: 0 };
+  let drawShape: FabricRect | FabricEllipse | FabricLine | null = null;
+  let drawActive = false;
+
+  fc.on('mouse:down', (opt) => {
+    const e = opt.e as MouseEvent;
+    const tool = activeToolRef.current;
+    const ptr = fc.getScenePoint(e);
+
+    if (tool === 'pan' || e.button === 1) {
+      isDragging = true; lastX = e.clientX; lastY = e.clientY;
+      fc.selection = false; return;
+    }
+
+    if (tool === 'pencil') return; // handled by isDrawingMode
+
+    if (tool === 'text') {
+      const t = new FabricIText('Text', {
+        left: ptr.x, top: ptr.y,
+        fill: activeColorRef.current,
+        fontSize: 18, fontFamily: 'Inter, sans-serif',
+        editable: true,
+      });
+      fc.add(t); fc.setActiveObject(t);
+      t.enterEditing(); t.selectAll();
+      scheduleAutoSave();
+      setActiveToolFn('select');
+      return;
+    }
+
+    if (['rect', 'ellipse', 'line'].includes(tool)) {
+      drawActive = true;
+      drawStart = { x: ptr.x, y: ptr.y };
+      const color = activeColorRef.current;
+      const fill = activeFillRef.current;
+      const sw = strokeWidthRef.current;
+
+      if (tool === 'rect') {
+        drawShape = new FabricRect({ left: ptr.x, top: ptr.y, width: 1, height: 1,
+          fill, stroke: color, strokeWidth: sw, selectable: false, evented: false });
+      } else if (tool === 'ellipse') {
+        drawShape = new FabricEllipse({ left: ptr.x, top: ptr.y, rx: 1, ry: 1,
+          fill, stroke: color, strokeWidth: sw, selectable: false, evented: false });
+      } else if (tool === 'line') {
+        drawShape = new FabricLine([ptr.x, ptr.y, ptr.x, ptr.y],
+          { stroke: color, strokeWidth: sw, selectable: false, evented: false });
+      }
+      if (drawShape) fc.add(drawShape);
+    }
+  });
+
+  fc.on('mouse:move', (opt) => {
+    const e = opt.e as MouseEvent;
+    if (isDragging) {
+      const vpt = fc.viewportTransform!;
+      vpt[4] += e.clientX - lastX; vpt[5] += e.clientY - lastY;
+      lastX = e.clientX; lastY = e.clientY;
+      fc.requestRenderAll(); return;
+    }
+    if (!drawActive || !drawShape) return;
+    const ptr = fc.getScenePoint(e);
+    const sw = strokeWidthRef.current;
+    if (drawShape instanceof FabricRect) {
+      drawShape.set({
+        left: Math.min(ptr.x, drawStart.x), top: Math.min(ptr.y, drawStart.y),
+        width: Math.abs(ptr.x - drawStart.x), height: Math.abs(ptr.y - drawStart.y),
+      });
+    } else if (drawShape instanceof FabricEllipse) {
+      const rx = Math.abs(ptr.x - drawStart.x) / 2;
+      const ry = Math.abs(ptr.y - drawStart.y) / 2;
+      drawShape.set({
+        left: Math.min(ptr.x, drawStart.x), top: Math.min(ptr.y, drawStart.y),
+        rx, ry,
+      });
+    } else if (drawShape instanceof FabricLine) {
+      (drawShape as FabricLine).set({ x2: ptr.x, y2: ptr.y });
+    }
+    fc.requestRenderAll();
+  });
+
+  fc.on('mouse:up', () => {
+    isDragging = false; fc.selection = true;
+    if (drawActive && drawShape) {
+      drawActive = false;
+      drawShape.set({ selectable: true, evented: true });
+      fc.setActiveObject(drawShape);
+      drawShape = null;
+      scheduleAutoSave();
+      setActiveToolFn('select');
+    }
+  });
+
+  // --- Selection change → update selectedObjects count ---
+  fc.on('selection:created', () => setSelectedObjects(fc.getActiveObjects().length));
+  fc.on('selection:updated', () => setSelectedObjects(fc.getActiveObjects().length));
+  fc.on('selection:cleared', () => setSelectedObjects(0));
+
+  // --- Auto-save on changes ---
+  ['object:added', 'object:modified', 'object:removed'].forEach(ev =>
+    fc.on(ev as any, scheduleAutoSave)
+  );
+
+  // --- Window resize ---
+  const onResize = () => {
+    const w = container.clientWidth, h = container.clientHeight;
+    fc.setDimensions({ width: w, height: h });
+    fc.requestRenderAll();
+  };
+  window.addEventListener('resize', onResize);
+
+  return () => {
+    window.removeEventListener('resize', onResize);
+    fc.dispose();
+  };
+}, []); // stable — all mutable state accessed via refs
+```
+
+### Tool mode synchronization
+
+Since the Fabric.js event listeners are set up once in useEffect, use refs for
+mutable values that the listeners need:
+
+```typescript
+const activeToolRef = useRef<Tool>('select');
+const activeColorRef = useRef('#6366f1');
+const activeFillRef = useRef('');
+const strokeWidthRef = useRef(2);
+
+// Keep refs in sync on every render:
+activeToolRef.current = activeTool;
+activeColorRef.current = activeColor;
+activeFillRef.current = activeFill;
+strokeWidthRef.current = strokeWidth;
+
+// When activeTool changes, update fabric canvas mode:
+useEffect(() => {
+  const fc = fabricRef.current;
+  if (!fc) return;
+  fc.isDrawingMode = activeTool === 'pencil';
+  if (activeTool === 'pencil') {
+    const brush = new PencilBrush(fc);
+    brush.color = activeColor;
+    brush.width = strokeWidth;
+    fc.freeDrawingBrush = brush;
+  }
+  fc.selection = activeTool === 'select';
+  fc.defaultCursor = activeTool === 'pan' ? 'grab' :
+                     activeTool === 'select' ? 'default' : 'crosshair';
+}, [activeTool, activeColor, strokeWidth]);
+```
+
+---
+
+## Save / Load / Export
+
+### Save
+
+```typescript
+const doSave = useCallback(async (showToast: boolean) => {
+  const fc = fabricRef.current;
+  if (!fc) return;
+  const snapshot = fc.toJSON(['data']) as Record<string, unknown>;
+  // snapshot shape: { version: string, objects: [...] }
+  const id = projectIdRef.current;
+  const name = projectNameRef.current;
+  setIsSaving(true);
+  try {
+    if (id) {
+      await updateMutation.mutateAsync({ id, data: { name, tldrawJson: snapshot } });
+    } else {
+      const project = await createMutation.mutateAsync({ name, tldrawJson: snapshot });
+      setCurrentProjectId(project.id);
+    }
+    if (showToast) toast({ title: 'Project saved' });
+  } catch {
+    if (showToast) toast({ title: 'Failed to save', variant: 'destructive' });
+  } finally {
+    setIsSaving(false);
+  }
+}, [toast, createMutation, updateMutation]);
+```
+
+### Load
+
+```typescript
+const handleLoadProject = useCallback(async (project: CanvasProject) => {
+  const fc = fabricRef.current;
+  if (!fc) return;
+  if (project.tldraw_json) {
+    try {
+      await fc.loadFromJSON(project.tldraw_json);
+      fc.requestRenderAll();
+    } catch {
+      toast({ title: 'Failed to load project — it may have been created in an older version', variant: 'destructive' });
+    }
+  }
+  setCurrentProjectId(project.id);
+  setCurrentProjectName(project.name);
+}, [toast]);
+```
+
+### Export PNG
+
+```typescript
+const handleExportPng = useCallback(() => {
+  const fc = fabricRef.current;
+  if (!fc) return;
+  const dataUrl = fc.toDataURL({ format: 'png', multiplier: 2 });
+  const a = document.createElement('a');
+  a.href = dataUrl; a.download = `${projectNameRef.current}.png`;
+  a.click();
+}, []);
+```
+
+### Export SVG
+
+```typescript
+const handleExportSvg = useCallback(() => {
+  const fc = fabricRef.current;
+  if (!fc) return;
+  const svg = fc.toSVG();
+  const blob = new Blob([svg], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url;
+  a.download = `${projectNameRef.current}.svg`;
+  a.click(); URL.revokeObjectURL(url);
+}, []);
+```
+
+### Export JSON
+
+```typescript
+const handleExportJson = useCallback(() => {
+  const fc = fabricRef.current;
+  if (!fc) return;
+  const json = JSON.stringify(fc.toJSON(), null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url;
+  a.download = `${projectNameRef.current}.json`;
+  a.click(); URL.revokeObjectURL(url);
+}, []);
+```
+
+---
+
+## AI Image Generation
+
+```typescript
+const handleAiGenerate = useCallback(async (prompt: string) => {
+  const fc = fabricRef.current;
+  if (!fc) return;
+  const res = await apiRequest('POST', '/api/canvas/ai-generate', { prompt });
+  const data = await res.json();
+  if (!data.imageUrl) throw new Error('No image URL returned');
+
+  // Place image at canvas center
+  const img = await FabricImage.fromURL(data.imageUrl, { crossOrigin: 'anonymous' });
+  const cx = fc.getWidth() / 2 / fc.getZoom();
+  const cy = fc.getHeight() / 2 / fc.getZoom();
+  img.set({ left: cx - (img.width ?? 256) / 2, top: cy - (img.height ?? 256) / 2 });
+  fc.add(img); fc.setActiveObject(img); fc.requestRenderAll();
+  scheduleAutoSave();
+  toast({ title: 'AI image placed on canvas' });
+}, [toast]);
+```
+
+---
+
+## Image Upload
+
+```typescript
+const handleImageUpload = useCallback(async (file: File) => {
+  const fc = fabricRef.current;
+  if (!fc) return;
+  // Upload to Supabase storage
+  const ext = file.name.split('.').pop() ?? 'png';
+  const path = `canvas/${Date.now()}.${ext}`;
+  let src = URL.createObjectURL(file);
+  try {
+    const res = await fetch(`/api/upload?bucket=gallery&path=${encodeURIComponent(path)}`,
+      { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+    if (res.ok) src = (await res.json()).url;
+  } catch { /* use local url */ }
+
+  const img = await FabricImage.fromURL(src, { crossOrigin: 'anonymous' });
+  const maxDim = 512;
+  const scale = Math.min(maxDim / (img.width ?? 512), maxDim / (img.height ?? 512), 1);
+  img.scale(scale);
+  const cx = fc.getWidth() / 2 / fc.getZoom();
+  const cy = fc.getHeight() / 2 / fc.getZoom();
+  img.set({ left: cx - ((img.width ?? 0) * scale) / 2, top: cy - ((img.height ?? 0) * scale) / 2 });
+  fc.add(img); fc.setActiveObject(img); fc.requestRenderAll();
+  scheduleAutoSave();
+  toast({ title: 'Image added to canvas' });
+}, [toast]);
+```
+
+---
+
+## New Project
+
+```typescript
+const handleNew = useCallback(() => {
+  const fc = fabricRef.current;
+  if (!fc) return;
+  fc.clear(); // removes all objects, resets bg
+  fc.backgroundColor = '';
+  fc.requestRenderAll();
+  setCurrentProjectId(null);
+  setCurrentProjectName('Untitled Project');
+  projectIdRef.current = null;
+  projectNameRef.current = 'Untitled Project';
+}, []);
+```
+
+---
+
+## UI Components
+
+### Floating HUD bar (top — minimal, transparent container, two glass pills)
+
+Per the reference screenshot (CanvasHTML style):
+
+```tsx
+<div
+  className="fixed left-0 right-0 z-[60]"
+  style={{ top: '3rem', height: '40px', pointerEvents: 'none' }}
+>
+  {/* Left pill: project name */}
+  <div style={{ position: 'absolute', left: 12, top: 4, ...glassPill, pointerEvents: 'auto' }}>
+    {editingName ? <input ... /> : (
+      <>
+        <button onClick={() => setEditingName(true)} style={nameStyle}>{projectName}</button>
+        {hoverLeft && <Pencil className="h-3 w-3" onClick={() => setEditingName(true)} />}
+      </>
+    )}
+  </div>
+
+  {/* Right pill: action buttons */}
+  <div style={{ position: 'absolute', right: 12, top: 4, ...glassPill, pointerEvents: 'auto' }}>
+    <IconBtn icon={<FolderOpen />} onClick={onLoad} title="Load" testId="button-canvas-load" />
+    <IconBtn icon={<Plus />} onClick={onNew} title="New" testId="button-canvas-new" />
+    <IconBtn icon={isSaving ? <Loader2 className="animate-spin" /> : <Save />} onClick={onSave} title="Save" testId="button-canvas-save" />
+    <ExportDropdown onPng={onExportPng} onSvg={onExportSvg} onJson={onExportJson} />
+    <SparklesIconBtn onGenerate={onAiGenerate} />
+    <ImageUploadBtn onUpload={onImageUpload} />
+  </div>
+</div>
+```
+
+### Left toolbar (drawing tools)
+
+```tsx
+<div style={{
+  position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+  display: 'flex', flexDirection: 'column', gap: 2,
+  ...glassPill (vertical), pointerEvents: 'auto',
+}}>
+  <ToolBtn icon={<MousePointer2 />} tool="select" active={activeTool === 'select'} />
+  <ToolBtn icon={<Hand />} tool="pan" active={activeTool === 'pan'} />
+  <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '2px 4px' }} />
+  <ToolBtn icon={<Pencil />} tool="pencil" active={activeTool === 'pencil'} />
+  <ToolBtn icon={<Square />} tool="rect" active={activeTool === 'rect'} />
+  <ToolBtn icon={<Circle />} tool="ellipse" active={activeTool === 'ellipse'} />
+  <ToolBtn icon={<Minus />} tool="line" active={activeTool === 'line'} />
+  <ToolBtn icon={<Type />} tool="text" active={activeTool === 'text'} />
+</div>
+```
+
+Active tool highlighted with indigo: `background: rgba(99,102,241,0.3)`, `color: #a5b4fc`
+
+### Properties panel (shown when selectedObjects > 0)
+
+```tsx
+{selectedObjects > 0 && (
+  <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', ...glassPill, pointerEvents: 'auto' }}>
+    {/* Fill color */}
+    <ColorSwatch label="Fill" color={activeFill} onChange={applyFill} />
+    {/* Stroke color */}
+    <ColorSwatch label="Stroke" color={activeColor} onChange={applyStroke} />
+    {/* Stroke width */}
+    <div className="flex items-center gap-1 px-2">
+      <span style={labelStyle}>W</span>
+      <input type="range" min={1} max={20} value={strokeWidth} onChange={...} style={sliderStyle} />
+    </div>
+    {/* Opacity */}
+    <div className="flex items-center gap-1 px-2">
+      <span style={labelStyle}>α</span>
+      <input type="range" min={0} max={100} ... />
+    </div>
+    <div style={{ height: 1, ...divider }} />
+    <IconBtn icon={<Trash2 />} onClick={deleteSelected} title="Delete" />
+  </div>
+)}
+```
+
+`applyFill` and `applyStroke` update active fabric objects:
+```typescript
+fc.getActiveObjects().forEach(obj => {
+  obj.set({ fill: newFill });
+});
+fc.requestRenderAll();
+scheduleAutoSave();
+```
+
+### Zoom controls (bottom-right)
+
+```tsx
+<div style={{ position: 'absolute', right: 12, bottom: 12, ...glassPill, flexDirection: 'row', pointerEvents: 'auto' }}>
+  <IconBtn icon={<ZoomOut />} onClick={() => applyZoom(zoomLevel - 10)} />
+  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', padding: '0 6px', minWidth: 40, textAlign: 'center' }}>
+    {zoomLevel}%
+  </span>
+  <IconBtn icon={<ZoomIn />} onClick={() => applyZoom(zoomLevel + 10)} />
+  <IconBtn icon={<Maximize2 />} onClick={fitToView} title="Fit to view" />
+</div>
+```
+
+`fitToView` resets viewportTransform and re-calculates zoom to show all objects.
+
+### glassPill shared style
+
+```typescript
+const glassPill: React.CSSProperties = {
+  background: 'rgba(10,10,18,0.75)',
+  backdropFilter: 'blur(20px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: 10,
+  padding: '4px',
+  display: 'flex',
+  alignItems: 'center',
+  boxShadow: '0 2px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
+};
+```
+
+---
+
+## Background (preserved from Task #333)
+
+The `CanvasDotGridBackground` component from Task #333 is preserved exactly
+— it renders as an `absolute; inset: 0` div behind the fabric canvas. The
+cursor glow overlay stays too. The dot grid CSS:
+
+```css
+background: #0a0a0f;
+background-image: radial-gradient(circle, rgba(255,255,255,0.18) 1px, transparent 1px);
+background-size: 28px 28px;
+```
+
+Fabric canvas: `backgroundColor: ''` (transparent) so dot grid shows through.
+
+---
+
+## JSX structure of CanvasPage return
+
+```tsx
+return (
+  <>
+    {/* Floating HUD bar */}
+    <CanvasHUD ... />
+
+    {/* Canvas area */}
+    <div
+      ref={containerRef}
+      className="fixed left-0 right-0 bottom-0"
+      style={{ top: 'calc(3rem + 40px)', overflow: 'hidden' }}
+    >
+      {/* Dot grid bg */}
+      <CanvasDotGridBackground />
+
+      {/* Fabric canvas element */}
+      <canvas ref={canvasElRef} style={{ position: 'absolute', top: 0, left: 0 }} />
+
+      {/* Left tool panel */}
+      <LeftToolbar activeTool={activeTool} onToolChange={setActiveTool} />
+
+      {/* Properties panel */}
+      {selectedObjects > 0 && (
+        <PropertiesPanel ... />
+      )}
+
+      {/* Zoom controls */}
+      <ZoomControls zoomLevel={zoomLevel} onZoom={applyZoom} onFit={fitToView} />
+    </div>
+
+    {/* Dialogs */}
+    <LoadProjectDialog ... />
+    <AiGenerateModal ... />
+  </>
+);
+```
+
+---
+
+## Imports (complete list)
+
+```typescript
+import { useState, useCallback, useEffect, useRef } from 'react';
+import {
+  Canvas as FabricCanvas,
+  Rect as FabricRect,
+  Ellipse as FabricEllipse,
+  Line as FabricLine,
+  IText as FabricIText,
+  Image as FabricImage,
+  PencilBrush,
+  Point,
+} from 'fabric';
+import {
+  MousePointer2, Hand, Pencil, Square, Circle as CircleIcon,
+  Minus, Type, ZoomIn, ZoomOut, Maximize2,
+  Save, FolderOpen, Plus, Download, Trash2, Loader2, Sparkles, ImageIcon,
+} from 'lucide-react';
+// ... shadcn Dialog, DropdownMenu, etc.
+```
+
+---
+
+## Summary
+
+| Old (tldraw) | New (Fabric.js) |
+|---|---|
+| `<Tldraw>` component | `<canvas>` + `new FabricCanvas()` |
+| tldraw snapshot JSON | `fc.toJSON()` Fabric.js JSON |
+| `components.Background` | CSS background on container div |
+| `editor.user.updateUserPreferences` | Not needed — we own the UI |
+| tldraw's built-in toolbar | Custom left toolbar glass pill |
+| tldraw CSS watermark | None (MIT license) |
+| `~2.5MB tldraw bundle` | `~220KB fabric bundle` |
+
+## Files changed
+
+- `client/src/pages/canvas-page.tsx` — complete rewrite
+- `server/canvas-routes.ts` — NO changes needed
+- `shared/schema.ts` — NO changes needed (column stays `tldraw_json`)
+
+
+---
+

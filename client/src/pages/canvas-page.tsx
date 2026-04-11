@@ -815,11 +815,12 @@ export default function CanvasPage() {
     if (!fc) return;
     fc.clear();
     fc.backgroundColor = '';
-    if (project.tldraw_json) {
+    const json = project.tldraw_json;
+    if (json && typeof json === 'object' && 'objects' in json) {
       try {
-        await fc.loadFromJSON(project.tldraw_json);
+        await fc.loadFromJSON(json as object);
       } catch {
-        // Old tldraw JSON — canvas stays blank, project name/ID loaded for future saves
+        fc.clear();
       }
     }
     fc.requestRenderAll();
@@ -1092,16 +1093,13 @@ export default function CanvasPage() {
         }}
       />
 
-      {/* Canvas area */}
+      {/* Canvas area — z-[1] ensures it sits above PlatformFooter (DOM-later, z:auto) */}
       <div
         ref={containerRef}
-        className="fixed left-0 right-0 bottom-0"
+        className="fixed left-0 right-0 bottom-0 z-[1]"
         style={{ top: '3rem', overflow: 'hidden' }}
         data-testid="canvas-page"
       >
-        {/* Full viewport cover — ensures no platform layout elements bleed through */}
-        <div style={{ position: 'fixed', inset: 0, background: '#0a0a0f', zIndex: -1 }} />
-
         {/* Dot grid background */}
         <CanvasDotGridBackground />
 

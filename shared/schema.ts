@@ -97,6 +97,18 @@ export const crosslinks = pgTable("crosslinks", {
   sharedKeywords: text("shared_keywords").array(),
 });
 
+export const wikiLinkStubs = pgTable("wiki_link_stubs", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  articleId: integer("article_id").notNull(),
+  stubText: text("stub_text").notNull(),
+  occurrences: integer("occurrences").notNull().default(1),
+  firstSeenAt: timestamp("first_seen_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("wiki_link_stubs_article_stub_idx").on(t.articleId, t.stubText)]);
+
+export const insertWikiLinkStubSchema = createInsertSchema(wikiLinkStubs).omit({ id: true, firstSeenAt: true });
+export type WikiLinkStub = typeof wikiLinkStubs.$inferSelect;
+export type InsertWikiLinkStub = z.infer<typeof insertWikiLinkStubSchema>;
+
 export const categoriesRelations = relations(categories, ({ many }) => ({
   articles: many(articles),
 }));

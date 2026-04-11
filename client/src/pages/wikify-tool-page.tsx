@@ -127,12 +127,16 @@ function renderMarkdownSafe(md: string): string {
 export default function WikifyToolPage() {
   const { user, isLoading: authLoading } = useAuth();
   const { canCreateArticle } = usePermission();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
 
   const initializedFromStorage = useRef(false);
   const [ingestedSourceId, setIngestedSourceId] = useState<number | null>(null);
   const [ingestedCitation, setIngestedCitation] = useState<{ text: string; format: string } | null>(null);
+
+  const prefillTopic = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("topic") ?? ""
+    : "";
 
   const [sourceText, setSourceText] = useState(() => {
     try {
@@ -144,13 +148,12 @@ export default function WikifyToolPage() {
     } catch { /* ignore */ }
     return "";
   });
-
   const [articleCount, setArticleCount] = useState(5);
   const [detailLevel, setDetailLevel] = useState<"brief" | "standard" | "detailed">("standard");
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [suggestions, setSuggestions] = useState<ArticleSuggestion[]>([]);
-  const [showAiPrompt, setShowAiPrompt] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState("");
+  const [showAiPrompt, setShowAiPrompt] = useState(prefillTopic !== "");
+  const [aiPrompt, setAiPrompt] = useState(prefillTopic);
   const [submissionProgress, setSubmissionProgress] = useState<{ current: number; total: number } | null>(null);
   const [submittedCount, setSubmittedCount] = useState<number>(0);
 

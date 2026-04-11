@@ -24078,18 +24078,14 @@ The /news article card grid has three visible issues:
 
 ---
 
-<<<<<<< HEAD
 ## Task — shader-settings-cmd
 > Merged: 2026-04-10
-
-=======
 ## Task — task-309
 > Merged: 2026-04-10
 
 ---
 title: Shader settings panel in Command Center
 ---
->>>>>>> f9e415f (Post-merge setup completed successfully)
 # Shader Settings in Command Center
 
 ## What & Why
@@ -24311,12 +24307,46 @@ Every LLM-powered wiki operation (Gap Analysis, Re-wikify, Source Ingestion, Wik
 3. **Cost rate configuration** — Add `wiki.llmRates` key to `platform_settings` storing a JSON object of model → {inputPer1k, outputPer1k} rates. Add a simple rate card editor in CMD Wiki settings so admins can update rates if OpenRouter pricing changes.
 
 4. **Cost Dashboard UI** — Add an "AI Cost" panel to Command Wiki → Wiki tab. Show current month total spend prominently, a breakdown table by operation (operation name, call count, total tokens, total cost), a month picker for historical data, and a configurable alert threshold input that saves to `platform_settings`.
+## Task — task-315
+> Merged: 2026-04-11
+
+---
+title: Wiki Internal Link Resolver
+---
+# Wiki Internal Link Resolver
+
+## What & Why
+AI-generated wiki articles contain `[See: Topic Name]` placeholder links that are never resolved to real URLs — they sit in published content as dead text. This task builds a resolver that converts those placeholders into proper markdown links (`[Topic Name](/wiki/category/slug)`) using fuzzy matching against existing article titles, then writes bidirectional entries to the `crosslinks` table. A backfill job cleans up all existing articles.
+
+## Done looks like
+- After any article is saved (created or updated), a resolver pass automatically scans its content for `[See: X]` patterns and replaces matches with real markdown links
+- Unresolved placeholders (no matching article found) are logged to a `wiki_link_stubs` table with the article ID and unresolved topic name, so editors can see what articles still need to be created
+- A "Resolve All Links" button in Command Wiki → Wiki tab triggers a one-time backfill across all published articles
+- Command Wiki shows a count of resolved vs. unresolved stubs, and a table of the top unresolved stubs (most frequently referenced topics that don't have articles yet — useful feed for Gap Analysis)
+- The `crosslinks` table is populated bidirectionally for every resolved link
+
+## Out of scope
+- Fuzzy matching across article body text (only `[See: X]` patterns are resolved, not raw topic mentions)
+- LLM-assisted matching — all matching is deterministic string comparison (no API cost)
+
+## Tasks
+1. **Resolver engine** — Write a server-side utility that takes an article's content string, queries all existing article titles and slugs from the DB, finds `[See: X]` patterns, fuzzy-matches X against titles (normalized lowercase, strip punctuation), and returns the updated content string plus a list of resolved and unresolved matches.
+
+2. **`wiki_link_stubs` table** — Add a new DB table to track unresolved `[See: X]` references: columns `articleId`, `stubText`, `occurrences`, `firstSeenAt`. Run `db:push` to apply.
+
+3. **Resolver integration** — Hook the resolver into the article save flow (POST/PATCH article routes) so it runs automatically on every save. Write resolved matches to `crosslinks` bidirectionally.
+
+4. **Backfill endpoint + CMD button** — Add a `POST /api/tools/wiki/resolve-links` endpoint that runs the resolver across all published articles in batches. Add a "Resolve All Links" button with progress feedback to the Command Wiki → Wiki management tab.
+
+5. **Stub visibility in CMD** — In Command Wiki → Wiki tab, show a "Unresolved Stubs" panel: total count, and a sortable table of stub text + how many articles reference it. Each stub row has a "Create Article" shortcut that pre-fills the Wikify tool with that topic.
 
 ## Relevant files
 - `server/routes.ts`
 - `server/storage.ts`
 - `server/wikify-tool.ts`
 - `shared/schema.ts`
+- `shared/schema.ts`
+- `server/wikify-tool.ts`
 - `client/src/pages/command-wiki.tsx`
 
 

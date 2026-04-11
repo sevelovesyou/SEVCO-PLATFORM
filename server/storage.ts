@@ -54,7 +54,8 @@ import {
   type SparkTransaction, type InsertSparkTransaction,
   type SparkPack, type InsertSparkPack,
   type ContentSpark, type InsertContentSpark,
-  users, categories, articles, revisions, citations, crosslinks,
+  type WikiLinkStub,
+  users, categories, articles, revisions, citations, crosslinks, wikiLinkStubs,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
   posts, postLikes, postReplies, userFollows,
@@ -151,6 +152,13 @@ export interface IStorage {
   getCrosslinks(articleId: number): Promise<(Crosslink & { targetArticle: Article })[]>;
   createCrosslink(crosslink: InsertCrosslink): Promise<Crosslink>;
   deleteCrosslinksBySource(sourceArticleId: number): Promise<void>;
+  deleteResolverCrosslinksBySource(sourceArticleId: number): Promise<void>;
+
+  getWikiLinkStubs(): Promise<WikiLinkStub[]>;
+  getWikiLinkStubSummary(): Promise<Array<{ stubText: string; totalOccurrences: number; articleCount: number }>>;
+  getResolvedLinksCount(): Promise<number>;
+  upsertWikiLinkStub(articleId: number, stubText: string, occurrences: number): Promise<void>;
+  deleteWikiLinkStubsByArticle(articleId: number): Promise<void>;
 
   getStats(): Promise<{ totalArticles: number; totalRevisions: number; pendingReviews: number; totalCitations: number }>;
   getAllUsers(): Promise<User[]>;
@@ -898,6 +906,56 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCrosslinksBySource(sourceArticleId: number): Promise<void> {
     await db.delete(crosslinks).where(eq(crosslinks.sourceArticleId, sourceArticleId));
+  }
+
+  async deleteResolverCrosslinksBySource(sourceArticleId: number): Promise<void> {
+    await db
+      .delete(crosslinks)
+      .where(
+        and(
+          eq(crosslinks.sourceArticleId, sourceArticleId),
+          sql`${crosslinks.sharedKeywords} @> ARRAY['__resolved_link']::text[]`
+        )
+      );
+  }
+
+  async getWikiLinkStubs(): Promise<WikiLinkStub[]> {
+    return db.select().from(wikiLinkStubs).orderBy(desc(wikiLinkStubs.occurrences));
+  }
+
+  async getResolvedLinksCount(): Promise<number> {
+    const [row] = await db
+      .select({ count: countFn() })
+      .from(crosslinks)
+      .where(sql`${crosslinks.sharedKeywords} @> ARRAY['__resolved_link']::text[]`);
+    return Number(row?.count ?? 0);
+  }
+
+  async getWikiLinkStubSummary(): Promise<Array<{ stubText: string; totalOccurrences: number; articleCount: number }>> {
+    const rows = await db
+      .select({
+        stubText: wikiLinkStubs.stubText,
+        totalOccurrences: sql<number>`sum(${wikiLinkStubs.occurrences})::int`,
+        articleCount: sql<number>`count(*)::int`,
+      })
+      .from(wikiLinkStubs)
+      .groupBy(wikiLinkStubs.stubText)
+      .orderBy(desc(sql`sum(${wikiLinkStubs.occurrences})`));
+    return rows;
+  }
+
+  async upsertWikiLinkStub(articleId: number, stubText: string, occurrences: number): Promise<void> {
+    await db
+      .insert(wikiLinkStubs)
+      .values({ articleId, stubText, occurrences })
+      .onConflictDoUpdate({
+        target: [wikiLinkStubs.articleId, wikiLinkStubs.stubText],
+        set: { occurrences },
+      });
+  }
+
+  async deleteWikiLinkStubsByArticle(articleId: number): Promise<void> {
+    await db.delete(wikiLinkStubs).where(eq(wikiLinkStubs.articleId, articleId));
   }
 
   async getAllUsers(): Promise<User[]> {

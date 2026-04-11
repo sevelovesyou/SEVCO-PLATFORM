@@ -34,9 +34,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, BookOpen, Library, Link2, GraduationCap, FileText, RefreshCw, Loader2, RotateCcw } from "lucide-react";
-import { Link } from "wouter";
+import {
+  Plus, Pencil, Trash2, BookOpen, Library, Link2, GraduationCap, FileText,
+  RefreshCw, Loader2, RotateCcw, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown,
+  CheckCircle2, Wand2,
+} from "lucide-react";
+import { useLocation } from "wouter";
 import type { Category } from "@shared/schema";
+
+interface StubSummaryItem {
+  stubText: string;
+  totalOccurrences: number;
+  articleCount: number;
+}
+
+interface StubsResponse {
+  stubs: StubSummaryItem[];
+  unresolvedCount: number;
+  totalOccurrences: number;
+  resolvedCount: number;
+}
+
+interface BackfillResponse {
+  processed: number;
+  totalResolved: number;
+  totalUnresolved: number;
+}
+
+type SortField = "stubText" | "totalOccurrences" | "articleCount";
+type SortDir = "asc" | "desc";
 
 interface WikiSource {
   id: number;
@@ -58,13 +84,13 @@ type IngestResult = {
 export default function CommandWiki() {
   const { role } = usePermission();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const isStaffPlus = role === "admin" || role === "executive" || role === "staff";
   const isExecutivePlus = role === "admin" || role === "executive";
   const canIngest = role === "admin" || role === "executive" || role === "staff" || role === "partner";
 
   const [activeTab, setActiveTab] = useState<"subcategories" | "sources">("subcategories");
-
   const [filterParentId, setFilterParentId] = useState<string>("all");
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -80,6 +106,11 @@ export default function CommandWiki() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingCat, setDeletingCat] = useState<Category | null>(null);
 
+  const [stubSort, setStubSort] = useState<{ field: SortField; dir: SortDir }>({
+    field: "totalOccurrences",
+    dir: "desc",
+  });
+
   const [urlInput, setUrlInput] = useState("");
   const [academicType, setAcademicType] = useState<"doi" | "pubmed" | "arxiv">("doi");
   const [academicId, setAcademicId] = useState("");
@@ -89,11 +120,16 @@ export default function CommandWiki() {
   const [ingestingUrl, setIngestingUrl] = useState(false);
   const [ingestingAcademic, setIngestingAcademic] = useState(false);
   const [ingestingPdf, setIngestingPdf] = useState(false);
-
+  const [reIngestingId, setReIngestingId] = useState<number | null>(null);
   const [deleteSourceId, setDeleteSourceId] = useState<number | null>(null);
 
   const { data: allCategories, isLoading } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
+  });
+
+  const { data: stubsData, isLoading: stubsLoading } = useQuery<StubsResponse>({
+    queryKey: ["/api/tools/wiki/stubs"],
+    enabled: isStaffPlus,
   });
 
   const { data: sources, isLoading: sourcesLoading } = useQuery<WikiSource[]>({
@@ -115,6 +151,16 @@ export default function CommandWiki() {
       children: filteredSubcategories.filter((c) => c.parentId === parent.id),
     }))
     .filter((g) => filterParentId === "all" || String(g.parent.id) === filterParentId);
+
+  const sortedStubs = [...(stubsData?.stubs ?? [])].sort((a, b) => {
+    const { field, dir } = stubSort;
+    const av = a[field];
+    const bv = b[field];
+    if (typeof av === "string" && typeof bv === "string") {
+      return dir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+    }
+    return dir === "asc" ? (av as number) - (bv as number) : (bv as number) - (av as number);
+  });
 
   const createMutation = useMutation({
     mutationFn: (data: { name: string; parentId: number; description?: string }) =>
@@ -171,6 +217,23 @@ export default function CommandWiki() {
     },
   });
 
+  const backfillMutation = useMutation<BackfillResponse>({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/tools/wiki/resolve-links");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tools/wiki/stubs"] });
+      toast({
+        title: "Link resolution complete",
+        description: `Processed ${data.processed} articles — ${data.totalResolved} links resolved, ${data.totalUnresolved} unresolved stubs recorded.`,
+      });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
   function openRename(cat: Category) {
     setRenamingCat(cat);
     setRenameName(cat.name);
@@ -204,6 +267,24 @@ export default function CommandWiki() {
   function handleDelete() {
     if (!deletingCat) return;
     deleteMutation.mutate(deletingCat.id);
+  }
+
+  function handleWikifyStub(stubText: string) {
+    navigate(`/wikify?topic=${encodeURIComponent(stubText)}`);
+  }
+
+  function toggleSort(field: SortField) {
+    setStubSort((prev) => ({
+      field,
+      dir: prev.field === field && prev.dir === "desc" ? "asc" : "desc",
+    }));
+  }
+
+  function SortIcon({ field }: { field: SortField }) {
+    if (stubSort.field !== field) return <ArrowUpDown className="h-3 w-3 opacity-40" />;
+    return stubSort.dir === "asc"
+      ? <ArrowUp className="h-3 w-3" />
+      : <ArrowDown className="h-3 w-3" />;
   }
 
   function openWikifyWithSource(result: IngestResult): void {
@@ -292,8 +373,6 @@ export default function CommandWiki() {
     }
   }
 
-  const [reIngestingId, setReIngestingId] = useState<number | null>(null);
-
   async function handleReIngest(source: WikiSource) {
     if (source.type === "pdf") {
       toast({ title: "Re-ingest not available for PDF", description: "Please upload the PDF again to re-ingest.", variant: "destructive" });
@@ -344,6 +423,154 @@ export default function CommandWiki() {
         <BookOpen className="h-5 w-5 text-primary" />
         <h2 className="text-lg font-semibold">Wiki</h2>
       </div>
+
+      {/* Internal Link Resolver — shown above tabs for executive+ */}
+      {isExecutivePlus && (
+        <Card className="p-5 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold" data-testid="text-link-resolver-heading">
+                Internal Link Resolver
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Scan all published articles and convert <code className="text-xs">[See: Topic]</code> placeholders to real wiki links.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => backfillMutation.mutate()}
+              disabled={backfillMutation.isPending}
+              data-testid="button-resolve-links"
+              className="gap-1.5 shrink-0"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${backfillMutation.isPending ? "animate-spin" : ""}`} />
+              {backfillMutation.isPending ? "Resolving..." : "Resolve All Links"}
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-6 text-sm flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <span className="text-muted-foreground">Resolved links:</span>
+              {stubsLoading ? (
+                <Skeleton className="h-4 w-8 inline-block" />
+              ) : (
+                <span className="font-semibold text-green-600 dark:text-green-400" data-testid="text-resolved-count">
+                  {stubsData?.resolvedCount ?? 0}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <span className="text-muted-foreground">Unresolved topics:</span>
+              {stubsLoading ? (
+                <Skeleton className="h-4 w-8 inline-block" />
+              ) : (
+                <span className="font-semibold" data-testid="text-unresolved-count">
+                  {stubsData?.unresolvedCount ?? 0}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Total stub references:</span>
+              {stubsLoading ? (
+                <Skeleton className="h-4 w-8 inline-block" />
+              ) : (
+                <span className="font-semibold" data-testid="text-total-occurrences">
+                  {stubsData?.totalOccurrences ?? 0}
+                </span>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Unresolved Stubs — shown for all staff+ */}
+      {isStaffPlus && (
+        <Card className="p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-amber-500" />
+            <h3 className="text-sm font-semibold" data-testid="text-stubs-heading">
+              Unresolved Stubs
+            </h3>
+            {!stubsLoading && (
+              <Badge variant="secondary" className="text-xs" data-testid="badge-stub-count">
+                {stubsData?.unresolvedCount ?? 0}
+              </Badge>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Topics referenced with <code className="text-xs">[See: …]</code> in articles but without a wiki article yet. Ranked by reference count — highest-priority gaps first.
+          </p>
+
+          {stubsLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          ) : sortedStubs.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-3" data-testid="text-no-stubs">
+              No unresolved stubs. All internal links are resolved.
+            </p>
+          ) : (
+            <div className="space-y-1">
+              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-2 pb-1.5 border-b">
+                <button
+                  className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground text-left"
+                  onClick={() => toggleSort("stubText")}
+                  data-testid="button-sort-stub-text"
+                >
+                  Topic <SortIcon field="stubText" />
+                </button>
+                <button
+                  className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground justify-end"
+                  onClick={() => toggleSort("totalOccurrences")}
+                  data-testid="button-sort-occurrences"
+                >
+                  <SortIcon field="totalOccurrences" /> Refs
+                </button>
+                <button
+                  className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground justify-end"
+                  onClick={() => toggleSort("articleCount")}
+                  data-testid="button-sort-article-count"
+                >
+                  <SortIcon field="articleCount" /> Articles
+                </button>
+                <span className="text-xs font-medium text-muted-foreground text-right">Action</span>
+              </div>
+              {sortedStubs.slice(0, 20).map((stub, idx) => (
+                <div
+                  key={stub.stubText}
+                  className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-center py-1.5 px-2 rounded-md hover:bg-muted/50"
+                  data-testid={`row-stub-${idx}`}
+                >
+                  <span className="text-sm truncate" data-testid={`text-stub-name-${idx}`}>
+                    {stub.stubText}
+                  </span>
+                  <Badge variant="outline" className="text-xs justify-self-end" data-testid={`badge-stub-occurrences-${idx}`}>
+                    {stub.totalOccurrences}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs justify-self-end" data-testid={`badge-stub-articles-${idx}`}>
+                    {stub.articleCount}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1 justify-self-end"
+                    onClick={() => handleWikifyStub(stub.stubText)}
+                    data-testid={`button-wikify-stub-${idx}`}
+                    title="Open Wikify tool pre-filled with this topic"
+                  >
+                    <Wand2 className="h-3 w-3" />
+                    Wikify
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Tab switcher */}
       <div className="flex gap-1 border-b">

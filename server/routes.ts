@@ -27,6 +27,7 @@ import bcrypt from "bcryptjs";
 import * as hostinger from "./hostinger";
 import { registerSpotifyRoutes } from "./spotify";
 import { registerWikifyToolRoutes } from "./wikify-tool";
+import { resolveArticleLinks, resolveLinksInContent } from "./wiki-link-resolver";
 import { registerLensProxy } from "./lens-proxy";
 import { freeballRouter } from "./freeball-routes";
 import { sitesRouter } from "./sites-routes";
@@ -44,7 +45,7 @@ import {
 import { isUsernameReserved } from "./usernameUtils";
 import { db } from "./db";
 import { sql, eq, and, desc } from "drizzle-orm";
-import { posts, revisions, galleryImages } from "@shared/schema";
+import { posts, revisions, galleryImages, articles as articlesSchema, categories as categoriesSchema } from "@shared/schema";
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive"];
 const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
@@ -2017,6 +2018,7 @@ export async function registerRoutes(
       }
 
       await generateCrosslinks(article.id);
+      resolveArticleLinks(article.id).catch((e) => console.error("[link-resolver] POST error:", e));
 
       const category = article.categoryId
         ? (await storage.getCategories()).find((c) => c.id === article.categoryId) || null
@@ -2084,9 +2086,29 @@ export async function registerRoutes(
         updatedArticle = await storage.updateArticle(article.id, metadataUpdate);
       }
 
+      const editedContent = updateData.content || article.content;
+
+      // Resolve [See: X] placeholders in the pending content before storing in revision.
+      // writeBack=false preserves the review gate: live article.content stays unchanged until approval.
+      const allRows = await db
+        .select({ article: articlesSchema, categorySlug: categoriesSchema.slug })
+        .from(articlesSchema)
+        .leftJoin(categoriesSchema, eq(articlesSchema.categoryId, categoriesSchema.id));
+      const articleRefs = allRows
+        .filter((r) => r.article.id !== article.id)
+        .map((r) => ({
+          id: r.article.id,
+          title: r.article.title,
+          slug: r.article.slug,
+          status: r.article.status,
+          categorySlug: r.categorySlug ?? null,
+        }));
+      const resolveResult = await resolveLinksInContent(editedContent, articleRefs);
+      const resolvedContent = resolveResult.updatedContent;
+
       await storage.createRevision({
         articleId: article.id,
-        content: updateData.content || article.content,
+        content: resolvedContent,
         infoboxData: updateData.infoboxData || article.infoboxData,
         summary: updateData.summary || article.summary,
         editSummary: editSummary || "Article updated",
@@ -2117,6 +2139,11 @@ export async function registerRoutes(
           });
         }
       }
+
+      // Update crosslinks and stubs to reflect resolved draft content (writeBack=false keeps live content unchanged)
+      resolveArticleLinks(article.id, { content: resolvedContent, writeBack: false }).catch((e) =>
+        console.error("[link-resolver] PATCH error:", e)
+      );
 
       const updatedCategory = updatedArticle.categoryId
         ? (await storage.getCategories()).find((c) => c.id === updatedArticle.categoryId) || null
@@ -2168,6 +2195,7 @@ export async function registerRoutes(
           status: "published",
         });
         await generateCrosslinks(updated.articleId);
+        resolveArticleLinks(updated.articleId).catch((e) => console.error("[link-resolver] revision approval error:", e));
       }
 
       res.json(updated);
@@ -4500,6 +4528,49 @@ export async function registerRoutes(
 
   registerSpotifyRoutes(app);
   registerWikifyToolRoutes(app);
+
+  app.get("/api/tools/wiki/stubs", requireAuth, requireRole("admin", "executive", "staff"), async (_req, res) => {
+    try {
+      const summary = await storage.getWikiLinkStubSummary();
+      const unresolvedCount = summary.length;
+      const totalOccurrences = summary.reduce((sum, s) => sum + s.totalOccurrences, 0);
+      const resolvedCount = await storage.getResolvedLinksCount();
+      res.json({ stubs: summary, unresolvedCount, totalOccurrences, resolvedCount });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/tools/wiki/resolve-links", requireAuth, requireRole("admin", "executive"), async (_req, res) => {
+    try {
+      const allArticles = await storage.getArticles();
+      const published = allArticles.filter((a) => a.status === "published");
+      const BATCH_SIZE = 10;
+      let processed = 0;
+      let totalResolved = 0;
+      let totalUnresolved = 0;
+
+      for (let i = 0; i < published.length; i += BATCH_SIZE) {
+        const batch = published.slice(i, i + BATCH_SIZE);
+        await Promise.allSettled(
+          batch.map(async (article) => {
+            try {
+              const result = await resolveArticleLinks(article.id);
+              totalResolved += result.resolved.length;
+              totalUnresolved += result.unresolved.length;
+              processed++;
+            } catch (e) {
+              console.error(`[backfill] Error processing article ${article.id}:`, e);
+            }
+          })
+        );
+      }
+
+      res.json({ processed, totalResolved, totalUnresolved });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
   registerLensProxy(app);
   app.use("/api/freeball", freeballRouter);
   app.use("/api/sites", sitesRouter);

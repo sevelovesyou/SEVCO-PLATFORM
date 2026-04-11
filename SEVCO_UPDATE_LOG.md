@@ -25626,3 +25626,289 @@ empty on mount. Clearing shapes at mount was causing spurious deletions.
 
 ---
 
+## Task — canvas-dark-dotgrid-glassmorphism
+> Merged: 2026-04-11
+
+# Canvas: fix dark mode + dot grid background + cursor glow + liquid glass toolbars + minimal HUD bar
+
+## Root Causes
+
+### 1. "Entire page disappears on interact"
+Task #332 removed the `<style>` injection that set `.tl-background { background: #0d0d0f }`.
+Without it, tldraw defaults to **light mode** (white background, light gray panels).
+When the user draws, the tools/handles are white-on-white → appears as "everything vanished."
+Fix: set dark mode via `editor.user.updateUserPreferences({ colorScheme: 'dark' })` in handleMount.
+
+### 2. Canvas background gone
+`.tl-background` override was removed. Replacement: tldraw's official `components.Background`
+API — a React component rendered as the canvas background. No CSS injection needed.
+
+---
+
+## SEVCO Bar Redesign
+
+### Current (REMOVE)
+The current SEVCO bar is a full 44px opaque bar with:
+- "SC" logo badge
+- "Canvas" label
+- New / Load / Save / Export dropdown / AI Generate buttons
+
+### New Design — minimal floating HUD (per screenshot)
+
+**Reference**: The screenshot shows tldraw's own canvas header style:
+- Left: project name (plaintext, click to rename inline), small edit icon
+- Right: 3-4 compact ghost icon buttons + "Save" text button + "Export" dropdown
+- Fully transparent / glass — floats over the canvas, not a separate bar
+- Zero branding (no "SC" logo, no "Canvas" label)
+- Uses `pointer-events: auto` only on the button areas, not the background
+
+**Implementation**: Replace the `CanvasTopBar` component entirely.
+
+New bar has `height: 40px`, `position: fixed; top: 3rem; left: 0; right: 0`:
+- **No background** on the bar container itself (fully transparent)  
+- Buttons have individual glass backgrounds (`rgba(10,10,18,0.72)`, `backdrop-filter: blur(16px)`, `border-radius: 8px`, `border: 1px solid rgba(255,255,255,0.07)`)
+- Left cluster: project name (editable inline, styled like `CanvasHTML` in the reference, no box around it normally) + pencil icon button (tiny, hover-only visibility)
+- Right cluster: `FolderOpen` (load), `Plus` (new), `Save` (with Loader2 when saving), `Download` dropdown (export PNG/SVG/JSON), `Sparkles` (AI generate) — all as 28px ghost icon buttons, no labels
+
+Visual spec for each button group:
+```
+left cluster (glass pill):
+  [ProjectName] [pencil-icon when hovered]
+
+right cluster (glass pill):
+  [folder] [plus] [save/spinner] [download▼] [sparkles]
+```
+
+No labels. No brand mark. No dividers between left/right.
+
+---
+
+## Changes — `client/src/pages/canvas-page.tsx`
+
+### A. Force dark mode in handleMount
+
+```tsx
+const handleMount = useCallback((editor: Editor) => {
+  editorRef.current = editor;
+
+  // Force dark mode immediately (no flash of white)
+  editor.user.updateUserPreferences({ colorScheme: 'dark' });
+
+  editor.store.listen(
+    () => {
+      if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
+      autoSaveRef.current = setTimeout(() => doSaveRef.current(false), 5000);
+    },
+    { scope: "document" }
+  );
+}, []);
+```
+
+### B. Dot grid background with cursor glow — `CanvasDotGridBackground` component
+
+Add above CanvasPage:
+
+```tsx
+function CanvasDotGridBackground() {
+  const [mouse, setMouse] = useState({ x: -9999, y: -9999 });
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => setMouse({ x: e.clientX, y: e.clientY });
+    window.addEventListener('mousemove', onMove);
+    return () => window.removeEventListener('mousemove', onMove);
+  }, []);
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        background: '#0a0a0f',
+        backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.18) 1px, transparent 1px)',
+        backgroundSize: '28px 28px',
+        pointerEvents: 'none',
+      }}
+    >
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: `radial-gradient(500px circle at ${mouse.x}px ${mouse.y}px,
+            rgba(99,102,241,0.12) 0%,
+            rgba(139,92,246,0.06) 35%,
+            transparent 70%)`,
+          pointerEvents: 'none',
+        }}
+      />
+    </div>
+  );
+}
+```
+
+Pass to tldraw: `components={{ Background: CanvasDotGridBackground }}`
+
+### C. Liquid glass toolbar styling (tldraw's own panels)
+
+Add `tldrawGlassCSS` const and inject via `<style>` inside the tldraw container:
+
+Target classes (confirmed from tldraw v4 distributed CSS):
+- `.tlui-main-toolbar__inner` — bottom toolbar
+- `.tlui-contextual-toolbar` — contextual panel when shape selected
+- `.tlui-navigation-panel` — bottom-left zoom
+- `.tlui-menu-zone` — top-left page/menu area
+- `.tlui-popover__content`, `.tlui-menu` — dropdowns
+
+Style: `background: rgba(10,10,18,0.72)`, `backdrop-filter: blur(24px) saturate(180%)`,
+`border: 1px solid rgba(255,255,255,0.08)`, `border-radius: 14px`,
+`box-shadow: 0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)`
+
+### D. Rewrite `CanvasTopBar` as minimal floating HUD
+
+Remove the entire `CanvasTopBar` function and replace with `CanvasHUD`:
+
+```tsx
+function CanvasHUD({
+  projectName, isSaving, onNew, onLoad, onSave,
+  onRename, onAiGenerate, onImageUpload, onExportPng, onExportSvg, onExportJson,
+}: CanvasHUDProps) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(projectName);
+  const [hoveringLeft, setHoveringLeft] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // ... same name commit logic as before
+
+  const pillStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 2,
+    background: 'rgba(10,10,18,0.72)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: 9,
+    padding: '0 6px',
+    height: 32,
+    boxShadow: '0 2px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
+  };
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '0 12px',
+      height: '100%',
+      pointerEvents: 'none', // transparent bar — only pill areas are interactive
+    }}>
+      {/* Left — project name */}
+      <div style={{ ...pillStyle, pointerEvents: 'auto', gap: 4 }}
+           onMouseEnter={() => setHoveringLeft(true)}
+           onMouseLeave={() => setHoveringLeft(false)}>
+        {editing ? (
+          <input value={name} ... />
+        ) : (
+          <>
+            <button onClick={() => setEditing(true)} style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: 500, background: 'none', border: 'none', cursor: 'text', padding: '0 2px' }}>
+              {projectName}
+            </button>
+            {hoveringLeft && (
+              <button onClick={() => setEditing(true)} style={{ color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                <Pencil className="h-3 w-3" />
+              </button>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Right — action buttons */}
+      <div style={{ ...pillStyle, pointerEvents: 'auto', gap: 1 }}>
+        <IconBtn icon={<FolderOpen className="h-3.5 w-3.5" />} onClick={onLoad} title="Load project" testId="button-canvas-load" />
+        <IconBtn icon={<Plus className="h-3.5 w-3.5" />} onClick={onNew} title="New project" testId="button-canvas-new" />
+        <IconBtn
+          icon={isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          onClick={onSave} title="Save" testId="button-canvas-save" disabled={isSaving}
+        />
+        {/* Export dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <IconBtn icon={<Download className="h-3.5 w-3.5" />} title="Export" testId="button-canvas-export" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent ...>
+            <DropdownMenuItem onClick={onExportPng}>PNG</DropdownMenuItem>
+            <DropdownMenuItem onClick={onExportSvg}>SVG</DropdownMenuItem>
+            <DropdownMenuItem onClick={onExportJson}>JSON</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <IconBtn icon={<Sparkles className="h-3.5 w-3.5" />} onClick={...} title="AI generate" testId="button-canvas-ai-generate" />
+      </div>
+    </div>
+  );
+}
+
+// Tiny helper
+function IconBtn({ icon, onClick, title, testId, disabled }: { ... }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      data-testid={testId}
+      style={{
+        width: 28, height: 28, borderRadius: 6,
+        background: 'transparent', border: 'none', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: 'rgba(255,255,255,0.5)',
+        transition: 'background 0.12s, color 0.12s',
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.09)';
+        (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.85)';
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+        (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.5)';
+      }}
+    >
+      {icon}
+    </button>
+  );
+}
+```
+
+### E. Update the outer SEVCO bar div
+
+- Keep `fixed left-0 right-0 z-[60]` at `top: 3rem; height: 40px`
+- Background: fully transparent (`background: transparent`)
+- No border
+- `pointerEvents: 'none'` (the HUD pills handle their own pointer events)
+
+This makes the bar invisible — only the glass pills float over the canvas.
+
+---
+
+## Import needed
+Add `Pencil` to the lucide-react import list.
+
+---
+
+## Summary
+
+| Change | Result |
+|---|---|
+| `updateUserPreferences({ colorScheme: 'dark' })` in handleMount | Fixes white canvas / disappearing tools |
+| `components.Background` with dot grid | Dark background with dot pattern |
+| Cursor glow radial gradient | Dots illuminate near cursor |
+| `tldrawGlassCSS` for tlui panels | Liquid glass tldraw toolbars |
+| Full `CanvasTopBar` → `CanvasHUD` rewrite | Minimal floating project name + icon buttons, no branding |
+| Bar container: transparent, pointerEvents none | HUD floats over canvas invisibly |
+
+---
+
+## Files changed
+
+- `client/src/pages/canvas-page.tsx` — all of the above
+
+
+---
+

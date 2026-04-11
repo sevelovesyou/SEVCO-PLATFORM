@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ImageLightbox } from "@/components/image-lightbox";
 import { PageHead } from "@/components/page-head";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -339,6 +340,7 @@ function SocialPostCard({
   isStaffPlus,
   onDelete,
   dailySparksRemaining,
+  onImageClick,
 }: {
   post: PostWithMeta;
   currentUserId?: string;
@@ -347,6 +349,7 @@ function SocialPostCard({
   isStaffPlus?: boolean;
   onDelete: (id: number) => void;
   dailySparksRemaining?: number;
+  onImageClick?: (url: string) => void;
 }) {
   const { toast } = useToast();
   const [repliesOpen, setRepliesOpen] = useState(false);
@@ -471,11 +474,14 @@ function SocialPostCard({
           </p>
 
           {(isRepost ? post.originalPost?.imageUrl : post.imageUrl) && (
-            <div className="mt-2 mb-3 rounded-xl overflow-hidden border">
+            <div
+              className="mt-2 mb-3 rounded-xl overflow-hidden border cursor-pointer"
+              onClick={() => onImageClick?.(resolveImageUrl((isRepost ? post.originalPost?.imageUrl : post.imageUrl) as string))}
+            >
               <img
                 src={resolveImageUrl((isRepost ? post.originalPost?.imageUrl : post.imageUrl) as string)}
                 alt="Post image"
-                className="w-full max-h-72 object-cover"
+                className="w-full max-h-72 object-cover hover:opacity-90 transition-opacity"
                 data-testid={`img-post-${post.id}`}
               />
             </div>
@@ -589,6 +595,7 @@ function AdminFeedCard({
   currentUsername,
   onDelete,
   onTogglePin,
+  onImageClick,
 }: {
   post: FeedPostWithAuthor;
   canManage: boolean;
@@ -596,6 +603,7 @@ function AdminFeedCard({
   currentUsername?: string;
   onDelete: (id: number) => void;
   onTogglePin: (id: number, pinned: boolean) => void;
+  onImageClick?: (url: string) => void;
 }) {
   const meta = TYPE_META[post.type as FeedPostType] ?? TYPE_META.update;
   const IconComp = meta.icon;
@@ -669,8 +677,11 @@ function AdminFeedCard({
             {post.content}
           </p>
           {post.mediaUrl && (
-            <div className="mt-2 mb-2 rounded-md overflow-hidden border">
-              <img src={resolveImageUrl(post.mediaUrl)} alt="Feed media" className="w-full max-h-72 object-cover" loading="lazy" data-testid={`img-feed-media-${post.id}`} />
+            <div
+              className="mt-2 mb-2 rounded-md overflow-hidden border cursor-pointer"
+              onClick={() => onImageClick?.(resolveImageUrl(post.mediaUrl!))}
+            >
+              <img src={resolveImageUrl(post.mediaUrl)} alt="Feed media" className="w-full max-h-72 object-cover hover:opacity-90 transition-opacity" loading="lazy" data-testid={`img-feed-media-${post.id}`} />
             </div>
           )}
           {post.linkUrl && (
@@ -699,6 +710,7 @@ export default function FeedPage() {
   const [deleteFeedId, setDeleteFeedId] = useState<number | null>(null);
   const [deletePostId, setDeletePostId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"feed" | "following" | "official">("feed");
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const { data: feedPosts, isLoading: feedLoading } = useQuery<FeedPostWithAuthor[]>({
     queryKey: ["/api/feed"],
@@ -954,6 +966,7 @@ export default function FeedPage() {
                   isStaffPlus={isStaffPlus}
                   onDelete={(id) => setDeletePostId(id)}
                   dailySparksRemaining={dailyQuota?.remaining}
+                  onImageClick={setLightboxUrl}
                 />
               ))}
             </div>
@@ -1006,6 +1019,7 @@ export default function FeedPage() {
                   isStaffPlus={isStaffPlus}
                   onDelete={(id) => setDeletePostId(id)}
                   dailySparksRemaining={dailyQuota?.remaining}
+                  onImageClick={setLightboxUrl}
                 />
               ))}
             </div>
@@ -1140,6 +1154,7 @@ export default function FeedPage() {
                   currentUsername={user?.username}
                   onDelete={(id) => setDeleteFeedId(id)}
                   onTogglePin={(id, pinned) => pinMutation.mutate({ id, pinned })}
+                  onImageClick={setLightboxUrl}
                 />
               ))}
             </div>
@@ -1186,6 +1201,8 @@ export default function FeedPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ImageLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />
     </div>
   );
 }

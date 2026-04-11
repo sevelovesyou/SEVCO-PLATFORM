@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ImageLightbox } from "@/components/image-lightbox";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { articleUrl } from "@/lib/wiki-urls";
 import { useParams, Link } from "wouter";
@@ -718,11 +719,12 @@ function ProfileEditPanel({
 
 type ArticleSnippet = { id: number; title: string; slug: string; summary: string | null; updatedAt: string; category?: { id: number; name: string; slug: string } | null };
 
-function PostCard({ post, currentUserId, canDelete, onDelete }: {
+function PostCard({ post, currentUserId, canDelete, onDelete, onImageClick }: {
   post: PostWithMeta;
   currentUserId?: string;
   canDelete?: boolean;
   onDelete?: (id: number) => void;
+  onImageClick?: (url: string) => void;
 }) {
   const { toast } = useToast();
   const [repliesOpen, setRepliesOpen] = useState(false);
@@ -794,8 +796,11 @@ function PostCard({ post, currentUserId, canDelete, onDelete }: {
             {isRepost && post.originalPost ? post.originalPost.content : post.content}
           </p>
           {(isRepost ? post.originalPost?.imageUrl : post.imageUrl) && (
-            <div className="mb-2 rounded-xl overflow-hidden border">
-              <img src={resolveImageUrl((isRepost ? post.originalPost?.imageUrl : post.imageUrl) as string)} alt="Post" className="w-full max-h-48 object-cover" loading="lazy" />
+            <div
+              className="mb-2 rounded-xl overflow-hidden border cursor-pointer"
+              onClick={() => onImageClick?.(resolveImageUrl((isRepost ? post.originalPost?.imageUrl : post.imageUrl) as string))}
+            >
+              <img src={resolveImageUrl((isRepost ? post.originalPost?.imageUrl : post.imageUrl) as string)} alt="Post" className="w-full max-h-48 object-cover hover:opacity-90 transition-opacity" loading="lazy" data-testid={`img-profile-post-${post.id}`} />
             </div>
           )}
           <div className="flex items-center gap-4">
@@ -1192,6 +1197,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
   const [followingOpen, setFollowingOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"posts" | "articles">("posts");
   const [deletePostId, setDeletePostId] = useState<number | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const { data: recentArticles } = useQuery<ArticleSnippet[]>({
     queryKey: ["/api/profile", profile.username, "articles"],
@@ -1567,6 +1573,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
                   currentUserId={currentUserId}
                   canDelete={isOwnProfile}
                   onDelete={(id) => deletePostMutation.mutate(id)}
+                  onImageClick={setLightboxUrl}
                 />
               ))
             )}
@@ -1668,6 +1675,8 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
 
       <FollowListDialog username={profile.username} type="followers" open={followersOpen} onClose={() => setFollowersOpen(false)} />
       <FollowListDialog username={profile.username} type="following" open={followingOpen} onClose={() => setFollowingOpen(false)} />
+
+      <ImageLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />
     </div>
   );
 }

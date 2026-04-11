@@ -62,6 +62,7 @@ export const articles = pgTable("articles", {
   authorId: varchar("author_id").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  lastAiReviewedAt: timestamp("last_ai_reviewed_at"),
 });
 
 export const revisions = pgTable("revisions", {

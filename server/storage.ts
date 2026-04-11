@@ -504,8 +504,8 @@ export interface IStorage {
     topContent: { id: number; title: string; contentType: "article" | "gallery"; sparksReceived: number }[];
   }>;
 
-  getWikiSources(): Promise<import("@shared/schema").WikiSource[]>;
-  createWikiSource(data: import("@shared/schema").InsertWikiSource): Promise<import("@shared/schema").WikiSource>;
+  getWikiSources(): Promise<WikiSource[]>;
+  createWikiSource(data: InsertWikiSource): Promise<WikiSource>;
   incrementWikiSourceArticleCount(id: number, count: number): Promise<void>;
   deleteWikiSource(id: number): Promise<void>;
 

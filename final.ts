@@ -10,10 +10,6 @@ import { Readability } from "@mozilla/readability";
 import dns from "dns/promises";
 import net from "net";
 import { XMLParser } from "fast-xml-parser";
-import { createRequire } from "module";
-const _require = createRequire(import.meta.url);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const pdfParse = _require("pdf-parse") as (buf: Buffer) => Promise<{ text: string; numpages: number }>;
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -106,17 +102,6 @@ interface PubMedSummaryResponse {
 
 interface PdfParseTextResult {
   text: string;
-}
-
-async function notifyAdmins(type: string, title: string, body?: string, link?: string) {
-  try {
-    const admins = await storage.getUsersByRole(["admin", "executive", "staff"]);
-    await Promise.all(
-      admins.map((u) =>
-        storage.createNotification({ userId: u.id, type, title, body, link, isRead: false })
-      )
-    );
-  } catch { /* non-blocking */ }
 }
 
 const analyzeSchema = z.object({
@@ -340,7 +325,6 @@ async function callAi(config: ReturnType<typeof getApiConfig>, messages: { role:
   }
   return res.json() as Promise<AiChatResponse>;
 }
-
 export function registerWikifyToolRoutes(app: Express) {
   app.post(
     "/api/tools/wikify/analyze",
@@ -510,257 +494,6 @@ export function registerWikifyToolRoutes(app: Express) {
     }
   );
 
-  app.post(
-    "/api/tools/wiki/gap-analysis",
-    requireAuth,
-    requireRole(...CAN_CREATE_ARTICLE),
-    async (req: Request, res: Response) => {
-      const config = getApiConfig();
-      if (!config) {
-        return res.status(503).json({ message: "AI service not configured. Please set XAI_API_KEY or OPENROUTER_API_KEY." });
-      }
-
-      try {
-        const [allArticles, categories] = await Promise.all([
-          storage.getArticles(),
-          storage.getCategories(),
-        ]);
-
-        const existingTitles = allArticles.map((a) => a.title);
-        const categoryNames = categories.map((c) => c.name);
-
-        const prompt = buildGapAnalysisPrompt(existingTitles, categoryNames);
-
-        const data = await callAi(config, [
-          { role: "system", content: "You are a knowledge architect. Respond ONLY with valid JSON arrays. No markdown fences, no explanation." },
-          { role: "user", content: prompt },
-        ], 6000);
-
-        if (data.usage) {
-          console.log(`[wiki/gap-analysis] tokens: prompt=${data.usage.prompt_tokens} completion=${data.usage.completion_tokens} total=${data.usage.total_tokens}`);
-        }
-
-        const raw = data?.choices?.[0]?.message?.content?.trim() ?? "";
-        const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-
-        let rawTopics: unknown[];
-        try {
-          const parsed = JSON.parse(cleaned) as unknown;
-          if (!Array.isArray(parsed)) throw new Error("Not an array");
-          rawTopics = parsed;
-        } catch {
-          return res.status(502).json({ message: "AI returned malformed JSON", raw: raw.slice(0, 500) });
-        }
-
-        const topics = rawTopics.map((item: unknown) => {
-          const t = (typeof item === "object" && item !== null ? item : {}) as GapAnalysisTopic;
-          return {
-            topic: normalizeString(t.topic) || "Unknown Topic",
-            category: normalizeString(t.category) || "General",
-            reason: normalizeString(t.reason) || "",
-            priority: normalizePriority(t.priority),
-          };
-        });
-
-        const priorityOrder = { high: 0, medium: 1, low: 2 };
-        topics.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
-
-        return res.json({ topics, existingCount: existingTitles.length });
-      } catch (err: unknown) {
-        console.error("[wiki/gap-analysis] Error:", err);
-        return res.status(500).json({ message: "Internal server error" });
-      }
-    }
-  );
-
-  const citationItemSchema = z.object({
-    url: z.string().optional(),
-    title: z.string().optional(),
-    format: z.string(),
-    text: z.string(),
-  });
-
-  const saveArticleSchema = z.object({
-    title: z.string().min(1),
-    slug: z.string().min(1),
-    content: z.string().min(1),
-    summary: z.string().optional(),
-    categoryId: z.number().nullable().optional(),
-    confidence: z.enum(["strong", "good", "review"]),
-    citations: z.array(citationItemSchema).optional(),
-  });
-
-  app.post(
-    "/api/tools/wiki/save-article",
-    requireAuth,
-    requireRole(...CAN_CREATE_ARTICLE),
-    async (req: Request, res: Response) => {
-      const parsed = saveArticleSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ message: "Invalid request", errors: parsed.error.flatten() });
-      }
-
-      const { confidence, citations, ...articleData } = parsed.data;
-
-      // Append citations as a References section if provided (Task #317)
-      if (citations && citations.length > 0) {
-        const refLines = citations.map((c, i) => {
-          const label = c.title ?? c.text.slice(0, 60);
-          return c.url ? `${i + 1}. [${label}](${c.url})` : `${i + 1}. ${label}`;
-        });
-        articleData.content = articleData.content.trimEnd() + "\n\n## References\n\n" + refLines.join("\n");
-      }
-
-      const settings = await storage.getPlatformSettings();
-      const autoPublishStrong = settings["wiki.autoPublishStrongConfidence"] === "true";
-
-      let articleStatus: string;
-      let revisionStatus: string;
-      let action: string;
-      let message: string;
-
-      if (confidence === "strong" && autoPublishStrong) {
-        // Strong confidence + toggle on → auto-publish
-        articleStatus = "published";
-        revisionStatus = "approved";
-        action = "published";
-        message = "Article auto-published (strong confidence)";
-      } else if (confidence === "good") {
-        // Good confidence → draft + notify admins/staff to review
-        articleStatus = "draft";
-        revisionStatus = "pending";
-        action = "draft_notified";
-        message = "Article saved as draft — staff notified for review (good confidence)";
-      } else {
-        // review confidence (or strong with toggle off) → draft + review queue
-        articleStatus = "draft";
-        revisionStatus = "pending";
-        action = confidence === "strong" ? "draft_strong_disabled" : "draft_review_queue";
-        message = confidence === "strong"
-          ? "Article saved as draft (auto-publish disabled)"
-          : "Article saved as draft — queued for manual review (review confidence)";
-      }
-
-      const article = await storage.createArticle({
-        ...articleData,
-        status: articleStatus,
-        authorId: (req.user as any)?.id ?? null,
-        lastAiReviewedAt: new Date(),
-      });
-
-      await storage.createRevision({
-        articleId: article.id,
-        content: article.content,
-        summary: article.summary,
-        editSummary: `AI-generated article (${confidence} confidence)`,
-        status: revisionStatus,
-        authorName: req.user?.username ?? "AI Wikify",
-      });
-
-      if (confidence === "good") {
-        notifyAdmins(
-          "wiki_review",
-          "Wiki article ready for review",
-          `"${article.title}" was AI-generated with good confidence and is awaiting review.`,
-          `/wiki/${article.slug}`
-        );
-      }
-
-      return res.status(201).json({
-        article,
-        confidence,
-        action,
-        message,
-      });
-    }
-  );
-
-  app.post(
-    "/api/tools/wiki/rewikify/:articleId",
-    requireAuth,
-    requireRole(...CAN_CREATE_ARTICLE),
-    async (req: Request, res: Response) => {
-      const articleId = parseInt(req.params.articleId, 10);
-      if (isNaN(articleId)) {
-        return res.status(400).json({ message: "Invalid article ID" });
-      }
-
-      const config = getApiConfig();
-      if (!config) {
-        return res.status(503).json({ message: "AI service not configured." });
-      }
-
-      try {
-        const article = await storage.getArticleById(articleId);
-        if (!article) {
-          return res.status(404).json({ message: "Article not found" });
-        }
-
-        const prompt = buildRewikifyPrompt(article.title, article.content);
-
-        const data = await callAi(config, [
-          { role: "system", content: "You are a technical wiki editor. Respond ONLY with valid JSON. No markdown fences." },
-          { role: "user", content: prompt },
-        ], 6000);
-
-        if (data.usage) {
-          console.log(`[wiki/rewikify/${articleId}] tokens: prompt=${data.usage.prompt_tokens} completion=${data.usage.completion_tokens} total=${data.usage.total_tokens}`);
-        }
-
-        const raw = data?.choices?.[0]?.message?.content?.trim() ?? "";
-        const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-
-        let result: { content?: unknown; confidence?: unknown };
-        try {
-          result = JSON.parse(cleaned) as { content?: unknown; confidence?: unknown };
-        } catch {
-          return res.status(502).json({ message: "AI returned malformed JSON", raw: raw.slice(0, 500) });
-        }
-
-        const newContent = normalizeString(result.content);
-        const confidence = normalizeConfidence(result.confidence);
-
-        if (!newContent) {
-          return res.status(502).json({ message: "AI returned empty content" });
-        }
-
-        const settings = await storage.getPlatformSettings();
-        const autoPublishStrong = settings["wiki.autoPublishStrongConfidence"] === "true";
-        const authorName = req.user?.username ?? "AI Re-wikify";
-
-        const now = new Date();
-        const autoApprove = confidence === "strong" && autoPublishStrong;
-
-        const revision = await storage.createRevision({
-          articleId,
-          content: newContent,
-          authorName,
-          editSummary: `Re-wikified by AI (${confidence} confidence)`,
-          status: autoApprove ? "approved" : "pending",
-        });
-
-        if (autoApprove) {
-          await storage.updateArticle(articleId, {
-            content: newContent,
-            status: "published",
-            lastAiReviewedAt: now,
-          });
-          return res.json({ confidence, action: "published", revisionId: revision.id, message: "Revision created and auto-approved (strong confidence)" });
-        } else {
-          await storage.updateArticle(articleId, {
-            lastAiReviewedAt: now,
-          });
-          return res.json({ confidence, action: "revision", revisionId: revision.id, message: `Revision created (${confidence} confidence) — pending review` });
-        }
-      } catch (err: unknown) {
-        console.error("[wiki/rewikify] Error:", err);
-        return res.status(500).json({ message: "Internal server error" });
-      }
-    }
-  );
-
-  // ── Task #317: Source Ingestion Routes ────────────────────────────────────
-
   const ingestUrlSchema = z.object({
     url: z.string().url(),
   });
@@ -877,7 +610,7 @@ export function registerWikifyToolRoutes(app: Express) {
         if (type === "doi") {
           const crossrefUrl = `https://api.crossref.org/works/${encodeURIComponent(id)}`;
           const crossrefRes = await fetch(crossrefUrl, {
-            headers: { "User-Agent": "SEVE-Wiki-Bot/1.0 (mailto:wiki@sevco.us)" },
+            headers: { "User-Agent": "SEVE-Wiki-Bot/1.0 (mailto:wiki@sevco.io)" },
           });
           if (!crossrefRes.ok) {
             return res.status(404).json({ message: `DOI not found: ${id}` });
@@ -930,7 +663,7 @@ export function registerWikifyToolRoutes(app: Express) {
           const xmlText = await apiRes.text();
 
           const xmlParser = new XMLParser({ ignoreAttributes: false, isArray: (name) => name === "author" });
-          const parsed2 = xmlParser.parse(xmlText) as {
+          const parsed = xmlParser.parse(xmlText) as {
             feed?: {
               entry?: {
                 title?: string;
@@ -940,7 +673,7 @@ export function registerWikifyToolRoutes(app: Express) {
               };
             };
           };
-          const entry = parsed2?.feed?.entry;
+          const entry = parsed?.feed?.entry;
 
           title = (typeof entry?.title === "string" ? entry.title : cleanId).trim().replace(/\s+/g, " ");
           const abstractText = (typeof entry?.summary === "string" ? entry.summary : "").trim().replace(/\s+/g, " ");
@@ -984,6 +717,69 @@ export function registerWikifyToolRoutes(app: Express) {
   );
 
   app.post(
+    "/api/tools/wiki/gap-analysis",
+    requireAuth,
+    requireRole(...CAN_CREATE_ARTICLE),
+    async (req: Request, res: Response) => {
+      const config = getApiConfig();
+      if (!config) {
+        return res.status(503).json({ message: "AI service not configured. Please set XAI_API_KEY or OPENROUTER_API_KEY." });
+      }
+
+      try {
+        const [allArticles, categories] = await Promise.all([
+          storage.getArticles(),
+          storage.getCategories(),
+        ]);
+
+        const existingTitles = allArticles.map((a) => a.title);
+        const categoryNames = categories.map((c) => c.name);
+
+        const prompt = buildGapAnalysisPrompt(existingTitles, categoryNames);
+
+        const data = await callAi(config, [
+          { role: "system", content: "You are a knowledge architect. Respond ONLY with valid JSON arrays. No markdown fences, no explanation." },
+          { role: "user", content: prompt },
+        ], 6000);
+
+        if (data.usage) {
+          console.log(`[wiki/gap-analysis] tokens: prompt=${data.usage.prompt_tokens} completion=${data.usage.completion_tokens} total=${data.usage.total_tokens}`);
+        }
+
+        const raw = data?.choices?.[0]?.message?.content?.trim() ?? "";
+        const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+
+        let rawTopics: unknown[];
+        try {
+          const parsed = JSON.parse(cleaned) as unknown;
+          if (!Array.isArray(parsed)) throw new Error("Not an array");
+          rawTopics = parsed;
+        } catch {
+          return res.status(502).json({ message: "AI returned malformed JSON", raw: raw.slice(0, 500) });
+        }
+
+        const topics = rawTopics.map((item: unknown) => {
+          const t = (typeof item === "object" && item !== null ? item : {}) as GapAnalysisTopic;
+          return {
+            topic: normalizeString(t.topic) || "Unknown Topic",
+            category: normalizeString(t.category) || "General",
+            reason: normalizeString(t.reason) || "",
+            priority: normalizePriority(t.priority),
+          };
+        });
+
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
+        topics.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+        return res.json({ topics, existingCount: existingTitles.length });
+      } catch (err: unknown) {
+        console.error("[wiki/gap-analysis] Error:", err);
+        return res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  );
+
+  app.post(
     "/api/tools/wiki/ingest-pdf",
     requireAuth,
     requireRole(...CAN_CREATE_ARTICLE),
@@ -998,8 +794,10 @@ export function registerWikifyToolRoutes(app: Express) {
       }
 
       try {
-        const pdfData = await pdfParse(req.file.buffer);
-        const rawText = pdfData.text?.trim() ?? "";
+        const { PDFParse } = await import("pdf-parse");
+        const parser = new PDFParse({ data: req.file.buffer });
+        const result: PdfParseTextResult = await parser.getText();
+        const rawText = result.text?.trim() ?? "";
 
         if (!rawText) {
           return res.status(422).json({ message: "Could not extract text from this PDF" });
@@ -1081,6 +879,88 @@ export function registerWikifyToolRoutes(app: Express) {
       } catch (err) {
         console.error("[wiki-sources-delete] Error:", err);
         return res.status(500).json({ message: "Failed to delete source" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/tools/wiki/rewikify/:articleId",
+    requireAuth,
+    requireRole(...CAN_CREATE_ARTICLE),
+    async (req: Request, res: Response) => {
+      const articleId = parseInt(req.params.articleId, 10);
+      if (isNaN(articleId)) {
+        return res.status(400).json({ message: "Invalid article ID" });
+      }
+
+      const config = getApiConfig();
+      if (!config) {
+        return res.status(503).json({ message: "AI service not configured." });
+      }
+
+      try {
+        const article = await storage.getArticleById(articleId);
+        if (!article) {
+          return res.status(404).json({ message: "Article not found" });
+        }
+
+        const prompt = buildRewikifyPrompt(article.title, article.content);
+
+        const data = await callAi(config, [
+          { role: "system", content: "You are a technical wiki editor. Respond ONLY with valid JSON. No markdown fences." },
+          { role: "user", content: prompt },
+        ], 6000);
+
+        if (data.usage) {
+          console.log(`[wiki/rewikify/${articleId}] tokens: prompt=${data.usage.prompt_tokens} completion=${data.usage.completion_tokens} total=${data.usage.total_tokens}`);
+        }
+
+        const raw = data?.choices?.[0]?.message?.content?.trim() ?? "";
+        const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+
+        let result: { content?: unknown; confidence?: unknown };
+        try {
+          result = JSON.parse(cleaned) as { content?: unknown; confidence?: unknown };
+        } catch {
+          return res.status(502).json({ message: "AI returned malformed JSON", raw: raw.slice(0, 500) });
+        }
+
+        const newContent = normalizeString(result.content);
+        const confidence = normalizeConfidence(result.confidence);
+
+        if (!newContent) {
+          return res.status(502).json({ message: "AI returned empty content" });
+        }
+
+        const settings = await storage.getPlatformSettings();
+        const autoPublishStrong = settings["wiki.autoPublishStrongConfidence"] === "true";
+        const authorName = req.user?.username ?? "AI Re-wikify";
+
+        const now = new Date();
+
+        if (confidence === "strong" && autoPublishStrong) {
+          await storage.updateArticle(articleId, {
+            content: newContent,
+            status: "published",
+            lastAiReviewedAt: now,
+          });
+          return res.json({ confidence, action: "published", message: "Article auto-published (strong confidence)" });
+        } else {
+          const revision = await storage.createRevision({
+            articleId,
+            content: newContent,
+            authorName,
+            editSummary: `Re-wikified by AI (${confidence} confidence)`,
+            status: "pending",
+          });
+          await storage.updateArticle(articleId, {
+            lastAiReviewedAt: now,
+          });
+          return res.json({ confidence, action: "revision", revisionId: revision.id, message: `Revision created (${confidence} confidence) — pending review` });
+        }
+      } catch (err: unknown) {
+        console.error("[wiki/rewikify] Error:", err);
+        return res.status(500).json({ message: "Internal server error" });
       }
     }
   );

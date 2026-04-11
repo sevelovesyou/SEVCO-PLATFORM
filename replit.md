@@ -28,7 +28,7 @@ The platform is built with a modern web stack:
     - **Hostinger Integration**: Manages VPS hosting, domains, and WHOIS lookups through the Hostinger API.
     - **Social Features**: Public user profiles, a social feed, and dynamic social links management.
     - **Platform Modules**:
-        - **Wiki**: Comprehensive knowledge base with article viewing, editing, search, category organization, and a review queue for pending revisions.
+        - **Wiki**: Comprehensive knowledge base with article viewing, editing, search, category organization, and a review queue for pending revisions. Includes AI-powered lifecycle management: Gap Analysis (LLM identifies missing topics), Freshness Dashboard (tracks staleness by `lastAiReviewedAt`), Re-wikify (refreshes stale articles through the LLM), and confidence-gated auto-publish (`wiki.autoPublishStrongConfidence` platform setting).
         - **Music (SEVCO RECORDS)**: Hub for music content, including catalog browsing, music submissions, curated playlists, artist/album details, and a Beats page (`/music/beats`) for instrumental tracks.
         - **Store**: E-commerce functionality for products with a shopping cart, checkout, and order management.
         - **Projects (SEVCO Ventures)**: Section dedicated to projects.

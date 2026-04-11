@@ -24395,3 +24395,49 @@ After any article is saved or published, run a lightweight LLM pass that reads t
 
 ---
 
+## Task — task-316
+> Merged: 2026-04-11
+
+---
+title: Wiki Lifecycle Management (Gap Analysis + Freshness + Re-wikify)
+---
+# Wiki Lifecycle Management (CMD)
+
+## What & Why
+Implements three interrelated Command Wiki features that keep the wiki growing and current: Gap Analysis (LLM identifies missing topics), Freshness Dashboard (flags stale articles), and Re-wikify (sends stale articles back through the LLM for an update). Also adds confidence-gated auto-publish so high-quality AI output moves faster without blocking on manual review. These are the core of the Karpathy self-maintaining wiki loop.
+
+## Done looks like
+- **Gap Analysis**: A "Gap Analysis" panel in Command Wiki calls the LLM with all existing article titles + the SEVCO context. It returns a ranked list of 20-30 missing topics organized by category, each with a reason and a one-click "Generate" button that pre-fills the Wikify tool. Cost: ~$0.01–0.03 per run with Claude Haiku.
+- **Freshness Dashboard**: Command Wiki → Wiki tab shows a sortable table of all articles with a "freshness" indicator: green (<45 days since AI review), yellow (45–90 days), red (>90 days). Sorted red-first by default.
+- **Re-wikify**: Each article row in the Freshness Dashboard has a "Re-wikify" button. Clicking it sends the existing content + title back to the LLM with a "refresh and expand" prompt, saves the result as a pending revision (confidence "strong" → auto-approve, others → review queue), and updates `lastAiReviewedAt`.
+- **Confidence-gated auto-publish**: In CMD settings, an admin toggle enables "Auto-publish strong-confidence articles". When on, Wikify-generated articles scored "strong" are saved with `status: "published"` directly. "good" → `status: "draft"` + notification. "review" → existing review queue. Toggle is off by default.
+- A new `lastAiReviewedAt` timestamp column exists on the `articles` table.
+
+## Out of scope
+- Scheduled/automated execution of Gap Analysis or Re-wikify (Tier 1 — all triggers are manual button clicks)
+- Email notifications (CMD in-app notification only)
+
+## Tasks
+1. **`lastAiReviewedAt` column** — Add `lastAiReviewedAt` (timestamp, nullable) to the `articles` table in the Drizzle schema. Run `db:push` to apply. Update the article storage interface to set this field whenever a Re-wikify completes.
+
+2. **Gap Analysis backend** — Add a `POST /api/tools/wiki/gap-analysis` endpoint. It fetches all article titles from the DB, builds a prompt asking the LLM for missing topics in the SEVCO context, calls OpenRouter (Claude Haiku by default), parses the structured response into a list of `{ topic, category, reason, priority }` objects, and returns them. Log the LLM token usage for cost tracking.
+
+3. **Gap Analysis UI** — Add a "Gap Analysis" section to Command Wiki with a "Run Analysis" button, loading state, and a results table showing missing topics sorted by priority with category badge and reason text. Each row has a "Generate" button that opens the existing Wikify dialog pre-filled with the topic.
+
+4. **Freshness Dashboard** — In Command Wiki → Wiki tab, add a sortable article table with freshness color coding based on `lastAiReviewedAt` (or `updatedAt` as fallback). Each row shows title, category, word count, last AI review date, and a "Re-wikify" action button.
+
+5. **Re-wikify endpoint** — Add a `POST /api/tools/wiki/rewikify/:articleId` endpoint. It fetches the article, sends its content to the LLM with a "refresh, update, and expand any thin sections while preserving structure" prompt, saves the result as a revision or auto-publishes based on confidence level, and updates `lastAiReviewedAt`. Log token usage.
+
+6. **Confidence-gated auto-publish** — Add a `wiki.autoPublishStrongConfidence` key to `platform_settings`. In the Wikify article-save flow, check this setting and route articles to `published`, `draft`, or review queue based on their confidence score. Add the toggle to Command Wiki → Wiki settings section.
+
+## Relevant files
+- `server/routes.ts`
+- `server/storage.ts`
+- `server/wikify-tool.ts`
+- `shared/schema.ts`
+- `client/src/pages/command-wiki.tsx`
+- `client/src/pages/wikify-tool-page.tsx`
+
+
+---
+

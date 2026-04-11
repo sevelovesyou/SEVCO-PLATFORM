@@ -3,7 +3,7 @@ import JSZip from "jszip";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermission } from "@/hooks/use-permission";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -128,15 +128,17 @@ export default function WikifyToolPage() {
   const { user, isLoading: authLoading } = useAuth();
   const { canCreateArticle } = usePermission();
   const [location, setLocation] = useLocation();
+  const search = useSearch();
   const { toast } = useToast();
+
+  const prefillFromParams = useMemo(() => {
+    const params = new URLSearchParams(search);
+    return params.get("prefill") || params.get("topic") || "";
+  }, [search]);
 
   const initializedFromStorage = useRef(false);
   const [ingestedSourceId, setIngestedSourceId] = useState<number | null>(null);
   const [ingestedCitation, setIngestedCitation] = useState<{ text: string; format: string } | null>(null);
-
-  const prefillTopic = typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search).get("topic") ?? ""
-    : "";
 
   const [sourceText, setSourceText] = useState(() => {
     try {
@@ -152,8 +154,8 @@ export default function WikifyToolPage() {
   const [detailLevel, setDetailLevel] = useState<"brief" | "standard" | "detailed">("standard");
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [suggestions, setSuggestions] = useState<ArticleSuggestion[]>([]);
-  const [showAiPrompt, setShowAiPrompt] = useState(prefillTopic !== "");
-  const [aiPrompt, setAiPrompt] = useState(prefillTopic);
+  const [showAiPrompt, setShowAiPrompt] = useState(prefillFromParams !== "");
+  const [aiPrompt, setAiPrompt] = useState(prefillFromParams);
   const [submissionProgress, setSubmissionProgress] = useState<{ current: number; total: number } | null>(null);
   const [submittedCount, setSubmittedCount] = useState<number>(0);
 
@@ -258,7 +260,11 @@ export default function WikifyToolPage() {
     if (selectedSuggestions.length === 0) return;
     setSubmissionProgress({ current: 0, total: selectedSuggestions.length });
     let successCount = 0;
+    let publishedCount = 0;
+    let draftCount = 0;
     let failCount = 0;
+    let publishedCount = 0;
+    let draftCount = 0;
 
     for (let i = 0; i < selectedSuggestions.length; i++) {
       const s = selectedSuggestions[i];
@@ -284,15 +290,23 @@ export default function WikifyToolPage() {
             ]
           : [];
 
-        await apiRequest("POST", "/api/articles", {
+        const res = await apiRequest("POST", "/api/tools/wiki/save-article", {
           title: s.editedTitle,
           slug,
           content: s.editedContent,
           summary: s.seoDescription,
           categoryId: s.categoryId,
-          status: "draft",
+          confidence: s.confidence ?? "good",
           citations: citationsPayload.length > 0 ? citationsPayload : undefined,
         });
+
+        const data = await res.json();
+        if (data.action === "published") {
+          publishedCount++;
+        } else {
+          draftCount++;
+        }
+
         updateSuggestion(s.id, { submitStatus: "success" });
         successCount++;
       } catch {
@@ -316,14 +330,26 @@ export default function WikifyToolPage() {
     }
 
     if (failCount === 0) {
-      toast({
-        title: `${successCount} article${successCount !== 1 ? "s" : ""} submitted`,
-        description: "All selected articles were queued for review.",
-      });
+      if (publishedCount > 0 && draftCount > 0) {
+        toast({
+          title: `${successCount} articles processed`,
+          description: `${publishedCount} auto-published, ${draftCount} queued for review.`,
+        });
+      } else if (publishedCount > 0) {
+        toast({
+          title: `${publishedCount} articles published`,
+          description: "Articles meet confidence threshold and were auto-published.",
+        });
+      } else {
+        toast({
+          title: `${draftCount} articles submitted`,
+          description: "All articles were queued for review.",
+        });
+      }
     } else {
       toast({
-        title: `${successCount} submitted, ${failCount} failed`,
-        description: "Some articles could not be submitted. Please try again.",
+        title: `${successCount} processed, ${failCount} failed`,
+        description: "Some articles could not be saved. Please try again.",
         variant: "destructive",
       });
     }
@@ -354,6 +380,13 @@ export default function WikifyToolPage() {
       setLocation("/auth");
     }
   }, [authLoading, user, setLocation]);
+
+  useEffect(() => {
+    if (prefillFromParams) {
+      setShowAiPrompt(true);
+      setAiPrompt(prefillFromParams);
+    }
+  }, [prefillFromParams]);
 
   if (authLoading) {
     return (

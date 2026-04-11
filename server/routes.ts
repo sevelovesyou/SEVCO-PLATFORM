@@ -1876,6 +1876,15 @@ export async function registerRoutes(
     res.json({ ...cat, articles: catArticles.filter((a) => a.status !== "archived"), subcategories });
   });
 
+  app.get("/api/articles", requireAuth, requireRole(...CAN_ACCESS_ARCHIVE), async (_req, res) => {
+    try {
+      const all = await storage.getArticles();
+      res.json(all);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/articles/archived", requireAuth, requireRole(...CAN_ACCESS_ARCHIVE), async (_req, res) => {
     try {
       const all = await storage.getArticles();

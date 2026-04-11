@@ -5,11 +5,12 @@ import { usePermission } from "@/hooks/use-permission";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -35,12 +36,124 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Plus, Pencil, Trash2, BookOpen, Library, Link2, GraduationCap, FileText,
-  RefreshCw, Loader2, RotateCcw, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown,
-  CheckCircle2, Wand2,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  BookOpen,
+  Library,
+  Link2,
+  GraduationCap,
+  FileText,
+  Search,
+  RefreshCw,
+  Loader2,
+  Wand2,
+  AlertCircle,
+  CheckCircle2,
+  Settings2,
+  ChevronUp,
+  ChevronDown,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  RotateCcw,
 } from "lucide-react";
-import { useLocation } from "wouter";
-import type { Category } from "@shared/schema";
+import { useLocation, Link } from "wouter";
+import type { Category, Article } from "@shared/schema";
+
+interface WikiSource {
+  id: number;
+  type: string;
+  identifier: string;
+  title: string;
+  ingestedAt: string;
+  articleCount: number;
+}
+
+type IngestResult = {
+  text: string;
+  title: string;
+  sourceId: number;
+  citation: string;
+  citationFormat: string;
+};
+
+type SortKey = "title" | "freshness" | "updatedAt" | "wordCount";
+
+interface GapTopic {
+  topic: string;
+  category: string;
+  reason: string;
+  priority: "high" | "medium" | "low";
+}
+
+interface GapAnalysisResult {
+  topics: GapTopic[];
+  existingCount: number;
+}
+
+interface FreshnessArticle extends Article {
+  category?: { id: number; name: string; slug: string } | null;
+  daysSinceAiReview: number | null;
+  freshnessStatus: "green" | "yellow" | "red";
+}
+
+const PRIORITY_STYLES: Record<string, string> = {
+  high: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  medium: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+  low: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400",
+};
+
+const FRESHNESS_DOT: Record<string, string> = {
+  green: "bg-green-500",
+  yellow: "bg-amber-500",
+  red: "bg-red-500",
+};
+
+const FRESHNESS_LABEL: Record<string, string> = {
+  green: "Fresh (<45d)",
+  yellow: "Aging (45-90d)",
+  red: "Stale (>90d)",
+};
+
+function getFreshnessStatus(daysSince: number | null): "green" | "yellow" | "red" {
+  if (daysSince === null) return "red";
+  if (daysSince < 45) return "green";
+  if (daysSince <= 90) return "yellow";
+  return "red";
+}
+
+function getDaysSince(date: Date | string | null | undefined): number | null {
+  if (!date) return null;
+  const d = typeof date === "string" ? new Date(date) : date;
+  const diff = Date.now() - d.getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
+function computeFreshnessArticles(articles: (Article & { category?: { id: number; name: string; slug: string } | null })[]): FreshnessArticle[] {
+  return articles
+    .filter((a) => a.status === "published" || a.status === "draft")
+    .map((a) => {
+      const reviewDate = a.lastAiReviewedAt ?? a.updatedAt;
+      const days = getDaysSince(reviewDate);
+      return {
+        ...a,
+        daysSinceAiReview: days,
+        freshnessStatus: getFreshnessStatus(days),
+      };
+    });
+}
+
+function wordCount(content: string): number {
+  return content.trim().split(/\s+/).filter(Boolean).length;
+}
+
 
 interface StubSummaryItem {
   stubText: string;
@@ -64,22 +177,6 @@ interface BackfillResponse {
 type SortField = "stubText" | "totalOccurrences" | "articleCount";
 type SortDir = "asc" | "desc";
 
-interface WikiSource {
-  id: number;
-  type: string;
-  identifier: string;
-  title: string;
-  ingestedAt: string;
-  articleCount: number;
-}
-
-type IngestResult = {
-  text: string;
-  title: string;
-  sourceId: number;
-  citation: string;
-  citationFormat: string;
-};
 
 export default function CommandWiki() {
   const { role } = usePermission();
@@ -89,8 +186,9 @@ export default function CommandWiki() {
   const isStaffPlus = role === "admin" || role === "executive" || role === "staff";
   const isExecutivePlus = role === "admin" || role === "executive";
   const canIngest = role === "admin" || role === "executive" || role === "staff" || role === "partner";
+  const isAdmin = role === "admin";
+  const [activeTab, setActiveTab] = useState<"subcategories" | "sources" | "freshness" | "gap-analysis" | "settings">("freshness");
 
-  const [activeTab, setActiveTab] = useState<"subcategories" | "sources">("subcategories");
   const [filterParentId, setFilterParentId] = useState<string>("all");
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -123,6 +221,12 @@ export default function CommandWiki() {
   const [reIngestingId, setReIngestingId] = useState<number | null>(null);
   const [deleteSourceId, setDeleteSourceId] = useState<number | null>(null);
 
+  const [gapResults, setGapResults] = useState<GapAnalysisResult | null>(null);
+
+  const [sortKey, setSortKey] = useState<SortKey>("freshness");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [rewikifyingId, setRewikifyingId] = useState<number | null>(null);
+
   const { data: allCategories, isLoading } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
   });
@@ -135,6 +239,14 @@ export default function CommandWiki() {
   const { data: sources, isLoading: sourcesLoading } = useQuery<WikiSource[]>({
     queryKey: ["/api/tools/wiki/sources"],
     enabled: canIngest,
+  });
+
+  const { data: allArticlesRaw, isLoading: articlesLoading } = useQuery<(Article & { category?: { id: number; name: string; slug: string } | null })[]>({
+    queryKey: ["/api/articles"],
+  });
+
+  const { data: platformSettings } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
   });
 
   const mainCategories = allCategories?.filter((c) => c.parentId === null) ?? [];
@@ -161,6 +273,39 @@ export default function CommandWiki() {
     }
     return dir === "asc" ? (av as number) - (bv as number) : (bv as number) - (av as number);
   });
+
+  const freshnessArticles: FreshnessArticle[] = allArticlesRaw ? computeFreshnessArticles(allArticlesRaw) : [];
+
+  const sortedFreshness = [...freshnessArticles].sort((a, b) => {
+    let cmp = 0;
+    if (sortKey === "freshness") {
+      const order = { red: 0, yellow: 1, green: 2 };
+      cmp = order[a.freshnessStatus] - order[b.freshnessStatus];
+    } else if (sortKey === "title") {
+      cmp = a.title.localeCompare(b.title);
+    } else if (sortKey === "updatedAt") {
+      cmp = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+    } else if (sortKey === "wordCount") {
+      cmp = wordCount(a.content) - wordCount(b.content);
+    }
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+
+  const autoPublishStrong = platformSettings?.["wiki.autoPublishStrongConfidence"] === "true";
+
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
+
+  function SortIcon({ k }: { k: SortKey }) {
+    if (sortKey !== k) return <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />;
+    return sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />;
+  }
 
   const createMutation = useMutation({
     mutationFn: (data: { name: string; parentId: number; description?: string }) =>
@@ -234,6 +379,62 @@ export default function CommandWiki() {
     },
   });
 
+  const gapAnalysisMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/tools/wiki/gap-analysis", {});
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "Unknown error" })) as { message?: string };
+        throw new Error(err.message ?? "Gap analysis failed");
+      }
+      return res.json() as Promise<GapAnalysisResult>;
+    },
+    onSuccess: (data) => {
+      setGapResults(data);
+      toast({ title: "Gap analysis complete", description: `Found ${data.topics.length} missing topics` });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Gap analysis failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const autoPublishMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const res = await apiRequest("PUT", "/api/platform-settings", {
+        "wiki.autoPublishStrongConfidence": enabled ? "true" : "false",
+      });
+      if (!res.ok) throw new Error("Failed to save setting");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/platform-settings"] });
+      toast({ title: "Setting saved" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Failed to save", description: err.message, variant: "destructive" });
+    },
+  });
+
+  async function handleRewikify(articleId: number, articleTitle: string) {
+    setRewikifyingId(articleId);
+    try {
+      const res = await apiRequest("POST", `/api/tools/wiki/rewikify/${articleId}`, {});
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "Unknown error" })) as { message?: string };
+        throw new Error(err.message ?? "Re-wikify failed");
+      }
+      const data = await res.json() as { confidence: string; action: string; message: string };
+      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+      toast({
+        title: `Re-wikified: ${articleTitle}`,
+        description: data.message,
+      });
+    } catch (err: any) {
+      toast({ title: "Re-wikify failed", description: err.message, variant: "destructive" });
+    } finally {
+      setRewikifyingId(null);
+    }
+  }
+
   function openRename(cat: Category) {
     setRenamingCat(cat);
     setRenameName(cat.name);
@@ -280,7 +481,7 @@ export default function CommandWiki() {
     }));
   }
 
-  function SortIcon({ field }: { field: SortField }) {
+  function StubSortIcon({ field }: { field: SortField }) {
     if (stubSort.field !== field) return <ArrowUpDown className="h-3 w-3 opacity-40" />;
     return stubSort.dir === "asc"
       ? <ArrowUp className="h-3 w-3" />
@@ -294,7 +495,7 @@ export default function CommandWiki() {
       sessionStorage.setItem("wikify_citation", result.citation);
       sessionStorage.setItem("wikify_citation_format", result.citationFormat);
     } catch { /* ignore storage errors */ }
-    window.open("/tools/wikify?from=source", "_blank");
+    window.open("/wikify?from=source", "_blank");
   }
 
   async function handleIngestUrl() {
@@ -380,15 +581,11 @@ export default function CommandWiki() {
     }
     setReIngestingId(source.id);
     try {
-      let res: Response;
-      if (source.type === "url") {
-        res = await apiRequest("POST", "/api/tools/wiki/ingest-url", { url: source.identifier });
-      } else {
-        res = await apiRequest("POST", "/api/tools/wiki/ingest-academic", {
-          type: source.type,
-          id: source.identifier,
-        });
-      }
+      const endpoint = source.type === "url" ? "/api/tools/wiki/ingest-url" : "/api/tools/wiki/ingest-academic";
+      const body = source.type === "url"
+        ? { url: source.identifier }
+        : { type: source.type, id: source.identifier };
+      const res = await apiRequest("POST", endpoint, body);
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: "Failed" })) as { message?: string };
         toast({ title: "Re-ingest failed", description: err.message, variant: "destructive" });
@@ -409,10 +606,11 @@ export default function CommandWiki() {
     return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   }
 
+
   if (!isStaffPlus) {
     return (
       <div className="text-sm text-muted-foreground" data-testid="text-wiki-no-access">
-        You do not have permission to manage wiki subcategories.
+        You do not have permission to manage wiki.
       </div>
     );
   }
@@ -423,6 +621,7 @@ export default function CommandWiki() {
         <BookOpen className="h-5 w-5 text-primary" />
         <h2 className="text-lg font-semibold">Wiki</h2>
       </div>
+
 
       {/* Internal Link Resolver — shown above tabs for executive+ */}
       {isExecutivePlus && (
@@ -521,21 +720,21 @@ export default function CommandWiki() {
                   onClick={() => toggleSort("stubText")}
                   data-testid="button-sort-stub-text"
                 >
-                  Topic <SortIcon field="stubText" />
+                  Topic <StubSortIcon field="stubText" />
                 </button>
                 <button
                   className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground justify-end"
                   onClick={() => toggleSort("totalOccurrences")}
                   data-testid="button-sort-occurrences"
                 >
-                  <SortIcon field="totalOccurrences" /> Refs
+                  <StubSortIcon field="totalOccurrences" /> Refs
                 </button>
                 <button
                   className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground justify-end"
                   onClick={() => toggleSort("articleCount")}
                   data-testid="button-sort-article-count"
                 >
-                  <SortIcon field="articleCount" /> Articles
+                  <StubSortIcon field="articleCount" /> Articles
                 </button>
                 <span className="text-xs font-medium text-muted-foreground text-right">Action</span>
               </div>
@@ -572,340 +771,787 @@ export default function CommandWiki() {
         </Card>
       )}
 
-      {/* Tab switcher */}
-      <div className="flex gap-1 border-b">
-        <button
-          className={`px-3 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === "subcategories" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-          onClick={() => setActiveTab("subcategories")}
-          data-testid="tab-subcategories"
-        >
-          Subcategories
-        </button>
-        <button
-          className={`px-3 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${activeTab === "sources" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-          onClick={() => setActiveTab("sources")}
-          data-testid="tab-source-library"
-        >
-          <Library className="h-3.5 w-3.5" />
-          Source Library
-        </button>
-      </div>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+        <TabsList className="grid w-full grid-cols-5 h-auto p-1 bg-muted/50 border mb-4">
+          <TabsTrigger value="freshness" className="py-2 text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <RefreshCw className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Freshness Dashboard</span>
+            <span className="sm:hidden">Freshness</span>
+          </TabsTrigger>
+          <TabsTrigger value="gap-analysis" className="py-2 text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <Search className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Gap Analysis</span>
+            <span className="sm:hidden">Gaps</span>
+          </TabsTrigger>
+          <TabsTrigger value="subcategories" className="py-2 text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <Library className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Subcategories</span>
+            <span className="sm:hidden">Cats</span>
+          </TabsTrigger>
+          <TabsTrigger value="sources" className="py-2 text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <Link2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Source Library</span>
+            <span className="sm:hidden">Sources</span>
+          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="settings" className="py-2 text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Settings2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Settings</span>
+              <span className="sm:hidden">Config</span>
 
-      {/* Subcategories Tab */}
-      {activeTab === "subcategories" && (
-        <Card className="p-5 space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold" data-testid="text-subcategories-heading">
-              Manage Wiki Subcategories
-            </h3>
-            <Button
-              size="sm"
-              onClick={() => setAddDialogOpen(true)}
-              data-testid="button-add-subcategory"
-              className="gap-1.5"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Label className="text-xs text-muted-foreground shrink-0">Filter by category:</Label>
-            <Select value={filterParentId} onValueChange={setFilterParentId}>
-              <SelectTrigger className="h-8 w-48 text-xs" data-testid="select-filter-category">
-                <SelectValue placeholder="All" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                {mainCategories.map((cat) => (
-                  <SelectItem key={cat.id} value={String(cat.id)}>
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
+        {/* Freshness Dashboard */}
+        <TabsContent value="freshness">
+          <Card className="p-5 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold" data-testid="text-freshness-heading">Article Freshness Dashboard</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Articles sorted by how recently they were AI-reviewed. Click Re-wikify to refresh stale content.</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500 inline-block" /> Fresh</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500 inline-block" /> Aging</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500 inline-block" /> Stale</span>
+              </div>
             </div>
-          ) : grouped.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4" data-testid="text-no-subcategories">
-              No subcategories found.
-            </p>
-          ) : (
-            <div className="space-y-5">
-              {grouped.map(({ parent, children }) =>
-                children.length === 0 ? null : (
-                  <div key={parent.id} data-testid={`section-parent-${parent.id}`}>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                      {parent.name}
-                    </p>
-                    <div className="space-y-1">
-                      {children.map((sub) => (
-                        <div
-                          key={sub.id}
-                          className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/50"
-                          data-testid={`row-subcategory-${sub.id}`}
-                        >
-                          <span className="text-sm" data-testid={`text-subcategory-name-${sub.id}`}>
-                            {sub.name}
-                          </span>
-                          <div className="flex items-center gap-1">
+
+            {articlesLoading ? (
+              <div className="space-y-2">
+                {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
+              </div>
+            ) : freshnessArticles.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4" data-testid="text-no-articles">No articles found.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm" data-testid="table-freshness">
+                  <thead>
+                    <tr className="border-b text-xs text-muted-foreground">
+                      <th className="text-left pb-2 font-medium w-4"></th>
+                      <th className="text-left pb-2 font-medium">
+                        <button className="flex items-center gap-1 hover:text-foreground" onClick={() => handleSort("title")} data-testid="sort-title">
+                          Title <SortIcon k="title" />
+                        </button>
+                      </th>
+                      <th className="text-left pb-2 font-medium hidden sm:table-cell">Category</th>
+                      <th className="text-left pb-2 font-medium hidden md:table-cell">
+                        <button className="flex items-center gap-1 hover:text-foreground" onClick={() => handleSort("wordCount")} data-testid="sort-wordcount">
+                          Words <SortIcon k="wordCount" />
+                        </button>
+                      </th>
+                      <th className="text-left pb-2 font-medium">
+                        <button className="flex items-center gap-1 hover:text-foreground" onClick={() => handleSort("freshness")} data-testid="sort-freshness">
+                          Last AI Review <SortIcon k="freshness" />
+                        </button>
+                      </th>
+                      <th className="text-right pb-2 font-medium">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    {sortedFreshness.map((article) => {
+                      const wc = wordCount(article.content);
+                      const isRewikifying = rewikifyingId === article.id;
+                      return (
+                        <tr key={article.id} className="hover:bg-muted/30" data-testid={`row-article-${article.id}`}>
+                          <td className="py-2 pr-2">
+                            <span
+                              className={`h-2 w-2 rounded-full inline-block ${FRESHNESS_DOT[article.freshnessStatus]}`}
+                              title={FRESHNESS_LABEL[article.freshnessStatus]}
+                              data-testid={`dot-freshness-${article.id}`}
+                            />
+                          </td>
+                          <td className="py-2 pr-3 max-w-[200px]">
+                            <span className="truncate block text-xs font-medium" data-testid={`text-article-title-${article.id}`}>
+                              {article.title}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground capitalize">{article.status}</span>
+                          </td>
+                          <td className="py-2 pr-3 hidden sm:table-cell text-xs text-muted-foreground">
+                            {article.category?.name ?? "—"}
+                          </td>
+                          <td className="py-2 pr-3 hidden md:table-cell text-xs text-muted-foreground">
+                            {wc.toLocaleString()}
+                          </td>
+                          <td className="py-2 pr-3 text-xs text-muted-foreground" data-testid={`text-ai-review-${article.id}`}>
+                            {article.daysSinceAiReview !== null
+                              ? `${article.daysSinceAiReview}d ago`
+                              : "Never"}
+                          </td>
+                          <td className="py-2 text-right">
                             <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => openRename(sub)}
-                              data-testid={`button-rename-subcategory-${sub.id}`}
-                              title="Rename"
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs gap-1 px-2"
+                              disabled={isRewikifying || rewikifyingId !== null}
+                              onClick={() => handleRewikify(article.id, article.title)}
+                              data-testid={`button-rewikify-${article.id}`}
                             >
-                              <Pencil className="h-3.5 w-3.5" />
+                              {isRewikifying ? (
+                                <><Loader2 className="h-3 w-3 animate-spin" />Working…</>
+                              ) : (
+                                <><RefreshCw className="h-3 w-3" />Re-wikify</>
+                              )}
                             </Button>
-                            {isExecutivePlus && (
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+
+        {/* Gap Analysis */}
+        <TabsContent value="gap-analysis">
+          <Card className="p-5 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold" data-testid="text-gap-heading">Gap Analysis</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  AI identifies missing topics based on existing articles and SEVCO context. Each topic can be sent directly to Wikify.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => gapAnalysisMutation.mutate()}
+                disabled={gapAnalysisMutation.isPending}
+                className="gap-1.5 shrink-0"
+                data-testid="button-run-gap-analysis"
+              >
+                {gapAnalysisMutation.isPending ? (
+                  <><Loader2 className="h-3.5 w-3.5 animate-spin" />Analyzing…</>
+                ) : (
+                  <><Search className="h-3.5 w-3.5" />Run Analysis</>
+                )}
+              </Button>
+            </div>
+
+            {gapAnalysisMutation.isPending && (
+              <div className="space-y-2">
+                {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
+              </div>
+            )}
+
+            {!gapAnalysisMutation.isPending && !gapResults && (
+              <div className="text-center py-10 text-muted-foreground" data-testid="text-gap-empty">
+                <Wand2 className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Click "Run Analysis" to identify missing wiki topics.</p>
+              </div>
+            )}
+
+            {gapResults && !gapAnalysisMutation.isPending && (
+              <div className="space-y-3" data-testid="gap-results-container">
+                <p className="text-xs text-muted-foreground">
+                  Found <strong>{gapResults.topics.length}</strong> missing topics across {gapResults.existingCount} existing articles.
+                </p>
+                <div className="space-y-2">
+                  {gapResults.topics.map((topic, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start justify-between gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors"
+                      data-testid={`row-gap-topic-${i}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium" data-testid={`text-gap-topic-${i}`}>{topic.topic}</span>
+                          <Badge
+                            variant="secondary"
+                            className={`text-[10px] px-1.5 py-0 h-4 ${PRIORITY_STYLES[topic.priority]}`}
+                            data-testid={`badge-gap-priority-${i}`}
+                          >
+                            {topic.priority}
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4" data-testid={`badge-gap-category-${i}`}>
+                            {topic.category}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5" data-testid={`text-gap-reason-${i}`}>{topic.reason}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs gap-1 px-2 shrink-0"
+                        asChild
+                        data-testid={`button-gap-generate-${i}`}
+                      >
+                        <Link href={`/wikify?prefill=${encodeURIComponent(topic.topic)}`}>
+                          <Wand2 className="h-3 w-3" />
+                          Generate
+                        </Link>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+
+        {/* Source Library */}
+        {canIngest && (
+          <TabsContent value="sources">
+            <div className="space-y-4">
+              {/* URL Ingestion */}
+              <Card className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Link2 className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-semibold">Ingest URL</h3>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Paste any web page URL — the server fetches and extracts readable text, then passes it to Wikify.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="https://example.com/article"
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    className="text-sm"
+                    data-testid="input-ingest-url"
+                  />
+                  <Button
+                    onClick={handleIngestUrl}
+                    disabled={!urlInput.trim() || ingestingUrl}
+                    className="shrink-0 gap-1.5"
+                    data-testid="button-fetch-wikify-url"
+                  >
+                    {ingestingUrl ? (
+                      <><Loader2 className="h-3.5 w-3.5 animate-spin" />Fetching…</>
+                    ) : (
+                      "Fetch & Wikify"
+                    )}
+                  </Button>
+                </div>
+              </Card>
+
+              {/* Academic ID Ingestion */}
+              <Card className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-semibold">Ingest Academic Paper</h3>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Enter a DOI, PubMed ID, or arXiv ID to fetch metadata and abstract.
+                </p>
+                <div className="flex gap-2">
+                  <Select value={academicType} onValueChange={(v) => setAcademicType(v as "doi" | "pubmed" | "arxiv")}>
+                    <SelectTrigger className="w-32 text-sm shrink-0" data-testid="select-academic-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="doi">DOI</SelectItem>
+                      <SelectItem value="pubmed">PubMed</SelectItem>
+                      <SelectItem value="arxiv">arXiv</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder={academicType === "doi" ? "10.1038/s41586-..." : academicType === "pubmed" ? "12345678" : "2301.00001"}
+                    value={academicId}
+                    onChange={(e) => setAcademicId(e.target.value)}
+                    className="text-sm"
+                    data-testid="input-academic-id"
+                  />
+                  <Button
+                    onClick={handleIngestAcademic}
+                    disabled={!academicId.trim() || ingestingAcademic}
+                    className="shrink-0 gap-1.5"
+                    data-testid="button-fetch-wikify-academic"
+                  >
+                    {ingestingAcademic ? (
+                      <><Loader2 className="h-3.5 w-3.5 animate-spin" />Fetching…</>
+                    ) : (
+                      "Fetch & Wikify"
+                    )}
+                  </Button>
+                </div>
+              </Card>
+
+              {/* PDF Ingestion */}
+              <Card className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-semibold">Ingest PDF</h3>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Upload a PDF up to 10 MB — text is extracted and passed to Wikify.
+                </p>
+                <div className="flex gap-2 items-center">
+                  <input
+                    ref={pdfInputRef}
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
+                    className="text-sm flex-1"
+                    data-testid="input-pdf-file"
+                  />
+                  <Button
+                    onClick={handleIngestPdf}
+                    disabled={!pdfFile || ingestingPdf}
+                    className="shrink-0 gap-1.5"
+                    data-testid="button-fetch-wikify-pdf"
+                  >
+                    {ingestingPdf ? (
+                      <><Loader2 className="h-3.5 w-3.5 animate-spin" />Extracting…</>
+                    ) : (
+                      "Extract & Wikify"
+                    )}
+                  </Button>
+                </div>
+                {pdfFile && (
+                  <p className="text-xs text-muted-foreground" data-testid="text-pdf-selected">
+                    Selected: {pdfFile.name} ({(pdfFile.size / 1024 / 1024).toFixed(2)} MB)
+                  </p>
+                )}
+              </Card>
+
+              {/* Past Sources Table */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold" data-testid="text-source-library-heading">
+                    Past Sources
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/tools/wiki/sources"] })}
+                    data-testid="button-refresh-sources"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Refresh
+                  </Button>
+                </div>
+
+                {sourcesLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+                  </div>
+                ) : !sources || sources.length === 0 ? (
+                  <Card className="p-6 text-center">
+                    <p className="text-sm text-muted-foreground" data-testid="text-no-sources">
+                      No sources ingested yet. Use the panels above to get started.
+                    </p>
+                  </Card>
+                ) : (
+                  <Card className="overflow-hidden">
+                    <table className="w-full text-sm" data-testid="table-sources">
+                      <thead>
+                        <tr className="border-b bg-muted/30">
+                          <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Title / Identifier</th>
+                          <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-20">Type</th>
+                          <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-28">Ingested</th>
+                          <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-20">Articles</th>
+                          <th className="px-3 py-2 w-24"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sources.map((source) => (
+                          <tr key={source.id} className="border-b last:border-0 hover:bg-muted/20" data-testid={`row-source-${source.id}`}>
+                            <td className="px-3 py-2">
+                              <p className="font-medium truncate max-w-[260px]" data-testid={`text-source-title-${source.id}`}>
+                                {source.title || source.identifier}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground truncate max-w-[260px]">
+                                {source.identifier}
+                              </p>
+                            </td>
+                            <td className="px-3 py-2">
+                              <Badge variant="secondary" className="text-[10px] uppercase" data-testid={`badge-source-type-${source.id}`}>
+                                {source.type}
+                              </Badge>
+                            </td>
+                            <td className="px-3 py-2 text-xs text-muted-foreground" data-testid={`text-source-date-${source.id}`}>
+                              {formatDate(source.ingestedAt)}
+                            </td>
+                            <td className="px-3 py-2 text-xs" data-testid={`text-source-articles-${source.id}`}>
+                              {source.articleCount}
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="flex items-center gap-1 justify-end">
+                                {source.type !== "pdf" && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    title="Re-ingest"
+                                    onClick={() => handleReIngest(source)}
+                                    disabled={reIngestingId === source.id}
+                                    data-testid={`button-reingest-${source.id}`}
+                                  >
+                                    {reIngestingId === source.id
+                                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                                      : <RotateCcw className="h-3 w-3" />}
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-destructive hover:text-destructive"
+                                  title="Remove"
+                                  onClick={() => setDeleteSourceId(source.id)}
+                                  data-testid={`button-delete-source-${source.id}`}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </Card>
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* URL Ingest */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Label className="text-xs font-medium">Web URL</Label>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="https://..."
+                      value={urlInput}
+                      onChange={(e) => setUrlInput(e.target.value)}
+                      className="h-8 text-xs"
+                      disabled={!canIngest || ingestingUrl}
+                    />
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={handleIngestUrl}
+                      disabled={!canIngest || !urlInput.trim() || ingestingUrl}
+                    >
+                      {ingestingUrl ? <Loader2 className="h-3 w-3 animate-spin" /> : "Fetch"}
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Scrape any public webpage for wiki context.</p>
+                </div>
+
+                {/* Academic Ingest */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Label className="text-xs font-medium">Academic Paper</Label>
+                  </div>
+                  <div className="flex gap-2">
+                    <Select
+                      value={academicType}
+                      onValueChange={(v: any) => setAcademicType(v)}
+                      disabled={!canIngest || ingestingAcademic}
+                    >
+                      <SelectTrigger className="h-8 w-24 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="doi">DOI</SelectItem>
+                        <SelectItem value="pubmed">PubMed</SelectItem>
+                        <SelectItem value="arxiv">arXiv</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      placeholder="ID..."
+                      value={academicId}
+                      onChange={(e) => setAcademicId(e.target.value)}
+                      className="h-8 text-xs"
+                      disabled={!canIngest || ingestingAcademic}
+                    />
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={handleIngestAcademic}
+                      disabled={!canIngest || !academicId.trim() || ingestingAcademic}
+                    >
+                      {ingestingAcademic ? <Loader2 className="h-3 w-3 animate-spin" /> : "Fetch"}
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Import metadata and abstracts via identifier.</p>
+                </div>
+
+                {/* PDF Ingest */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Label className="text-xs font-medium">PDF Upload</Label>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      type="file"
+                      accept=".pdf"
+                      ref={pdfInputRef}
+                      onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                      className="h-8 text-xs flex-1 cursor-pointer"
+                      disabled={!canIngest || ingestingPdf}
+                    />
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={handleIngestPdf}
+                      disabled={!canIngest || !pdfFile || ingestingPdf}
+                    >
+                      {ingestingPdf ? <Loader2 className="h-3 w-3 animate-spin" /> : "Extract"}
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Parse local PDF files for research data.</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold">Source Library</h3>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                  {sources?.length || 0} Documents
+                </span>
+              </div>
+
+              {sourcesLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+                </div>
+              ) : !sources || sources.length === 0 ? (
+                <div className="text-center py-10 border rounded-lg border-dashed">
+                  <Library className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                  <p className="text-sm text-muted-foreground">No sources ingested yet.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-xs text-muted-foreground">
+                        <th className="text-left pb-2 font-medium">Type</th>
+                        <th className="text-left pb-2 font-medium">Title</th>
+                        <th className="text-left pb-2 font-medium">Identifier</th>
+                        <th className="text-left pb-2 font-medium">Articles</th>
+                        <th className="text-left pb-2 font-medium">Date</th>
+                        <th className="text-right pb-2 font-medium">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/50">
+                      {sources.map((source) => (
+                        <tr key={source.id} className="hover:bg-muted/30 group" data-testid={`row-source-${source.id}`}>
+                          <td className="py-3">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 capitalize">
+                              {source.type}
+                            </Badge>
+                          </td>
+                          <td className="py-3 font-medium text-xs max-w-[250px] truncate" title={source.title}>
+                            {source.title}
+                          </td>
+                          <td className="py-3 text-xs text-muted-foreground max-w-[150px] truncate">
+                            {source.identifier}
+                          </td>
+                          <td className="py-3 text-xs text-muted-foreground">
+                            {source.articleCount}
+                          </td>
+                          <td className="py-3 text-xs text-muted-foreground">
+                            {new Date(source.ingestedAt).toLocaleDateString()}
+                          </td>
+                          <td className="py-3 text-right">
+                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => handleReIngest(source)}
+                                disabled={reIngestingId === source.id}
+                                title="Re-ingest"
+                              >
+                                {reIngestingId === source.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <RotateCcw className="h-3 w-3" />
+                                )}
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-destructive hover:text-destructive"
-                                onClick={() => openDelete(sub)}
-                                data-testid={`button-delete-subcategory-${sub.id}`}
-                                title="Delete"
+                                onClick={() => setDeleteSourceId(source.id)}
+                                title="Remove"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-3 w-3" />
                               </Button>
-                            )}
-                          </div>
-                        </div>
+                            </div>
+                          </td>
+                        </tr>
                       ))}
-                    </div>
-                  </div>
-                )
+                    </tbody>
+                  </table>
+                </div>
               )}
-            </div>
-          )}
-        </Card>
-      )}
+            </Card>
+          </div>
+        </TabsContent>
 
-      {/* Source Library Tab */}
-      {activeTab === "sources" && (
-        <div className="space-y-4">
-          {/* URL Ingestion */}
-          <Card className="p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <Link2 className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold">Ingest URL</h3>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Paste any web page URL — the server fetches and extracts readable text, then passes it to Wikify.
-            </p>
-            <div className="flex gap-2">
-              <Input
-                placeholder="https://example.com/article"
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                className="text-sm"
-                data-testid="input-ingest-url"
-              />
-              <Button
-                onClick={handleIngestUrl}
-                disabled={!urlInput.trim() || ingestingUrl}
-                className="shrink-0 gap-1.5"
-                data-testid="button-fetch-wikify-url"
-              >
-                {ingestingUrl ? (
-                  <><Loader2 className="h-3.5 w-3.5 animate-spin" />Fetching…</>
-                ) : (
-                  "Fetch & Wikify"
-                )}
-              </Button>
-            </div>
-          </Card>
-
-          {/* Academic ID Ingestion */}
-          <Card className="p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold">Ingest Academic Paper</h3>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Enter a DOI, PubMed ID, or arXiv ID to fetch metadata and abstract.
-            </p>
-            <div className="flex gap-2">
-              <Select value={academicType} onValueChange={(v) => setAcademicType(v as "doi" | "pubmed" | "arxiv")}>
-                <SelectTrigger className="w-32 text-sm shrink-0" data-testid="select-academic-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="doi">DOI</SelectItem>
-                  <SelectItem value="pubmed">PubMed</SelectItem>
-                  <SelectItem value="arxiv">arXiv</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                placeholder={academicType === "doi" ? "10.1038/s41586-..." : academicType === "pubmed" ? "12345678" : "2301.00001"}
-                value={academicId}
-                onChange={(e) => setAcademicId(e.target.value)}
-                className="text-sm"
-                data-testid="input-academic-id"
-              />
-              <Button
-                onClick={handleIngestAcademic}
-                disabled={!academicId.trim() || ingestingAcademic}
-                className="shrink-0 gap-1.5"
-                data-testid="button-fetch-wikify-academic"
-              >
-                {ingestingAcademic ? (
-                  <><Loader2 className="h-3.5 w-3.5 animate-spin" />Fetching…</>
-                ) : (
-                  "Fetch & Wikify"
-                )}
-              </Button>
-            </div>
-          </Card>
-
-          {/* PDF Ingestion */}
-          <Card className="p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold">Ingest PDF</h3>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Upload a PDF up to 10 MB — text is extracted and passed to Wikify.
-            </p>
-            <div className="flex gap-2 items-center">
-              <input
-                ref={pdfInputRef}
-                type="file"
-                accept="application/pdf,.pdf"
-                onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
-                className="text-sm flex-1"
-                data-testid="input-pdf-file"
-              />
-              <Button
-                onClick={handleIngestPdf}
-                disabled={!pdfFile || ingestingPdf}
-                className="shrink-0 gap-1.5"
-                data-testid="button-fetch-wikify-pdf"
-              >
-                {ingestingPdf ? (
-                  <><Loader2 className="h-3.5 w-3.5 animate-spin" />Extracting…</>
-                ) : (
-                  "Extract & Wikify"
-                )}
-              </Button>
-            </div>
-            {pdfFile && (
-              <p className="text-xs text-muted-foreground" data-testid="text-pdf-selected">
-                Selected: {pdfFile.name} ({(pdfFile.size / 1024 / 1024).toFixed(2)} MB)
-              </p>
-            )}
-          </Card>
-
-          {/* Source Library Table */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold" data-testid="text-source-library-heading">
-                Past Sources
+        {/* Subcategories */}
+        <TabsContent value="subcategories">
+          <Card className="p-5 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold" data-testid="text-subcategories-heading">
+                Manage Wiki Subcategories
               </h3>
               <Button
-                variant="ghost"
                 size="sm"
-                className="h-7 text-xs gap-1"
-                onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/tools/wiki/sources"] })}
-                data-testid="button-refresh-sources"
+                onClick={() => setAddDialogOpen(true)}
+                data-testid="button-add-subcategory"
+                className="gap-1.5"
               >
-                <RefreshCw className="h-3 w-3" />
-                Refresh
+                <Plus className="h-3.5 w-3.5" />
+                Add
               </Button>
             </div>
 
-            {sourcesLoading ? (
-              <div className="space-y-2">
-                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground shrink-0">Filter by category:</Label>
+              <Select value={filterParentId} onValueChange={setFilterParentId}>
+                <SelectTrigger className="h-8 w-48 text-xs" data-testid="select-filter-category">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  {mainCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={String(cat.id)}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
               </div>
-            ) : !sources || sources.length === 0 ? (
-              <Card className="p-6 text-center">
-                <p className="text-sm text-muted-foreground" data-testid="text-no-sources">
-                  No sources ingested yet. Use the panels above to get started.
-                </p>
-              </Card>
+            ) : grouped.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4" data-testid="text-no-subcategories">
+                No subcategories found.
+              </p>
             ) : (
-              <Card className="overflow-hidden">
-                <table className="w-full text-sm" data-testid="table-sources">
-                  <thead>
-                    <tr className="border-b bg-muted/30">
-                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Title / Identifier</th>
-                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-20">Type</th>
-                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-28">Ingested</th>
-                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-20">Articles</th>
-                      <th className="px-3 py-2 w-24"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sources.map((source) => (
-                      <tr key={source.id} className="border-b last:border-0 hover:bg-muted/20" data-testid={`row-source-${source.id}`}>
-                        <td className="px-3 py-2">
-                          <p className="font-medium truncate max-w-[260px]" data-testid={`text-source-title-${source.id}`}>
-                            {source.title || source.identifier}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground truncate max-w-[260px]">
-                            {source.identifier}
-                          </p>
-                        </td>
-                        <td className="px-3 py-2">
-                          <Badge variant="secondary" className="text-[10px] uppercase" data-testid={`badge-source-type-${source.id}`}>
-                            {source.type}
-                          </Badge>
-                        </td>
-                        <td className="px-3 py-2 text-xs text-muted-foreground" data-testid={`text-source-date-${source.id}`}>
-                          {formatDate(source.ingestedAt)}
-                        </td>
-                        <td className="px-3 py-2 text-xs" data-testid={`text-source-articles-${source.id}`}>
-                          {source.articleCount}
-                        </td>
-                        <td className="px-3 py-2">
-                          <div className="flex items-center gap-1 justify-end">
-                            {source.type !== "pdf" && (
+              <div className="space-y-5">
+                {grouped.map(({ parent, children }) =>
+                  children.length === 0 ? null : (
+                    <div key={parent.id} data-testid={`section-parent-${parent.id}`}>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                        {parent.name}
+                      </p>
+                      <div className="space-y-1">
+                        {children.map((sub) => (
+                          <div
+                            key={sub.id}
+                            className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/50"
+                            data-testid={`row-subcategory-${sub.id}`}
+                          >
+                            <span className="text-sm" data-testid={`text-subcategory-name-${sub.id}`}>
+                              {sub.name}
+                            </span>
+                            <div className="flex items-center gap-1">
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-6 w-6"
-                                title="Re-ingest"
-                                onClick={() => handleReIngest(source)}
-                                disabled={reIngestingId === source.id}
-                                data-testid={`button-reingest-${source.id}`}
+                                className="h-7 w-7"
+                                onClick={() => openRename(sub)}
+                                data-testid={`button-rename-subcategory-${sub.id}`}
+                                title="Rename"
                               >
-                                {reIngestingId === source.id
-                                  ? <Loader2 className="h-3 w-3 animate-spin" />
-                                  : <RotateCcw className="h-3 w-3" />}
+                                <Pencil className="h-3.5 w-3.5" />
                               </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-destructive hover:text-destructive"
-                              title="Remove"
-                              onClick={() => setDeleteSourceId(source.id)}
-                              data-testid={`button-delete-source-${source.id}`}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                              {isExecutivePlus && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive hover:text-destructive"
+                                  onClick={() => openDelete(sub)}
+                                  data-testid={`button-delete-subcategory-${sub.id}`}
+                                  title="Delete"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
             )}
-          </div>
-        </div>
-      )}
+          </Card>
+        </TabsContent>
 
-      {/* Add Subcategory Dialog */}
+        {/* Settings (Admin only) */}
+        {isAdmin && (
+          <TabsContent value="settings">
+            <Card className="p-5 space-y-5">
+              <div className="flex items-center gap-2">
+                <Settings2 className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold" data-testid="text-wiki-settings-heading">Wiki Settings</h3>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-4 p-4 rounded-lg border">
+                  <div className="flex-1">
+                    <Label className="text-sm font-medium" htmlFor="toggle-auto-publish">
+                      Auto-publish strong-confidence articles
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      When enabled, Wikify-generated and re-wikified articles scored "strong" are automatically published.
+                      "Good" confidence articles become drafts. "Review" articles go to the review queue.
+                    </p>
+                    <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3 text-green-600" />
+                        Strong → Published
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3 text-amber-500" />
+                        Good → Draft
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3 text-red-500" />
+                        Review → Queue
+                      </span>
+                    </div>
+                  </div>
+                  <Switch
+                    id="toggle-auto-publish"
+                    checked={autoPublishStrong}
+                    onCheckedChange={(checked) => autoPublishMutation.mutate(checked)}
+                    disabled={autoPublishMutation.isPending}
+                    data-testid="toggle-auto-publish"
+                  />
+                </div>
+              </div>
+            </Card>
+          </TabsContent>
+        )}
+      </Tabs>
+
+      {/* Dialogs */}
+      <AlertDialog open={deleteSourceId !== null} onOpenChange={(open) => !open && setDeleteSourceId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Source</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove this source? This will not delete any articles created from it, but the citation link will be broken.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteSourceId && deleteSourceMutation.mutate(deleteSourceId)}
+              disabled={deleteSourceMutation.isPending}
+            >
+              {deleteSourceMutation.isPending ? "Removing..." : "Remove"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
         <DialogContent data-testid="dialog-add-subcategory">
           <DialogHeader>

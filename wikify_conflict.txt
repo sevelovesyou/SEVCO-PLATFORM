@@ -1,0 +1,188 @@
+      }
+    }
+  );
+
+  app.post(
+<<<<<<< HEAD
+    "/api/tools/wiki/ingest-pdf",
+    requireAuth,
+    requireRole(...CAN_CREATE_ARTICLE),
+    upload.single("file"),
+    async (req: Request, res: Response) => {
+      if (!req.file) {
+        return res.status(400).json({ message: "No PDF file uploaded" });
+      }
+
+      if (req.file.mimetype !== "application/pdf" && !req.file.originalname.toLowerCase().endsWith(".pdf")) {
+        return res.status(400).json({ message: "Only PDF files are accepted" });
+      }
+
+      try {
+        const { PDFParse } = await import("pdf-parse");
+        const parser = new PDFParse({ data: req.file.buffer });
+        const result: PdfParseTextResult = await parser.getText();
+        const rawText = result.text?.trim() ?? "";
+
+        if (!rawText) {
+          return res.status(422).json({ message: "Could not extract text from this PDF" });
+        }
+
+        const LIMIT = 15000;
+        const text = rawText.length > LIMIT
+          ? rawText.slice(0, LIMIT) + "\n\n[Content truncated — PDF exceeded 15,000 character limit]"
+          : rawText;
+
+        const title = req.file.originalname.replace(/\.pdf$/i, "");
+
+        const source = await storage.createWikiSource({
+          type: "pdf",
+          identifier: req.file.originalname,
+          title,
+          articleCount: 0,
+        });
+
+        return res.json({
+          text,
+          title,
+          sourceId: source.id,
+          citation: `${title} [PDF document]`,
+          citationFormat: "URL",
+        });
+      } catch (err: unknown) {
+        console.error("[ingest-pdf] Error:", err);
+        return res.status(500).json({ message: "Failed to parse PDF" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/tools/wiki/sources",
+    requireAuth,
+    requireRole(...CAN_CREATE_ARTICLE),
+    async (_req: Request, res: Response) => {
+      try {
+        const sources = await storage.getWikiSources();
+        return res.json(sources);
+      } catch (err) {
+        console.error("[wiki-sources] Error:", err);
+        return res.status(500).json({ message: "Failed to fetch sources" });
+      }
+    }
+  );
+
+  app.patch(
+    "/api/tools/wiki/sources/:id/increment",
+    requireAuth,
+    requireRole(...CAN_CREATE_ARTICLE),
+    async (req: Request, res: Response) => {
+      const id = parseInt(req.params.id, 10);
+      const { count } = req.body as { count?: number };
+      if (isNaN(id) || typeof count !== "number" || count < 1) {
+        return res.status(400).json({ message: "Invalid request" });
+      }
+      try {
+        await storage.incrementWikiSourceArticleCount(id, count);
+        return res.json({ ok: true });
+      } catch (err) {
+        console.error("[wiki-sources-increment] Error:", err);
+        return res.status(500).json({ message: "Failed to increment source article count" });
+      }
+    }
+  );
+
+  app.delete(
+    "/api/tools/wiki/sources/:id",
+    requireAuth,
+    requireRole(...CAN_CREATE_ARTICLE),
+    async (req: Request, res: Response) => {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      try {
+        await storage.deleteWikiSource(id);
+        return res.json({ ok: true });
+      } catch (err) {
+        console.error("[wiki-sources-delete] Error:", err);
+        return res.status(500).json({ message: "Failed to delete source" });
+=======
+    "/api/tools/wiki/rewikify/:articleId",
+    requireAuth,
+    requireRole(...CAN_CREATE_ARTICLE),
+    async (req: Request, res: Response) => {
+      const articleId = parseInt(req.params.articleId, 10);
+      if (isNaN(articleId)) {
+        return res.status(400).json({ message: "Invalid article ID" });
+      }
+
+      const config = getApiConfig();
+      if (!config) {
+        return res.status(503).json({ message: "AI service not configured." });
+      }
+
+      try {
+        const article = await storage.getArticleById(articleId);
+        if (!article) {
+          return res.status(404).json({ message: "Article not found" });
+        }
+
+        const prompt = buildRewikifyPrompt(article.title, article.content);
+
+        const data = await callAi(config, [
+          { role: "system", content: "You are a technical wiki editor. Respond ONLY with valid JSON. No markdown fences." },
+          { role: "user", content: prompt },
+        ], 6000);
+
+        if (data.usage) {
+          console.log(`[wiki/rewikify/${articleId}] tokens: prompt=${data.usage.prompt_tokens} completion=${data.usage.completion_tokens} total=${data.usage.total_tokens}`);
+        }
+
+        const raw = data?.choices?.[0]?.message?.content?.trim() ?? "";
+        const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+
+        let result: { content?: unknown; confidence?: unknown };
+        try {
+          result = JSON.parse(cleaned) as { content?: unknown; confidence?: unknown };
+        } catch {
+          return res.status(502).json({ message: "AI returned malformed JSON", raw: raw.slice(0, 500) });
+        }
+
+        const newContent = normalizeString(result.content);
+        const confidence = normalizeConfidence(result.confidence);
+
+        if (!newContent) {
+          return res.status(502).json({ message: "AI returned empty content" });
+        }
+
+        const settings = await storage.getPlatformSettings();
+        const autoPublishStrong = settings["wiki.autoPublishStrongConfidence"] === "true";
+        const authorName = req.user?.username ?? "AI Re-wikify";
+
+        const now = new Date();
+
+        if (confidence === "strong" && autoPublishStrong) {
+          await storage.updateArticle(articleId, {
+            content: newContent,
+            status: "published",
+            lastAiReviewedAt: now,
+          });
+          return res.json({ confidence, action: "published", message: "Article auto-published (strong confidence)" });
+        } else {
+          await storage.createRevision({
+            articleId,
+            content: newContent,
+            authorName,
+            editSummary: `Re-wikified by AI (${confidence} confidence)`,
+            status: "pending",
+          });
+          await storage.updateArticle(articleId, {
+            lastAiReviewedAt: now,
+          });
+          return res.json({ confidence, action: "revision", message: `Revision created (${confidence} confidence) — pending review` });
+        }
+      } catch (err: unknown) {
+        console.error("[wiki/rewikify] Error:", err);
+        return res.status(500).json({ message: "Internal server error" });
+>>>>>>> 017c76f (Task #316: Wiki Lifecycle Management (Gap Analysis + Freshness + Re-wikify))
+      }
+    }
+  );
+}

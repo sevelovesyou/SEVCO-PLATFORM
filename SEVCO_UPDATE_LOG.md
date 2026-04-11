@@ -24567,3 +24567,39 @@ this correctly targets the 100,000-spark Surge pack. No change needed.
 
 ---
 
+## Task — fix-posts-repost-of-column
+> Merged: 2026-04-11
+
+# Fix "Failed to post" — missing repost_of column in production
+
+## Root Cause
+Production DB error on POST /api/posts:
+  `column "repost_of" of relation "posts" does not exist`
+
+The `posts` table in the production database is missing the `repost_of`
+column. The Drizzle schema defines it (`repostOf: integer("repost_of")`)
+but no migration was ever applied to production to add it.
+
+Drizzle includes all schema columns in INSERT statements, so every attempt
+to create a post fails with a 500.
+
+## Fix
+Add an idempotent `ADD COLUMN IF NOT EXISTS` statement to
+`runStartupMigrations()` in `server/index.ts`, following the existing
+pattern for startup-time schema fixes:
+
+```sql
+ALTER TABLE posts
+  ADD COLUMN IF NOT EXISTS repost_of integer
+  REFERENCES posts(id) ON DELETE CASCADE;
+```
+
+This runs at startup on both dev and production, is a no-op if the column
+already exists, and unblocks post creation immediately.
+
+## Files
+- `server/index.ts` — add to `runStartupMigrations()`
+
+
+---
+

@@ -2,6 +2,18 @@ import Stripe from 'stripe';
 
 let connectionSettings: any;
 
+async function fetchConnection(hostname: string, token: string, env: string) {
+  const url = new URL(`https://${hostname}/api/v2/connection`);
+  url.searchParams.set('include_secrets', 'true');
+  url.searchParams.set('connector_names', 'stripe');
+  url.searchParams.set('environment', env);
+  const response = await fetch(url.toString(), {
+    headers: { 'Accept': 'application/json', 'X-Replit-Token': token },
+  });
+  const data = await response.json();
+  return data.items?.[0];
+}
+
 async function getCredentials() {
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
@@ -14,29 +26,21 @@ async function getCredentials() {
     throw new Error('X-Replit-Token not found for repl/depl');
   }
 
-  const connectorName = 'stripe';
   const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
-  const targetEnvironment = isProduction ? 'production' : 'development';
+  const primaryEnv = isProduction ? 'production' : 'development';
+  const fallbackEnv = isProduction ? 'development' : 'production';
 
-  const url = new URL(`https://${hostname}/api/v2/connection`);
-  url.searchParams.set('include_secrets', 'true');
-  url.searchParams.set('connector_names', connectorName);
-  url.searchParams.set('environment', targetEnvironment);
+  let conn = await fetchConnection(hostname!, xReplitToken, primaryEnv);
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      'Accept': 'application/json',
-      'X-Replit-Token': xReplitToken,
-    },
-  });
-
-  const data = await response.json();
-  connectionSettings = data.items?.[0];
-
-  if (!connectionSettings || (!connectionSettings.settings.publishable || !connectionSettings.settings.secret)) {
-    throw new Error(`Stripe ${targetEnvironment} connection not found`);
+  if (!conn || !conn.settings?.secret) {
+    conn = await fetchConnection(hostname!, xReplitToken, fallbackEnv);
   }
 
+  if (!conn || !conn.settings?.publishable || !conn.settings?.secret) {
+    throw new Error('Stripe connection not found (tried both production and development)');
+  }
+
+  connectionSettings = conn;
   return {
     publishableKey: connectionSettings.settings.publishable,
     secretKey: connectionSettings.settings.secret,

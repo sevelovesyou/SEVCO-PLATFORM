@@ -8969,7 +8969,7 @@ export async function registerRoutes(
 
   app.get("/api/sparks/admin/packs", requireAuth, requireRole("admin"), async (_req, res) => {
     try {
-      const packs = await storage.listSparkPacks(false);
+      const packs = await storage.listSparkPacks(true);
       res.json(packs);
     } catch (err: any) {
       res.status(500).json({ message: err.message });

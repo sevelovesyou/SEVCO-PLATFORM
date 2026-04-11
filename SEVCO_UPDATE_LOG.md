@@ -25244,3 +25244,211 @@ immediately below the platform header rather than covering it.
 
 ---
 
+## Task — fix-canvas-outside-tldraw-layout
+> Merged: 2026-04-11
+
+# Fix Canvas: Move SEVCO top bar outside tldraw, proper layout
+
+## Root cause (v4.5.8 behavior confirmed)
+
+We are on `@tldraw/tldraw: ^4.5.8`. The v4.1.2 release moved `InFrontOfTheCanvas`
+back outside the `.tl-canvas` element. Putting our SEVCO bar in `InFrontOfTheCanvas`
+means it is still inside tldraw's container with tldraw-managed CSS, making
+pointer-events containment unreliable and causing tldraw's own toolbar/style panel
+to disappear.
+
+## Solution: SEVCO bar OUTSIDE tldraw — flex column layout
+
+Restructure `CanvasPage` to a flex column:
+
+```
+┌─────────────────────────────────────────┐ ← fixed, top: 3rem (below platform header)
+│ SEVCO CanvasTopBar (44px, our React)    │
+├─────────────────────────────────────────┤
+│                                         │
+│   <Tldraw />  — flex:1, 100% height     │
+│   (native toolbar, style panel work)   │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+This completely eliminates `InFrontOfTheCanvas` and all pointer-events issues.
+tldraw gets its own clean container below our bar.
+
+---
+
+## Detailed changes — `client/src/pages/canvas-page.tsx`
+
+### 1. Remove `useEditor()` from `CanvasTopBar`
+
+`CanvasTopBar` currently calls `useEditor()` (must be called inside tldraw tree).
+Replace it: add `onExportPng`, `onExportSvg`, `onExportJson` props and remove the
+`useEditor()` call entirely.
+
+```diff
+function CanvasTopBar({
+  projectName,
+  isSaving,
+  onNew,
+  onSave,
+  onLoad,
+  onRename,
+  onAiGenerate,
+  onImageUpload,
++  onExportPng,
++  onExportSvg,
++  onExportJson,
+}: {
+  ...
++  onExportPng: () => void;
++  onExportSvg: () => void;
++  onExportJson: () => void;
+}) {
+-  const editor = useEditor();   // REMOVE this line
+  ...
+```
+
+Replace the three export handler functions inside `CanvasTopBar`:
+- `handleExportPng` → call `onExportPng()`
+- `handleExportSvg` → call `onExportSvg()`  
+- `handleExportJson` → call `onExportJson()`
+
+### 2. Move export handlers to `CanvasPage` using `editorRef`
+
+In `CanvasPage`, add three callbacks that use `editorRef.current`:
+
+```tsx
+const handleExportPng = useCallback(async () => {
+  const editor = editorRef.current;
+  if (!editor) return;
+  try {
+    const shapeIds = Array.from(editor.getCurrentPageShapeIds());
+    if (shapeIds.length === 0) return;
+    const { exportAs } = await import("@tldraw/tldraw");
+    await exportAs(editor, shapeIds, "png", currentProjectName);
+  } catch (err) {
+    console.error("Export PNG failed:", err);
+  }
+}, [currentProjectName]);
+
+const handleExportSvg = useCallback(async () => {
+  const editor = editorRef.current;
+  if (!editor) return;
+  try {
+    const shapeIds = Array.from(editor.getCurrentPageShapeIds());
+    if (shapeIds.length === 0) return;
+    const { exportAs } = await import("@tldraw/tldraw");
+    await exportAs(editor, shapeIds, "svg", currentProjectName);
+  } catch (err) {
+    console.error("Export SVG failed:", err);
+  }
+}, [currentProjectName]);
+
+const handleExportJson = useCallback(() => {
+  const editor = editorRef.current;
+  if (!editor) return;
+  const snapshot = editor.store.getStoreSnapshot();
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${currentProjectName}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}, [currentProjectName]);
+```
+
+### 3. Remove `InFrontOfTheCanvas` entirely
+
+Delete:
+- `CanvasBarContext` and its `createContext` declaration
+- `CanvasBarOverlay` component
+- `CANVAS_COMPONENTS` object
+- The `useContext(CanvasBarContext)` usage
+- The `<CanvasBarContext.Provider>` wrapper in the JSX
+
+Delete these imports from tldraw: (if `useEditor` is only used in CanvasTopBar, remove it from the tldraw import too)
+
+### 4. New JSX structure in `CanvasPage` return
+
+Replace the current return with a flex column layout:
+
+```tsx
+return (
+  <div
+    className="fixed left-0 right-0 bottom-0 flex flex-col"
+    style={{ top: "3rem", background: "#0d0d0f" }}
+    data-color-scheme="dark"
+  >
+    {/* SEVCO top bar — outside tldraw, no pointer-events issues */}
+    <CanvasTopBar
+      projectName={currentProjectName}
+      isSaving={isSaving}
+      onNew={handleNew}
+      onSave={() => doSave(true)}
+      onLoad={() => setLoadOpen(true)}
+      onRename={handleRename}
+      onAiGenerate={handleAiGenerate}
+      onImageUpload={handleImageUpload}
+      onExportPng={handleExportPng}
+      onExportSvg={handleExportSvg}
+      onExportJson={handleExportJson}
+    />
+
+    {/* tldraw fills remaining height — no overlay, full native UI */}
+    <div className="flex-1 relative">
+      <Tldraw
+        persistenceKey={persistenceKey.current}
+        shapeUtils={CUSTOM_SHAPE_UTILS}
+        onMount={handleMount}
+        autoFocus
+      />
+    </div>
+
+    <LoadProjectDialog
+      open={loadOpen}
+      onClose={() => setLoadOpen(false)}
+      onLoad={handleLoadProject}
+      onDelete={(id) => deleteMutation.mutate(id)}
+    />
+  </div>
+);
+```
+
+Note: No `components={CANVAS_COMPONENTS}` on `<Tldraw>` anymore. No `CanvasBarContext.Provider`.
+
+### 5. Update `CanvasTopBar` to remove `absolute top-0` positioning
+
+The top bar was `position: absolute; top: 0` because it was inside an overlay.
+Now it's in normal flow (first child of the flex column), so it should be:
+
+```tsx
+<div
+  className="flex items-center gap-2 px-3 border-b flex-shrink-0"
+  style={{
+    height: "44px",
+    background: "#0d0d0f",
+    borderColor: "#1e1e24",
+  }}
+>
+```
+
+Remove `absolute top-0 left-0 right-0` and `z-[300]` — no longer needed.
+
+---
+
+## Expected result
+
+- Platform header visible at top (canvas starts at `3rem`)
+- SEVCO bar visible immediately below platform header (44px)
+- tldraw canvas fills remaining space
+- tldraw's native toolbar, style panel, menus all work perfectly (no overlay blocking)
+- All SEVCO bar buttons (New/Save/Load/Export/AI Generate) remain functional
+
+## Files
+
+- `client/src/pages/canvas-page.tsx` — primary changes
+
+
+---
+

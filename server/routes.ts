@@ -84,6 +84,93 @@ function extractKeywords(text: string): string[] {
     .map(([word]) => word);
 }
 
+async function generateSemanticLinks(articleId: number): Promise<void> {
+  try {
+    const config = getApiConfig();
+    if (!config) return;
+
+    const allArticles = await storage.getArticles();
+    const sourceArticle = allArticles.find((a) => a.id === articleId);
+    if (!sourceArticle) return;
+
+    const otherArticles = allArticles.filter((a) => a.id !== articleId && a.status === "published");
+    if (otherArticles.length === 0) return;
+
+    const contentSnippet = (sourceArticle.content || "").slice(0, 1500);
+    const articleListText = otherArticles
+      .map((a) => `- id:${a.id} | "${a.title}"`)
+      .join("\n");
+
+    const prompt = `You are a wiki editor assistant. Given the source article below, identify the 5-8 most semantically relevant other articles to cross-link from it.
+
+SOURCE ARTICLE:
+Title: ${sourceArticle.title}
+Summary: ${sourceArticle.summary || "(none)"}
+Content excerpt: ${contentSnippet}
+
+OTHER PUBLISHED ARTICLES (id | title):
+${articleListText}
+
+Respond ONLY with a JSON array (no markdown fences) of objects. Each object must have:
+- "targetArticleId": number (the id from the list above)
+- "suggestedAnchorText": string (2-5 word phrase from the source article content that would serve as the link anchor)
+- "suggestedContext": string (the sentence or phrase from the source content where the link would appear, max 150 chars)
+
+Example: [{"targetArticleId": 42, "suggestedAnchorText": "music streaming platform", "suggestedContext": "The music streaming platform supports multiple formats."}]
+
+Return an empty array [] if no strong semantic connections exist. Do not include articles that are already obviously linked or barely related.`;
+
+    const startTime = Date.now();
+    const res = await fetch(config.apiUrl, {
+      method: "POST",
+      headers: config.headers,
+      body: JSON.stringify({
+        model: config.modelName,
+        messages: [
+          { role: "system", content: "You are a wiki editor assistant. Respond ONLY with valid JSON." },
+          { role: "user", content: prompt },
+        ],
+        max_tokens: 800,
+        temperature: 0.2,
+      }),
+    });
+
+    if (!res.ok) return;
+
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { total_tokens?: number } };
+    const rawContent = data?.choices?.[0]?.message?.content?.trim() ?? "";
+    const tokenUsage = data?.usage?.total_tokens ?? 0;
+    const elapsed = Date.now() - startTime;
+
+    console.log(`[wiki-relink] article=${articleId} tokens=${tokenUsage} ms=${elapsed}`);
+
+    let parsed: Array<{ targetArticleId: number; suggestedAnchorText: string; suggestedContext: string }> = [];
+    try {
+      const cleaned = rawContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      parsed = JSON.parse(cleaned);
+      if (!Array.isArray(parsed)) parsed = [];
+    } catch {
+      return;
+    }
+
+    const validTargetIds = new Set(otherArticles.map((a) => a.id));
+    const suggestions = parsed
+      .filter((s) => s && typeof s.targetArticleId === "number" && validTargetIds.has(s.targetArticleId))
+      .slice(0, 8)
+      .map((s) => ({
+        sourceArticleId: articleId,
+        targetArticleId: s.targetArticleId,
+        suggestedAnchorText: String(s.suggestedAnchorText || "").slice(0, 120),
+        suggestedContext: String(s.suggestedContext || "").slice(0, 200),
+        status: "pending" as const,
+      }));
+
+    await storage.upsertWikiLinkSuggestions(articleId, suggestions);
+  } catch (err) {
+    console.error("[wiki-relink] error:", err);
+  }
+}
+
 async function generateCrosslinks(articleId: number) {
   const allArticles = await storage.getArticles();
   const sourceArticle = allArticles.find((a) => a.id === articleId);
@@ -2019,6 +2106,7 @@ export async function registerRoutes(
 
       await generateCrosslinks(article.id);
       resolveArticleLinks(article.id).catch((e) => console.error("[link-resolver] POST error:", e));
+      generateSemanticLinks(article.id).catch(() => {});
 
       const category = article.categoryId
         ? (await storage.getCategories()).find((c) => c.id === article.categoryId) || null
@@ -2148,6 +2236,7 @@ export async function registerRoutes(
       const updatedCategory = updatedArticle.categoryId
         ? (await storage.getCategories()).find((c) => c.id === updatedArticle.categoryId) || null
         : null;
+      generateSemanticLinks(updatedArticle.id).catch(() => {});
       res.json({ ...updatedArticle, category: updatedCategory ? { name: updatedCategory.name, slug: updatedCategory.slug } : null });
     } catch (err: any) {
       res.status(400).json({ message: err.message });
@@ -4572,6 +4661,91 @@ export async function registerRoutes(
     }
   });
   registerLensProxy(app);
+
+  // ── Wiki Semantic Re-linking Routes (Task #318) ─────────────────────────────
+
+  app.get("/api/tools/wiki/link-suggestions/:articleId", requireAuth, requireRole(...CAN_CREATE_ARTICLE), async (req, res) => {
+    try {
+      const articleId = parseInt(req.params.articleId as string);
+      if (isNaN(articleId)) return res.status(400).json({ message: "Invalid article id" });
+      const suggestions = await storage.getWikiLinkSuggestions(articleId, "pending");
+      const allArticles = await storage.getArticles();
+      const enriched = suggestions.map((s) => {
+        const targetArticle = allArticles.find((a) => a.id === s.targetArticleId);
+        return { ...s, targetArticle: targetArticle ? { id: targetArticle.id, title: targetArticle.title, slug: targetArticle.slug, categoryId: targetArticle.categoryId } : null };
+      });
+      res.json(enriched);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/tools/wiki/suggest-links/:articleId", requireAuth, requireRole(...CAN_CREATE_ARTICLE), async (req, res) => {
+    try {
+      const articleId = parseInt(req.params.articleId as string);
+      if (isNaN(articleId)) return res.status(400).json({ message: "Invalid article id" });
+      generateSemanticLinks(articleId).catch(() => {});
+      res.json({ message: "Link suggestion pass triggered" });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/tools/wiki/link-suggestions/:id", requireAuth, requireRole(...CAN_CREATE_ARTICLE), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid suggestion id" });
+      const { action } = req.body as { action: "accept" | "dismiss" };
+      if (action !== "accept" && action !== "dismiss") {
+        return res.status(400).json({ message: "action must be 'accept' or 'dismiss'" });
+      }
+
+      if (action === "dismiss") {
+        const updated = await storage.updateWikiLinkSuggestionStatus(id, "dismissed");
+        return res.json(updated);
+      }
+
+      const { db: dbInstance } = await import("./db");
+      const { wikiLinkSuggestions: wlsTable } = await import("@shared/schema");
+      const { eq: eqFn } = await import("drizzle-orm");
+      const [suggestion] = await dbInstance.select().from(wlsTable).where(eqFn(wlsTable.id, id)).limit(1);
+
+      if (!suggestion) return res.status(404).json({ message: "Suggestion not found" });
+
+      const sourceArticle = await storage.getArticleById(suggestion.sourceArticleId);
+      const allArticles = await storage.getArticles();
+      const targetArticle = allArticles.find((a) => a.id === suggestion.targetArticleId);
+
+      if (!sourceArticle || !targetArticle) {
+        return res.status(404).json({ message: "Source or target article not found" });
+      }
+
+      const anchorText = suggestion.suggestedAnchorText;
+      const markdownLink = `[${anchorText}](/wiki/${targetArticle.slug})`;
+      let updatedContent = sourceArticle.content;
+
+      const anchorIndex = updatedContent.indexOf(anchorText);
+      if (anchorIndex !== -1) {
+        updatedContent = updatedContent.slice(0, anchorIndex) + markdownLink + updatedContent.slice(anchorIndex + anchorText.length);
+      } else {
+        updatedContent = updatedContent + `\n\nSee also: ${markdownLink}`;
+      }
+
+      await storage.updateArticle(sourceArticle.id, { content: updatedContent });
+
+      await storage.createCrosslink({
+        sourceArticleId: sourceArticle.id,
+        targetArticleId: targetArticle.id,
+        relevanceScore: 0.8,
+        sharedKeywords: [],
+      });
+
+      const updated = await storage.updateWikiLinkSuggestionStatus(id, "accepted");
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
   app.use("/api/freeball", freeballRouter);
   app.use("/api/sites", sitesRouter);
   app.use("/api/canvas", canvasRouter);

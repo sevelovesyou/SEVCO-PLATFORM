@@ -88,6 +88,9 @@ import {
   wikiSources,
   type WikiSource,
   type InsertWikiSource,
+  wikiLinkSuggestions,
+  type WikiLinkSuggestion,
+  type InsertWikiLinkSuggestion,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, and, sql, ilike, or, inArray, gte, lte, count as countFn, type SQL } from "drizzle-orm";
@@ -505,6 +508,10 @@ export interface IStorage {
   createWikiSource(data: import("@shared/schema").InsertWikiSource): Promise<import("@shared/schema").WikiSource>;
   incrementWikiSourceArticleCount(id: number, count: number): Promise<void>;
   deleteWikiSource(id: number): Promise<void>;
+
+  getWikiLinkSuggestions(sourceArticleId: number, status?: string): Promise<import("@shared/schema").WikiLinkSuggestion[]>;
+  upsertWikiLinkSuggestions(sourceArticleId: number, suggestions: import("@shared/schema").InsertWikiLinkSuggestion[]): Promise<void>;
+  updateWikiLinkSuggestionStatus(id: number, status: string): Promise<import("@shared/schema").WikiLinkSuggestion>;
 }
 
 export type SearchResultItem = {
@@ -3503,6 +3510,33 @@ export class DatabaseStorage implements IStorage {
 
   async deleteWikiSource(id: number): Promise<void> {
     await db.delete(wikiSources).where(eq(wikiSources.id, id));
+  }
+
+  async getWikiLinkSuggestions(sourceArticleId: number, status?: string): Promise<WikiLinkSuggestion[]> {
+    if (status) {
+      return db.select().from(wikiLinkSuggestions)
+        .where(and(eq(wikiLinkSuggestions.sourceArticleId, sourceArticleId), eq(wikiLinkSuggestions.status, status)))
+        .orderBy(desc(wikiLinkSuggestions.createdAt));
+    }
+    return db.select().from(wikiLinkSuggestions)
+      .where(eq(wikiLinkSuggestions.sourceArticleId, sourceArticleId))
+      .orderBy(desc(wikiLinkSuggestions.createdAt));
+  }
+
+  async upsertWikiLinkSuggestions(sourceArticleId: number, suggestions: InsertWikiLinkSuggestion[]): Promise<void> {
+    await db.delete(wikiLinkSuggestions)
+      .where(and(eq(wikiLinkSuggestions.sourceArticleId, sourceArticleId), eq(wikiLinkSuggestions.status, "pending")));
+    if (suggestions.length > 0) {
+      await db.insert(wikiLinkSuggestions).values(suggestions);
+    }
+  }
+
+  async updateWikiLinkSuggestionStatus(id: number, status: string): Promise<WikiLinkSuggestion> {
+    const [updated] = await db.update(wikiLinkSuggestions)
+      .set({ status })
+      .where(eq(wikiLinkSuggestions.id, id))
+      .returning();
+    return updated;
   }
 }
 

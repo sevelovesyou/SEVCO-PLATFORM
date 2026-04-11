@@ -24352,3 +24352,46 @@ AI-generated wiki articles contain `[See: Topic Name]` placeholder links that ar
 
 ---
 
+## Task — task-318
+> Merged: 2026-04-11
+
+---
+title: Wiki Semantic Re-linking Pass
+---
+# Wiki Semantic Re-linking Pass
+
+## What & Why
+After any article is saved or published, run a lightweight LLM pass that reads the article and suggests new cross-links to other wiki articles based on semantic relevance — not just keyword overlap. Suggestions appear as a non-blocking panel in the article editor for one-click acceptance. This continuously deepens the wiki's internal link graph as content grows, improving both SEO and reader navigation.
+
+## Done looks like
+- After an article is saved (via POST or PATCH), the server triggers an async re-linking pass for that article (non-blocking — the save response returns immediately)
+- The pass sends the article's title + summary + first 1500 chars to the LLM with the full list of existing article titles, asks for the top 5–8 most semantically relevant articles to link from this one, and stores the suggestions in a `wiki_link_suggestions` table with a `pending` status
+- In the article editor / article detail page (staff+), a "Suggested Links" sidebar panel shows pending suggestions with a preview of where each link would be inserted, an "Accept" button (which adds the link to the article content and creates a crosslink entry) and a "Dismiss" button
+- Accepted suggestions update the article content with a proper markdown link and update the `crosslinks` table bidirectionally
+- The suggestion pass is idempotent — re-running it for the same article replaces old pending suggestions rather than duplicating them
+- LLM cost: ~$0.005–$0.015 per article save with Claude Haiku; token usage is logged for cost tracking
+
+## Out of scope
+- Bulk re-linking of all existing articles at once (too costly for Tier 1 — only triggered on save)
+- Automatic acceptance without editor review
+- Suggestions for articles the editor does not have permission to edit
+
+## Tasks
+1. **`wiki_link_suggestions` table** — Add a table with columns: `id`, `sourceArticleId`, `targetArticleId`, `suggestedAnchorText`, `suggestedContext` (surrounding sentence), `status` (`pending` | `accepted` | `dismissed`), `createdAt`. Run `db:push`.
+
+2. **Semantic re-linking backend** — Add a `POST /api/tools/wiki/suggest-links/:articleId` internal endpoint. It fetches the article content and all other published article titles/slugs/categories, sends to the LLM with a prompt asking for the top semantically relevant cross-link targets, parses the response, upserts suggestions into `wiki_link_suggestions`. Run this async after any article save in the existing article POST/PATCH routes.
+
+3. **Suggestion acceptance endpoint** — Add `PATCH /api/tools/wiki/link-suggestions/:id` accepting `{ action: "accept" | "dismiss" }`. On accept: update the source article content to insert the markdown link at the suggested context location, create a `crosslinks` entry, mark suggestion `accepted`. On dismiss: mark `dismissed`.
+
+4. **Suggested Links UI panel** — In the article detail/edit page (visible to staff+), add a collapsible "Suggested Links" sidebar panel. It shows each pending suggestion with: target article title, category badge, and the surrounding context sentence with the anchor highlighted. Accept and Dismiss buttons per suggestion. Shows a count badge when there are pending suggestions.
+
+## Relevant files
+- `server/routes.ts`
+- `server/storage.ts`
+- `shared/schema.ts`
+- `client/src/pages/wiki-archive-page.tsx`
+- `client/src/pages/command-wiki.tsx`
+
+
+---
+

@@ -1221,6 +1221,25 @@ export const insertUserGalaxyProgressSchema = createInsertSchema(userGalaxyProgr
 export type UserGalaxyProgress = typeof userGalaxyProgress.$inferSelect;
 export type InsertUserGalaxyProgress = z.infer<typeof insertUserGalaxyProgressSchema>;
 
+// ── Wiki Semantic Re-linking (Task #318) ─────────────────────────────────────
+
+export const wikiLinkSuggestions = pgTable("wiki_link_suggestions", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  sourceArticleId: integer("source_article_id").notNull().references(() => articles.id, { onDelete: "cascade" }),
+  targetArticleId: integer("target_article_id").notNull().references(() => articles.id, { onDelete: "cascade" }),
+  suggestedAnchorText: text("suggested_anchor_text").notNull(),
+  suggestedContext: text("suggested_context").notNull(),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("wiki_link_suggestions_source_idx").on(t.sourceArticleId),
+  index("wiki_link_suggestions_status_idx").on(t.status),
+]);
+
+export const insertWikiLinkSuggestionSchema = createInsertSchema(wikiLinkSuggestions).omit({ id: true, createdAt: true });
+export type WikiLinkSuggestion = typeof wikiLinkSuggestions.$inferSelect;
+export type InsertWikiLinkSuggestion = z.infer<typeof insertWikiLinkSuggestionSchema>;
+
 // ── Wiki Source Library (Task #317) ──────────────────────────────────────────
 
 export const wikiSources = pgTable("wiki_sources", {

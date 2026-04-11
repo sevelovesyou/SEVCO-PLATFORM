@@ -17,6 +17,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { WikiInfobox } from "@/components/wiki-infobox";
 import { CitationList } from "@/components/citation-badge";
 import { CrosslinkPanel } from "@/components/crosslink-panel";
@@ -37,6 +38,11 @@ import {
   Archive,
   RefreshCw,
   Zap,
+  Link2,
+  ChevronDown,
+  ChevronRight,
+  Check,
+  X,
 } from "lucide-react";
 import type { Article, Citation, Revision } from "@shared/schema";
 import { usePermission } from "@/hooks/use-permission";
@@ -58,13 +64,133 @@ interface ArticleDetail extends Article {
   isSparkedByMe?: boolean;
 }
 
+interface LinkSuggestion {
+  id: number;
+  sourceArticleId: number;
+  targetArticleId: number;
+  suggestedAnchorText: string;
+  suggestedContext: string;
+  status: string;
+  createdAt: string;
+  targetArticle: { id: number; title: string; slug: string; categoryId: number | null } | null;
+}
+
+function SuggestedLinksPanel({ articleId }: { articleId: number }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(true);
+
+  const { data: suggestions = [], isLoading } = useQuery<LinkSuggestion[]>({
+    queryKey: ["/api/tools/wiki/link-suggestions", articleId],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/tools/wiki/link-suggestions/${articleId}`);
+      return res.json();
+    },
+  });
+
+  const actionMutation = useMutation({
+    mutationFn: ({ id, action }: { id: number; action: "accept" | "dismiss" }) =>
+      apiRequest("PATCH", `/api/tools/wiki/link-suggestions/${id}`, { action }),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tools/wiki/link-suggestions", articleId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+      toast({ title: vars.action === "accept" ? "Link accepted and added to article" : "Suggestion dismissed" });
+    },
+    onError: () => {
+      toast({ title: "Action failed", variant: "destructive" });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <Card className="p-3 space-y-2">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-10 w-full" />
+      </Card>
+    );
+  }
+
+  if (suggestions.length === 0) return null;
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <Card className="overflow-hidden" data-testid="panel-suggested-links">
+        <CollapsibleTrigger asChild>
+          <button
+            className="w-full flex items-center justify-between p-3 hover:bg-muted/40 transition-colors"
+            data-testid="button-toggle-suggested-links"
+          >
+            <div className="flex items-center gap-2">
+              <Link2 className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-semibold">Suggested Links</span>
+              <Badge variant="secondary" className="text-[10px] h-4 px-1.5" data-testid="badge-link-suggestions-count">
+                {suggestions.length}
+              </Badge>
+            </div>
+            {open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="border-t divide-y">
+            {suggestions.map((s) => (
+              <div key={s.id} className="p-3 space-y-1.5" data-testid={`card-link-suggestion-${s.id}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate" data-testid={`text-suggestion-target-${s.id}`}>
+                      {s.targetArticle?.title ?? `Article #${s.targetArticleId}`}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed line-clamp-2" data-testid={`text-suggestion-context-${s.id}`}>
+                      {s.suggestedContext.includes(s.suggestedAnchorText) ? (
+                        <>
+                          {s.suggestedContext.slice(0, s.suggestedContext.indexOf(s.suggestedAnchorText))}
+                          <span className="bg-primary/15 text-primary rounded px-0.5 font-medium">{s.suggestedAnchorText}</span>
+                          {s.suggestedContext.slice(s.suggestedContext.indexOf(s.suggestedAnchorText) + s.suggestedAnchorText.length)}
+                        </>
+                      ) : (
+                        s.suggestedContext
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="h-6 text-[10px] gap-1 px-2"
+                    onClick={() => actionMutation.mutate({ id: s.id, action: "accept" })}
+                    disabled={actionMutation.isPending}
+                    data-testid={`button-accept-suggestion-${s.id}`}
+                  >
+                    <Check className="h-3 w-3" />
+                    Accept
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 text-[10px] gap-1 px-2 text-muted-foreground"
+                    onClick={() => actionMutation.mutate({ id: s.id, action: "dismiss" })}
+                    disabled={actionMutation.isPending}
+                    data-testid={`button-dismiss-suggestion-${s.id}`}
+                  >
+                    <X className="h-3 w-3" />
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  );
+}
+
 export default function ArticleView() {
   const [, paramsTwo] = useRoute("/wiki/:categorySlug/:articleSlug");
   const [, paramsOne] = useRoute("/wiki/:slug");
   const slug = paramsTwo?.articleSlug ?? paramsOne?.slug;
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const { canPublishArticles, canAccessArchive } = usePermission();
+  const { canPublishArticles, canAccessArchive, canCreateArticle } = usePermission();
   const { user } = useAuth();
   const [sparkTooltip, setSparkTooltip] = useState(false);
 
@@ -469,6 +595,7 @@ export default function ArticleView() {
               title={article.title}
             />
           )}
+          {canCreateArticle && <SuggestedLinksPanel articleId={article.id} />}
           <AttachNotePanel resourceType="article" resourceId={article.id} />
         </div>
       </div>

@@ -392,6 +392,112 @@ function ColorSwatch({ color, onChange }: { color: string; onChange: (c: string)
   );
 }
 
+function ColorPickerButton({
+  activeColor,
+  onChange,
+}: {
+  activeColor: string;
+  onChange: (c: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      <button
+        title="Color"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: 30, height: 30,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'none', border: 'none', cursor: 'pointer',
+          borderRadius: 7, padding: 5,
+        }}
+        data-testid="button-tool-color"
+      >
+        <div style={{
+          width: 16, height: 16, borderRadius: 4,
+          background: activeColor || '#6366f1',
+          border: '1.5px solid rgba(255,255,255,0.25)',
+        }} />
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            left: 38,
+            top: -4,
+            ...glassPill,
+            flexDirection: 'column',
+            gap: 3,
+            padding: 6,
+            zIndex: 20,
+          }}
+        >
+          {[0, 1].map(row => (
+            <div key={row} style={{ display: 'flex', gap: 3 }}>
+              {PRESET_COLORS.slice(row * 6, row * 6 + 6).map(c => (
+                <button
+                  key={c}
+                  onClick={() => { onChange(c); setOpen(false); }}
+                  title={c}
+                  style={{
+                    width: 16, height: 16,
+                    borderRadius: 4,
+                    background: c,
+                    border: activeColor === c
+                      ? '1.5px solid white'
+                      : '1px solid rgba(255,255,255,0.15)',
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                />
+              ))}
+            </div>
+          ))}
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 4, marginTop: 2 }}>
+            <button
+              onClick={() => inputRef.current?.click()}
+              style={{
+                fontSize: 9,
+                color: 'rgba(255,255,255,0.4)',
+                background: 'none',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 4,
+                padding: '2px 6px',
+                cursor: 'pointer',
+                width: '100%',
+              }}
+            >
+              Custom…
+            </button>
+            <input
+              ref={inputRef}
+              type="color"
+              value={activeColor || '#6366f1'}
+              onChange={e => onChange(e.target.value)}
+              style={{ position: 'absolute', opacity: 0, width: 1, height: 1, top: 0, left: 0, pointerEvents: 'none' }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CanvasPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -986,14 +1092,24 @@ export default function CanvasPage() {
         }}
       />
 
-      {/* Floating HUD bar */}
+      {/* Canvas area */}
       <div
-        className="fixed left-0 right-0 z-[60]"
-        style={{ top: '3rem', height: '40px', pointerEvents: 'none' }}
+        ref={containerRef}
+        className="fixed left-0 right-0 bottom-0"
+        style={{ top: '3rem', overflow: 'hidden' }}
         data-testid="canvas-page"
       >
+        {/* Full viewport cover — ensures no platform layout elements bleed through */}
+        <div style={{ position: 'fixed', inset: 0, background: '#0a0a0f', zIndex: -1 }} />
+
+        {/* Dot grid background */}
+        <CanvasDotGridBackground />
+
+        {/* Fabric.js canvas element */}
+        <canvas ref={canvasElRef} style={{ position: 'absolute', top: 0, left: 0 }} />
+
         {/* Left pill: project name */}
-        <div style={{ position: 'absolute', left: 12, top: 4, ...glassPill, pointerEvents: 'auto', gap: 2 }}>
+        <div style={{ position: 'absolute', left: 12, top: 12, ...glassPill, pointerEvents: 'auto', gap: 2, zIndex: 10 }}>
           <div
             style={{
               width: 20,
@@ -1056,7 +1172,7 @@ export default function CanvasPage() {
         </div>
 
         {/* Right pill: action buttons */}
-        <div style={{ position: 'absolute', right: 12, top: 4, ...glassPill, pointerEvents: 'auto', gap: 1 }}>
+        <div style={{ position: 'absolute', right: 12, top: 12, ...glassPill, pointerEvents: 'auto', gap: 1, zIndex: 10 }}>
           <button
             onClick={() => setLoadOpen(true)}
             title="Load"
@@ -1131,19 +1247,6 @@ export default function CanvasPage() {
             <ImageIcon className="h-3.5 w-3.5" />
           </button>
         </div>
-      </div>
-
-      {/* Canvas area */}
-      <div
-        ref={containerRef}
-        className="fixed left-0 right-0 bottom-0"
-        style={{ top: 'calc(3rem + 40px)', overflow: 'hidden' }}
-      >
-        {/* Dot grid background */}
-        <CanvasDotGridBackground />
-
-        {/* Fabric.js canvas element */}
-        <canvas ref={canvasElRef} style={{ position: 'absolute', top: 0, left: 0 }} />
 
         {/* Left toolbar */}
         <div
@@ -1231,38 +1334,19 @@ export default function CanvasPage() {
             <Type className="h-4 w-4" />
           </button>
           <div style={dividerStyle} />
-          {/* Color presets */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '2px 3px' }}>
-            {[0, 1].map(row => (
-              <div key={row} style={{ display: 'flex', gap: 2 }}>
-                {PRESET_COLORS.slice(row * 6, row * 6 + 6).map(c => (
-                  <button
-                    key={c}
-                    onClick={() => {
-                      setActiveColor(c);
-                      activeColorRef.current = c;
-                      const fc = fabricRef.current;
-                      if (fc) {
-                        fc.getActiveObjects().forEach(obj => obj.set({ stroke: c }));
-                        fc.requestRenderAll();
-                        scheduleAutoSave();
-                      }
-                    }}
-                    title={c}
-                    style={{
-                      width: 14,
-                      height: 14,
-                      borderRadius: 3,
-                      background: c,
-                      border: activeColor === c ? '1.5px solid white' : '1px solid rgba(255,255,255,0.15)',
-                      cursor: 'pointer',
-                      padding: 0,
-                    }}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
+          <ColorPickerButton
+            activeColor={activeColor}
+            onChange={c => {
+              setActiveColor(c);
+              activeColorRef.current = c;
+              const fc = fabricRef.current;
+              if (fc) {
+                fc.getActiveObjects().forEach(obj => obj.set({ stroke: c }));
+                fc.requestRenderAll();
+                scheduleAutoSave();
+              }
+            }}
+          />
         </div>
 
         {/* Properties panel */}

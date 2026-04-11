@@ -25452,3 +25452,177 @@ Remove `absolute top-0 left-0 right-0` and `z-[300]` — no longer needed.
 
 ---
 
+## Task — fix-canvas-animatedpage-transform
+> Merged: 2026-04-11
+
+# Fix Canvas: framer-motion transform traps fixed positioning + stabilize handleMount
+
+## Root cause 1 — AnimatedPage framer-motion `transform` traps `position: fixed`
+
+`AnimatedPage` in `client/src/components/animated-page.tsx` uses framer-motion:
+```tsx
+const pageVariants = {
+  initial: { opacity: 0, y: 8 },    // transform: translateY(8px)
+  animate: { opacity: 1, y: 0 },    // transform: translateY(0px)
+  exit:    { opacity: 0, y: -8 },
+};
+```
+
+The `motion.div` wrapper has `transform: translateY(...)` applied during and
+after the animation. **CSS rule**: any element with a CSS transform becomes
+a "containing block" for `position: fixed` descendants. Our canvas container
+and the SEVCO bar both use `position: fixed`, so they are trapped inside the
+`motion.div`'s bounding box — not the viewport.
+
+When React re-renders the AppShell (triggered by tldraw interaction → autosave →
+mutation state change), framer-motion may reapply its transform, causing the
+containing block to shift. tldraw's toolbar and style panel are positioned
+absolutely inside the tldraw container — when their coordinate space changes
+relative to the viewport, the UI panels jump off-screen or become invisible.
+
+## Root cause 2 — `handleMount` callback accumulates listeners
+
+`handleMount` has `doSave` as a useCallback dependency. `doSave` depends on
+`createMutation` and `updateMutation` (from react-query). Every time a mutation
+runs (every 5s autosave), the mutation objects get new identity → `doSave`
+changes → `handleMount` changes → though tldraw won't re-call `onMount`
+(uses `useEvent` internally), the `clearAll()` logic and multiple `store.listen`
+callbacks can accumulate on subsequent mounts.
+
+---
+
+## Fix 1 — Bypass AnimatedPage for the canvas route in `client/src/App.tsx`
+
+In `AppShell`'s return, detect the canvas route and skip `AnimatedPage`:
+
+Find this section (around line 803-808):
+```tsx
+<div className="flex-1">
+  <AnimatedPage key={location}>
+    <Router />
+  </AnimatedPage>
+</div>
+```
+
+Change to:
+```tsx
+<div className="flex-1">
+  {location === '/canvas' ? (
+    <Router />
+  ) : (
+    <AnimatedPage key={location}>
+      <Router />
+    </AnimatedPage>
+  )}
+</div>
+```
+
+The canvas gets no animation wrapper. The `position: fixed` elements in
+CanvasPage now attach to the actual viewport correctly.
+
+---
+
+## Fix 2 — Canonical tldraw layout in `client/src/pages/canvas-page.tsx`
+
+Use two separate `position: fixed` elements instead of a flex column:
+
+```tsx
+return (
+  <>
+    {/* SEVCO top bar — fixed, z-[60] (above nav z-50, below dialogs) */}
+    <div
+      className="fixed left-0 right-0 z-[60] border-b flex-shrink-0"
+      style={{ top: "3rem", height: "44px", background: "#0d0d0f", borderColor: "#1e1e24" }}
+    >
+      <CanvasTopBar
+        projectName={currentProjectName}
+        isSaving={isSaving}
+        onNew={handleNew}
+        onSave={() => doSave(true)}
+        onLoad={() => setLoadOpen(true)}
+        onRename={handleRename}
+        onAiGenerate={handleAiGenerate}
+        onImageUpload={handleImageUpload}
+        onExportPng={handleExportPng}
+        onExportSvg={handleExportSvg}
+        onExportJson={handleExportJson}
+      />
+    </div>
+
+    {/* tldraw canvas — fixed, starts below nav + SEVCO bar */}
+    <div
+      className="fixed left-0 right-0 bottom-0"
+      style={{ top: "calc(3rem + 44px)" }}
+    >
+      <Tldraw
+        persistenceKey={persistenceKey.current}
+        shapeUtils={CUSTOM_SHAPE_UTILS}
+        onMount={handleMount}
+        autoFocus
+      />
+    </div>
+
+    <LoadProjectDialog
+      open={loadOpen}
+      onClose={() => setLoadOpen(false)}
+      onLoad={handleLoadProject}
+      onDelete={(id) => deleteMutation.mutate(id)}
+    />
+  </>
+);
+```
+
+Remove the `<style>` tag injection (it targeted tldraw v3 class names and
+`.tl-background { background: #0d0d0f !important }` could conflict with v4).
+
+Also update `CanvasTopBar`'s wrapper div: remove `h-[44px]` / height from
+inside (since the outer fixed div sets height), just use `h-full` and
+`flex items-center` so buttons are vertically centered inside the 44px bar.
+
+---
+
+## Fix 3 — Stabilize `handleMount` using a ref for `doSave`
+
+Add a `doSaveRef` so `handleMount` has zero dependencies (stable identity forever):
+
+```tsx
+const doSaveRef = useRef(doSave);
+doSaveRef.current = doSave; // always points to latest doSave
+
+const handleMount = useCallback((editor: Editor) => {
+  editorRef.current = editor;
+
+  // No clearAll here — persistenceKey is random on each mount,
+  // so the localStorage store is always empty. clearAll caused
+  // spurious deletions.
+
+  editor.store.listen(
+    () => {
+      if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
+      autoSaveRef.current = setTimeout(() => doSaveRef.current(false), 5000);
+    },
+    { scope: "document" }
+  );
+}, []); // stable — no deps
+```
+
+Note: The `clearAll` + `requestAnimationFrame(clearAll)` logic is removed.
+It was designed to clear the SEVCO logo bookmark shape (from an earlier bug).
+That bug is gone — `persistenceKey` is a random ref so localStorage is always
+empty on mount. Clearing shapes at mount was causing spurious deletions.
+
+---
+
+## Summary of files changed
+
+- `client/src/App.tsx` — skip AnimatedPage for `/canvas` route
+- `client/src/pages/canvas-page.tsx`:
+  - Use two separate `fixed` divs instead of flex column
+  - Remove `<style>` injection
+  - Stabilize `handleMount` via `doSaveRef`
+  - Remove `clearAll` / rAF calls
+  - Update `CanvasTopBar` wrapper to `h-full flex items-center`
+
+
+---
+

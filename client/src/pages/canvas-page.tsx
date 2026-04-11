@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Tldraw,
   useEditor,
+  useValue,
   Editor,
   AssetRecordType,
   DefaultColorStyle,
@@ -986,15 +987,7 @@ function CanvasTopBar({
 
 function ZoomControls() {
   const editor = useEditor();
-  const [zoom, setZoom] = useState(() => Math.round(editor.getCamera().z * 100));
-
-  useEffect(() => {
-    const unsub = editor.store.listen(
-      () => setZoom(Math.round(editor.getCamera().z * 100)),
-      { scope: "session" }
-    );
-    return unsub;
-  }, [editor]);
+  const zoom = useValue("zoom", () => Math.round(editor.getCamera().z * 100), [editor]);
 
   return (
     <div
@@ -1300,12 +1293,7 @@ function CanvasInFront({
 
 function DynamicBackground() {
   const editor = useEditor();
-  const [cam, setCam] = useState(() => editor.getCamera());
-
-  useEffect(() => {
-    const unsub = editor.store.listen(() => setCam(editor.getCamera()), { scope: "session" });
-    return unsub;
-  }, [editor]);
+  const cam = useValue("camera", () => editor.getCamera(), [editor]);
 
   const gridSize = 24 * cam.z;
   const bx = (cam.x * cam.z) % gridSize;
@@ -1351,6 +1339,7 @@ export default function CanvasPage() {
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const projectIdRef = useRef<number | null>(null);
   const projectNameRef = useRef<string>("Untitled Project");
+  const persistenceKey = useRef(`sevco-canvas-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
   projectIdRef.current = currentProjectId;
   projectNameRef.current = currentProjectName;
@@ -1686,6 +1675,7 @@ export default function CanvasPage() {
       `}</style>
 
       <Tldraw
+        persistenceKey={persistenceKey.current}
         onMount={handleMount}
         hideUi={true}
         shapeUtils={[CustomImageShapeUtil]}

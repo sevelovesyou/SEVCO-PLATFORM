@@ -2,10 +2,7 @@ import { Router, Request, Response } from "express";
 import { requireAuth } from "./middleware/permissions";
 import { pool } from "./db";
 import { z } from "zod";
-import { execFile } from "child_process";
-import { promisify } from "util";
 
-const execFileAsync = promisify(execFile);
 const router = Router();
 
 interface AuthRequest extends Request {
@@ -143,47 +140,40 @@ router.post("/ai-generate", requireAuth, async (req: AuthRequest, res: Response)
     if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0].message });
     const { prompt } = parsed.data;
 
-    const inputJson = JSON.stringify({ prompt });
+    const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
+    if (!OPENROUTER_KEY) {
+      return res.status(503).json({ message: "AI image generation is not configured." });
+    }
 
-    let stdout: string;
-    try {
-      const result = await execFileAsync(
-        "infsh",
-        ["app", "run", "falai/flux-dev-lora", "--input", inputJson, "--json"],
-        { timeout: 120000, maxBuffer: 10 * 1024 * 1024 }
-      );
-      stdout = result.stdout;
-    } catch (execErr: unknown) {
-      console.error("[canvas] AI generate exec error:", execErr);
+    const response = await fetch("https://openrouter.ai/api/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENROUTER_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://sevco.us",
+        "X-Title": "SEVCO Canvas",
+      },
+      body: JSON.stringify({
+        model: "black-forest-labs/flux-schnell",
+        prompt: prompt,
+        n: 1,
+        size: "1024x1024",
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("[canvas] OpenRouter image generation error:", response.status, errText);
       return res.status(500).json({ message: "AI image generation failed. Please try again." });
     }
 
-    let imageUrl: string | null = null;
-    try {
-      const data = JSON.parse(stdout);
-      imageUrl = data?.output?.images?.[0]?.url
-        ?? data?.output?.image_url
-        ?? data?.output?.url
-        ?? data?.images?.[0]?.url
-        ?? data?.url
-        ?? null;
-
-      if (!imageUrl && typeof data?.output === "string" && data.output.startsWith("http")) {
-        imageUrl = data.output;
-      }
-
-      if (!imageUrl) {
-        const urlMatch = stdout.match(/https?:\/\/[^\s"']+\.(png|jpg|jpeg|webp)/i);
-        if (urlMatch) imageUrl = urlMatch[0];
-      }
-    } catch {
-      const urlMatch = stdout.match(/https?:\/\/[^\s"']+\.(png|jpg|jpeg|webp)/i);
-      if (urlMatch) imageUrl = urlMatch[0];
-    }
+    const data = await response.json();
+    const imageUrl =
+      data?.data?.[0]?.url ??
+      (data?.data?.[0]?.b64_json ? `data:image/png;base64,${data.data[0].b64_json}` : null);
 
     if (!imageUrl) {
-      console.error("[canvas] Could not extract image URL from output:", stdout.slice(0, 500));
-      return res.status(500).json({ message: "AI generation completed but no image URL was returned." });
+      return res.status(500).json({ message: "AI generation returned no image." });
     }
 
     res.json({ imageUrl });

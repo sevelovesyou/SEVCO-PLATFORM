@@ -713,7 +713,7 @@ export default function CanvasPage() {
       try {
         await fc.loadFromJSON(project.tldraw_json);
       } catch {
-        toast({ title: 'Failed to load project — it may have been created in an older version', variant: 'destructive' });
+        // Old tldraw JSON — canvas stays blank, project name/ID loaded for future saves
       }
     }
     fc.requestRenderAll();
@@ -722,7 +722,7 @@ export default function CanvasPage() {
     setNameInput(project.name);
     projectIdRef.current = project.id;
     projectNameRef.current = project.name;
-  }, [toast]);
+  }, []);
 
   const handleNew = useCallback(() => {
     const fc = fabricRef.current;

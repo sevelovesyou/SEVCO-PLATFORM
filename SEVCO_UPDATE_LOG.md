@@ -24487,3 +24487,83 @@ Every LLM-powered wiki operation (Gap Analysis, Re-wikify, Source Ingestion, Wik
 
 ---
 
+## Task — fix-spark-pack-pricing-display
+> Merged: 2026-04-11
+
+# Fix Spark Pack Savings Badges, Per-Unit Price & Card Layout
+
+## Context
+The spark packs were updated in the Command Center to new spark amounts
+and a renamed pack ("Inferno" → "Pro"), but the dev database still holds
+the old values. The `BASE_RATE = 0.08` constant in `pricing-page.tsx` is
+correct (8¢/spark is the old retail rate), but until the DB rows are
+updated the savings percentages are wrong. A per-unit price line is also
+missing from each card, and the Surge card's bolt + "100,000" wraps onto
+two lines unlike the other cards.
+
+## Correct Target State (from CMD / screenshot)
+| Name    | Sparks   | Price (cents) | Per-spark | Expected badge |
+|---------|----------|---------------|-----------|----------------|
+| Starter | 1,000    | 800           | 0.8¢      | SAVE 90%       |
+| Boost   | 5,000    | 3,600         | 0.72¢     | SAVE 91%       |
+| Pro     | 10,000   | 6,900         | 0.69¢     | SAVE 91%       |
+| Surge   | 100,000  | 60,000        | 0.6¢      | SAVE 93%       |
+
+## Steps
+
+### 1. Sync DB spark_packs rows
+Run direct SQL via `node -e` with pg Pool to UPDATE the four rows:
+- id=1 → name='Starter', sparks=1000
+- id=2 → name='Boost', sparks=5000
+- id=3 → name='Pro', sparks=10000  (rename from current name)
+- id=4 → name='Surge', sparks=100000  (rename from current name)
+
+Prices stay unchanged (800, 3600, 6900, 60000 cents).
+
+### 2. BASE_RATE stays 0.08 — no change needed
+The savings formula `1 - (price_dollars / (sparks * 0.08))` produces
+90% / 91% / 91% / 93% with the corrected spark counts. No code change.
+
+### 3. Fix spark count wrapping in SparkPackCard
+The current spark count span is `text-4xl` with no wrap prevention.
+For 6-digit numbers like "100,000" this wraps the bolt emoji and the
+number onto separate lines. Fix by:
+- Adding `whitespace-nowrap` to keep emoji + number on one line, AND
+- Scaling font size based on digit count so long numbers still fit:
+  - < 10,000 → `text-4xl` (current)
+  - >= 10,000 → `text-3xl`
+  - >= 100,000 → `text-2xl`
+
+```tsx
+const sparkFontSize =
+  pack.sparks >= 100000 ? "text-2xl" :
+  pack.sparks >= 10000  ? "text-3xl" : "text-4xl";
+
+<span className={`${sparkFontSize} font-black text-yellow-400 whitespace-nowrap`}>
+  ⚡️ {pack.sparks.toLocaleString()}
+</span>
+```
+
+### 4. Add per-unit price line to SparkPackCard
+Below the spark count display, add a small muted line:
+
+```tsx
+const centsPerSpark = pack.price / pack.sparks; // price in cents
+<p className="text-xs text-muted-foreground -mt-2" data-testid={`text-per-spark-${pack.id}`}>
+  {centsPerSpark < 1
+    ? `${centsPerSpark.toFixed(3).replace(/\.?0+$/, "")}¢ per spark`
+    : `$${(centsPerSpark / 100).toFixed(4)} per spark`}
+</p>
+```
+
+### 5. Verify highlighted pack targeting
+The `highlighted` prop checks `pack.name === "Surge"` — after the rename,
+this correctly targets the 100,000-spark Surge pack. No change needed.
+
+## Files
+- `client/src/pages/pricing-page.tsx` — fix wrapping, add per-unit price
+- DB spark_packs rows via one-time SQL update (not a schema change)
+
+
+---
+

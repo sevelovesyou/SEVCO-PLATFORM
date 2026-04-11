@@ -1209,6 +1209,21 @@ export const insertUserGalaxyProgressSchema = createInsertSchema(userGalaxyProgr
 export type UserGalaxyProgress = typeof userGalaxyProgress.$inferSelect;
 export type InsertUserGalaxyProgress = z.infer<typeof insertUserGalaxyProgressSchema>;
 
+// ── Wiki Source Library (Task #317) ──────────────────────────────────────────
+
+export const wikiSources = pgTable("wiki_sources", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  type: text("type").notNull(), // "url" | "doi" | "pubmed" | "arxiv" | "pdf"
+  identifier: text("identifier").notNull(),
+  title: text("title").notNull().default(""),
+  ingestedAt: timestamp("ingested_at").defaultNow().notNull(),
+  articleCount: integer("article_count").notNull().default(0),
+});
+
+export const insertWikiSourceSchema = createInsertSchema(wikiSources).omit({ id: true, ingestedAt: true });
+export type WikiSource = typeof wikiSources.$inferSelect;
+export type InsertWikiSource = z.infer<typeof insertWikiSourceSchema>;
+
 // ── SEVCO Sites ───────────────────────────────────────────────────────────────
 
 export const userWebsites = pgTable("user_websites", {

@@ -506,6 +506,15 @@ async function runStartupMigrations() {
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS website_pages_website_id_idx ON website_pages(website_id)`);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS website_pages_website_id_slug_idx ON website_pages(website_id, slug)`);
+  // Task #317 — Wiki Curated Source Ingestion
+  await pool.query(`CREATE TABLE IF NOT EXISTS wiki_sources (
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    type text NOT NULL,
+    identifier text NOT NULL,
+    title text NOT NULL DEFAULT '',
+    ingested_at timestamp NOT NULL DEFAULT now(),
+    article_count integer NOT NULL DEFAULT 0
+  );`);
 
   console.log("[startup] migrations applied");
 }

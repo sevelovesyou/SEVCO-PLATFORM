@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import JSZip from "jszip";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -130,7 +130,21 @@ export default function WikifyToolPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const [sourceText, setSourceText] = useState("");
+  const initializedFromStorage = useRef(false);
+  const [ingestedSourceId, setIngestedSourceId] = useState<number | null>(null);
+  const [ingestedCitation, setIngestedCitation] = useState<{ text: string; format: string } | null>(null);
+
+  const [sourceText, setSourceText] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("from") === "source") {
+        const t = sessionStorage.getItem("wikify_source_text");
+        return t ?? "";
+      }
+    } catch { /* ignore */ }
+    return "";
+  });
+
   const [articleCount, setArticleCount] = useState(5);
   const [detailLevel, setDetailLevel] = useState<"brief" | "standard" | "detailed">("standard");
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
@@ -139,6 +153,28 @@ export default function WikifyToolPage() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [submissionProgress, setSubmissionProgress] = useState<{ current: number; total: number } | null>(null);
   const [submittedCount, setSubmittedCount] = useState<number>(0);
+
+  useEffect(() => {
+    if (initializedFromStorage.current) return;
+    initializedFromStorage.current = true;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("from") !== "source") return;
+      const sid = sessionStorage.getItem("wikify_source_id");
+      const citation = sessionStorage.getItem("wikify_citation");
+      const citationFormat = sessionStorage.getItem("wikify_citation_format");
+      if (sid) setIngestedSourceId(parseInt(sid, 10));
+      if (citation && citationFormat) setIngestedCitation({ text: citation, format: citationFormat });
+      const text = sessionStorage.getItem("wikify_source_text");
+      if (text) {
+        toast({ title: "Source pre-filled", description: "Content loaded from ingested source. Adjust settings and click Analyze." });
+        sessionStorage.removeItem("wikify_source_text");
+        sessionStorage.removeItem("wikify_source_id");
+        sessionStorage.removeItem("wikify_citation");
+        sessionStorage.removeItem("wikify_citation_format");
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   const wordCount = useMemo(() => {
     const words = sourceText.trim().split(/\s+/).filter(Boolean).length;
@@ -232,6 +268,19 @@ export default function WikifyToolPage() {
           .replace(/(^-|-$)/g, "")
           .slice(0, 80) + "-" + Date.now().toString(36);
 
+        const citationsPayload = ingestedCitation
+          ? [
+              {
+                url: ingestedCitation.format === "URL" ? ingestedCitation.text : undefined,
+                title: s.editedTitle,
+                format: ingestedCitation.format,
+                text: ingestedCitation.format === "URL"
+                  ? `Retrieved from ${ingestedCitation.text}`
+                  : ingestedCitation.text,
+              },
+            ]
+          : [];
+
         await apiRequest("POST", "/api/articles", {
           title: s.editedTitle,
           slug,
@@ -239,6 +288,7 @@ export default function WikifyToolPage() {
           summary: s.seoDescription,
           categoryId: s.categoryId,
           status: "draft",
+          citations: citationsPayload.length > 0 ? citationsPayload : undefined,
         });
         updateSuggestion(s.id, { submitStatus: "success" });
         successCount++;
@@ -255,6 +305,12 @@ export default function WikifyToolPage() {
     setSubmissionProgress(null);
     setSubmittedCount(successCount);
     queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+
+    if (successCount > 0 && ingestedSourceId !== null) {
+      try {
+        await apiRequest("PATCH", `/api/tools/wiki/sources/${ingestedSourceId}/increment`, { count: successCount });
+      } catch { /* non-fatal */ }
+    }
 
     if (failCount === 0) {
       toast({
@@ -353,6 +409,14 @@ export default function WikifyToolPage() {
         {/* Left: Input Panel */}
         <div className="lg:w-[420px] shrink-0 border-r flex flex-col overflow-y-auto">
           <div className="p-4 space-y-4">
+            {/* Citation info banner when loaded from ingested source */}
+            {ingestedCitation && (
+              <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 space-y-0.5" data-testid="banner-ingested-citation">
+                <p className="text-[10px] font-medium text-primary uppercase tracking-wide">Source Citation ({ingestedCitation.format})</p>
+                <p className="text-xs text-foreground/80 break-words">{ingestedCitation.text}</p>
+              </div>
+            )}
+
             {/* Source text */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">

@@ -84,6 +84,9 @@ import {
   sparkTransactions,
   sparkPacks,
   contentSparks,
+  wikiSources,
+  type WikiSource,
+  type InsertWikiSource,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, and, sql, ilike, or, inArray, gte, lte, count as countFn, type SQL } from "drizzle-orm";
@@ -489,6 +492,11 @@ export interface IStorage {
     topPosts: { id: number; content: string; authorUsername: string; authorDisplayName: string | null; sparksReceived: number }[];
     topContent: { id: number; title: string; contentType: "article" | "gallery"; sparksReceived: number }[];
   }>;
+
+  getWikiSources(): Promise<import("@shared/schema").WikiSource[]>;
+  createWikiSource(data: import("@shared/schema").InsertWikiSource): Promise<import("@shared/schema").WikiSource>;
+  incrementWikiSourceArticleCount(id: number, count: number): Promise<void>;
+  deleteWikiSource(id: number): Promise<void>;
 }
 
 export type SearchResultItem = {
@@ -3420,6 +3428,23 @@ export class DatabaseStorage implements IStorage {
       topPosts: topPosts.filter(Boolean) as any,
       topContent,
     };
+  }
+
+  async getWikiSources(): Promise<WikiSource[]> {
+    return db.select().from(wikiSources).orderBy(desc(wikiSources.ingestedAt));
+  }
+
+  async createWikiSource(data: InsertWikiSource): Promise<WikiSource> {
+    const [created] = await db.insert(wikiSources).values(data).returning();
+    return created;
+  }
+
+  async incrementWikiSourceArticleCount(id: number, count: number): Promise<void> {
+    await db.update(wikiSources).set({ articleCount: sql`${wikiSources.articleCount} + ${count}` }).where(eq(wikiSources.id, id));
+  }
+
+  async deleteWikiSource(id: number): Promise<void> {
+    await db.delete(wikiSources).where(eq(wikiSources.id, id));
   }
 }
 

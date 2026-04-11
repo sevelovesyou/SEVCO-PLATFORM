@@ -99,6 +99,7 @@ import {
 } from "lucide-react";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { ChatSheet } from "@/components/chat-sheet";
+import { SevcoLogo } from "@/components/sevco-logo";
 import { useSounds } from "@/hooks/use-sounds";
 import { useMusicPlayer } from "@/contexts/music-player-context";
 import { Volume2, VolumeX, Bell } from "lucide-react";
@@ -1416,11 +1417,7 @@ export function PlatformHeader() {
           <SheetHeader className="flex flex-row items-center justify-between px-3 border-b h-12 shrink-0">
             <SheetTitle className="sr-only">Navigation</SheetTitle>
             <SheetDescription className="sr-only">Site navigation menu</SheetDescription>
-            <img
-              src={resolveImageUrl(platformSettings?.["platform.logoUrl"] || null) || wordmarkBlack}
-              alt="SEVCO"
-              className="h-6 object-contain"
-            />
+            <SevcoLogo size={24} alt="SEVCO" className="dark:invert-0" />
             <SheetClose asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Close navigation">
                 <LucideIcons.X className="h-4 w-4" />

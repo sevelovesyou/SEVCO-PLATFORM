@@ -1,7 +1,6 @@
-import { useState, useCallback, useRef, useEffect, createContext, useContext } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Tldraw,
-  useEditor,
   Editor,
   AssetRecordType,
   ImageShapeUtil,
@@ -74,6 +73,8 @@ class CustomImageShapeUtil extends ImageShapeUtil {
     );
   }
 }
+
+const CUSTOM_SHAPE_UTILS = [CustomImageShapeUtil];
 
 function AiGenerateModal({ onGenerate }: { onGenerate: (prompt: string) => Promise<void> }) {
   const [open, setOpen] = useState(false);
@@ -287,6 +288,9 @@ function CanvasTopBar({
   onRename,
   onAiGenerate,
   onImageUpload,
+  onExportPng,
+  onExportSvg,
+  onExportJson,
 }: {
   projectName: string;
   isSaving: boolean;
@@ -296,8 +300,10 @@ function CanvasTopBar({
   onRename: (name: string) => void;
   onAiGenerate: (prompt: string) => Promise<void>;
   onImageUpload: (file: File) => void;
+  onExportPng: () => void;
+  onExportSvg: () => void;
+  onExportJson: () => void;
 }) {
-  const editor = useEditor();
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(projectName);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -306,44 +312,6 @@ function CanvasTopBar({
     setNameInput(projectName);
   }, [projectName]);
 
-  const handleExportPng = async () => {
-    if (!editor) return;
-    try {
-      const shapeIds = Array.from(editor.getCurrentPageShapeIds());
-      if (shapeIds.length === 0) return;
-      const { exportAs } = await import("@tldraw/tldraw");
-      await exportAs(editor, shapeIds, "png", projectName);
-    } catch (err) {
-      console.error("Export PNG failed:", err);
-    }
-  };
-
-  const handleExportSvg = async () => {
-    if (!editor) return;
-    try {
-      const shapeIds = Array.from(editor.getCurrentPageShapeIds());
-      if (shapeIds.length === 0) return;
-      const { exportAs } = await import("@tldraw/tldraw");
-      await exportAs(editor, shapeIds, "svg", projectName);
-    } catch (err) {
-      console.error("Export SVG failed:", err);
-    }
-  };
-
-  const handleExportJson = () => {
-    if (!editor) return;
-    const snapshot = editor.store.getStoreSnapshot();
-    const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${projectName}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   const commitName = () => {
     setEditingName(false);
     if (nameInput.trim()) onRename(nameInput.trim());
@@ -351,7 +319,7 @@ function CanvasTopBar({
 
   return (
     <div
-      className="absolute top-0 left-0 right-0 flex items-center gap-2 px-3 z-[300] border-b"
+      className="flex items-center gap-2 px-3 border-b flex-shrink-0"
       style={{
         height: "44px",
         background: "#0d0d0f",
@@ -472,19 +440,19 @@ function CanvasTopBar({
             }}
           >
             <DropdownMenuItem
-              onClick={handleExportPng}
+              onClick={onExportPng}
               data-testid="menuitem-canvas-export-png"
             >
               Export as PNG
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={handleExportSvg}
+              onClick={onExportSvg}
               data-testid="menuitem-canvas-export-svg"
             >
               Export as SVG
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={handleExportJson}
+              onClick={onExportJson}
               data-testid="menuitem-canvas-export-json"
             >
               Export as JSON
@@ -496,35 +464,6 @@ function CanvasTopBar({
     </div>
   );
 }
-
-type CanvasBarCtx = {
-  projectName: string;
-  isSaving: boolean;
-  onNew: () => void;
-  onSave: () => void;
-  onLoad: () => void;
-  onRename: (name: string) => void;
-  onAiGenerate: (prompt: string) => Promise<void>;
-  onImageUpload: (file: File) => void;
-};
-
-const CanvasBarContext = createContext<CanvasBarCtx | null>(null);
-
-function CanvasBarOverlay() {
-  const ctx = useContext(CanvasBarContext);
-  if (!ctx) return null;
-  return (
-    <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-      <div style={{ pointerEvents: "auto" }}>
-        <CanvasTopBar {...ctx} />
-      </div>
-    </div>
-  );
-}
-
-const CANVAS_COMPONENTS = {
-  InFrontOfTheCanvas: CanvasBarOverlay,
-} satisfies Parameters<typeof Tldraw>[0]["components"];
 
 export default function CanvasPage() {
   const { toast } = useToast();
@@ -793,42 +732,86 @@ export default function CanvasPage() {
     toast({ title: "Image uploaded to canvas" });
   }, [toast]);
 
-  const barCtx: CanvasBarCtx = {
-    projectName: currentProjectName,
-    isSaving,
-    onNew: handleNew,
-    onSave: () => doSave(true),
-    onLoad: () => setLoadOpen(true),
-    onRename: handleRename,
-    onAiGenerate: handleAiGenerate,
-    onImageUpload: handleImageUpload,
-  };
+  const handleExportPng = useCallback(async () => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    try {
+      const shapeIds = Array.from(editor.getCurrentPageShapeIds());
+      if (shapeIds.length === 0) return;
+      const { exportAs } = await import("@tldraw/tldraw");
+      await exportAs(editor, shapeIds, "png", currentProjectName);
+    } catch (err) {
+      console.error("Export PNG failed:", err);
+    }
+  }, [currentProjectName]);
+
+  const handleExportSvg = useCallback(async () => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    try {
+      const shapeIds = Array.from(editor.getCurrentPageShapeIds());
+      if (shapeIds.length === 0) return;
+      const { exportAs } = await import("@tldraw/tldraw");
+      await exportAs(editor, shapeIds, "svg", currentProjectName);
+    } catch (err) {
+      console.error("Export SVG failed:", err);
+    }
+  }, [currentProjectName]);
+
+  const handleExportJson = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const snapshot = editor.store.getStoreSnapshot();
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${currentProjectName}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [currentProjectName]);
 
   return (
-    <CanvasBarContext.Provider value={barCtx}>
-      <div
-        className="fixed left-0 right-0 bottom-0"
-        data-color-scheme="dark"
-        data-testid="canvas-page"
-        style={{ top: "3rem", background: "#0d0d0f" }}
-      >
-        <style>{`
-          .tldraw__editor { --color-background: #0d0d0f; }
-          .tl-background { background: #0d0d0f !important; }
-        `}</style>
+    <div
+      className="fixed left-0 right-0 bottom-0 flex flex-col"
+      style={{ top: "3rem", background: "#0d0d0f" }}
+      data-color-scheme="dark"
+      data-testid="canvas-page"
+    >
+      <style>{`
+        .tldraw__editor { --color-background: #0d0d0f; }
+        .tl-background { background: #0d0d0f !important; }
+      `}</style>
+
+      <CanvasTopBar
+        projectName={currentProjectName}
+        isSaving={isSaving}
+        onNew={handleNew}
+        onSave={() => doSave(true)}
+        onLoad={() => setLoadOpen(true)}
+        onRename={handleRename}
+        onAiGenerate={handleAiGenerate}
+        onImageUpload={handleImageUpload}
+        onExportPng={handleExportPng}
+        onExportSvg={handleExportSvg}
+        onExportJson={handleExportJson}
+      />
+
+      <div className="flex-1 relative">
         <Tldraw
           persistenceKey={persistenceKey.current}
+          shapeUtils={CUSTOM_SHAPE_UTILS}
           onMount={handleMount}
-          shapeUtils={[CustomImageShapeUtil]}
-          components={CANVAS_COMPONENTS}
-        />
-        <LoadProjectDialog
-          open={loadOpen}
-          onClose={() => setLoadOpen(false)}
-          onLoad={handleLoadProject}
-          onDelete={(id) => deleteMutation.mutate(id)}
+          autoFocus
         />
       </div>
-    </CanvasBarContext.Provider>
+
+      <LoadProjectDialog
+        open={loadOpen}
+        onClose={() => setLoadOpen(false)}
+        onLoad={handleLoadProject}
+        onDelete={(id) => deleteMutation.mutate(id)}
+      />
+    </div>
   );
 }

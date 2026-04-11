@@ -24901,3 +24901,253 @@ shape-clearing can stay as a belt-and-suspenders defense.
 
 ---
 
+## Task — canvas-use-native-tldraw-ui
+> Merged: 2026-04-11
+
+# Canvas: Replace custom UI with tldraw's native UI
+
+## Goal
+Rip out all the hand-rolled toolbar/style-panel/zoom/background code that has been
+causing cascading event-system bugs. Use tldraw's own native UI for all drawing tools,
+style controls, zoom, undo/redo, and context menus. Only add a thin SEVCO-branded
+top bar for project save/load/export and AI generation.
+
+## What to DELETE from canvas-page.tsx
+The following types, constants, and components are fully replaced by tldraw's native UI.
+Remove them entirely:
+
+- All types: `TldrawColor`, `TldrawFill`, `TldrawSize`, `TldrawFont`, `TldrawTextAlign`,
+  `CanvasStyleState`, `ImageShapeMeta`
+- All constants: `COLOR_SWATCHES`, `TOOLBAR_TOOLS`
+- All components: `CanvasToolbar`, `CanvasStylePanel`, `ZoomControls`, `DynamicBackground`,
+  `CanvasInFront` (the big wrapper, ~600 lines)
+- All imports from tldraw that were only for the custom style panel:
+  `DefaultColorStyle`, `DefaultFillStyle`, `DefaultSizeStyle`, `DefaultFontStyle`,
+  `DefaultTextAlignStyle`, `GeoShapeGeoStyle`, `useValue`
+- All state/callbacks in `CanvasPage` only used by style panel or toolbar:
+  `activeTool`, `styles`, `setActiveTool`, `setStyles`, `syncStylesFromEditor`,
+  `handleToolSelect`, `handleColorChange`, `handleFillChange`, `handleSizeChange`,
+  `handleOpacityChange`, `handleLayerAction`, `handleFontChange`,
+  `handleTextAlignChange`, `handleImageFlip`, `handleBrightnessChange`,
+  `handleContrastChange`
+
+## What to KEEP
+- `CustomImageShapeUtil` (brightness/contrast image shader) — keep exactly as-is
+- `LoadProjectDialog` — keep exactly as-is
+- `AiGenerateModal` — keep exactly as-is
+- `CanvasTopBar` — keep the structure but slim it down (see below)
+- All DB mutations: `createMutation`, `updateMutation`, `deleteMutation`
+- `handleMount`, `doSave`, `handleNew`, `handleRename`, `handleProjectChange`
+- `persistenceKey` ref (keep, critical for logo fix)
+- Auto-save via `store.listen`
+
+## New CanvasTopBar
+
+Slim it down to: project logo/name | rename input | New · Save · Load · Export | AI generate
+
+Remove `onToolSelect`, `activeTool`, `styles`, all style handlers from its props — tldraw's
+native UI handles that now.
+
+Keep:
+- Rename in-place (click name → inline input)
+- New / Save / Load / Export dropdown (PNG, SVG, JSON)
+- `AiGenerateModal` button (✨ Generate)
+- `handleExportPng`, `handleExportSvg`, `handleExportJson` using `useEditor()`
+- Undo/Redo buttons (or remove them since tldraw's toolbar already has them)
+
+Props become:
+```tsx
+function CanvasTopBar({
+  projectName,
+  isSaving,
+  onNew,
+  onSave,
+  onLoad,
+  onRename,
+  onAiGenerate,
+  onImageUpload,
+}: {
+  projectName: string;
+  isSaving: boolean;
+  onNew: () => void;
+  onSave: () => void;
+  onLoad: () => void;
+  onRename: (name: string) => void;
+  onAiGenerate: (prompt: string) => Promise<void>;
+  onImageUpload: (file: File) => void;
+})
+```
+
+## Stable InFrontOfTheCanvas (no more inline functions)
+
+Use a module-level React Context + module-level component so the `components`
+prop reference NEVER changes (root cause of the disappearing toolbar bug):
+
+```tsx
+// ─── MODULE SCOPE (outside all components) ───
+
+type CanvasBarCtx = {
+  projectName: string;
+  isSaving: boolean;
+  onNew: () => void;
+  onSave: () => void;
+  onLoad: () => void;
+  onRename: (name: string) => void;
+  onAiGenerate: (prompt: string) => Promise<void>;
+  onImageUpload: (file: File) => void;
+};
+
+const CanvasBarContext = createContext<CanvasBarCtx | null>(null);
+
+function CanvasBarOverlay() {
+  const ctx = useContext(CanvasBarContext);
+  if (!ctx) return null;
+  return <CanvasTopBar {...ctx} />;
+}
+
+// Defined ONCE — reference is stable forever
+const CANVAS_COMPONENTS = {
+  InFrontOfTheCanvas: CanvasBarOverlay,
+} satisfies Parameters<typeof Tldraw>[0]["components"];
+```
+
+## CanvasPage return
+
+```tsx
+// Build the context value (updated on re-render but component ref is stable)
+const barCtx: CanvasBarCtx = {
+  projectName: currentProjectName,
+  isSaving,
+  onNew: handleNew,
+  onSave: () => doSave(true),
+  onLoad: () => setLoadOpen(true),
+  onRename: handleRename,
+  onAiGenerate: handleAiGenerate,
+  onImageUpload: handleImageUpload,
+};
+
+return (
+  <CanvasBarContext.Provider value={barCtx}>
+    <div className="fixed inset-0" style={{ background: "#0d0d0f" }}>
+      {/* Override tldraw's light theme to dark */}
+      <style>{`
+        .tldraw__editor { --color-background: #0d0d0f; }
+        .tl-background { background: #0d0d0f !important; }
+      `}</style>
+      <Tldraw
+        persistenceKey={persistenceKey.current}
+        onMount={handleMount}
+        shapeUtils={[CustomImageShapeUtil]}
+        components={CANVAS_COMPONENTS}
+      />
+      <LoadProjectDialog
+        open={loadOpen}
+        onClose={() => setLoadOpen(false)}
+        onLoad={handleLoadProject}
+        onDelete={(id) => deleteMutation.mutate(id)}
+      />
+    </div>
+  </CanvasBarContext.Provider>
+);
+```
+
+Note: NO `hideUi={true}` — tldraw's native UI is now visible.
+
+## handleMount — simplified
+
+No more `syncStylesFromEditor`. Just set the editor ref, clear any persisted
+shapes (with deferred rAF for tldraw's async replay), and set up auto-save:
+
+```tsx
+const handleMount = useCallback(
+  (editor: Editor) => {
+    editorRef.current = editor;
+
+    // Clear any persisted shapes (belt-and-suspenders alongside persistenceKey)
+    const clearAll = () => {
+      const ids = Array.from(editor.getCurrentPageShapeIds());
+      if (ids.length > 0) editor.deleteShapes(ids);
+    };
+    clearAll();
+    requestAnimationFrame(() => {
+      clearAll();
+      requestAnimationFrame(() => clearAll());
+    });
+
+    // Auto-save 5s after last change
+    editor.store.listen(
+      () => {
+        if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
+        autoSaveRef.current = setTimeout(() => doSave(false), 5000);
+      },
+      { scope: "document" }
+    );
+  },
+  [doSave]
+);
+```
+
+## Dark mode
+
+Add to the `<style>` block or the container:
+```tsx
+<div className="fixed inset-0" data-color-scheme="dark" style={{ background: "#0d0d0f" }}>
+```
+
+Tldraw v4 respects `data-color-scheme="dark"` on the container element to render
+its native UI in dark mode.
+
+## handleAiGenerate and handleImageUpload
+
+Move these two functions OUT of `CanvasInFront` and into `CanvasPage` directly,
+since they need the `editorRef`:
+
+```tsx
+const handleAiGenerate = useCallback(async (prompt: string) => {
+  const editor = editorRef.current;
+  if (!editor) return;
+  // ... exact same logic as before, just using editorRef.current
+}, [toast]);
+
+const handleImageUpload = useCallback(async (file: File) => {
+  const editor = editorRef.current;
+  if (!editor) return;
+  // ... exact same logic as before, just using editorRef.current
+}, [toast]);
+```
+
+These are passed into the context so `CanvasBarOverlay` → `CanvasTopBar` can call them.
+
+## DB cleanup
+
+After applying code changes, run this SQL to scrub the canvas project that has
+the SEVCO logo bookmark shape embedded in it:
+
+```sql
+UPDATE canvas_projects
+SET tldraw_json = jsonb_build_object(
+  'store', jsonb_build_object(
+    'page:page', '{"id":"page:page","meta":{},"name":"Page 1","index":"a1","typeName":"page"}'::jsonb,
+    'document:document', '{"id":"document:document","meta":{},"name":"","gridSize":10,"typeName":"document"}'::jsonb
+  ),
+  'schema', jsonb_build_object('sequences', '{}'::jsonb, 'schemaVersion', 2)
+)
+WHERE tldraw_json::text LIKE '%bookmark%'
+   OR tldraw_json::text LIKE '%SEVCO_Logo%';
+```
+
+## Files
+- `client/src/pages/canvas-page.tsx` — rewrite (keeps ~35% of code, removes ~65%)
+  - Add `createContext`, `useContext` to React imports
+  - Remove all custom UI code (toolbar, style panel, zoom, background)
+  - Add `CanvasBarContext`, `CanvasBarOverlay`, `CANVAS_COMPONENTS` at module scope
+  - Slim `CanvasTopBar` props
+  - Slim `CanvasPage` state/handlers
+  - Simplified `handleMount`
+  - Context-provider-wrapped return with `CANVAS_COMPONENTS`
+
+- DB: execute the SQL above after code changes
+
+
+---
+

@@ -16,10 +16,10 @@ import { startNewsAggregator } from "./news-aggregator";
 import { sevcoSitesMiddleware } from "./sites-middleware";
 
 const SPARK_PACK_DEFS = [
-  { name: "Starter",  sparks: 100,    price: 800,    sortOrder: 0 },
-  { name: "Boost",    sparks: 500,    price: 3600,   sortOrder: 1 },
-  { name: "Surge",    sparks: 1000,   price: 6900,   sortOrder: 2 },
-  { name: "Inferno",  sparks: 10000,  price: 60000,  sortOrder: 3 },
+  { name: "Starter", sparks: 1000,   price: 800,   sortOrder: 0 },
+  { name: "Boost",   sparks: 5000,   price: 3600,  sortOrder: 1 },
+  { name: "Pro",     sparks: 10000,  price: 6900,  sortOrder: 2 },
+  { name: "Surge",   sparks: 100000, price: 60000, sortOrder: 3 },
 ];
 
 async function seedSparkPacks() {
@@ -515,7 +515,15 @@ async function runStartupMigrations() {
     ingested_at timestamp NOT NULL DEFAULT now(),
     article_count integer NOT NULL DEFAULT 0
   );`);
-
+  // Task #320 — One-time sync of spark_packs to correct names/spark counts
+  // These are idempotent UPDATEs; they apply the correct values from the
+  // Command Center and produce no-ops once the data is already in sync.
+  await pool.query(`
+    UPDATE spark_packs SET name = 'Starter', sparks = 1000   WHERE id = 1 AND (name != 'Starter' OR sparks != 1000);
+    UPDATE spark_packs SET name = 'Boost',   sparks = 5000   WHERE id = 2 AND (name != 'Boost'   OR sparks != 5000);
+    UPDATE spark_packs SET name = 'Pro',     sparks = 10000  WHERE id = 3 AND (name != 'Pro'     OR sparks != 10000);
+    UPDATE spark_packs SET name = 'Surge',   sparks = 100000 WHERE id = 4 AND (name != 'Surge'   OR sparks != 100000);
+  `);
   console.log("[startup] migrations applied");
 }
 

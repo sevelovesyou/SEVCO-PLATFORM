@@ -93,10 +93,23 @@ function SparkPackCard({ pack, isLoggedIn, highlighted }: { pack: SparkPack; isL
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4 flex-1">
-        <div className="flex items-baseline gap-1">
-          <span className="text-4xl font-black text-yellow-400" data-testid={`text-pack-sparks-${pack.id}`}>
+        <div className="flex flex-col gap-1">
+          <span
+            className={`${
+              pack.sparks >= 100000 ? "text-2xl" : pack.sparks >= 10000 ? "text-3xl" : "text-4xl"
+            } font-black text-yellow-400 whitespace-nowrap`}
+            data-testid={`text-pack-sparks-${pack.id}`}
+          >
             ⚡️ {pack.sparks.toLocaleString()}
           </span>
+          <p className="text-xs text-muted-foreground -mt-2" data-testid={`text-per-spark-${pack.id}`}>
+            {(() => {
+              const centsPerSpark = pack.price / pack.sparks;
+              return centsPerSpark < 1
+                ? `${centsPerSpark.toFixed(3).replace(/\.?0+$/, "")}¢ per spark`
+                : `$${(centsPerSpark / 100).toFixed(4)} per spark`;
+            })()}
+          </p>
         </div>
 
         <div className="mt-auto space-y-3">

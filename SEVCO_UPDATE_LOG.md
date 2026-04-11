@@ -26951,3 +26951,40 @@ Restart the workflow and verify:
 
 ---
 
+## Task — install-fabric-npm
+> Merged: 2026-04-11
+
+# Fix: run npm install to actually install fabric
+
+## Problem
+
+`fabric@^6.9.1` is listed in `package.json` dependencies but NOT present in
+`node_modules/fabric`. Two previous task agents claimed to install it via the Replit
+package tool, but that tool only updated `package.json` — it did not run `npm install`.
+
+Vite cannot compile `import { Canvas } from 'fabric'` in `canvas-page.tsx`, causing
+the Express+Vite server to crash on startup. No output, workflow status: FAILED.
+
+## Fix
+
+Run `npm install` in the project root to install all missing packages:
+
+```bash
+npm install
+```
+
+This will install `fabric` and any other packages listed in `package.json` that
+are missing from `node_modules`.
+
+After install, restart the "Start application" workflow.
+
+Verify that:
+1. `node_modules/fabric` exists
+2. The workflow starts and reaches "serving on port 5000" or equivalent
+3. The canvas page at `/canvas` loads without Vite compilation errors
+
+No code changes needed — this is purely a package installation issue.
+
+
+---
+

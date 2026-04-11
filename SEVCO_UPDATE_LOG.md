@@ -26568,3 +26568,133 @@ import {
 
 ---
 
+## Task — canvas-fabric-install-and-fixes
+> Merged: 2026-04-11
+
+# Canvas: install fabric, fix load-project error, fix AI generation
+
+## Three problems to fix
+
+### Problem 1 — fabric package not installed (server FAILED)
+`package.json` lists `"fabric": "^6.9.1"` but `node_modules/fabric` does not exist.
+The post-merge setup script does not run `npm install`, so the package was never
+installed. The Vite frontend fails to compile `import { Canvas } from 'fabric'`,
+crashing the server.
+
+**Fix**: Install `fabric` using the package management tool, then restart the workflow.
+
+### Problem 2 — "Failed to load project" confusing error toast
+When a project with old tldraw JSON is loaded, `fc.loadFromJSON()` throws. The
+current handler shows an error toast with "it may have been created in an older
+version" and leaves the canvas blank. The canvas is already cleared at this point
+(correct), but the error toast is confusing.
+
+**Fix**: Catch the error silently. The project name + ID are still loaded (correct for
+future saves). Just clear the canvas and proceed — no toast needed since the blank
+canvas behavior is expected and correct.
+
+```typescript
+const handleLoadProject = useCallback(async (project: CanvasProject) => {
+  const fc = fabricRef.current;
+  if (!fc) return;
+  fc.clear();
+  if (project.tldraw_json) {
+    try {
+      await fc.loadFromJSON(project.tldraw_json as object);
+      fc.requestRenderAll();
+    } catch {
+      // Old tldraw JSON — canvas stays blank, project name/ID loaded for future saves
+      fc.requestRenderAll();
+    }
+  }
+  setCurrentProjectId(project.id);
+  setCurrentProjectName(project.name);
+  projectIdRef.current = project.id;
+  projectNameRef.current = project.name;
+}, []);
+```
+
+### Problem 3 — AI generation fails (`infsh` CLI not in PATH)
+The backend route uses `execFileAsync("infsh", [...])` but `infsh` is not in the
+shell PATH during the Express server process. The backend returns 500.
+
+**Fix**: Replace with a direct HTTP call to the inference.sh REST API (or OpenRouter),
+authenticated with the `OPENROUTER_API_KEY` secret.
+
+Use OpenRouter's image generation endpoint. OpenRouter supports models including
+`black-forest-labs/flux-dev` for image generation:
+
+```typescript
+// server/canvas-routes.ts — replace execFileAsync block with:
+
+const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
+if (!OPENROUTER_KEY) {
+  return res.status(503).json({ message: "AI image generation is not configured." });
+}
+
+const response = await fetch("https://openrouter.ai/api/v1/images/generations", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${OPENROUTER_KEY}`,
+    "Content-Type": "application/json",
+    "HTTP-Referer": "https://sevco.us",
+    "X-Title": "SEVCO Canvas",
+  },
+  body: JSON.stringify({
+    model: "black-forest-labs/flux-schnell",
+    prompt: prompt,
+    n: 1,
+    size: "1024x1024",
+  }),
+});
+
+if (!response.ok) {
+  const errText = await response.text();
+  console.error("[canvas] OpenRouter image generation error:", response.status, errText);
+  return res.status(500).json({ message: "AI image generation failed. Please try again." });
+}
+
+const data = await response.json();
+const imageUrl =
+  data?.data?.[0]?.url ??
+  data?.data?.[0]?.b64_json ??
+  null;
+
+if (!imageUrl) {
+  return res.status(500).json({ message: "AI generation returned no image." });
+}
+
+res.json({ imageUrl });
+```
+
+**Remove** the `execFile` and `execFileAsync` imports if no longer used elsewhere.
+Also remove the unused `child_process` / `util` imports from canvas-routes.ts.
+
+If the `b64_json` format is returned instead of a URL, prefix it:
+```typescript
+const imageUrl = data?.data?.[0]?.url ??
+  (data?.data?.[0]?.b64_json ? `data:image/png;base64,${data.data[0].b64_json}` : null);
+```
+
+---
+
+## Files changed
+
+- `server/canvas-routes.ts`
+  - Remove `execFile`, `execFileAsync`, `child_process`, `util` imports
+  - Replace `infsh` CLI block with direct `fetch` to OpenRouter images API
+- `client/src/pages/canvas-page.tsx`
+  - `handleLoadProject`: remove confusing error toast, silently clear + continue
+
+## Package installation (do first, before code changes)
+
+```bash
+npm install fabric
+```
+
+Use the package management tool to install `fabric@^6.9.1`.
+After installation restart the workflow to verify compilation succeeds.
+
+
+---
+

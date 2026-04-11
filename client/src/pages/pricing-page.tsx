@@ -40,7 +40,7 @@ interface SparkPack {
   sortOrder?: number;
 }
 
-const BASE_RATE = 0.08;
+const BASE_RATE = 0.008;
 
 function getDiscountPct(pack: SparkPack): number {
   return Math.round((1 - pack.price / 100 / (pack.sparks * BASE_RATE)) * 100);

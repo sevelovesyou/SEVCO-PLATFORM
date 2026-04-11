@@ -10,6 +10,12 @@ interface PageHeadProps {
   noIndex?: boolean;
   jsonLd?: Record<string, unknown>;
   slug?: string;
+  keywords?: string;
+  articleMeta?: {
+    publishedTime?: string;
+    modifiedTime?: string;
+    tags?: string[];
+  };
 }
 
 const SITE_NAME = "SEVCO";
@@ -28,6 +34,8 @@ export function PageHead({
   noIndex = false,
   jsonLd,
   slug,
+  keywords,
+  articleMeta,
 }: PageHeadProps) {
   const { data: platformSettings } = useQuery<Record<string, string>>({
     queryKey: ["/api/platform-settings"],
@@ -56,13 +64,17 @@ export function PageHead({
   const resolvedOgImage = seo?.ogImage || ogImage || DEFAULT_OG_IMAGE;
   const resolvedNoIndex = seo?.noIndex ?? noIndex;
   const resolvedJsonLd = seo?.jsonLd || jsonLd;
-  const resolvedKeywords = seo?.keywords;
+  const resolvedKeywords = seo?.keywords || keywords;
 
   const fullTitle = resolvedTitle.includes(SITE_NAME) ? resolvedTitle : `${resolvedTitle} | ${SITE_NAME}`;
   const resolvedOgUrl = ogUrl || (typeof window !== "undefined" ? window.location.href : BASE_URL);
 
   const geoBrandVoice = platformSettings?.["seo.geo.brandVoice"];
   const geoKeyFacts = platformSettings?.["seo.geo.keyFacts"];
+
+  const articlePublishedTime = articleMeta?.publishedTime;
+  const articleModifiedTime = articleMeta?.modifiedTime;
+  const articleTags = articleMeta?.tags;
 
   useEffect(() => {
     document.title = fullTitle;
@@ -102,6 +114,28 @@ export function PageHead({
     }
 
     setMeta('meta[name="robots"]', "content", resolvedNoIndex ? "noindex,nofollow" : "index,follow");
+
+    // og:article:* tags
+    if (articlePublishedTime) {
+      setMeta('meta[property="og:article:published_time"]', "content", articlePublishedTime);
+    } else {
+      document.querySelector('meta[property="og:article:published_time"]')?.remove();
+    }
+    if (articleModifiedTime) {
+      setMeta('meta[property="og:article:modified_time"]', "content", articleModifiedTime);
+    } else {
+      document.querySelector('meta[property="og:article:modified_time"]')?.remove();
+    }
+    // Remove old og:article:tag entries then re-add
+    document.querySelectorAll('meta[property="og:article:tag"]').forEach((el) => el.remove());
+    if (articleTags && articleTags.length > 0) {
+      articleTags.forEach((tag) => {
+        const el = document.createElement("meta");
+        el.setAttribute("property", "og:article:tag");
+        el.setAttribute("content", tag);
+        document.head.appendChild(el);
+      });
+    }
 
     let canonicalEl = document.getElementById(CANONICAL_LINK_ID) as HTMLLinkElement | null;
     if (!canonicalEl) {
@@ -169,8 +203,11 @@ export function PageHead({
       if (geoScript) geoScript.remove();
       const canonical = document.getElementById(CANONICAL_LINK_ID) as HTMLLinkElement | null;
       if (canonical) canonical.href = BASE_URL;
+      document.querySelector('meta[property="og:article:published_time"]')?.remove();
+      document.querySelector('meta[property="og:article:modified_time"]')?.remove();
+      document.querySelectorAll('meta[property="og:article:tag"]').forEach((e) => e.remove());
     };
-  }, [fullTitle, resolvedDescription, resolvedOgImage, ogType, resolvedOgUrl, resolvedNoIndex, resolvedJsonLd, resolvedKeywords, geoBrandVoice, geoKeyFacts]);
+  }, [fullTitle, resolvedDescription, resolvedOgImage, ogType, resolvedOgUrl, resolvedNoIndex, resolvedJsonLd, resolvedKeywords, geoBrandVoice, geoKeyFacts, articlePublishedTime, articleModifiedTime, articleTags]);
 
   return null;
 }

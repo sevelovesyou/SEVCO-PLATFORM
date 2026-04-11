@@ -1652,8 +1652,10 @@ export async function registerRoutes(
         const articles = await storage.getArticles();
         const publishedArticles = articles.filter((a) => a.status === "published");
         for (const a of publishedArticles) {
-          const lastmod = a.updatedAt ? new Date(a.updatedAt).toISOString().split("T")[0] : now;
-          urlEntries.push(`  <url>\n    <loc>${BASE_URL}/wiki/${a.slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>`);
+          const lastmod = a.updatedAt ? new Date(a.updatedAt).toISOString() : now;
+          const categorySlug = a.category?.slug;
+          const wikiPath = categorySlug ? `/wiki/${categorySlug}/${a.slug}` : `/wiki/${a.slug}`;
+          urlEntries.push(`  <url>\n    <loc>${BASE_URL}${wikiPath}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>`);
         }
       } catch {}
 

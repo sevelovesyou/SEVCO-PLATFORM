@@ -53,6 +53,7 @@ interface ArticleDetail extends Article {
     sharedKeywords: string[] | null;
   }>;
   category?: { name: string; slug: string } | null;
+  author?: { username: string; displayName: string | null } | null;
   sparkCount?: number;
   isSparkedByMe?: boolean;
 }
@@ -235,13 +236,35 @@ export default function ArticleView() {
         description={article.summary || `Read the article "${article.title}" on the SEVCO Wiki.`}
         ogType="article"
         ogUrl={`https://sevco.us/wiki/${article.category?.slug ? `${article.category.slug}/` : ""}${article.slug}`}
+        keywords={[
+          ...(article.category ? [article.category.name] : []),
+          ...(article.crosslinks ?? []).map((cl) => cl.article.title),
+        ].filter(Boolean).join(", ") || undefined}
+        articleMeta={{
+          publishedTime: article.createdAt ? new Date(article.createdAt).toISOString() : undefined,
+          modifiedTime: article.updatedAt ? new Date(article.updatedAt).toISOString() : undefined,
+          tags: [
+            ...(article.category ? [article.category.name] : []),
+            ...(article.crosslinks ?? []).map((cl) => cl.article.title),
+          ].filter(Boolean),
+        }}
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "Article",
           "headline": article.title,
           "description": article.summary || undefined,
           "url": `https://sevco.us/wiki/${article.category?.slug ? `${article.category.slug}/` : ""}${article.slug}`,
-          "dateModified": article.updatedAt,
+          "datePublished": article.createdAt ? new Date(article.createdAt).toISOString() : undefined,
+          "dateModified": article.updatedAt ? new Date(article.updatedAt).toISOString() : undefined,
+          "author": article.author
+            ? {
+                "@type": "Person",
+                "name": article.author.displayName || article.author.username,
+              }
+            : {
+                "@type": "Organization",
+                "name": "SEVCO",
+              },
           "publisher": {
             "@type": "Organization",
             "name": "SEVCO",
@@ -288,9 +311,9 @@ export default function ArticleView() {
               <Clock className="h-3 w-3" />
               {new Date(article.updatedAt).toLocaleDateString()}
             </span>
-            {(article as any).author?.username && (
+            {article.author?.username && (
               <span className="text-xs text-muted-foreground" data-testid="text-article-author">
-                by {(article as any).author.username}
+                by {article.author.username}
               </span>
             )}
             {user?.id !== article.authorId && (

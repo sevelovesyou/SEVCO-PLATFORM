@@ -172,6 +172,7 @@ function CanvasToolbar({
         borderColor: "#1e1e24",
       }}
       data-testid="canvas-left-toolbar"
+      onPointerDown={(e) => e.stopPropagation()}
     >
       <input
         ref={fileInputRef}
@@ -326,6 +327,7 @@ function CanvasStylePanel({
       className="absolute right-0 bottom-0 flex flex-col gap-3 p-3 z-[200] border-l overflow-y-auto"
       style={panelStyle}
       data-testid="canvas-style-panel"
+      onPointerDown={(e) => e.stopPropagation()}
     >
       <p className="text-[10px] text-center py-0.5 px-2 rounded" style={{ color: "#a5b4fc", background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)" }}>
         {styles.selectedCount} shape{styles.selectedCount !== 1 ? "s" : ""} selected
@@ -979,6 +981,97 @@ function CanvasTopBar({
   );
 }
 
+function ZoomControls() {
+  const editor = useEditor();
+  const [zoom, setZoom] = useState(() => Math.round(editor.getCamera().z * 100));
+
+  useEffect(() => {
+    const unsub = editor.store.listen(
+      () => setZoom(Math.round(editor.getCamera().z * 100)),
+      { scope: "session" }
+    );
+    return unsub;
+  }, [editor]);
+
+  return (
+    <div
+      className="absolute bottom-4 right-4 flex items-center gap-1 z-[200] rounded-lg px-1 py-1"
+      style={{
+        background: "#0d0d0f",
+        border: "1px solid #1e1e24",
+      }}
+      onPointerDown={(e) => e.stopPropagation()}
+      data-testid="canvas-zoom-controls"
+    >
+      <button
+        onClick={() => editor.zoomOut()}
+        title="Zoom out"
+        className="flex items-center justify-center rounded transition-colors"
+        style={{
+          width: 26,
+          height: 26,
+          color: "rgba(255,255,255,0.5)",
+          background: "transparent",
+          border: "none",
+          fontSize: 16,
+          fontWeight: 700,
+          cursor: "pointer",
+        }}
+        data-testid="button-canvas-zoom-out"
+      >
+        −
+      </button>
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 600,
+          color: "rgba(255,255,255,0.45)",
+          minWidth: 36,
+          textAlign: "center",
+        }}
+        data-testid="text-canvas-zoom-level"
+      >
+        {zoom}%
+      </span>
+      <button
+        onClick={() => editor.zoomIn()}
+        title="Zoom in"
+        className="flex items-center justify-center rounded transition-colors"
+        style={{
+          width: 26,
+          height: 26,
+          color: "rgba(255,255,255,0.5)",
+          background: "transparent",
+          border: "none",
+          fontSize: 16,
+          fontWeight: 700,
+          cursor: "pointer",
+        }}
+        data-testid="button-canvas-zoom-in"
+      >
+        +
+      </button>
+      <button
+        onClick={() => editor.zoomToFit()}
+        title="Fit to screen"
+        className="flex items-center justify-center rounded transition-colors"
+        style={{
+          width: 26,
+          height: 26,
+          color: "rgba(255,255,255,0.5)",
+          background: "transparent",
+          border: "none",
+          fontSize: 14,
+          cursor: "pointer",
+        }}
+        data-testid="button-canvas-zoom-fit"
+      >
+        ⊡
+      </button>
+    </div>
+  );
+}
+
 function CanvasInFront({
   projectName,
   isSaving,
@@ -1190,6 +1283,8 @@ function CanvasInFront({
         onContrastChange={onContrastChange}
       />
 
+      <ZoomControls />
+
       <LoadProjectDialog
         open={loadOpen}
         onClose={() => setLoadOpen(false)}
@@ -1197,6 +1292,33 @@ function CanvasInFront({
         onDelete={(id) => deleteMutation.mutate(id)}
       />
     </>
+  );
+}
+
+function DynamicBackground() {
+  const editor = useEditor();
+  const [cam, setCam] = useState(() => editor.getCamera());
+
+  useEffect(() => {
+    const unsub = editor.store.listen(() => setCam(editor.getCamera()), { scope: "session" });
+    return unsub;
+  }, [editor]);
+
+  const gridSize = 24 * cam.z;
+  const bx = (cam.x * cam.z) % gridSize;
+  const by = (cam.y * cam.z) % gridSize;
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        background: "#0d0d0f",
+        backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.18) 1.5px, transparent 1.5px)",
+        backgroundSize: `${gridSize}px ${gridSize}px`,
+        backgroundPosition: `${bx}px ${by}px`,
+      }}
+    />
   );
 }
 
@@ -1560,18 +1682,7 @@ export default function CanvasPage() {
         hideUi={true}
         shapeUtils={[CustomImageShapeUtil]}
         components={{
-          Background: () => (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "#0d0d0f",
-                backgroundImage:
-                  "radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)",
-                backgroundSize: "24px 24px",
-              }}
-            />
-          ),
+          Background: DynamicBackground,
           InFrontOfTheCanvas: () => (
             <CanvasInFront
               projectName={currentProjectName}

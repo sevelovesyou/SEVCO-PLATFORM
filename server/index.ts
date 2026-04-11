@@ -88,6 +88,8 @@ async function seedSparkPacks() {
 }
 
 async function runStartupMigrations() {
+  // Task #322 — Fix missing repost_of column in posts table
+  await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS repost_of integer REFERENCES posts(id) ON DELETE CASCADE;`);
   // Task #283 — Fix missing link_url column in services table
   await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS link_url text;`);
   // Task #260 — Fix missing parent_id column in categories table

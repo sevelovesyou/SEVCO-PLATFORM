@@ -513,7 +513,13 @@ const CanvasBarContext = createContext<CanvasBarCtx | null>(null);
 function CanvasBarOverlay() {
   const ctx = useContext(CanvasBarContext);
   if (!ctx) return null;
-  return <CanvasTopBar {...ctx} />;
+  return (
+    <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+      <div style={{ pointerEvents: "auto" }}>
+        <CanvasTopBar {...ctx} />
+      </div>
+    </div>
+  );
 }
 
 const CANVAS_COMPONENTS = {
@@ -801,10 +807,10 @@ export default function CanvasPage() {
   return (
     <CanvasBarContext.Provider value={barCtx}>
       <div
-        className="fixed inset-0"
+        className="fixed left-0 right-0 bottom-0"
         data-color-scheme="dark"
         data-testid="canvas-page"
-        style={{ background: "#0d0d0f" }}
+        style={{ top: "3rem", background: "#0d0d0f" }}
       >
         <style>{`
           .tldraw__editor { --color-background: #0d0d0f; }

@@ -24794,3 +24794,110 @@ export function ImageLightbox({ src, onClose }: { src: string | null; onClose: (
 
 ---
 
+## Task — fix-canvas-bg-zoom-logo
+> Merged: 2026-04-11
+
+# Fix Canvas: flickering bg/toolbar + persistent logo
+
+## Root Cause 1 — DynamicBackground and ZoomControls flicker on click/drag
+
+Both components use the wrong reactive pattern:
+```tsx
+// WRONG — fires on every pointer event, causes rapid React re-renders
+const [cam, setCam] = useState(() => editor.getCamera());
+useEffect(() => {
+  const unsub = editor.store.listen(() => setCam(editor.getCamera()), { scope: "session" });
+  return unsub;
+}, [editor]);
+```
+`store.listen` fires for *every* session-scope change (pointer move, camera, tool state).
+On each drag frame, React re-renders `DynamicBackground` and `ZoomControls`, causing the
+background and overlay to visually flash and momentarily disappear.
+
+### Fix — use `useValue` (tldraw's own reactive primitive)
+
+Replace `useState` + `useEffect` + `store.listen` with `useValue` in both components:
+
+```tsx
+import { useEditor, useValue } from "tldraw";
+
+function DynamicBackground() {
+  const editor = useEditor();
+  const cam = useValue("camera", () => editor.getCamera(), [editor]);
+
+  const gridSize = 24 * cam.z;
+  const bx = (cam.x * cam.z) % gridSize;
+  const by = (cam.y * cam.z) % gridSize;
+
+  return (
+    <div style={{
+      position: "absolute", inset: 0,
+      background: "#0d0d0f",
+      backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.18) 1.5px, transparent 1.5px)",
+      backgroundSize: `${gridSize}px ${gridSize}px`,
+      backgroundPosition: `${bx}px ${by}px`,
+    }} />
+  );
+}
+
+function ZoomControls() {
+  const editor = useEditor();
+  const zoom = useValue("zoom", () => Math.round(editor.getCamera().z * 100), [editor]);
+
+  return (
+    <div ... onPointerDown={(e) => e.stopPropagation()} data-testid="canvas-zoom-controls">
+      <button onClick={() => editor.zoomOut()} ...>−</button>
+      <span ...>{zoom}%</span>
+      <button onClick={() => editor.zoomIn()} ...>+</button>
+      <button onClick={() => editor.zoomToFit()} ...>⊡</button>
+    </div>
+  );
+}
+```
+
+`useValue` hooks into tldraw's signal system — it re-renders only when the specific
+derived value changes, is de-duplicated, and does NOT cause React re-renders on
+unrelated pointer events.
+
+---
+
+## Root Cause 2 — SEVCO logo still appears on every load
+
+`<Tldraw>` without `persistenceKey` auto-saves/restores its state to `localStorage`
+using a key derived from `document.location`. The `handleMount` shape-deletion runs
+immediately on mount, but tldraw may apply its localStorage snapshot *asynchronously*
+via signals/reactions *after* `onMount` completes — restoring the saved logo shape.
+
+### Fix — session-unique persistenceKey
+
+Generate a fresh `localStorage` namespace on every page visit so tldraw has nothing
+to restore:
+
+```tsx
+// In CanvasPage — generated once per component mount
+const persistenceKey = useRef(`sevco-canvas-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
+// Pass to Tldraw
+<Tldraw
+  persistenceKey={persistenceKey.current}
+  onMount={handleMount}
+  ...
+/>
+```
+
+This guarantees each visit starts with an empty tldraw store. Our own
+save/load API handles intentional project persistence. The `handleMount`
+shape-clearing can stay as a belt-and-suspenders defense.
+
+---
+
+## Files
+- `client/src/pages/canvas-page.tsx`
+  - `DynamicBackground`: replace `useState` + `useEffect/store.listen` → `useValue`
+  - `ZoomControls`: same replacement
+  - `CanvasPage`: add `persistenceKey` ref, pass to `<Tldraw>`
+  - Add `useValue` to tldraw imports
+
+
+---
+

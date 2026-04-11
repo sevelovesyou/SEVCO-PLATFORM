@@ -802,9 +802,13 @@ function AppShell() {
             style={{ paddingBottom: activePlaylist ? "220px" : undefined }}
           >
             <div className="flex-1">
-              <AnimatedPage key={location}>
+              {location === '/canvas' ? (
                 <Router />
-              </AnimatedPage>
+              ) : (
+                <AnimatedPage key={location}>
+                  <Router />
+                </AnimatedPage>
+              )}
             </div>
             <PlatformFooter />
           </main>

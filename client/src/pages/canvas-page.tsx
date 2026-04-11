@@ -319,12 +319,7 @@ function CanvasTopBar({
 
   return (
     <div
-      className="flex items-center gap-2 px-3 border-b flex-shrink-0"
-      style={{
-        height: "44px",
-        background: "#0d0d0f",
-        borderColor: "#1e1e24",
-      }}
+      className="h-full flex items-center gap-2 px-3"
     >
       <input
         ref={fileInputRef}
@@ -543,30 +538,20 @@ export default function CanvasPage() {
     [toast, createMutation, updateMutation]
   );
 
-  const handleMount = useCallback(
-    (editor: Editor) => {
-      editorRef.current = editor;
+  const doSaveRef = useRef(doSave);
+  doSaveRef.current = doSave;
 
-      const clearAll = () => {
-        const ids = Array.from(editor.getCurrentPageShapeIds());
-        if (ids.length > 0) editor.deleteShapes(ids);
-      };
-      clearAll();
-      requestAnimationFrame(() => {
-        clearAll();
-        requestAnimationFrame(() => clearAll());
-      });
+  const handleMount = useCallback((editor: Editor) => {
+    editorRef.current = editor;
 
-      editor.store.listen(
-        () => {
-          if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
-          autoSaveRef.current = setTimeout(() => doSave(false), 5000);
-        },
-        { scope: "document" }
-      );
-    },
-    [doSave]
-  );
+    editor.store.listen(
+      () => {
+        if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
+        autoSaveRef.current = setTimeout(() => doSaveRef.current(false), 5000);
+      },
+      { scope: "document" }
+    );
+  }, []);
 
   const handleNew = useCallback(() => {
     setCurrentProjectId(null);
@@ -772,32 +757,31 @@ export default function CanvasPage() {
   }, [currentProjectName]);
 
   return (
-    <div
-      className="fixed left-0 right-0 bottom-0 flex flex-col"
-      style={{ top: "3rem", background: "#0d0d0f" }}
-      data-color-scheme="dark"
-      data-testid="canvas-page"
-    >
-      <style>{`
-        .tldraw__editor { --color-background: #0d0d0f; }
-        .tl-background { background: #0d0d0f !important; }
-      `}</style>
+    <>
+      <div
+        className="fixed left-0 right-0 z-[60] border-b flex-shrink-0"
+        style={{ top: "3rem", height: "44px", background: "#0d0d0f", borderColor: "#1e1e24" }}
+        data-testid="canvas-page"
+      >
+        <CanvasTopBar
+          projectName={currentProjectName}
+          isSaving={isSaving}
+          onNew={handleNew}
+          onSave={() => doSave(true)}
+          onLoad={() => setLoadOpen(true)}
+          onRename={handleRename}
+          onAiGenerate={handleAiGenerate}
+          onImageUpload={handleImageUpload}
+          onExportPng={handleExportPng}
+          onExportSvg={handleExportSvg}
+          onExportJson={handleExportJson}
+        />
+      </div>
 
-      <CanvasTopBar
-        projectName={currentProjectName}
-        isSaving={isSaving}
-        onNew={handleNew}
-        onSave={() => doSave(true)}
-        onLoad={() => setLoadOpen(true)}
-        onRename={handleRename}
-        onAiGenerate={handleAiGenerate}
-        onImageUpload={handleImageUpload}
-        onExportPng={handleExportPng}
-        onExportSvg={handleExportSvg}
-        onExportJson={handleExportJson}
-      />
-
-      <div className="flex-1 relative">
+      <div
+        className="fixed left-0 right-0 bottom-0"
+        style={{ top: "calc(3rem + 44px)" }}
+      >
         <Tldraw
           persistenceKey={persistenceKey.current}
           shapeUtils={CUSTOM_SHAPE_UTILS}
@@ -812,6 +796,6 @@ export default function CanvasPage() {
         onLoad={handleLoadProject}
         onDelete={(id) => deleteMutation.mutate(id)}
       />
-    </div>
+    </>
   );
 }

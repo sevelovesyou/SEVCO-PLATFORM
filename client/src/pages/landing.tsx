@@ -915,9 +915,9 @@ export default function Landing() {
                       return platformSectionsData.map((section) => {
                         const DynIcon = getLucideIcon(section.iconName);
                         return (
-                          <Link key={section.path} href={section.path}>
+                          <Link key={section.path} href={section.path} className="block h-full">
                             <div
-                              className="group relative rounded-xl border bg-gradient-to-br p-5 cursor-pointer hover:shadow-md hover:bg-white/[0.03] transition-all duration-200 border-border/30 from-muted/40 to-muted/10"
+                              className="group relative rounded-xl border bg-gradient-to-br p-5 cursor-pointer hover:shadow-md hover:bg-white/[0.03] transition-all duration-200 border-border/30 from-muted/40 to-muted/10 h-full"
                               data-testid={`card-platform-${section.label.toLowerCase()}`}
                               style={accentStyle ? { borderColor: accentStyle.borderColor } : undefined}
                             >
@@ -939,9 +939,9 @@ export default function Landing() {
                     }
 
                     return PLATFORM_SECTIONS.map((section) => (
-                      <Link key={section.path} href={section.path}>
+                      <Link key={section.path} href={section.path} className="block h-full">
                         <div
-                          className={`group relative rounded-xl border bg-gradient-to-br p-5 cursor-pointer hover:shadow-md hover:bg-white/[0.03] transition-all duration-200 ${section.accent}`}
+                          className={`group relative rounded-xl border bg-gradient-to-br p-5 cursor-pointer hover:shadow-md hover:bg-white/[0.03] transition-all duration-200 h-full ${section.accent}`}
                           data-testid={`card-platform-${section.label.toLowerCase()}`}
                           style={accentStyle ? { borderColor: accentStyle.borderColor } : undefined}
                         >

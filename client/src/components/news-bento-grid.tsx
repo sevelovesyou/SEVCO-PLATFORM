@@ -41,39 +41,39 @@ export function NewsBentoGrid({ articles, accentColor, categoryLabel, onArticleC
           )}
 
           {card2 && (
-            <div className="md:col-span-1 lg:col-span-1">
+            <div className="md:col-span-1 lg:col-span-1 h-full">
               <NewsArticleCard article={card2} variant="medium" accentColor={accentColor} categoryLabel={categoryLabel} onCardClick={cardClick(card2)} />
             </div>
           )}
           {card3 && (
-            <div className="md:col-span-1 lg:col-span-1">
+            <div className="md:col-span-1 lg:col-span-1 h-full">
               <NewsArticleCard article={card3} variant="medium" accentColor={accentColor} categoryLabel={categoryLabel} onCardClick={cardClick(card3)} />
             </div>
           )}
 
           {card4 && (
-            <div className="md:col-span-1 lg:col-span-1">
+            <div className="md:col-span-1 lg:col-span-1 h-full">
               <NewsArticleCard article={card4} variant="small" accentColor={accentColor} categoryLabel={categoryLabel} onCardClick={cardClick(card4)} />
             </div>
           )}
           {card5 && (
-            <div className="md:col-span-1 lg:col-span-1">
+            <div className="md:col-span-1 lg:col-span-1 h-full">
               <NewsArticleCard article={card5} variant="small" accentColor={accentColor} categoryLabel={categoryLabel} onCardClick={cardClick(card5)} />
             </div>
           )}
 
           {card6 && (
-            <div className="md:col-span-1 lg:col-span-1">
+            <div className="md:col-span-1 lg:col-span-1 h-full">
               <NewsArticleCard article={card6} variant="small" accentColor={accentColor} categoryLabel={categoryLabel} onCardClick={cardClick(card6)} />
             </div>
           )}
           {card7 && (
-            <div className="md:col-span-1 lg:col-span-1">
+            <div className="md:col-span-1 lg:col-span-1 h-full">
               <NewsArticleCard article={card7} variant="small" accentColor={accentColor} categoryLabel={categoryLabel} onCardClick={cardClick(card7)} />
             </div>
           )}
           {card8 && (
-            <div className="md:col-span-1 lg:col-span-1">
+            <div className="md:col-span-1 lg:col-span-1 h-full">
               <NewsArticleCard article={card8} variant="small" accentColor={accentColor} categoryLabel={categoryLabel} onCardClick={cardClick(card8)} />
             </div>
           )}

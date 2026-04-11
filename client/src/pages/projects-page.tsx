@@ -77,7 +77,7 @@ function ProjectCard({ project }: { project: Project }) {
   const cardContent = (
     <div
       data-testid={`card-project-${project.id}`}
-      className="group border border-white/8 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/15 hover:shadow-md transition-all duration-200 cursor-pointer p-5 flex flex-col gap-3"
+      className="group border border-white/8 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/15 hover:shadow-md transition-all duration-200 cursor-pointer p-5 flex flex-col gap-3 h-full"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="h-10 w-10 rounded-lg bg-muted/50 flex items-center justify-center shrink-0 overflow-hidden">
@@ -93,7 +93,7 @@ function ProjectCard({ project }: { project: Project }) {
         </div>
         <StatusBadge status={project.status} />
       </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h3 className="font-semibold text-base group-hover:text-primary transition-colors truncate">
             {project.name}
           </h3>
@@ -113,12 +113,12 @@ function ProjectCard({ project }: { project: Project }) {
   );
   if (isExternal) {
     return (
-      <a href={href} target="_blank" rel="noopener noreferrer">
+      <a href={href} target="_blank" rel="noopener noreferrer" className="block h-full">
         {cardContent}
       </a>
     );
   }
-  return <Link href={href}>{cardContent}</Link>;
+  return <Link href={href} className="block h-full">{cardContent}</Link>;
 }
 
 function ProjectCardSkeleton() {
@@ -296,7 +296,7 @@ export default function ProjectsPage() {
         ) : (
           <StaggerGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map((project) => (
-              <StaggerItem key={project.id}>
+              <StaggerItem key={project.id} className="h-full">
                 <ProjectCard project={project} />
               </StaggerItem>
             ))}

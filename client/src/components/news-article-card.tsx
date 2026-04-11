@@ -538,7 +538,7 @@ export function NewsArticleCard({ article, variant = "medium", accentColor, cate
     <>
       <div
         data-testid={`card-news-${variant}-${encodeURIComponent(article.link).slice(0, 30)}`}
-        className="group relative rounded-xl border bg-card overflow-hidden hover:shadow-lg hover:scale-[1.01] transition-all duration-200 flex flex-col cursor-pointer"
+        className="group relative rounded-xl border bg-card overflow-hidden hover:shadow-lg hover:scale-[1.01] transition-all duration-200 flex flex-col cursor-pointer h-full"
         onClick={(e) => { if (onCardClick) { e.preventDefault(); onCardClick(); } }}
       >
         <div className={`relative overflow-hidden ${imageHeightClass}`}>

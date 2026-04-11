@@ -1137,7 +1137,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProjects(): Promise<Project[]> {
-    return db.select().from(projects).orderBy(projects.name);
+    return db.select().from(projects).orderBy(projects.displayOrder, projects.name);
   }
 
   async getProjectById(id: number): Promise<Project | undefined> {

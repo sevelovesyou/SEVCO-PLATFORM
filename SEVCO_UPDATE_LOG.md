@@ -24603,3 +24603,88 @@ already exists, and unblocks post creation immediately.
 
 ---
 
+## Task — fix-canvas-pan-zoom-bg
+> Merged: 2026-04-11
+
+# Fix Canvas: disappearing menu, pan/zoom controls, and scrolling background
+
+## Issues
+
+### 1. Menus disappear on click
+The `CanvasToolbar` and `CanvasStylePanel` are rendered inside tldraw's
+`InFrontOfTheCanvas` slot but don't stop pointer events from propagating
+to tldraw. Any click on a toolbar button or style panel option also reaches
+tldraw, which resets its state (clears selection, cancels active tool) and
+causes the style panel to instantly hide.
+
+**Fix**: Add `onPointerDown={(e) => e.stopPropagation()}` to the outer
+container div of both `CanvasToolbar` and `CanvasStylePanel`.
+
+### 2. Can't pan/zoom — no controls
+The tldraw navigation zone is hidden (`[data-testid="navigation-zone"]
+{ display: none !important; }`). The hand tool exists in the toolbar but:
+- Users don't know about Space+drag / middle-mouse pan
+- There are no visible zoom controls
+
+**Fix**: Add a compact **ZoomControls** widget rendered in
+`CanvasInFront`, positioned bottom-right (above where the style panel
+ends), containing:
+- `−` zoom out (`editor.zoomOut()`)
+- Zoom % display (`Math.round(editor.getCamera().z * 100) + "%"`)
+- `+` zoom in (`editor.zoomIn()`)
+- `⊡` fit-to-screen (`editor.zoomToFit()`)
+
+Track zoom level reactively by listening to the tldraw store in a
+`useEffect` — same pattern as `syncStylesFromEditor`.
+
+### 3. Background doesn't move when panning
+The current `Background` component is:
+```tsx
+<div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(...)", backgroundSize: "24px 24px" }} />
+```
+This is completely static — the dot grid never moves, making it
+impossible to tell the canvas is panning.
+
+**Fix**: Replace with a `DynamicBackground` component that:
+1. Calls `useEditor()` to get the editor instance
+2. Tracks `camera = editor.getCamera()` reactively via `editor.store.listen`
+3. Computes `gridSize = 24 * camera.z` (grid size in screen pixels)
+4. Computes `bgX = camera.x * camera.z` and `bgY = camera.y * camera.z`
+5. Applies those as `backgroundSize` and `backgroundPosition`
+
+Also increase dot opacity from 0.06 → 0.18 and dot size from 1px → 1.5px
+so movement is clearly visible.
+
+```tsx
+function DynamicBackground() {
+  const editor = useEditor();
+  const [cam, setCam] = useState(() => editor.getCamera());
+  useEffect(() => {
+    const unsub = editor.store.listen(() => setCam(editor.getCamera()), { scope: "session" });
+    return unsub;
+  }, [editor]);
+  const gridSize = 24 * cam.z;
+  const bx = (cam.x * cam.z) % gridSize;
+  const by = (cam.y * cam.z) % gridSize;
+  return (
+    <div style={{
+      position: "absolute", inset: 0,
+      background: "#0d0d0f",
+      backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.18) 1.5px, transparent 1.5px)",
+      backgroundSize: `${gridSize}px ${gridSize}px`,
+      backgroundPosition: `${bx}px ${by}px`,
+    }} />
+  );
+}
+```
+
+## Files
+- `client/src/pages/canvas-page.tsx`
+  - `CanvasToolbar`: add `onPointerDown` stopPropagation to container
+  - `CanvasStylePanel`: add `onPointerDown` stopPropagation to container
+  - `CanvasInFront` / `CanvasPage`: add `ZoomControls` widget
+  - `CanvasPage`: replace static `Background` with `DynamicBackground`
+
+
+---
+

@@ -25151,3 +25151,96 @@ WHERE tldraw_json::text LIKE '%bookmark%'
 
 ---
 
+## Task — fix-canvas-pointer-events-and-nav
+> Merged: 2026-04-11
+
+# Fix Canvas: menus disappear on mouse move + nav bar overlap
+
+## Bug 1 — Menus disappear on mouse move (pointer events)
+
+### Root Cause
+`CanvasBarOverlay` (the `InFrontOfTheCanvas` slot component) renders `<CanvasTopBar>`
+without any pointer-events containment. tldraw's `InFrontOfTheCanvas` container
+fills the entire canvas area (100% × 100%) and the default is `pointer-events: auto`.
+
+Our `CanvasTopBar` is only 44px tall. Everything below it (the large transparent
+area of the overlay) silently captures every `pointermove` event across the
+whole canvas. tldraw's native UI panels (bottom toolbar, right style panel)
+use CSS hover to show/hide — since they receive no `pointermove` they think
+the mouse is not over them and hide.
+
+### Fix — pointer-events: none wrapper in CanvasBarOverlay
+
+In `client/src/pages/canvas-page.tsx`, change `CanvasBarOverlay` from:
+
+```tsx
+function CanvasBarOverlay() {
+  const ctx = useContext(CanvasBarContext);
+  if (!ctx) return null;
+  return <CanvasTopBar {...ctx} />;
+}
+```
+
+To:
+
+```tsx
+function CanvasBarOverlay() {
+  const ctx = useContext(CanvasBarContext);
+  if (!ctx) return null;
+  return (
+    // Fill the canvas but pass all pointer events through to tldraw
+    <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+      {/* Only the actual top bar captures pointer events */}
+      <div style={{ pointerEvents: "auto" }}>
+        <CanvasTopBar {...ctx} />
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## Bug 2 — Canvas overlaps the platform header
+
+### Root Cause
+`CanvasPage` returns:
+```tsx
+<div className="fixed inset-0" data-color-scheme="dark" style={{ background: "#0d0d0f" }}>
+```
+
+`fixed inset-0` = `top: 0; right: 0; bottom: 0; left: 0` — this starts at the very
+top of the viewport, directly under the browser chrome, covering the platform
+header entirely. The `InFrontOfTheCanvas` overlay (`z-[300]`) is above the
+platform header (`z-50`), so the SEVCO nav bar is invisible.
+
+The platform header is `fixed top-0 z-50` with height matching `--nav-spacer: 3rem`
+(as defined in `index.css`: `.nav-spacer { height: 3rem; }`).
+
+### Fix — start canvas at top: 3rem
+
+Change the canvas container from `fixed inset-0` to start below the nav:
+
+```tsx
+<div
+  className="fixed left-0 right-0 bottom-0"
+  style={{ top: "3rem", background: "#0d0d0f" }}
+  data-color-scheme="dark"
+>
+```
+
+The `CanvasTopBar` (`absolute top-0` within tldraw) will now appear
+immediately below the platform header rather than covering it.
+
+---
+
+## Files
+- `client/src/pages/canvas-page.tsx`
+  - `CanvasBarOverlay`: wrap content in `pointer-events: none` div with nested
+    `pointer-events: auto` div around `<CanvasTopBar>`
+  - `CanvasPage` return: change `fixed inset-0` → `fixed left-0 right-0 bottom-0`
+    with `top: "3rem"` inline style
+
+
+---
+

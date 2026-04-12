@@ -23,8 +23,8 @@ export function CrosslinkPanel({ relatedArticles }: CrosslinkPanelProps) {
         <h3 className="text-sm font-semibold">Related Articles</h3>
         <Badge variant="secondary" className="text-[10px]">Auto-generated</Badge>
       </div>
-      <div className="space-y-2">
-        {relatedArticles.map(({ article, relevanceScore, sharedKeywords }) => (
+      <div className="space-y-3">
+        {relatedArticles.slice(0, 5).map(({ article, relevanceScore, sharedKeywords }) => (
           <Link key={article.id} href={articleUrl(article)}>
             <Card className="p-3 hover-elevate active-elevate-2 cursor-pointer overflow-visible">
               <div className="flex items-center justify-between gap-2">

@@ -26988,3 +26988,23 @@ No code changes needed — this is purely a package installation issue.
 
 ---
 
+## Task — wiki-related-articles-limit-spacing
+> Merged: 2026-04-12
+
+# Wiki Related Articles: Limit to 5 + Fix Spacing
+
+## What & Why
+The Related Articles section at the bottom of each wiki article page currently shows all available cross-linked articles (often 9+) with tight 8px spacing between cards. The user wants it capped at 5 and the gap adjusted to feel consistent with the rest of the platform.
+
+## Done looks like
+- At most 5 related articles are shown per article page (top 5 by relevance score)
+- The gap between cards is slightly larger, consistent with other card lists on the platform
+
+## Files
+- `client/src/components/crosslink-panel.tsx`
+  - Add `.slice(0, 5)` to the `relatedArticles` array before mapping
+  - Change `space-y-2` → `space-y-3` on the list wrapper `div`
+
+
+---
+

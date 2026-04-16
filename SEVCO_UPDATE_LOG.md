@@ -27931,3 +27931,53 @@ The `/command/settings` page has two UX issues that make it feel unfinished:
 
 ---
 
+## Task — shader-studio-sites
+> Merged: 2026-04-16
+
+# Shader Studio: SEVCO Sites integration
+
+## What & Why
+Once the platform-side Shader Studio ships, the user wants SEVCO Sites (user-built websites on `*.sev.cx`) to also be able to use the shader library. Today, sites are server-side rendered with `script-src 'none'`, so a WebGL shader cannot run inside a published site without relaxing CSP. We need a safe way to let site builders pick a shader and have it render in the published output.
+
+## Done looks like
+- The site builder at `/sites/builder/:id` has a new **"Background"** control on the site theme panel:
+  - *None* (today's solid `bgColor`)
+  - *Image URL* (today's solid colour + image, unchanged)
+  - *Shader* — a dropdown of published shader presets pulled from the Shader Studio. Picking one stores `{ type: 'shader', presetId }` in `themeJson.background`.
+- A new block type **Shader Hero** in the block picker:
+  - Uses a chosen preset plus an optional heading / subheading / CTA overlay.
+  - Stored under `contentJson.blocks` as `{ type: 'shader-hero', presetId, heading, subheading, cta }`.
+- Published sites render shaders in the browser. Because the sites renderer currently forbids scripts, a per-site **"Enable dynamic backgrounds"** opt-in is added: sites that opt in receive a CSP that allows a single hashed / nonce-approved inline bootstrap plus one JS bundle served from the same origin, scoped to shader rendering only. Sites that do not opt in continue to receive the strict CSP and fall back to a static mesh-gradient PNG baked from the preset at save time.
+- The fallback PNG is generated server-side (e.g. with a headless canvas or pre-rendered swatch) whenever a preset is saved, so the Shader preview always has something to show even when scripts are disabled.
+- Existing published sites with no shader usage are untouched — the strict CSP remains the default.
+
+## Out of scope
+- Editing shader preset parameters inside the site builder; creators pick from presets curated in the platform Shader Studio.
+- Video export of shaders.
+- Live per-visitor mouse input on published sites (v1 uses passive animated shaders only — `uMouse` is driven by a simple auto-orbit to avoid requiring input listeners on published pages).
+
+## Tasks
+1. **Extend `themeJson` and block schemas.** Add an optional `background: { type: 'color' | 'image' | 'shader', value: ... }` field and a new `shader-hero` block type. Update the Drizzle types and the zod validators.
+
+2. **Wire the site builder UI.** Add the background type selector and preset dropdown to the theme panel; add a "Shader Hero" block to the block palette.
+
+3. **Render shaders on published sites (opt-in).** Add a per-site `allowDynamicBackgrounds` boolean. When true, the sites renderer emits a nonce-based CSP and includes a tiny runtime bundle (`/public/sites-shader-runtime.js`) that mounts the shader in the page. When false, emit an `<img>` with the baked fallback image.
+
+4. **Generate fallback images at save time.** When a preset is saved in Shader Studio (or on demand), render a static fallback PNG for it and store the URL on the preset record. The sites renderer uses this for the no-script path and for social OG images.
+
+5. **Clear documentation and confirmation.** In the site builder, when an owner enables "Dynamic backgrounds", show a short explainer that a scoped JS bundle will be included. Site owners must explicitly opt in per site.
+
+6. **Migration & safety.** Audit `server/sites-middleware.ts` so the CSP relaxation is strictly opt-in per site and only whitelists the shader runtime bundle (not arbitrary scripts).
+
+## Relevant files
+- `client/src/pages/sites-builder.tsx`
+- `client/src/pages/sites-page.tsx`
+- `server/sites-routes.ts`
+- `server/sites-middleware.ts`
+- `server/sites-renderer.ts`
+- `shared/schema.ts`
+- `server/storage.ts`
+
+
+---
+

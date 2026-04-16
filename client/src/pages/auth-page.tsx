@@ -212,8 +212,7 @@ export default function AuthPage() {
             </div>
             <img src={wordmarkBlack} alt="SEVCO" className="h-10 w-auto object-contain mx-auto dark:invert" />
             <p className="text-muted-foreground text-lg">
-              A collaborative knowledge base for your organization. Create, edit, and review articles
-              with your team.
+              The Inspiration Company
             </p>
           </div>
         </div>
@@ -462,8 +461,7 @@ export default function AuthPage() {
           </div>
           <img src={wordmarkBlack} alt="SEVCO" className="h-10 w-auto object-contain mx-auto dark:invert" />
           <p className="text-muted-foreground text-lg">
-            A collaborative knowledge base for your organization. Create, edit, and review articles
-            with your team.
+            The Inspiration Company
           </p>
         </div>
       </div>

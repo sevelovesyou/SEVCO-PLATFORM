@@ -27049,3 +27049,125 @@ In the Brand Assets / SEO section, add a "Global Meta Description" text input (o
 
 ---
 
+## Task — service-category-landing-pages
+> Merged: 2026-04-16
+
+# Service Category Landing Pages (SEO/GEO)
+
+## What & Why
+Each SEVCO service category (Creative, Technology, Marketing, Teams, Infrastructure, Security) needs its own dedicated marketing/landing page at `/services/{category}`. Right now `/services` shows everything in one long scroll — visitors arriving from category-specific searches have no focused landing point and face choice overload.
+
+These pages need to rank for category intent queries ("brand identity design agency", "platform development services", etc.) and earn GEO (AI overview) real estate through semantic depth + FAQ coverage. The All Services page also needs category shortcut cards. The Services nav dropdown and mobile nav need updating to link directly to category pages instead of individual services.
+
+## Done Looks Like
+
+### New Routes (6 pages)
+- `/services/creative` → Creative services (brand identity, UI/UX, creative direction)
+- `/services/technology` → Technology services (platform dev, API, tech consulting)
+- `/services/marketing` → Marketing services (content, social, growth)
+- `/services/teams` → Teams/Support services (maps to DB category "Support")
+- `/services/infrastructure` → Infrastructure services (hosting, domains, VPS)
+- `/services/security` → Security services (audit, compliance — gracefully empty if no DB services yet)
+
+### Page Structure (per category — single shared component, config-driven)
+Each page contains these sections in order:
+1. **Hero** — Category icon cluster, category-specific headline + subheadline, primary "Work With Us" CTA (`/contact`) and secondary "See All Services" link (`/services`). Background uses the category's accent color at low opacity.
+2. **Social Proof strip** — Reuse the existing social proof badge row from the All Services page.
+3. **Services Grid** — Dynamically fetched from `/api/services` filtered by category. Each service card links to `/services/{slug}` (the existing service detail page). If zero services, show a "Coming Soon / Enquire" placeholder.
+4. **Why SEVCO for [Category]** — 3 icon + headline + copy value-prop cards. Category-specific copy (not generic).
+5. **Use Cases** — 2–3 "Who this is for" audience cards.
+6. **FAQ** — 4–6 Q&A pairs per category, rendered as Accordion. Included in JSON-LD FAQPage structured data.
+7. **CTA Banner** — Full-width "Ready to get started with [Category] services?" with a "Contact Us" button and a "← Back to All Services" link.
+
+### SEO/GEO per page
+- `<PageHead>` with category-specific `title`, `description`, `keywords`, `ogUrl`, `slug` (e.g., `slug="services-creative"`)
+- JSON-LD: `@type: "Service"` for the category, `@type: "ItemList"` for individual services, `@type: "FAQPage"` for the accordion. Inject via `jsonLd` prop of `<PageHead>`.
+- Canonical URL set per page.
+
+### All Services page updates (`services-listing.tsx`)
+- Add a **"Browse by Category"** section immediately after the hero (before Featured Services). Display 6 cards in a responsive grid — one per category. Each card shows the category icon, name, tagline, and arrow, linking to `/services/{category-slug}`.
+- All existing content (Featured Services, full category sections) remains below unchanged.
+
+### Services dropdown redesign (`platform-header.tsx` — `ServicesDropdown`)
+Currently the dropdown shows individual services (up to 3 per category) grouped by category name. Replace this with a clean **category-link grid** that links directly to the new landing pages:
+
+**Desktop dropdown** (replace inner content):
+- 2×3 or 3×2 grid of category cards inside the panel (instead of individual service rows)
+- Each card: category icon + category name (bold) + one-line tagline + arrow
+- Links to `/services/{category-slug}` (e.g., `/services/creative`)
+- Keep the "View all services → `/services`" footer link unchanged
+
+**Mobile nav** (`mobileServiceCategories` section, around line 1486):
+- Change the `href` from `/services?category={cat}` to the new category page URL (e.g., `/services/creative`), using the same slug-mapping as the category config
+- Keep "All Services" link to `/services` and "Hosting" link to `/hosting` unchanged
+
+### Category config constant (in `service-category-page.tsx`)
+A `CATEGORY_CONFIG` map keyed by URL slug (`creative`, `technology`, etc.) containing:
+- `slug` — URL slug
+- `dbCategory` — actual DB category value (e.g., "Support" for Teams, "Creative" for Creative)
+- `label` — Display name (e.g., "Teams")
+- `tagline` — One-line category summary (used in dropdown cards + page hero)
+- `headline` — Hero H1
+- `subheadline` — Hero paragraph
+- `icon` — Lucide icon name (matching existing `SERVICE_ICON_MAP` in the header)
+- `accentColor` — Tailwind color classes matching existing `CATEGORY_STYLES`
+- `valueProps` — Array of 3 `{icon, title, body}` objects
+- `useCases` — Array of 2–3 `{label, description}` objects
+- `faqs` — Array of `{question, answer}` for accordion + JSON-LD
+
+## Category Copy Specs
+
+### Creative
+- **Tagline**: "Brand identity, UI/UX, and creative direction"
+- **Headline**: "Design That Makes People Feel Something"
+- **Subheadline**: "Brand identity, UI/UX, and creative direction built for creators, studios, and companies that refuse to blend in."
+- **FAQs**: What's included in brand identity? How long does a UI/UX project take? Do you work with indie artists? Can I see your portfolio?
+
+### Technology
+- **Tagline**: "Platform development, APIs, and technical consulting"
+- **Headline**: "Engineering That Ships and Scales"
+- **Subheadline**: "Platform development, API integrations, and technical consulting for products that need to move fast without breaking things."
+- **FAQs**: What tech stack do you use? Do you take over existing codebases? What's the difference between consulting and development? How do you handle IP and code ownership?
+
+### Marketing
+- **Tagline**: "Content strategy, social media, and growth consulting"
+- **Headline**: "Growth Built on Content, Not Luck"
+- **Subheadline**: "Content strategy, social media management, and growth consulting that turns an audience into a community — and a community into revenue."
+- **FAQs**: What channels do you focus on? Do you create content or just strategy? How do you measure success? What's a minimum engagement look like?
+
+### Teams (Support)
+- **Tagline**: "Dedicated support and team augmentation"
+- **Headline**: "Dedicated Support for Teams That Can't Afford Downtime"
+- **Subheadline**: "Onboarding programs, dedicated support tiers, and team augmentation for organizations that need a reliable partner in their corner."
+- **FAQs**: What does a dedicated support tier include? Do you offer SLAs? Can you embed with our team? What's the onboarding process?
+
+### Infrastructure
+- **Tagline**: "Hosting, domains, and cloud infrastructure"
+- **Headline**: "Infrastructure You Actually Control"
+- **Subheadline**: "Hosting, domain management, and cloud infrastructure built for developers and businesses that want performance without the complexity."
+- **FAQs**: What hosting plans are available? Do you manage DNS and domains? What's your uptime SLA? Can I migrate an existing site?
+
+### Security
+- **Tagline**: "Audits, compliance, and protection services"
+- **Headline**: "Security Built for Modern Products"
+- **Subheadline**: "Security audits, compliance consulting, and protection services for products and businesses that take trust seriously."
+- **FAQs**: What does a security audit cover? Do you help with compliance (SOC 2, GDPR)? How long does an audit take? What happens after the audit?
+
+## Files to Create / Modify
+
+### New files
+- `client/src/pages/service-category-page.tsx` — Shared page component with CATEGORY_CONFIG and all sections
+
+### Modified files
+- `client/src/App.tsx` — Register 6 new routes: `/services/creative`, `/services/technology`, `/services/marketing`, `/services/teams`, `/services/infrastructure`, `/services/security`
+- `client/src/pages/services-listing.tsx` — Add "Browse by Category" section with 6 category cards
+- `client/src/components/platform-header.tsx` — Redesign `ServicesDropdown` desktop grid to show category links; update mobile nav category hrefs to use new category page URLs
+
+## Out of Scope
+- Adding new services to the DB (Security shows gracefully empty or placeholder)
+- CMS editing of category page copy (all copy in CATEGORY_CONFIG)
+- A/B testing or analytics per category page
+
+
+---
+

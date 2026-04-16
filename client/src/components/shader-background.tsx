@@ -14,47 +14,8 @@
  */
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Component, useRef, useMemo, type ReactNode } from "react";
+import { useRef, useMemo } from "react";
 import * as THREE from "three";
-
-/* ── WebGL support detection ─────────────────────────────────────────── */
-function detectWebGL(): boolean {
-  try {
-    const canvas = document.createElement("canvas");
-    return !!(
-      window.WebGLRenderingContext &&
-      (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
-    );
-  } catch {
-    return false;
-  }
-}
-const WEBGL_SUPPORTED = typeof window !== "undefined" ? detectWebGL() : false;
-
-/* ── WebGL error boundary (backup for unexpected mid-render failures) ── */
-class ShaderErrorBoundary extends Component<
-  { fallbackStyle?: React.CSSProperties; children: ReactNode },
-  { failed: boolean }
-> {
-  state = { failed: false };
-  static getDerivedStateFromError() { return { failed: true }; }
-  render() {
-    if (this.state.failed) {
-      return (
-        <div
-          style={{
-            position: "absolute", inset: 0,
-            background: this.props.fallbackStyle?.background ??
-              "radial-gradient(ellipse at 60% 40%, #1a0a2e 0%, #0d0620 40%, #060412 100%)",
-            ...this.props.fallbackStyle,
-          }}
-          aria-hidden="true"
-        />
-      );
-    }
-    return this.props.children;
-  }
-}
 
 /* ── Palette presets ─────────────────────────────────────────────────── */
 export type PaletteId = "cosmic" | "ocean" | "ember" | "midnight" | "galactic" | "nebula" | "custom";
@@ -398,49 +359,31 @@ export function ShaderBackground({
   paletteColors = DEFAULT_PALETTE,
   starDensity = 0.67,
 }: ShaderBackgroundProps) {
-  if (!WEBGL_SUPPORTED) {
-    return (
-      <div
-        style={{
-          position: "absolute", inset: 0,
-          background: "radial-gradient(ellipse at 60% 40%, #1a0a2e 0%, #0d0620 40%, #060412 100%)",
-        }}
-        aria-hidden="true"
-      />
-    );
-  }
   return (
-    <ShaderErrorBoundary>
-      <Canvas
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-        }}
-        className={className}
-        gl={{ antialias: false, alpha: false, powerPreference: "default" }}
-        dpr={[1, 1.5]}
-        frameloop="always"
-        aria-hidden="true"
-        onCreated={({ gl }) => {
-          gl.domElement.addEventListener("webglcontextlost", (e) => {
-            e.preventDefault();
-          });
-        }}
-      >
-        <ShaderPlane
-          mouse={mouse}
-          isMobile={isMobile}
-          timeScale={timeScale}
-          mouseStrength={mouseStrength}
-          noiseScale={noiseScale}
-          vignetteStrength={vignetteStrength}
-          paletteColors={paletteColors}
-          starDensity={starDensity}
-        />
-      </Canvas>
-    </ShaderErrorBoundary>
+    <Canvas
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+      }}
+      className={className}
+      gl={{ antialias: false, alpha: false, powerPreference: "high-performance" }}
+      dpr={[1, 1.5]}
+      frameloop="always"
+      aria-hidden="true"
+    >
+      <ShaderPlane
+        mouse={mouse}
+        isMobile={isMobile}
+        timeScale={timeScale}
+        mouseStrength={mouseStrength}
+        noiseScale={noiseScale}
+        vignetteStrength={vignetteStrength}
+        paletteColors={paletteColors}
+        starDensity={starDensity}
+      />
+    </Canvas>
   );
 }

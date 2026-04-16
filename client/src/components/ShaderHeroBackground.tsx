@@ -10,40 +10,8 @@
  */
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Component, useRef, useMemo, type ReactNode } from "react";
+import { useRef, useMemo } from "react";
 import * as THREE from "three";
-
-function detectWebGL(): boolean {
-  try {
-    const canvas = document.createElement("canvas");
-    return !!(
-      window.WebGLRenderingContext &&
-      (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
-    );
-  } catch {
-    return false;
-  }
-}
-const WEBGL_SUPPORTED = typeof window !== "undefined" ? detectWebGL() : false;
-
-class ShaderErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() { return { failed: true }; }
-  render() {
-    if (this.state.failed) {
-      return (
-        <div
-          style={{
-            position: "absolute", inset: 0,
-            background: "radial-gradient(ellipse at 60% 40%, #1a0620 0%, #0d0218 40%, #06020e 100%)",
-          }}
-          aria-hidden="true"
-        />
-      );
-    }
-    return this.props.children;
-  }
-}
 
 /* ── Vertex shader ─────────────────────────────────────────────────────── */
 const VERT = /* glsl */ `
@@ -223,39 +191,21 @@ export interface ShaderHeroBackgroundProps {
 }
 
 export function ShaderHeroBackground({ mouse, isMobile = false }: ShaderHeroBackgroundProps) {
-  if (!WEBGL_SUPPORTED) {
-    return (
-      <div
-        style={{
-          position: "absolute", inset: 0,
-          background: "radial-gradient(ellipse at 60% 40%, #1a0620 0%, #0d0218 40%, #06020e 100%)",
-        }}
-        aria-hidden="true"
-      />
-    );
-  }
   return (
-    <ShaderErrorBoundary>
-      <Canvas
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-        }}
-        gl={{ antialias: false, alpha: false, powerPreference: "default" }}
-        dpr={[1, 1.5]}
-        frameloop="always"
-        aria-hidden="true"
-        onCreated={({ gl }) => {
-          gl.domElement.addEventListener("webglcontextlost", (e) => {
-            e.preventDefault();
-          });
-        }}
-      >
-        <ShaderPlane mouse={mouse} isMobile={isMobile} />
-      </Canvas>
-    </ShaderErrorBoundary>
+    <Canvas
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+      }}
+      gl={{ antialias: false, alpha: false, powerPreference: "high-performance" }}
+      dpr={[1, 1.5]}
+      frameloop="always"
+      aria-hidden="true"
+    >
+      <ShaderPlane mouse={mouse} isMobile={isMobile} />
+    </Canvas>
   );
 }

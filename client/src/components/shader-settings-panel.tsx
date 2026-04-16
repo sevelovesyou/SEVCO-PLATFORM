@@ -20,6 +20,7 @@ export const SHADER_DEFAULTS = {
   "hero.shader.noiseScale":      "1.0",
   "hero.shader.vignetteStrength":"0.6",
   "hero.shader.overlayStrength": "0.45",
+  "hero.shader.starDensity":     "0.67",
   "hero.shader.colorBase":       "#07071a",
   "hero.shader.colorShadow":     "#1f1066",
   "hero.shader.colorMid":        "#1c54e0",
@@ -45,6 +46,13 @@ const NOISE_STEPS = [
   { label: "Fine",   value: 0.5 },
   { label: "Medium", value: 1.0 },
   { label: "Coarse", value: 3.0 },
+];
+
+const STAR_STEPS = [
+  { label: "Off",    value: 0.0  },
+  { label: "Subtle", value: 0.33 },
+  { label: "Normal", value: 0.67 },
+  { label: "Dense",  value: 1.0  },
 ];
 
 function snapToStep(val: number, steps: { value: number }[]): number {
@@ -106,9 +114,12 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
   const colorHighlight = settings["hero.shader.colorHighlight"] ?? SHADER_DEFAULTS["hero.shader.colorHighlight"];
   const colorPeak = settings["hero.shader.colorPeak"] ?? SHADER_DEFAULTS["hero.shader.colorPeak"];
 
+  const starDensity = parseFloat(settings["hero.shader.starDensity"] ?? SHADER_DEFAULTS["hero.shader.starDensity"]);
+
   const speedIdx = indexOfStep(snapToStep(speed, SPEED_STEPS), SPEED_STEPS);
   const mouseIdx = indexOfStep(snapToStep(mouseStrength, MOUSE_STEPS), MOUSE_STEPS);
   const noiseIdx = indexOfStep(snapToStep(noiseScale, NOISE_STEPS), NOISE_STEPS);
+  const starIdx = indexOfStep(snapToStep(starDensity, STAR_STEPS), STAR_STEPS);
 
   function resetDefaults() {
     mutation.mutate({ ...SHADER_DEFAULTS });
@@ -194,6 +205,24 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
+              <Label className="text-sm">Star Density</Label>
+              <span className="text-xs text-muted-foreground">{STAR_STEPS[starIdx]?.label ?? "Normal"}</span>
+            </div>
+            <Slider
+              min={0}
+              max={STAR_STEPS.length - 1}
+              step={1}
+              value={[starIdx]}
+              onValueCommit={([i]) => save("hero.shader.starDensity", String(STAR_STEPS[i].value))}
+              data-testid="slider-shader-star-density"
+            />
+            <div className="flex justify-between text-[10px] text-muted-foreground">
+              {STAR_STEPS.map((s) => <span key={s.label}>{s.label}</span>)}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
               <Label className="text-sm">Vignette Strength</Label>
               <span className="text-xs text-muted-foreground">{localVignette}%</span>
             </div>
@@ -241,6 +270,8 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
                 <SelectItem value="ocean">Deep Ocean</SelectItem>
                 <SelectItem value="ember">Ember</SelectItem>
                 <SelectItem value="midnight">Midnight</SelectItem>
+                <SelectItem value="galactic">Galactic</SelectItem>
+                <SelectItem value="nebula">Nebula</SelectItem>
                 <SelectItem value="custom">Custom</SelectItem>
               </SelectContent>
             </Select>

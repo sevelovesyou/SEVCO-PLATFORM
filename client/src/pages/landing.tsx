@@ -341,6 +341,7 @@ export default function Landing() {
   const shaderNoiseScale = parseFloat(settings["hero.shader.noiseScale"] ?? "1.0");
   const shaderVignetteStrength = parseFloat(settings["hero.shader.vignetteStrength"] ?? "0.6");
   const shaderOverlayStrength = parseFloat(settings["hero.shader.overlayStrength"] ?? "0.45");
+  const shaderStarDensity = parseFloat(settings["hero.shader.starDensity"] ?? "0.67");
   const shaderPalette = (settings["hero.shader.palette"] ?? "cosmic") as PaletteId;
   const shaderPaletteColors: [string, string, string, string, string] = shaderPalette === "custom"
     ? [
@@ -471,6 +472,7 @@ export default function Landing() {
             noiseScale={shaderNoiseScale}
             vignetteStrength={shaderVignetteStrength}
             paletteColors={shaderPaletteColors}
+            starDensity={shaderStarDensity}
           />
         ) : (
           /* Reduced-motion, custom bg, or shader disabled — static gradient */

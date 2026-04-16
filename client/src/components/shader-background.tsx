@@ -1,11 +1,13 @@
 /**
- * SEVCO ShaderBackground — "Cosmic Tide"
+ * SEVCO ShaderBackground — "Cosmic Tide / Galactic Space"
  *
  * A full-screen GLSL fragment shader rendered via React Three Fiber.
  * Creates fluid, organic plasma fields configurable via uniform props.
  *
- * Mouse position subtly warps the noise field. Uses double FBM (fractional
- * Brownian motion) for complex organic movement.
+ * Mouse position creates a curl/swirl in the dust clouds.
+ * Stars twinkle across the field at multiple scales.
+ * Uses double FBM (fractional Brownian motion) with warm/cool region
+ * separation for multi-zone nebula coloring.
  *
  * Performance: low-poly plane (4 verts), capped DPR at 1.5, no post-processing.
  * Mobile: passes uMobile=1.0 to reduce FBM octaves to 3.
@@ -16,7 +18,7 @@ import { useRef, useMemo } from "react";
 import * as THREE from "three";
 
 /* ── Palette presets ─────────────────────────────────────────────────── */
-export type PaletteId = "cosmic" | "ocean" | "ember" | "midnight" | "custom";
+export type PaletteId = "cosmic" | "ocean" | "ember" | "midnight" | "galactic" | "nebula" | "custom";
 
 export interface PaletteColors {
   base: string;
@@ -55,6 +57,20 @@ export const PALETTE_PRESETS: Record<Exclude<PaletteId, "custom">, PaletteColors
     highlight: "#1a3fbb",
     peak:      "#3a6af0",
   },
+  galactic: {
+    base:      "#000510",
+    shadow:    "#080d3a",
+    mid:       "#0c6e9a",
+    highlight: "#7a1090",
+    peak:      "#e8b020",
+  },
+  nebula: {
+    base:      "#040008",
+    shadow:    "#1a0040",
+    mid:       "#8c0060",
+    highlight: "#00a8c8",
+    peak:      "#ff8c00",
+  },
 };
 
 function hexToVec3(hex: string): [number, number, number] {
@@ -85,6 +101,7 @@ const FRAG = /* glsl */ `
   uniform float uMouseStrength;
   uniform float uNoiseScale;
   uniform float uVignetteStrength;
+  uniform float uStarDensity;
 
   uniform vec3 uColor0;
   uniform vec3 uColor1;
@@ -133,15 +150,52 @@ const FRAG = /* glsl */ `
     return v;
   }
 
+  float starLayer(vec2 uv, float scale, float threshold) {
+    vec2 grid = floor(uv * scale);
+    vec2 local = fract(uv * scale) - 0.5;
+    float h = hash(grid);
+    if (h < threshold) return 0.0;
+    float norm = (h - threshold) / (1.0 - threshold);
+    float size = 0.010 + norm * 0.018;
+    float freq = 1.5 + h * 4.5;
+    float phase = h * 6.28318;
+    float twinkle = 0.45 + 0.55 * sin(uTime * freq + phase);
+    return twinkle * smoothstep(size, size * 0.25, length(local));
+  }
+
+  float starField(vec2 uv) {
+    float s = 0.0;
+    s += starLayer(uv, 70.0, 0.960) * 0.60;
+    s += starLayer(uv, 40.0, 0.920) * 1.10;
+    s += starLayer(uv, 22.0, 0.870) * 1.80;
+    s += starLayer(uv, 10.0, 0.820) * 3.20;
+    return clamp(s, 0.0, 1.0);
+  }
+
+  float starFieldLow(vec2 uv) {
+    float s = 0.0;
+    s += starLayer(uv, 50.0, 0.960) * 0.70;
+    s += starLayer(uv, 22.0, 0.900) * 1.50;
+    return clamp(s, 0.0, 1.0);
+  }
+
   void main() {
     vec2 uv = vUv * uNoiseScale;
     float t = uTime * uTimeScale * 0.10;
 
-    vec2 m = uMouse * 0.5 + 0.5;
-    vec2 toMouse = m * uNoiseScale - uv;
+    vec2 mouseUV = (uMouse * 0.5 + 0.5) * uNoiseScale;
+    vec2 toMouse = uv - mouseUV;
     float dist = length(toMouse);
-    float pull = 0.10 / (dist * dist + 0.08);
-    uv += toMouse * pull * uMouseStrength * 0.12;
+
+    float swirlAngle = uMouseStrength * 1.8 * exp(-dist * dist * 1.6);
+    float cosA = cos(swirlAngle);
+    float sinA = sin(swirlAngle);
+    uv = mouseUV + vec2(
+        cosA * toMouse.x - sinA * toMouse.y,
+        sinA * toMouse.x + cosA * toMouse.y
+    );
+    float pull = 0.05 / (dist * dist + 0.12);
+    uv -= (uv - mouseUV) * pull * uMouseStrength * 0.06;
 
     vec2 q, r;
     float f;
@@ -168,20 +222,36 @@ const FRAG = /* glsl */ `
       f = fbm(uv + 4.0 * r);
     }
 
+    float fCool, fWarm;
+    if (uMobile > 0.5) {
+      fCool = fbmLow(uv + 4.0 * q + vec2(2.3, 0.7) + t * 0.09);
+      fWarm = fbmLow(uv + 4.0 * r + vec2(0.5, 3.1) + t * 0.07);
+    } else {
+      fCool = fbm(uv + 4.0 * q + vec2(2.3, 0.7) + t * 0.09);
+      fWarm = fbm(uv + 4.0 * r + vec2(0.5, 3.1) + t * 0.07);
+    }
+
     vec3 col = uColor0;
-    col = mix(col, uColor1, smoothstep(0.00, 0.40, f));
-    col = mix(col, uColor2, smoothstep(0.22, 0.60, f) * clamp(r.x * 1.5, 0.0, 1.0));
-    col = mix(col, uColor3, smoothstep(0.50, 0.82, f) * 0.72);
-    col = mix(col, uColor4, smoothstep(0.74, 1.00, f) * 0.55);
+    col = mix(col, uColor1, smoothstep(0.00, 0.45, f));
+    col = mix(col, uColor2, smoothstep(0.25, 0.68, fCool) * 0.85);
+    col = mix(col, uColor3, smoothstep(0.48, 0.82, fWarm) * 0.80);
+    col = mix(col, uColor4, smoothstep(0.72, 1.00, f) * 0.65);
 
-    float bloom = smoothstep(0.35, 0.0, dist / uNoiseScale);
-    col = mix(col, uColor4 * 1.4, bloom * uMouseStrength * 0.20);
-
+    float bloom = exp(-dist * dist * 1.2) * uMouseStrength * 0.28;
+    col = mix(col, uColor4 * 1.5, bloom);
     col = clamp(col, 0.0, 1.0);
 
     vec2 ctr = vUv - 0.5;
     float vig = 1.0 - smoothstep(0.30, 1.20, dot(ctr, ctr) * 2.8) * uVignetteStrength;
     col = col * vig;
+
+    float stars = (uMobile > 0.5)
+      ? starFieldLow(vUv * 2.0)
+      : starField(vUv * 2.0);
+    stars *= uStarDensity;
+
+    vec3 starColor = mix(vec3(0.85, 0.90, 1.0), vec3(1.0, 0.95, 0.80), stars * 0.5);
+    col = mix(col, starColor, stars * (0.85 - length(col) * 0.4));
 
     gl_FragColor = vec4(col, 1.0);
   }
@@ -196,9 +266,10 @@ interface PlaneProps {
   noiseScale: number;
   vignetteStrength: number;
   paletteColors: [string, string, string, string, string];
+  starDensity: number;
 }
 
-function ShaderPlane({ mouse, isMobile, timeScale, mouseStrength, noiseScale, vignetteStrength, paletteColors }: PlaneProps) {
+function ShaderPlane({ mouse, isMobile, timeScale, mouseStrength, noiseScale, vignetteStrength, paletteColors, starDensity }: PlaneProps) {
   const matRef = useRef<THREE.ShaderMaterial>(null);
   const target = useMemo(() => new THREE.Vector2(0, 0), []);
 
@@ -211,6 +282,7 @@ function ShaderPlane({ mouse, isMobile, timeScale, mouseStrength, noiseScale, vi
       uMouseStrength:    { value: mouseStrength },
       uNoiseScale:       { value: noiseScale },
       uVignetteStrength: { value: vignetteStrength },
+      uStarDensity:      { value: starDensity },
       uColor0: { value: new THREE.Vector3(...hexToVec3(paletteColors[0])) },
       uColor1: { value: new THREE.Vector3(...hexToVec3(paletteColors[1])) },
       uColor2: { value: new THREE.Vector3(...hexToVec3(paletteColors[2])) },
@@ -229,6 +301,7 @@ function ShaderPlane({ mouse, isMobile, timeScale, mouseStrength, noiseScale, vi
     u.uMouseStrength.value = mouseStrength;
     u.uNoiseScale.value = noiseScale;
     u.uVignetteStrength.value = vignetteStrength;
+    u.uStarDensity.value = starDensity;
     const c = paletteColors.map(hexToVec3);
     u.uColor0.value.set(...c[0]);
     u.uColor1.value.set(...c[1]);
@@ -264,6 +337,7 @@ export interface ShaderBackgroundProps {
   noiseScale?: number;
   vignetteStrength?: number;
   paletteColors?: [string, string, string, string, string];
+  starDensity?: number;
 }
 
 const DEFAULT_PALETTE: [string, string, string, string, string] = [
@@ -283,6 +357,7 @@ export function ShaderBackground({
   noiseScale = 1.0,
   vignetteStrength = 0.6,
   paletteColors = DEFAULT_PALETTE,
+  starDensity = 0.67,
 }: ShaderBackgroundProps) {
   return (
     <Canvas
@@ -307,6 +382,7 @@ export function ShaderBackground({
         noiseScale={noiseScale}
         vignetteStrength={vignetteStrength}
         paletteColors={paletteColors}
+        starDensity={starDensity}
       />
     </Canvas>
   );

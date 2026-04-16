@@ -92,6 +92,11 @@ html, body {
   --shadow-2xl: 0px 25px 50px -12px rgba(0,0,0,0.15);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
+  --motion-duration-fast: 150ms;
+  --motion-duration-default: 250ms;
+  --motion-duration-slow: 400ms;
+  --motion-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-easing-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
 
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);

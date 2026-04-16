@@ -96,7 +96,9 @@ import {
   EyeOff,
   Compass,
   Layers,
+  Shield,
 } from "lucide-react";
+import { SERVICE_CATEGORIES } from "@/lib/service-categories";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { ChatSheet } from "@/components/chat-sheet";
 import { SevcoLogo } from "@/components/sevco-logo";
@@ -146,7 +148,7 @@ const SERVICE_ICON_MAP: Record<string, React.ElementType> = {
   Handshake, Target, HeadphonesIcon, BookOpen, Briefcase,
   Creative: Sparkles, Technology: Code2, Marketing: Megaphone,
   Business: Briefcase, Media: Music, Support: HeadphonesIcon,
-  Infrastructure: Server,
+  Infrastructure: Server, Security: Shield,
 };
 
 function buildServiceColumnGroups(services: Service[], categoryOrder?: string[]): string[][] {
@@ -436,24 +438,9 @@ function StoreDropdown({ isActive }: { isActive: boolean }) {
 function ServicesDropdown({ isActive, platformSettings }: { isActive: boolean; platformSettings?: Record<string, string> }) {
   const { open, setOpen, ref } = useDropdown();
 
-  const { data: services } = useQuery<Service[]>({
-    queryKey: ["/api/services"],
-  });
-
   const navTitle = platformSettings?.["nav.services.title"] || "Services";
   const navIconName = platformSettings?.["nav.services.icon"] || null;
   const NavIcon = resolveLucideIcon(navIconName);
-
-  let categoryOrder: string[] = [];
-  try {
-    const raw = platformSettings?.["nav.services.categoryOrder"];
-    if (raw) categoryOrder = JSON.parse(raw);
-  } catch {}
-
-  const serviceColumnGroups = buildServiceColumnGroups(services ?? [], categoryOrder);
-
-  const byCategory = (cat: string) =>
-    (services ?? []).filter((s) => s.category === cat).slice(0, 3);
 
   return (
     <div className="relative" ref={ref}>
@@ -471,57 +458,32 @@ function ServicesDropdown({ isActive, platformSettings }: { isActive: boolean; p
         <ChevronDown className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} />
       </Button>
       {open && (
-        <DropdownPanel triggerRef={ref} className="w-[640px]">
-          {/* Professional services by category */}
-          <div className="p-3 grid grid-cols-3 gap-2">
-            {serviceColumnGroups.map((pair) => (
-              <div key={pair.join("-")} className="space-y-3">
-                {pair.map((cat) => {
-                  const items = byCategory(cat);
-                  const CatIcon = SERVICE_ICON_MAP[cat] ?? Briefcase;
-                  return (
-                    <div key={cat}>
-                      <div className="flex items-center gap-1.5 px-2 mb-1">
-                        <CatIcon className="h-3 w-3 text-muted-foreground/60" />
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</p>
-                      </div>
-                      {items.length === 0 ? (
-                        <p className="text-[11px] text-muted-foreground/50 px-2 py-1 italic">No services in this category yet</p>
-                      ) : (
-                        items.map((service) => {
-                          const IconComp = resolveLucideIcon(service.iconName) ?? Briefcase;
-                          const href = service.linkUrl || `/services/${service.slug}`;
-                          const isExternal = service.linkUrl?.startsWith("http");
-                          const innerContent = (
-                            <div
-                              className="flex items-start gap-2.5 px-2 py-2 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
-                              data-testid={`dropdown-service-${service.slug}`}
-                            >
-                              <IconComp className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
-                              <div className="min-w-0">
-                                <p className="text-xs font-semibold text-foreground leading-none group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">{service.name}</p>
-                                {service.tagline && (
-                                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">{service.tagline}</p>
-                                )}
-                              </div>
-                            </div>
-                          );
-                          return isExternal ? (
-                            <a key={service.id} href={href} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}>
-                              {innerContent}
-                            </a>
-                          ) : (
-                            <Link key={service.id} href={href} onClick={() => setOpen(false)}>
-                              {innerContent}
-                            </Link>
-                          );
-                        })
-                      )}
+        <DropdownPanel triggerRef={ref} className="w-[520px]">
+          <div className="p-3 grid grid-cols-2 gap-2">
+            {SERVICE_CATEGORIES.map((cat) => {
+              const CatIcon = SERVICE_ICON_MAP[cat.iconKey] ?? Briefcase;
+              return (
+                <Link key={cat.slug} href={`/services/${cat.slug}`} onClick={() => setOpen(false)}>
+                  <div
+                    className="flex items-start gap-3 px-3 py-3 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
+                    data-testid={`dropdown-category-${cat.slug}`}
+                  >
+                    <div className="p-1.5 rounded-md bg-muted shrink-0 group-hover:bg-[hsl(var(--nav-sub-accent-foreground))]/10">
+                      <CatIcon className="h-4 w-4 text-muted-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
                     </div>
-                  );
-                })}
-              </div>
-            ))}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-foreground leading-none mb-1 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">
+                        {cat.label}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground line-clamp-1 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">
+                        {cat.tagline}
+                      </p>
+                    </div>
+                    <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-all shrink-0 mt-1" />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
 
           <div className="border-t border-border/60 px-4 py-2.5">
@@ -1482,20 +1444,20 @@ export function PlatformHeader() {
                   <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid="mobile-nav-services-hosting">Hosting</div>
                 </Link>
                 <div className="border-t border-border/40 my-1" />
-                {mobileServiceCategories.map((cat) => (
-                  <Link key={cat} href={`/services?category=${cat}`} onClick={() => setMobileOpen(false)}>
-                    <div
-                      className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-                      data-testid={`mobile-nav-services-${cat.toLowerCase()}`}
-                    >
-                      {(() => {
-                        const Icon = SERVICE_ICON_MAP[cat];
-                        return Icon ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null;
-                      })()}
-                      {cat}
-                    </div>
-                  </Link>
-                ))}
+                {SERVICE_CATEGORIES.map((cat) => {
+                  const CatIcon = SERVICE_ICON_MAP[cat.iconKey];
+                  return (
+                    <Link key={cat.slug} href={`/services/${cat.slug}`} onClick={() => setMobileOpen(false)}>
+                      <div
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                        data-testid={`mobile-nav-services-${cat.slug}`}
+                      >
+                        {CatIcon ? <CatIcon className="h-3.5 w-3.5 shrink-0" /> : null}
+                        {cat.label}
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </CollapsibleContent>
           </Collapsible>

@@ -2,16 +2,17 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { PageHead } from "@/components/page-head";
 import {
-  ArrowRight,
+  ArrowRight, ChevronRight,
   Code2, Plug, Lightbulb, Palette, MousePointer2, Sparkles,
   FileText, Share2, TrendingUp, ClipboardList, Settings2,
   Handshake, Target, BookOpen, HeadphonesIcon,
-  Server, Globe, Shield,
+  Server, Globe, Shield, Megaphone,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Service } from "@shared/schema";
+import { SERVICE_CATEGORIES } from "@/lib/service-categories";
 
 const CATEGORY_BORDER_COLORS: Record<string, string> = {
   Technology:     "border-l-blue-500",
@@ -34,7 +35,7 @@ const DEFAULT_SOCIAL_PROOF_ITEMS = [
 const ICON_MAP: Record<string, React.ElementType> = {
   Code2, Plug, Lightbulb, Palette, MousePointer2, Sparkles,
   FileText, Share2, TrendingUp, ClipboardList, Settings2,
-  Handshake, Target, BookOpen, HeadphonesIcon, Server, Globe,
+  Handshake, Target, BookOpen, HeadphonesIcon, Server, Globe, Megaphone,
 };
 
 const CATEGORY_STYLES: Record<string, { accent: string; badge: string }> = {
@@ -48,6 +49,7 @@ const CATEGORY_STYLES: Record<string, { accent: string; badge: string }> = {
 };
 
 const CATEGORY_ORDER = ["Technology", "Creative", "Marketing", "Business", "Media", "Support", "Infrastructure"];
+
 
 export default function ServicesListingPage() {
   const { data: services, isLoading } = useQuery<Service[]>({
@@ -131,6 +133,34 @@ export default function ServicesListingPage() {
                 ));
               })()}
             </div>
+          </div>
+        </div>
+
+        {/* Browse by Category */}
+        <div className="mb-12" data-testid="section-browse-by-category">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Browse by Category</p>
+          <h2 className="text-xl font-bold mb-5">What are you looking for?</h2>
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {SERVICE_CATEGORIES.map((cat) => {
+              const CatIcon = cat.icon;
+              return (
+                <Link key={cat.slug} href={`/services/${cat.slug}`}>
+                  <div
+                    className="group border rounded-xl p-4 hover:border-foreground/20 hover:shadow-sm transition-all cursor-pointer bg-background flex items-center gap-3"
+                    data-testid={`card-category-${cat.slug}`}
+                  >
+                    <div className={`p-2 rounded-lg bg-muted shrink-0 ${cat.accentText}`}>
+                      <CatIcon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm">{cat.label}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-1">{cat.tagline}</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
 

@@ -56,7 +56,7 @@ interface SparkTransaction {
   userId: number;
   username: string;
   displayName: string | null;
-  type: "purchase" | "free_allocation" | "admin_credit" | "admin_debit" | "usage" | "refund";
+  type: string;
   description: string;
   amount: number;
   createdAt: string;
@@ -92,6 +92,9 @@ const TRANSACTION_TYPE_STYLES: Record<string, string> = {
   admin_debit: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
   usage: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
   refund: "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20",
+  freeball_sphere_unlock: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
+  social_reward: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
+  freeball_item_purchase: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
 };
 
 const TRANSACTION_TYPE_LABELS: Record<string, string> = {
@@ -101,9 +104,16 @@ const TRANSACTION_TYPE_LABELS: Record<string, string> = {
   admin_debit: "Admin Debit",
   usage: "Usage",
   refund: "Refund",
+  freeball_sphere_unlock: "Freeball Unlock",
+  social_reward: "Social Reward",
+  freeball_item_purchase: "Freeball Item",
 };
 
-const ALL_TYPES = ["purchase", "free_allocation", "admin_credit", "admin_debit", "usage", "refund"];
+const ALL_TYPES = [
+  "purchase", "free_allocation", "admin_credit", "admin_debit",
+  "usage", "refund", "social_reward",
+  "freeball_sphere_unlock", "freeball_item_purchase",
+];
 
 function formatTimestamp(ts: string) {
   return new Date(ts).toLocaleString("en-US", {

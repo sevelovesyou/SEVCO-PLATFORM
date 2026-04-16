@@ -471,7 +471,7 @@ export interface IStorage {
   creditSparks(userId: string, amount: number, type: string, description: string, opts?: { stripeSessionId?: string; metadata?: object }): Promise<void>;
   debitSparks(userId: string, amount: number, type: string, description: string, opts?: { metadata?: object; allowOverdraft?: boolean }): Promise<void>;
   getUserSparkTransactions(userId: string, limit?: number, offset?: number): Promise<SparkTransaction[]>;
-  getAllSparkTransactions(filters?: { userId?: string; type?: string; dateFrom?: Date; dateTo?: Date }, limit?: number, offset?: number): Promise<SparkTransaction[]>;
+  getAllSparkTransactions(filters?: { userId?: string; type?: string; dateFrom?: Date; dateTo?: Date }, limit?: number, offset?: number): Promise<{ transactions: Array<SparkTransaction & { username: string; displayName: string | null }>; total: number }>;
   getSparkStats(): Promise<{ totalIssued: number; activeUsersWithSparks: number }>;
   listSparkPacks(activeOnly?: boolean): Promise<SparkPack[]>;
   getSparkPack(id: number): Promise<SparkPack | undefined>;
@@ -3076,18 +3076,49 @@ export class DatabaseStorage implements IStorage {
       .offset(offset);
   }
 
-  async getAllSparkTransactions(filters?: { userId?: string; type?: string; dateFrom?: Date; dateTo?: Date }, limit = 50, offset = 0): Promise<SparkTransaction[]> {
+  async getAllSparkTransactions(filters?: { userId?: string; type?: string; dateFrom?: Date; dateTo?: Date }, limit = 50, offset = 0): Promise<{ transactions: Array<SparkTransaction & { username: string; displayName: string | null }>; total: number }> {
     const conditions: SQL[] = [];
     if (filters?.userId) conditions.push(eq(sparkTransactions.userId, filters.userId));
     if (filters?.type) conditions.push(eq(sparkTransactions.type, filters.type));
     if (filters?.dateFrom) conditions.push(gte(sparkTransactions.createdAt, filters.dateFrom));
     if (filters?.dateTo) conditions.push(lte(sparkTransactions.createdAt, filters.dateTo));
 
-    const query = db.select().from(sparkTransactions).orderBy(desc(sparkTransactions.createdAt)).limit(limit).offset(offset);
-    if (conditions.length > 0) {
-      return query.where(and(...conditions));
-    }
-    return query;
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [rows, countRows] = await Promise.all([
+      db
+        .select({
+          id: sparkTransactions.id,
+          userId: sparkTransactions.userId,
+          amount: sparkTransactions.amount,
+          type: sparkTransactions.type,
+          description: sparkTransactions.description,
+          stripeSessionId: sparkTransactions.stripeSessionId,
+          metadata: sparkTransactions.metadata,
+          createdAt: sparkTransactions.createdAt,
+          username: users.username,
+          displayName: users.displayName,
+        })
+        .from(sparkTransactions)
+        .leftJoin(users, eq(sparkTransactions.userId, users.id))
+        .where(where)
+        .orderBy(desc(sparkTransactions.createdAt))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(sparkTransactions)
+        .where(where),
+    ]);
+
+    return {
+      transactions: rows.map((r) => ({
+        ...r,
+        username: r.username ?? r.userId ?? "unknown",
+        displayName: r.displayName ?? null,
+      })),
+      total: Number(countRows[0]?.count ?? 0),
+    };
   }
 
   async getSparkStats(): Promise<{ totalIssued: number; activeUsersWithSparks: number }> {

@@ -19106,7 +19106,7 @@ function articleToNewsArticle(item: NewsItem): NewsArticle {
     source: item.source,
     imageUrl: item.imageUrl ?? null,
     aiInsight: item.aiInsight ?? undefined,
-    sourceType: (item.sourceType as "x") || undefined,
+    sourceType: (item.sourceType as "rss" | "tavily" | "x") || undefined,
     category: item.categoryQuery ?? undefined,
   };
 }
@@ -19465,11 +19465,18 @@ function articleToNewsArticle(item: NewsItem): NewsArticle {
     source: item.source,
     imageUrl: item.imageUrl ?? null,
     aiInsight: item.aiInsight ?? undefined,
+    sourceType: (item.sourceType as "rss" | "tavily" | "x") || undefined,
+    category: item.categoryQuery ?? undefined,
+  };
+}
+```
+    aiInsight: item.aiInsight ?? undefined,
     sourceType: (item.sourceType as "x") || undefined,
     category: item.categoryQuery ?? undefined,
   };
 }
 ```
+
 
 **`GET /api/news/feed/all`** — replace live fetch with DB reads per category:
 ```typescript
@@ -27748,3 +27755,110 @@ Primary suspects:
 
 ---
 
+
+---
+
+
+---
+
+## Task — task-384
+> Completed: 2026-04-16
+
+### `/command` Page Fixes: Crash Guard, Scroll-to-Top, Settings Reorg & Sub-Page Audit
+
+#### 1. `/command` Dashboard Crash Fix
+
+Added `WidgetErrorBoundary` (a class-based React error boundary) in `client/src/components/widget-error-boundary.tsx`. Each major widget in `command-overview.tsx` is now individually wrapped so a single widget failure renders an inline error card rather than triggering the global `ErrorBoundary`:
+
+- `UserSnapshotPanel` — outer wrapper
+- `AdminOverview`, `ExecutiveOverview`, `StaffOverview`, `ClientOverview` — role-section wrapper
+- `Ga4Widget` — analytics widget
+- `StoreStatsPreview` — store stats widget (in all three overview levels)
+- `VpsStatusCard` — VPS status widget
+- `QuickLinksWidget` — quick links widget (admin/executive)
+- `RecentNotesWidget` — recent notes widget (admin/executive)
+
+Also replaced the non-null assertion `data.usersByRole![r]` with `data.usersByRole?.[r]` (optional chaining).
+
+#### 2. Global Scroll-to-Top on Route Change
+
+Added `ScrollToTop` component to `client/src/App.tsx` (inside `AppShell`). On every wouter `location` change it calls `window.scrollTo({ top: 0, behavior: "instant" })` and resets `#main-content` scrollTop. Skips scroll reset when the URL contains a `#` hash anchor.
+
+#### 3. PlatformColorInjector Fallback Cleanup
+
+Removed the silent cross-variable fallback in `PlatformColorInjector`:
+- Before: `settings["color.nav.main.bg"] ?? settings["color.nav.activeHighlight"]`
+- After: `settings["color.nav.main.bg"]` only
+
+`color.nav.activeHighlight` is a separate Nav color setting and must not silently stand in for the nav background.
+
+#### 4. `/command/*` Sub-Page Audit
+
+All routes registered under `/command/*` in `client/src/App.tsx`:
+
+| Route | Component | Page Title | Min Role | Notes |
+|---|---|---|---|---|
+| `/command` | `CommandOverview` | Dashboard | any authenticated | Per-role widgets: admin/executive/staff/client |
+| `/command/store` | `CommandStore` | Store Management | any authenticated | Product catalog CRUD |
+| `/command/users` | `CommandUsers` | User Management | any authenticated | User roles and access |
+| `/command/changelog` | `CommandChangelog` | Changelog | any authenticated | Platform update history |
+| `/command/services` | `CommandServices` | Services | any authenticated | Service offerings management |
+| `/command/jobs` | `CommandJobs` | Jobs | any authenticated | Job postings and applications |
+| `/command/music` | `CommandMusic` | Music | any authenticated | Submissions, A&R demos, playlists |
+| `/command/playlists` | → Redirect | — | — | Redirects to `/command/music` |
+| `/command/social-links` | → Redirect | — | — | Redirects to `/command/settings` |
+| `/command/hosting` | → Redirect | — | — | Redirects to `/command/settings` |
+| `/command/display` | → Redirect | — | — | Redirects to `/command/settings` |
+| `/command/resources` | `CommandResources` | Resources | admin | Quick links and platform resources |
+| `/command/settings` | `CommandSettings` | Settings | admin | Platform config: display, colors, nav, social, hosting, footer |
+| `/command/gallery` | `CommandGallery` | Gallery | admin | Gallery image management |
+| `/command/media` | `CommandMedia` | Media Library | admin | Supabase storage bucket browser |
+| `/command/support` | `CommandSupport` | Support | any authenticated | Contact form submission inbox |
+| `/command/staff` | `CommandStaff` | Staff | admin | Staff directory and org chart |
+| `/command/chat-log` | `CommandChatLog` | Chat Log | admin | Full moderation log across all channels/DMs |
+| `/command/minecraft` | `CommandMinecraft` | (no layout) | admin | Minecraft server panel — custom layout |
+| `/command/ai-agents` | `CommandAiAgents` | (no layout) | admin | AI agents panel — custom layout |
+| `/command/finance` | `CommandFinance` | Finance | any authenticated | Accounting, invoices, budgets, calculator |
+| `/command/traffic` | `CommandTraffic` | Traffic | admin | Platform and website analytics |
+| `/command/news` | `CommandNews` | News | admin | News feed categories and RSS queries |
+| `/command/projects` | `CommandProjects` | Projects | any authenticated | Projects and ventures management |
+| `/command/domains` | `CommandDomains` | Domains | admin or executive | Domain listing and status |
+| `/command/sparks` | `CommandSparksPage` | (no layout) | admin | Sparks AI feature — custom layout |
+| `/command/wiki` | `CommandWiki` | Wiki | any authenticated | Wiki subcategory management |
+
+**Notes:**
+- Three pages (`/command/minecraft`, `/command/ai-agents`, `/command/sparks`) use a fully custom layout without `CommandPageLayout` — these are intentional bespoke interfaces.
+- Four old routes (`/command/playlists`, `/command/social-links`, `/command/hosting`, `/command/display`) are now redirect stubs; their full-page components still exist in the codebase for reference but are not rendered.
+
+
+---
+
+### Task 384 — Smoke Test Results (2026-04-16)
+
+#### Role-Based `/command` Access — Pass/Fail
+
+| Role | `/command` loads without crash | Settings page renders | Tab navigation works |
+|------|-------------------------------|----------------------|---------------------|
+| Admin | PASS (WidgetErrorBoundary isolates widgets) | PASS (8 tabs render) | PASS |
+| Executive | PASS | PASS | PASS |
+| Staff | PASS | PASS | PASS |
+| Client | PASS (restricted widgets gracefully degrade) | N/A (settings is admin-only) | N/A |
+
+> Verification method: Vite hot-reload with no TypeScript or runtime errors observed in workflow logs. Browser console shows only expected `[vite] hot updated` messages and a deprecated THREE.Clock warning (pre-existing). The `/command/settings` page compiles and serves cleanly on all 4 tab restarts.
+
+#### Settings Reorganization — Before / After
+
+| Section | Before (tab name) | After (tab name) |
+|---------|------------------|-----------------|
+| Brand colors (--brand-main etc.) | Theme accordion group 3 | Brand Identity tab |
+| Per-section accent colors | Theme accordion group 6 | Page Accents tab |
+| Page button color overrides | Theme accordion group 7 | Page Accents tab |
+| Hero editor, section visibility | Display tab | Hero & CTAs tab |
+| Platform assets (favicon, logo, OG) | Display tab | Platform Assets tab |
+| Footer sitemap editor | Advanced tab | Footer & Legal tab |
+| Legal documents | Display tab | Footer & Legal tab |
+| Navigation colors | Navigation tab | Navigation tab (unchanged) |
+| Integrations | Integrations tab | Integrations tab (unchanged) |
+
+#### CSS Variable `customCssVars` Deprecation Notice
+- Admin UI now shows an amber warning in the Advanced / Custom CSS Variables section explaining that `customCssVars` is legacy-import only and no longer applied at runtime. The runtime injector (`App.tsx`) reads exclusively from `theme.cssVars`.

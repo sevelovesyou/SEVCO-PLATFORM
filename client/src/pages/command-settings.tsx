@@ -884,12 +884,14 @@ function ColorPickerRow({
   onChange,
   testIdBase,
   showSwatches = false,
+  hint,
 }: {
   label: string;
   hsl: string;
   onChange: (hsl: string) => void;
   testIdBase: string;
   showSwatches?: boolean;
+  hint?: string;
 }) {
   const hexVal = hsl ? hslToHex(hsl) : "#000000";
   return (
@@ -910,7 +912,7 @@ function ColorPickerRow({
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium text-foreground">{label}</p>
-          <p className="text-[10px] text-muted-foreground font-mono truncate">{hsl || "—"}</p>
+          <p className="text-[10px] text-muted-foreground font-mono truncate">{hint ? <span className="text-muted-foreground/70">{hint} · </span> : null}{hsl || "—"}</p>
         </div>
         {hsl && (
           <Button
@@ -1092,7 +1094,7 @@ export default function CommandSettings() {
 
   // ── Search state ──
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("display");
+  const [activeTab, setActiveTab] = useState("hero");
 
   // ── Display state ──
   const [heroBgUrl, setHeroBgUrl] = useState("");
@@ -1962,17 +1964,21 @@ export default function CommandSettings() {
       )}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)}>
           <TabsList className="flex flex-wrap gap-1 h-auto mb-6" data-testid="tabs-settings-main">
-            <TabsTrigger value="display" data-testid="tab-display" onClick={() => { setSearchQuery(""); setActiveTab("display"); }}>Display</TabsTrigger>
+            <TabsTrigger value="brand" data-testid="tab-brand" onClick={() => { setSearchQuery(""); setActiveTab("brand"); }}>Brand Identity</TabsTrigger>
             <TabsTrigger value="theme" data-testid="tab-theme" onClick={() => { setSearchQuery(""); setActiveTab("theme"); }}>Theme</TabsTrigger>
+            <TabsTrigger value="page-accents" data-testid="tab-page-accents" onClick={() => { setSearchQuery(""); setActiveTab("page-accents"); }}>Page Accents</TabsTrigger>
             <TabsTrigger value="navigation" data-testid="tab-navigation" onClick={() => { setSearchQuery(""); setActiveTab("navigation"); }}>Navigation</TabsTrigger>
-            <TabsTrigger value="analytics" data-testid="tab-analytics" onClick={() => { setSearchQuery(""); setActiveTab("analytics"); }}>Analytics</TabsTrigger>
+            <TabsTrigger value="hero" data-testid="tab-hero" onClick={() => { setSearchQuery(""); setActiveTab("hero"); }}>Hero & CTAs</TabsTrigger>
+            <TabsTrigger value="footer" data-testid="tab-footer" onClick={() => { setSearchQuery(""); setActiveTab("footer"); }}>Footer & Legal</TabsTrigger>
+            <TabsTrigger value="platform-assets" data-testid="tab-platform-assets" onClick={() => { setSearchQuery(""); setActiveTab("platform-assets"); }}>Platform Assets</TabsTrigger>
             <TabsTrigger value="integrations" data-testid="tab-integrations" onClick={() => { setSearchQuery(""); setActiveTab("integrations"); }}>Integrations</TabsTrigger>
+            <TabsTrigger value="analytics" data-testid="tab-analytics" onClick={() => { setSearchQuery(""); setActiveTab("analytics"); }}>Analytics</TabsTrigger>
             <TabsTrigger value="advanced" data-testid="tab-advanced" onClick={() => { setSearchQuery(""); setActiveTab("advanced"); }}>Advanced</TabsTrigger>
             <TabsTrigger value="optimization" data-testid="tab-optimization" onClick={() => { setSearchQuery(""); setActiveTab("optimization"); }}>Optimization</TabsTrigger>
           </TabsList>
 
-          {/* ════════════ DISPLAY ════════════ */}
-          <TabsContent value="display" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "display") ? "none" : "block" }}>
+          {/* ════════════ HERO & CTAs ════════════ */}
+          <TabsContent value="hero" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "hero") ? "none" : "block" }}>
               {/* Hero Editor */}
               <Card data-search-label="hero editor logo background overlay tagline buttons footer version" className={cardVisible("hero editor logo background overlay tagline buttons footer version") ? "" : "hidden"}>
                 <CardHeader>
@@ -2244,214 +2250,261 @@ export default function CommandSettings() {
                 </CardContent>
               </Card>
 
-              {/* Platform Assets */}
-              <Card data-search-label="platform assets favicon social image OG logo wordmark" className={cardVisible("platform assets favicon social image OG logo wordmark") ? "" : "hidden"}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Globe className="h-4 w-4" />
-                    {highlight("Platform Assets")}
-                  </CardTitle>
-                  <CardDescription>{highlight("Update the site favicon and social sharing image.")}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-1.5">
-                      <Link2 className="h-3.5 w-3.5" />
-                      {highlight("Platform Wordmark / Logo")}
-                    </Label>
-                    <FileUploadWithFallback
-                      bucket="brand-assets"
-                      path={`platform/logo.{ext}`}
-                      accept="image/*"
-                      maxSizeMb={2}
-                      currentUrl={platformLogoUrl || null}
-                      onUpload={(url) => setPlatformLogoUrl(url)}
-                      onUrlChange={(url) => setPlatformLogoUrl(url)}
-                      urlValue={platformLogoUrl}
-                      label="Upload Logo"
-                      urlPlaceholder="https://example.com/logo.png"
-                      urlTestId="input-platform-logo-url"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-1.5">
-                      <Link2 className="h-3.5 w-3.5" />
-                      {highlight("Favicon")}
-                    </Label>
-                    <FileUploadWithFallback
-                      bucket="brand-assets"
-                      path={`favicon/favicon.{ext}`}
-                      accept="image/*"
-                      maxSizeMb={2}
-                      currentUrl={faviconUrl || null}
-                      onUpload={(url) => setFaviconUrl(url)}
-                      onUrlChange={(url) => setFaviconUrl(url)}
-                      urlValue={faviconUrl}
-                      label="Upload Favicon"
-                      urlPlaceholder="https://example.com/favicon.ico"
-                      urlTestId="input-favicon-url"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-1.5">
-                      <Link2 className="h-3.5 w-3.5" />
-                      {highlight("Social image (OG)")}
-                    </Label>
-                    <FileUploadWithFallback
-                      bucket="brand-assets"
-                      path={`og/og-image.{ext}`}
-                      accept="image/*"
-                      maxSizeMb={5}
-                      currentUrl={ogImageUrl || null}
-                      onUpload={(url) => setOgImageUrl(url)}
-                      onUrlChange={(url) => setOgImageUrl(url)}
-                      urlValue={ogImageUrl}
-                      label="Upload OG Image"
-                      urlPlaceholder="https://example.com/og-image.jpg"
-                      urlTestId="input-og-image-url"
-                    />
-                  </div>
+            </TabsContent>
 
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-1.5">
-                      <FileText className="h-3.5 w-3.5" />
-                      Social Sharing Description
-                    </Label>
-                    <Textarea
-                      value={platformDescription}
-                      onChange={(e) => setPlatformDescription(e.target.value)}
-                      placeholder="One platform for all things SEVCO — music, merch, projects, and a community built to last."
-                      rows={3}
-                      maxLength={300}
-                      data-testid="input-platform-description"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Shown when your site is shared on X, Discord, iMessage, etc. Recommended: under 160 characters.
-                    </p>
-                  </div>
+          {/* ════════════ BRAND IDENTITY ════════════ */}
+          <TabsContent value="brand" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "brand") ? "none" : "block" }}>
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Brand Identity</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Your core brand palette stored as CSS variables. Use the Theme tab to control button and UI component colors.</p>
+              </div>
+              <Accordion type="multiple" defaultValue={["group-brand-identity"]} className="space-y-2">
+                <AccordionItem value="group-brand-identity" className="border rounded-lg px-4" data-search-label="brand identity colors main secondary accent highlight">
+                  <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-0.5">
+                        {[brandMain, brandSecondary, brandAccent, brandHighlight].map((c, i) => (
+                          <div key={i} className="h-3 w-3 rounded-full border border-border/40" style={{ backgroundColor: c ? `hsl(${c})` : "#9ca3af" }} />
+                        ))}
+                      </div>
+                      {highlight("Brand Colors")}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4 space-y-4">
+                    <p className="text-xs text-muted-foreground">Your brand's identity palette — stored as CSS variables for use in custom CSS and theming. These do not directly control button colors; use the Theme tab's Primary Palette for that.</p>
+                    <div className="space-y-3">
+                      <ColorPickerRow label="Brand Main" hsl={brandMain} onChange={setBrandMain} testIdBase="brand-main" showSwatches hint="--brand-main" />
+                      <ColorPickerRow label="Brand Secondary" hsl={brandSecondary} onChange={setBrandSecondary} testIdBase="brand-secondary" showSwatches hint="--brand-secondary" />
+                      <ColorPickerRow label="Brand Accent" hsl={brandAccent} onChange={setBrandAccent} testIdBase="brand-accent" showSwatches hint="--brand-accent" />
+                      <ColorPickerRow label="Brand Highlight" hsl={brandHighlight} onChange={setBrandHighlight} testIdBase="brand-highlight" showSwatches hint="--brand-highlight" />
+                    </div>
+                    <div className="flex justify-end pt-2 border-t">
+                      <Button size="sm" onClick={saveThemeBrandColors} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-brand-colors-brand-tab">
+                        <Save className="h-3 w-3" />
+                        Save Brand Colors
+                      </Button>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
+          </TabsContent>
 
-                  <div className="flex justify-end">
-                    <Button onClick={saveAssets} disabled={mutation.isPending} className="gap-2" data-testid="button-save-assets">
-                      <Save className="h-3.5 w-3.5" />
-                      Save Assets
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+          {/* ════════════ PAGE ACCENTS ════════════ */}
+          <TabsContent value="page-accents" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "page-accents") ? "none" : "block" }}>
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Page Accents</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Per-page accent colors and per-page button color overrides. Leave any field empty to inherit global theme colors.</p>
+              </div>
+              <Accordion type="multiple" defaultValue={["group-page-accents-section", "group-page-btns"]} className="space-y-2">
+                <AccordionItem value="group-page-accents-section" className="border rounded-lg px-4" data-search-label="per section accent home store services music wiki tag colors">
+                  <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
+                    {highlight("Per-Section Accent Colors")}
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4 space-y-4">
+                    <p className="text-xs text-muted-foreground">Optional accent colors for individual platform sections. Leave empty to use global brand colors.</p>
+                    <div className="space-y-3">
+                      <ColorPickerRow label="Home Page Cards" hsl={homeCardAccentColor} onChange={setHomeCardAccentColor} testIdBase="home-card-accent-pa" showSwatches hint="--home-card-accent" />
+                      <ColorPickerRow label="Store Page" hsl={storeAccentColor} onChange={setStoreAccentColor} testIdBase="store-accent-pa" showSwatches hint="--store-accent" />
+                      <ColorPickerRow label="Services Page" hsl={servicesAccentColor} onChange={setServicesAccentColor} testIdBase="services-accent-pa" showSwatches hint="--services-accent" />
+                      <ColorPickerRow label="Music Page (RECORDS section)" hsl={musicAccentColor} onChange={setMusicAccentColor} testIdBase="music-accent-pa" showSwatches hint="--music-accent" />
+                      <ColorPickerRow label="Wiki Tags / Highlights" hsl={wikiTagColor} onChange={setWikiTagColor} testIdBase="wiki-tag-pa" showSwatches hint="--wiki-tag-color" />
+                    </div>
+                    <div className="flex justify-end pt-2 border-t">
+                      <Button size="sm" onClick={savePerSectionColors} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-per-section-colors-pa">
+                        <Save className="h-3 w-3" />
+                        Save Accents
+                      </Button>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
 
-              {/* Legal Documents */}
-              <Card data-search-label="legal documents terms of service privacy policy creator agreement" className={cardVisible("legal documents terms of service privacy policy creator agreement cookie acceptable use dmca copyright") ? "" : "hidden"}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    {highlight("Legal Documents")}
-                  </CardTitle>
-                  <CardDescription>
-                    {highlight("Manage the document links shown on the /legal page. Each row has a label and a URL.")}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    {legalDocs.map((doc, idx) => (
-                      <div key={idx} className="flex items-center gap-2" data-testid={`row-legal-doc-${idx}`}>
-                        <div className="flex flex-col gap-1 flex-none">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            disabled={idx === 0}
-                            onClick={() => {
-                              const next = [...legalDocs];
-                              [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
-                              setLegalDocs(next);
-                            }}
-                            aria-label="Move up"
-                            data-testid={`button-legal-doc-up-${idx}`}
-                          >
-                            <ChevronUp className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            disabled={idx === legalDocs.length - 1}
-                            onClick={() => {
-                              const next = [...legalDocs];
-                              [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
-                              setLegalDocs(next);
-                            }}
-                            aria-label="Move down"
-                            data-testid={`button-legal-doc-down-${idx}`}
-                          >
-                            <ChevronDown className="h-3.5 w-3.5" />
+                <AccordionItem value="group-page-btns" className="border rounded-lg px-4" data-search-label="page button color overrides landing store services projects music news primary secondary">
+                  <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
+                    {highlight("Page Button Color Overrides")}
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4 space-y-4">
+                    <p className="text-xs text-muted-foreground">Override primary and secondary button colors for individual landing pages. Leave blank to use global theme colors.</p>
+                    {PAGE_KEYS.map((page) => (
+                      <div key={page} className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold text-foreground">{PAGE_LABELS[page]}</p>
+                          <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground gap-1" onClick={() => resetPageBtnColors(page)} disabled={mutation.isPending} data-testid={`button-reset-page-btns-pa-${page}`}>
+                            <RotateCcw className="h-3 w-3" />Reset
                           </Button>
                         </div>
-                        <Input
-                          placeholder="Label (e.g. Terms of Service)"
-                          value={doc.label}
-                          onChange={(e) => {
-                            const next = [...legalDocs];
-                            next[idx] = { ...next[idx], label: e.target.value };
-                            setLegalDocs(next);
-                          }}
-                          className="flex-1 min-w-0"
-                          data-testid={`input-legal-doc-label-${idx}`}
-                        />
-                        <Input
-                          placeholder="URL (e.g. https://sevco.us/terms)"
-                          value={doc.href}
-                          onChange={(e) => {
-                            const next = [...legalDocs];
-                            next[idx] = { ...next[idx], href: e.target.value };
-                            setLegalDocs(next);
-                          }}
-                          className="flex-1 min-w-0"
-                          data-testid={`input-legal-doc-href-${idx}`}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
-                          onClick={() => setLegalDocs(legalDocs.filter((_, i) => i !== idx))}
-                          aria-label="Remove"
-                          data-testid={`button-legal-doc-remove-${idx}`}
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </Button>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {(["primaryBtn", "primaryBtnText", "secondaryBtn", "secondaryBtnText"] as const).map((field) => {
+                            const labels: Record<string, string> = { primaryBtn: "Primary button background", primaryBtnText: "Primary button text", secondaryBtn: "Secondary button background", secondaryBtnText: "Secondary button text" };
+                            const val = pageBtnColors[page][field];
+                            return (
+                              <div key={field} className="space-y-1.5">
+                                <p className="text-xs font-medium text-foreground">{labels[field]}</p>
+                                <div className="flex items-center gap-2">
+                                  <div className="relative shrink-0">
+                                    <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: val ? `hsl(${val})` : "transparent" }} />
+                                    <input type="color" value={val ? hslToHex(val) : "#000000"} onChange={(e) => setPageColor(page, field, hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid={`color-picker-pa-${page}-${field}`} />
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{val || "— default"}</p>
+                                  {val && <Button variant="ghost" size="icon" aria-label="Clear" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setPageColor(page, field, "")} data-testid={`button-clear-pa-${page}-${field}`}><RotateCcw className="h-3 w-3" /></Button>}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {page !== PAGE_KEYS[PAGE_KEYS.length - 1] && <Separator />}
                       </div>
                     ))}
+                    <div className="flex justify-end pt-2 border-t">
+                      <Button size="sm" onClick={savePageBtnColors} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-page-btn-colors-pa">
+                        <Save className="h-3 w-3" />Save Button Colors
+                      </Button>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
+          </TabsContent>
+
+          {/* ════════════ PLATFORM ASSETS ════════════ */}
+          <TabsContent value="platform-assets" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "platform-assets") ? "none" : "block" }}>
+            <Card data-search-label="platform assets favicon social image OG logo wordmark" className={cardVisible("platform assets favicon social image OG logo wordmark") ? "" : "hidden"}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  {highlight("Platform Assets")}
+                </CardTitle>
+                <CardDescription>{highlight("Update the site favicon, logo, and social sharing image.")}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Link2 className="h-3.5 w-3.5" />
+                    {highlight("Platform Wordmark / Logo")}
+                  </Label>
+                  <FileUploadWithFallback bucket="brand-assets" path={`platform/logo.{ext}`} accept="image/*" maxSizeMb={2} currentUrl={platformLogoUrl || null} onUpload={(url) => setPlatformLogoUrl(url)} onUrlChange={(url) => setPlatformLogoUrl(url)} urlValue={platformLogoUrl} label="Upload Logo" urlPlaceholder="https://example.com/logo.png" urlTestId="input-platform-logo-url" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Link2 className="h-3.5 w-3.5" />
+                    {highlight("Favicon")}
+                  </Label>
+                  <FileUploadWithFallback bucket="brand-assets" path={`favicon/favicon.{ext}`} accept="image/*" maxSizeMb={2} currentUrl={faviconUrl || null} onUpload={(url) => setFaviconUrl(url)} onUrlChange={(url) => setFaviconUrl(url)} urlValue={faviconUrl} label="Upload Favicon" urlPlaceholder="https://example.com/favicon.ico" urlTestId="input-favicon-url" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Link2 className="h-3.5 w-3.5" />
+                    {highlight("Social image (OG)")}
+                  </Label>
+                  <FileUploadWithFallback bucket="brand-assets" path={`og/og-image.{ext}`} accept="image/*" maxSizeMb={5} currentUrl={ogImageUrl || null} onUpload={(url) => setOgImageUrl(url)} onUrlChange={(url) => setOgImageUrl(url)} urlValue={ogImageUrl} label="Upload OG Image" urlPlaceholder="https://example.com/og-image.jpg" urlTestId="input-og-image-url" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <FileText className="h-3.5 w-3.5" />
+                    Social Sharing Description
+                  </Label>
+                  <Textarea value={platformDescription} onChange={(e) => setPlatformDescription(e.target.value)} placeholder="One platform for all things SEVCO — music, merch, projects, and a community built to last." rows={3} maxLength={300} data-testid="input-platform-description" />
+                  <p className="text-xs text-muted-foreground">Shown when your site is shared on X, Discord, iMessage, etc. Recommended: under 160 characters.</p>
+                </div>
+                <div className="flex justify-end">
+                  <Button onClick={saveAssets} disabled={mutation.isPending} className="gap-2" data-testid="button-save-assets">
+                    <Save className="h-3.5 w-3.5" />Save Assets
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ════════════ FOOTER & LEGAL ════════════ */}
+          <TabsContent value="footer" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "footer") ? "none" : "block" }}>
+            <Card data-search-label="footer sitemap editor columns links navigation external" className={cardVisible("footer sitemap editor columns links navigation external") ? "" : "hidden"}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Layout className="h-4 w-4" />
+                      {highlight("Footer Sitemap Editor")}
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      {highlight("Add, remove, and reorder footer columns and their links.")}
+                    </CardDescription>
                   </div>
-                  <div className="flex items-center justify-between gap-2 pt-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() => setLegalDocs([...legalDocs, { label: "", href: "" }])}
-                      data-testid="button-legal-doc-add"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      Add Document
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="gap-1.5"
-                      disabled={mutation.isPending}
-                      onClick={() =>
-                        mutation.mutate({ "legal.documents": JSON.stringify(legalDocs) })
-                      }
-                      data-testid="button-legal-doc-save"
-                    >
-                      <Save className="h-3.5 w-3.5" />
-                      Save Legal Documents
-                    </Button>
+                  <Button size="sm" className="gap-1.5 shrink-0" onClick={addColumn} data-testid="button-add-footer-column-footer-tab">
+                    <Plus className="h-3.5 w-3.5" />
+                    Add Column
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {sitemapColumns.map((col, ci) => (
+                  <div key={ci} className="border border-border rounded-lg p-4 space-y-3" data-testid={`footer-tab-column-${ci}`}>
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col gap-0.5">
+                        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => moveColumn(ci, -1)} disabled={ci === 0} aria-label="Move up"><ChevronUp className="h-3 w-3" /></Button></TooltipTrigger><TooltipContent>Move up</TooltipContent></Tooltip>
+                        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => moveColumn(ci, 1)} disabled={ci === sitemapColumns.length - 1} aria-label="Move down"><ChevronDown className="h-3 w-3" /></Button></TooltipTrigger><TooltipContent>Move down</TooltipContent></Tooltip>
+                      </div>
+                      <Input className="h-8 text-sm font-semibold flex-1" value={col.heading} onChange={(e) => updateColumnHeading(ci, e.target.value)} placeholder="Column Heading" data-testid={`input-col-heading-footer-${ci}`} />
+                      <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeColumn(ci)} aria-label="Delete"><Trash2 className="h-3.5 w-3.5" /></Button></TooltipTrigger><TooltipContent>Remove column</TooltipContent></Tooltip>
+                    </div>
+                    <div className="space-y-2 pl-8">
+                      {col.links.map((lnk, li) => (
+                        <div key={li} className="flex items-center gap-2" data-testid={`footer-tab-link-${ci}-${li}`}>
+                          <div className="flex flex-col gap-0.5">
+                            <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => moveLink(ci, li, -1)} disabled={li === 0} aria-label="Move up"><ChevronUp className="h-2.5 w-2.5" /></Button></TooltipTrigger><TooltipContent>Move up</TooltipContent></Tooltip>
+                            <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => moveLink(ci, li, 1)} disabled={li === col.links.length - 1} aria-label="Move down"><ChevronDown className="h-2.5 w-2.5" /></Button></TooltipTrigger><TooltipContent>Move down</TooltipContent></Tooltip>
+                          </div>
+                          <Input className="h-7 text-xs flex-1" value={lnk.label} onChange={(e) => updateLink(ci, li, "label", e.target.value)} placeholder="Label" data-testid={`input-link-label-footer-${ci}-${li}`} />
+                          <Input className="h-7 text-xs flex-1" value={lnk.path} onChange={(e) => updateLink(ci, li, "path", e.target.value)} placeholder="/path or https://..." data-testid={`input-link-path-footer-${ci}-${li}`} />
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Tooltip><TooltipTrigger asChild><div className="flex items-center gap-1"><Switch checked={!!lnk.external} onCheckedChange={(v) => updateLink(ci, li, "external", v)} className="scale-75" data-testid={`switch-link-external-footer-${ci}-${li}`} /><span className="text-[10px] text-muted-foreground">Ext</span></div></TooltipTrigger><TooltipContent>Open in new tab</TooltipContent></Tooltip>
+                          </div>
+                          <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => removeLink(ci, li)} aria-label="Delete"><Trash2 className="h-3 w-3" /></Button></TooltipTrigger><TooltipContent>Remove link</TooltipContent></Tooltip>
+                        </div>
+                      ))}
+                      <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5 mt-1" onClick={() => addLink(ci)} data-testid={`button-add-link-footer-${ci}`}><Plus className="h-3 w-3" />Add Link</Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                ))}
+                {sitemapColumns.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No footer columns. Add one above.</p>}
+                <div className="flex justify-end pt-2">
+                  <Button onClick={saveFooterSitemap} disabled={mutation.isPending} className="gap-2" data-testid="button-save-footer-sitemap-footer-tab"><Save className="h-3.5 w-3.5" />Save Footer</Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card data-search-label="legal documents terms of service privacy policy creator agreement" className={cardVisible("legal documents terms of service privacy policy creator agreement cookie acceptable use dmca copyright") ? "" : "hidden"}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  {highlight("Legal Documents")}
+                </CardTitle>
+                <CardDescription>
+                  {highlight("Manage the document links shown on the /legal page. Each row has a label and a URL.")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  {legalDocs.map((doc, idx) => (
+                    <div key={idx} className="flex items-center gap-2" data-testid={`row-legal-doc-footer-${idx}`}>
+                      <div className="flex flex-col gap-1 flex-none">
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" disabled={idx === 0} onClick={() => { const next = [...legalDocs]; [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]]; setLegalDocs(next); }} aria-label="Move up" data-testid={`button-legal-doc-up-footer-${idx}`}><ChevronUp className="h-3.5 w-3.5" /></Button>
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" disabled={idx === legalDocs.length - 1} onClick={() => { const next = [...legalDocs]; [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]]; setLegalDocs(next); }} aria-label="Move down" data-testid={`button-legal-doc-down-footer-${idx}`}><ChevronDown className="h-3.5 w-3.5" /></Button>
+                      </div>
+                      <Input placeholder="Label (e.g. Terms of Service)" value={doc.label} onChange={(e) => { const next = [...legalDocs]; next[idx] = { ...next[idx], label: e.target.value }; setLegalDocs(next); }} className="flex-1 min-w-0" data-testid={`input-legal-doc-label-footer-${idx}`} />
+                      <Input placeholder="URL (e.g. https://sevco.us/terms)" value={doc.href} onChange={(e) => { const next = [...legalDocs]; next[idx] = { ...next[idx], href: e.target.value }; setLegalDocs(next); }} className="flex-1 min-w-0" data-testid={`input-legal-doc-href-footer-${idx}`} />
+                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive shrink-0" onClick={() => setLegalDocs(legalDocs.filter((_, i) => i !== idx))} aria-label="Remove" data-testid={`button-legal-doc-remove-footer-${idx}`}><X className="h-3.5 w-3.5" /></Button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setLegalDocs([...legalDocs, { label: "", href: "" }])} data-testid="button-legal-doc-add-footer"><Plus className="h-3.5 w-3.5" />Add Document</Button>
+                  <Button size="sm" className="gap-1.5" disabled={mutation.isPending} onClick={() => mutation.mutate({ "legal.documents": JSON.stringify(legalDocs) })} data-testid="button-legal-doc-save-footer"><Save className="h-3.5 w-3.5" />Save Legal Documents</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* ════════════ THEME ════════════ */}
           <TabsContent value="theme" forceMount style={{ display: (!searchQuery && activeTab !== "theme") ? "none" : "block" }}>
@@ -2489,9 +2542,9 @@ export default function CommandSettings() {
                       <AccordionContent className="pb-4 space-y-4">
                         <p className="text-xs text-muted-foreground">Main brand color used for buttons, links, focus rings, and key UI elements.</p>
                         <div className="space-y-3">
-                          <ColorPickerRow label="Primary (light mode)" hsl={lightPrimary} onChange={setLightPrimary} testIdBase="primary-light" showSwatches />
-                          <ColorPickerRow label="Primary foreground (text on primary)" hsl={lightPrimaryFg} onChange={setLightPrimaryFg} testIdBase="primary-light-fg" />
-                          <ColorPickerRow label="Primary (dark mode)" hsl={darkPrimary} onChange={setDarkPrimary} testIdBase="primary-dark" />
+                          <ColorPickerRow label="Primary (light mode)" hsl={lightPrimary} onChange={setLightPrimary} testIdBase="primary-light" showSwatches hint="--primary" />
+                          <ColorPickerRow label="Primary foreground (text on primary)" hsl={lightPrimaryFg} onChange={setLightPrimaryFg} testIdBase="primary-light-fg" hint="--primary-foreground" />
+                          <ColorPickerRow label="Primary (dark mode)" hsl={darkPrimary} onChange={setDarkPrimary} testIdBase="primary-dark" hint="--primary (dark)" />
                         </div>
                         <div className="flex items-center justify-between pt-2 border-t">
                           <div className="flex gap-2">
@@ -2521,11 +2574,11 @@ export default function CommandSettings() {
                       <AccordionContent className="pb-4 space-y-4">
                         <p className="text-xs text-muted-foreground">Secondary and accent colors for badges, highlights, and alternate UI elements.</p>
                         <div className="space-y-3">
-                          <ColorPickerRow label="Secondary background" hsl={lightSecondary} onChange={setLightSecondary} testIdBase="secondary-light" showSwatches />
-                          <ColorPickerRow label="Secondary foreground" hsl={lightSecondaryFg} onChange={setLightSecondaryFg} testIdBase="secondary-light-fg" />
+                          <ColorPickerRow label="Secondary background" hsl={lightSecondary} onChange={setLightSecondary} testIdBase="secondary-light" showSwatches hint="--secondary" />
+                          <ColorPickerRow label="Secondary foreground" hsl={lightSecondaryFg} onChange={setLightSecondaryFg} testIdBase="secondary-light-fg" hint="--secondary-foreground" />
                           <Separator />
-                          <ColorPickerRow label="Accent background" hsl={lightAccent} onChange={setLightAccent} testIdBase="accent-light" showSwatches />
-                          <ColorPickerRow label="Accent foreground" hsl={lightAccentFg} onChange={setLightAccentFg} testIdBase="accent-light-fg" />
+                          <ColorPickerRow label="Accent background" hsl={lightAccent} onChange={setLightAccent} testIdBase="accent-light" showSwatches hint="--accent" />
+                          <ColorPickerRow label="Accent foreground" hsl={lightAccentFg} onChange={setLightAccentFg} testIdBase="accent-light-fg" hint="--accent-foreground" />
                         </div>
                         <div className="flex items-center justify-between pt-2 border-t">
                           <div className="flex gap-2 flex-wrap">
@@ -2544,37 +2597,7 @@ export default function CommandSettings() {
                       </AccordionContent>
                     </AccordionItem>
 
-                    {/* Group 3: Brand Colors */}
-                    <AccordionItem value="group-brand" className="border rounded-lg px-4" data-search-label="brand colors main secondary tertiary quaternary highlight">
-                      <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
-                        <div className="flex items-center gap-2">
-                          <div className="flex gap-0.5">
-                            {[brandMain, brandSecondary, brandAccent, brandHighlight].map((c, i) => (
-                              <div key={i} className="h-3 w-3 rounded-full border border-border/40" style={{ backgroundColor: c ? `hsl(${c})` : "#9ca3af" }} />
-                            ))}
-                          </div>
-                          {highlight("Brand Colors")}
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="pb-4 space-y-4">
-                        <p className="text-xs text-muted-foreground">Your brand's identity palette — stored as CSS variables (--brand-main, --brand-secondary, etc.) for use in custom CSS and future theming. Use the Primary Palette and Secondary/Accent sections above to directly control button and UI colors.</p>
-                        <div className="rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
-                          If you were previously using Brand Main as your primary button color, re-enter it in the Primary Palette section above.
-                        </div>
-                        <div className="space-y-3">
-                          <ColorPickerRow label="Brand Main (--brand-main)" hsl={brandMain} onChange={setBrandMain} testIdBase="brand-main" showSwatches />
-                          <ColorPickerRow label="Brand Secondary (--brand-secondary)" hsl={brandSecondary} onChange={setBrandSecondary} testIdBase="brand-secondary" showSwatches />
-                          <ColorPickerRow label="Brand Accent (--brand-accent)" hsl={brandAccent} onChange={setBrandAccent} testIdBase="brand-accent" showSwatches />
-                          <ColorPickerRow label="Brand Highlight (--brand-highlight)" hsl={brandHighlight} onChange={setBrandHighlight} testIdBase="brand-highlight" showSwatches />
-                        </div>
-                        <div className="flex justify-end pt-2 border-t">
-                          <Button size="sm" onClick={saveThemeBrandColors} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-brand-colors">
-                            <Save className="h-3 w-3" />
-                            Save
-                          </Button>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
+                    {/* Group 3: Brand Colors — moved to Brand Identity tab */}
 
                     {/* Group 4: Neutral / Background */}
                     <AccordionItem value="group-neutral" className="border rounded-lg px-4" data-search-label="neutral background foreground card muted border white gray black">
@@ -2592,18 +2615,18 @@ export default function CommandSettings() {
                             <TabsTrigger value="dark">Dark Mode</TabsTrigger>
                           </TabsList>
                           <TabsContent value="light" className="space-y-3">
-                            <ColorPickerRow label="Background" hsl={lightBackground} onChange={setLightBackground} testIdBase="bg-light" />
-                            <ColorPickerRow label="Foreground (text)" hsl={lightForeground} onChange={setLightForeground} testIdBase="fg-light" />
-                            <ColorPickerRow label="Card" hsl={lightCard} onChange={setLightCard} testIdBase="card-light" />
-                            <ColorPickerRow label="Card foreground" hsl={lightCardFg} onChange={setLightCardFg} testIdBase="card-fg-light" />
-                            <ColorPickerRow label="Muted" hsl={lightMuted} onChange={setLightMuted} testIdBase="muted-light" />
-                            <ColorPickerRow label="Muted foreground" hsl={lightMutedFg} onChange={setLightMutedFg} testIdBase="muted-fg-light" />
-                            <ColorPickerRow label="Border" hsl={lightBorder} onChange={setLightBorder} testIdBase="border-light" />
+                            <ColorPickerRow label="Background" hsl={lightBackground} onChange={setLightBackground} testIdBase="bg-light" hint="--background" />
+                            <ColorPickerRow label="Foreground (text)" hsl={lightForeground} onChange={setLightForeground} testIdBase="fg-light" hint="--foreground" />
+                            <ColorPickerRow label="Card" hsl={lightCard} onChange={setLightCard} testIdBase="card-light" hint="--card" />
+                            <ColorPickerRow label="Card foreground" hsl={lightCardFg} onChange={setLightCardFg} testIdBase="card-fg-light" hint="--card-foreground" />
+                            <ColorPickerRow label="Muted" hsl={lightMuted} onChange={setLightMuted} testIdBase="muted-light" hint="--muted" />
+                            <ColorPickerRow label="Muted foreground" hsl={lightMutedFg} onChange={setLightMutedFg} testIdBase="muted-fg-light" hint="--muted-foreground" />
+                            <ColorPickerRow label="Border" hsl={lightBorder} onChange={setLightBorder} testIdBase="border-light" hint="--border" />
                           </TabsContent>
                           <TabsContent value="dark" className="space-y-3">
-                            <ColorPickerRow label="Background" hsl={darkBackground} onChange={setDarkBackground} testIdBase="bg-dark" />
-                            <ColorPickerRow label="Foreground (text)" hsl={darkForeground} onChange={setDarkForeground} testIdBase="fg-dark" />
-                            <ColorPickerRow label="Accent" hsl={darkAccent} onChange={setDarkAccent} testIdBase="accent-dark" />
+                            <ColorPickerRow label="Background" hsl={darkBackground} onChange={setDarkBackground} testIdBase="bg-dark" hint="--background (dark)" />
+                            <ColorPickerRow label="Foreground (text)" hsl={darkForeground} onChange={setDarkForeground} testIdBase="fg-dark" hint="--foreground (dark)" />
+                            <ColorPickerRow label="Accent" hsl={darkAccent} onChange={setDarkAccent} testIdBase="accent-dark" hint="--accent (dark)" />
                           </TabsContent>
                         </Tabs>
                         <div className="flex justify-end pt-2 border-t">
@@ -2631,7 +2654,7 @@ export default function CommandSettings() {
                       <AccordionContent className="pb-4 space-y-4">
                         <p className="text-xs text-muted-foreground">Colors for success, warning, error, and destructive actions.</p>
                         <div className="space-y-3">
-                          <ColorPickerRow label="Destructive / Error" hsl={lightDestructive} onChange={setLightDestructive} testIdBase="destructive" showSwatches />
+                          <ColorPickerRow label="Destructive / Error" hsl={lightDestructive} onChange={setLightDestructive} testIdBase="destructive" showSwatches hint="--destructive" />
                         </div>
                         <div className="flex gap-2 flex-wrap pt-1">
                           <span className="inline-flex items-center px-2 h-6 rounded text-[10px] font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">Success</span>
@@ -2648,104 +2671,7 @@ export default function CommandSettings() {
                       </AccordionContent>
                     </AccordionItem>
 
-                    {/* Group 6: Per-Section Accent Colors */}
-                    <AccordionItem value="group-section-accents" className="border rounded-lg px-4" data-search-label="per section accent home store services music wiki tag colors">
-                      <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
-                        {highlight("Per-Section Accent Colors")}
-                      </AccordionTrigger>
-                      <AccordionContent className="pb-4 space-y-4">
-                        <p className="text-xs text-muted-foreground">Optional accent colors for individual platform sections. Leave empty to use global brand colors.</p>
-                        <div className="space-y-3">
-                          <ColorPickerRow label="Home Page Cards" hsl={homeCardAccentColor} onChange={setHomeCardAccentColor} testIdBase="home-card-accent" showSwatches />
-                          <ColorPickerRow label="Store Page" hsl={storeAccentColor} onChange={setStoreAccentColor} testIdBase="store-accent" showSwatches />
-                          <ColorPickerRow label="Services Page" hsl={servicesAccentColor} onChange={setServicesAccentColor} testIdBase="services-accent" showSwatches />
-                          <ColorPickerRow label="Music Page (RECORDS section)" hsl={musicAccentColor} onChange={setMusicAccentColor} testIdBase="music-accent" showSwatches />
-                          <ColorPickerRow label="Wiki Tags / Highlights" hsl={wikiTagColor} onChange={setWikiTagColor} testIdBase="wiki-tag" showSwatches />
-                        </div>
-                        <div className="flex justify-end pt-2 border-t">
-                          <Button size="sm" onClick={savePerSectionColors} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-per-section-colors">
-                            <Save className="h-3 w-3" />
-                            Save
-                          </Button>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* Group 7: Page Button Color Overrides */}
-                    <AccordionItem value="group-page-buttons" className="border rounded-lg px-4" data-search-label="page button color overrides landing store services projects music news primary secondary">
-                      <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
-                        {highlight("Page Button Color Overrides")}
-                      </AccordionTrigger>
-                      <AccordionContent className="pb-4 space-y-4">
-                        <p className="text-xs text-muted-foreground">Override primary and secondary button colors for individual landing pages. Leave blank to use global theme colors.</p>
-                        {PAGE_KEYS.map((page) => (
-                          <div key={page} className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <p className="text-sm font-semibold text-foreground">{PAGE_LABELS[page]}</p>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 text-xs text-muted-foreground gap-1"
-                                onClick={() => resetPageBtnColors(page)}
-                                disabled={mutation.isPending}
-                                data-testid={`button-reset-page-btns-${page}`}
-                              >
-                                <RotateCcw className="h-3 w-3" />
-                                Reset
-                              </Button>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              {(["primaryBtn", "primaryBtnText", "secondaryBtn", "secondaryBtnText"] as const).map((field) => {
-                                const labels: Record<string, string> = {
-                                  primaryBtn: "Primary button background",
-                                  primaryBtnText: "Primary button text",
-                                  secondaryBtn: "Secondary button background",
-                                  secondaryBtnText: "Secondary button text",
-                                };
-                                const val = pageBtnColors[page][field];
-                                return (
-                                  <div key={field} className="space-y-1.5">
-                                    <p className="text-xs font-medium text-foreground">{labels[field]}</p>
-                                    <div className="flex items-center gap-2">
-                                      <div className="relative shrink-0">
-                                        <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: val ? `hsl(${val})` : "transparent" }} />
-                                        <input
-                                          type="color"
-                                          value={val ? hslToHex(val) : "#000000"}
-                                          onChange={(e) => setPageColor(page, field, hexToHsl(e.target.value))}
-                                          className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7"
-                                          data-testid={`color-picker-${page}-${field}`}
-                                        />
-                                      </div>
-                                      <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{val || "— default"}</p>
-                                      {val && (
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          aria-label="Clear"
-                                          className="h-6 w-6 text-muted-foreground shrink-0"
-                                          onClick={() => setPageColor(page, field, "")}
-                                          data-testid={`button-clear-${page}-${field}`}
-                                        >
-                                          <RotateCcw className="h-3 w-3" />
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                            {page !== PAGE_KEYS[PAGE_KEYS.length - 1] && <Separator />}
-                          </div>
-                        ))}
-                        <div className="flex justify-end pt-2 border-t">
-                          <Button size="sm" onClick={savePageBtnColors} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-page-btn-colors">
-                            <Save className="h-3 w-3" />
-                            Save Button Colors
-                          </Button>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
+                    {/* Groups 6 & 7: Per-Section Accent Colors + Page Button Overrides — moved to Page Accents tab */}
 
                     {/* Group 8: Typography */}
                     <AccordionItem value="group-typography" className="border rounded-lg px-4" data-search-label="typography font family heading body base size scale google fonts Inter Roboto Poppins Montserrat">
@@ -2869,6 +2795,9 @@ export default function CommandSettings() {
                       </AccordionTrigger>
                       <AccordionContent className="pb-4 space-y-4">
                         <p className="text-xs text-muted-foreground">Raw CSS variable overrides injected after all other color rules. Use for radius, spacing, and any custom variables.</p>
+                        <div className="rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                          <strong>Legacy import:</strong> If you previously used the old <code>customCssVars</code> field, its content was automatically migrated here. This field is the only active source — the legacy field is no longer applied at runtime.
+                        </div>
                         <div className="space-y-1.5">
                           <Label htmlFor="custom-css-vars" className="text-xs">CSS Variables (one per line)</Label>
                           <Textarea
@@ -2954,6 +2883,7 @@ export default function CommandSettings() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <p className="text-xs font-medium text-foreground">Active background</p>
+                        <p className="text-[10px] text-muted-foreground/70 font-mono -mt-1">→ --sidebar-primary, --sidebar-accent, --sidebar-ring</p>
                         <div className="flex items-center gap-2">
                           <div className="relative shrink-0">
                             <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navMainBg ? `hsl(${navMainBg})` : "transparent" }} />
@@ -2965,6 +2895,7 @@ export default function CommandSettings() {
                       </div>
                       <div className="space-y-1.5">
                         <p className="text-xs font-medium text-foreground">Active text color</p>
+                        <p className="text-[10px] text-muted-foreground/70 font-mono -mt-1">→ --sidebar-accent-foreground</p>
                         <div className="flex items-center gap-2">
                           <div className="relative shrink-0">
                             <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navMainText ? `hsl(${navMainText})` : "transparent" }} />
@@ -2984,6 +2915,7 @@ export default function CommandSettings() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <p className="text-xs font-medium text-foreground">Hover background</p>
+                        <p className="text-[10px] text-muted-foreground/70 font-mono -mt-1">→ --nav-sub-accent</p>
                         <div className="flex items-center gap-2">
                           <div className="relative shrink-0">
                             <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navSubBg ? `hsl(${navSubBg})` : "transparent" }} />
@@ -2995,6 +2927,7 @@ export default function CommandSettings() {
                       </div>
                       <div className="space-y-1.5">
                         <p className="text-xs font-medium text-foreground">Hover text color</p>
+                        <p className="text-[10px] text-muted-foreground/70 font-mono -mt-1">→ --nav-sub-accent-foreground</p>
                         <div className="flex items-center gap-2">
                           <div className="relative shrink-0">
                             <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navSubText ? `hsl(${navSubText})` : "transparent" }} />
@@ -3453,151 +3386,7 @@ export default function CommandSettings() {
                 </CardContent>
               </Card>
 
-              {/* Footer Sitemap */}
-              <Card data-search-label="footer sitemap editor columns links navigation external" className={cardVisible("footer sitemap editor columns links navigation external") ? "" : "hidden"}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Layout className="h-4 w-4" />
-                        {highlight("Footer Sitemap Editor")}
-                      </CardTitle>
-                      <CardDescription className="mt-1">
-                        {highlight("Add, remove, and reorder footer columns and their links.")}
-                      </CardDescription>
-                    </div>
-                    <Button size="sm" className="gap-1.5 shrink-0" onClick={addColumn} data-testid="button-add-footer-column">
-                      <Plus className="h-3.5 w-3.5" />
-                      Add Column
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {sitemapColumns.map((col, ci) => (
-                    <div key={ci} className="border border-border rounded-lg p-4 space-y-3" data-testid={`footer-column-${ci}`}>
-                      <div className="flex items-center gap-2">
-                        <div className="flex flex-col gap-0.5">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => moveColumn(ci, -1)} disabled={ci === 0} data-testid={`button-col-up-${ci}`} aria-label="Move up">
-                                <ChevronUp className="h-3 w-3" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Move up</TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => moveColumn(ci, 1)} disabled={ci === sitemapColumns.length - 1} data-testid={`button-col-down-${ci}`} aria-label="Move down">
-                                <ChevronDown className="h-3 w-3" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Move down</TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <Input
-                          className="h-8 text-sm font-semibold flex-1"
-                          value={col.heading}
-                          onChange={(e) => updateColumnHeading(ci, e.target.value)}
-                          placeholder="Column Heading"
-                          data-testid={`input-col-heading-${ci}`}
-                        />
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeColumn(ci)} data-testid={`button-remove-col-${ci}`} aria-label="Delete">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Remove column</TooltipContent>
-                        </Tooltip>
-                      </div>
-
-                      <div className="space-y-2 pl-8">
-                        {col.links.map((lnk, li) => (
-                          <div key={li} className="flex items-center gap-2" data-testid={`footer-link-${ci}-${li}`}>
-                            <div className="flex flex-col gap-0.5">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => moveLink(ci, li, -1)} disabled={li === 0} data-testid={`button-link-up-${ci}-${li}`} aria-label="Move up">
-                                    <ChevronUp className="h-2.5 w-2.5" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Move up</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => moveLink(ci, li, 1)} disabled={li === col.links.length - 1} data-testid={`button-link-down-${ci}-${li}`} aria-label="Move down">
-                                    <ChevronDown className="h-2.5 w-2.5" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Move down</TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <Input
-                              className="h-7 text-xs flex-1"
-                              value={lnk.label}
-                              onChange={(e) => updateLink(ci, li, "label", e.target.value)}
-                              placeholder="Label"
-                              data-testid={`input-link-label-${ci}-${li}`}
-                            />
-                            <Input
-                              className="h-7 text-xs flex-1"
-                              value={lnk.path}
-                              onChange={(e) => updateLink(ci, li, "path", e.target.value)}
-                              placeholder="/path or https://..."
-                              data-testid={`input-link-path-${ci}-${li}`}
-                            />
-                            <div className="flex items-center gap-1 shrink-0">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="flex items-center gap-1">
-                                    <Switch
-                                      checked={!!lnk.external}
-                                      onCheckedChange={(v) => updateLink(ci, li, "external", v)}
-                                      className="scale-75"
-                                      data-testid={`switch-link-external-${ci}-${li}`}
-                                    />
-                                    <span className="text-[10px] text-muted-foreground">Ext</span>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>Open in new tab</TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => removeLink(ci, li)} data-testid={`button-remove-link-${ci}-${li}`} aria-label="Delete">
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Remove link</TooltipContent>
-                            </Tooltip>
-                          </div>
-                        ))}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs gap-1.5 mt-1"
-                          onClick={() => addLink(ci)}
-                          data-testid={`button-add-link-${ci}`}
-                        >
-                          <Plus className="h-3 w-3" />
-                          Add Link
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-
-                  {sitemapColumns.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-6">No footer columns. Add one above.</p>
-                  )}
-
-                  <div className="flex justify-end pt-2">
-                    <Button onClick={saveFooterSitemap} disabled={mutation.isPending} className="gap-2" data-testid="button-save-footer-sitemap">
-                      <Save className="h-3.5 w-3.5" />
-                      Save Footer
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Footer Sitemap — moved to Footer & Legal tab */}
 
               {/* Brand Assets */}
               <Card data-search-label="brand assets downloadable materials about page logo color palette font banner" className={cardVisible("brand assets downloadable materials about page logo color palette font banner") ? "" : "hidden"}>

@@ -56,6 +56,7 @@ import { Progress } from "@/components/ui/progress";
 import type { Role, Resource, Note } from "@shared/schema";
 import { articleUrl } from "@/lib/wiki-urls";
 import { UserSnapshotPanel } from "@/components/user-snapshot-panel";
+import { WidgetErrorBoundary } from "@/components/widget-error-boundary";
 
 const ROLE_COLORS: Record<string, string> = {
   admin:     "bg-primary/10 text-primary border-primary/20",
@@ -1021,7 +1022,9 @@ function AdminOverview({ data, summary, summaryLoading, userId, latestPlatformEn
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
           Web Analytics
         </h2>
-        <Ga4Widget />
+        <WidgetErrorBoundary label="Analytics">
+          <Ga4Widget />
+        </WidgetErrorBoundary>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -1060,7 +1063,7 @@ function AdminOverview({ data, summary, summaryLoading, userId, latestPlatformEn
                 data-testid={`role-count-${r}`}
               >
                 <span className="capitalize">{r}</span>
-                <span className="font-bold">{data.usersByRole![r] ?? 0}</span>
+                <span className="font-bold">{data.usersByRole?.[r] ?? 0}</span>
               </div>
             ))}
           </div>
@@ -1068,8 +1071,8 @@ function AdminOverview({ data, summary, summaryLoading, userId, latestPlatformEn
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <StoreStatsPreview />
-        <VpsStatusCard />
+        <WidgetErrorBoundary label="Store Stats"><StoreStatsPreview /></WidgetErrorBoundary>
+        <WidgetErrorBoundary label="VPS Status"><VpsStatusCard /></WidgetErrorBoundary>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -1078,8 +1081,8 @@ function AdminOverview({ data, summary, summaryLoading, userId, latestPlatformEn
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <QuickLinksWidget />
-        <RecentNotesWidget userId={userId} />
+        <WidgetErrorBoundary label="Quick Links"><QuickLinksWidget /></WidgetErrorBoundary>
+        <WidgetErrorBoundary label="Recent Notes"><RecentNotesWidget userId={userId} /></WidgetErrorBoundary>
       </div>
 
       <div>
@@ -1109,7 +1112,7 @@ function ExecutiveOverview({ data, summary, summaryLoading, userId, latestPlatfo
         </div>
       </div>
       <div>
-        <StoreStatsPreview />
+        <WidgetErrorBoundary label="Store Stats"><StoreStatsPreview /></WidgetErrorBoundary>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -1118,8 +1121,8 @@ function ExecutiveOverview({ data, summary, summaryLoading, userId, latestPlatfo
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <QuickLinksWidget />
-        <RecentNotesWidget userId={userId} />
+        <WidgetErrorBoundary label="Quick Links"><QuickLinksWidget /></WidgetErrorBoundary>
+        <WidgetErrorBoundary label="Recent Notes"><RecentNotesWidget userId={userId} /></WidgetErrorBoundary>
       </div>
 
       <div>
@@ -1146,7 +1149,7 @@ function StaffOverview({ data, summary, summaryLoading, latestPlatformEntry, onR
         </div>
       </div>
       <div>
-        <StoreStatsPreview />
+        <WidgetErrorBoundary label="Store Stats"><StoreStatsPreview /></WidgetErrorBoundary>
       </div>
 
       <LatestChangelogCard entry={latestPlatformEntry ?? summary?.latestChangelog} isLoading={summaryLoading} onRefresh={onRefreshSummary} />
@@ -1273,13 +1276,17 @@ export default function CommandOverview() {
 
   return (
     <>
-      <div className="mb-6" data-testid="section-user-snapshot-cmd">
-        <UserSnapshotPanel />
-      </div>
-      {role === "admin" && <AdminOverview data={data} summary={summary} summaryLoading={summaryLoading || platformHistoryLoading} userId={user?.id ?? ""} latestPlatformEntry={latestPlatformEntry} onRefreshSummary={() => refetchSummary()} />}
-      {role === "executive" && <ExecutiveOverview data={data} summary={summary} summaryLoading={summaryLoading || platformHistoryLoading} userId={user?.id ?? ""} latestPlatformEntry={latestPlatformEntry} onRefreshSummary={() => refetchSummary()} />}
-      {role === "staff" && <StaffOverview data={data} summary={summary} summaryLoading={summaryLoading || platformHistoryLoading} latestPlatformEntry={latestPlatformEntry} onRefreshSummary={() => refetchSummary()} />}
-      {isClientOrUser && <ClientOverview user={{ username: user?.username ?? "", displayName: user?.displayName }} />}
+      <WidgetErrorBoundary label="User Snapshot">
+        <div className="mb-6" data-testid="section-user-snapshot-cmd">
+          <UserSnapshotPanel />
+        </div>
+      </WidgetErrorBoundary>
+      <WidgetErrorBoundary label="Dashboard Overview">
+        {role === "admin" && <AdminOverview data={data} summary={summary} summaryLoading={summaryLoading || platformHistoryLoading} userId={user?.id ?? ""} latestPlatformEntry={latestPlatformEntry} onRefreshSummary={() => refetchSummary()} />}
+        {role === "executive" && <ExecutiveOverview data={data} summary={summary} summaryLoading={summaryLoading || platformHistoryLoading} userId={user?.id ?? ""} latestPlatformEntry={latestPlatformEntry} onRefreshSummary={() => refetchSummary()} />}
+        {role === "staff" && <StaffOverview data={data} summary={summary} summaryLoading={summaryLoading || platformHistoryLoading} latestPlatformEntry={latestPlatformEntry} onRefreshSummary={() => refetchSummary()} />}
+        {isClientOrUser && <ClientOverview user={{ username: user?.username ?? "", displayName: user?.displayName }} />}
+      </WidgetErrorBoundary>
     </>
   );
 }

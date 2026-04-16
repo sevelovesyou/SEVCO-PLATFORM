@@ -559,7 +559,7 @@ function PlatformColorInjector() {
     const brandAccent = toHsl(settings["color.brand.accent"] ?? "");
     const brandHighlight = toHsl(settings["color.brand.highlight"] ?? "");
 
-    const navMainBg = toHsl(settings["color.nav.main.bg"] ?? settings["color.nav.activeHighlight"] ?? "");
+    const navMainBg = toHsl(settings["color.nav.main.bg"] ?? "");
     const navMainText = toHsl(settings["color.nav.main.text"] ?? "");
     const navSubBg = toHsl(settings["color.nav.sub.bg"] ?? "");
     const navSubText = toHsl(settings["color.nav.sub.text"] ?? "");
@@ -663,7 +663,8 @@ function PlatformColorInjector() {
     if (musicAccent) darkRules.push(`  --music-accent: ${musicAccent};`);
     if (wikiTagColor) darkRules.push(`  --wiki-tag-color: ${wikiTagColor};`)
 
-    // theme.cssVars is a JSON object { "--var": "value", ... } — injected into both :root AND .dark
+    // theme.cssVars is the single canonical source: a JSON object { "--var": "value", ... }
+    // Legacy theme.customCssVars (plain CSS text) is no longer read — admins must migrate to theme.cssVars.
     let cssVarsEntries: [string, string][] = [];
     const rawCssVarsJson = settings["theme.cssVars"];
     if (rawCssVarsJson) {
@@ -673,19 +674,8 @@ function PlatformColorInjector() {
           cssVarsEntries = Object.entries(parsed) as [string, string][];
         }
       } catch {
-        // Legacy fallback: plain CSS text from theme.customCssVars
+        // malformed JSON — skip silently
       }
-    }
-    if (cssVarsEntries.length === 0) {
-      const legacyText = settings["theme.customCssVars"] ?? "";
-      legacyText.split(/\n|;/).map(l => l.trim()).filter(l => l.startsWith("--")).forEach(l => {
-        const colonIdx = l.indexOf(":");
-        if (colonIdx !== -1) {
-          const k = l.slice(0, colonIdx).trim();
-          const v = l.slice(colonIdx + 1).replace(/;$/, "").trim();
-          if (k && v) cssVarsEntries.push([k, v]);
-        }
-      });
     }
     // Inject into both light and dark
     for (const [k, v] of cssVarsEntries) {
@@ -754,6 +744,17 @@ function PlatformColorInjector() {
   return null;
 }
 
+function ScrollToTop() {
+  const [location] = useLocation();
+  useEffect(() => {
+    if (window.location.hash) return;
+    window.scrollTo(0, 0);
+    const main = document.getElementById("main-content");
+    if (main) main.scrollTop = 0;
+  }, [location]);
+  return null;
+}
+
 function AppShell() {
   const { user, isLoading } = useAuth();
   const [location] = useLocation();
@@ -801,6 +802,7 @@ function AppShell() {
       >
         Skip to main content
       </a>
+      <ScrollToTop />
       <div className="flex flex-col min-h-screen w-full overflow-x-clip">
         <div className="nav-spacer" aria-hidden="true" />
         <PlatformHeader />

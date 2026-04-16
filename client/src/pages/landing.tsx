@@ -104,7 +104,7 @@ const DEFAULT_WHY_SEVCO_PILLS = [
 
 const DISCORD_INVITE = "https://discord.gg/sevco";
 
-const DEFAULT_HERO_TEXT = "One platform for all things SEVCO — music, merch, projects, and a community built to last.";
+const DEFAULT_HERO_TEXT = "By SEVCO, The Inspiration Company";
 const DEFAULT_BTN1_LABEL = "Explore the Wiki";
 const DEFAULT_BTN1_URL = "/wiki";
 const DEFAULT_BTN2_LABEL = "Shop the Store";
@@ -567,9 +567,8 @@ export default function Landing() {
                           </span>
                         );
                       })
-                    : ["A", "creative", "community", "platform", "built", "by", "creators,", "for", "creators."].map((word, i) => {
-                        const isRedWord = i === 0 || i >= 6;
-                        const isWhiteWord = i >= 3 && i <= 5;
+                    : ["A", "Creative", "Platform"].map((word, i) => {
+                        const isRedWord = i === 0;
                         return (
                           <span
                             key={i}
@@ -583,8 +582,6 @@ export default function Landing() {
                                 WebkitBackgroundClip: "text",
                                 WebkitTextFillColor: "transparent",
                                 backgroundClip: "text",
-                              } : isWhiteWord ? {
-                                color: "rgba(255,255,255,0.92)",
                               } : {
                                 color: "rgba(255,255,255,0.92)",
                               }),

@@ -183,6 +183,19 @@ export const albumsRelations = relations(albums, ({ one }) => ({
   }),
 }));
 
+export interface ProductVariantOption {
+  label: string;
+  value: string;
+}
+
+export interface ProductVariantGroup {
+  id: string;
+  name: string;
+  type: "text" | "color";
+  required: boolean;
+  options: ProductVariantOption[];
+}
+
 export const products = pgTable("products", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   name: text("name").notNull(),
@@ -195,6 +208,7 @@ export const products = pgTable("products", {
   imageUrls: text("image_urls").array(),
   stripeProductId: text("stripe_product_id"),
   stripePriceId: text("stripe_price_id"),
+  variants: jsonb("variants").$type<ProductVariantGroup[]>().default([]),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

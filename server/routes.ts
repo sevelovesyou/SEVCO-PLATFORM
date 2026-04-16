@@ -2520,6 +2520,13 @@ export async function registerRoutes(
     description: z.string().nullable().optional(),
     price: z.number().positive().optional(),
     categoryName: z.string().min(1).max(100).optional(),
+    variants: z.array(z.object({
+      id: z.string(),
+      name: z.string(),
+      type: z.enum(["text", "color"]),
+      required: z.boolean(),
+      options: z.array(z.object({ label: z.string(), value: z.string() })),
+    })).optional(),
   });
 
   app.patch("/api/store/products/:id", requireAuth, requireRole(...CAN_MANAGE_STORE_PRODUCTS), async (req, res) => {
@@ -2574,7 +2581,7 @@ export async function registerRoutes(
   app.post("/api/checkout", requireAuth, async (req, res) => {
     try {
       const { items } = req.body as {
-        items: Array<{ productId: number; name: string; price: number; quantity: number; stripePriceId: string | null }>;
+        items: Array<{ productId: number; name: string; price: number; quantity: number; stripePriceId: string | null; selectedVariants?: Record<string, string>; cartKey?: string; slug?: string; imageUrl?: string | null }>;
       };
 
       if (!items || !Array.isArray(items) || items.length === 0) {
@@ -2602,15 +2609,22 @@ export async function registerRoutes(
       const baseUrl = `${proto}://${host}`;
 
       const stripe = await getUncachableStripeClient();
+
+      const cartSnapshot = JSON.stringify(items);
+      const metadata: Record<string, string> = {
+        userId: (req.user as any)?.id || '',
+      };
+      if (cartSnapshot.length <= 4000) {
+        metadata.cart_snapshot = cartSnapshot;
+      }
+
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: lineItems,
         mode: 'payment',
         success_url: `${baseUrl}/store/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${baseUrl}/store/cancel`,
-        metadata: {
-          userId: (req.user as any)?.id || '',
-        },
+        metadata,
       });
 
       res.json({ url: session.url });
@@ -2636,17 +2650,32 @@ export async function registerRoutes(
         return res.json({ paid: true, order: existing });
       }
 
+      let orderItems: any[];
+      if (session.metadata?.cart_snapshot) {
+        try {
+          orderItems = JSON.parse(session.metadata.cart_snapshot);
+        } catch {
+          orderItems = (session.line_items?.data || []).map((li: any) => ({
+            description: li.description,
+            quantity: li.quantity,
+            amount_total: li.amount_total,
+          }));
+        }
+      } else {
+        orderItems = (session.line_items?.data || []).map((li: any) => ({
+          description: li.description,
+          quantity: li.quantity,
+          amount_total: li.amount_total,
+        }));
+      }
+
       const order = await storage.createOrder({
         userId: (req.user as any)?.id || null,
         stripeSessionId: sessionId,
         stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
         total: session.amount_total || 0,
         status: 'paid',
-        items: (session.line_items?.data || []).map((li: any) => ({
-          description: li.description,
-          quantity: li.quantity,
-          amount_total: li.amount_total,
-        })),
+        items: orderItems,
       });
 
       res.json({ paid: true, order });

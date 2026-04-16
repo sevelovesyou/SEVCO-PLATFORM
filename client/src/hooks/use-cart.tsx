@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback } from "react";
 import type { Product } from "@shared/schema";
 
 export interface CartItem {
+  cartKey: string;
   productId: number;
   name: string;
   price: number;
@@ -9,13 +10,14 @@ export interface CartItem {
   stripePriceId: string | null;
   imageUrl: string | null;
   slug: string;
+  selectedVariants?: Record<string, string>;
 }
 
 interface CartContextValue {
   items: CartItem[];
-  addItem: (product: Product) => void;
-  removeItem: (productId: number) => void;
-  updateQuantity: (productId: number, quantity: number) => void;
+  addItem: (product: Product, selectedVariants?: Record<string, string>) => void;
+  removeItem: (cartKey: string) => void;
+  updateQuantity: (cartKey: string, quantity: number) => void;
   clearCart: () => void;
   total: number;
   itemCount: number;
@@ -30,17 +32,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
-  const addItem = useCallback((product: Product) => {
+  const addItem = useCallback((product: Product, selectedVariants?: Record<string, string>) => {
+    const hasVariants = selectedVariants && Object.keys(selectedVariants).length > 0;
+    const cartKey = hasVariants
+      ? `${product.id}::${JSON.stringify(Object.fromEntries(Object.keys(selectedVariants).sort().map(k => [k, selectedVariants[k]])))}`
+      : `${product.id}`;
+
     setItems((prev) => {
-      const existing = prev.find((i) => i.productId === product.id);
+      const existing = prev.find((i) => i.cartKey === cartKey);
       if (existing) {
         return prev.map((i) =>
-          i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i
+          i.cartKey === cartKey ? { ...i, quantity: i.quantity + 1 } : i
         );
       }
       return [
         ...prev,
         {
+          cartKey,
           productId: product.id,
           name: product.name,
           price: product.price,
@@ -48,22 +56,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           stripePriceId: product.stripePriceId ?? null,
           imageUrl: product.imageUrl ?? null,
           slug: product.slug,
+          selectedVariants: hasVariants ? selectedVariants : undefined,
         },
       ];
     });
     setIsOpen(true);
   }, []);
 
-  const removeItem = useCallback((productId: number) => {
-    setItems((prev) => prev.filter((i) => i.productId !== productId));
+  const removeItem = useCallback((cartKey: string) => {
+    setItems((prev) => prev.filter((i) => i.cartKey !== cartKey));
   }, []);
 
-  const updateQuantity = useCallback((productId: number, quantity: number) => {
+  const updateQuantity = useCallback((cartKey: string, quantity: number) => {
     if (quantity <= 0) {
-      setItems((prev) => prev.filter((i) => i.productId !== productId));
+      setItems((prev) => prev.filter((i) => i.cartKey !== cartKey));
     } else {
       setItems((prev) =>
-        prev.map((i) => (i.productId === productId ? { ...i, quantity } : i))
+        prev.map((i) => (i.cartKey === cartKey ? { ...i, quantity } : i))
       );
     }
   }, []);

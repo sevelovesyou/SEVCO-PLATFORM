@@ -88,7 +88,7 @@ export function CartDrawer() {
             <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
               {items.map((item) => (
                 <div
-                  key={item.productId}
+                  key={item.cartKey}
                   className="flex gap-3 items-start"
                   data-testid={`cart-item-${item.productId}`}
                 >
@@ -106,6 +106,11 @@ export function CartDrawer() {
                     <p className="text-sm font-semibold leading-tight line-clamp-2" data-testid={`cart-item-name-${item.productId}`}>
                       {item.name}
                     </p>
+                    {item.selectedVariants && Object.keys(item.selectedVariants).length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-0.5" data-testid={`cart-item-variants-${item.productId}`}>
+                        {Object.values(item.selectedVariants).join(" / ")}
+                      </p>
+                    )}
                     <p className="text-sm font-bold text-red-700 dark:text-red-500 mt-0.5" data-testid={`cart-item-price-${item.productId}`}>
                       ${item.price.toFixed(2)}
                     </p>
@@ -114,7 +119,7 @@ export function CartDrawer() {
                         variant="outline"
                         size="icon"
                         className="h-6 w-6"
-                        onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                        onClick={() => updateQuantity(item.cartKey, item.quantity - 1)}
                         data-testid={`button-decrease-${item.productId}`}
                         aria-label={`Decrease quantity of ${item.name}`}
                       >
@@ -127,7 +132,7 @@ export function CartDrawer() {
                         variant="outline"
                         size="icon"
                         className="h-6 w-6"
-                        onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                        onClick={() => updateQuantity(item.cartKey, item.quantity + 1)}
                         data-testid={`button-increase-${item.productId}`}
                         aria-label={`Increase quantity of ${item.name}`}
                       >
@@ -140,7 +145,7 @@ export function CartDrawer() {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-destructive flex-shrink-0"
-                    onClick={() => removeItem(item.productId)}
+                    onClick={() => removeItem(item.cartKey)}
                     data-testid={`button-remove-${item.productId}`}
                     aria-label={`Remove ${item.name} from cart`}
                   >

@@ -5,15 +5,18 @@ import { PageHead } from "@/components/page-head";
 import { ArrowLeft, Package, Tag, ShoppingBag, CircleCheck, CircleX, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCart } from "@/hooks/use-cart";
 import type { Product } from "@shared/schema";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
+import { cn } from "@/lib/utils";
 
 export default function StoreProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { addItem } = useCart();
   const [activePhoto, setActivePhoto] = useState(0);
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
 
   const { data: product, isLoading, isError } = useQuery<Product>({
     queryKey: ["/api/store/products", slug],
@@ -70,6 +73,22 @@ export default function StoreProductDetail() {
     : product.imageUrl
       ? [product.imageUrl]
       : [];
+
+  const variantGroups = product.variants ?? [];
+  const allRequiredSelected = variantGroups
+    .filter(g => g.required)
+    .every(g => selectedVariants[g.id]);
+  const canAddToCart = inStock && allRequiredSelected;
+
+  function handleSelectVariant(groupId: string, value: string) {
+    setSelectedVariants(prev => ({ ...prev, [groupId]: value }));
+  }
+
+  function handleAddToCart() {
+    if (!product) return;
+    const hasVariants = Object.keys(selectedVariants).length > 0;
+    addItem(product, hasVariants ? selectedVariants : undefined);
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -190,6 +209,55 @@ export default function StoreProductDetail() {
               </p>
             )}
 
+            {variantGroups.length > 0 && (
+              <div className="flex flex-col gap-4" data-testid="variant-pickers">
+                {variantGroups.map(group => (
+                  <div key={group.id} className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      {group.name}
+                      {group.required && <span className="text-destructive ml-1">*</span>}
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {group.options.map(opt => (
+                        group.type === "color" ? (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            title={opt.label}
+                            onClick={() => handleSelectVariant(group.id, opt.value)}
+                            className={cn(
+                              "h-8 w-8 rounded-full border-2 transition-all",
+                              selectedVariants[group.id] === opt.value
+                                ? "border-primary ring-2 ring-primary ring-offset-2"
+                                : "border-border hover:border-primary/50"
+                            )}
+                            style={{ backgroundColor: opt.value }}
+                            aria-label={opt.label}
+                            data-testid={`variant-color-${opt.value}`}
+                          />
+                        ) : (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => handleSelectVariant(group.id, opt.value)}
+                            className={cn(
+                              "px-3 py-1 rounded-md border text-sm font-medium transition-all",
+                              selectedVariants[group.id] === opt.value
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-background border-border hover:border-primary/50"
+                            )}
+                            data-testid={`variant-text-${opt.value}`}
+                          >
+                            {opt.label}
+                          </button>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="border-t border-border pt-5 space-y-3">
               <div className="flex gap-2 text-sm">
                 <span className="text-muted-foreground w-28 shrink-0">Category</span>
@@ -210,17 +278,22 @@ export default function StoreProductDetail() {
             <div className="flex gap-3 pt-2">
               <Button
                 className="flex-1 bg-red-800 hover:bg-red-800 text-white"
-                disabled={!inStock}
-                onClick={() => product && addItem(product)}
+                disabled={!canAddToCart}
+                onClick={handleAddToCart}
                 data-testid="button-add-to-cart"
               >
                 <ShoppingCart className="h-4 w-4 mr-2" />
-                {inStock ? "Add to Cart" : "Unavailable"}
+                {!inStock ? "Unavailable" : !allRequiredSelected ? "Select Options" : "Add to Cart"}
               </Button>
             </div>
             {!inStock && (
               <p className="text-xs text-muted-foreground -mt-2">
                 This item is currently sold out.
+              </p>
+            )}
+            {inStock && !allRequiredSelected && variantGroups.some(g => g.required) && (
+              <p className="text-xs text-muted-foreground -mt-2">
+                Please select all required options above.
               </p>
             )}
           </div>

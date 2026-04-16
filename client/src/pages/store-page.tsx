@@ -56,6 +56,7 @@ function ProductImageArea({ product, onAddToCart }: { product: Product; onAddToC
   const soldOut = product.stockStatus === "sold_out";
   const palette = getCategoryPalette(product.categoryName);
   const initial = product.name.charAt(0).toUpperCase();
+  const hasRequiredVariants = (product.variants ?? []).some(g => g.required);
 
   const lowStock = product.stockStatus === "low_stock";
 
@@ -125,15 +126,28 @@ function ProductImageArea({ product, onAddToCart }: { product: Product; onAddToC
             </Button>
           </Link>
           {!soldOut && (
-            <Button
-              size="sm"
-              className="bg-red-700 hover:bg-red-800 text-white shadow-md text-xs font-semibold px-3"
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(); }}
-              data-testid={`button-add-to-cart-${product.id}`}
-            >
-              <ShoppingCart className="h-3 w-3 mr-1" />
-              Add to Cart
-            </Button>
+            hasRequiredVariants ? (
+              <Link href={`/store/products/${product.slug}`}>
+                <Button
+                  size="sm"
+                  className="bg-red-700 hover:bg-red-800 text-white shadow-md text-xs font-semibold px-3"
+                  data-testid={`button-add-to-cart-${product.id}`}
+                >
+                  <ShoppingCart className="h-3 w-3 mr-1" />
+                  Select Options
+                </Button>
+              </Link>
+            ) : (
+              <Button
+                size="sm"
+                className="bg-red-700 hover:bg-red-800 text-white shadow-md text-xs font-semibold px-3"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(); }}
+                data-testid={`button-add-to-cart-${product.id}`}
+              >
+                <ShoppingCart className="h-3 w-3 mr-1" />
+                Add to Cart
+              </Button>
+            )
           )}
         </div>
       </div>

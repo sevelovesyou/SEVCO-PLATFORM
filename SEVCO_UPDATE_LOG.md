@@ -27409,3 +27409,50 @@ Add `"hero.shader.starDensity": "0.67"` to `SHADER_DEFAULTS` in `shader-settings
 
 ---
 
+## Task — freeball-help-page
+> Merged: 2026-04-16
+
+# Freeball Help Page
+
+## What & Why
+Create a `/freeball/help` page that documents all keyboard shortcuts and explains how to play Freeball. The page lives in the existing dark space-theme aesthetic alongside the landing page and is structured so new sections can be added easily as the game grows.
+
+## Done looks like
+- A public `/freeball/help` route is accessible without logging in
+- The page matches the dark space theme of `freeball-landing.tsx` (deep dark backgrounds, blue/purple/pink accents, `lucide-react` icons)
+- Controls are organized into clearly named sections: Movement, Interaction, Inventory & Blocks, The SEVCO Sphere, Game World
+- Each shortcut is displayed with a styled `<kbd>`-style badge (e.g. `W A S D`) alongside a plain-language description
+- Mouse controls (LMB, RMB, mouse look) are included
+- A "How to Play" intro section gives a high-level overview of the game loop (explore, collect, build, unlock the Sphere, travel between planets)
+- "Back to Freeball" and "Play Now" CTA buttons appear at the top and bottom
+- The help page is linked from the Freeball landing page (e.g. a "Controls & Help" link in the nav or the feature section)
+- The page is responsive (mobile-friendly column layouts)
+
+## Out of scope
+- In-game overlay or pause-menu shortcut panel (that's a separate future task)
+- Localisation / translation
+- Video or animated tutorials
+
+## Tasks
+1. **Add the route** — Register `/freeball/help` in `App.tsx` pointing to a new `FreeBallHelpPage` component (public, no auth required).
+
+2. **Build the Help page component** — Create `client/src/pages/freeball-help.tsx` with these sections:
+   - **Hero / intro** — Page title ("Freeball Help"), one-paragraph game overview, "Play Now" + "← Freeball" buttons.
+   - **How to Play** — Numbered steps covering the core game loop: spawn on a planet, break blocks to collect resources, open inventory to manage blocks, place blocks to build, collect Crystals to craft or buy the SEVCO Sphere, fly to other planets.
+   - **Movement Controls** — W/A/S/D (walk/steer), Space (jump/thrust), Shift (sprint/boost), mouse look.
+   - **Interaction** — LMB (break block), RMB (place block), E (enter/exit Sphere), Esc (pause/release mouse).
+   - **Inventory & Hotbar** — I or B (toggle inventory), 1–9 (select hotbar slot), hotbar click.
+   - **Camera & Social** — T (third-person view), Tab (show player list).
+   - **The SEVCO Sphere** — How to unlock (500 Sparks or craft with 20 Crystals), how to fly (WASD + Space + Shift), planet travel mechanic.
+   - **Block Types** — Quick reference table of the block types in-game (Grass, Stone, Crystal, SEVCO-Blue Metal, Music Nodes, etc.) and their special behaviors (Crystal → crafting, Alien blocks → artifact drops, Leaves/Flowers → 50% drop).
+
+3. **Link from the landing page** — Add a "Controls & Help →" text link or button to `freeball-landing.tsx` (e.g. alongside the existing "Play Now" CTA or in a small footer row on the hero).
+
+## Relevant files
+- `client/src/App.tsx`
+- `client/src/pages/freeball-landing.tsx`
+- `client/src/pages/freeball.tsx`
+
+
+---
+

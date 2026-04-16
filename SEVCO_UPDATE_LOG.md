@@ -27679,3 +27679,33 @@ const DEFAULT_HERO_TEXT = "By SEVCO, The Inspiration Company";
 
 ---
 
+## Task — planet-logo-color-fixes
+> Merged: 2026-04-16
+
+# Fix Planet Logo Colors in Two Places
+
+## What & Why
+Two places display the SEVCO planet logo with incorrect colors:
+1. **Mobile nav (dark mode)** — the planet icon stays black against the dark drawer background because a conflicting class overrides the component's built-in dark-mode inversion.
+2. **Brand guidelines planet cards** — both the "Black" and "White" planet variant preview cells use a dark background in dark mode, so the black logo is invisible (or rendered incorrectly) and both appear to show a white logo.
+
+## Done looks like
+- In the dark-mode mobile nav drawer, the planet logo appears white (visible), matching the rest of the header icons.
+- On the Brand Guidelines page, the "SEVCO Planet Logo Black" preview cell has a white/light background so the black logo is clearly visible, while the "SEVCO Planet Logo White" preview cell retains a dark background so the white logo is clearly visible.
+
+## Out of scope
+- Changing or re-uploading any brand asset images in the database.
+- Any other logo or icon changes elsewhere in the app.
+
+## Tasks
+1. **Fix mobile nav planet logo** — In the mobile navigation drawer, replace the conflicting `className="dark:invert-0"` override with the correct `invert="always"` prop on the `SevcoLogo` so it reliably renders white in dark mode.
+2. **Fix brand guidelines planet preview backgrounds** — In the logo variant grid, detect whether an asset name contains "Black" or "White" (case-insensitive) and apply a light background to the preview cell for black variants and a dark background for white variants, so each logo is legible against its preview background.
+
+## Relevant files
+- `client/src/components/platform-header.tsx:1382`
+- `client/src/components/sevco-logo.tsx`
+- `client/src/pages/brand-page.tsx:213-244`
+
+
+---
+

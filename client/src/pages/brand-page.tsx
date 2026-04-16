@@ -218,7 +218,7 @@ export default function BrandPage() {
                         className="rounded-xl border border-border bg-card overflow-hidden"
                         data-testid={`logo-variant-${asset.id}`}
                       >
-                        <div className="h-24 bg-muted/30 flex items-center justify-center border-b border-border">
+                        <div className={`h-24 flex items-center justify-center border-b border-border ${/black/i.test(asset.name) ? "bg-white" : /white/i.test(asset.name) ? "bg-gray-900" : "bg-muted/30"}`}>
                           {(asset.previewUrl || asset.downloadUrl) ? (
                             <img
                               src={resolveImageUrl(asset.previewUrl || asset.downloadUrl)}

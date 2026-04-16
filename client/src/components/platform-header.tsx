@@ -1379,7 +1379,7 @@ export function PlatformHeader() {
           <SheetHeader className="flex flex-row items-center justify-between px-3 border-b h-12 shrink-0">
             <SheetTitle className="sr-only">Navigation</SheetTitle>
             <SheetDescription className="sr-only">Site navigation menu</SheetDescription>
-            <SevcoLogo size={24} alt="SEVCO" className="dark:invert-0" />
+            <SevcoLogo size={24} alt="SEVCO" invert="always" />
             <SheetClose asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Close navigation">
                 <LucideIcons.X className="h-4 w-4" />

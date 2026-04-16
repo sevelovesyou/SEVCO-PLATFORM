@@ -27212,3 +27212,200 @@ The mutation `onSuccess` currently always shows a toast. Since all saves now fir
 
 ---
 
+## Task — galactic-shader-upgrade
+> Merged: 2026-04-16
+
+# Hero Shader — Galactic Space Upgrade
+
+## What & Why
+The user wants the hero shader to feel like deep space — twinkling stars scattered across the void, colorful galactic dust/nebula clouds swirling in multi-colored regions, and mouse movement that makes the dust **curl and spiral** around the cursor like stirring cosmic gas (rather than the current radial pull/lens effect). Reference: the SEVCO galactic logo art — rich cyan, teal, magenta, purple, gold, and deep blue nebula against a star-filled black sky.
+
+All changes are confined to `shader-background.tsx` (the GLSL + React Three Fiber component) and `shader-settings-panel.tsx` (CMD controls). No schema changes. Existing palettes and controls continue working.
+
+## Done Looks Like
+- A dense field of stars at multiple scales appears across the background, each twinkling independently via a sinusoidal brightness oscillation
+- Moving the mouse creates a **swirl/curl** in the dust — the nebula clouds rotate around the cursor position instead of being linearly pulled toward it. The effect fades with distance (Gaussian falloff)
+- The nebula coloring uses separate FBM samples for warm and cool regions, producing distinct color zones (teal clouds ≠ magenta clouds ≠ gold highlights) rather than a single linear blend
+- Two new palette presets — **"Galactic"** and **"Nebula"** — are added alongside the existing Cosmic Tide, Ocean, Ember, Midnight. These target the deep-space aesthetic from the reference
+- CMD gains a **Star Density** slider (Off / Subtle / Normal / Dense) controlling how many stars appear
+- All existing palettes, sliders, and the Enable toggle continue working exactly as before
+- Mobile path reduces star layers and FBM octaves (same gating as existing `uMobile` check)
+
+## GLSL Changes — Fragment Shader in `shader-background.tsx`
+
+### New Uniforms to add
+```glsl
+uniform float uStarDensity;   // 0.0 = off, 0.33 = subtle, 0.67 = normal, 1.0 = dense
+```
+
+### Star Field Function
+Add after the existing `fbmLow` function. Uses a hash-on-grid approach: subdivide UV space into a grid, pick a random point per cell, draw a smooth dot with sinusoidal twinkling. Multiple calls at different scales produce a layered star distribution.
+
+```glsl
+float starLayer(vec2 uv, float scale, float threshold) {
+  vec2 grid = floor(uv * scale);
+  vec2 local = fract(uv * scale) - 0.5;
+  float h = hash(grid);  // reuse existing hash()
+  if (h < threshold) return 0.0;
+  float norm = (h - threshold) / (1.0 - threshold);
+  float size = 0.010 + norm * 0.018;
+  float freq = 1.5 + h * 4.5;
+  float phase = h * 6.28318;
+  float twinkle = 0.45 + 0.55 * sin(uTime * freq + phase);
+  return twinkle * smoothstep(size, size * 0.25, length(local));
+}
+
+float starField(vec2 uv) {
+  float s = 0.0;
+  s += starLayer(uv, 70.0, 0.960) * 0.60;   // tiny dense
+  s += starLayer(uv, 40.0, 0.920) * 1.10;   // small
+  s += starLayer(uv, 22.0, 0.870) * 1.80;   // medium-bright
+  s += starLayer(uv, 10.0, 0.820) * 3.20;   // large bright (rare)
+  return clamp(s, 0.0, 1.0);
+}
+
+// Mobile version (fewer layers, lower threshold = slightly fewer stars)
+float starFieldLow(vec2 uv) {
+  float s = 0.0;
+  s += starLayer(uv, 50.0, 0.960) * 0.70;
+  s += starLayer(uv, 22.0, 0.900) * 1.50;
+  return clamp(s, 0.0, 1.0);
+}
+```
+
+### Curl/Swirl Mouse Interaction
+Replace the current radial pull block with a **curl rotation + gentle pull combo**:
+
+```glsl
+// Current code (REMOVE):
+// vec2 toMouse = m * uNoiseScale - uv;
+// float dist = length(toMouse);
+// float pull = 0.10 / (dist * dist + 0.08);
+// uv += toMouse * pull * uMouseStrength * 0.12;
+
+// Replacement (ADD):
+vec2 mouseUV = (uMouse * 0.5 + 0.5) * uNoiseScale;
+vec2 toMouse = uv - mouseUV;
+float dist = length(toMouse);
+
+// Curl: rotate dust around cursor with Gaussian spatial falloff
+float swirlAngle = uMouseStrength * 1.8 * exp(-dist * dist * 1.6);
+float cosA = cos(swirlAngle);
+float sinA = sin(swirlAngle);
+uv = mouseUV + vec2(
+    cosA * toMouse.x - sinA * toMouse.y,
+    sinA * toMouse.x + cosA * toMouse.y
+);
+// Subtle residual pull so the swirl also draws material toward cursor
+float pull = 0.05 / (dist * dist + 0.12);
+uv -= (uv - mouseUV) * pull * uMouseStrength * 0.06;
+```
+
+### Multi-Region Nebula Coloring
+After computing `q`, `r`, and `f` (existing domain-warp logic), add two extra samples for warm/cool region separation, then rewrite the color-mix block:
+
+```glsl
+// After existing f = fbm(uv + 4.0*r) / fbmLow equivalent:
+// Add warm/cool region samples (desktop only; on mobile share same q/r)
+float fCool, fWarm;
+if (uMobile > 0.5) {
+  fCool = fbmLow(uv + 4.0 * q + vec2(2.3, 0.7) + t * 0.09);
+  fWarm = fbmLow(uv + 4.0 * r + vec2(0.5, 3.1) + t * 0.07);
+} else {
+  fCool = fbm(uv + 4.0 * q + vec2(2.3, 0.7) + t * 0.09);
+  fWarm = fbm(uv + 4.0 * r + vec2(0.5, 3.1) + t * 0.07);
+}
+
+// Replace current color-mix block:
+vec3 col = uColor0;                                                            // deep space
+col = mix(col, uColor1, smoothstep(0.00, 0.45, f));                           // dark nebula body
+col = mix(col, uColor2, smoothstep(0.25, 0.68, fCool) * 0.85);               // cool region (teal/blue)
+col = mix(col, uColor3, smoothstep(0.48, 0.82, fWarm) * 0.80);               // warm region (magenta/gold)
+col = mix(col, uColor4, smoothstep(0.72, 1.00, f) * 0.65);                   // bright peaks
+// Warm core bloom near mouse
+float bloom = exp(-dist * dist * 1.2) * uMouseStrength * 0.28;
+col = mix(col, uColor4 * 1.5, bloom);
+col = clamp(col, 0.0, 1.0);
+```
+
+### Star Overlay (after vignette, before gl_FragColor)
+```glsl
+// Star field — computed on raw vUv (not warped UV) so stars don't move with dust
+float stars = (uMobile > 0.5)
+  ? starFieldLow(vUv * 2.0)
+  : starField(vUv * 2.0);
+stars *= uStarDensity;
+
+// Star color: mostly white with slight warm tint for large stars
+vec3 starColor = mix(vec3(0.85, 0.90, 1.0), vec3(1.0, 0.95, 0.80), stars * 0.5);
+col = mix(col, starColor, stars * (0.85 - length(col) * 0.4));  // blend into scene
+
+gl_FragColor = vec4(col, 1.0);
+```
+
+## New Palette Presets (add to `PALETTE_PRESETS` object)
+
+```typescript
+galactic: {
+  base:      "#000510",   // deep space black-blue
+  shadow:    "#080d3a",   // dark navy
+  mid:       "#0c6e9a",   // teal nebula
+  highlight: "#7a1090",   // purple/magenta cloud
+  peak:      "#e8b020",   // gold star-forming region
+},
+nebula: {
+  base:      "#040008",   // near-black purple
+  shadow:    "#1a0040",   // deep violet
+  mid:       "#8c0060",   // vivid magenta
+  highlight: "#00a8c8",   // cyan
+  peak:      "#ff8c00",   // fiery orange
+},
+```
+
+Add `"Galactic"` and `"Nebula"` as `SelectItem` entries in `shader-settings-panel.tsx`.
+
+## New Uniform — uStarDensity
+
+### In `shader-background.tsx`
+- Add `starDensity` to `PlaneProps` and `ShaderBackgroundProps` (default `0.67`)
+- Add `uStarDensity: { value: starDensity }` to the uniforms map
+- Update it each frame in `useFrame`
+
+### In `shader-settings-panel.tsx`
+**Constant:**
+```typescript
+const STAR_STEPS = [
+  { label: "Off",    value: 0.0  },
+  { label: "Subtle", value: 0.33 },
+  { label: "Normal", value: 0.67 },
+  { label: "Dense",  value: 1.0  },
+];
+```
+
+**DB key:** `hero.shader.starDensity` (default `"0.67"`)
+
+**Slider** (same step-slider pattern as Speed/Mouse/Noise, using `onValueCommit`):
+```
+Star Density — Off / Subtle / Normal / Dense
+```
+
+### In `landing.tsx` (where `ShaderBackground` is rendered)
+Pass `starDensity={parseFloat(platformSettings["hero.shader.starDensity"] ?? "0.67")}` to `<ShaderBackground>`.
+
+### Default settings
+Add `"hero.shader.starDensity": "0.67"` to `SHADER_DEFAULTS` in `shader-settings-panel.tsx`.
+
+## Files to Change
+- `client/src/components/shader-background.tsx` — GLSL fragment shader rewrite + new uniform + new prop
+- `client/src/components/shader-settings-panel.tsx` — Star Density slider + Galactic/Nebula palette options + updated SHADER_DEFAULTS
+- `client/src/pages/landing.tsx` — pass `starDensity` prop to `<ShaderBackground>`
+
+## Out of Scope
+- Changing the vertex shader (pass-through is fine)
+- Adding parallax depth layers (future task)
+- Animated galaxy rotation (time-based spiral arms) — not in this task
+- Any other pages using the shader (only `landing.tsx` renders it)
+
+
+---
+

@@ -27515,3 +27515,94 @@ Then use Twitter's Card Validator (cards-dev.twitter.com/validator) or paste the
 
 ---
 
+## Task — brand-guidelines-rebuild
+> Merged: 2026-04-16
+
+# Rebuild Brand Guidelines section on the About page — scalable SEVCO UI/UX system documentation
+
+## Goal
+Replace the current thin Brand Guidelines section on the About page (`client/src/pages/about-page.tsx`, ~lines 212–350) with a comprehensive, living design system documentation. Every token displayed must be read from the actual CSS variables, platform settings, and shader presets so the docs stay in sync as the design system evolves.
+
+This becomes Tier 1 of the broader modernization effort — the single source of truth that future design changes will be measured against.
+
+## Scope
+
+### 1. New reusable brand doc components — `client/src/components/brand/`
+Create small, composable primitives so the About page (and a future `/brand` route) can be assembled cleanly:
+
+- `BrandSection.tsx` — titled section wrapper with `id` anchor, heading, eyebrow, and intro prop
+- `ColorSwatch.tsx` — renders a live swatch from either a CSS custom property name or a `platform_settings` key; shows name, HSL value, usage note; includes a dark-mode-aware border
+- `ColorScale.tsx` — groups multiple swatches with a section heading
+- `TypeSpecimen.tsx` — shows a font sample with name, weight, size, and usage context; supports serif/sans/mono
+- `TypeScale.tsx` — renders an interactive scale (display, H1–H6, body large, body, caption, code) with the actual computed values
+- `ShadowCard.tsx` — visual demo of a `--shadow-*` token on a live card
+- `SpacingRuler.tsx` — visualizes the 8-pt grid and the radius scale
+- `MotionDemo.tsx` — small interactive demo showing the duration/easing tokens
+- `ShaderPaletteCard.tsx` — wraps `ShaderBackground` with a fixed `paletteId` at a smaller preview size; title + usage note
+- `ComponentExample.tsx` — two-column layout: rendered example on the left, collapsible `<pre>` code snippet on the right (monospace, copy button)
+- `IconExample.tsx` — shows a Lucide or react-icons/si icon at multiple sizes with the import snippet
+
+All components must:
+- Be fully dark-mode aware via existing CSS variables
+- Use existing shadcn primitives (Card, Button, Badge, Tooltip, etc.)
+- Accept `data-testid` attributes consistently
+
+### 2. Rewrite the Brand Guidelines section on the About page
+Replace the current `{showBrandSection && (...)}` block. The new structure:
+
+**Sticky right-side anchor nav** (desktop only, ≥ `lg:` breakpoint) with links to each subsection. On mobile, render inline at top of section.
+
+Sections (in order):
+
+1. **Brand voice & mission** — short opinionated statement. Props allow editing copy later from CMD (future). For now, hardcoded.
+2. **Logo system** — pulls approved logo variants from `brand_assets` where `assetType = 'logo'`. Visual examples of clear space (diagram), minimum size (side-by-side comparison), dos/don'ts as mini cards (e.g., "Don't recolor", "Don't distort", "Don't add effects").
+3. **Color system**
+   - **Brand colors**: 4 swatches reading from `color.brand.main|secondary|accent|highlight` with HSL values and usage
+   - **Semantic tokens**: primary, secondary, accent, muted, destructive, success, warning, border, ring — reading from CSS vars directly
+   - **Chart palette**: chart-1 through chart-5
+   - Each group rendered via `ColorScale`
+4. **Shader palettes** — 6 live animated shader previews (cosmic, ocean, ember, midnight, galactic, nebula) at a reduced size (e.g. 240×160), with a short description of the mood each conveys and a "use for" hint
+5. **Typography** — three TypeSpecimen cards (Inter sans, Source Serif 4 serif, JetBrains Mono mono), then a full TypeScale showing the actual rendered headings/body/caption from the CSS
+6. **Spacing & radius** — SpacingRuler showing the 4px base unit, then the radius scale (`rounded-sm` through `rounded-2xl`)
+7. **Elevation** — six ShadowCard demos (shadow-2xs through shadow-2xl)
+8. **Motion** — three MotionDemo blocks with duration + easing tokens (fast, default, slow)
+9. **Component patterns** — ComponentExample for Button (default/secondary/ghost/destructive), Badge (default/secondary/outline), Card, Input, Avatar, Tooltip. Each example shows the component alongside a minimal code snippet.
+10. **Iconography** — IconExample rows for Lucide (UI actions) and react-icons/si (brand logos), with sizing rules (16/20/24/32)
+11. **Imagery** — guidelines on photo style, shader usage, dos/don'ts
+12. **Downloadable assets** — keep the existing `brand_assets` download grid exactly as-is (logos, press kit, etc.)
+
+### 3. Keep the existing `showBrandSection` gating
+Only staff see the section until brand assets are populated — same rule as today.
+
+### 4. Style consistency
+- All section headings use the same treatment (eyebrow label + H2, consistent tracking)
+- All subsection headings use H3 with consistent spacing
+- Use existing `--radius` and shadow tokens for all cards — don't introduce new values
+- Responsive: single column on mobile, two-column where appropriate on md:, anchor nav on lg:
+
+## Files to change
+- `client/src/pages/about-page.tsx` — replace the `showBrandSection` block; keep everything above line 212 and below the downloadable-assets grid
+- **New**: `client/src/components/brand/BrandSection.tsx`, `ColorSwatch.tsx`, `ColorScale.tsx`, `TypeSpecimen.tsx`, `TypeScale.tsx`, `ShadowCard.tsx`, `SpacingRuler.tsx`, `MotionDemo.tsx`, `ShaderPaletteCard.tsx`, `ComponentExample.tsx`, `IconExample.tsx`
+- **New**: `client/src/components/brand/index.ts` — barrel export
+
+## Files NOT to change
+- No schema changes — reuses existing `platform_settings` keys and `brand_assets` table
+- No CMD Settings changes — all brand tokens already editable
+- No API route changes
+- Do not touch `shader-background.tsx` — reuse as-is
+- Do not restructure the top half of About page (mission, team, contact) — only the Brand Guidelines section
+
+## Success criteria
+- About page Brand Guidelines section renders 10+ documented subsections from a single composition
+- Every color swatch, shadow, and type sample pulls from the actual token system — changing a CSS var in `index.css` or a `color.brand.*` value in CMD updates the docs immediately
+- Sticky anchor nav on desktop; inline nav on mobile
+- Dark mode works for every new component
+- Live shader palette previews render without performance issues (throttle animation or use lower resolution for preview cards)
+- Existing downloadable brand assets grid still works and appears at the bottom
+- No regressions on the top half of the About page
+- All interactive elements have `data-testid` attributes
+- Page passes a basic visual sanity check in both light and dark mode
+
+
+---
+

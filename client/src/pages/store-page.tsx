@@ -51,6 +51,10 @@ function getCategoryPalette(cat: string) {
   return CATEGORY_PALETTES[cat.toLowerCase()] ?? DEFAULT_PALETTE;
 }
 
+function slugifyTestId(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "value";
+}
+
 function ProductImageArea({ product, onAddToCart }: { product: Product; onAddToCart: () => void }) {
   const [imgError, setImgError] = useState(false);
   const soldOut = product.stockStatus === "sold_out";
@@ -155,6 +159,44 @@ function ProductImageArea({ product, onAddToCart }: { product: Product; onAddToC
   );
 }
 
+function VariantIndicator({ product }: { product: Product }) {
+  const groups = (product.variants ?? []).filter(g => g.options.length > 0);
+  if (groups.length === 0) return null;
+
+  const colorGroup = groups.find(g => g.type === "color");
+  const textGroups = groups.filter(g => g.type === "text");
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 mt-1" data-testid={`variant-indicator-${product.id}`}>
+      {colorGroup && (
+        <div className="flex items-center gap-1" data-testid={`variant-swatches-${product.id}`}>
+          {colorGroup.options.slice(0, 4).map(opt => (
+            <span
+              key={opt.value}
+              title={opt.label}
+              aria-label={opt.label}
+              className="h-3.5 w-3.5 rounded-full border border-border/60 shadow-sm"
+              style={{ backgroundColor: opt.value }}
+            />
+          ))}
+          {colorGroup.options.length > 4 && (
+            <span className="text-[10px] text-muted-foreground font-medium">+{colorGroup.options.length - 4}</span>
+          )}
+        </div>
+      )}
+      {textGroups.map(g => (
+        <span
+          key={g.id}
+          className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground"
+          data-testid={`variant-count-${product.id}-${g.id}`}
+        >
+          {g.options.length} {g.name.toLowerCase()}{g.options.length !== 1 ? "s" : ""}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function ProductCard({ product, onAddToCart, accentHsl }: { product: Product; onAddToCart: () => void; accentHsl?: string }) {
   const soldOut = product.stockStatus === "sold_out";
   const accentColor = accentHsl ? `hsl(${accentHsl})` : undefined;
@@ -187,6 +229,7 @@ function ProductCard({ product, onAddToCart, accentHsl }: { product: Product; on
             </span>
           )}
         </p>
+        <VariantIndicator product={product} />
       </div>
     </div>
   );
@@ -292,11 +335,16 @@ export default function StorePage() {
   const urlCategory = new URLSearchParams(search).get("category") ?? "all";
   const [activeCategory, setActiveCategory] = useState(urlCategory);
   const [sort, setSort] = useState<SortKey>("featured");
+  const [variantFilters, setVariantFilters] = useState<Record<string, Set<string>>>({});
   const { addItem, itemCount, openCart } = useCart();
 
   useEffect(() => {
     setActiveCategory(urlCategory);
   }, [urlCategory]);
+
+  useEffect(() => {
+    setVariantFilters({});
+  }, [activeCategory]);
 
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["/api/store/products"],
@@ -316,10 +364,65 @@ export default function StorePage() {
 
   const categories = useMemo(() => Array.from(categoryMap.keys()).sort(), [categoryMap]);
 
+  const variantFacets = useMemo(() => {
+    const map = new Map<string, { name: string; type: "text" | "color"; options: Map<string, string> }>();
+    const pool = activeCategory === "all" ? products : products.filter(p => p.categoryName === activeCategory);
+    pool.forEach(p => {
+      (p.variants ?? []).forEach(g => {
+        if (!g.options.length) return;
+        const key = g.name.trim().toLowerCase();
+        if (!map.has(key)) map.set(key, { name: g.name, type: g.type, options: new Map() });
+        const facet = map.get(key)!;
+        g.options.forEach(opt => {
+          if (!facet.options.has(opt.value)) facet.options.set(opt.value, opt.label);
+        });
+      });
+    });
+    return Array.from(map.entries()).map(([key, v]) => ({
+      key,
+      name: v.name,
+      type: v.type,
+      options: Array.from(v.options.entries()).map(([value, label]) => ({ value, label })),
+    }));
+  }, [products, activeCategory]);
+
+  const activeFilterCount = useMemo(
+    () => Object.values(variantFilters).reduce((sum, s) => sum + s.size, 0),
+    [variantFilters],
+  );
+
+  const toggleVariantFilter = (key: string, value: string) => {
+    setVariantFilters(prev => {
+      const next = { ...prev };
+      const current = new Set(next[key] ?? []);
+      if (current.has(value)) current.delete(value);
+      else current.add(value);
+      if (current.size === 0) delete next[key];
+      else next[key] = current;
+      return next;
+    });
+  };
+
+  const clearVariantFilters = () => setVariantFilters({});
+
   const filtered = useMemo(() => {
     const base = activeCategory === "all" ? products : products.filter((p) => p.categoryName === activeCategory);
-    return sortProducts(base, sort);
-  }, [products, activeCategory, sort]);
+    const filteredByVariants = base.filter(p => {
+      for (const [key, selected] of Object.entries(variantFilters)) {
+        if (!selected.size) continue;
+        const groups = (p.variants ?? []).filter(g => g.name.trim().toLowerCase() === key);
+        if (groups.length === 0) return false;
+        const values = new Set(groups.flatMap(g => g.options.map(o => o.value)));
+        let match = false;
+        for (const v of selected) {
+          if (values.has(v)) { match = true; break; }
+        }
+        if (!match) return false;
+      }
+      return true;
+    });
+    return sortProducts(filteredByVariants, sort);
+  }, [products, activeCategory, sort, variantFilters]);
 
   return (
     <div className="min-h-screen bg-background" data-page="store">
@@ -449,6 +552,84 @@ export default function StorePage() {
                   ))}
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {variantFacets.length > 0 && (
+          <div
+            className="rounded-xl border border-border/60 bg-muted/20 p-4 flex flex-col gap-3"
+            data-testid="variant-filter-panel"
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-1.5">
+                <SlidersHorizontal className="h-3 w-3" />
+                Filter by Variant
+              </p>
+              {activeFilterCount > 0 && (
+                <button
+                  type="button"
+                  onClick={clearVariantFilters}
+                  className="text-[11px] font-semibold text-red-700 dark:text-red-400 hover:underline"
+                  data-testid="button-clear-variant-filters"
+                >
+                  Clear ({activeFilterCount})
+                </button>
+              )}
+            </div>
+            <div className="flex flex-col gap-3">
+              {variantFacets.map(facet => {
+                const selected = variantFilters[facet.key] ?? new Set<string>();
+                return (
+                  <div
+                    key={facet.key}
+                    className="flex flex-wrap items-center gap-2"
+                    data-testid={`variant-facet-${slugifyTestId(facet.key)}`}
+                  >
+                    <span className="text-xs font-semibold text-muted-foreground min-w-[64px]">
+                      {facet.name}
+                    </span>
+                    {facet.options.map(opt => {
+                      const isActive = selected.has(opt.value);
+                      if (facet.type === "color") {
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            title={opt.label}
+                            aria-label={opt.label}
+                            aria-pressed={isActive}
+                            onClick={() => toggleVariantFilter(facet.key, opt.value)}
+                            className={`h-6 w-6 rounded-full border-2 transition-all ${
+                              isActive
+                                ? "border-foreground ring-2 ring-foreground/20"
+                                : "border-border hover:border-foreground/50"
+                            }`}
+                            style={{ backgroundColor: opt.value }}
+                            data-testid={`filter-color-${slugifyTestId(facet.key)}-${slugifyTestId(opt.value)}`}
+                          />
+                        );
+                      }
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          aria-pressed={isActive}
+                          onClick={() => toggleVariantFilter(facet.key, opt.value)}
+                          className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-all ${
+                            isActive
+                              ? "bg-red-700 text-white border-red-700"
+                              : "bg-background border-border hover:border-red-700/50"
+                          }`}
+                          data-testid={`filter-text-${slugifyTestId(facet.key)}-${slugifyTestId(opt.value)}`}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

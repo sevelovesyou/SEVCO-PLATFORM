@@ -75,8 +75,17 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
   const vignetteStrengthFromSettings = parseFloat(settings["hero.shader.vignetteStrength"] ?? SHADER_DEFAULTS["hero.shader.vignetteStrength"]);
   const overlayStrengthFromSettings = parseFloat(settings["hero.shader.overlayStrength"] ?? SHADER_DEFAULTS["hero.shader.overlayStrength"]);
 
+  const speedFromSettings    = parseFloat(settings["hero.shader.speed"] ?? SHADER_DEFAULTS["hero.shader.speed"]);
+  const mouseFromSettings    = parseFloat(settings["hero.shader.mouseStrength"] ?? SHADER_DEFAULTS["hero.shader.mouseStrength"]);
+  const noiseFromSettings    = parseFloat(settings["hero.shader.noiseScale"] ?? SHADER_DEFAULTS["hero.shader.noiseScale"]);
+  const starDensityFromSettings = parseFloat(settings["hero.shader.starDensity"] ?? SHADER_DEFAULTS["hero.shader.starDensity"]);
+
   const [localVignette, setLocalVignette] = useState(Math.round(vignetteStrengthFromSettings * 100));
   const [localOverlay, setLocalOverlay] = useState(Math.round(overlayStrengthFromSettings * 100));
+  const [localSpeedIdx, setLocalSpeedIdx] = useState(indexOfStep(snapToStep(speedFromSettings, SPEED_STEPS), SPEED_STEPS));
+  const [localMouseIdx, setLocalMouseIdx] = useState(indexOfStep(snapToStep(mouseFromSettings, MOUSE_STEPS), MOUSE_STEPS));
+  const [localNoiseIdx, setLocalNoiseIdx] = useState(indexOfStep(snapToStep(noiseFromSettings, NOISE_STEPS), NOISE_STEPS));
+  const [localStarIdx, setLocalStarIdx] = useState(indexOfStep(snapToStep(starDensityFromSettings, STAR_STEPS), STAR_STEPS));
 
   useEffect(() => {
     setLocalVignette(Math.round(vignetteStrengthFromSettings * 100));
@@ -85,6 +94,22 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
   useEffect(() => {
     setLocalOverlay(Math.round(overlayStrengthFromSettings * 100));
   }, [overlayStrengthFromSettings]);
+
+  useEffect(() => {
+    setLocalSpeedIdx(indexOfStep(snapToStep(speedFromSettings, SPEED_STEPS), SPEED_STEPS));
+  }, [speedFromSettings]);
+
+  useEffect(() => {
+    setLocalMouseIdx(indexOfStep(snapToStep(mouseFromSettings, MOUSE_STEPS), MOUSE_STEPS));
+  }, [mouseFromSettings]);
+
+  useEffect(() => {
+    setLocalNoiseIdx(indexOfStep(snapToStep(noiseFromSettings, NOISE_STEPS), NOISE_STEPS));
+  }, [noiseFromSettings]);
+
+  useEffect(() => {
+    setLocalStarIdx(indexOfStep(snapToStep(starDensityFromSettings, STAR_STEPS), STAR_STEPS));
+  }, [starDensityFromSettings]);
 
   const mutation = useMutation({
     mutationFn: async (entries: Record<string, string>) => {
@@ -104,22 +129,12 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
   }
 
   const enabled = settings["hero.shader.enabled"] !== "false";
-  const speed = parseFloat(settings["hero.shader.speed"] ?? SHADER_DEFAULTS["hero.shader.speed"]);
-  const mouseStrength = parseFloat(settings["hero.shader.mouseStrength"] ?? SHADER_DEFAULTS["hero.shader.mouseStrength"]);
   const palette = (settings["hero.shader.palette"] ?? "cosmic") as PaletteId;
-  const noiseScale = parseFloat(settings["hero.shader.noiseScale"] ?? SHADER_DEFAULTS["hero.shader.noiseScale"]);
   const colorBase = settings["hero.shader.colorBase"] ?? SHADER_DEFAULTS["hero.shader.colorBase"];
   const colorShadow = settings["hero.shader.colorShadow"] ?? SHADER_DEFAULTS["hero.shader.colorShadow"];
   const colorMid = settings["hero.shader.colorMid"] ?? SHADER_DEFAULTS["hero.shader.colorMid"];
   const colorHighlight = settings["hero.shader.colorHighlight"] ?? SHADER_DEFAULTS["hero.shader.colorHighlight"];
   const colorPeak = settings["hero.shader.colorPeak"] ?? SHADER_DEFAULTS["hero.shader.colorPeak"];
-
-  const starDensity = parseFloat(settings["hero.shader.starDensity"] ?? SHADER_DEFAULTS["hero.shader.starDensity"]);
-
-  const speedIdx = indexOfStep(snapToStep(speed, SPEED_STEPS), SPEED_STEPS);
-  const mouseIdx = indexOfStep(snapToStep(mouseStrength, MOUSE_STEPS), MOUSE_STEPS);
-  const noiseIdx = indexOfStep(snapToStep(noiseScale, NOISE_STEPS), NOISE_STEPS);
-  const starIdx = indexOfStep(snapToStep(starDensity, STAR_STEPS), STAR_STEPS);
 
   function resetDefaults() {
     mutation.mutate({ ...SHADER_DEFAULTS });
@@ -152,13 +167,14 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm">Animation Speed</Label>
-              <span className="text-xs text-muted-foreground">{SPEED_STEPS[speedIdx]?.label ?? "Normal"}</span>
+              <span className="text-xs text-muted-foreground">{SPEED_STEPS[localSpeedIdx]?.label ?? "Normal"}</span>
             </div>
             <Slider
               min={0}
               max={SPEED_STEPS.length - 1}
               step={1}
-              value={[speedIdx]}
+              value={[localSpeedIdx]}
+              onValueChange={([i]) => setLocalSpeedIdx(i)}
               onValueCommit={([i]) => save("hero.shader.speed", String(SPEED_STEPS[i].value))}
               data-testid="slider-shader-speed"
             />
@@ -170,13 +186,14 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm">Mouse Sensitivity</Label>
-              <span className="text-xs text-muted-foreground">{MOUSE_STEPS[mouseIdx]?.label ?? "Medium"}</span>
+              <span className="text-xs text-muted-foreground">{MOUSE_STEPS[localMouseIdx]?.label ?? "Medium"}</span>
             </div>
             <Slider
               min={0}
               max={MOUSE_STEPS.length - 1}
               step={1}
-              value={[mouseIdx]}
+              value={[localMouseIdx]}
+              onValueChange={([i]) => setLocalMouseIdx(i)}
               onValueCommit={([i]) => save("hero.shader.mouseStrength", String(MOUSE_STEPS[i].value))}
               data-testid="slider-shader-mouse"
             />
@@ -188,13 +205,14 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm">Noise Scale</Label>
-              <span className="text-xs text-muted-foreground">{NOISE_STEPS[noiseIdx]?.label ?? "Medium"}</span>
+              <span className="text-xs text-muted-foreground">{NOISE_STEPS[localNoiseIdx]?.label ?? "Medium"}</span>
             </div>
             <Slider
               min={0}
               max={NOISE_STEPS.length - 1}
               step={1}
-              value={[noiseIdx]}
+              value={[localNoiseIdx]}
+              onValueChange={([i]) => setLocalNoiseIdx(i)}
               onValueCommit={([i]) => save("hero.shader.noiseScale", String(NOISE_STEPS[i].value))}
               data-testid="slider-shader-noise"
             />
@@ -206,13 +224,14 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm">Star Density</Label>
-              <span className="text-xs text-muted-foreground">{STAR_STEPS[starIdx]?.label ?? "Normal"}</span>
+              <span className="text-xs text-muted-foreground">{STAR_STEPS[localStarIdx]?.label ?? "Normal"}</span>
             </div>
             <Slider
               min={0}
               max={STAR_STEPS.length - 1}
               step={1}
-              value={[starIdx]}
+              value={[localStarIdx]}
+              onValueChange={([i]) => setLocalStarIdx(i)}
               onValueCommit={([i]) => save("hero.shader.starDensity", String(STAR_STEPS[i].value))}
               data-testid="slider-shader-star-density"
             />

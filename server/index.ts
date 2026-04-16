@@ -528,6 +528,18 @@ async function runStartupMigrations() {
     UPDATE spark_packs SET name = 'Pro',     sparks = 10000  WHERE id = 3 AND (name != 'Pro'     OR sparks != 10000);
     UPDATE spark_packs SET name = 'Surge',   sparks = 100000 WHERE id = 4 AND (name != 'Surge'   OR sparks != 100000);
   `);
+  // Shader Studio presets (idempotent — uses serial PK to match drizzle schema)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS shader_presets (
+      id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+      name TEXT NOT NULL,
+      effect_type TEXT NOT NULL,
+      params_json JSONB NOT NULL,
+      created_by VARCHAR REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+  `);
+
   console.log("[startup] migrations applied");
 }
 
@@ -656,6 +668,60 @@ async function initStripe() {
   // seedFeatureArticles() handles SEVCO Platform wiki articles (25 feature-area articles in category ID 12)
   // Seed official Spark Packs
   await seedSparkPacks().catch((err: any) => console.warn("[sparks] Pack seed warning:", err?.message ?? err));
+
+  // Seed default Shader Studio presets (idempotent)
+  await (async () => {
+    try {
+      const existing = await storage.getShaderPresets();
+      if (existing.length === 0) {
+        const defaults = [
+          // The six legacy palettes — kept under the "classic-plasma" effect type
+          // so the original landing visuals remain valid as named presets.
+          { name: "Cosmic Plasma", effectType: "classic-plasma", paramsJson: { speed: 1.0, intensity: 1.0, palette: "cosmic" } },
+          { name: "Ocean Plasma", effectType: "classic-plasma", paramsJson: { speed: 0.8, intensity: 0.9, palette: "ocean" } },
+          { name: "Ember Plasma", effectType: "classic-plasma", paramsJson: { speed: 1.1, intensity: 1.1, palette: "ember" } },
+          { name: "Midnight Plasma", effectType: "classic-plasma", paramsJson: { speed: 0.6, intensity: 0.8, palette: "midnight" } },
+          { name: "Galactic Plasma", effectType: "classic-plasma", paramsJson: { speed: 1.3, intensity: 1.2, palette: "galactic" } },
+          { name: "Nebula Plasma", effectType: "classic-plasma", paramsJson: { speed: 1.0, intensity: 1.0, palette: "nebula" } },
+          { name: "Mesh Aurora", effectType: "mesh-gradient", paramsJson: { speed: 0.5, hueShift: 0.0, blendSoftness: 0.7 } },
+          { name: "Liquid Chrome", effectType: "liquid-chrome", paramsJson: { speed: 0.8, contrast: 1.2, tint: 0.0 } },
+          { name: "Paint Flow", effectType: "paint-flow", paramsJson: { speed: 0.7, viscosity: 0.5, palette: "ember" } },
+          { name: "Swirl", effectType: "swirl", paramsJson: { speed: 0.9, twist: 1.5, palette: "cosmic" } },
+          { name: "Blob Field", effectType: "blob", paramsJson: { speed: 0.6, blobs: 5, palette: "ocean" } },
+          { name: "Wave Distortion", effectType: "wave-distortion", paramsJson: { speed: 1.0, amplitude: 0.4, frequency: 6.0 } },
+          { name: "Chromatic Aberration", effectType: "chromatic-aberration", paramsJson: { speed: 0.5, separation: 0.02, palette: "galactic" } },
+          { name: "Soft Glow", effectType: "glow", paramsJson: { speed: 0.4, intensity: 0.8, palette: "midnight" } },
+          { name: "Film Grain", effectType: "film-grain", paramsJson: { speed: 1.0, grain: 0.25, tint: 0.0 } },
+        ];
+        for (const d of defaults) {
+          await storage.createShaderPreset({ ...d, createdBy: null });
+        }
+        console.log(`[shader] Seeded ${defaults.length} default presets`);
+      }
+
+      // Seed default page assignments so first-load visuals are assignment-driven
+      // (only for keys that are not already set — never overwrite user choices).
+      const allPresets = await storage.getShaderPresets();
+      const byName = new Map(allPresets.map((p) => [p.name, p.id]));
+      const settingsNow = await storage.getPlatformSettings();
+      const desiredAssignments: Record<string, string> = {
+        "shader.page.landing": "Cosmic Plasma",
+        "shader.page.brand":   "Mesh Aurora",
+      };
+      const toApply: Record<string, string> = {};
+      for (const [key, presetName] of Object.entries(desiredAssignments)) {
+        if (settingsNow[key]) continue;
+        const id = byName.get(presetName);
+        if (id != null) toApply[key] = String(id);
+      }
+      if (Object.keys(toApply).length > 0) {
+        await storage.setPlatformSettings(toApply);
+        console.log(`[shader] Seeded default page assignments:`, toApply);
+      }
+    } catch (err: unknown) {
+      console.warn("[shader] Preset seed failed:", err instanceof Error ? err.message : err);
+    }
+  })();
 
   // Seed default X (Twitter) handles for SEVCO social feed
   await (async () => {

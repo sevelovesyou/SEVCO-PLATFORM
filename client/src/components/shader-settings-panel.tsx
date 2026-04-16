@@ -147,9 +147,23 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
           <span className="flex items-center gap-2 text-sm font-semibold">
             <Zap className="h-4 w-4 text-primary" />
             Shader
+            <span className="ml-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Legacy</span>
           </span>
         </AccordionTrigger>
         <AccordionContent className="pb-4 space-y-5">
+          <div className="flex items-start justify-between gap-3 p-3 rounded-md border border-border/60 bg-muted/30">
+            <div className="text-xs text-muted-foreground">
+              <strong className="text-foreground">Read-only.</strong> These legacy hero controls are now managed in the Shader Studio. Edit the assigned preset there to change the landing background.
+            </div>
+            <a
+              href="/command/shaders"
+              className="text-xs font-medium text-primary hover:underline whitespace-nowrap"
+              data-testid="link-open-shader-studio"
+            >
+              Open in Studio →
+            </a>
+          </div>
+          <div className="pointer-events-none opacity-60 select-none space-y-5" aria-disabled="true" data-testid="legacy-shader-readonly">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Enable Shader</p>
@@ -335,12 +349,13 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
               size="sm"
               className="gap-2 text-muted-foreground"
               onClick={resetDefaults}
-              disabled={mutation.isPending}
+              disabled
               data-testid="button-reset-shader"
             >
               <RotateCcw className="h-3.5 w-3.5" />
               Reset to defaults
             </Button>
+          </div>
           </div>
         </AccordionContent>
       </AccordionItem>

@@ -69,6 +69,7 @@ import CommandOverview from "@/pages/command-overview";
 import CommandUsers from "@/pages/command-users";
 import CommandChangelog from "@/pages/command-changelog";
 import CommandStore from "@/pages/command-store";
+import CommandShaderStudio from "@/pages/command-shader-studio";
 import CommandServices from "@/pages/command-services";
 import CommandJobs from "@/pages/command-jobs";
 import CommandMusic from "@/pages/command-music";
@@ -372,6 +373,13 @@ function Router() {
         <ProtectedRoute requiredRole="admin">
           <CommandPageLayout title="Settings" subtitle="Platform configuration — display, colors, social links, hosting, icons, and footer">
             <CommandSettings />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/command/shaders" component={() => (
+        <ProtectedRoute requiredRole="admin">
+          <CommandPageLayout title="Shader Studio" subtitle="Author and assign animated background shaders to platform pages">
+            <CommandShaderStudio />
           </CommandPageLayout>
         </ProtectedRoute>
       )} />

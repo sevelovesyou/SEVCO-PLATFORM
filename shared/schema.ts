@@ -696,6 +696,56 @@ export const platformSettings = pgTable("platform_settings", {
 
 export type PlatformSetting = typeof platformSettings.$inferSelect;
 
+export const SHADER_EFFECT_TYPES = [
+  "plasma",
+  "classic-plasma",
+  "mesh-gradient",
+  "liquid-chrome",
+  "paint-flow",
+  "swirl",
+  "blob",
+  "wave-distortion",
+  "chromatic-aberration",
+  "glow",
+  "film-grain",
+] as const;
+export type ShaderEffectType = typeof SHADER_EFFECT_TYPES[number];
+
+export const SHADER_PAGE_KEYS = [
+  "landing",
+  "brand",
+  "about",
+  "store",
+  "music",
+  "projects",
+  "gallery",
+  "services",
+  "jobs",
+  "freeball",
+  "sites-landing",
+  "auth",
+  "pricing",
+  "contact",
+] as const;
+export type ShaderPageKey = typeof SHADER_PAGE_KEYS[number];
+
+export const shaderPresets = pgTable("shader_presets", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  effectType: text("effect_type").notNull(),
+  paramsJson: jsonb("params_json").notNull(),
+  createdBy: varchar("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertShaderPresetSchema = createInsertSchema(shaderPresets).omit({ id: true, createdAt: true }).extend({
+  effectType: z.enum(SHADER_EFFECT_TYPES),
+  name: z.string().min(1).max(60),
+  paramsJson: z.record(z.string(), z.any()),
+});
+export type ShaderPreset = typeof shaderPresets.$inferSelect;
+export type InsertShaderPreset = z.infer<typeof insertShaderPresetSchema>;
+
 export const brandAssets = pgTable("brand_assets", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   name: text("name").notNull(),

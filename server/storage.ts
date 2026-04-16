@@ -24,6 +24,7 @@ import {
   type Post, type InsertPost, type PostLike, type PostReply, type InsertPostReply, type UserFollow,
   type PlatformSetting,
   type BrandAsset, type InsertBrandAsset,
+  type ShaderPreset, type InsertShaderPreset,
   type Resource, type InsertResource,
   type GalleryImage, type InsertGalleryImage,
   type SpotifyArtist, type InsertSpotifyArtist,
@@ -59,7 +60,7 @@ import {
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
   posts, postLikes, postReplies, userFollows,
-  noteCollaborators, noteAttachments, platformSettings, brandAssets, resources, galleryImages, spotifyArtists,
+  noteCollaborators, noteAttachments, platformSettings, brandAssets, shaderPresets, resources, galleryImages, spotifyArtists,
   postSparks, articleSparks, gallerySparks,
   contactSubmissions,
   staffOrgNodes,
@@ -311,6 +312,12 @@ export interface IStorage {
   createBrandAsset(data: InsertBrandAsset): Promise<BrandAsset>;
   updateBrandAsset(id: number, data: Partial<InsertBrandAsset>): Promise<BrandAsset>;
   deleteBrandAsset(id: number): Promise<void>;
+
+  getShaderPresets(): Promise<ShaderPreset[]>;
+  getShaderPreset(id: number): Promise<ShaderPreset | undefined>;
+  createShaderPreset(data: InsertShaderPreset): Promise<ShaderPreset>;
+  updateShaderPreset(id: number, data: Partial<InsertShaderPreset>): Promise<ShaderPreset>;
+  deleteShaderPreset(id: number): Promise<void>;
 
   getResources(): Promise<Resource[]>;
   createResource(data: InsertResource): Promise<Resource>;
@@ -2020,6 +2027,29 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBrandAsset(id: number): Promise<void> {
     await db.delete(brandAssets).where(eq(brandAssets.id, id));
+  }
+
+  async getShaderPresets(): Promise<ShaderPreset[]> {
+    return db.select().from(shaderPresets).orderBy(shaderPresets.id);
+  }
+
+  async getShaderPreset(id: number): Promise<ShaderPreset | undefined> {
+    const [row] = await db.select().from(shaderPresets).where(eq(shaderPresets.id, id));
+    return row;
+  }
+
+  async createShaderPreset(data: InsertShaderPreset): Promise<ShaderPreset> {
+    const [created] = await db.insert(shaderPresets).values(data).returning();
+    return created;
+  }
+
+  async updateShaderPreset(id: number, data: Partial<InsertShaderPreset>): Promise<ShaderPreset> {
+    const [updated] = await db.update(shaderPresets).set(data).where(eq(shaderPresets.id, id)).returning();
+    return updated;
+  }
+
+  async deleteShaderPreset(id: number): Promise<void> {
+    await db.delete(shaderPresets).where(eq(shaderPresets.id, id));
   }
 
   async getResources(): Promise<Resource[]> {

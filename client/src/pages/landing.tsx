@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { ShaderBackground, PALETTE_PRESETS, type PaletteId } from "@/components/shader-background";
+import { PageShader } from "@/components/page-shader";
+import { usePageShader } from "@/hooks/use-page-shader";
 import { StaggerGrid } from "@/components/stagger-grid";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -335,26 +336,10 @@ export default function Landing() {
   const heroText = settings["hero.text"] || DEFAULT_HERO_TEXT;
   const heroOverlayOpacity = settings["hero.overlayOpacity"] ? parseInt(settings["hero.overlayOpacity"]) / 100 : 0.7;
 
-  const shaderEnabled = settings["hero.shader.enabled"] !== "false";
-  const shaderTimeScale = parseFloat(settings["hero.shader.speed"] ?? "1.0");
-  const shaderMouseStrength = parseFloat(settings["hero.shader.mouseStrength"] ?? "0.5");
-  const shaderNoiseScale = parseFloat(settings["hero.shader.noiseScale"] ?? "1.0");
-  const shaderVignetteStrength = parseFloat(settings["hero.shader.vignetteStrength"] ?? "0.6");
+  // Legacy hero.shader.* settings are no longer consulted at runtime — the
+  // Shader Studio assignment for `landing` (rendered by <PageShader />) is
+  // the single source of truth. Only the visual overlay strength is kept.
   const shaderOverlayStrength = parseFloat(settings["hero.shader.overlayStrength"] ?? "0.45");
-  const shaderStarDensity = parseFloat(settings["hero.shader.starDensity"] ?? "0.67");
-  const shaderPalette = (settings["hero.shader.palette"] ?? "cosmic") as PaletteId;
-  const shaderPaletteColors: [string, string, string, string, string] = shaderPalette === "custom"
-    ? [
-        settings["hero.shader.colorBase"]      ?? "#07071a",
-        settings["hero.shader.colorShadow"]    ?? "#1f1066",
-        settings["hero.shader.colorMid"]       ?? "#1c54e0",
-        settings["hero.shader.colorHighlight"] ?? "#be0007",
-        settings["hero.shader.colorPeak"]      ?? "#d93b0c",
-      ]
-    : (() => {
-        const p = PALETTE_PRESETS[shaderPalette as Exclude<PaletteId, "custom">] ?? PALETTE_PRESETS.cosmic;
-        return [p.base, p.shadow, p.mid, p.highlight, p.peak] as [string, string, string, string, string];
-      })();
 
   const btn1Color = settings["hero.button1.color"];
   const btn2Color = settings["hero.button2.color"];
@@ -462,32 +447,28 @@ export default function Landing() {
           ];
         }}
       >
-        {/* Shader background — replaces aurora blobs */}
-        {!prefersReducedMotion && !heroBgUrl && shaderEnabled ? (
-          <ShaderBackground
-            mouse={mouseRef}
-            isMobile={isMobilePerfMode}
-            timeScale={shaderTimeScale}
-            mouseStrength={shaderMouseStrength}
-            noiseScale={shaderNoiseScale}
-            vignetteStrength={shaderVignetteStrength}
-            paletteColors={shaderPaletteColors}
-            starDensity={shaderStarDensity}
-          />
-        ) : (
-          /* Reduced-motion, custom bg, or shader disabled — static gradient */
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={heroBgUrl ? {
-              backgroundImage: `url(${resolveImageUrl(heroBgUrl)})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            } : {
-              background: "radial-gradient(ellipse 80% 60% at 20% 30%, rgba(190,0,7,0.32) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 70%, rgba(28,84,224,0.28) 0%, transparent 55%), linear-gradient(160deg, #0b0830 0%, #07071a 50%, #100510 100%)",
-            }}
-            aria-hidden="true"
-          />
-        )}
+        {/* Static gradient (or hero image) is rendered first so it's always
+            visible as the base layer. The Shader Studio assignment for this
+            page is layered on top via <PageShader /> below; when no preset is
+            assigned, when the user prefers reduced motion, or when the preset
+            opts into mobileFallback on small screens, PageShader simply
+            renders nothing and the gradient/image remains visible.
+
+            The legacy ShaderBackground / hero.shader.* settings are no longer
+            consulted at runtime — assignment via the Shader Studio is now
+            the single source of truth for hero visuals. */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={heroBgUrl ? {
+            backgroundImage: `url(${resolveImageUrl(heroBgUrl)})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          } : {
+            background: "radial-gradient(ellipse 80% 60% at 20% 30%, rgba(190,0,7,0.32) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 70%, rgba(28,84,224,0.28) 0%, transparent 55%), linear-gradient(160deg, #0b0830 0%, #07071a 50%, #100510 100%)",
+          }}
+          aria-hidden="true"
+        />
+        <PageShader pageKey="landing" className="absolute inset-0 pointer-events-none" />
 
         {/* Directional overlay — transparent center-top, stronger at edges/bottom */}
         <div

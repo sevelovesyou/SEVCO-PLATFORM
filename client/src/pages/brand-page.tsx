@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { ArrowLeft, FileImage, Type, Image, Download, Search, Plus, Settings, Trash2, Check, X, ChevronRight, Package } from "lucide-react";
 import { PageHead } from "@/components/page-head";
+import { PageShader } from "@/components/page-shader";
 import { SiGithub, SiDiscord } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -132,7 +133,8 @@ export default function BrandPage() {
   const hasAssets = brandAssets.length > 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      <PageShader pageKey="brand" className="fixed inset-0 -z-10 pointer-events-none" />
       <PageHead
         slug="brand"
         title="SEVCO Brand Guidelines — Logos, Colors, Type & Assets"

@@ -5122,6 +5122,88 @@ export async function registerRoutes(
     }
   });
 
+  // ── Shader Studio ──────────────────────────────────────────────────────
+  app.get("/api/shader-presets", async (_req, res) => {
+    try {
+      const presets = await storage.getShaderPresets();
+      res.json(presets);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/shader-presets", requireAuth, requireRole("admin"), async (req: any, res) => {
+    try {
+      const { insertShaderPresetSchema } = await import("@shared/schema");
+      const parsed = insertShaderPresetSchema.safeParse({ ...req.body, createdBy: req.user?.id ?? null });
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.message });
+      const created = await storage.createShaderPreset(parsed.data);
+      res.status(201).json(created);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/shader-presets/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { insertShaderPresetSchema } = await import("@shared/schema");
+      const parsed = insertShaderPresetSchema.partial().safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.message });
+      const updated = await storage.updateShaderPreset(id, parsed.data);
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/shader-presets/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteShaderPreset(id);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Returns { [pageKey]: presetId | null } from platform_settings
+  app.get("/api/shader-assignments", async (_req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      const out: Record<string, number | null> = {};
+      for (const [k, v] of Object.entries(settings)) {
+        if (k.startsWith("shader.page.")) {
+          const pk = k.slice("shader.page.".length);
+          if (v === "" || v === "null" || v === "none") out[pk] = null;
+          else {
+            const n = parseInt(v);
+            out[pk] = Number.isFinite(n) ? n : null;
+          }
+        }
+      }
+      res.json(out);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.put("/api/shader-assignments", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const body = req.body;
+      if (typeof body !== "object" || !body) return res.status(400).json({ message: "Body must be an object" });
+      const entries: Record<string, string> = {};
+      for (const [pageKey, val] of Object.entries(body)) {
+        const v = val === null || val === undefined || val === "none" ? "" : String(val);
+        entries[`shader.page.${pageKey}`] = v;
+      }
+      await storage.setPlatformSettings(entries);
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/gallery", async (req: any, res) => {
     try {
       const category = req.query.category as string | undefined;

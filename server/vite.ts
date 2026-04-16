@@ -63,6 +63,7 @@ export async function setupVite(server: Server, app: Express) {
         }
         const proto = (req.headers["x-forwarded-proto"] as string) || "https";
         const host = req.hostname;
+        const canonicalUrl = `${proto}://${host}`;
         const rawOgImage = platformSettings["platform.ogImageUrl"];
         const resolvedOgImage = rawOgImage
           ? /^https?:\/\//.test(rawOgImage)
@@ -73,6 +74,7 @@ export async function setupVite(server: Server, app: Express) {
           template,
           resolvedOgImage,
           platformSettings["platform.description"],
+          canonicalUrl,
         );
       } catch {
         // Don't block page render if analytics settings fail to load

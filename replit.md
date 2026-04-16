@@ -42,6 +42,23 @@ The platform is built with a modern web stack:
     - **Wiki Source Library** (Task #317): Editors can ingest web pages, academic papers (DOI/PubMed/arXiv), and PDFs into a "Source Library" tab in Command Wiki (`/command/wiki`). Each ingest extracts readable text server-side and opens Wikify pre-filled with the content. Past sources are tracked in the `wiki_sources` DB table with type, identifier, title, ingestion date, and article count. Ingest endpoints: `POST /api/tools/wiki/ingest-url`, `POST /api/tools/wiki/ingest-academic`, `POST /api/tools/wiki/ingest-pdf`. Source library endpoints: `GET /api/tools/wiki/sources`, `PATCH /api/tools/wiki/sources/:id/increment`, `DELETE /api/tools/wiki/sources/:id`. Uses `@mozilla/readability`, `jsdom`, and `pdf-parse` packages.
     - **Wiki LLM Cost Dashboard** (Task #319): All wiki LLM operations (wikify, rewikify/generate-source, semantic_relink) log token usage to the `wiki_llm_usage` DB table. Costs are computed server-side using configurable rates stored in `platform_settings["wiki.llmRates"]` (defaults: Claude Haiku $0.0008/$0.004 per 1K in/out, Sonnet $0.003/$0.015). Command Wiki → "AI Cost" tab (executive+) shows current month total spend prominently, a per-operation breakdown table, month navigation for historical data, a configurable alert threshold (stored in `platform_settings["wiki.llmAlertThreshold"]`), and a rate card editor. Cost APIs: `GET /api/tools/wiki/llm-cost?year=&month=`, `GET /api/tools/wiki/llm-rates`, `PUT /api/tools/wiki/llm-rates`, `PUT /api/tools/wiki/llm-alert-threshold`. Cost helper module: `server/wiki-llm-cost.ts`.
 
+## OG / Social Meta Injection
+
+The server injects OG and Twitter meta tags at request time for every HTML response (both production via `server/static.ts` and dev via `server/vite.ts`). The admin sets values in Command Center which are stored as `platform.ogImageUrl` and `platform.description` in platform settings.
+
+**What gets replaced per request:**
+- `og:image` + `twitter:image` — CMD-set image URL (falls back to `<host>/favicon.jpg`)
+- `og:description` + `meta[name=description]` + `twitter:description` — CMD-set description
+- `<link rel="canonical">` + `og:url` — derived from the incoming request host/protocol so all SEVCO domains (`sevco.us`, `sev.cx`, `sevelovesyou.com`) return their own host in these tags
+
+**X/Twitter card cache-bust runbook:**
+After changing OG image or description in Command Center, X's cached card must be manually refreshed for each domain:
+1. Go to https://cards-dev.twitter.com/validator
+2. Paste `https://sevco.us/`, click Preview — this forces a re-fetch
+3. Repeat for `https://sev.cx/` and `https://sevelovesyou.com/`
+
+Alternatively, append a one-time query string (e.g. `?v=2`) to the URL you share in the tweet to bypass X's cache for that specific share.
+
 ## External Dependencies
 - **Database**: PostgreSQL
 - **ORM**: Drizzle ORM

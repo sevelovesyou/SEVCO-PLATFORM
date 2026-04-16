@@ -15,12 +15,18 @@ export function buildGtagSnippet(measurementId: string): string {
 
 const DEFAULT_OG_IMAGE = "https://sevco.us/favicon.jpg";
 const DEFAULT_DESCRIPTION = "One platform for all things SEVCO — music, merch, projects, and a community built to last.";
+const DEFAULT_CANONICAL = "https://sevco.us";
 
 function escapeAttr(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 }
 
-export function injectOgMeta(html: string, ogImageUrl?: string, description?: string): string {
+export function injectOgMeta(
+  html: string,
+  ogImageUrl?: string,
+  description?: string,
+  canonicalUrl?: string,
+): string {
   if (ogImageUrl && ogImageUrl.trim()) {
     const escaped = escapeAttr(ogImageUrl.trim());
     html = html.split(`content="${DEFAULT_OG_IMAGE}"`).join(`content="${escaped}"`);
@@ -28,6 +34,11 @@ export function injectOgMeta(html: string, ogImageUrl?: string, description?: st
   if (description && description.trim()) {
     const escaped = escapeAttr(description.trim());
     html = html.split(DEFAULT_DESCRIPTION).join(escaped);
+  }
+  if (canonicalUrl && canonicalUrl.trim()) {
+    const escaped = escapeAttr(canonicalUrl.trim());
+    html = html.split(`href="${DEFAULT_CANONICAL}"`).join(`href="${escaped}"`);
+    html = html.split(`content="${DEFAULT_CANONICAL}"`).join(`content="${escaped}"`);
   }
   return html;
 }
@@ -58,6 +69,7 @@ export function serveStatic(app: Express) {
         }
         const proto = (req.headers["x-forwarded-proto"] as string) || "https";
         const host = req.hostname;
+        const canonicalUrl = `${proto}://${host}`;
         const rawOgImage = platformSettings["platform.ogImageUrl"];
         const resolvedOgImage = rawOgImage
           ? /^https?:\/\//.test(rawOgImage)
@@ -68,6 +80,7 @@ export function serveStatic(app: Express) {
           html,
           resolvedOgImage,
           platformSettings["platform.description"],
+          canonicalUrl,
         );
       } catch {
         // Don't block page render if analytics settings fail to load

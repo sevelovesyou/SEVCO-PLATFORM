@@ -13,7 +13,7 @@ export function buildGtagSnippet(measurementId: string): string {
   return `\n    <!-- Google Analytics 4 -->\n    <script async src="https://www.googletagmanager.com/gtag/js?id=${safe}"></script>\n    <script>\n      window.dataLayer = window.dataLayer || [];\n      function gtag(){dataLayer.push(arguments);}\n      gtag('js', new Date());\n      gtag('config', '${safe}');\n    </script>`;
 }
 
-const DEFAULT_OG_IMAGE = "/favicon.jpg";
+const DEFAULT_OG_IMAGE = "https://sevco.us/favicon.jpg";
 const DEFAULT_DESCRIPTION = "One platform for all things SEVCO — music, merch, projects, and a community built to last.";
 
 function escapeAttr(value: string): string {
@@ -44,7 +44,7 @@ export function serveStatic(app: Express) {
 
   const indexPath = path.resolve(distPath, "index.html");
 
-  app.use("/{*path}", async (_req, res) => {
+  app.use("/{*path}", async (req, res) => {
     try {
       let html = await fs.promises.readFile(indexPath, "utf-8");
       try {
@@ -56,9 +56,11 @@ export function serveStatic(app: Express) {
             html = html.replace("</head>", `${snippet}\n  </head>`);
           }
         }
+        const proto = (req.headers["x-forwarded-proto"] as string) || "https";
+        const absoluteFallback = `${proto}://${req.hostname}/favicon.jpg`;
         html = injectOgMeta(
           html,
-          platformSettings["platform.ogImageUrl"],
+          platformSettings["platform.ogImageUrl"] || absoluteFallback,
           platformSettings["platform.description"],
         );
       } catch {

@@ -61,9 +61,11 @@ export async function setupVite(server: Server, app: Express) {
             template = template.replace("</head>", `${snippet}\n  </head>`);
           }
         }
+        const proto = (req.headers["x-forwarded-proto"] as string) || "https";
+        const absoluteFallback = `${proto}://${req.hostname}/favicon.jpg`;
         template = injectOgMeta(
           template,
-          platformSettings["platform.ogImageUrl"],
+          platformSettings["platform.ogImageUrl"] || absoluteFallback,
           platformSettings["platform.description"],
         );
       } catch {

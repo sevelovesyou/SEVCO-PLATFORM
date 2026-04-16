@@ -1114,6 +1114,7 @@ export default function CommandSettings() {
   const [faviconUrl, setFaviconUrl] = useState("");
   const [ogImageUrl, setOgImageUrl] = useState("");
   const [platformLogoUrl, setPlatformLogoUrl] = useState("");
+  const [platformDescription, setPlatformDescription] = useState("");
 
   // ── Analytics state ──
   const [ga4MeasurementId, setGa4MeasurementId] = useState("");
@@ -1284,6 +1285,7 @@ export default function CommandSettings() {
     setFaviconUrl(settings["platform.faviconUrl"] ?? "");
     setOgImageUrl(settings["platform.ogImageUrl"] ?? "");
     setPlatformLogoUrl(settings["platform.logoUrl"] ?? "");
+    setPlatformDescription(settings["platform.description"] ?? "");
     const vis: Record<string, boolean> = {};
     for (const s of SECTION_KEYS) {
       vis[s.key] = toBool(settings[s.key]);
@@ -1661,6 +1663,7 @@ export default function CommandSettings() {
       "platform.faviconUrl": faviconUrl,
       "platform.ogImageUrl": ogImageUrl,
       "platform.logoUrl": platformLogoUrl,
+      "platform.description": platformDescription,
     });
   }
 
@@ -2278,6 +2281,25 @@ export default function CommandSettings() {
                       urlTestId="input-og-image-url"
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
+                      <FileText className="h-3.5 w-3.5" />
+                      Social Sharing Description
+                    </Label>
+                    <Textarea
+                      value={platformDescription}
+                      onChange={(e) => setPlatformDescription(e.target.value)}
+                      placeholder="One platform for all things SEVCO — music, merch, projects, and a community built to last."
+                      rows={3}
+                      maxLength={300}
+                      data-testid="input-platform-description"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Shown when your site is shared on X, Discord, iMessage, etc. Recommended: under 160 characters.
+                    </p>
+                  </div>
+
                   <div className="flex justify-end">
                     <Button onClick={saveAssets} disabled={mutation.isPending} className="gap-2" data-testid="button-save-assets">
                       <Save className="h-3.5 w-3.5" />

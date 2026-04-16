@@ -140,6 +140,16 @@ export default function FreeBallLandingPage() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
+            <Link href="/freeball/help">
+              <Button
+                variant="ghost"
+                size="lg"
+                className="text-white/70 hover:text-white hover:bg-white/10 border border-white/10 px-8 h-11 text-sm rounded-lg"
+                data-testid="cta-help"
+              >
+                Controls &amp; Help
+              </Button>
+            </Link>
             {!user && (
               <Link href="/auth">
                 <Button

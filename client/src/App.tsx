@@ -110,6 +110,7 @@ import WikifyToolPage from "@/pages/wikify-tool-page";
 import ToolsPage from "@/pages/tools-page";
 import FreeballPage from "@/pages/freeball";
 import FreeBallLandingPage from "@/pages/freeball-landing";
+import FreeBallHelpPage from "@/pages/freeball-help";
 import SitesPage from "@/pages/sites-page";
 import SitesBuilderPage from "@/pages/sites-builder";
 import CanvasPage from "@/pages/canvas-page";
@@ -378,6 +379,7 @@ function Router() {
       <Route path="/wikify" component={() => <ProtectedRoute requiredRole={["partner", "staff", "executive", "admin"]}><WikifyToolPage /></ProtectedRoute>} />
       <Route path="/tools" component={ToolsPage} />
       <Route path="/freeball" component={FreeBallLandingPage} />
+      <Route path="/freeball/help" component={FreeBallHelpPage} />
       <Route path="/freeball/play" component={() => <ProtectedRoute><FreeballPage /></ProtectedRoute>} />
       <Route path="/gallery" component={GalleryPage} />
       <Route path="/command/gallery" component={() => (

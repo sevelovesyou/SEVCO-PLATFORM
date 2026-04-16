@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
+import { CompareToggle, ThemePane } from "./ThemeCompare";
 
 const SCALE = [
   { label: "Display", className: "text-6xl font-black tracking-tight", sample: "Display" },
@@ -21,6 +22,7 @@ interface TypeScaleProps {
 export function TypeScale({ ...rest }: TypeScaleProps = {}) {
   const refs = useRef<(HTMLParagraphElement | null)[]>([]);
   const [metrics, setMetrics] = useState<string[]>(SCALE.map(() => ""));
+  const [compare, setCompare] = useState(false);
 
   useEffect(() => {
     const m = refs.current.map((el) => {
@@ -36,13 +38,16 @@ export function TypeScale({ ...rest }: TypeScaleProps = {}) {
 
   const testId = rest["data-testid"] ?? "type-scale";
 
-  return (
-    <div className="rounded-xl border border-border bg-card divide-y divide-border" data-testid={testId}>
+  const renderTable = (paneRefs?: (el: HTMLParagraphElement | null, i: number) => void): ReactNode => (
+    <div className="rounded-xl border border-border bg-card divide-y divide-border">
       {SCALE.map((row, i) => (
         <div key={row.label} className="grid grid-cols-1 md:grid-cols-[120px_1fr_220px] gap-3 px-4 py-3 items-baseline">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{row.label}</p>
           <p
-            ref={(el) => { refs.current[i] = el; }}
+            ref={(el) => {
+              if (paneRefs) paneRefs(el, i);
+              else refs.current[i] = el;
+            }}
             className={`${row.className} text-foreground`}
           >
             {row.sample}
@@ -52,6 +57,22 @@ export function TypeScale({ ...rest }: TypeScaleProps = {}) {
           </p>
         </div>
       ))}
+    </div>
+  );
+
+  return (
+    <div className="space-y-3" data-testid={testId}>
+      <div className="flex items-center justify-end">
+        <CompareToggle slug="type-scale" compare={compare} onToggle={() => setCompare((v) => !v)} />
+      </div>
+      {compare ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <ThemePane mode="light">{renderTable((el, i) => { refs.current[i] = el; })}</ThemePane>
+          <ThemePane mode="dark">{renderTable()}</ThemePane>
+        </div>
+      ) : (
+        renderTable()
+      )}
     </div>
   );
 }

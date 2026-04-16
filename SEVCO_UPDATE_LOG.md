@@ -27456,3 +27456,62 @@ Create a `/freeball/help` page that documents all keyboard shortcuts and explain
 
 ---
 
+## Task — og-absolute-image-url
+> Merged: 2026-04-16
+
+# Fix OG image serving relative URL instead of absolute
+
+## Problem
+Production server is injecting a **relative** URL into `og:image` and `twitter:image`:
+
+```
+og:image: /images/brand-assets/og/og-image.png
+```
+
+Twitter/X, Discord, and iMessage require **absolute** URLs (e.g. `https://sev.cx/images/brand-assets/og/og-image.png`). Relative URLs are silently ignored, causing the grey newspaper placeholder.
+
+Confirmed via:
+```bash
+curl -s "https://sev.cx/" -A "Twitterbot/1.0" | grep og:image
+# Returns: content="/images/brand-assets/og/og-image.png"
+```
+
+The description injection IS working correctly ("The Inspiration Company"). Only the image URL is broken.
+
+## Root Cause
+When the admin uploads an OG image via CMD Platform Assets, the stored URL is `/images/brand-assets/og/og-image.png` (a relative path served by Express's static file handler). The `injectOgMeta` function uses it as-is without checking whether it's absolute.
+
+## Fix
+
+### server/static.ts — normalize ogImageUrl before injecting
+
+In the `app.use("/{*path}", async (req, res, next)` handler, replace the current absoluteFallback block with URL normalization that handles all three cases: (1) already absolute, (2) relative starting with `/`, (3) empty/missing.
+
+```ts
+const proto = (req.headers["x-forwarded-proto"] as string) || "https";
+const host = req.hostname;
+const rawOgImage = platformSettings["platform.ogImageUrl"];
+const resolvedOgImage = rawOgImage
+  ? rawOgImage.startsWith("http")
+    ? rawOgImage
+    : `${proto}://${host}${rawOgImage.startsWith("/") ? "" : "/"}${rawOgImage}`
+  : `${proto}://${host}/favicon.jpg`;
+template = injectOgMeta(template, resolvedOgImage, platformSettings["platform.description"]);
+```
+
+### server/vite.ts — same normalization
+
+Replace the current absoluteFallback block with the same normalization block above.
+
+## Verification
+After deploying:
+```bash
+curl -s "https://sev.cx/" -A "Twitterbot/1.0" | grep "og:image"
+# Should return: content="https://sev.cx/images/brand-assets/og/og-image.png"
+```
+
+Then use Twitter's Card Validator (cards-dev.twitter.com/validator) or paste the link into a tweet to confirm the preview image loads.
+
+
+---
+

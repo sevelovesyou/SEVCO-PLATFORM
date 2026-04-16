@@ -949,90 +949,125 @@ function ColorPickerRow({
 // ─────────────────────────────────────────────────────────
 // Live Preview Panel (Theme tab)
 // ─────────────────────────────────────────────────────────
-function LivePreviewPanel({
-  primary,
-  primaryFg,
-  secondary,
-  secondaryFg,
-  background,
-  foreground,
-  card,
-  cardFg,
-  sidebarAccent,
-  sidebarAccentFg,
-}: {
-  primary: string;
-  primaryFg: string;
-  secondary: string;
-  secondaryFg: string;
-  background: string;
-  foreground: string;
-  card: string;
-  cardFg: string;
-  sidebarAccent: string;
-  sidebarAccentFg: string;
-}) {
-  const toHexOrDefault = (hsl: string, fallback: string) => hsl ? hslToHex(hsl) : fallback;
+type PreviewColors = {
+  background: string; foreground: string;
+  card: string; cardFg: string;
+  primary: string; primaryFg: string;
+  secondary: string; secondaryFg: string;
+  muted: string; mutedFg: string;
+  accent: string; accentFg: string;
+  destructive: string; destructiveFg: string;
+  border: string; ring: string;
+  sidebarBg: string; sidebarFg: string;
+  brandMain: string; brandSecondary: string;
+  brandAccent: string; brandHighlight: string;
+};
 
-  const bgColor = toHexOrDefault(background, "#f8f8fa");
-  const fgColor = toHexOrDefault(foreground, "#111827");
-  const cardColor = toHexOrDefault(card, "#ffffff");
-  const cardFgColor = toHexOrDefault(cardFg, "#111827");
-  const primaryColor = toHexOrDefault(primary, "#3557ff");
-  const primaryFgColor = toHexOrDefault(primaryFg, "#ffffff");
-  const secondaryColor = toHexOrDefault(secondary, "#e5e7eb");
-  const secondaryFgColor = toHexOrDefault(secondaryFg, "#374151");
-  const sidebarColor = toHexOrDefault(sidebarAccent, "#e8eaf0");
-  const sidebarFgColor = toHexOrDefault(sidebarAccentFg, "#1f2937");
+function buildPreviewStyle(c: PreviewColors): React.CSSProperties {
+  const s: Record<string, string> = {};
+  const set = (k: string, v?: string) => { if (v) s[k] = v; };
+  set("--background", c.background);
+  set("--foreground", c.foreground);
+  set("--card", c.card);
+  set("--card-foreground", c.cardFg);
+  set("--card-border", c.border);
+  set("--popover", c.card);
+  set("--popover-foreground", c.cardFg);
+  set("--primary", c.primary);
+  set("--primary-foreground", c.primaryFg);
+  set("--secondary", c.secondary);
+  set("--secondary-foreground", c.secondaryFg);
+  set("--muted", c.muted);
+  set("--muted-foreground", c.mutedFg);
+  set("--accent", c.accent);
+  set("--accent-foreground", c.accentFg);
+  set("--destructive", c.destructive);
+  set("--destructive-foreground", c.destructiveFg);
+  set("--border", c.border);
+  set("--input", c.border);
+  set("--ring", c.ring || c.primary);
+  set("--sidebar", c.sidebarBg);
+  set("--sidebar-foreground", c.sidebarFg);
+  set("--sidebar-accent", c.sidebarBg);
+  set("--sidebar-accent-foreground", c.sidebarFg);
+  set("--sidebar-border", c.border);
+  set("--brand-main", c.brandMain);
+  set("--brand-secondary", c.brandSecondary);
+  set("--brand-accent", c.brandAccent);
+  set("--brand-highlight", c.brandHighlight);
+  if (c.primary) s["--primary-border"] = `hsl(from hsl(${c.primary}) h s calc(l + var(--opaque-button-border-intensity)) / alpha)`;
+  if (c.secondary) s["--secondary-border"] = `hsl(from hsl(${c.secondary}) h s calc(l + var(--opaque-button-border-intensity)) / alpha)`;
+  if (c.destructive) s["--destructive-border"] = `hsl(from hsl(${c.destructive}) h s calc(l + var(--opaque-button-border-intensity)) / alpha)`;
+  return s as React.CSSProperties;
+}
 
+function ThemedPreviewPane({ mode, colors, label }: { mode: "light" | "dark"; colors: PreviewColors; label: string }) {
+  const brandDots = [colors.brandMain, colors.brandSecondary, colors.brandAccent, colors.brandHighlight].filter(Boolean);
   return (
-    <div className="rounded-lg border border-border overflow-hidden text-[10px]" style={{ backgroundColor: bgColor, color: fgColor }}>
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ backgroundColor: primaryColor, color: primaryFgColor }}>
-        <div className="w-4 h-4 rounded-full border border-current/40 flex items-center justify-center text-[8px] font-bold">S</div>
-        <span className="font-semibold text-[10px]">SEVCO</span>
-        <div className="ml-auto flex gap-1.5">
-          <div className="h-3 px-1.5 rounded text-[8px] flex items-center" style={{ backgroundColor: `${primaryFgColor}22` }}>Nav</div>
-          <div className="h-3 px-1.5 rounded text-[8px] flex items-center" style={{ backgroundColor: `${primaryFgColor}22` }}>Store</div>
-        </div>
+    <div
+      className={`${mode === "dark" ? "dark theme-dark" : "theme-light"} rounded-lg border overflow-hidden bg-background text-foreground`}
+      style={buildPreviewStyle(colors)}
+      data-testid={`preview-pane-${mode}`}
+    >
+      <div className="flex items-center justify-between px-3 py-2 border-b bg-background">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+        {brandDots.length > 0 && (
+          <div className="flex gap-1" aria-label="Brand palette">
+            {brandDots.map((v, i) => (
+              <div key={i} className="h-2 w-2 rounded-full border border-border/40" style={{ backgroundColor: `hsl(${v})` }} />
+            ))}
+          </div>
+        )}
       </div>
-      {/* Body */}
-      <div className="flex">
-        {/* Sidebar */}
-        <div className="w-16 p-2 border-r space-y-1" style={{ backgroundColor: bgColor }}>
-          <div className="h-5 px-2 rounded flex items-center gap-1" style={{ backgroundColor: sidebarColor, color: sidebarFgColor }}>
-            <div className="w-2 h-2 rounded-full bg-current opacity-60" />
-            <span className="text-[8px]">Home</span>
-          </div>
-          <div className="h-5 px-2 rounded flex items-center gap-1 opacity-50">
-            <div className="w-2 h-2 rounded-full border border-current/40" />
-            <span className="text-[8px]">Wiki</span>
-          </div>
-          <div className="h-5 px-2 rounded flex items-center gap-1 opacity-50">
-            <div className="w-2 h-2 rounded-full border border-current/40" />
-            <span className="text-[8px]">Store</span>
-          </div>
+
+      <div className="p-3 space-y-2.5">
+        {/* Nav row */}
+        <div
+          className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs border"
+          style={{
+            background: "hsl(var(--sidebar))",
+            color: "hsl(var(--sidebar-foreground))",
+            borderColor: "hsl(var(--sidebar-border))",
+          }}
+        >
+          <div className="h-4 w-4 rounded-full bg-primary" />
+          <span className="font-semibold text-[11px]">SEVCO</span>
+          <span className="ml-auto text-[10px] opacity-70">Navigation</span>
         </div>
-        {/* Content */}
-        <div className="flex-1 p-2 space-y-2">
-          <div className="rounded border p-2 space-y-1.5" style={{ backgroundColor: cardColor, color: cardFgColor }}>
-            <p className="font-semibold text-[10px]">Platform Card</p>
-            <p className="text-[8px] opacity-60">Body text in card foreground color</p>
-            <div className="flex gap-1.5 mt-1">
-              <div className="h-5 px-2 rounded text-[8px] flex items-center font-medium" style={{ backgroundColor: primaryColor, color: primaryFgColor }}>
-                Primary
-              </div>
-              <div className="h-5 px-2 rounded text-[8px] flex items-center font-medium border" style={{ backgroundColor: secondaryColor, color: secondaryFgColor }}>
-                Secondary
-              </div>
+
+        {/* Card with real components */}
+        <Card>
+          <CardHeader className="p-3 pb-1.5">
+            <CardTitle className="text-sm">Platform Card</CardTitle>
+            <CardDescription className="text-[10px]">Live shadcn components driven by your colors</CardDescription>
+          </CardHeader>
+          <CardContent className="p-3 pt-0 space-y-2">
+            <div className="flex flex-wrap gap-1">
+              <Button size="sm" className="h-6 px-2 text-[10px]">Primary</Button>
+              <Button size="sm" variant="secondary" className="h-6 px-2 text-[10px]">Secondary</Button>
+              <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]">Outline</Button>
+              <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]">Ghost</Button>
+              <Button size="sm" variant="destructive" className="h-6 px-2 text-[10px]">Destructive</Button>
             </div>
-          </div>
-          <div className="flex gap-1.5">
-            <div className="h-4 flex-1 rounded" style={{ backgroundColor: `${fgColor}10` }} />
-            <div className="h-4 w-8 rounded" style={{ backgroundColor: `${fgColor}10` }} />
-          </div>
-        </div>
+            <div className="flex flex-wrap gap-1">
+              <Badge className="text-[9px] py-0 px-1.5">Default</Badge>
+              <Badge variant="secondary" className="text-[9px] py-0 px-1.5">Secondary</Badge>
+              <Badge variant="outline" className="text-[9px] py-0 px-1.5">Outline</Badge>
+              <Badge variant="destructive" className="text-[9px] py-0 px-1.5">Destructive</Badge>
+            </div>
+            <Input placeholder="Sample input" className="h-7 text-[11px]" />
+          </CardContent>
+        </Card>
       </div>
+    </div>
+  );
+}
+
+function LivePreviewPanel({ light, dark }: { light: PreviewColors; dark: PreviewColors }) {
+  return (
+    <div className="space-y-3" data-testid="live-preview-panel">
+      <ThemedPreviewPane mode="light" colors={light} label="Light Mode" />
+      <ThemedPreviewPane mode="dark" colors={dark} label="Dark Mode" />
     </div>
   );
 }
@@ -1094,7 +1129,38 @@ export default function CommandSettings() {
 
   // ── Search state ──
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("hero");
+  const LEGACY_TAB_MAP: Record<string, string> = {
+    integrations: "advanced",
+    analytics: "advanced",
+    optimization: "advanced",
+  };
+  const LEGACY_TO_ACCORDION: Record<string, string> = {
+    integrations: "integrations",
+    analytics: "analytics",
+    optimization: "optimization",
+  };
+  const getInitialTabFromUrl = () => {
+    if (typeof window === "undefined") return { tab: "hero", section: "integrations" };
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get("tab") || "hero";
+    const resolved = LEGACY_TAB_MAP[raw] ?? raw;
+    const section = LEGACY_TO_ACCORDION[raw] ?? "integrations";
+    return { tab: resolved, section };
+  };
+  const initialFromUrl = getInitialTabFromUrl();
+  const [activeTab, setActiveTab] = useState(initialFromUrl.tab);
+  const [initialAdvancedSection] = useState(initialFromUrl.section);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get("tab");
+    if (raw && LEGACY_TAB_MAP[raw]) {
+      params.set("tab", LEGACY_TAB_MAP[raw]);
+      const newUrl = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
+      window.history.replaceState(null, "", newUrl);
+    }
+  }, []);
 
   // ── Display state ──
   const [heroBgUrl, setHeroBgUrl] = useState("");
@@ -1963,7 +2029,7 @@ export default function CommandSettings() {
         <p className="text-xs text-muted-foreground mb-4" data-testid="text-search-scope">Showing results across all settings</p>
       )}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)}>
-          <TabsList className="flex flex-wrap gap-1 h-auto mb-6" data-testid="tabs-settings-main">
+          <TabsList className="flex flex-wrap gap-1 h-auto mb-6 xl:flex-nowrap xl:overflow-x-auto" data-testid="tabs-settings-main">
             <TabsTrigger value="brand" data-testid="tab-brand" onClick={() => { setSearchQuery(""); setActiveTab("brand"); }}>Brand Identity</TabsTrigger>
             <TabsTrigger value="theme" data-testid="tab-theme" onClick={() => { setSearchQuery(""); setActiveTab("theme"); }}>Theme</TabsTrigger>
             <TabsTrigger value="page-accents" data-testid="tab-page-accents" onClick={() => { setSearchQuery(""); setActiveTab("page-accents"); }}>Page Accents</TabsTrigger>
@@ -1971,10 +2037,7 @@ export default function CommandSettings() {
             <TabsTrigger value="hero" data-testid="tab-hero" onClick={() => { setSearchQuery(""); setActiveTab("hero"); }}>Hero & CTAs</TabsTrigger>
             <TabsTrigger value="footer" data-testid="tab-footer" onClick={() => { setSearchQuery(""); setActiveTab("footer"); }}>Footer & Legal</TabsTrigger>
             <TabsTrigger value="platform-assets" data-testid="tab-platform-assets" onClick={() => { setSearchQuery(""); setActiveTab("platform-assets"); }}>Platform Assets</TabsTrigger>
-            <TabsTrigger value="integrations" data-testid="tab-integrations" onClick={() => { setSearchQuery(""); setActiveTab("integrations"); }}>Integrations</TabsTrigger>
-            <TabsTrigger value="analytics" data-testid="tab-analytics" onClick={() => { setSearchQuery(""); setActiveTab("analytics"); }}>Analytics</TabsTrigger>
             <TabsTrigger value="advanced" data-testid="tab-advanced" onClick={() => { setSearchQuery(""); setActiveTab("advanced"); }}>Advanced</TabsTrigger>
-            <TabsTrigger value="optimization" data-testid="tab-optimization" onClick={() => { setSearchQuery(""); setActiveTab("optimization"); }}>Optimization</TabsTrigger>
           </TabsList>
 
           {/* ════════════ HERO & CTAs ════════════ */}
@@ -2825,22 +2888,60 @@ export default function CommandSettings() {
                 </div>
 
                 {/* Live Preview Panel — sticky on xl screens */}
-                <div className="hidden xl:block w-72 shrink-0">
+                <div className="hidden xl:block w-80 shrink-0">
                   <div className="sticky top-6 space-y-3">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Live Preview</p>
                     <LivePreviewPanel
-                      primary={lightPrimary}
-                      primaryFg={lightPrimaryFg}
-                      secondary={lightSecondary}
-                      secondaryFg={lightSecondaryFg}
-                      background={lightBackground}
-                      foreground={lightForeground}
-                      card={lightCard}
-                      cardFg={lightCardFg}
-                      sidebarAccent={navMainBg || lightSecondary}
-                      sidebarAccentFg={navMainText || lightSecondaryFg}
+                      light={{
+                        background: lightBackground,
+                        foreground: lightForeground,
+                        card: lightCard,
+                        cardFg: lightCardFg,
+                        primary: lightPrimary,
+                        primaryFg: lightPrimaryFg,
+                        secondary: lightSecondary,
+                        secondaryFg: lightSecondaryFg,
+                        muted: lightMuted,
+                        mutedFg: lightMutedFg,
+                        accent: lightAccent,
+                        accentFg: lightAccentFg,
+                        destructive: lightDestructive,
+                        destructiveFg: "0 0% 100%",
+                        border: lightBorder,
+                        ring: lightPrimary,
+                        sidebarBg: navMainBg || lightSecondary,
+                        sidebarFg: navMainText || lightSecondaryFg,
+                        brandMain: brandMain,
+                        brandSecondary: brandSecondary,
+                        brandAccent: brandAccent,
+                        brandHighlight: brandHighlight,
+                      }}
+                      dark={{
+                        background: darkBackground,
+                        foreground: darkForeground,
+                        card: darkAccent,
+                        cardFg: darkForeground,
+                        primary: darkPrimary,
+                        primaryFg: lightPrimaryFg,
+                        secondary: darkAccent,
+                        secondaryFg: darkForeground,
+                        muted: darkAccent,
+                        mutedFg: darkForeground,
+                        accent: darkAccent,
+                        accentFg: darkForeground,
+                        destructive: lightDestructive,
+                        destructiveFg: "0 0% 100%",
+                        border: darkAccent,
+                        ring: darkPrimary,
+                        sidebarBg: navMainBg || darkAccent,
+                        sidebarFg: navMainText || darkForeground,
+                        brandMain: brandMain,
+                        brandSecondary: brandSecondary,
+                        brandAccent: brandAccent,
+                        brandHighlight: brandHighlight,
+                      }}
                     />
-                    <p className="text-[10px] text-muted-foreground text-center">Updates as you change colors</p>
+                    <p className="text-[10px] text-muted-foreground text-center">Light & dark previews update as you change colors</p>
                   </div>
                 </div>
               </div>
@@ -2949,9 +3050,116 @@ export default function CommandSettings() {
                 </CardContent>
               </Card>
             </TabsContent>
+          {/* ════════════ ADVANCED (merged: Integrations, Analytics, Advanced Settings, Optimization) ════════════ */}
+          <TabsContent value="advanced" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "advanced") ? "none" : "block" }}>
+            <Accordion type="single" collapsible defaultValue={initialAdvancedSection} className="space-y-2">
+          <AccordionItem value="integrations" className="border rounded-lg px-4">
+            <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">Integrations</AccordionTrigger>
+            <AccordionContent className="pb-4 space-y-6">
+              {/* Email Diagnostics */}
+              <Card data-search-label="email diagnostics Resend test email integration inbound email sevco.us" className={cardVisible("email diagnostics Resend test email integration inbound email sevco.us") ? "" : "hidden"}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5" />
+                    {highlight("Email Diagnostics")}
+                  </CardTitle>
+                  <CardDescription>
+                    {highlight("Send a test email to verify the Resend integration is working end-to-end.")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Outbound Email</p>
+                    <EmailDiagnosticsPanel />
+                  </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Inbound Email</p>
+                    <InboundEmailDiagnosticsPanel />
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* ════════════ ANALYTICS ════════════ */}
-          <TabsContent value="analytics" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "analytics") ? "none" : "block" }}>
+              {/* Social Links */}
+              <Card data-search-label="social links footer contact listen Instagram Twitter TikTok platform" className={`overflow-hidden${cardVisible("social links footer contact listen Instagram Twitter TikTok platform") ? "" : " hidden"}`}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Share2 className="h-4 w-4" />
+                        {highlight("Social Links")}
+                      </CardTitle>
+                      <CardDescription className="mt-1">
+                        {highlight("Manage platform social media presence across footer, contact, and listen pages.")}
+                        {socialLinks && <span className="ml-1 text-xs text-muted-foreground">{socialLinks.length} link{socialLinks.length !== 1 ? "s" : ""}</span>}
+                      </CardDescription>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="ml-auto h-7 text-xs gap-1 shrink-0"
+                      onClick={() => { setEditingLink(undefined); setShowSocialDialog(true); }}
+                      data-testid="button-add-social"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add Link
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto" data-testid="table-social-links">
+                    <table className="w-full text-sm">
+                      <thead className="border-b bg-muted/50">
+                        <tr>
+                          <th className="text-left p-3 text-xs font-medium text-muted-foreground">Platform</th>
+                          <th className="text-left p-3 text-xs font-medium text-muted-foreground hidden md:table-cell">URL</th>
+                          <th className="text-center p-3 text-xs font-medium text-muted-foreground">Footer</th>
+                          <th className="text-center p-3 text-xs font-medium text-muted-foreground">Contact</th>
+                          <th className="text-center p-3 text-xs font-medium text-muted-foreground">Listen</th>
+                          <th className="text-left p-3 text-xs font-medium text-muted-foreground"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {socialLoading ? (
+                          Array.from({ length: 5 }).map((_, i) => (
+                            <tr key={i} className="border-b last:border-0">
+                              <td className="p-3"><Skeleton className="h-4 w-24" /></td>
+                              <td className="p-3 hidden md:table-cell"><Skeleton className="h-4 w-40" /></td>
+                              <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
+                              <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
+                              <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
+                              <td className="p-3"><Skeleton className="h-4 w-12" /></td>
+                            </tr>
+                          ))
+                        ) : socialLinks && socialLinks.length > 0 ? (
+                          socialLinks.map((link) => <SocialLinkRow key={link.id} link={link} onEdit={(l) => { setEditingLink(l); setShowSocialDialog(true); }} />)
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="p-6 text-center text-sm text-muted-foreground">
+                              No social links configured.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* X / Twitter */}
+              <XTwitterSettingsCard />
+
+              {/* Hosting */}
+              <div data-search-label="hosting domain VPS Hostinger server" className={cardVisible("hosting domain VPS Hostinger server") ? "" : "hidden"}>
+                <HostingSection />
+              </div>
+
+              {/* x.ai API Key */}
+              <XaiApiKeyStatus />
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="analytics" className="border rounded-lg px-4">
+            <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">Analytics</AccordionTrigger>
+            <AccordionContent className="pb-4 space-y-6">
               <Card data-search-label="Google Analytics GA4 measurement ID property ID service account tracking" className={cardVisible("Google Analytics GA4 measurement ID property ID service account tracking") ? "" : "hidden"}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -3060,113 +3268,11 @@ export default function CommandSettings() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-
-          {/* ════════════ INTEGRATIONS ════════════ */}
-          <TabsContent value="integrations" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "integrations") ? "none" : "block" }}>
-              {/* Email Diagnostics */}
-              <Card data-search-label="email diagnostics Resend test email integration inbound email sevco.us" className={cardVisible("email diagnostics Resend test email integration inbound email sevco.us") ? "" : "hidden"}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Mail className="h-5 w-5" />
-                    {highlight("Email Diagnostics")}
-                  </CardTitle>
-                  <CardDescription>
-                    {highlight("Send a test email to verify the Resend integration is working end-to-end.")}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Outbound Email</p>
-                    <EmailDiagnosticsPanel />
-                  </div>
-                  <Separator />
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Inbound Email</p>
-                    <InboundEmailDiagnosticsPanel />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Social Links */}
-              <Card data-search-label="social links footer contact listen Instagram Twitter TikTok platform" className={`overflow-hidden${cardVisible("social links footer contact listen Instagram Twitter TikTok platform") ? "" : " hidden"}`}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Share2 className="h-4 w-4" />
-                        {highlight("Social Links")}
-                      </CardTitle>
-                      <CardDescription className="mt-1">
-                        {highlight("Manage platform social media presence across footer, contact, and listen pages.")}
-                        {socialLinks && <span className="ml-1 text-xs text-muted-foreground">{socialLinks.length} link{socialLinks.length !== 1 ? "s" : ""}</span>}
-                      </CardDescription>
-                    </div>
-                    <Button
-                      size="sm"
-                      className="ml-auto h-7 text-xs gap-1 shrink-0"
-                      onClick={() => { setEditingLink(undefined); setShowSocialDialog(true); }}
-                      data-testid="button-add-social"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      Add Link
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto" data-testid="table-social-links">
-                    <table className="w-full text-sm">
-                      <thead className="border-b bg-muted/50">
-                        <tr>
-                          <th className="text-left p-3 text-xs font-medium text-muted-foreground">Platform</th>
-                          <th className="text-left p-3 text-xs font-medium text-muted-foreground hidden md:table-cell">URL</th>
-                          <th className="text-center p-3 text-xs font-medium text-muted-foreground">Footer</th>
-                          <th className="text-center p-3 text-xs font-medium text-muted-foreground">Contact</th>
-                          <th className="text-center p-3 text-xs font-medium text-muted-foreground">Listen</th>
-                          <th className="text-left p-3 text-xs font-medium text-muted-foreground"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {socialLoading ? (
-                          Array.from({ length: 5 }).map((_, i) => (
-                            <tr key={i} className="border-b last:border-0">
-                              <td className="p-3"><Skeleton className="h-4 w-24" /></td>
-                              <td className="p-3 hidden md:table-cell"><Skeleton className="h-4 w-40" /></td>
-                              <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
-                              <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
-                              <td className="p-3"><Skeleton className="h-4 w-8 mx-auto" /></td>
-                              <td className="p-3"><Skeleton className="h-4 w-12" /></td>
-                            </tr>
-                          ))
-                        ) : socialLinks && socialLinks.length > 0 ? (
-                          socialLinks.map((link) => <SocialLinkRow key={link.id} link={link} onEdit={(l) => { setEditingLink(l); setShowSocialDialog(true); }} />)
-                        ) : (
-                          <tr>
-                            <td colSpan={6} className="p-6 text-center text-sm text-muted-foreground">
-                              No social links configured.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* X / Twitter */}
-              <XTwitterSettingsCard />
-
-              {/* Hosting */}
-              <div data-search-label="hosting domain VPS Hostinger server" className={cardVisible("hosting domain VPS Hostinger server") ? "" : "hidden"}>
-                <HostingSection />
-              </div>
-
-              {/* x.ai API Key */}
-              <XaiApiKeyStatus />
-            </TabsContent>
-
-          {/* ════════════ ADVANCED ════════════ */}
-          <TabsContent value="advanced" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "advanced") ? "none" : "block" }}>
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="advanced-settings" className="border rounded-lg px-4">
+            <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">Advanced Settings</AccordionTrigger>
+            <AccordionContent className="pb-4 space-y-6">
               {/* Platform Section Cards */}
               <Card data-search-label="platform section cards wiki store music projects services community description icon path" className={cardVisible("platform section cards wiki store music projects services community description icon path") ? "" : "hidden"}>
                 <CardHeader>
@@ -3534,10 +3640,11 @@ export default function CommandSettings() {
                   </Button>
                 </CardContent>
               </Card>
-            </TabsContent>
-
-          {/* ════════════ OPTIMIZATION ════════════ */}
-          <TabsContent value="optimization" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "optimization") ? "none" : "block" }}>
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="optimization" className="border rounded-lg px-4">
+            <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">Optimization</AccordionTrigger>
+            <AccordionContent className="pb-4 space-y-6">
 
             {/* Per-page SEO metadata */}
             <Card data-search-label="SEO page title description og image keywords noindex structured data json-ld search engine optimization">
@@ -3726,6 +3833,9 @@ export default function CommandSettings() {
               </CardContent>
             </Card>
 
+            </AccordionContent>
+          </AccordionItem>
+            </Accordion>
           </TabsContent>
 
         </Tabs>

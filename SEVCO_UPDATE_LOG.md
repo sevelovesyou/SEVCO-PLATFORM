@@ -27862,3 +27862,20 @@ All routes registered under `/command/*` in `client/src/App.tsx`:
 
 #### CSS Variable `customCssVars` Deprecation Notice
 - Admin UI now shows an amber warning in the Advanced / Custom CSS Variables section explaining that `customCssVars` is legacy-import only and no longer applied at runtime. The runtime injector (`App.tsx`) reads exclusively from `theme.cssVars`.
+
+
+---
+
+### Task #390 — Live Preview rebuild + Advanced tab consolidation
+
+**What shipped** (in `client/src/pages/command-settings.tsx`):
+
+1. **Real-component Live Preview**: The right-side sticky Live Preview pane was rebuilt using actual shadcn primitives — `Card`, `Button` (all five variants: default / secondary / destructive / outline / ghost), `Badge` (all four variants: default / secondary / destructive / outline), `Input`, and a mock nav row. All styling flows through CSS custom properties (`--background`, `--card`, `--primary`, `--primary-foreground`, `--secondary`, `--muted`, `--accent`, `--destructive`, `--border`, `--ring`, `--sidebar-*`, `--brand-*`) set via inline style from a `PreviewColors` object built from local color state. **Both Light and Dark variants render simultaneously** in stacked panes (widened from `w-72` → `w-80`), so admins see every color change in both modes at once. Dark-mode vars fall back to `darkAccent` / `darkBackground` / `darkForeground` for card, secondary, muted, border fields (no empty strings), ensuring the dark pane is fully state-driven.
+
+2. **Tab consolidation to 8**: Removed three trigger entries (`Integrations`, `Analytics`, `Optimization`). The tab row is now: **Brand Identity · Theme · Page Accents · Navigation · Hero & CTAs · Footer & Legal · Platform Assets · Advanced**. At ≥1280 px widths the row uses `xl:flex-nowrap xl:overflow-x-auto` so all eight triggers sit on a single row; below xl it wraps normally.
+
+3. **Advanced accordion**: The consolidated `Advanced` tab now renders a shadcn `<Accordion type="single" collapsible>` with four items in the mandated order — **Integrations → Analytics → Advanced Settings → Optimization**. The original tab bodies were moved verbatim (all `data-testid`s preserved) into matching `AccordionItem` wrappers; integrations and analytics were physically swapped so DOM order matches accordion order.
+
+4. **Deep-link preservation**: On mount the component reads `?tab=` from `window.location.search`. Legacy values `integrations` / `analytics` / `optimization` resolve to `?tab=advanced` and the URL is rewritten via `history.replaceState`. The matching accordion section is auto-expanded via `Accordion defaultValue={initialAdvancedSection}`. `?tab=advanced` on its own opens *Integrations* (top item) by default.
+
+**Verification**: Vite HMR applied cleanly across all edits (workflow log shows `[vite] hmr update` entries with no TypeScript or runtime errors). Preview now renders real, themed components that mirror the actual platform, so color edits for both light and dark modes are verifiable without leaving Settings.

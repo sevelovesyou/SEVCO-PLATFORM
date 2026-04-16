@@ -27879,3 +27879,55 @@ All routes registered under `/command/*` in `client/src/App.tsx`:
 4. **Deep-link preservation**: On mount the component reads `?tab=` from `window.location.search`. Legacy values `integrations` / `analytics` / `optimization` resolve to `?tab=advanced` and the URL is rewritten via `history.replaceState`. The matching accordion section is auto-expanded via `Accordion defaultValue={initialAdvancedSection}`. `?tab=advanced` on its own opens *Integrations* (top item) by default.
 
 **Verification**: Vite HMR applied cleanly across all edits (workflow log shows `[vite] hmr update` entries with no TypeScript or runtime errors). Preview now renders real, themed components that mirror the actual platform, so color edits for both light and dark modes are verifiable without leaving Settings.
+## Task — settings-preview-and-tab-cleanup
+> Merged: 2026-04-16
+
+# Settings Preview & Tab Cleanup
+
+## What & Why
+The `/command/settings` page has two UX issues that make it feel unfinished:
+
+1. **The Live Preview is inaccurate.** It is a hand-coded mini-widget that only reflects a handful of color states (`lightPrimary`, `lightBackground`, `lightCard`, a few nav colors). Brand colors, dark-mode values, page accents, typography, status colors, and secondary/neutral palettes all change *nothing* in the preview, so admins can't tell what their edits will look like.
+
+2. **The tab bar wraps onto a second row with too much empty space.** Eleven tabs (`Brand Identity`, `Theme`, `Page Accents`, `Navigation`, `Hero & CTAs`, `Footer & Legal`, `Platform Assets`, `Integrations`, `Analytics`, `Advanced`, `Optimization`) force a second row that only holds 3–4 items, leaving a big empty gap on the right.
+
+## Done looks like
+- The Live Preview panel uses the platform's real `<Button>`, `<Card>`, `<Badge>`, `<Input>`, and nav primitives (the actual shadcn/ui components the rest of the platform uses), driven by the same local color state via CSS custom properties on a wrapper element. Changing any color in the settings page visibly updates the matching element in the preview immediately — primary/secondary/accent buttons, card backgrounds, borders, badge colors, focus rings, nav surfaces, and both light/dark variants are all represented.
+- The preview shows side-by-side light and dark swatches so dark-mode color edits are visible too.
+- The tab bar has exactly 8 tabs that all fit on a single row at standard admin screen widths (≥ 1280 px): **Brand Identity, Theme, Page Accents, Navigation, Hero & CTAs, Footer & Legal, Platform Assets, Advanced**.
+- The content of the old `Integrations`, `Analytics`, `Advanced`, and `Optimization` tabs is preserved intact — moved into clearly-labeled accordion sections *inside* the new consolidated `Advanced` tab (in that order, top to bottom). No settings are lost, no keys are renamed.
+- Deep links still work — the old `?tab=integrations`, `?tab=analytics`, `?tab=optimization` URLs (if any) redirect to `?tab=advanced` and auto-expand the matching accordion.
+
+## Out of scope
+- Adding new settings or new CSS variables.
+- Changing the order of the first 7 tabs.
+- Refactoring `platform_settings` storage keys or schema.
+- Rewriting the color pickers themselves (still `ColorPickerRow`).
+- Redesigning the CMD sidebar or any non-settings page.
+
+## Tasks
+1. **Rebuild the Live Preview with real platform components.** Replace the current `LivePreviewPanel` mock with a panel composed of actual shadcn `<Button>` (default / secondary / outline / ghost / destructive variants), `<Card>` with `<CardHeader>` + `<CardContent>`, `<Badge>` (default / secondary / outline variants), `<Input>`, and a short mock nav row using the real nav markup. Wrap this panel in a container whose inline `style` sets every relevant CSS custom property (`--primary`, `--primary-foreground`, `--secondary`, `--background`, `--foreground`, `--card`, `--card-foreground`, `--border`, `--ring`, `--accent`, `--muted`, `--destructive`, `--brand-main`, `--brand-secondary`, `--brand-accent`, `--brand-highlight`, sidebar variables, etc.) from the current local color state. Render two stacked instances — one labeled *Light Mode* with light-theme values, one *Dark Mode* with dark-theme values — so admins see both simultaneously.
+
+2. **Collapse the last four tabs into a single `Advanced` tab.** Remove the `Integrations`, `Analytics`, `Advanced`, and `Optimization` `TabsTrigger` entries and merge their `TabsContent` bodies into the new `Advanced` tab as four accordion items in this order: *Integrations*, *Analytics*, *Advanced Settings*, *Optimization*. Keep the existing `data-testid` values for content elements so downstream tests and automations still pass.
+
+3. **Preserve deep links.** When the URL contains `?tab=integrations|analytics|optimization`, redirect to `?tab=advanced` and auto-open the corresponding accordion. If the URL is `?tab=advanced` with no accordion hint, open the first accordion (`Integrations`) by default.
+
+4. **Verify tab row fits on one line.** At a standard CMD admin viewport (≥ 1280 px) confirm all 8 tabs sit on a single row without wrapping. Take before/after screenshots and add them to the update log.
+
+## Relevant files
+- `client/src/pages/command-settings.tsx:17`
+- `client/src/pages/command-settings.tsx:952-1038`
+- `client/src/pages/command-settings.tsx:1966-1978`
+- `client/src/pages/command-settings.tsx:2256-2829`
+- `client/src/components/ui/button.tsx`
+- `client/src/components/ui/card.tsx`
+- `client/src/components/ui/badge.tsx`
+- `client/src/components/ui/input.tsx`
+- `client/src/components/ui/tabs.tsx`
+- `client/src/components/platform-color-injector.tsx`
+- `client/src/index.css`
+- `SEVCO_UPDATE_LOG.md`
+
+
+---
+

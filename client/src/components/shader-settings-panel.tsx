@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -63,6 +64,20 @@ interface ShaderSettingsPanelProps {
 export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
   const { toast } = useToast();
 
+  const vignetteStrengthFromSettings = parseFloat(settings["hero.shader.vignetteStrength"] ?? SHADER_DEFAULTS["hero.shader.vignetteStrength"]);
+  const overlayStrengthFromSettings = parseFloat(settings["hero.shader.overlayStrength"] ?? SHADER_DEFAULTS["hero.shader.overlayStrength"]);
+
+  const [localVignette, setLocalVignette] = useState(Math.round(vignetteStrengthFromSettings * 100));
+  const [localOverlay, setLocalOverlay] = useState(Math.round(overlayStrengthFromSettings * 100));
+
+  useEffect(() => {
+    setLocalVignette(Math.round(vignetteStrengthFromSettings * 100));
+  }, [vignetteStrengthFromSettings]);
+
+  useEffect(() => {
+    setLocalOverlay(Math.round(overlayStrengthFromSettings * 100));
+  }, [overlayStrengthFromSettings]);
+
   const mutation = useMutation({
     mutationFn: async (entries: Record<string, string>) => {
       return apiRequest("PUT", "/api/platform-settings", entries);
@@ -85,8 +100,6 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
   const mouseStrength = parseFloat(settings["hero.shader.mouseStrength"] ?? SHADER_DEFAULTS["hero.shader.mouseStrength"]);
   const palette = (settings["hero.shader.palette"] ?? "cosmic") as PaletteId;
   const noiseScale = parseFloat(settings["hero.shader.noiseScale"] ?? SHADER_DEFAULTS["hero.shader.noiseScale"]);
-  const vignetteStrength = parseFloat(settings["hero.shader.vignetteStrength"] ?? SHADER_DEFAULTS["hero.shader.vignetteStrength"]);
-  const overlayStrength = parseFloat(settings["hero.shader.overlayStrength"] ?? SHADER_DEFAULTS["hero.shader.overlayStrength"]);
   const colorBase = settings["hero.shader.colorBase"] ?? SHADER_DEFAULTS["hero.shader.colorBase"];
   const colorShadow = settings["hero.shader.colorShadow"] ?? SHADER_DEFAULTS["hero.shader.colorShadow"];
   const colorMid = settings["hero.shader.colorMid"] ?? SHADER_DEFAULTS["hero.shader.colorMid"];
@@ -135,7 +148,7 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
               max={SPEED_STEPS.length - 1}
               step={1}
               value={[speedIdx]}
-              onValueChange={([i]) => save("hero.shader.speed", String(SPEED_STEPS[i].value))}
+              onValueCommit={([i]) => save("hero.shader.speed", String(SPEED_STEPS[i].value))}
               data-testid="slider-shader-speed"
             />
             <div className="flex justify-between text-[10px] text-muted-foreground">
@@ -153,7 +166,7 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
               max={MOUSE_STEPS.length - 1}
               step={1}
               value={[mouseIdx]}
-              onValueChange={([i]) => save("hero.shader.mouseStrength", String(MOUSE_STEPS[i].value))}
+              onValueCommit={([i]) => save("hero.shader.mouseStrength", String(MOUSE_STEPS[i].value))}
               data-testid="slider-shader-mouse"
             />
             <div className="flex justify-between text-[10px] text-muted-foreground">
@@ -171,7 +184,7 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
               max={NOISE_STEPS.length - 1}
               step={1}
               value={[noiseIdx]}
-              onValueChange={([i]) => save("hero.shader.noiseScale", String(NOISE_STEPS[i].value))}
+              onValueCommit={([i]) => save("hero.shader.noiseScale", String(NOISE_STEPS[i].value))}
               data-testid="slider-shader-noise"
             />
             <div className="flex justify-between text-[10px] text-muted-foreground">
@@ -182,14 +195,15 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm">Vignette Strength</Label>
-              <span className="text-xs text-muted-foreground">{Math.round(vignetteStrength * 100)}%</span>
+              <span className="text-xs text-muted-foreground">{localVignette}%</span>
             </div>
             <Slider
               min={0}
               max={100}
               step={1}
-              value={[Math.round(vignetteStrength * 100)]}
-              onValueChange={([v]) => save("hero.shader.vignetteStrength", String(v / 100))}
+              value={[localVignette]}
+              onValueChange={([v]) => setLocalVignette(v)}
+              onValueCommit={([v]) => save("hero.shader.vignetteStrength", String(v / 100))}
               data-testid="slider-shader-vignette"
             />
           </div>
@@ -197,14 +211,15 @@ export function ShaderSettingsPanel({ settings }: ShaderSettingsPanelProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm">Overlay Strength</Label>
-              <span className="text-xs text-muted-foreground">{Math.round(overlayStrength * 100)}%</span>
+              <span className="text-xs text-muted-foreground">{localOverlay}%</span>
             </div>
             <Slider
               min={0}
               max={100}
               step={1}
-              value={[Math.round(overlayStrength * 100)]}
-              onValueChange={([v]) => save("hero.shader.overlayStrength", String(v / 100))}
+              value={[localOverlay]}
+              onValueChange={([v]) => setLocalOverlay(v)}
+              onValueCommit={([v]) => save("hero.shader.overlayStrength", String(v / 100))}
               data-testid="slider-shader-overlay"
             />
             <p className="text-xs text-muted-foreground">Controls the semi-transparent overlay that keeps text readable.</p>

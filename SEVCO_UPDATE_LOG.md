@@ -27171,3 +27171,44 @@ A `CATEGORY_CONFIG` map keyed by URL slug (`creative`, `technology`, etc.) conta
 
 ---
 
+## Task — shader-slider-debounce
+> Merged: 2026-04-16
+
+# Fix Shader Slider Spam — onValueCommit + Local State
+
+## What & Why
+In CMD → Display → Shader panel, every slider fires an API save and a success toast on every pixel of movement during a drag. The vignette and overlay sliders have 0–100 integer steps — dragging across the full range fires 100 API requests and 100 "Shader settings saved" toasts in quick succession, causing visible lag and notification spam.
+
+The Radix UI Slider (which shadcn's Slider wraps) exposes `onValueCommit` — an event that fires exactly once when the user releases the drag thumb or finishes a keyboard interaction. This is the correct hook for saving.
+
+## Done Looks Like
+- Dragging any shader slider shows the updated value immediately (responsive) but only fires one API call when the thumb is released
+- "Shader settings saved" toast appears exactly once per slider interaction (on release), not once per pixel
+- Step-based sliders (Speed, Mouse Sensitivity, Noise Scale — 3–4 steps each) also only save on release
+- Continuous sliders (Vignette Strength 0–100, Overlay Strength 0–100) display live value during drag but save only on commit
+- Color picker inputs and the Enable toggle and palette Select are unchanged — they still save immediately on change (correct behavior for those controls)
+
+## What to Change — `client/src/components/shader-settings-panel.tsx`
+
+### 1. Add local display state for continuous sliders
+Add `useState` for `localVignette` and `localOverlay` (initialized from `settings` prop). These drive the slider's displayed value and the `%` label during drag — without them the slider would feel stuck until the DB round-trip completes.
+
+### 2. Sync local state when settings prop changes
+Add a `useEffect` that updates `localVignette` / `localOverlay` when the `settings` prop changes (after a successful save, the parent re-renders with fresh values).
+
+### 3. Replace `onValueChange` → `onValueCommit` for all sliders
+For the **step sliders** (Speed, Mouse Sensitivity, Noise Scale): replace `onValueChange` with `onValueCommit`. No local state needed since the parent re-renders almost instantly at only 3–4 possible values.
+
+For the **continuous sliders** (Vignette, Overlay):
+- `onValueChange` → update local state only (`setLocalVignette` / `setLocalOverlay`)
+- `onValueCommit` → call `save()` with the committed value
+
+### 4. Suppress duplicate toasts (optional polish)
+The mutation `onSuccess` currently always shows a toast. Since all saves now fire at most once per interaction this is much better, but consider using a ref flag to suppress the toast for slider saves and only show it for switch/select/reset actions. If this adds complexity, skip it — the once-per-release toast is already a huge improvement.
+
+## Files
+- `client/src/components/shader-settings-panel.tsx`
+
+
+---
+

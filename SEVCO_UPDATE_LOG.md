@@ -27632,3 +27632,50 @@ title: Give the Brand Guidelines its own /brand page for partners and press
 
 ---
 
+## Task — task-380
+> Merged: 2026-04-16
+
+---
+title: Change default hero headline to 'A Creative Platform' and subtext to 'By SEVCO, The Inspiration Company'
+---
+# Update default hero headline and subtext on landing page
+
+## File
+`client/src/pages/landing.tsx`
+
+## Change 1 — Default hero headline (the word array fallback)
+
+At ~line 573, when `heroHeadline` is empty the code renders a hardcoded word array:
+```js
+["A", "creative", "community", "platform", "built", "by", "creators,", "for", "creators."]
+```
+
+Replace this with three words: `["A", "Creative", "Platform"]`
+
+Coloring logic for the new array:
+- "A" → red gradient (same treatment as current `isRedWord` at index 0)
+- "Creative" → white (`rgba(255,255,255,0.92)`)
+- "Platform" → white
+
+So `isRedWord` should only be true for `i === 0`. Remove the `i >= 6` condition.
+
+## Change 2 — Default hero subtext
+
+At ~line 107:
+```ts
+const DEFAULT_HERO_TEXT = "One platform for all things SEVCO — music, merch, projects, and a community built to last.";
+```
+
+Change to:
+```ts
+const DEFAULT_HERO_TEXT = "By SEVCO, The Inspiration Company";
+```
+
+## Nothing else changes
+- No CMD Settings changes — these are only the fallbacks shown when no CMD value is set
+- No other files need touching
+- The word-reveal animation, styling, and stagger delay all stay the same
+
+
+---
+

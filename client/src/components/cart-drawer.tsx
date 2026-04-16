@@ -106,7 +106,11 @@ export function CartDrawer() {
                     <p className="text-sm font-semibold leading-tight line-clamp-2" data-testid={`cart-item-name-${item.productId}`}>
                       {item.name}
                     </p>
-                    {item.selectedVariants && Object.keys(item.selectedVariants).length > 0 && (
+                    {item.variantSelections && item.variantSelections.length > 0 ? (
+                      <p className="text-xs text-muted-foreground mt-0.5" data-testid={`cart-item-variants-${item.productId}`}>
+                        {item.variantSelections.map(v => `${v.groupName}: ${v.optionLabel}`).join(" / ")}
+                      </p>
+                    ) : item.selectedVariants && Object.keys(item.selectedVariants).length > 0 && (
                       <p className="text-xs text-muted-foreground mt-0.5" data-testid={`cart-item-variants-${item.productId}`}>
                         {Object.values(item.selectedVariants).join(" / ")}
                       </p>

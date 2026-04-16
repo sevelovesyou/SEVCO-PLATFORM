@@ -64,6 +64,8 @@ import {
   Package,
   Tag,
   Pencil,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import type { Product, Order, StoreCategory } from "@shared/schema";
 import { PhotoUploadGrid } from "@/components/photo-upload-grid";
@@ -624,8 +626,31 @@ function OrderStatusBadge({ status }: { status: string }) {
   );
 }
 
+interface OrderItemSnapshot {
+  productId?: number;
+  name?: string;
+  description?: string;
+  price?: number;
+  quantity?: number;
+  selectedVariants?: Record<string, string>;
+  variantSelections?: Array<{ groupName: string; optionLabel: string }>;
+}
+
+function formatVariantSummary(item: OrderItemSnapshot): string | null {
+  if (item.variantSelections && item.variantSelections.length > 0) {
+    return item.variantSelections.map(v => `${v.groupName}: ${v.optionLabel}`).join(" / ");
+  }
+  if (item.selectedVariants && Object.keys(item.selectedVariants).length > 0) {
+    return Object.entries(item.selectedVariants)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(" / ");
+  }
+  return null;
+}
+
 function OrderRow({ order }: { order: Order }) {
   const { toast } = useToast();
+  const [expanded, setExpanded] = useState(false);
 
   const updateStatusMutation = useMutation({
     mutationFn: (status: string) => apiRequest("PATCH", `/api/orders/${order.id}/status`, { status }),
@@ -638,40 +663,95 @@ function OrderRow({ order }: { order: Order }) {
     },
   });
 
-  const items = Array.isArray(order.items) ? order.items as Array<{ quantity?: number }> : [];
+  const items: OrderItemSnapshot[] = Array.isArray(order.items) ? order.items as OrderItemSnapshot[] : [];
   const itemCount = items.reduce((sum, item) => sum + (item.quantity ?? 1), 0);
 
   return (
-    <tr className="border-b last:border-0 hover:bg-muted/30 transition-colors" data-testid={`row-order-${order.id}`}>
-      <td className="p-3 text-xs font-mono text-muted-foreground">#{order.id}</td>
-      <td className="p-3 text-xs">{order.userId ?? <span className="text-muted-foreground">Guest</span>}</td>
-      <td className="p-3 text-xs text-muted-foreground hidden md:table-cell">
-        {new Date(order.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-      </td>
-      <td className="p-3 text-xs font-medium" data-testid={`text-order-total-${order.id}`}>
-        ${(order.total / 100).toFixed(2)}
-      </td>
-      <td className="p-3">
-        <OrderStatusBadge status={order.status} />
-      </td>
-      <td className="p-3 text-xs text-muted-foreground">{itemCount}</td>
-      <td className="p-3">
-        <Select
-          value={order.status}
-          onValueChange={(s) => updateStatusMutation.mutate(s)}
-          disabled={updateStatusMutation.isPending}
-        >
-          <SelectTrigger className="h-7 text-xs w-32" data-testid={`select-order-status-${order.id}`}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ORDER_STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s} value={s} className="text-xs capitalize">{s}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </td>
-    </tr>
+    <>
+      <tr className="border-b last:border-0 hover:bg-muted/30 transition-colors" data-testid={`row-order-${order.id}`}>
+        <td className="p-3">
+          <button
+            type="button"
+            onClick={() => setExpanded(e => !e)}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={expanded ? "Collapse order details" : "Expand order details"}
+            data-testid={`button-toggle-order-${order.id}`}
+          >
+            {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+          </button>
+        </td>
+        <td className="p-3 text-xs font-mono text-muted-foreground">#{order.id}</td>
+        <td className="p-3 text-xs">{order.userId ?? <span className="text-muted-foreground">Guest</span>}</td>
+        <td className="p-3 text-xs text-muted-foreground hidden md:table-cell">
+          {new Date(order.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+        </td>
+        <td className="p-3 text-xs font-medium" data-testid={`text-order-total-${order.id}`}>
+          ${(order.total / 100).toFixed(2)}
+        </td>
+        <td className="p-3">
+          <OrderStatusBadge status={order.status} />
+        </td>
+        <td className="p-3 text-xs text-muted-foreground">{itemCount}</td>
+        <td className="p-3">
+          <Select
+            value={order.status}
+            onValueChange={(s) => updateStatusMutation.mutate(s)}
+            disabled={updateStatusMutation.isPending}
+          >
+            <SelectTrigger className="h-7 text-xs w-32" data-testid={`select-order-status-${order.id}`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ORDER_STATUS_OPTIONS.map((s) => (
+                <SelectItem key={s} value={s} className="text-xs capitalize">{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </td>
+      </tr>
+      {expanded && (
+        <tr className="border-b last:border-0 bg-muted/20" data-testid={`row-order-details-${order.id}`}>
+          <td colSpan={8} className="p-3">
+            {items.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No item details available.</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {items.map((item, idx) => {
+                  const variantSummary = formatVariantSummary(item);
+                  return (
+                    <li
+                      key={idx}
+                      className="flex items-start justify-between gap-3 text-xs"
+                      data-testid={`order-${order.id}-item-${idx}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium">{item.name ?? item.description ?? "Item"}</p>
+                        {variantSummary && (
+                          <p
+                            className="text-muted-foreground mt-0.5"
+                            data-testid={`order-${order.id}-item-${idx}-variants`}
+                          >
+                            {variantSummary}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-muted-foreground whitespace-nowrap">
+                        × {item.quantity ?? 1}
+                        {typeof item.price === "number" && (
+                          <span className="ml-2 font-medium text-foreground">
+                            ${(item.price * (item.quantity ?? 1)).toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
@@ -698,6 +778,7 @@ function StoreOrdersTab() {
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/50">
               <tr>
+                <th className="w-8 p-3" aria-label="Expand" />
                 <th className="text-left p-3 text-xs font-medium text-muted-foreground">Order ID</th>
                 <th className="text-left p-3 text-xs font-medium text-muted-foreground">User</th>
                 <th className="text-left p-3 text-xs font-medium text-muted-foreground hidden md:table-cell">Date</th>
@@ -711,6 +792,7 @@ function StoreOrdersTab() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="border-b last:border-0">
+                    <td className="p-3" />
                     <td className="p-3"><Skeleton className="h-4 w-10" /></td>
                     <td className="p-3"><Skeleton className="h-4 w-24" /></td>
                     <td className="p-3 hidden md:table-cell"><Skeleton className="h-4 w-20" /></td>
@@ -726,7 +808,7 @@ function StoreOrdersTab() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-sm text-muted-foreground">
+                  <td colSpan={8} className="p-6 text-center text-sm text-muted-foreground">
                     No orders yet.
                   </td>
                 </tr>

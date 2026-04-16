@@ -2581,7 +2581,7 @@ export async function registerRoutes(
   app.post("/api/checkout", requireAuth, async (req, res) => {
     try {
       const { items } = req.body as {
-        items: Array<{ productId: number; name: string; price: number; quantity: number; stripePriceId: string | null; selectedVariants?: Record<string, string>; cartKey?: string; slug?: string; imageUrl?: string | null }>;
+        items: Array<{ productId: number; name: string; price: number; quantity: number; stripePriceId: string | null; selectedVariants?: Record<string, string>; variantSelections?: Array<{ groupName: string; optionLabel: string }>; cartKey?: string; slug?: string; imageUrl?: string | null }>;
       };
 
       if (!items || !Array.isArray(items) || items.length === 0) {

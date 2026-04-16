@@ -1,6 +1,11 @@
 import { createContext, useContext, useState, useCallback } from "react";
 import type { Product } from "@shared/schema";
 
+export interface CartVariantSelection {
+  groupName: string;
+  optionLabel: string;
+}
+
 export interface CartItem {
   cartKey: string;
   productId: number;
@@ -11,11 +16,16 @@ export interface CartItem {
   imageUrl: string | null;
   slug: string;
   selectedVariants?: Record<string, string>;
+  variantSelections?: CartVariantSelection[];
 }
 
 interface CartContextValue {
   items: CartItem[];
-  addItem: (product: Product, selectedVariants?: Record<string, string>) => void;
+  addItem: (
+    product: Product,
+    selectedVariants?: Record<string, string>,
+    variantSelections?: CartVariantSelection[],
+  ) => void;
   removeItem: (cartKey: string) => void;
   updateQuantity: (cartKey: string, quantity: number) => void;
   clearCart: () => void;
@@ -32,7 +42,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
-  const addItem = useCallback((product: Product, selectedVariants?: Record<string, string>) => {
+  const addItem = useCallback((
+    product: Product,
+    selectedVariants?: Record<string, string>,
+    variantSelections?: CartVariantSelection[],
+  ) => {
     const hasVariants = selectedVariants && Object.keys(selectedVariants).length > 0;
     const cartKey = hasVariants
       ? `${product.id}::${JSON.stringify(Object.fromEntries(Object.keys(selectedVariants).sort().map(k => [k, selectedVariants[k]])))}`
@@ -57,6 +71,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           imageUrl: product.imageUrl ?? null,
           slug: product.slug,
           selectedVariants: hasVariants ? selectedVariants : undefined,
+          variantSelections: hasVariants && variantSelections && variantSelections.length > 0 ? variantSelections : undefined,
         },
       ];
     });

@@ -2,12 +2,36 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { CheckCircle, ShoppingBag, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { apiRequest } from "@/lib/queryClient";
 import { useCart } from "@/hooks/use-cart";
+import type { Order } from "@shared/schema";
+
+interface OrderItemSnapshot {
+  productId?: number;
+  name?: string;
+  description?: string;
+  price?: number;
+  quantity?: number;
+  selectedVariants?: Record<string, string>;
+  variantSelections?: Array<{ groupName: string; optionLabel: string }>;
+}
+
+function formatVariantSummary(item: OrderItemSnapshot): string | null {
+  if (item.variantSelections && item.variantSelections.length > 0) {
+    return item.variantSelections.map(v => `${v.groupName}: ${v.optionLabel}`).join(" / ");
+  }
+  if (item.selectedVariants && Object.keys(item.selectedVariants).length > 0) {
+    return Object.entries(item.selectedVariants)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(" / ");
+  }
+  return null;
+}
 
 export default function StoreSuccessPage() {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
-  const [orderId, setOrderId] = useState<number | null>(null);
+  const [order, setOrder] = useState<Order | null>(null);
   const { clearCart } = useCart();
 
   useEffect(() => {
@@ -23,7 +47,7 @@ export default function StoreSuccessPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.paid) {
-          setOrderId(data.order?.id ?? null);
+          setOrder(data.order ?? null);
           setStatus("success");
           clearCart();
         } else {
@@ -33,8 +57,10 @@ export default function StoreSuccessPage() {
       .catch(() => setStatus("error"));
   }, []);
 
+  const items: OrderItemSnapshot[] = Array.isArray(order?.items) ? (order!.items as OrderItemSnapshot[]) : [];
+
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12">
       {status === "loading" && (
         <div className="flex flex-col items-center gap-4 text-center">
           <Loader2 className="h-10 w-10 motion-safe:animate-spin text-red-600" />
@@ -43,7 +69,7 @@ export default function StoreSuccessPage() {
       )}
 
       {status === "success" && (
-        <div className="flex flex-col items-center gap-6 text-center max-w-md">
+        <div className="flex flex-col items-center gap-6 text-center max-w-lg w-full">
           <div className="h-20 w-20 rounded-full bg-green-500/10 flex items-center justify-center">
             <CheckCircle className="h-10 w-10 text-green-600 dark:text-green-400" />
           </div>
@@ -54,12 +80,64 @@ export default function StoreSuccessPage() {
             <p className="text-muted-foreground text-sm">
               Thank you for your purchase. You'll receive a confirmation email shortly.
             </p>
-            {orderId && (
+            {order && (
               <p className="text-xs text-muted-foreground mt-2" data-testid="text-order-id">
-                Order #{orderId}
+                Order #{order.id}
               </p>
             )}
           </div>
+
+          {items.length > 0 && (
+            <Card className="w-full p-4 text-left" data-testid="card-order-summary">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                Order Summary
+              </h2>
+              <ul className="flex flex-col gap-3">
+                {items.map((item, idx) => {
+                  const variantSummary = formatVariantSummary(item);
+                  const lineTotal = typeof item.price === "number"
+                    ? item.price * (item.quantity ?? 1)
+                    : null;
+                  return (
+                    <li
+                      key={idx}
+                      className="flex items-start justify-between gap-3 text-sm"
+                      data-testid={`order-item-${idx}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium leading-tight">
+                          {item.name ?? item.description ?? "Item"}
+                        </p>
+                        {variantSummary && (
+                          <p
+                            className="text-xs text-muted-foreground mt-0.5"
+                            data-testid={`order-item-${idx}-variants`}
+                          >
+                            {variantSummary}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Qty {item.quantity ?? 1}
+                        </p>
+                      </div>
+                      {lineTotal !== null && (
+                        <div className="text-sm font-semibold whitespace-nowrap">
+                          ${lineTotal.toFixed(2)}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+              {order && (
+                <div className="border-t border-border mt-3 pt-3 flex items-center justify-between text-sm font-semibold">
+                  <span>Total</span>
+                  <span data-testid="text-order-total">${(order.total / 100).toFixed(2)}</span>
+                </div>
+              )}
+            </Card>
+          )}
+
           <div className="flex gap-3 flex-wrap justify-center">
             <Link href="/store">
               <Button

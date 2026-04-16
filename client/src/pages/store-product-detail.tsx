@@ -87,7 +87,22 @@ export default function StoreProductDetail() {
   function handleAddToCart() {
     if (!product) return;
     const hasVariants = Object.keys(selectedVariants).length > 0;
-    addItem(product, hasVariants ? selectedVariants : undefined);
+    if (!hasVariants) {
+      addItem(product);
+      return;
+    }
+    const variantSelections = variantGroups
+      .map(group => {
+        const value = selectedVariants[group.id];
+        if (!value) return null;
+        const option = group.options.find(o => o.value === value);
+        return {
+          groupName: group.name,
+          optionLabel: option?.label ?? value,
+        };
+      })
+      .filter((v): v is { groupName: string; optionLabel: string } => v !== null);
+    addItem(product, selectedVariants, variantSelections);
   }
 
   return (

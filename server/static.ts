@@ -57,10 +57,16 @@ export function serveStatic(app: Express) {
           }
         }
         const proto = (req.headers["x-forwarded-proto"] as string) || "https";
-        const absoluteFallback = `${proto}://${req.hostname}/favicon.jpg`;
+        const host = req.hostname;
+        const rawOgImage = platformSettings["platform.ogImageUrl"];
+        const resolvedOgImage = rawOgImage
+          ? /^https?:\/\//.test(rawOgImage)
+            ? rawOgImage
+            : `${proto}://${host}${rawOgImage.startsWith("/") ? "" : "/"}${rawOgImage}`
+          : `${proto}://${host}/favicon.jpg`;
         html = injectOgMeta(
           html,
-          platformSettings["platform.ogImageUrl"] || absoluteFallback,
+          resolvedOgImage,
           platformSettings["platform.description"],
         );
       } catch {

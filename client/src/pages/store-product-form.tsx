@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useState, useEffect } from "react";
+import { Link, useLocation, useRoute } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ShoppingBag, ShieldOff, Plus, X, Layers } from "lucide-react";
 import { PhotoUploadGrid } from "@/components/photo-upload-grid";
-import type { StoreCategory } from "@shared/schema";
+import type { StoreCategory, Product } from "@shared/schema";
 import type { ProductVariantGroup, ProductVariantOption } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +29,7 @@ const formSchema = z.object({
   description: z.string().max(2000).optional(),
   price: z.coerce.number().positive("Price must be greater than 0"),
   categoryName: z.string().min(1, "Category is required").max(100),
-  stockStatus: z.enum(["available", "sold_out"]),
+  stockStatus: z.enum(["available", "sold_out", "unavailable", "preorder"]),
   imageUrls: z.array(z.string()).max(5).optional(),
 });
 
@@ -262,17 +262,27 @@ function VariantGroupEditor({ group, onChange, onRemove }: VariantGroupEditorPro
 
 export default function StoreProductForm() {
   const [, setLocation] = useLocation();
+  const [matchEdit, editParams] = useRoute<{ slug: string }>("/store/products/:slug/edit");
+  const editSlug = matchEdit ? editParams?.slug : undefined;
+  const isEdit = Boolean(editSlug);
   const { toast } = useToast();
   const { role } = usePermission();
   const [variantGroups, setVariantGroups] = useState<ProductVariantGroup[]>([]);
+  const [didHydrate, setDidHydrate] = useState(false);
 
   const { data: storeCategories, isLoading: categoriesLoading } = useQuery<StoreCategory[]>({
     queryKey: ["/api/store/categories"],
   });
 
-  if (!CAN_MANAGE_STORE_PRODUCTS.includes(role ?? "")) {
-    return <AccessDenied />;
-  }
+  const { data: existingProduct, isLoading: productLoading, error: productError } = useQuery<Product>({
+    queryKey: ["/api/store/products", editSlug],
+    queryFn: async () => {
+      const res = await fetch(`/api/store/products/${editSlug}`);
+      if (!res.ok) throw new Error("Product not found");
+      return res.json();
+    },
+    enabled: isEdit,
+  });
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -287,10 +297,34 @@ export default function StoreProductForm() {
     },
   });
 
+  useEffect(() => {
+    setDidHydrate(false);
+  }, [editSlug]);
+
+  useEffect(() => {
+    if (existingProduct && !didHydrate) {
+      form.reset({
+        name: existingProduct.name,
+        slug: existingProduct.slug,
+        description: existingProduct.description ?? "",
+        price: existingProduct.price,
+        categoryName: existingProduct.categoryName,
+        stockStatus: existingProduct.stockStatus as FormValues["stockStatus"],
+        imageUrls: existingProduct.imageUrls ?? (existingProduct.imageUrl ? [existingProduct.imageUrl] : []),
+      });
+      setVariantGroups(existingProduct.variants ?? []);
+      setDidHydrate(true);
+    }
+  }, [existingProduct, didHydrate, form]);
+
+  if (!CAN_MANAGE_STORE_PRODUCTS.includes(role ?? "")) {
+    return <AccessDenied />;
+  }
+
   const mutation = useMutation({
     mutationFn: (values: FormValues) => {
       const imageUrls = values.imageUrls || [];
-      return apiRequest("POST", "/api/store/products", {
+      const payload = {
         name: values.name,
         slug: values.slug,
         description: values.description || null,
@@ -300,15 +334,32 @@ export default function StoreProductForm() {
         imageUrls,
         imageUrl: imageUrls[0] || null,
         variants: variantGroups,
-      });
+      };
+      if (isEdit) {
+        if (!existingProduct) {
+          throw new Error("Product hasn't loaded yet — please wait a moment and try again.");
+        }
+        return apiRequest("PATCH", `/api/store/products/${existingProduct.id}`, payload);
+      }
+      return apiRequest("POST", "/api/store/products", payload);
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["/api/store/products"] });
-      toast({ title: "Product added to the store" });
-      setLocation("/store");
+      if (isEdit && editSlug) {
+        await queryClient.invalidateQueries({ queryKey: ["/api/store/products", editSlug] });
+        toast({ title: "Product updated" });
+        setLocation(`/store/products/${form.getValues("slug")}`);
+      } else {
+        toast({ title: "Product added to the store" });
+        setLocation("/store");
+      }
     },
     onError: (err: any) => {
-      toast({ title: "Failed to create product", description: err.message, variant: "destructive" });
+      toast({
+        title: isEdit ? "Failed to update product" : "Failed to create product",
+        description: err.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -355,10 +406,25 @@ export default function StoreProductForm() {
           <ShoppingBag className="h-4 w-4 text-red-700 dark:text-red-500" />
         </div>
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Add Product</h1>
-          <p className="text-sm text-muted-foreground">Create a new listing in the SEVCO Store.</p>
+          <h1 className="text-xl font-bold tracking-tight" data-testid="text-form-title">
+            {isEdit ? "Edit Product" : "Add Product"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {isEdit
+              ? "Update this listing in the SEVCO Store."
+              : "Create a new listing in the SEVCO Store."}
+          </p>
         </div>
       </div>
+
+      {isEdit && productLoading && (
+        <Card className="p-5 text-sm text-muted-foreground">Loading product…</Card>
+      )}
+      {isEdit && productError && (
+        <Card className="p-5 text-sm text-destructive" data-testid="text-edit-error">
+          Could not load this product. It may have been deleted.
+        </Card>
+      )}
 
       <Card className="p-5 overflow-visible">
         <Form {...form}>
@@ -459,6 +525,8 @@ export default function StoreProductForm() {
                       <SelectContent>
                         <SelectItem value="available">Available</SelectItem>
                         <SelectItem value="sold_out">Sold Out</SelectItem>
+                        <SelectItem value="unavailable">Unavailable</SelectItem>
+                        <SelectItem value="preorder">Pre-order</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -562,15 +630,17 @@ export default function StoreProductForm() {
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Link href="/store">
-                <Button type="button" variant="outline">Cancel</Button>
+              <Link href={isEdit && existingProduct ? `/store/products/${existingProduct.slug}` : "/store"}>
+                <Button type="button" variant="outline" data-testid="button-cancel-product">Cancel</Button>
               </Link>
               <Button
                 type="submit"
-                disabled={mutation.isPending}
+                disabled={mutation.isPending || (isEdit && (productLoading || !existingProduct))}
                 data-testid="button-submit-product"
               >
-                {mutation.isPending ? "Adding…" : "Add Product"}
+                {mutation.isPending
+                  ? isEdit ? "Saving…" : "Adding…"
+                  : isEdit ? "Save Changes" : "Add Product"}
               </Button>
             </div>
           </form>

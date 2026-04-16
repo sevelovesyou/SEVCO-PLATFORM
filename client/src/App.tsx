@@ -304,6 +304,7 @@ function Router() {
       <Route path="/store/success" component={() => <ProtectedRoute><StoreSuccessPage /></ProtectedRoute>} />
       <Route path="/store/cancel" component={() => <ProtectedRoute><StoreCancelPage /></ProtectedRoute>} />
       <Route path="/store/products/new" component={() => <ProtectedRoute><StoreProductForm /></ProtectedRoute>} />
+      <Route path="/store/products/:slug/edit" component={() => <ProtectedRoute><StoreProductForm /></ProtectedRoute>} />
       <Route path="/projects/:slug/edit" component={() => <ProtectedRoute><ProjectEditPage /></ProtectedRoute>} />
 
       <Route path="/dashboard" component={() => <Redirect to="/command" />} />

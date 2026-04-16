@@ -1242,6 +1242,15 @@ export default function CommandSettings() {
   const [geoBrandVoice, setGeoBrandVoice] = useState("");
   const [geoKeyFacts, setGeoKeyFacts] = useState("");
 
+  // ── Brand voice & mission (About page) ──
+  const [brandVoiceIntro, setBrandVoiceIntro] = useState("");
+  const [brandVoicePillar1Word, setBrandVoicePillar1Word] = useState("");
+  const [brandVoicePillar1Copy, setBrandVoicePillar1Copy] = useState("");
+  const [brandVoicePillar2Word, setBrandVoicePillar2Word] = useState("");
+  const [brandVoicePillar2Copy, setBrandVoicePillar2Copy] = useState("");
+  const [brandVoicePillar3Word, setBrandVoicePillar3Word] = useState("");
+  const [brandVoicePillar3Copy, setBrandVoicePillar3Copy] = useState("");
+
   function updateSeoField(page: string, field: keyof SeoPageMeta, value: string | boolean) {
     setSeoPages((prev) => ({ ...prev, [page]: { ...prev[page], [field]: value } }));
   }
@@ -1453,7 +1462,28 @@ export default function CommandSettings() {
     // Load GEO settings
     setGeoBrandVoice(settings["seo.geo.brandVoice"] ?? "");
     setGeoKeyFacts(settings["seo.geo.keyFacts"] ?? "");
+
+    // Load Brand Voice & Mission
+    setBrandVoiceIntro(settings["brand.voice.intro"] ?? "");
+    setBrandVoicePillar1Word(settings["brand.voice.pillar1.word"] ?? "");
+    setBrandVoicePillar1Copy(settings["brand.voice.pillar1.copy"] ?? "");
+    setBrandVoicePillar2Word(settings["brand.voice.pillar2.word"] ?? "");
+    setBrandVoicePillar2Copy(settings["brand.voice.pillar2.copy"] ?? "");
+    setBrandVoicePillar3Word(settings["brand.voice.pillar3.word"] ?? "");
+    setBrandVoicePillar3Copy(settings["brand.voice.pillar3.copy"] ?? "");
   }, [settings, isLoading]);
+
+  function saveBrandVoice() {
+    mutation.mutate({
+      "brand.voice.intro": brandVoiceIntro,
+      "brand.voice.pillar1.word": brandVoicePillar1Word,
+      "brand.voice.pillar1.copy": brandVoicePillar1Copy,
+      "brand.voice.pillar2.word": brandVoicePillar2Word,
+      "brand.voice.pillar2.copy": brandVoicePillar2Copy,
+      "brand.voice.pillar3.word": brandVoicePillar3Word,
+      "brand.voice.pillar3.copy": brandVoicePillar3Copy,
+    });
+  }
 
   // ── Save functions ──
   function saveThemePrimaryPalette() {
@@ -3652,6 +3682,67 @@ export default function CommandSettings() {
                       ))}
                     </div>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* Brand Voice & Mission (About page) */}
+              <Card data-search-label="brand voice mission about page direct confident warm pillars intro copy" className={cardVisible("brand voice mission about page direct confident warm pillars intro copy") ? "" : "hidden"}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    {highlight("Brand Voice & Mission")}
+                  </CardTitle>
+                  <CardDescription>
+                    {highlight("Edit the voice & mission copy shown in the Brand Guidelines on the About page. Leave a field blank to use the default.")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="brand-voice-intro" className="text-xs">Section intro</Label>
+                    <Textarea
+                      id="brand-voice-intro"
+                      value={brandVoiceIntro}
+                      onChange={(e) => setBrandVoiceIntro(e.target.value)}
+                      placeholder="SEVCO is direct, confident, and warm. We make ambitious things and we say so plainly."
+                      rows={2}
+                      data-testid="input-brand-voice-intro"
+                    />
+                  </div>
+
+                  {[
+                    { idx: 1, word: brandVoicePillar1Word, setWord: setBrandVoicePillar1Word, copy: brandVoicePillar1Copy, setCopy: setBrandVoicePillar1Copy, defWord: "Direct", defCopy: "Lead with the point. No filler, no jargon, no hedging." },
+                    { idx: 2, word: brandVoicePillar2Word, setWord: setBrandVoicePillar2Word, copy: brandVoicePillar2Copy, setCopy: setBrandVoicePillar2Copy, defWord: "Confident", defCopy: "We back our work. We share what we know without apology." },
+                    { idx: 3, word: brandVoicePillar3Word, setWord: setBrandVoicePillar3Word, copy: brandVoicePillar3Copy, setCopy: setBrandVoicePillar3Copy, defWord: "Warm", defCopy: "Human, not corporate. Readers should feel addressed, not marketed at." },
+                  ].map((p) => (
+                    <div key={p.idx} className="grid sm:grid-cols-[140px_1fr] gap-3 items-start">
+                      <div className="space-y-1.5">
+                        <Label htmlFor={`brand-voice-pillar${p.idx}-word`} className="text-xs">Pillar {p.idx} word</Label>
+                        <Input
+                          id={`brand-voice-pillar${p.idx}-word`}
+                          value={p.word}
+                          onChange={(e) => p.setWord(e.target.value)}
+                          placeholder={p.defWord}
+                          data-testid={`input-brand-voice-pillar${p.idx}-word`}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor={`brand-voice-pillar${p.idx}-copy`} className="text-xs">Pillar {p.idx} description</Label>
+                        <Textarea
+                          id={`brand-voice-pillar${p.idx}-copy`}
+                          value={p.copy}
+                          onChange={(e) => p.setCopy(e.target.value)}
+                          placeholder={p.defCopy}
+                          rows={2}
+                          data-testid={`input-brand-voice-pillar${p.idx}-copy`}
+                        />
+                      </div>
+                    </div>
+                  ))}
+
+                  <Button onClick={saveBrandVoice} disabled={mutation.isPending} size="sm" className="gap-1.5" data-testid="button-save-brand-voice">
+                    <Save className="h-3.5 w-3.5" />
+                    {mutation.isPending ? "Saving…" : "Save Brand Voice"}
+                  </Button>
                 </CardContent>
               </Card>
             </TabsContent>

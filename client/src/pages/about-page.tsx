@@ -316,15 +316,30 @@ export default function AboutPage() {
                   id="voice"
                   eyebrow="01 / Voice"
                   title="Brand voice & mission"
-                  intro="SEVCO is direct, confident, and warm. We make ambitious things and we say so plainly."
+                  intro={
+                    (platformSettings?.["brand.voice.intro"]?.trim() ||
+                      "SEVCO is direct, confident, and warm. We make ambitious things and we say so plainly.")
+                  }
                 >
                   <div className="grid sm:grid-cols-3 gap-3">
                     {[
-                      { word: "Direct", copy: "Lead with the point. No filler, no jargon, no hedging." },
-                      { word: "Confident", copy: "We back our work. We share what we know without apology." },
-                      { word: "Warm", copy: "Human, not corporate. Readers should feel addressed, not marketed at." },
+                      {
+                        slot: 1,
+                        word: platformSettings?.["brand.voice.pillar1.word"]?.trim() || "Direct",
+                        copy: platformSettings?.["brand.voice.pillar1.copy"]?.trim() || "Lead with the point. No filler, no jargon, no hedging.",
+                      },
+                      {
+                        slot: 2,
+                        word: platformSettings?.["brand.voice.pillar2.word"]?.trim() || "Confident",
+                        copy: platformSettings?.["brand.voice.pillar2.copy"]?.trim() || "We back our work. We share what we know without apology.",
+                      },
+                      {
+                        slot: 3,
+                        word: platformSettings?.["brand.voice.pillar3.word"]?.trim() || "Warm",
+                        copy: platformSettings?.["brand.voice.pillar3.copy"]?.trim() || "Human, not corporate. Readers should feel addressed, not marketed at.",
+                      },
                     ].map((v) => (
-                      <div key={v.word} className="rounded-xl border border-border bg-card p-4 space-y-1.5" data-testid={`voice-${v.word.toLowerCase()}`}>
+                      <div key={v.slot} className="rounded-xl border border-border bg-card p-4 space-y-1.5" data-testid={`voice-pillar-${v.slot}`}>
                         <p className="text-sm font-semibold text-foreground">{v.word}</p>
                         <p className="text-xs text-muted-foreground leading-relaxed">{v.copy}</p>
                       </div>

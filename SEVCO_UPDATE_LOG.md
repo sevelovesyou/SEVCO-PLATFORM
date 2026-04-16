@@ -27709,3 +27709,42 @@ Two places display the SEVCO planet logo with incorrect colors:
 
 ---
 
+## Task — fix-default-og-image-and-description
+> Merged: 2026-04-16
+
+# Debug why CMD-set OG image/description aren't reaching crawlers
+
+## What & Why
+The admin has uploaded a proper 1200×630 social image through Command Center (saved to `platform.ogImageUrl`) and set a description (`platform.description`), but X/Twitter's link preview for `sev.cx` still shows no image and the pre-change description. The server-side injection in `server/static.ts` should already be replacing the defaults with the CMD values, so something is breaking between the DB setting and what the crawler actually sees.
+
+Primary suspects:
+1. The hardcoded `<link rel="canonical" href="https://sevco.us" />` and `<meta property="og:url" content="https://sevco.us" />` in `client/index.html` force crawlers that hit `sev.cx` to treat `sevco.us` as the source of truth. If `sevco.us` returns different HTML (different deploy, cached CDN copy, or redirect), the admin's CMD values never get read.
+2. The resolved image/description may not be making it into the HTML the crawler receives (caching layer in front of Express, `/images/...` proxy returning non-200 for the crawler's user-agent, or the settings key not actually being populated on the deployed instance).
+3. X's link preview cache is stale from the previous broken state and needs a cache-bust.
+
+## Done looks like
+- The CMD-set OG image and description take effect on every SEVCO domain the app serves — `sevco.us`, `sev.cx`, `sevelovesyou.com`, and any other configured alias. A crawler hitting any of them should see the same admin-managed values.
+- Running `curl -A "Twitterbot" https://<domain>/` against each domain returns HTML whose `og:image`, `twitter:image`, and `og:description` tags all contain the admin-set values (not `favicon.jpg` and not the pre-change description).
+- Pasting any SEVCO domain into a fresh Tweet renders the 1200×630 image and the updated description.
+- The canonical URL and `og:url` reflect the host the crawler is actually on, so crawlers don't get redirected from one SEVCO domain to another and end up with stale data.
+
+## Out of scope
+- Per-page social previews for articles, music, store products (Task #341).
+- Hardening the description-replacement against future index.html edits (Task #342).
+
+## Tasks
+1. **Reproduce what the crawler sees on each domain** — Curl the root URL of every live SEVCO domain (`sevco.us`, `sev.cx`, `sevelovesyou.com`, plus any others configured) with a social-crawler user agent and inspect the returned OG/Twitter meta tags. Confirm whether the CMD-set image URL and description are present on each domain. Also fetch the resolved image URL directly on each domain to confirm it returns 200 with a valid image content-type.
+2. **Make OG tags domain-agnostic** — Stop hardcoding `https://sevco.us` in `client/index.html`'s canonical and `og:url` tags. Replace them at serve time in `server/static.ts` with a value derived from the incoming request host (same pattern used for the image URL), so the canonical and `og:url` match whichever SEVCO domain the crawler actually hit. Fall back to a sensible default when the host isn't available.
+3. **Verify the same CMD settings apply across all domains** — Confirm every SEVCO domain is served by the same Express instance reading the same platform settings (not a separate stale deploy). If any domain is served by a different process or cached layer that bypasses the injection, fix that so all domains read the current `platform.ogImageUrl` and `platform.description`.
+4. **Verify injection path end-to-end** — If any curl in step 1 shows the defaults instead of the CMD values, trace why: confirm `storage.getPlatformSettings()` returns the expected keys, confirm `injectOgMeta` matches the default strings in the served HTML, and fix whatever link in the chain is broken.
+5. **Cache-bust stale previews** — Once the server returns correct tags on every domain, document the steps to refresh X's cached card (e.g. append a one-time query string to the shared URL, or submit it via X's card debugger) so the user can verify the fix externally for each domain.
+
+## Relevant files
+- `client/index.html:6-19`
+- `server/static.ts:16-80`
+- `server/routes.ts:1671-1711`
+- `client/src/pages/command-display.tsx:235-242`
+
+
+---
+

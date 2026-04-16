@@ -101,6 +101,7 @@ export default function CommandDisplay() {
   const [sectionVisibility, setSectionVisibility] = useState<Record<string, boolean>>({});
   const [faviconUrl, setFaviconUrl] = useState("");
   const [ogImageUrl, setOgImageUrl] = useState("");
+  const [globalDescription, setGlobalDescription] = useState("");
   const [platformLogoUrl, setPlatformLogoUrl] = useState("");
 
   const DEFAULT_COLORS = {
@@ -149,6 +150,7 @@ export default function CommandDisplay() {
     setBtn2Color(settings["hero.button2.color"] ?? "");
     setFaviconUrl(settings["platform.faviconUrl"] ?? "");
     setOgImageUrl(settings["platform.ogImageUrl"] ?? "");
+    setGlobalDescription(settings["platform.description"] ?? "");
     setPlatformLogoUrl(settings["platform.logoUrl"] ?? "");
     const vis: Record<string, boolean> = {};
     for (const s of SECTION_KEYS) {
@@ -234,6 +236,7 @@ export default function CommandDisplay() {
     mutation.mutate({
       "platform.faviconUrl": faviconUrl,
       "platform.ogImageUrl": ogImageUrl,
+      "platform.description": globalDescription,
       "platform.logoUrl": platformLogoUrl,
     });
   }
@@ -863,6 +866,23 @@ export default function CommandDisplay() {
               urlTestId="input-og-image-url"
             />
             <p className="text-xs text-muted-foreground">Recommended size: 1200×630px. Used when the site is shared on social media.</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="global-description" className="flex items-center gap-1.5">
+              <Globe className="h-3.5 w-3.5" />
+              Global Meta Description
+            </Label>
+            <Textarea
+              id="global-description"
+              value={globalDescription}
+              onChange={(e) => setGlobalDescription(e.target.value)}
+              placeholder="One platform for all things SEVCO — music, merch, projects, and a community built to last."
+              rows={3}
+              maxLength={300}
+              data-testid="input-global-description"
+            />
+            <p className="text-xs text-muted-foreground">Shown when the site is shared on social media (Facebook, Twitter/X, iMessage, etc.). Keep it under 160 characters for best results.</p>
           </div>
 
           <div className="flex justify-end">

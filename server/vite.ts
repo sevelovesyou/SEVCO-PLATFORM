@@ -6,7 +6,7 @@ import fs from "fs";
 import path from "path";
 import { nanoid } from "nanoid";
 import { storage } from "./storage";
-import { buildGtagSnippet } from "./static";
+import { buildGtagSnippet, injectOgMeta } from "./static";
 
 const viteLogger = createLogger();
 
@@ -61,6 +61,11 @@ export async function setupVite(server: Server, app: Express) {
             template = template.replace("</head>", `${snippet}\n  </head>`);
           }
         }
+        template = injectOgMeta(
+          template,
+          platformSettings["platform.ogImageUrl"],
+          platformSettings["platform.description"],
+        );
       } catch {
         // Don't block page render if analytics settings fail to load
       }

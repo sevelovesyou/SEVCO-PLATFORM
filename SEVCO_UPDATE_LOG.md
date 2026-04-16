@@ -27008,3 +27008,44 @@ The Related Articles section at the bottom of each wiki article page currently s
 
 ---
 
+## Task — og-meta-server-side-injection
+> Merged: 2026-04-16
+
+# Fix OG Meta Tags for Social Media Sharing
+
+## What & Why
+Social media crawlers (Facebook, Twitter/X, LinkedIn, iMessage) fetch raw HTML and never execute JavaScript. The `PageHead` component updates OG tags client-side (via `useEffect`), which crawlers can't see. So when sharing sevco.us, crawlers read only the static defaults baked into `index.html` — not the OG image or description configured in CMD.
+
+The development and production HTML handlers (`server/vite.ts` and `server/static.ts`) already inject GA4 snippets at serve time using the same DB-settings pattern. The OG image and global description should be injected the same way.
+
+Additionally, there is currently no CMD field for the global site description used in OG/Twitter tags — one needs to be added.
+
+## Done looks like
+- Setting an OG image in CMD → the `og:image` and `twitter:image` values in the served HTML reflect the stored URL (visible to crawlers and link-preview tools like opengraph.xyz)
+- Setting a global description in CMD (new field) → the `og:description`, `meta[name=description]`, and `twitter:description` values reflect it
+- Regular browser users are unaffected (PageHead still overrides per-page via JS as before)
+- Both dev (`server/vite.ts`) and prod (`server/static.ts`) HTML handlers apply the injection
+
+## What to build
+
+### 1. `server/static.ts` — production HTML handler
+Inside the existing `"/{*path}"` catch-all, after fetching `platformSettings`, also read:
+- `platform.ogImageUrl` — if set, replace `content="/favicon.jpg"` in `og:image` and `twitter:image` meta tags
+- `platform.description` — if set, replace the default description content in `meta[name="description"]`, `og:description`, and `twitter:description` tags
+
+Use simple string `.replace()` targeting the exact default content strings in `index.html`. Keep the existing GA4 injection unchanged.
+
+### 2. `server/vite.ts` — development HTML handler
+Same injection logic as above, added inside the existing `"/{*path}"` handler alongside the GA4 block.
+
+### 3. `client/src/pages/command-display.tsx` — add Global Description field
+In the Brand Assets / SEO section, add a "Global Meta Description" text input (or textarea) that reads/writes `platform.description`. It should save alongside `platform.ogImageUrl` in the `saveAssets()` function. Label it clearly as the description shown when the site is shared on social media.
+
+## Files
+- `server/static.ts`
+- `server/vite.ts`
+- `client/src/pages/command-display.tsx`
+
+
+---
+

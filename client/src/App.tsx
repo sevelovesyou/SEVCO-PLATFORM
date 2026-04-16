@@ -86,6 +86,7 @@ import ServicesListingPage from "@/pages/services-listing";
 import ServiceCategoryPage from "@/pages/service-category-page";
 import WikiArchivePage from "@/pages/wiki-archive-page";
 import AboutPage from "@/pages/about-page";
+import BrandPage from "@/pages/brand-page";
 import LegalPage from "@/pages/legal-page";
 import HostingPage from "@/pages/hosting-page";
 import SecurityPage from "@/pages/security-page";
@@ -275,6 +276,7 @@ function Router() {
       <Route path="/projects/new" component={() => <ProtectedRoute><ProjectCreatePage /></ProtectedRoute>} />
       <Route path="/projects/:slug" component={ProjectDetail} />
       <Route path="/about" component={AboutPage} />
+      <Route path="/brand" component={BrandPage} />
       <Route path="/legal" component={LegalPage} />
       <Route path="/hosting" component={HostingPage} />
       <Route path="/security" component={SecurityPage} />

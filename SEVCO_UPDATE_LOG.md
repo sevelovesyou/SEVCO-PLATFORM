@@ -27606,3 +27606,29 @@ Only staff see the section until brand assets are populated — same rule as tod
 
 ---
 
+## Task — task-368
+> Merged: 2026-04-16
+
+---
+title: Give the Brand Guidelines its own /brand page for partners and press
+---
+# Give the Brand Guidelines its own /brand page for partners and press
+
+  ## What & Why
+  The new brand-doc components were built to be composable so the same content can live on a dedicated public page. Partners, press, and contributors should be able to land directly on a full design-system reference without scrolling through the About page.
+
+  ## Done looks like
+  - A new `/brand` route renders the same composition of BrandSection blocks
+  - About page keeps a condensed teaser linking to /brand
+  - Page has its own SEO title, description, and OG image
+  - Sticky anchor nav still works
+
+  ## Relevant files
+  - `client/src/components/brand/*` (reuse as-is)
+  - `client/src/pages/about-page.tsx` (extract the brand composition)
+  - New: `client/src/pages/brand-page.tsx`
+  - `client/src/App.tsx` (route registration)
+
+
+---
+

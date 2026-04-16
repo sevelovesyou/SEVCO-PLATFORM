@@ -1734,6 +1734,7 @@ export async function registerRoutes(
         { url: "/projects", priority: "0.7", changefreq: "weekly" },
         { url: "/services", priority: "0.7", changefreq: "weekly" },
         { url: "/about", priority: "0.6", changefreq: "monthly" },
+        { url: "/brand", priority: "0.6", changefreq: "monthly" },
         { url: "/contact", priority: "0.5", changefreq: "monthly" },
         { url: "/changelog", priority: "0.5", changefreq: "weekly" },
         { url: "/jobs", priority: "0.6", changefreq: "weekly" },

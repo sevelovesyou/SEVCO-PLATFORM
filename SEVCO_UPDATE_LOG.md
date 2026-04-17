@@ -28050,3 +28050,40 @@ The CMD → Platform Settings tab bar still has more sections than it needs. Bra
 
 ---
 
+## Task — task-404
+> Merged: 2026-04-17
+
+---
+title: Fix: Planet Logo Black invisible on brand guidelines page
+---
+# Fix: Planet Logo Black not visible on brand page
+
+## What & Why
+The Brand Guidelines page logo variant cards (in the "Logos" section) show the correct background for each logo type — white for black logos, dark for white logos. But they render only from `asset.previewUrl` / `asset.downloadUrl`, which are database values that may not be set. When no URL is in the database, the card falls back to a tiny low-opacity icon, making the preview look completely blank on a white background.
+
+The platform already bundles `sevco-planet-black.png` and `sevco-planet-white.png` in `client/src/assets/`, and the `SevcoLogo` component imports the black one. Neither is used as a fallback in the brand page logo cards.
+
+## Done looks like
+- The "SEVCO Planet Logo Black" card shows the black planet PNG correctly on its white background.
+- The "SEVCO Planet Logo White" card shows the white planet PNG correctly on its dark background.
+- If a card has a valid DB URL, it continues to use that URL (existing behaviour unchanged).
+- If a card has **no** DB URL, the brand page uses a local-asset fallback based on the asset name:
+  - If the name matches `planet.*black` (case-insensitive) → render `<SevcoLogo invert="none" size={80} />` (black logo, no invert).
+  - If the name matches `planet.*white` (case-insensitive) → render `<SevcoLogo invert="always" size={80} />` (white logo via CSS invert).
+  - All other assets keep the current `<Image />` fallback icon.
+- No database changes are required; this is a frontend-only change.
+
+## Tasks
+1. **In `client/src/pages/brand-page.tsx`**, import `SevcoLogo` from `@/components/sevco-logo`. In the logo variant card preview block (the section that renders `asset.previewUrl || asset.downloadUrl`), add a pattern match on `asset.name` before the generic `<Image />` fallback. When the name matches `planet.*black` render `<SevcoLogo invert="none" size={80} />`. When it matches `planet.*white` render `<SevcoLogo invert="always" size={80} />`.
+
+2. **Apply the same fallback** to the Downloads section logo cards (the second `<img>` block at ~line 552), which shares the same conditional render pattern.
+
+## Relevant files
+- `client/src/pages/brand-page.tsx` (lines 218–232, 546–560)
+- `client/src/components/sevco-logo.tsx`
+- `client/src/assets/sevco-planet-black.png`
+- `client/src/assets/sevco-planet-white.png`
+
+
+---
+

@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useQuery } from "@tanstack/react-query";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { CSSProperties } from "react";
 import type { BrandAsset } from "@shared/schema";
 import {
   BrandSection,
@@ -48,24 +49,22 @@ function variantPlacement(name: string): VariantPlacement {
   return "any";
 }
 
-// Background gradient is 135deg: white fills the top-left triangle, dark fills
-// the bottom-right triangle. Align logos toward the corresponding corner so
-// the full mark sits clearly on the contrasting half.
-const PLACEMENT_ALIGN_CLASS: Record<VariantPlacement, string> = {
-  light: "items-start justify-start",
-  dark: "items-end justify-end",
-  any: "items-center justify-center",
+// Each variant tile gets a single solid backdrop chosen from the placement so
+// the full logo sits on its intended background with guaranteed contrast.
+// Light-targeted (black) marks render on a white tile, dark-targeted (white)
+// marks render on a near-black tile, and full-color marks render on a neutral
+// surface. The dark backdrop is fixed to #18181b so white marks remain visible
+// regardless of the active theme.
+const PLACEMENT_TILE_CLASS: Record<VariantPlacement, string> = {
+  light: "bg-white",
+  dark: "",
+  any: "bg-muted",
 };
-
-// Logo preview tiles use a diagonal two-tone (white + near-black) backdrop so
-// any monochrome logo has guaranteed contrast against at least one half of the
-// tile. This is independent of filename, page theme, or whether the asset is
-// uploaded by the user. The dark half stays the same in light and dark mode so
-// white logos remain visible regardless of the active theme.
-const LOGO_TILE_DUAL_BACKDROP_STYLE = {
-  backgroundImage:
-    "linear-gradient(135deg, #ffffff 0%, #ffffff 50%, #18181b 50%, #18181b 100%)",
-} as const;
+const PLACEMENT_TILE_STYLE: Record<VariantPlacement, CSSProperties> = {
+  light: {},
+  dark: { backgroundColor: "#18181b" },
+  any: {},
+};
 
 const ASSET_TYPE_ORDER = ["logo", "color_palette", "font", "banner", "icon", "other"];
 
@@ -282,17 +281,17 @@ export default function BrandPage() {
                                   : "none";
                           return (
                             <div
-                              className={`h-24 flex p-2 border-b border-border ${PLACEMENT_ALIGN_CLASS[placement]}`}
-                              style={LOGO_TILE_DUAL_BACKDROP_STYLE}
+                              className={`h-32 flex items-center justify-center p-4 border-b border-border ${PLACEMENT_TILE_CLASS[placement]}`}
+                              style={PLACEMENT_TILE_STYLE[placement]}
                             >
                               {hasUploadedImage ? (
                                 <img
                                   src={resolveImageUrl(asset.previewUrl || asset.downloadUrl)}
                                   alt={asset.name}
-                                  className={`max-h-20 object-contain ${placement === "any" ? "max-w-full" : "max-w-[55%]"}`}
+                                  className="max-h-24 max-w-full object-contain"
                                 />
                               ) : (
-                                <SevcoLogo size={72} invert={fallbackInvert} alt={asset.name} />
+                                <SevcoLogo size={88} invert={fallbackInvert} alt={asset.name} />
                               )}
                             </div>
                           );

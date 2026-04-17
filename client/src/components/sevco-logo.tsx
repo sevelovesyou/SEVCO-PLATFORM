@@ -19,7 +19,7 @@
  *                  "none"             — no invert class at all
  *   alt        — alt text for the image
  */
-import planetBlack from "@assets/SEVCO_planet_icon_black_1774331331137.png";
+import planetBlack from "@assets/SEVCO_planet_icon_black_1776448197576.png";
 import type { CSSProperties } from "react";
 
 interface SevcoLogoProps {

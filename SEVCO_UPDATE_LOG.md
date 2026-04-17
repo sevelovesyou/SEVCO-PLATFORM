@@ -27981,3 +27981,20 @@ Once the platform-side Shader Studio ships, the user wants SEVCO Sites (user-bui
 
 ---
 
+## Task — task-398
+
+# Merge Brand/Accents/Navigation into Theme + Shader Studio in Hero & CTAs
+
+Reduced the `/command/settings` tab bar from 8 to 5 tabs by merging Brand Identity, Page Accents, and Navigation into a single Theme tab. The three legacy sections now appear as collapsible accordion items at the top of the Theme tab, with **Brand Identity** open by default. Deep links are preserved: `?tab=brand`, `?tab=accents` (and `?tab=page-accents`), and `?tab=navigation` redirect to `?tab=theme` and auto-open the matching accordion section via the `themeSection` state and `LEGACY_TO_THEME_SECTION` map.
+
+Added a new **Shader Studio** card to the top of the Hero & CTAs tab. It embeds the page-assignment table (extracted into the new reusable `client/src/components/page-shader-assignments-table.tsx` component, also used by `command-shader-studio.tsx`) and offers an "Open full Shader Studio" link that deep-links to `/command/shaders` for layer editing.
+
+All `data-testid` attributes were preserved during the move; the existing Live Preview pane in the Theme tab is unchanged and continues to reflect color edits in real time.
+
+## Relevant files
+- `client/src/pages/command-settings.tsx`
+- `client/src/pages/command-shader-studio.tsx`
+- `client/src/components/page-shader-assignments-table.tsx`
+
+
+---

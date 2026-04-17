@@ -24,6 +24,7 @@ import {
   Mail, Send, Search, X, Sparkles, TrendingUp, FileText, Bot,
 } from "lucide-react";
 import { ShaderSettingsPanel } from "@/components/shader-settings-panel";
+import { PageShaderAssignmentsTable } from "@/components/page-shader-assignments-table";
 import { Slider } from "@/components/ui/slider";
 import { FileUploadWithFallback } from "@/components/file-upload";
 import type { BrandAsset, InsertBrandAsset, PlatformSocialLink } from "@shared/schema";
@@ -1133,23 +1134,35 @@ export default function CommandSettings() {
     integrations: "advanced",
     analytics: "advanced",
     optimization: "advanced",
+    brand: "theme",
+    accents: "theme",
+    "page-accents": "theme",
+    navigation: "theme",
   };
   const LEGACY_TO_ACCORDION: Record<string, string> = {
     integrations: "integrations",
     analytics: "analytics",
     optimization: "optimization",
   };
+  const LEGACY_TO_THEME_SECTION: Record<string, string> = {
+    brand: "brand-identity",
+    accents: "page-accents",
+    "page-accents": "page-accents",
+    navigation: "navigation",
+  };
   const getInitialTabFromUrl = () => {
-    if (typeof window === "undefined") return { tab: "hero", section: "integrations" };
+    if (typeof window === "undefined") return { tab: "hero", section: "integrations", themeSection: "brand-identity" };
     const params = new URLSearchParams(window.location.search);
     const raw = params.get("tab") || "hero";
     const resolved = LEGACY_TAB_MAP[raw] ?? raw;
     const section = LEGACY_TO_ACCORDION[raw] ?? "integrations";
-    return { tab: resolved, section };
+    const themeSection = LEGACY_TO_THEME_SECTION[raw] ?? "brand-identity";
+    return { tab: resolved, section, themeSection };
   };
   const initialFromUrl = getInitialTabFromUrl();
   const [activeTab, setActiveTab] = useState(initialFromUrl.tab);
   const [initialAdvancedSection] = useState(initialFromUrl.section);
+  const [themeSection, setThemeSection] = useState(initialFromUrl.themeSection);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -2030,10 +2043,7 @@ export default function CommandSettings() {
       )}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)}>
           <TabsList className="flex flex-wrap gap-1 h-auto mb-6 xl:flex-nowrap xl:overflow-x-auto" data-testid="tabs-settings-main">
-            <TabsTrigger value="brand" data-testid="tab-brand" onClick={() => { setSearchQuery(""); setActiveTab("brand"); }}>Brand Identity</TabsTrigger>
             <TabsTrigger value="theme" data-testid="tab-theme" onClick={() => { setSearchQuery(""); setActiveTab("theme"); }}>Theme</TabsTrigger>
-            <TabsTrigger value="page-accents" data-testid="tab-page-accents" onClick={() => { setSearchQuery(""); setActiveTab("page-accents"); }}>Page Accents</TabsTrigger>
-            <TabsTrigger value="navigation" data-testid="tab-navigation" onClick={() => { setSearchQuery(""); setActiveTab("navigation"); }}>Navigation</TabsTrigger>
             <TabsTrigger value="hero" data-testid="tab-hero" onClick={() => { setSearchQuery(""); setActiveTab("hero"); }}>Hero & CTAs</TabsTrigger>
             <TabsTrigger value="footer" data-testid="tab-footer" onClick={() => { setSearchQuery(""); setActiveTab("footer"); }}>Footer & Legal</TabsTrigger>
             <TabsTrigger value="platform-assets" data-testid="tab-platform-assets" onClick={() => { setSearchQuery(""); setActiveTab("platform-assets"); }}>Platform Assets</TabsTrigger>
@@ -2042,6 +2052,30 @@ export default function CommandSettings() {
 
           {/* ════════════ HERO & CTAs ════════════ */}
           <TabsContent value="hero" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "hero") ? "none" : "block" }}>
+              {/* Shader Studio */}
+              <Card data-search-label="shader studio hero background page assignments preset" className={cardVisible("shader studio hero background page assignments preset") ? "" : "hidden"}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    {highlight("Shader Studio")}
+                  </CardTitle>
+                  <CardDescription>
+                    {highlight("Assign shader presets to hero sections and CTAs across the platform. Open the full Shader Studio to edit layers and preview presets.")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <PageShaderAssignmentsTable />
+                  <div className="flex justify-end pt-2 border-t">
+                    <Button asChild size="sm" className="gap-2" data-testid="button-open-shader-studio">
+                      <a href="/command/shaders">
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Open full Shader Studio
+                      </a>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Hero Editor */}
               <Card data-search-label="hero editor logo background overlay tagline buttons footer version" className={cardVisible("hero editor logo background overlay tagline buttons footer version") ? "" : "hidden"}>
                 <CardHeader>
@@ -2315,122 +2349,6 @@ export default function CommandSettings() {
 
             </TabsContent>
 
-          {/* ════════════ BRAND IDENTITY ════════════ */}
-          <TabsContent value="brand" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "brand") ? "none" : "block" }}>
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-sm font-semibold text-foreground">Brand Identity</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Your core brand palette stored as CSS variables. Use the Theme tab to control button and UI component colors.</p>
-              </div>
-              <Accordion type="multiple" defaultValue={["group-brand-identity"]} className="space-y-2">
-                <AccordionItem value="group-brand-identity" className="border rounded-lg px-4" data-search-label="brand identity colors main secondary accent highlight">
-                  <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-0.5">
-                        {[brandMain, brandSecondary, brandAccent, brandHighlight].map((c, i) => (
-                          <div key={i} className="h-3 w-3 rounded-full border border-border/40" style={{ backgroundColor: c ? `hsl(${c})` : "#9ca3af" }} />
-                        ))}
-                      </div>
-                      {highlight("Brand Colors")}
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-4 space-y-4">
-                    <p className="text-xs text-muted-foreground">Your brand's identity palette — stored as CSS variables for use in custom CSS and theming. These do not directly control button colors; use the Theme tab's Primary Palette for that.</p>
-                    <div className="space-y-3">
-                      <ColorPickerRow label="Brand Main" hsl={brandMain} onChange={setBrandMain} testIdBase="brand-main" showSwatches hint="--brand-main" />
-                      <ColorPickerRow label="Brand Secondary" hsl={brandSecondary} onChange={setBrandSecondary} testIdBase="brand-secondary" showSwatches hint="--brand-secondary" />
-                      <ColorPickerRow label="Brand Accent" hsl={brandAccent} onChange={setBrandAccent} testIdBase="brand-accent" showSwatches hint="--brand-accent" />
-                      <ColorPickerRow label="Brand Highlight" hsl={brandHighlight} onChange={setBrandHighlight} testIdBase="brand-highlight" showSwatches hint="--brand-highlight" />
-                    </div>
-                    <div className="flex justify-end pt-2 border-t">
-                      <Button size="sm" onClick={saveThemeBrandColors} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-brand-colors-brand-tab">
-                        <Save className="h-3 w-3" />
-                        Save Brand Colors
-                      </Button>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </div>
-          </TabsContent>
-
-          {/* ════════════ PAGE ACCENTS ════════════ */}
-          <TabsContent value="page-accents" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "page-accents") ? "none" : "block" }}>
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-sm font-semibold text-foreground">Page Accents</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Per-page accent colors and per-page button color overrides. Leave any field empty to inherit global theme colors.</p>
-              </div>
-              <Accordion type="multiple" defaultValue={["group-page-accents-section", "group-page-btns"]} className="space-y-2">
-                <AccordionItem value="group-page-accents-section" className="border rounded-lg px-4" data-search-label="per section accent home store services music wiki tag colors">
-                  <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
-                    {highlight("Per-Section Accent Colors")}
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-4 space-y-4">
-                    <p className="text-xs text-muted-foreground">Optional accent colors for individual platform sections. Leave empty to use global brand colors.</p>
-                    <div className="space-y-3">
-                      <ColorPickerRow label="Home Page Cards" hsl={homeCardAccentColor} onChange={setHomeCardAccentColor} testIdBase="home-card-accent-pa" showSwatches hint="--home-card-accent" />
-                      <ColorPickerRow label="Store Page" hsl={storeAccentColor} onChange={setStoreAccentColor} testIdBase="store-accent-pa" showSwatches hint="--store-accent" />
-                      <ColorPickerRow label="Services Page" hsl={servicesAccentColor} onChange={setServicesAccentColor} testIdBase="services-accent-pa" showSwatches hint="--services-accent" />
-                      <ColorPickerRow label="Music Page (RECORDS section)" hsl={musicAccentColor} onChange={setMusicAccentColor} testIdBase="music-accent-pa" showSwatches hint="--music-accent" />
-                      <ColorPickerRow label="Wiki Tags / Highlights" hsl={wikiTagColor} onChange={setWikiTagColor} testIdBase="wiki-tag-pa" showSwatches hint="--wiki-tag-color" />
-                    </div>
-                    <div className="flex justify-end pt-2 border-t">
-                      <Button size="sm" onClick={savePerSectionColors} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-per-section-colors-pa">
-                        <Save className="h-3 w-3" />
-                        Save Accents
-                      </Button>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-
-                <AccordionItem value="group-page-btns" className="border rounded-lg px-4" data-search-label="page button color overrides landing store services projects music news primary secondary">
-                  <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
-                    {highlight("Page Button Color Overrides")}
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-4 space-y-4">
-                    <p className="text-xs text-muted-foreground">Override primary and secondary button colors for individual landing pages. Leave blank to use global theme colors.</p>
-                    {PAGE_KEYS.map((page) => (
-                      <div key={page} className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-semibold text-foreground">{PAGE_LABELS[page]}</p>
-                          <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground gap-1" onClick={() => resetPageBtnColors(page)} disabled={mutation.isPending} data-testid={`button-reset-page-btns-pa-${page}`}>
-                            <RotateCcw className="h-3 w-3" />Reset
-                          </Button>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {(["primaryBtn", "primaryBtnText", "secondaryBtn", "secondaryBtnText"] as const).map((field) => {
-                            const labels: Record<string, string> = { primaryBtn: "Primary button background", primaryBtnText: "Primary button text", secondaryBtn: "Secondary button background", secondaryBtnText: "Secondary button text" };
-                            const val = pageBtnColors[page][field];
-                            return (
-                              <div key={field} className="space-y-1.5">
-                                <p className="text-xs font-medium text-foreground">{labels[field]}</p>
-                                <div className="flex items-center gap-2">
-                                  <div className="relative shrink-0">
-                                    <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: val ? `hsl(${val})` : "transparent" }} />
-                                    <input type="color" value={val ? hslToHex(val) : "#000000"} onChange={(e) => setPageColor(page, field, hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid={`color-picker-pa-${page}-${field}`} />
-                                  </div>
-                                  <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{val || "— default"}</p>
-                                  {val && <Button variant="ghost" size="icon" aria-label="Clear" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setPageColor(page, field, "")} data-testid={`button-clear-pa-${page}-${field}`}><RotateCcw className="h-3 w-3" /></Button>}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        {page !== PAGE_KEYS[PAGE_KEYS.length - 1] && <Separator />}
-                      </div>
-                    ))}
-                    <div className="flex justify-end pt-2 border-t">
-                      <Button size="sm" onClick={savePageBtnColors} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-page-btn-colors-pa">
-                        <Save className="h-3 w-3" />Save Button Colors
-                      </Button>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </div>
-          </TabsContent>
-
           {/* ════════════ PLATFORM ASSETS ════════════ */}
           <TabsContent value="platform-assets" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "platform-assets") ? "none" : "block" }}>
             <Card data-search-label="platform assets favicon social image OG logo wordmark" className={cardVisible("platform assets favicon social image OG logo wordmark") ? "" : "hidden"}>
@@ -2591,6 +2509,223 @@ export default function CommandSettings() {
                       Reset all to defaults
                     </Button>
                   </div>
+
+                  {/* Merged: Brand Identity / Page Accents / Navigation */}
+                  <Accordion type="single" collapsible value={themeSection} onValueChange={(v) => setThemeSection(v || "brand-identity")} className="space-y-2">
+                    <AccordionItem value="brand-identity" className="border rounded-lg px-4" data-testid="accordion-brand-identity" data-search-label="brand identity colors main secondary accent highlight logos typography">
+                      <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-0.5">
+                            {[brandMain, brandSecondary, brandAccent, brandHighlight].map((c, i) => (
+                              <div key={i} className="h-3 w-3 rounded-full border border-border/40" style={{ backgroundColor: c ? `hsl(${c})` : "#9ca3af" }} />
+                            ))}
+                          </div>
+                          {highlight("Brand Identity")}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4 space-y-4">
+                        <p className="text-xs text-muted-foreground">Your brand's identity palette — stored as CSS variables for use in custom CSS and theming. These do not directly control button colors; use the Primary Palette below for that.</p>
+                        <div className="space-y-3">
+                          <ColorPickerRow label="Brand Main" hsl={brandMain} onChange={setBrandMain} testIdBase="brand-main" showSwatches hint="--brand-main" />
+                          <ColorPickerRow label="Brand Secondary" hsl={brandSecondary} onChange={setBrandSecondary} testIdBase="brand-secondary" showSwatches hint="--brand-secondary" />
+                          <ColorPickerRow label="Brand Accent" hsl={brandAccent} onChange={setBrandAccent} testIdBase="brand-accent" showSwatches hint="--brand-accent" />
+                          <ColorPickerRow label="Brand Highlight" hsl={brandHighlight} onChange={setBrandHighlight} testIdBase="brand-highlight" showSwatches hint="--brand-highlight" />
+                        </div>
+                        <div className="flex justify-end pt-2 border-t">
+                          <Button size="sm" onClick={saveThemeBrandColors} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-brand-colors-brand-tab">
+                            <Save className="h-3 w-3" />
+                            Save Brand Colors
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    <AccordionItem value="page-accents" className="border rounded-lg px-4" data-testid="accordion-page-accents" data-search-label="page accents per section accent colors home store services music wiki tag page button color overrides">
+                      <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
+                        {highlight("Page Accents")}
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4 space-y-4">
+                        <p className="text-xs text-muted-foreground">Per-page accent colors and per-page button color overrides. Leave any field empty to inherit global theme colors.</p>
+                        <Accordion type="multiple" defaultValue={["group-page-accents-section", "group-page-btns"]} className="space-y-2">
+                          <AccordionItem value="group-page-accents-section" className="border rounded-lg px-4" data-search-label="per section accent home store services music wiki tag colors">
+                            <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
+                              {highlight("Per-Section Accent Colors")}
+                            </AccordionTrigger>
+                            <AccordionContent className="pb-4 space-y-4">
+                              <p className="text-xs text-muted-foreground">Optional accent colors for individual platform sections. Leave empty to use global brand colors.</p>
+                              <div className="space-y-3">
+                                <ColorPickerRow label="Home Page Cards" hsl={homeCardAccentColor} onChange={setHomeCardAccentColor} testIdBase="home-card-accent-pa" showSwatches hint="--home-card-accent" />
+                                <ColorPickerRow label="Store Page" hsl={storeAccentColor} onChange={setStoreAccentColor} testIdBase="store-accent-pa" showSwatches hint="--store-accent" />
+                                <ColorPickerRow label="Services Page" hsl={servicesAccentColor} onChange={setServicesAccentColor} testIdBase="services-accent-pa" showSwatches hint="--services-accent" />
+                                <ColorPickerRow label="Music Page (RECORDS section)" hsl={musicAccentColor} onChange={setMusicAccentColor} testIdBase="music-accent-pa" showSwatches hint="--music-accent" />
+                                <ColorPickerRow label="Wiki Tags / Highlights" hsl={wikiTagColor} onChange={setWikiTagColor} testIdBase="wiki-tag-pa" showSwatches hint="--wiki-tag-color" />
+                              </div>
+                              <div className="flex justify-end pt-2 border-t">
+                                <Button size="sm" onClick={savePerSectionColors} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-per-section-colors-pa">
+                                  <Save className="h-3 w-3" />
+                                  Save Accents
+                                </Button>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+
+                          <AccordionItem value="group-page-btns" className="border rounded-lg px-4" data-search-label="page button color overrides landing store services projects music news primary secondary">
+                            <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
+                              {highlight("Page Button Color Overrides")}
+                            </AccordionTrigger>
+                            <AccordionContent className="pb-4 space-y-4">
+                              <p className="text-xs text-muted-foreground">Override primary and secondary button colors for individual landing pages. Leave blank to use global theme colors.</p>
+                              {PAGE_KEYS.map((page) => (
+                                <div key={page} className="space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-sm font-semibold text-foreground">{PAGE_LABELS[page]}</p>
+                                    <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground gap-1" onClick={() => resetPageBtnColors(page)} disabled={mutation.isPending} data-testid={`button-reset-page-btns-pa-${page}`}>
+                                      <RotateCcw className="h-3 w-3" />Reset
+                                    </Button>
+                                  </div>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {(["primaryBtn", "primaryBtnText", "secondaryBtn", "secondaryBtnText"] as const).map((field) => {
+                                      const labels: Record<string, string> = { primaryBtn: "Primary button background", primaryBtnText: "Primary button text", secondaryBtn: "Secondary button background", secondaryBtnText: "Secondary button text" };
+                                      const val = pageBtnColors[page][field];
+                                      return (
+                                        <div key={field} className="space-y-1.5">
+                                          <p className="text-xs font-medium text-foreground">{labels[field]}</p>
+                                          <div className="flex items-center gap-2">
+                                            <div className="relative shrink-0">
+                                              <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: val ? `hsl(${val})` : "transparent" }} />
+                                              <input type="color" value={val ? hslToHex(val) : "#000000"} onChange={(e) => setPageColor(page, field, hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid={`color-picker-pa-${page}-${field}`} />
+                                            </div>
+                                            <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{val || "— default"}</p>
+                                            {val && <Button variant="ghost" size="icon" aria-label="Clear" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setPageColor(page, field, "")} data-testid={`button-clear-pa-${page}-${field}`}><RotateCcw className="h-3 w-3" /></Button>}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                  {page !== PAGE_KEYS[PAGE_KEYS.length - 1] && <Separator />}
+                                </div>
+                              ))}
+                              <div className="flex justify-end pt-2 border-t">
+                                <Button size="sm" onClick={savePageBtnColors} disabled={mutation.isPending} className="gap-1.5" data-testid="button-save-page-btn-colors-pa">
+                                  <Save className="h-3 w-3" />Save Button Colors
+                                </Button>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    <AccordionItem value="navigation" className="border rounded-lg px-4" data-testid="accordion-navigation" data-search-label="navigation sidebar nav colors active highlight hover menu dropdown">
+                      <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
+                        <div className="flex items-center gap-2">
+                          <Layers className="h-3.5 w-3.5 text-muted-foreground" />
+                          {highlight("Navigation")}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4 space-y-4">
+                        <Card data-search-label="navigation sidebar nav colors active highlight hover menu dropdown" className={cardVisible("navigation sidebar nav colors active highlight hover menu dropdown") ? "" : "hidden"}>
+                          <CardHeader>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <CardTitle className="flex items-center gap-2">
+                                  <Layers className="h-4 w-4" />
+                                  {highlight("Sidebar & Navigation Colors")}
+                                </CardTitle>
+                                <CardDescription className="mt-1">
+                                  {highlight("Customize the active item highlight and hover colors in the sidebar and dropdown menus.")}
+                                </CardDescription>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="gap-2 text-muted-foreground shrink-0"
+                                onClick={() => {
+                                  setNavMainBg(""); setNavMainText(""); setNavSubBg(""); setNavSubText("");
+                                  mutation.mutate({ "color.nav.main.bg": "", "color.nav.main.text": "", "color.nav.sub.bg": "", "color.nav.sub.text": "", "color.nav.activeHighlight": "" });
+                                }}
+                                disabled={mutation.isPending}
+                                data-testid="button-reset-nav-colors"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                                Reset
+                              </Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-5">
+                            <div className="space-y-3">
+                              <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Active / Selected Item</p>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                  <p className="text-xs font-medium text-foreground">Active background</p>
+                                  <p className="text-[10px] text-muted-foreground/70 font-mono -mt-1">→ --sidebar-primary, --sidebar-accent, --sidebar-ring</p>
+                                  <div className="flex items-center gap-2">
+                                    <div className="relative shrink-0">
+                                      <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navMainBg ? `hsl(${navMainBg})` : "transparent" }} />
+                                      <input type="color" value={navMainBg ? hslToHex(navMainBg) : "#000000"} onChange={(e) => setNavMainBg(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-main-bg" />
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navMainBg || "— default"}</p>
+                                    {navMainBg && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavMainBg("")} data-testid="button-reset-nav-main-bg"><RotateCcw className="h-3 w-3" /></Button>}
+                                  </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                  <p className="text-xs font-medium text-foreground">Active text color</p>
+                                  <p className="text-[10px] text-muted-foreground/70 font-mono -mt-1">→ --sidebar-accent-foreground</p>
+                                  <div className="flex items-center gap-2">
+                                    <div className="relative shrink-0">
+                                      <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navMainText ? `hsl(${navMainText})` : "transparent" }} />
+                                      <input type="color" value={navMainText ? hslToHex(navMainText) : "#000000"} onChange={(e) => setNavMainText(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-main-text" />
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navMainText || "— default"}</p>
+                                    {navMainText && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavMainText("")} data-testid="button-reset-nav-main-text"><RotateCcw className="h-3 w-3" /></Button>}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-3">
+                              <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Hover / Submenu</p>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                  <p className="text-xs font-medium text-foreground">Hover background</p>
+                                  <p className="text-[10px] text-muted-foreground/70 font-mono -mt-1">→ --nav-sub-accent</p>
+                                  <div className="flex items-center gap-2">
+                                    <div className="relative shrink-0">
+                                      <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navSubBg ? `hsl(${navSubBg})` : "transparent" }} />
+                                      <input type="color" value={navSubBg ? hslToHex(navSubBg) : "#000000"} onChange={(e) => setNavSubBg(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-sub-bg" />
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navSubBg || "— default"}</p>
+                                    {navSubBg && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavSubBg("")} data-testid="button-reset-nav-sub-bg"><RotateCcw className="h-3 w-3" /></Button>}
+                                  </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                  <p className="text-xs font-medium text-foreground">Hover text color</p>
+                                  <p className="text-[10px] text-muted-foreground/70 font-mono -mt-1">→ --nav-sub-accent-foreground</p>
+                                  <div className="flex items-center gap-2">
+                                    <div className="relative shrink-0">
+                                      <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navSubText ? `hsl(${navSubText})` : "transparent" }} />
+                                      <input type="color" value={navSubText ? hslToHex(navSubText) : "#000000"} onChange={(e) => setNavSubText(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-sub-text" />
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navSubText || "— default"}</p>
+                                    {navSubText && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavSubText("")} data-testid="button-reset-nav-sub-text"><RotateCcw className="h-3 w-3" /></Button>}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex justify-end">
+                              <Button onClick={saveNavColors} disabled={mutation.isPending} className="gap-2" data-testid="button-save-nav-colors">
+                                <Save className="h-3.5 w-3.5" />
+                                Save Navigation Colors
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
 
                   <Accordion type="multiple" defaultValue={["group-primary"]} className="space-y-2">
 
@@ -2947,109 +3082,6 @@ export default function CommandSettings() {
               </div>
             </TabsContent>
 
-          {/* ════════════ NAVIGATION ════════════ */}
-          <TabsContent value="navigation" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "navigation") ? "none" : "block" }}>
-              {/* Sidebar Nav Colors */}
-              <Card data-search-label="navigation sidebar nav colors active highlight hover menu dropdown" className={cardVisible("navigation sidebar nav colors active highlight hover menu dropdown") ? "" : "hidden"}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Layers className="h-4 w-4" />
-                        {highlight("Sidebar & Navigation Colors")}
-                      </CardTitle>
-                      <CardDescription className="mt-1">
-                        {highlight("Customize the active item highlight and hover colors in the sidebar and dropdown menus.")}
-                      </CardDescription>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-2 text-muted-foreground shrink-0"
-                      onClick={() => {
-                        setNavMainBg(""); setNavMainText(""); setNavSubBg(""); setNavSubText("");
-                        mutation.mutate({ "color.nav.main.bg": "", "color.nav.main.text": "", "color.nav.sub.bg": "", "color.nav.sub.text": "", "color.nav.activeHighlight": "" });
-                      }}
-                      disabled={mutation.isPending}
-                      data-testid="button-reset-nav-colors"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5" />
-                      Reset
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  <div className="space-y-3">
-                    <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Active / Selected Item</p>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-medium text-foreground">Active background</p>
-                        <p className="text-[10px] text-muted-foreground/70 font-mono -mt-1">→ --sidebar-primary, --sidebar-accent, --sidebar-ring</p>
-                        <div className="flex items-center gap-2">
-                          <div className="relative shrink-0">
-                            <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navMainBg ? `hsl(${navMainBg})` : "transparent" }} />
-                            <input type="color" value={navMainBg ? hslToHex(navMainBg) : "#000000"} onChange={(e) => setNavMainBg(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-main-bg" />
-                          </div>
-                          <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navMainBg || "— default"}</p>
-                          {navMainBg && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavMainBg("")} data-testid="button-reset-nav-main-bg"><RotateCcw className="h-3 w-3" /></Button>}
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-medium text-foreground">Active text color</p>
-                        <p className="text-[10px] text-muted-foreground/70 font-mono -mt-1">→ --sidebar-accent-foreground</p>
-                        <div className="flex items-center gap-2">
-                          <div className="relative shrink-0">
-                            <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navMainText ? `hsl(${navMainText})` : "transparent" }} />
-                            <input type="color" value={navMainText ? hslToHex(navMainText) : "#000000"} onChange={(e) => setNavMainText(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-main-text" />
-                          </div>
-                          <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navMainText || "— default"}</p>
-                          {navMainText && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavMainText("")} data-testid="button-reset-nav-main-text"><RotateCcw className="h-3 w-3" /></Button>}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-3">
-                    <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Hover / Submenu</p>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-medium text-foreground">Hover background</p>
-                        <p className="text-[10px] text-muted-foreground/70 font-mono -mt-1">→ --nav-sub-accent</p>
-                        <div className="flex items-center gap-2">
-                          <div className="relative shrink-0">
-                            <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navSubBg ? `hsl(${navSubBg})` : "transparent" }} />
-                            <input type="color" value={navSubBg ? hslToHex(navSubBg) : "#000000"} onChange={(e) => setNavSubBg(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-sub-bg" />
-                          </div>
-                          <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navSubBg || "— default"}</p>
-                          {navSubBg && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavSubBg("")} data-testid="button-reset-nav-sub-bg"><RotateCcw className="h-3 w-3" /></Button>}
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-medium text-foreground">Hover text color</p>
-                        <p className="text-[10px] text-muted-foreground/70 font-mono -mt-1">→ --nav-sub-accent-foreground</p>
-                        <div className="flex items-center gap-2">
-                          <div className="relative shrink-0">
-                            <div className="h-7 w-7 rounded border border-border" style={{ backgroundColor: navSubText ? `hsl(${navSubText})` : "transparent" }} />
-                            <input type="color" value={navSubText ? hslToHex(navSubText) : "#000000"} onChange={(e) => setNavSubText(hexToHsl(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer w-7 h-7" data-testid="color-picker-nav-sub-text" />
-                          </div>
-                          <p className="text-[10px] text-muted-foreground font-mono flex-1 truncate">{navSubText || "— default"}</p>
-                          {navSubText && <Button variant="ghost" size="icon" aria-label="Reset" className="h-6 w-6 text-muted-foreground shrink-0" onClick={() => setNavSubText("")} data-testid="button-reset-nav-sub-text"><RotateCcw className="h-3 w-3" /></Button>}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end">
-                    <Button onClick={saveNavColors} disabled={mutation.isPending} className="gap-2" data-testid="button-save-nav-colors">
-                      <Save className="h-3.5 w-3.5" />
-                      Save Navigation Colors
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
           {/* ════════════ ADVANCED (merged: Integrations, Analytics, Advanced Settings, Optimization) ════════════ */}
           <TabsContent value="advanced" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "advanced") ? "none" : "block" }}>
             <Accordion type="single" collapsible defaultValue={initialAdvancedSection} className="space-y-2">

@@ -24,11 +24,11 @@ import {
 } from "@/components/shader-canvas";
 import {
   SHADER_EFFECT_TYPES,
-  SHADER_PAGE_KEYS,
   type ShaderEffectType,
   type ShaderPreset,
 } from "@shared/schema";
 import { PALETTE_PRESETS } from "@/components/shader-background";
+import { PageShaderAssignmentsTable } from "@/components/page-shader-assignments-table";
 
 const PALETTE_OPTIONS = Object.keys(PALETTE_PRESETS);
 const BLEND_OPTIONS: ShaderLayer["blend"][] = ["normal", "screen", "overlay", "multiply", "lighten"];
@@ -59,7 +59,6 @@ function makeLayer(effect: ShaderEffectType): ShaderLayer {
 export default function CommandShaderStudio() {
   const { toast } = useToast();
   const presetsQ = useQuery<ShaderPreset[]>({ queryKey: ["/api/shader-presets"] });
-  const assignmentsQ = useQuery<Record<string, number | null>>({ queryKey: ["/api/shader-assignments"] });
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [draftName, setDraftName] = useState("");
@@ -151,16 +150,6 @@ export default function CommandShaderStudio() {
     onError: (e: any) => toast({ title: "Delete failed", description: e?.message, variant: "destructive" }),
   });
 
-  const assignM = useMutation({
-    mutationFn: async (next: Record<string, number | null>) =>
-      apiRequest("PUT", "/api/shader-assignments", next),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/shader-assignments"] });
-      toast({ title: "Assignments updated" });
-    },
-    onError: (e: any) => toast({ title: "Update failed", description: e?.message, variant: "destructive" }),
-  });
-
   // ── layer ops ─────────────────────────────────────────────────────
   function addLayer() {
     const l = makeLayer("plasma");
@@ -205,12 +194,6 @@ export default function CommandShaderStudio() {
 
   const activeLayer = draftLayers[activeLayerIdx];
   const schema = activeLayer ? EFFECT_PARAM_SCHEMA[activeLayer.effectType] : [];
-
-  function handleAssign(pageKey: string, val: string) {
-    const next = { ...(assignmentsQ.data ?? {}) } as Record<string, number | null>;
-    next[pageKey] = val === "none" ? null : parseInt(val);
-    assignM.mutate(next);
-  }
 
   const previewLayersMemo = useMemo(() => draftLayers, [draftLayers]);
   const sz = PREVIEW_SIZES[previewSize];
@@ -413,27 +396,7 @@ export default function CommandShaderStudio() {
         </ScrollArea>
         <div className="flex-1 overflow-auto p-3">
           <h4 className="text-sm font-semibold mb-2">Page Assignments</h4>
-          <div className="space-y-2">
-            {SHADER_PAGE_KEYS.map((pk) => {
-              const cur = assignmentsQ.data?.[pk] ?? null;
-              return (
-                <div key={pk} className="flex items-center gap-2">
-                  <span className="text-xs w-32 text-muted-foreground" data-testid={`text-page-${pk}`}>{pk}</span>
-                  <Select value={cur == null ? "none" : String(cur)} onValueChange={(v) => handleAssign(pk, v)}>
-                    <SelectTrigger className="flex-1" data-testid={`select-assign-${pk}`}>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {presets.map((p) => (
-                        <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              );
-            })}
-          </div>
+          <PageShaderAssignmentsTable />
         </div>
       </Card>
 

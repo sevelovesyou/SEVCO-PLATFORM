@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "wouter";
+// Sandbox-friendly: use plain anchors instead of router links
 import { 
   BookOpen, ShoppingBag, Music, Folder, Briefcase, 
   Users, ArrowRight, Zap, Globe, Layers, ChevronRight,
@@ -163,9 +163,9 @@ export function ProductLauncher() {
                  <p className="text-sm text-zinc-500 uppercase tracking-widest font-semibold">Update • 2 hours ago</p>
                  <h3 className="text-3xl font-bold">New Platform Documentation</h3>
                  <p className="text-zinc-400 text-lg">We've entirely rewritten the Wiki guidelines to make contributing easier for everyone in the community.</p>
-                 <Link href="/wiki" className="inline-flex items-center text-red-500 hover:text-red-400 font-medium">
+                 <a href="/wiki" className="inline-flex items-center text-red-500 hover:text-red-400 font-medium">
                    Explore Wiki <ChevronRight className="ml-1 h-4 w-4" />
-                 </Link>
+                 </a>
                </div>
                <div className="aspect-[16/9] bg-zinc-900 rounded-2xl border border-white/10 overflow-hidden flex items-center justify-center relative">
                  <BookOpen className="h-16 w-16 text-zinc-700 absolute" />
@@ -182,9 +182,9 @@ export function ProductLauncher() {
                  <p className="text-sm text-zinc-500 uppercase tracking-widest font-semibold">Release • Yesterday</p>
                  <h3 className="text-3xl font-bold">Studio Beta Access</h3>
                  <p className="text-zinc-400 text-lg">Pro and Studio plan members can now access the new collaborative tools directly from their dashboard.</p>
-                 <Link href="/music" className="inline-flex items-center text-red-500 hover:text-red-400 font-medium">
+                 <a href="/music" className="inline-flex items-center text-red-500 hover:text-red-400 font-medium">
                    View Details <ChevronRight className="ml-1 h-4 w-4" />
-                 </Link>
+                 </a>
                </div>
             </div>
           </div>
@@ -330,9 +330,9 @@ export function ProductLauncher() {
       {/* Footer */}
       <footer className="py-12 px-6 bg-black text-center text-zinc-500 text-sm">
          <div className="flex items-center justify-center gap-6 mb-6">
-           <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
-           <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-           <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
+           <a href="/terms" className="hover:text-white transition-colors">Terms</a>
+           <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
+           <a href="/contact" className="hover:text-white transition-colors">Contact</a>
          </div>
          <p>© {new Date().getFullYear()} SEVCO. All rights reserved.</p>
       </footer>

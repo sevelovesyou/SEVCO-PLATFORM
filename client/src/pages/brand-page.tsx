@@ -34,6 +34,16 @@ function planetFallback(name: string): "black" | "white" | null {
   return null;
 }
 
+// Logo preview tiles use a diagonal two-tone (white + near-black) backdrop so
+// any monochrome logo has guaranteed contrast against at least one half of the
+// tile. This is independent of filename, page theme, or whether the asset is
+// uploaded by the user. The dark half stays the same in light and dark mode so
+// white logos remain visible regardless of the active theme.
+const LOGO_TILE_DUAL_BACKDROP_STYLE = {
+  backgroundImage:
+    "linear-gradient(135deg, #ffffff 0%, #ffffff 50%, #18181b 50%, #18181b 100%)",
+} as const;
+
 const ASSET_TYPE_ORDER = ["logo", "color_palette", "font", "banner", "icon", "other"];
 
 const ASSET_TYPE_LABELS: Record<string, string> = {
@@ -227,21 +237,31 @@ export default function BrandPage() {
                         className="rounded-xl border border-border bg-card overflow-hidden"
                         data-testid={`logo-variant-${asset.id}`}
                       >
-                        <div className={`h-24 flex items-center justify-center border-b border-border ${/black/i.test(asset.name) ? "bg-white" : /white/i.test(asset.name) ? "bg-gray-900" : "bg-muted/30"}`}>
-                          {(asset.previewUrl || asset.downloadUrl) ? (
-                            <img
-                              src={resolveImageUrl(asset.previewUrl || asset.downloadUrl)}
-                              alt={asset.name}
-                              className="max-h-20 max-w-full object-contain p-2"
-                            />
-                          ) : planetFallback(asset.name) === "black" ? (
-                            <SevcoLogo size={80} invert="none" alt={asset.name} />
-                          ) : planetFallback(asset.name) === "white" ? (
-                            <SevcoLogo size={80} invert="always" alt={asset.name} />
-                          ) : (
-                            <Image className="h-6 w-6 text-muted-foreground opacity-40" />
-                          )}
-                        </div>
+                        {(() => {
+                          // Bundled SevcoLogo variant inference is only used to pick the
+                          // correct invert mode for the fallback render; backdrop choice
+                          // is independent of filename so contrast is always guaranteed.
+                          const fallback = planetFallback(asset.name);
+                          const hasUploadedImage = !!(asset.previewUrl || asset.downloadUrl);
+                          return (
+                            <div
+                              className="h-24 flex items-center justify-center border-b border-border"
+                              style={LOGO_TILE_DUAL_BACKDROP_STYLE}
+                            >
+                              {hasUploadedImage ? (
+                                <img
+                                  src={resolveImageUrl(asset.previewUrl || asset.downloadUrl)}
+                                  alt={asset.name}
+                                  className="max-h-20 max-w-full object-contain p-2"
+                                />
+                              ) : fallback === "white" ? (
+                                <SevcoLogo size={80} invert="always" alt={asset.name} />
+                              ) : (
+                                <SevcoLogo size={80} invert="none" alt={asset.name} />
+                              )}
+                            </div>
+                          );
+                        })()}
                         <div className="p-3 space-y-1.5">
                           <div className="flex items-start justify-between gap-2">
                             <p className="text-xs font-semibold text-foreground leading-tight truncate">{asset.name}</p>
@@ -559,23 +579,33 @@ export default function BrandPage() {
                             className="border border-border rounded-xl overflow-hidden group bg-card"
                             data-testid={`card-brand-asset-${asset.id}`}
                           >
-                            <div className={`h-28 flex items-center justify-center border-b border-border ${asset.assetType === "logo" && /black/i.test(asset.name) ? "bg-white" : asset.assetType === "logo" && /white/i.test(asset.name) ? "bg-gray-900" : "bg-muted/30"}`}>
-                              {(asset.previewUrl || (asset.assetType === "logo" && asset.downloadUrl)) ? (
-                                <img
-                                  src={resolveImageUrl(asset.previewUrl || asset.downloadUrl)}
-                                  alt={asset.name}
-                                  className="max-h-24 max-w-full object-contain p-2"
-                                />
-                              ) : asset.assetType === "logo" && planetFallback(asset.name) === "black" ? (
-                                <SevcoLogo size={80} invert="none" alt={asset.name} />
-                              ) : asset.assetType === "logo" && planetFallback(asset.name) === "white" ? (
-                                <SevcoLogo size={80} invert="always" alt={asset.name} />
-                              ) : (
-                                <div className="flex items-center justify-center opacity-40">
-                                  {assetTypeIcon(asset.assetType)}
+                            {(() => {
+                              const isLogo = asset.assetType === "logo";
+                              const fallback = isLogo ? planetFallback(asset.name) : null;
+                              const hasUploadedImage = !!(asset.previewUrl || (isLogo && asset.downloadUrl));
+                              return (
+                                <div
+                                  className={`h-28 flex items-center justify-center border-b border-border ${isLogo ? "" : "bg-muted/30"}`}
+                                  style={isLogo ? LOGO_TILE_DUAL_BACKDROP_STYLE : undefined}
+                                >
+                                  {hasUploadedImage ? (
+                                    <img
+                                      src={resolveImageUrl(asset.previewUrl || asset.downloadUrl)}
+                                      alt={asset.name}
+                                      className="max-h-24 max-w-full object-contain p-2"
+                                    />
+                                  ) : isLogo && fallback === "white" ? (
+                                    <SevcoLogo size={80} invert="always" alt={asset.name} />
+                                  ) : isLogo ? (
+                                    <SevcoLogo size={80} invert="none" alt={asset.name} />
+                                  ) : (
+                                    <div className="flex items-center justify-center opacity-40">
+                                      {assetTypeIcon(asset.assetType)}
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
+                              );
+                            })()}
                             <div className="p-3 space-y-2">
                               <div className="flex items-start justify-between gap-2">
                                 <p className="text-xs font-semibold text-foreground leading-tight">{asset.name}</p>

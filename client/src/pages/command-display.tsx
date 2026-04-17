@@ -105,14 +105,14 @@ export default function CommandDisplay() {
   const [platformLogoUrl, setPlatformLogoUrl] = useState("");
 
   const DEFAULT_COLORS = {
-    lightPrimary: "225 60% 48%",
-    lightBackground: "210 20% 98%",
-    lightForeground: "220 20% 12%",
-    lightAccent: "220 14% 93%",
-    darkPrimary: "225 65% 58%",
-    darkBackground: "222 20% 8%",
-    darkForeground: "210 20% 92%",
-    darkAccent: "222 14% 16%",
+    lightPrimary: "0 0% 9%",
+    lightBackground: "0 0% 100%",
+    lightForeground: "0 0% 9%",
+    lightAccent: "0 0% 93%",
+    darkPrimary: "0 0% 96%",
+    darkBackground: "0 0% 0%",
+    darkForeground: "0 0% 96%",
+    darkAccent: "0 0% 14%",
     brandMain: "",
     brandSecondary: "",
     brandAccent: "",
@@ -172,15 +172,16 @@ export default function CommandDisplay() {
   }, [settings, isLoading]);
 
   function saveColors() {
+    const od = (val: string, dflt: string) => (val.trim() === dflt.trim() ? "" : val);
     mutation.mutate({
-      "color.light.primary": lightPrimary,
-      "color.light.background": lightBackground,
-      "color.light.foreground": lightForeground,
-      "color.light.accent": lightAccent,
-      "color.dark.primary": darkPrimary,
-      "color.dark.background": darkBackground,
-      "color.dark.foreground": darkForeground,
-      "color.dark.accent": darkAccent,
+      "color.light.primary": od(lightPrimary, DEFAULT_COLORS.lightPrimary),
+      "color.light.background": od(lightBackground, DEFAULT_COLORS.lightBackground),
+      "color.light.foreground": od(lightForeground, DEFAULT_COLORS.lightForeground),
+      "color.light.accent": od(lightAccent, DEFAULT_COLORS.lightAccent),
+      "color.dark.primary": od(darkPrimary, DEFAULT_COLORS.darkPrimary),
+      "color.dark.background": od(darkBackground, DEFAULT_COLORS.darkBackground),
+      "color.dark.foreground": od(darkForeground, DEFAULT_COLORS.darkForeground),
+      "color.dark.accent": od(darkAccent, DEFAULT_COLORS.darkAccent),
       "color.brand.main": brandMain,
       "color.brand.secondary": brandSecondary,
       "color.brand.accent": brandAccent,

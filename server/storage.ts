@@ -1858,6 +1858,10 @@ export class DatabaseStorage implements IStorage {
 
   async setPlatformSettings(entries: Record<string, string>): Promise<void> {
     for (const [key, value] of Object.entries(entries)) {
+      if (value === "") {
+        await db.delete(platformSettings).where(eq(platformSettings.key, key));
+        continue;
+      }
       await db
         .insert(platformSettings)
         .values({ key, value })

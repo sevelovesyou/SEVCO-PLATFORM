@@ -3,7 +3,7 @@ import { DEFAULT_SECTION_ORDER } from "@shared/section-order";
 import { useState, useEffect, useRef } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
-import { deriveDarkSurfaces, DEFAULT_DARK_VALUES } from "@/lib/derive-dark-surfaces";
+import { deriveDarkSurfaces, deriveLightSurfaces, DEFAULT_DARK_VALUES, DEFAULT_LIGHT_VALUES } from "@/lib/derive-dark-surfaces";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1207,16 +1207,26 @@ export default function CommandSettings() {
   const [ga4PropertyId, setGa4PropertyId] = useState("");
 
   // ── Theme color state ──
-  // Defaults aligned to: #0037ff, #bd0000, #fbc318, #00a811 palette
+  // Pure black/white defaults — match index.css and DEFAULT_LIGHT_VALUES/DEFAULT_DARK_VALUES.
   const DEFAULT_COLORS = {
-    lightPrimary: "225 100% 50%",
+    lightPrimary: "0 0% 9%",
+    lightPrimaryFg: "0 0% 100%",
     lightBackground: "0 0% 100%",
-    lightForeground: "224 71% 4%",
-    lightAccent: "210 40% 96%",
-    darkPrimary: "225 100% 65%",
-    darkBackground: "222 47% 11%",
-    darkForeground: "210 40% 98%",
-    darkAccent: "222 14% 16%",
+    lightForeground: "0 0% 9%",
+    lightAccent: "0 0% 93%",
+    lightAccentFg: "0 0% 20%",
+    lightSecondary: "0 0% 93%",
+    lightSecondaryFg: "0 0% 20%",
+    lightCard: "0 0% 100%",
+    lightCardFg: "0 0% 9%",
+    lightMuted: "0 0% 95%",
+    lightMutedFg: "0 0% 40%",
+    lightBorder: "0 0% 89%",
+    lightDestructive: "0 72% 51%",
+    darkPrimary: "0 0% 96%",
+    darkBackground: "0 0% 0%",
+    darkForeground: "0 0% 96%",
+    darkAccent: "0 0% 14%",
     brandMain: "",
     brandSecondary: "",
     brandAccent: "",
@@ -1228,15 +1238,15 @@ export default function CommandSettings() {
   const [lightBackground, setLightBackground] = useState(DEFAULT_COLORS.lightBackground);
   const [lightForeground, setLightForeground] = useState(DEFAULT_COLORS.lightForeground);
   const [lightAccent, setLightAccent] = useState(DEFAULT_COLORS.lightAccent);
-  const [lightAccentFg, setLightAccentFg] = useState("224 71% 4%");
-  const [lightSecondary, setLightSecondary] = useState("220 14% 93%");
-  const [lightSecondaryFg, setLightSecondaryFg] = useState("220 20% 20%");
-  const [lightCard, setLightCard] = useState("0 0% 100%");
-  const [lightCardFg, setLightCardFg] = useState("224 71% 4%");
-  const [lightMuted, setLightMuted] = useState("210 40% 96%");
-  const [lightMutedFg, setLightMutedFg] = useState("215 16% 47%");
-  const [lightBorder, setLightBorder] = useState("214 32% 91%");
-  const [lightDestructive, setLightDestructive] = useState("0 72% 37%");
+  const [lightAccentFg, setLightAccentFg] = useState(DEFAULT_COLORS.lightAccentFg);
+  const [lightSecondary, setLightSecondary] = useState(DEFAULT_COLORS.lightSecondary);
+  const [lightSecondaryFg, setLightSecondaryFg] = useState(DEFAULT_COLORS.lightSecondaryFg);
+  const [lightCard, setLightCard] = useState(DEFAULT_COLORS.lightCard);
+  const [lightCardFg, setLightCardFg] = useState(DEFAULT_COLORS.lightCardFg);
+  const [lightMuted, setLightMuted] = useState(DEFAULT_COLORS.lightMuted);
+  const [lightMutedFg, setLightMutedFg] = useState(DEFAULT_COLORS.lightMutedFg);
+  const [lightBorder, setLightBorder] = useState(DEFAULT_COLORS.lightBorder);
+  const [lightDestructive, setLightDestructive] = useState(DEFAULT_COLORS.lightDestructive);
   const [darkPrimary, setDarkPrimary] = useState(DEFAULT_COLORS.darkPrimary);
   const [darkBackground, setDarkBackground] = useState(DEFAULT_COLORS.darkBackground);
   const [darkForeground, setDarkForeground] = useState(DEFAULT_COLORS.darkForeground);
@@ -1405,19 +1415,19 @@ export default function CommandSettings() {
     }
 
     setLightPrimary(settings["color.light.primary"] || DEFAULT_COLORS.lightPrimary);
-    setLightPrimaryFg(settings["color.light.primaryFg"] || "0 0% 100%");
+    setLightPrimaryFg(settings["color.light.primaryFg"] || DEFAULT_COLORS.lightPrimaryFg);
     setLightBackground(settings["color.light.background"] || DEFAULT_COLORS.lightBackground);
     setLightForeground(settings["color.light.foreground"] || DEFAULT_COLORS.lightForeground);
     setLightAccent(settings["color.light.accent"] || DEFAULT_COLORS.lightAccent);
-    setLightAccentFg(settings["color.light.accentFg"] || "224 71% 4%");
-    setLightSecondary(settings["color.light.secondary"] || "220 14% 93%");
-    setLightSecondaryFg(settings["color.light.secondaryFg"] || "220 20% 20%");
-    setLightCard(settings["color.light.card"] || "0 0% 100%");
-    setLightCardFg(settings["color.light.cardFg"] || "224 71% 4%");
-    setLightMuted(settings["color.light.muted"] || "210 40% 96%");
-    setLightMutedFg(settings["color.light.mutedFg"] || "215 16% 47%");
-    setLightBorder(settings["color.light.border"] || "214 32% 91%");
-    setLightDestructive(settings["color.light.destructive"] || "0 100% 37%");
+    setLightAccentFg(settings["color.light.accentFg"] || DEFAULT_COLORS.lightAccentFg);
+    setLightSecondary(settings["color.light.secondary"] || DEFAULT_COLORS.lightSecondary);
+    setLightSecondaryFg(settings["color.light.secondaryFg"] || DEFAULT_COLORS.lightSecondaryFg);
+    setLightCard(settings["color.light.card"] || DEFAULT_COLORS.lightCard);
+    setLightCardFg(settings["color.light.cardFg"] || DEFAULT_COLORS.lightCardFg);
+    setLightMuted(settings["color.light.muted"] || DEFAULT_COLORS.lightMuted);
+    setLightMutedFg(settings["color.light.mutedFg"] || DEFAULT_COLORS.lightMutedFg);
+    setLightBorder(settings["color.light.border"] || DEFAULT_COLORS.lightBorder);
+    setLightDestructive(settings["color.light.destructive"] || DEFAULT_COLORS.lightDestructive);
     setDarkPrimary(settings["color.dark.primary"] || DEFAULT_COLORS.darkPrimary);
     setDarkBackground(settings["color.dark.background"] || DEFAULT_COLORS.darkBackground);
     setDarkForeground(settings["color.dark.foreground"] || DEFAULT_COLORS.darkForeground);
@@ -1572,20 +1582,27 @@ export default function CommandSettings() {
   }
 
   // ── Save functions ──
+  // Helper: returns "" when the value equals the default (so the server
+  // deletes the row), otherwise returns the value. This makes saves isolated:
+  // only fields explicitly differing from defaults are persisted.
+  function omitDefault(val: string, dflt: string): string {
+    return val.trim() === dflt.trim() ? "" : val;
+  }
+
   function saveThemePrimaryPalette() {
     mutation.mutate({
-      "color.light.primary": lightPrimary,
-      "color.light.primaryFg": lightPrimaryFg,
-      "color.dark.primary": darkPrimary,
+      "color.light.primary": omitDefault(lightPrimary, DEFAULT_COLORS.lightPrimary),
+      "color.light.primaryFg": omitDefault(lightPrimaryFg, DEFAULT_COLORS.lightPrimaryFg),
+      "color.dark.primary": omitDefault(darkPrimary, DEFAULT_COLORS.darkPrimary),
     });
   }
 
   function saveThemeSecondaryAccent() {
     mutation.mutate({
-      "color.light.secondary": lightSecondary,
-      "color.light.secondaryFg": lightSecondaryFg,
-      "color.light.accent": lightAccent,
-      "color.light.accentFg": lightAccentFg,
+      "color.light.secondary": omitDefault(lightSecondary, DEFAULT_COLORS.lightSecondary),
+      "color.light.secondaryFg": omitDefault(lightSecondaryFg, DEFAULT_COLORS.lightSecondaryFg),
+      "color.light.accent": omitDefault(lightAccent, DEFAULT_COLORS.lightAccent),
+      "color.light.accentFg": omitDefault(lightAccentFg, DEFAULT_COLORS.lightAccentFg),
     });
   }
 
@@ -1600,22 +1617,22 @@ export default function CommandSettings() {
 
   function saveThemeNeutrals() {
     mutation.mutate({
-      "color.light.background": lightBackground,
-      "color.light.foreground": lightForeground,
-      "color.light.card": lightCard,
-      "color.light.cardFg": lightCardFg,
-      "color.light.muted": lightMuted,
-      "color.light.mutedFg": lightMutedFg,
-      "color.light.border": lightBorder,
-      "color.dark.background": darkBackground,
-      "color.dark.foreground": darkForeground,
-      "color.dark.accent": darkAccent,
+      "color.light.background": omitDefault(lightBackground, DEFAULT_COLORS.lightBackground),
+      "color.light.foreground": omitDefault(lightForeground, DEFAULT_COLORS.lightForeground),
+      "color.light.card": omitDefault(lightCard, DEFAULT_COLORS.lightCard),
+      "color.light.cardFg": omitDefault(lightCardFg, DEFAULT_COLORS.lightCardFg),
+      "color.light.muted": omitDefault(lightMuted, DEFAULT_COLORS.lightMuted),
+      "color.light.mutedFg": omitDefault(lightMutedFg, DEFAULT_COLORS.lightMutedFg),
+      "color.light.border": omitDefault(lightBorder, DEFAULT_COLORS.lightBorder),
+      "color.dark.background": omitDefault(darkBackground, DEFAULT_COLORS.darkBackground),
+      "color.dark.foreground": omitDefault(darkForeground, DEFAULT_COLORS.darkForeground),
+      "color.dark.accent": omitDefault(darkAccent, DEFAULT_COLORS.darkAccent),
     });
   }
 
   function saveThemeStatusColors() {
     mutation.mutate({
-      "color.light.destructive": lightDestructive,
+      "color.light.destructive": omitDefault(lightDestructive, DEFAULT_COLORS.lightDestructive),
     });
   }
 
@@ -3032,30 +3049,40 @@ export default function CommandSettings() {
                   <div className="sticky top-6 space-y-3">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Live Preview</p>
                     <LivePreviewPanel
-                      light={{
-                        background: lightBackground,
-                        foreground: lightForeground,
-                        card: lightCard,
-                        cardFg: lightCardFg,
-                        primary: lightPrimary,
-                        primaryFg: lightPrimaryFg,
-                        secondary: lightSecondary,
-                        secondaryFg: lightSecondaryFg,
-                        muted: lightMuted,
-                        mutedFg: lightMutedFg,
-                        accent: lightAccent,
-                        accentFg: lightAccentFg,
-                        destructive: lightDestructive,
-                        destructiveFg: "0 0% 100%",
-                        border: lightBorder,
-                        ring: lightPrimary,
-                        sidebarBg: navMainBg || lightSecondary,
-                        sidebarFg: navMainText || lightSecondaryFg,
-                        brandMain: brandMain,
-                        brandSecondary: brandSecondary,
-                        brandAccent: brandAccent,
-                        brandHighlight: brandHighlight,
-                      }}
+                      light={(() => {
+                        const bgIsCustom = !!lightBackground && lightBackground !== DEFAULT_LIGHT_VALUES["color.light.background"];
+                        const derived = bgIsCustom ? deriveLightSurfaces(lightBackground) : null;
+                        const card = (lightCard && lightCard !== DEFAULT_COLORS.lightCard) ? lightCard : (derived?.card ?? lightCard);
+                        const border = (lightBorder && lightBorder !== DEFAULT_COLORS.lightBorder) ? lightBorder : (derived?.border ?? lightBorder);
+                        const muted = (lightMuted && lightMuted !== DEFAULT_COLORS.lightMuted) ? lightMuted : (derived?.muted ?? lightMuted);
+                        const secondary = (lightSecondary && lightSecondary !== DEFAULT_COLORS.lightSecondary) ? lightSecondary : (derived?.secondary ?? lightSecondary);
+                        const accent = (lightAccent && lightAccent !== DEFAULT_COLORS.lightAccent) ? lightAccent : (derived?.accent ?? lightAccent);
+                        const sidebar = derived?.sidebar ?? lightSecondary;
+                        return {
+                          background: lightBackground,
+                          foreground: lightForeground,
+                          card,
+                          cardFg: lightCardFg,
+                          primary: lightPrimary,
+                          primaryFg: lightPrimaryFg,
+                          secondary,
+                          secondaryFg: lightSecondaryFg,
+                          muted,
+                          mutedFg: lightMutedFg,
+                          accent,
+                          accentFg: lightAccentFg,
+                          destructive: lightDestructive,
+                          destructiveFg: "0 0% 100%",
+                          border,
+                          ring: lightPrimary,
+                          sidebarBg: navMainBg || sidebar,
+                          sidebarFg: navMainText || lightSecondaryFg,
+                          brandMain: brandMain,
+                          brandSecondary: brandSecondary,
+                          brandAccent: brandAccent,
+                          brandHighlight: brandHighlight,
+                        };
+                      })()}
                       dark={(() => {
                         const bgIsCustom = !!darkBackground && darkBackground !== DEFAULT_DARK_VALUES["color.dark.background"];
                         const derived = bgIsCustom ? deriveDarkSurfaces(darkBackground) : null;

@@ -18,7 +18,7 @@ import { SpotifyPlayerBar } from "@/components/spotify-player-bar";
 import { CartDrawer } from "@/components/cart-drawer";
 import { useEffect, useRef } from "react";
 import { hexToHsl } from "@/lib/colorUtils";
-import { derivedDarkSurfacesAsCssVars, DEFAULT_DARK_VALUES } from "@/lib/derive-dark-surfaces";
+import { derivedDarkSurfacesAsCssVars, derivedLightSurfacesAsCssVars, DEFAULT_DARK_VALUES, DEFAULT_LIGHT_VALUES } from "@/lib/derive-dark-surfaces";
 import { isClientPlus } from "@/lib/permissions";
 import { useToast } from "@/hooks/use-toast";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -597,12 +597,26 @@ function PlatformColorInjector() {
     if (brandAccent) lightRules.push(`  --brand-accent: ${brandAccent};`);
     if (brandHighlight) lightRules.push(`  --brand-highlight: ${brandHighlight};`);
 
+    const lightBgHsl = toHsl(settings["color.light.background"] ?? "");
+    const lightBgIsCustom = !!lightBgHsl && lightBgHsl.trim() !== DEFAULT_LIGHT_VALUES["color.light.background"];
+    if (lightBgIsCustom && lightBgHsl) {
+      const derived = derivedLightSurfacesAsCssVars(lightBgHsl);
+      for (const [k, v] of Object.entries(derived)) {
+        lightRules.push(`  ${k}: ${v};`);
+      }
+    }
+
     for (const key of COLOR_KEYS_LIGHT) {
       const val = settings[key];
-      if (val) {
-        const cssVar = CSS_VAR_MAP_LIGHT[key];
-        lightRules.push(`  ${cssVar}: ${val};`);
+      if (!val) continue;
+      // When a custom light background is in use, skip explicit overrides that
+      // still match the built-in defaults so the derived surface values can
+      // take effect (handles legacy data saved before isolated-edit save).
+      if (lightBgIsCustom && key !== "color.light.background" && val.trim() === DEFAULT_LIGHT_VALUES[key]) {
+        continue;
       }
+      const cssVar = CSS_VAR_MAP_LIGHT[key];
+      lightRules.push(`  ${cssVar}: ${val};`);
     }
 
     const homeCardAccent = toHsl(settings["home.cardAccentColor"] ?? "");

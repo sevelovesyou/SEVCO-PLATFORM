@@ -553,6 +553,42 @@ function toHsl(val: string): string | null {
   return null;
 }
 
+function parseHslTriple(val: string): { h: number; s: number; l: number } | null {
+  const parts = val.trim().split(/\s+/);
+  if (parts.length !== 3) return null;
+  const h = parseFloat(parts[0]);
+  const s = parseFloat(parts[1]);
+  const l = parseFloat(parts[2]);
+  if (!Number.isFinite(h) || !Number.isFinite(s) || !Number.isFinite(l)) return null;
+  return { h, s, l };
+}
+
+function fmtHsl(h: number, s: number, l: number): string {
+  const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+  return `${clamp(h, 0, 360)} ${clamp(s, 0, 100)}% ${clamp(l, 0, 100)}%`;
+}
+
+function deriveDarkSurfaces(bgHsl: string): Record<string, string> {
+  const parsed = parseHslTriple(bgHsl);
+  if (!parsed) return {};
+  const { h, l } = parsed;
+  const s = Math.min(parsed.s, 14);
+  return {
+    "--border": fmtHsl(h, s, l + 10),
+    "--card": fmtHsl(h, s, l + 3),
+    "--card-border": fmtHsl(h, s, l + 10),
+    "--popover": fmtHsl(h, s, l + 3),
+    "--popover-border": fmtHsl(h, s, l + 10),
+    "--sidebar": fmtHsl(h, s, l + 2),
+    "--sidebar-border": fmtHsl(h, s, l + 10),
+    "--sidebar-accent": fmtHsl(h, s, l + 7),
+    "--muted": fmtHsl(h, s, l + 6),
+    "--secondary": fmtHsl(h, s, l + 8),
+    "--accent": fmtHsl(h, s, l + 8),
+    "--input": fmtHsl(h, s, l + 14),
+  };
+}
+
 function PlatformColorInjector() {
   const { data: settings } = useQuery<Record<string, string>>({
     queryKey: ["/api/platform-settings"],
@@ -656,6 +692,14 @@ function PlatformColorInjector() {
     if (brandSecondary) darkRules.push(`  --brand-secondary: ${brandSecondary};`);
     if (brandAccent) darkRules.push(`  --brand-accent: ${brandAccent};`);
     if (brandHighlight) darkRules.push(`  --brand-highlight: ${brandHighlight};`);
+
+    const darkBgHsl = toHsl(settings["color.dark.background"] ?? "");
+    if (darkBgHsl) {
+      const derived = deriveDarkSurfaces(darkBgHsl);
+      for (const [k, v] of Object.entries(derived)) {
+        darkRules.push(`  ${k}: ${v};`);
+      }
+    }
 
     for (const key of COLOR_KEYS_DARK) {
       const val = settings[key];

@@ -48,8 +48,7 @@ timeoutMs = 180000
 [userenv]
 
 [userenv.shared]
-WIKI_AUTO_ARTICLE_SECRET = "533e908746b548ded350951fde0e9f23f40bda4bef329a80eb357cdc4d45210f"
-RESEND_WEBHOOK_SECRET = "whsec_UF+Y0De+9XHF5Uh75cVF8OXZ25xG1gqI"
+
 
 [userenv.production]
 BASE_URL = "https://sevco.us"

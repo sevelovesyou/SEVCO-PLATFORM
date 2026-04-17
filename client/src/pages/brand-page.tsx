@@ -26,6 +26,15 @@ import {
   ComponentExample,
   IconExample,
 } from "@/components/brand";
+import { SevcoLogo } from "@/components/sevco-logo";
+
+function planetFallback(name: string): "black" | "white" | null {
+  if (/planet/i.test(name)) {
+    if (/black/i.test(name)) return "black";
+    if (/white/i.test(name)) return "white";
+  }
+  return null;
+}
 
 const ASSET_TYPE_ORDER = ["logo", "color_palette", "font", "banner", "icon", "other"];
 
@@ -227,6 +236,10 @@ export default function BrandPage() {
                               alt={asset.name}
                               className="max-h-20 max-w-full object-contain p-2"
                             />
+                          ) : planetFallback(asset.name) === "black" ? (
+                            <SevcoLogo size={64} invert="none" alt={asset.name} />
+                          ) : planetFallback(asset.name) === "white" ? (
+                            <SevcoLogo size={64} invert="always" alt={asset.name} />
                           ) : (
                             <Image className="h-6 w-6 text-muted-foreground opacity-40" />
                           )}
@@ -548,13 +561,17 @@ export default function BrandPage() {
                             className="border border-border rounded-xl overflow-hidden group bg-card"
                             data-testid={`card-brand-asset-${asset.id}`}
                           >
-                            <div className="h-28 bg-muted/30 flex items-center justify-center border-b border-border">
+                            <div className={`h-28 flex items-center justify-center border-b border-border ${asset.assetType === "logo" && /black/i.test(asset.name) ? "bg-white" : asset.assetType === "logo" && /white/i.test(asset.name) ? "bg-gray-900" : "bg-muted/30"}`}>
                               {(asset.previewUrl || (asset.assetType === "logo" && asset.downloadUrl)) ? (
                                 <img
                                   src={resolveImageUrl(asset.previewUrl || asset.downloadUrl)}
                                   alt={asset.name}
                                   className="max-h-24 max-w-full object-contain p-2"
                                 />
+                              ) : asset.assetType === "logo" && planetFallback(asset.name) === "black" ? (
+                                <SevcoLogo size={72} invert="none" alt={asset.name} />
+                              ) : asset.assetType === "logo" && planetFallback(asset.name) === "white" ? (
+                                <SevcoLogo size={72} invert="always" alt={asset.name} />
                               ) : (
                                 <div className="flex items-center justify-center opacity-40">
                                   {assetTypeIcon(asset.assetType)}

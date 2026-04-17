@@ -29,6 +29,30 @@ import {
 } from "@/components/brand";
 import { SevcoLogo } from "@/components/sevco-logo";
 
+// Some brand-asset records in production were seeded with placeholder upload
+// URLs that point at empty files in Supabase Storage (e.g. `.../assets/file.png`
+// or `.../previews/preview-thumb.png`). Those URLs are non-null so the page
+// would treat the asset as "uploaded" and render an empty image instead of
+// falling back to the bundled SevcoLogo. Treat known placeholder filenames as
+// missing so the bundled fallback runs.
+const PLACEHOLDER_ASSET_FILENAMES = [
+  "/assets/file.png",
+  "/previews/preview-thumb.png",
+];
+function isPlaceholderAssetUrl(url?: string | null): boolean {
+  if (!url) return false;
+  const path = url.split("?")[0].toLowerCase();
+  return PLACEHOLDER_ASSET_FILENAMES.some((suffix) => path.endsWith(suffix));
+}
+function pickDisplayImageUrl(
+  ...candidates: Array<string | null | undefined>
+): string | null {
+  for (const candidate of candidates) {
+    if (candidate && !isPlaceholderAssetUrl(candidate)) return candidate;
+  }
+  return null;
+}
+
 function planetFallback(name: string): "black" | "white" | null {
   if (/planet.*black/i.test(name)) return "black";
   if (/planet.*white/i.test(name)) return "white";
@@ -263,7 +287,8 @@ export default function BrandPage() {
                           // Bundled SevcoLogo variant inference is only used to pick the
                           // correct invert mode for the fallback render; backdrop choice
                           // is independent of filename so contrast is always guaranteed.
-                          const hasUploadedImage = !!(asset.previewUrl || asset.downloadUrl);
+                          const displayImageUrl = pickDisplayImageUrl(asset.previewUrl, asset.downloadUrl);
+                          const hasUploadedImage = !!displayImageUrl;
                           const placement = variantPlacement(asset.name);
                           // Fallback contrast is driven by the variant's
                           // intended background — not by planet-specific name
@@ -286,7 +311,7 @@ export default function BrandPage() {
                             >
                               {hasUploadedImage ? (
                                 <img
-                                  src={resolveImageUrl(asset.previewUrl || asset.downloadUrl)}
+                                  src={resolveImageUrl(displayImageUrl)}
                                   alt={asset.name}
                                   className="max-h-24 max-w-full object-contain"
                                 />
@@ -616,7 +641,10 @@ export default function BrandPage() {
                             {(() => {
                               const isLogo = asset.assetType === "logo";
                               const fallback = isLogo ? planetFallback(asset.name) : null;
-                              const hasUploadedImage = !!(asset.previewUrl || (isLogo && asset.downloadUrl));
+                              const displayImageUrl = isLogo
+                                ? pickDisplayImageUrl(asset.previewUrl, asset.downloadUrl)
+                                : (asset.previewUrl && !isPlaceholderAssetUrl(asset.previewUrl) ? asset.previewUrl : null);
+                              const hasUploadedImage = !!displayImageUrl;
                               const placement = isLogo ? variantPlacement(asset.name) : "any";
                               const tileClass = isLogo
                                 ? PLACEMENT_TILE_CLASS[placement]
@@ -631,7 +659,7 @@ export default function BrandPage() {
                                 >
                                   {hasUploadedImage ? (
                                     <img
-                                      src={resolveImageUrl(asset.previewUrl || asset.downloadUrl)}
+                                      src={resolveImageUrl(displayImageUrl)}
                                       alt={asset.name}
                                       className="max-h-24 max-w-full object-contain p-2"
                                     />

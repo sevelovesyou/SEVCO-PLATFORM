@@ -27998,3 +27998,55 @@ All `data-testid` attributes were preserved during the move; the existing Live P
 
 
 ---
+## Task — settings-merge-theme-and-shader
+> Merged: 2026-04-17
+
+# Merge Brand/Accents/Navigation into Theme + add Shader Studio to Hero & CTAs
+
+## What & Why
+The CMD → Platform Settings tab bar still has more sections than it needs. Brand Identity, Page Accents, and Navigation all configure visual theme tokens (colors, typography, surface colors), so they belong inside one **Theme** tab. Separately, the Shader Studio is reachable only from a sidebar link today; since shaders are visually tied to hero sections and CTAs, exposing the studio inside the **Hero & CTAs** tab makes it discoverable in context.
+
+## Done looks like
+- The Settings tab bar drops from 8 tabs to **5**: `Theme`, `Hero & CTAs`, `Footer & Legal`, `Platform Assets`, `Advanced`.
+- The new **Theme** tab contains, in this order, the full content of the previous tabs as collapsible sections (shadcn `Accordion`):
+  1. *Brand Identity* (logos, brand colors, typography — current Brand Identity tab body)
+  2. *Page Accents* (current Page Accents tab body)
+  3. *Navigation* (current Navigation tab body)
+  - The first section (*Brand Identity*) is open by default.
+- The **Hero & CTAs** tab gets a new top section titled *Shader Studio* containing:
+  - The current per-page shader assignment table (page → preset dropdown), pulled from the same data source as `/command/shaders`.
+  - A primary `<Button>` "Open full Shader Studio" that links to `/command/shaders` for layer editing and preview.
+  - Below that, the existing Hero & CTAs content (hero copy, CTA buttons, etc.) is preserved unchanged.
+- Deep links continue to work: `?tab=brand` / `?tab=accents` / `?tab=navigation` redirect to `?tab=theme` and auto-open the matching accordion section. All other tab params (`hero`, `footer`, `assets`, `advanced`) are unchanged.
+- All existing `data-testid` values inside the moved content are preserved.
+- The Live Preview pane on the right of the Theme tab continues to reflect color edits exactly as it does today.
+
+## Out of scope
+- Any change to the Shader Studio page itself.
+- Any change to the live preview rendering logic.
+- Renaming or removing any individual setting field.
+- Reorganizing the Advanced accordion.
+
+## Tasks
+1. **Remove the CMD sidebar link to Shader Studio.** Delete the "Shader Studio" `SidebarMenuItem` (link to `/command/shaders`) from `client/src/components/command-sidebar.tsx`. The route itself stays mounted in `App.tsx` so the "Open full Shader Studio" button in the Hero & CTAs tab still works.
+
+2. **Restructure the tabs.** In `client/src/pages/command-settings.tsx`, remove the `Brand Identity`, `Page Accents`, and `Navigation` `TabsTrigger` entries. Move their `TabsContent` bodies into the `Theme` tab as three `AccordionItem` blocks in the order above. Set the accordion `defaultValue="brand-identity"`.
+
+3. **Add the Shader Studio block to Hero & CTAs.** At the top of the `Hero & CTAs` `TabsContent`, render a `<Card>` titled "Shader Studio" containing the page-assignment table (extract the existing assignment UI from `command-shader-studio.tsx` into a reusable `<PageShaderAssignmentsTable />` component if it isn't already) plus a `<Button asChild><Link href="/command/shaders">Open full Shader Studio</Link></Button>`.
+
+4. **Preserve deep links.** When the URL contains `?tab=brand|accents|navigation`, rewrite to `?tab=theme` via `history.replaceState` and set the accordion's open value to `brand-identity` / `page-accents` / `navigation` accordingly.
+
+5. **Verify single-row tab fit.** With 5 tabs the row fits comfortably at any reasonable width — confirm with a quick visual check at 1280 px and 1440 px.
+
+6. **Update the platform Update Log.** Append a Task entry summarizing the merge and the sidebar link removal.
+
+## Relevant files
+- `client/src/pages/command-settings.tsx`
+- `client/src/pages/command-shader-studio.tsx`
+- `client/src/components/ui/accordion.tsx`
+- `client/src/components/ui/tabs.tsx`
+- `SEVCO_UPDATE_LOG.md`
+
+
+---
+

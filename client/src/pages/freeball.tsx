@@ -964,6 +964,18 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
         }
         return;
       }
+      if (e.code === "Space") {
+        try {
+          const ptt = JSON.parse(localStorage.getItem("voice-prefs-cache") || "null")?.pttKey;
+          if (ptt === "Space") {
+            const k = "freeball-ptt-warned";
+            if (!localStorage.getItem(k)) {
+              localStorage.setItem(k, "1");
+              console.warn("[freeball] Spacebar is also assigned to push-to-talk in voice chat — change it in Account → Voice Chat to avoid conflicts.");
+            }
+          }
+        } catch {}
+      }
       if (e.key === "Tab") { e.preventDefault(); useGameStore.getState().setShowTab(true); return; }
       if (e.key === "i" || e.key === "I" || e.key === "b" || e.key === "B") {
         useGameStore.getState().setShowInventory(!useGameStore.getState().showInventory);

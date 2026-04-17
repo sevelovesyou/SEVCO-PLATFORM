@@ -45,6 +45,7 @@ export const BUCKETS = {
   products: { name: "products", public: true, maxSizeMb: 50, allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"] },
   "brand-assets": { name: "brand-assets", public: true, maxSizeMb: 25, allowedMimeTypes: [] },
   "email-attachments": { name: "email-attachments", public: true, maxSizeMb: 25, allowedMimeTypes: [] },
+  announcements: { name: "announcements", public: true, maxSizeMb: 25, allowedMimeTypes: ["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav"] },
 } as const;
 
 export type BucketName = keyof typeof BUCKETS;

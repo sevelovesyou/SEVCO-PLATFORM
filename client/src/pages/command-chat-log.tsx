@@ -28,6 +28,9 @@ import {
   Trash2,
   Search,
   Filter,
+  Mic,
+  MicOff,
+  UserX,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { ChatChannel, User } from "@shared/schema";
@@ -72,6 +75,84 @@ function Avatar({ user }: { user: ChatUserInfo }) {
   return (
     <div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
       {initials}
+    </div>
+  );
+}
+
+type VoiceRoom = {
+  roomKey: string;
+  participants: { clientId: string; userId: string | null; username: string | null; speaking: boolean; micMuted: boolean }[];
+};
+
+function VoiceRoomsPanel() {
+  const { toast } = useToast();
+  const { data: rooms = [], refetch } = useQuery<VoiceRoom[]>({
+    queryKey: ["/api/voice/rooms"],
+    refetchInterval: 4000,
+  });
+  const kick = useMutation({
+    mutationFn: ({ roomKey, userId }: { roomKey: string; userId: string }) =>
+      apiRequest("POST", `/api/voice/rooms/${encodeURIComponent(roomKey)}/kick`, { userId }),
+    onSuccess: () => { toast({ title: "User kicked" }); refetch(); },
+    onError: () => toast({ title: "Kick failed", variant: "destructive" }),
+  });
+  const mute = useMutation({
+    mutationFn: ({ roomKey, userId }: { roomKey: string; userId: string }) =>
+      apiRequest("POST", `/api/voice/rooms/${encodeURIComponent(roomKey)}/mute`, { userId }),
+    onSuccess: () => { toast({ title: "User force-muted" }); refetch(); },
+    onError: () => toast({ title: "Mute failed", variant: "destructive" }),
+  });
+
+  const active = rooms.filter((r) => r.participants.length > 0);
+  if (active.length === 0) {
+    return (
+      <div className="rounded-lg border bg-card p-3">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Live Voice Rooms</p>
+        <p className="text-sm text-muted-foreground">No active voice rooms.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-lg border bg-card p-3 space-y-3" data-testid="panel-voice-rooms">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Live Voice Rooms</p>
+      {active.map((room) => (
+        <div key={room.roomKey} className="border rounded-md p-2">
+          <div className="flex items-center gap-2 mb-2">
+            <Mic className="h-3.5 w-3.5 text-emerald-500" />
+            <span className="text-sm font-medium">{room.roomKey}</span>
+            <Badge variant="secondary" className="text-[10px]">{room.participants.length}</Badge>
+          </div>
+          <div className="space-y-1">
+            {room.participants.map((p) => (
+              <div key={p.clientId} className="flex items-center gap-2 text-xs" data-testid={`voice-participant-${p.clientId}`}>
+                <span className={`h-2 w-2 rounded-full ${p.speaking ? "bg-emerald-500 animate-pulse" : "bg-muted"}`} />
+                <span className="flex-1 truncate">{p.username || p.userId || "anon"}</span>
+                {p.micMuted && <MicOff className="h-3 w-3 text-muted-foreground" />}
+                {p.userId && (
+                  <>
+                    <Button
+                      variant="ghost" size="icon" className="h-6 w-6"
+                      onClick={() => mute.mutate({ roomKey: room.roomKey, userId: p.userId! })}
+                      data-testid={`button-mute-${p.userId}`}
+                      aria-label="Force mute"
+                    >
+                      <MicOff className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost" size="icon" className="h-6 w-6 text-destructive"
+                      onClick={() => kick.mutate({ roomKey: room.roomKey, userId: p.userId! })}
+                      data-testid={`button-kick-${p.userId}`}
+                      aria-label="Kick"
+                    >
+                      <UserX className="h-3 w-3" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -130,6 +211,7 @@ export default function CommandChatLog() {
 
   return (
     <div className="space-y-4">
+      <VoiceRoomsPanel />
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-end">
         <div className="min-w-[160px]">

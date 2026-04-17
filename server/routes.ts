@@ -33,6 +33,7 @@ import { registerLensProxy } from "./lens-proxy";
 import { freeballRouter } from "./freeball-routes";
 import { sitesRouter } from "./sites-routes";
 import { canvasRouter } from "./canvas-routes";
+import { registerVoiceRoutes } from "./voice-routes";
 import {
   recordPageview,
   rateLimitAllow,
@@ -1665,6 +1666,9 @@ export async function registerRoutes(
 
   // Initialize Supabase storage buckets
   import("./supabase").then(({ ensureBucketsExist }) => ensureBucketsExist().catch(console.error));
+
+  // Voice / announcements (Task #421)
+  registerVoiceRoutes(httpServer, app);
 
   // Image proxy — serves Supabase public-bucket files via /images/:bucket/*
   // Buckets that require a signed URL redirect instead of direct proxying.

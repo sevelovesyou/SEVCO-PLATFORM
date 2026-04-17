@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { StaggerGrid, StaggerItem } from "@/components/stagger-grid";
+import { AdminAnnouncementComposer } from "@/components/admin-announcement-composer";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermission } from "@/hooks/use-permission";
 import { Card } from "@/components/ui/card";
@@ -970,6 +971,7 @@ function WebAnalyticsWidget() {
 function AdminOverview({ data, summary, summaryLoading, userId, latestPlatformEntry, onRefreshSummary }: { data: DashboardData; summary: DashboardSummary | undefined; summaryLoading: boolean; userId: string; latestPlatformEntry?: ChangelogEntry | null; onRefreshSummary?: () => void }) {
   return (
     <div className="flex flex-col gap-6">
+      <AdminAnnouncementComposer />
       <LatestChangelogCard entry={latestPlatformEntry ?? summary?.latestChangelog} isLoading={summaryLoading} onRefresh={onRefreshSummary} />
 
       <div>

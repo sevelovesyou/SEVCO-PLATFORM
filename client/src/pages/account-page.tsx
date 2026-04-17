@@ -21,6 +21,7 @@ import { User, Loader2, ExternalLink, Music, ArrowRight } from "lucide-react";
 import { SiX } from "react-icons/si";
 import { Link } from "wouter";
 import { useSounds } from "@/hooks/use-sounds";
+import { useVoice, formatKey } from "@/contexts/voice-context";
 import type { Artist } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 
@@ -40,6 +41,104 @@ const TRANSACTION_ICONS: Record<string, string> = {
   usage: "⚡️",
   refund: "🔄",
 };
+
+function VoicePrefsCard() {
+  const { prefs, updatePrefs, micMuted, toggleMute, outputVolume, setOutputVolume } = useVoice();
+  const [capturing, setCapturing] = useState(false);
+
+  useEffect(() => {
+    if (!capturing) return;
+    const onKey = (e: KeyboardEvent) => {
+      e.preventDefault();
+      if (e.code === "Escape") { setCapturing(false); return; }
+      updatePrefs({ pttKey: e.code });
+      setCapturing(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [capturing, updatePrefs]);
+
+  if (!prefs) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Voice Chat</CardTitle>
+        <CardDescription>Push-to-talk preferences for voice channels.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Voice enabled</p>
+            <p className="text-xs text-muted-foreground">Required to join voice rooms.</p>
+          </div>
+          <Switch
+            checked={!!prefs.enabled}
+            onCheckedChange={(v) => updatePrefs({ enabled: v })}
+            data-testid="toggle-voice-enabled"
+          />
+        </div>
+        <Separator />
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium">Push-to-talk key</p>
+            <p className="text-xs text-muted-foreground">Hold to transmit your microphone.</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-w-[120px]"
+            onClick={() => setCapturing((c) => !c)}
+            data-testid="button-set-ptt-key"
+          >
+            {capturing ? "Press a key…" : formatKey(prefs.pttKey || "AltLeft")}
+          </Button>
+        </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Microphone</p>
+            <p className="text-xs text-muted-foreground">{micMuted ? "Muted" : "Active when PTT held"}</p>
+          </div>
+          <Switch checked={!micMuted} onCheckedChange={() => toggleMute()} data-testid="toggle-mic-mute" />
+        </div>
+        <div>
+          <p className="text-sm font-medium mb-1">Output volume</p>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={outputVolume}
+            onChange={(e) => setOutputVolume(parseFloat(e.target.value))}
+            className="w-full"
+            data-testid="slider-voice-volume"
+          />
+        </div>
+        <Separator />
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Noise suppression</p>
+          </div>
+          <Switch
+            checked={!!prefs.noiseSuppression}
+            onCheckedChange={(v) => updatePrefs({ noiseSuppression: v })}
+            data-testid="toggle-noise-suppression"
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Echo cancellation</p>
+          </div>
+          <Switch
+            checked={!!prefs.echoCancellation}
+            onCheckedChange={(v) => updatePrefs({ echoCancellation: v })}
+            data-testid="toggle-echo-cancellation"
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 function SparksSection() {
   const { data: balanceData, isLoading: balanceLoading } = useQuery<{ balance: number }>({
@@ -502,6 +601,8 @@ export default function AccountPage() {
           </CardContent>
         </Card>
       )}
+
+      <VoicePrefsCard />
 
       <Card>
         <CardHeader>

@@ -127,6 +127,9 @@ import { LensProvider } from "@/contexts/lens-context";
 import { FloatingBrowser } from "@/components/floating-browser";
 import { MusicPlayerProvider } from "@/contexts/music-player-context";
 import { FloatingMusicPlayer } from "@/components/floating-music-player";
+import { VoiceProvider } from "@/contexts/voice-context";
+import { VoiceFloatingIndicator } from "@/components/voice-floating-indicator";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 
 function WikiSlugView({ params }: { params?: { slug?: string } }) {
   const slug = params?.slug;
@@ -885,15 +888,19 @@ function App() {
                 <LensProvider>
                   <FloatingChatProvider>
                     <MusicPlayerProvider>
-                      <TooltipProvider>
-                        <DynamicHead />
-                        <PlatformColorInjector />
-                        <AppShell />
-                        <FloatingChatWindows />
-                        <FloatingBrowser />
-                        <FloatingMusicPlayer />
-                        <Toaster />
-                      </TooltipProvider>
+                      <VoiceProvider>
+                        <TooltipProvider>
+                          <DynamicHead />
+                          <PlatformColorInjector />
+                          <AnnouncementBanner />
+                          <AppShell />
+                          <FloatingChatWindows />
+                          <FloatingBrowser />
+                          <FloatingMusicPlayer />
+                          <VoiceFloatingIndicator />
+                          <Toaster />
+                        </TooltipProvider>
+                      </VoiceProvider>
                     </MusicPlayerProvider>
                   </FloatingChatProvider>
                 </LensProvider>

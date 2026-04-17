@@ -540,6 +540,48 @@ async function runStartupMigrations() {
     );
   `);
 
+  // Task #421 — Voice & announcements
+  await pool.query(`CREATE TABLE IF NOT EXISTS voice_preferences (
+    user_id VARCHAR PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    ptt_key TEXT NOT NULL DEFAULT 'AltLeft',
+    input_device_id TEXT,
+    output_device_id TEXT,
+    input_volume REAL NOT NULL DEFAULT 1,
+    output_volume REAL NOT NULL DEFAULT 1,
+    noise_suppression BOOLEAN NOT NULL DEFAULT TRUE,
+    echo_cancellation BOOLEAN NOT NULL DEFAULT TRUE,
+    mute_announcements BOOLEAN NOT NULL DEFAULT FALSE,
+    auto_join_voice BOOLEAN NOT NULL DEFAULT FALSE,
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+  );`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS announcements (
+    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    author_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    body TEXT,
+    audio_url TEXT,
+    duration_sec INTEGER,
+    kind TEXT NOT NULL DEFAULT 'recorded',
+    is_pinned BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+  );`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS announcement_dismissals (
+    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    announcement_id INTEGER NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
+    user_id VARCHAR REFERENCES users(id) ON DELETE CASCADE,
+    visitor_key TEXT,
+    dismissed_at TIMESTAMP NOT NULL DEFAULT NOW()
+  );`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS voice_moderation_actions (
+    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    room_key TEXT NOT NULL,
+    target_user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    moderator_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    action TEXT NOT NULL,
+    reason TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+  );`);
+
   console.log("[startup] migrations applied");
 }
 

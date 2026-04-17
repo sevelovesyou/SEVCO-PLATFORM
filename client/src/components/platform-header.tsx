@@ -107,6 +107,7 @@ import { useMusicPlayer } from "@/contexts/music-player-context";
 import { Volume2, VolumeX, Bell } from "lucide-react";
 import type { Project, Service } from "@shared/schema";
 import { NotificationDropdown } from "@/components/notification-dropdown";
+import { AnnouncementBell } from "@/components/announcement-bell";
 import { useLens } from "@/contexts/lens-context";
 
 function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
@@ -1192,6 +1193,8 @@ export function PlatformHeader() {
         {/* Right side actions */}
         <div className="flex items-center gap-1.5">
           <TooltipProvider delayDuration={400}>
+          {/* Announcement bell — visible to all (incl. anonymous) */}
+          <AnnouncementBell />
           {/* Notification bell — logged-in only */}
           {user && (
             <Tooltip>

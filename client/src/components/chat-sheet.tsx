@@ -44,6 +44,7 @@ import { AgentComposer } from "@/components/agent-composer";
 import { ThinkingIndicator } from "@/components/thinking-indicator";
 import { useAgentStream } from "@/hooks/use-agent-stream";
 import { useFloatingChat } from "@/contexts/floating-chat-context";
+import { VoiceRoomControls } from "@/components/voice-room-controls";
 
 type ChatUserInfo = {
   id: string;
@@ -207,7 +208,8 @@ function ChannelView({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 p-3 border-b bg-background shrink-0">
+      <div className="flex flex-col gap-2 p-3 border-b bg-background shrink-0">
+      <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack} data-testid="button-chat-back" aria-label="Back to channels">
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
@@ -236,6 +238,8 @@ function ChannelView({
             <X className="h-4 w-4" aria-hidden="true" />
           </Button>
         </SheetClose>
+      </div>
+        <VoiceRoomControls roomKey={`channel:${channel.id}`} label={channel.name} />
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0" data-testid="channel-messages">

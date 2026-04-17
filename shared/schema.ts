@@ -1427,3 +1427,59 @@ export const insertPageviewSchema = createInsertSchema(pageviews).omit({
 });
 export type Pageview = typeof pageviews.$inferSelect;
 export type InsertPageview = z.infer<typeof insertPageviewSchema>;
+
+export const voicePreferences = pgTable("voice_preferences", {
+  userId: varchar("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  pttKey: text("ptt_key").notNull().default("AltLeft"),
+  inputDeviceId: text("input_device_id"),
+  outputDeviceId: text("output_device_id"),
+  inputVolume: real("input_volume").notNull().default(1),
+  outputVolume: real("output_volume").notNull().default(1),
+  noiseSuppression: boolean("noise_suppression").notNull().default(true),
+  echoCancellation: boolean("echo_cancellation").notNull().default(true),
+  muteAnnouncements: boolean("mute_announcements").notNull().default(false),
+  autoJoinVoice: boolean("auto_join_voice").notNull().default(false),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertVoicePreferencesSchema = createInsertSchema(voicePreferences).omit({ userId: true, updatedAt: true });
+export type VoicePreferences = typeof voicePreferences.$inferSelect;
+export type InsertVoicePreferences = z.infer<typeof insertVoicePreferencesSchema>;
+
+export const announcements = pgTable("announcements", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  authorId: varchar("author_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  body: text("body"),
+  audioUrl: text("audio_url"),
+  durationSec: integer("duration_sec"),
+  kind: text("kind").notNull().default("recorded"),
+  isPinned: boolean("is_pinned").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertAnnouncementSchema = createInsertSchema(announcements).omit({ id: true, createdAt: true, authorId: true });
+export type Announcement = typeof announcements.$inferSelect;
+export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
+
+export const announcementDismissals = pgTable("announcement_dismissals", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  announcementId: integer("announcement_id").notNull().references(() => announcements.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+  visitorKey: text("visitor_key"),
+  dismissedAt: timestamp("dismissed_at").defaultNow().notNull(),
+});
+
+export type AnnouncementDismissal = typeof announcementDismissals.$inferSelect;
+
+export const voiceModerationActions = pgTable("voice_moderation_actions", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  roomKey: text("room_key").notNull(),
+  targetUserId: varchar("target_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  moderatorId: varchar("moderator_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),
+  reason: text("reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type VoiceModerationAction = typeof voiceModerationActions.$inferSelect;

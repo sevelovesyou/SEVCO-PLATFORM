@@ -408,6 +408,106 @@
 - **#396** — task 398 (`task-398.md`)
 - **#397** — task 399 (`task-399.md`)
 - **#398** — task 400 (`task-400.md`)
+- **#399** — task 401 (`task-401.md`)
+- **#400** — task 402 (`task-402.md`)
+- **#401** — task 403 (`task-403.md`)
+- **#402** — task 404 (`task-404.md`)
+- **#403** — task 405 (`task-405.md`)
+- **#404** — task 406 (`task-406.md`)
+- **#405** — task 407 (`task-407.md`)
+- **#406** — task 408 (`task-408.md`)
+- **#407** — task 409 (`task-409.md`)
+- **#408** — task 410 (`task-410.md`)
+- **#409** — task 411 (`task-411.md`)
+- **#410** — task 412 (`task-412.md`)
+- **#411** — task 413 (`task-413.md`)
+- **#412** — task 414 (`task-414.md`)
+- **#413** — task 415 (`task-415.md`)
+- **#414** — task 416 (`task-416.md`)
+- **#415** — task 417 (`task-417.md`)
+- **#416** — task 418 (`task-418.md`)
+- **#417** — task 419 (`task-419.md`)
+- **#418** — task 420 (`task-420.md`)
+- **#419** — task 421 (`task-421.md`)
+- **#420** — task 422 (`task-422.md`)
+- **#421** — task 423 (`task-423.md`)
+- **#422** — task 424 (`task-424.md`)
+- **#423** — task 425 (`task-425.md`)
+- **#424** — task 426 (`task-426.md`)
+- **#425** — task 427 (`task-427.md`)
+- **#426** — task 428 (`task-428.md`)
+- **#427** — task 429 (`task-429.md`)
+- **#428** — task 430 (`task-430.md`)
+- **#429** — task 431 (`task-431.md`)
+- **#430** — task 432 (`task-432.md`)
+- **#431** — task 433 (`task-433.md`)
+- **#432** — task 434 (`task-434.md`)
+- **#433** — task 435 (`task-435.md`)
+- **#434** — task 436 (`task-436.md`)
+- **#435** — task 437 (`task-437.md`)
+- **#436** — task 438 (`task-438.md`)
+- **#437** — task 439 (`task-439.md`)
+- **#438** — task 440 (`task-440.md`)
+- **#439** — task 441 (`task-441.md`)
+- **#440** — task 442 (`task-442.md`)
+- **#441** — task 443 (`task-443.md`)
+- **#442** — task 444 (`task-444.md`)
+- **#443** — task 445 (`task-445.md`)
+- **#444** — task 446 (`task-446.md`)
+- **#445** — task 447 (`task-447.md`)
+- **#446** — task 448 (`task-448.md`)
+- **#447** — task 449 (`task-449.md`)
+- **#448** — task 450 (`task-450.md`)
+- **#449** — task 451 (`task-451.md`)
+- **#450** — task 452 (`task-452.md`)
+- **#451** — task 453 (`task-453.md`)
+- **#452** — task 454 (`task-454.md`)
+- **#453** — task 455 (`task-455.md`)
+- **#454** — task 456 (`task-456.md`)
+- **#455** — task 457 (`task-457.md`)
+- **#456** — task 458 (`task-458.md`)
+- **#457** — task 459 (`task-459.md`)
+- **#458** — task 460 (`task-460.md`)
+- **#459** — task 461 (`task-461.md`)
+- **#460** — task 462 (`task-462.md`)
+- **#461** — task 463 (`task-463.md`)
+- **#462** — task 464 (`task-464.md`)
+- **#463** — task 465 (`task-465.md`)
+- **#464** — task 466 (`task-466.md`)
+- **#465** — task 467 (`task-467.md`)
+- **#466** — task 468 (`task-468.md`)
+- **#467** — task 469 (`task-469.md`)
+- **#468** — task 470 (`task-470.md`)
+- **#469** — task 471 (`task-471.md`)
+- **#470** — task 472 (`task-472.md`)
+- **#471** — task 473 (`task-473.md`)
+- **#472** — task 474 (`task-474.md`)
+- **#473** — task 475 (`task-475.md`)
+- **#474** — task 476 (`task-476.md`)
+- **#475** — task 477 (`task-477.md`)
+- **#476** — task 478 (`task-478.md`)
+- **#477** — task 479 (`task-479.md`)
+- **#478** — task 480 (`task-480.md`)
+- **#479** — task 481 (`task-481.md`)
+- **#480** — task 482 (`task-482.md`)
+- **#481** — task 483 (`task-483.md`)
+- **#482** — task 484 (`task-484.md`)
+- **#483** — task 485 (`task-485.md`)
+- **#484** — task 486 (`task-486.md`)
+- **#485** — task 487 (`task-487.md`)
+- **#486** — task 488 (`task-488.md`)
+- **#487** — task 489 (`task-489.md`)
+- **#488** — task 490 (`task-490.md`)
+- **#489** — task 491 (`task-491.md`)
+- **#490** — task 492 (`task-492.md`)
+- **#491** — task 493 (`task-493.md`)
+- **#492** — task 494 (`task-494.md`)
+- **#493** — task 495 (`task-495.md`)
+- **#494** — task 496 (`task-496.md`)
+- **#495** — task 497 (`task-497.md`)
+- **#496** — task 498 (`task-498.md`)
+- **#497** — task 499 (`task-499.md`)
+- **#498** — task 500 (`task-500.md`)
 
 ### Appendix
 
@@ -28220,6 +28320,7 @@ On the Brand Guidelines page, each "Approved variants" tile uses a diagonal whit
 
 ---
 
+<<<<<<< HEAD
 ## Task — freeball-universal-voxel
 > Merged: 2026-04-17
 
@@ -28314,6 +28415,63 @@ On the Brand Guidelines page, each "Approved variants" tile uses a diagonal whit
   - Crafting recipes that consume rare materials (just collecting for now).
   - Destroyable gas giant / star.
   - Fluid dynamics, atmosphere entry burn, or orbital mechanics (moons still follow simple circular orbits).
+=======
+## Task — task-421
+> Merged: 2026-04-17
+
+---
+title: Push-to-talk voice chat with admin live & recorded announcements
+---
+# Voice Chat & Admin Announcements
+
+## What & Why
+Add an opt-in, push-to-talk voice chat layer to the existing Chat so authenticated members can talk to each other while playing Freeball or browsing Projects, and let admins broadcast live or recorded audio announcements to any visitor whose volume is enabled. This makes the platform feel social and gives admins a fast way to reach the audience without writing a post.
+
+## Done looks like
+- A new "Voice" toggle appears in the existing Chat UI (slide-over panel, fullscreen chat, and the floating chat window). When off, behavior is unchanged.
+- When voice is on, an authenticated member can join a voice room tied to the channel or DM they're currently in. Holding a push-to-talk key (default Spacebar, with a clearly labeled on-screen mic button for touch users) transmits their mic; releasing it stops transmission. A small HUD shows who is currently speaking and who is in the room.
+- Voice continues to work while the user is on the Freeball page, the Projects page, or anywhere else in the app — joining a room persists across navigation via a small floating voice indicator.
+- Push-to-talk key is rebindable in user settings; Spacebar is auto-disabled inside the Freeball game (since Freeball uses Space) and the user is prompted to pick another key the first time they enable voice while in Freeball.
+- Per-user controls: mute self, deafen, mic input device picker, output volume slider, and a master "Disable voice features" switch in account settings.
+- Admin announcements:
+  - Admins get an "Announce" button in the Command Center that opens a broadcast composer.
+  - Live mode: admin holds push-to-talk and their voice plays for every connected visitor with volume enabled, with a visible "Live announcement from {Admin Name}" banner.
+  - Recorded mode: admin records an audio clip in the browser, optionally adds a title/description, and publishes it. It plays once automatically for any visitor currently on the site with volume enabled, and is then available in an "Announcements" inbox for later playback.
+  - Visitors (including unauthenticated ones) see a small announcement bell with unread count and can replay or dismiss past announcements. A global "Mute announcements" preference is respected and stored locally.
+- Admins can see who is currently in each voice room and force-disconnect or mute a user from the chat moderation log.
+- All voice traffic is gated behind the existing auth/role middleware; unauthenticated visitors can only listen to admin announcements, never join voice rooms.
+
+## Out of scope
+- Video, screen-share, or recording of member-to-member voice conversations.
+- Server-side transcription, captions, or translation.
+- Group voice rooms unrelated to existing chat channels (rooms are 1:1 with existing channels and DMs).
+- Native mobile app integration; this is web-only.
+- SMS/email notifications for announcements (visitors hear them only while on the site).
+
+## Steps
+1. Extend the shared schema with the data model needed for voice: voice room participants (channel/DM scoped, ephemeral), per-user voice preferences (push-to-talk key, input/output device, master enable, mute-announcements), and admin announcements (live session records and recorded clips with title, audio storage reference, publishedAt, and dismissals/plays per visitor). Add the matching insert schemas, types, and storage interface methods.
+2. Add a realtime signaling layer to the backend. Introduce a WebSocket endpoint for WebRTC signaling (offer/answer/ICE), voice room presence (join/leave/speaking state), and admin announcement fan-out (live audio chunks and "new recorded announcement" events). Reuse existing auth/role middleware to authorize sockets, and keep the existing 5-second polling for text chat untouched. Add REST endpoints for managing recorded announcements (create with audio upload, list, delete) and for admin moderation actions (kick/mute from a voice room).
+3. Build the client voice engine: a single React provider that owns the WebRTC peer connections, mic capture, push-to-talk key handling, device selection, and an audio mixer that ducks game/UI audio while someone is speaking. Expose hooks for "join room", "leave room", "is speaking", "participants", and "current announcement playing".
+4. Wire the voice UI into the existing Chat surfaces (slide-over panel, fullscreen chat page, and floating chat window): a Voice toggle, participant list with speaking indicators, mic/deafen buttons, and the persistent floating voice indicator that survives navigation to Freeball, Projects, and other pages. Add the voice preferences section to the user account settings page, and add the Freeball-specific Spacebar conflict prompt.
+5. Build the admin announcement composer in the Command Center (live push-to-talk mode and in-browser audio recorder for clips), the global "Live announcement" banner, the recorded-announcement auto-play + bell/inbox UI for all visitors (including logged-out), and the "Mute announcements" preference. Extend the chat moderation log page with the live voice room roster and kick/mute controls.
+
+## Relevant files
+- `shared/schema.ts`
+- `server/routes.ts:5544-5716`
+- `server/middleware/permissions.ts`
+- `server/storage.ts`
+- `server/email.ts`
+- `server/freeball-routes.ts`
+- `client/src/pages/messages-page.tsx`
+- `client/src/pages/fullscreen-chat-page.tsx`
+- `client/src/pages/command-chat-log.tsx`
+- `client/src/pages/freeball.tsx`
+- `client/src/pages/projects-page.tsx`
+- `client/src/components/chat-sheet.tsx`
+- `client/src/components/floating-chat-window.tsx`
+- `client/src/lib/permissions.ts`
+- `client/src/App.tsx`
+>>>>>>> efa9c70 (Post-merge setup completed successfully)
 
 
 ---

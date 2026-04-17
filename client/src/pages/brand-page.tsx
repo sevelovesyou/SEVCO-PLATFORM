@@ -29,10 +29,8 @@ import {
 import { SevcoLogo } from "@/components/sevco-logo";
 
 function planetFallback(name: string): "black" | "white" | null {
-  if (/planet/i.test(name)) {
-    if (/black/i.test(name)) return "black";
-    if (/white/i.test(name)) return "white";
-  }
+  if (/planet.*black/i.test(name)) return "black";
+  if (/planet.*white/i.test(name)) return "white";
   return null;
 }
 
@@ -237,9 +235,9 @@ export default function BrandPage() {
                               className="max-h-20 max-w-full object-contain p-2"
                             />
                           ) : planetFallback(asset.name) === "black" ? (
-                            <SevcoLogo size={64} invert="none" alt={asset.name} />
+                            <SevcoLogo size={80} invert="none" alt={asset.name} />
                           ) : planetFallback(asset.name) === "white" ? (
-                            <SevcoLogo size={64} invert="always" alt={asset.name} />
+                            <SevcoLogo size={80} invert="always" alt={asset.name} />
                           ) : (
                             <Image className="h-6 w-6 text-muted-foreground opacity-40" />
                           )}
@@ -569,9 +567,9 @@ export default function BrandPage() {
                                   className="max-h-24 max-w-full object-contain p-2"
                                 />
                               ) : asset.assetType === "logo" && planetFallback(asset.name) === "black" ? (
-                                <SevcoLogo size={72} invert="none" alt={asset.name} />
+                                <SevcoLogo size={80} invert="none" alt={asset.name} />
                               ) : asset.assetType === "logo" && planetFallback(asset.name) === "white" ? (
-                                <SevcoLogo size={72} invert="always" alt={asset.name} />
+                                <SevcoLogo size={80} invert="always" alt={asset.name} />
                               ) : (
                                 <div className="flex items-center justify-center opacity-40">
                                   {assetTypeIcon(asset.assetType)}

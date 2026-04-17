@@ -1552,6 +1552,28 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
   const [geoRevision, setGeoRevision] = useState(0);
   const prevBuildsRef = useRef(savedBuilds);
 
+  // Defer mounting "decorative" distant bodies (non-parent moons + asteroid
+  // belt) until the browser is idle after the first paint. The active body's
+  // PlanetVoxelMesh gets the GPU's full attention on first frame, which on
+  // slower laptops avoids the "Context Lost" error path observed previously.
+  const [distantBodiesReady, setDistantBodiesReady] = useState(false);
+  useEffect(() => {
+    type IdleWindow = Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number };
+    const w = window as IdleWindow;
+    let timer: number | null = null;
+    let idleHandle: number | null = null;
+    if (typeof w.requestIdleCallback === "function") {
+      idleHandle = w.requestIdleCallback(() => setDistantBodiesReady(true), { timeout: 800 });
+    } else {
+      timer = window.setTimeout(() => setDistantBodiesReady(true), 250);
+    }
+    return () => {
+      if (timer !== null) window.clearTimeout(timer);
+      const cancel = (w as unknown as { cancelIdleCallback?: (h: number) => void }).cancelIdleCallback;
+      if (idleHandle !== null && typeof cancel === "function") cancel(idleHandle);
+    };
+  }, []);
+
   const planetData = useMemo(() => {
     if (!activePlanet) return new Uint8Array(GRID_SIZE * GRID_SIZE * GRID_SIZE);
     return getOrCreatePlanetData(activePlanet.id, activePlanet.seed, biomeType, savedBuilds, voxelRadius);
@@ -2181,15 +2203,20 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
         </mesh>
       )}
 
-      {/* Solar system: star, gas giants, moons, asteroid belt */}
+      {/* Solar system: star, gas giants, moons, asteroid belt.
+          Distant decorative bodies (non-parent moons + asteroid belt) wait
+          for one idle tick after the first frame so the active body's
+          PlanetVoxelMesh can finish uploading to the GPU first. Reduces the
+          first-frame mesh budget and avoids WebGL Context Lost on slower
+          machines. */}
       <Star def={system.star} />
       {system.gasGiants.map((g) => (
         <GasGiant key={`gg-${g.id}`} def={g} />
       ))}
-      {system.moons.map((m) => (
+      {distantBodiesReady && system.moons.map((m) => (
         <Moon key={`moon-${m.id}`} def={m} system={system} />
       ))}
-      <AsteroidField def={system.asteroidBelt} />
+      {distantBodiesReady && <AsteroidField def={system.asteroidBelt} />}
 
       {/* Other voxel planets — shown as scaled spheres at their actual world radius */}
       {system.voxelDefs.map((def, i) => {
@@ -2801,8 +2828,9 @@ function FreeballPageInner() {
   // the user can mute it (defaults to on).
   const playShutter = useCallback(() => {
     try {
-      const enabled = localStorage.getItem("freeball-sound-enabled");
-      if (enabled === "0" || enabled === "false") return;
+      // Honor the shared platform sound preference (same key the useSounds hook writes).
+      const enabled = localStorage.getItem("sevco-sound-enabled");
+      if (enabled === "false") return;
       const Ctor = (window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext);
       if (!Ctor) return;
       const ctx = new Ctor();
@@ -2860,11 +2888,12 @@ function FreeballPageInner() {
       const tag = (active?.tagName || "").toLowerCase();
       if (tag === "input" || tag === "textarea" || (active as HTMLElement | null)?.isContentEditable) return;
       if (useGameStore.getState().paused) return;
-      // If the player has released pointer lock and is interacting with the
-      // chat (or any DOM input), don't capture — they're probably typing or
-      // looking at a menu, not framing a shot.
-      const chatFocused = !!document.querySelector('[data-testid="freeball-chat-input"]:focus');
-      if (chatFocused) return;
+      // Spec: suppress when pointer is unlocked AND chat is open — they're
+      // probably typing or interacting with the chat/menus, not framing a shot.
+      const pointerUnlocked = document.pointerLockElement === null;
+      const chatOpen = !!document.querySelector('[data-testid="freeball-chat-input"]:focus')
+        || !!document.querySelector('[data-testid="freeball-chat-panel"]:hover');
+      if (pointerUnlocked && chatOpen) return;
       e.preventDefault();
       handleScreenshot();
     };

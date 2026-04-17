@@ -28732,3 +28732,35 @@ title: Freeball: make moons + asteroids walkable/mineable/buildable (voxel, not 
 
 ---
 
+## Task — cmd-broadcast-move-and-analytics-fix
+> Merged: 2026-04-17
+
+# Move Broadcast to Support + Fix Analytics
+
+## What & Why
+Two small but impactful fixes in the Command Center:
+1. The Broadcast Announcement composer currently lives in the Overview tab. It belongs in the Support tab alongside other communication tools.
+2. The Analytics summary panel is broken — the pageviews query fails at runtime, likely because the `visitor_hash` or `session_hash` columns don't exist in the live database yet (migration not applied), or because JavaScript `Date` objects are being passed as raw params instead of proper ISO strings/timestamps.
+
+## Done looks like
+- The Broadcast Announcement composer no longer appears in the Overview tab; it appears in the Support tab of CMD.
+- The Analytics summary loads correctly — total users, sessions, and pageviews display without error.
+
+## Out of scope
+- Redesigning either the Broadcast or Analytics UI.
+- Changing the analytics query logic or tracked metrics.
+
+## Tasks
+1. **Move Broadcast Announcement to Support tab** — Remove `AdminAnnouncementComposer` from `AdminOverview` (command-overview.tsx) and add it in an appropriate position within the Support page (command-support.tsx).
+2. **Fix analytics summary query** — Investigate why the pageviews summary query fails. Check whether the `visitor_hash` and `session_hash` columns exist in the live DB (run migrations if needed) and verify that the `from`/`to` date params are passed as proper SQL-compatible values, not raw JS Date objects. Fix the root cause so the summary loads without error.
+
+## Relevant files
+- `client/src/pages/command-overview.tsx`
+- `client/src/pages/command-support.tsx`
+- `client/src/components/admin-announcement-composer.tsx`
+- `server/internalAnalytics.ts`
+- `shared/schema.ts`
+
+
+---
+

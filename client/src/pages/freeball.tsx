@@ -403,12 +403,15 @@ function buildSolarSystem(planets: Planet[]): SolarSystem {
 }
 
 function getMoonPosition(moon: MoonDef, system: SolarSystem, t: number): THREE.Vector3 {
-  let center: THREE.Vector3;
+  let center: THREE.Vector3 | null = null;
   if (moon.parent.kind === "voxel") {
-    center = system.voxelDefs[moon.parent.index]?.position ?? new THREE.Vector3();
+    const idx = moon.parent.index;
+    if (idx >= 0 && idx < system.voxelDefs.length) center = system.voxelDefs[idx]?.position ?? null;
   } else {
-    center = system.gasGiants[moon.parent.index]?.position ?? new THREE.Vector3();
+    const idx = moon.parent.index;
+    if (idx >= 0 && idx < system.gasGiants.length) center = system.gasGiants[idx]?.position ?? null;
   }
+  if (!center) return new THREE.Vector3();
   const a = moon.phase + t * moon.orbitSpeed;
   const x = Math.cos(a) * moon.orbitRadius;
   const z = Math.sin(a) * moon.orbitRadius;
@@ -1423,15 +1426,22 @@ function GasGiant({ def }: { def: GasGiantDef }) {
 }
 
 function Moon({ def, system }: { def: MoonDef; system: SolarSystem }) {
+  // Bail out cleanly if this moon's parent body has been removed from the
+  // system (can happen if planet count shrinks between hot-reloads or seeds).
+  const parentValid =
+    def.parent.kind === "voxel"
+      ? def.parent.index >= 0 && def.parent.index < system.voxelDefs.length
+      : def.parent.index >= 0 && def.parent.index < system.gasGiants.length;
   const groupRef = useRef<THREE.Group>(null);
   const tex = useMemo(() => makeCraterTexture(def.seed), [def.seed]);
   useFrame((state) => {
-    if (groupRef.current) {
+    if (groupRef.current && parentValid) {
       const p = getMoonPosition(def, system, state.clock.elapsedTime);
       groupRef.current.position.copy(p);
       groupRef.current.rotation.y += 0.003;
     }
   });
+  if (!parentValid) return null;
   return (
     <group ref={groupRef} data-testid={`freeball-moon-${def.id}`}>
       <mesh>
@@ -2786,9 +2796,37 @@ function FreeballPageInner() {
   // navigation HUD so body IDs / positions never drift between the two.
   const system = useMemo(() => buildSolarSystem(planets), [planets]);
 
+  // Lightweight WebAudio shutter "click" — no asset needed. Honors a global
+  // sound-enabled flag stored alongside other game prefs in localStorage so
+  // the user can mute it (defaults to on).
+  const playShutter = useCallback(() => {
+    try {
+      const enabled = localStorage.getItem("freeball-sound-enabled");
+      if (enabled === "0" || enabled === "false") return;
+      const Ctor = (window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext);
+      if (!Ctor) return;
+      const ctx = new Ctor();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(2400, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.06);
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.08);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.09);
+      setTimeout(() => ctx.close().catch(() => {}), 250);
+    } catch { /* audio unsupported — silent */ }
+  }, []);
+
   const handleScreenshot = useCallback(() => {
     if (typeof document === "undefined") return;
-    const canvas = document.querySelector("canvas") as HTMLCanvasElement | null;
+    // Prefer the R3F canvas via known data-engine attribute if present; fall
+    // back to the first <canvas> on the page (in this route only the GL canvas
+    // exists, so the fallback is safe).
+    const canvas = (document.querySelector("canvas[data-engine]") as HTMLCanvasElement | null)
+      ?? (document.querySelector("canvas") as HTMLCanvasElement | null);
     if (!canvas) return;
     canvas.toBlob((blob) => {
       if (!blob) return;
@@ -2809,17 +2847,24 @@ function FreeballPageInner() {
           nav.clipboard.write([new ClipboardItem({ "image/png": blob })]).catch(() => {});
         }
       } catch { /* clipboard unsupported — download still works */ }
+      playShutter();
       useGameStore.getState().setPickupToast("📸 Screenshot saved");
       setTimeout(() => useGameStore.getState().setPickupToast(""), 1500);
     }, "image/png");
-  }, [activePlanet?.name]);
+  }, [activePlanet?.name, playShutter]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "p" && e.key !== "P" && e.key !== "F2") return;
-      const tag = (document.activeElement?.tagName || "").toLowerCase();
-      if (tag === "input" || tag === "textarea") return;
+      const active = document.activeElement;
+      const tag = (active?.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea" || (active as HTMLElement | null)?.isContentEditable) return;
       if (useGameStore.getState().paused) return;
+      // If the player has released pointer lock and is interacting with the
+      // chat (or any DOM input), don't capture — they're probably typing or
+      // looking at a menu, not framing a shot.
+      const chatFocused = !!document.querySelector('[data-testid="freeball-chat-input"]:focus');
+      if (chatFocused) return;
       e.preventDefault();
       handleScreenshot();
     };
@@ -2968,7 +3013,7 @@ function FreeballPageInner() {
         <Canvas
           className="w-full h-full"
           camera={{ fov: 75, near: 0.1, far: 30000, position: [0, (PLANET_RADIUS + 5) * VOXEL_SCALE, 0] }}
-          gl={{ antialias: false, preserveDrawingBuffer: true, powerPreference: "high-performance" }}
+          gl={{ antialias: true, preserveDrawingBuffer: true, powerPreference: "high-performance" }}
           shadows
           onContextMenu={(e) => e.preventDefault()}
         >

@@ -28175,3 +28175,48 @@ On the Brand Guidelines page, each "Approved variants" tile uses a diagonal whit
 
 ---
 
+## Task — brand-planet-placeholder-fallback
+> Merged: 2026-04-17
+
+# Fix: Planet Logo Black icon not showing on white card in production
+
+  ## Problem
+  On the live /brand page, the "SEVCO Planet Logo Black" card renders blank on its white background. The DB record (id=5) has `downloadUrl = .../assets/file.png` and `previewUrl = .../previews/preview-thumb.png` — both are stale placeholder paths in Supabase Storage that resolve to empty/transparent images. Because those URLs are present and non-null, the brand page treats the asset as "uploaded" and never falls back to the bundled `SevcoLogo` (which already imports the new black-planet PNG).
+
+  The same is happening for "SEVCO Planet Logo White" (id=6) — it currently happens to look fine because the dark backdrop hides the empty placeholder, but it is also rendering nothing.
+
+  ## Done looks like
+  - The "SEVCO Planet Logo Black" card on the white tile shows the bundled black planet icon (the newly imported `SEVCO_planet_icon_black_1776448197576.png` that `SevcoLogo` already references).
+  - The "SEVCO Planet Logo White" card on the dark tile shows the white planet (existing SevcoLogo behavior with `invert="always"`).
+  - All other variants (TEXT LOGO Colors / White / Black) continue to render their real uploaded images unchanged.
+  - No DB migration required.
+
+  ## Approach
+  Frontend-only change in `client/src/pages/brand-page.tsx`. Treat known placeholder upload URLs as "no real image" so the existing SevcoLogo fallback runs.
+
+  1. Add a small helper `isPlaceholderAssetUrl(url?: string | null)` that returns true when the URL ends with a known placeholder filename, currently:
+     - `/assets/file.png`
+     - `/previews/preview-thumb.png`
+     (Match on `endsWith` after stripping any querystring; case-insensitive.)
+  2. In the **Approved variants** block (around line 268) replace:
+     ```ts
+     const hasUploadedImage = !!(asset.previewUrl || asset.downloadUrl);
+     ```
+     with logic that picks the first non-placeholder URL among `previewUrl` then `downloadUrl`, stores it in a `displayImageUrl` variable, and sets `hasUploadedImage` from that. Use `displayImageUrl` in the `<img src>`.
+  3. Apply the same change in the **Downloads** section (around line 619-639) so that the planet rows there also fall back to the bundled `SevcoLogo` when the stored URL is a placeholder.
+  4. Verify on /brand:
+     - White card for "Planet Logo Black" shows a clearly visible black planet.
+     - Dark card for "Planet Logo White" shows the white planet.
+     - Other logos unaffected.
+     - Downloads section for the planets still shows a usable preview (the bundled icon).
+
+  ## Files
+  - `client/src/pages/brand-page.tsx`
+
+  ## Out of scope
+  - Re-uploading real PNG files into the `brand-assets` Supabase bucket. (Optional follow-up; the admin can replace the placeholder uploads via Command Center → Brand assets so the Download button serves the real file. Tracked separately if the user wants.)
+  - Any change to `SevcoLogo` itself — it already points at the new asset.
+
+
+---
+

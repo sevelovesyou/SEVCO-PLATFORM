@@ -1552,6 +1552,20 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
   const [geoRevision, setGeoRevision] = useState(0);
   const prevBuildsRef = useRef(savedBuilds);
 
+  // Indices of the two voxel bodies nearest the active body. These are
+  // allowed to render on the first frame; everything else streams in via
+  // requestIdleCallback below to keep the first-frame mesh budget tight.
+  const nearestVoxelIndices = useMemo(() => {
+    const activeIdx = system.voxelDefs.findIndex((d) => d.planet.id === activePlanet?.id);
+    if (activeIdx < 0) return [];
+    const activeDefPos = system.voxelDefs[activeIdx].position;
+    return system.voxelDefs
+      .map((d, i) => ({ i, dist: i === activeIdx ? Infinity : activeDefPos.distanceTo(d.position) }))
+      .sort((a, b) => a.dist - b.dist)
+      .slice(0, 2)
+      .map((x) => x.i);
+  }, [system, activePlanet?.id]);
+
   // Defer mounting "decorative" distant bodies (non-parent moons + asteroid
   // belt) until the browser is idle after the first paint. The active body's
   // PlanetVoxelMesh gets the GPU's full attention on first frame, which on
@@ -2218,11 +2232,22 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
       ))}
       {distantBodiesReady && <AsteroidField def={system.asteroidBelt} />}
 
-      {/* Other voxel planets — shown as scaled spheres at their actual world radius */}
+      {/* Other voxel planets — shown as scaled spheres at their actual world
+          radius. Two-stage reveal:
+            • Distance gate: skip generation entirely beyond
+              activeWorldRadius * 12 (LAZY_VOXEL_GATE) — far bodies will
+              never be sampled into a sphere mesh until the player gets
+              closer, which keeps GPU + memory pressure bounded.
+            • First-frame budget: only the active body + its 2 nearest
+              neighbors mount on the first frame; the rest stream in once
+              `distantBodiesReady` flips during the next idle callback. */}
       {system.voxelDefs.map((def, i) => {
         if (i === activePlanetIndex) return null;
         const dist = activePos.distanceTo(def.position);
-        if (dist > def.voxelRadius * def.voxelScale * 50) return null;
+        const LAZY_VOXEL_GATE = activeWorldRadius * 12;
+        if (dist > LAZY_VOXEL_GATE) return null;
+        const isNearestPair = nearestVoxelIndices.includes(i);
+        if (!distantBodiesReady && !isNearestPair) return null;
         return (
           <DistantBody
             key={def.planet.id}
@@ -2891,8 +2916,9 @@ function FreeballPageInner() {
       // Spec: suppress when pointer is unlocked AND chat is open — they're
       // probably typing or interacting with the chat/menus, not framing a shot.
       const pointerUnlocked = document.pointerLockElement === null;
-      const chatOpen = !!document.querySelector('[data-testid="freeball-chat-input"]:focus')
-        || !!document.querySelector('[data-testid="freeball-chat-panel"]:hover');
+      // ChatPanel is always mounted, so "chat is open" effectively means the
+      // chat input has focus (the only way to interact with it).
+      const chatOpen = !!document.querySelector('[data-testid="freeball-chat-input"]:focus');
       if (pointerUnlocked && chatOpen) return;
       e.preventDefault();
       handleScreenshot();

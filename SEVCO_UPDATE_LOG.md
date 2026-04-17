@@ -28087,3 +28087,58 @@ The platform already bundles `sevco-planet-black.png` and `sevco-planet-white.pn
 
 ---
 
+## Task — pure-bw-defaults-and-isolated-color-edits
+> Merged: 2026-04-17
+
+# Pure B/W Defaults + Isolated Color Edits + Planet Fix
+
+## What & Why
+Three related theming problems on SEVCO:
+
+1. **Defaults aren't pure black/white.** The built-in dark mode is a tinted navy (`222 20% 8%`) and the built-in light mode is a tinted off-white (`210 20% 98%`). The user wants the out-of-the-box defaults to be **pure black** in dark mode and **pure white** in light mode, with text that contrasts cleanly (near-white on black, near-black on white).
+
+2. **Color picker cascades break things.** In Command Center → Platform Settings, changing a single color (e.g. dark background) currently re-saves *every* color field, which overwrites the derived surface colors (cards, borders, sidebar, popovers, inputs, muted, secondary, accent). The result: tweaking one swatch breaks the whole UI. The recently shipped derivation logic only kicks in when *every other* dark color still equals the built-in default, which almost never happens after a save round-trip. The picker must allow truly isolated edits.
+
+3. **Black planet logo invisible on `/brand`.** When a brand asset's filename does not contain the literal word "black" or "white", the preview tile falls back to `bg-muted/30`, which in dark mode is dark — making the black planet image disappear. The detection should not rely on the filename, and the preview tile should always provide a guaranteed-contrasting backdrop.
+
+## Done looks like
+- A fresh install / unconfigured tenant shows pure white (`#ffffff`) in light mode and pure black (`#000000`) in dark mode, with text that is clearly readable against each (near-black on white, near-white on black). All surfaces (cards, sidebar, popovers, borders, inputs, muted, secondary, accent) read as cohesive neutral grays appropriate to the chosen background, with no navy/blue tint.
+- The "Reset to defaults" action in Platform Settings restores those pure black / pure white values and matches what the live site renders.
+- In Command Center → Platform Settings, a user can change just the dark background (or just the light background, or just primary, or any single color) and:
+  - The change is saved in isolation. Other fields the user did not touch are NOT written back to the database.
+  - On the live site and in the live preview pane, the unchanged surfaces (borders, cards, sidebar, popovers, muted, secondary, accent, input) automatically re-derive to stay readable against the new background.
+  - Returning to the settings page later shows only the user's explicit overrides; everything else still tracks the (new pure B/W) defaults.
+- On `/brand`, every logo preview tile shows the planet/logo clearly regardless of filename. A black planet on a dark page background is visible; a white planet on a light page background is visible. This works for both uploaded image assets and the bundled SEVCO planet fallback.
+- No regression on existing custom-themed tenants: previously saved custom colors continue to render as before.
+
+## Out of scope
+- Redesigning the Command Center → Platform Settings UI layout itself.
+- Adding new color fields beyond what already exists.
+- Reworking the brand-asset upload flow or schema migrations.
+- Shader Studio or hero/CTA shader presets.
+- The unrelated pre-existing TypeScript errors in `shared/schema.ts` (Drizzle "boolean is not assignable to never" warnings).
+
+## Tasks
+1. **Consolidate default color tokens to pure B/W.** Establish a single source of truth for the built-in light/dark default HSL values (pure white background + near-black foreground for light; pure black background + near-white foreground for dark) and re-tune every dependent neutral surface (card, popover, sidebar, border, input, muted, secondary, accent and their foregrounds) so they read as cohesive neutral grays at those extremes. Update `index.css`, the dark-surface derivation helper, and the picker's "default" reference values so they all agree. Verify that an unconfigured site renders pure white / pure black.
+
+2. **Make Platform Settings save only what changed.** Rework the save handler so that color fields equal to the current default are NOT written to the settings table (and any existing rows for those keys are deleted), while only fields the user explicitly changed are persisted. Ensure both light and dark sides behave this way, and ensure the runtime injector and the live preview both fall back to the pure B/W defaults (and the derivation helper) for any field with no explicit override. Confirm that changing only the dark background — or only the light background, or only primary — produces a coherent themed UI without manual cleanup.
+
+3. **Extend derivation to the light side and tighten gating.** The existing `deriveDarkSurfaces` helper handles dark; add the equivalent for light so a custom light background also auto-derives readable neutral surfaces. Trigger derivation whenever the background differs from the (new pure B/W) default, regardless of whether other fields were also written. Apply the same logic in the live preview pane so what the admin sees matches runtime.
+
+4. **Fix invisible planet logo on `/brand`.** Stop deciding the preview-tile backdrop from a filename regex. Instead, give every logo preview tile a guaranteed-contrasting backdrop based on the current page theme (and, where the asset metadata indicates a known dark or light variant, a fixed contrasting backdrop). The bundled SEVCO planet fallback and uploaded planet images must both be visible in light mode and dark mode in both the dedicated logo grid and the general brand-assets grid on `/brand`.
+
+## Relevant files
+- `client/src/index.css:30-200`
+- `client/src/App.tsx:670-700`
+- `client/src/lib/derive-dark-surfaces.ts`
+- `client/src/pages/command-settings.tsx:1209-1244,3050-3080`
+- `client/src/pages/command-display.tsx:108-120`
+- `client/src/pages/brand-page.tsx:30-50,220-260,550-580`
+- `client/src/components/sevco-logo.tsx`
+- `server/routes.ts`
+- `server/storage.ts`
+- `shared/schema.ts:749-763`
+
+
+---
+

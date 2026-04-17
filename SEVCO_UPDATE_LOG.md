@@ -28548,3 +28548,89 @@ Add an opt-in, push-to-talk voice chat layer to the existing Chat so authenticat
 
 ---
 
+## Task — task-422
+> Merged: 2026-04-17
+
+---
+title: Freeball: smooth gravity transitions + Sphere navigation HUD
+---
+# Smooth gravity transitions + Sphere navigation HUD
+
+  ## Why
+  Two related pilot-quality issues on /freeball:
+  1. Walking/flying between planets hard-swaps gravity direction the moment you cross `PLANET_LANDING_RANGE`, which spins the camera and inverts your heading. Disorienting.
+  2. When piloting the Sphere, there's no way to see what's out there — no list of visited planets, no compass, no waypoint you can lock onto. Navigation is "point at the bright dot and hope."
+
+  ## 1. Smooth gravity transition
+
+  ### Today
+  In `useFrame`, the code picks the single nearest planet inside `PLANET_LANDING_RANGE` and uses that planet's up-vector directly:
+  `up = normalize(playerPos - planetCenter)`
+  On the frame you cross the range threshold (or switch nearest-planet), `up` snaps discontinuously → camera rolls.
+
+  ### Fix plan
+  **Blended gravity field.** Instead of picking one planet, sum weighted gravity contributions from the nearest K=3 planets:
+  - Weight per planet: `w_i = 1 / max(distance_i - radius_i, epsilon)^2` (inverse-square, clamped).
+  - Blended up vector: `blendedUp = normalize(Σ w_i * (pos - center_i) / |pos - center_i|)`.
+  - Blended gravity magnitude: `g = Σ w_i * GRAVITY_STRENGTH` (clamped so free-fall between planets is still gentle).
+
+  Outside any planet's sphere-of-influence, `blendedUp` decays toward the star's direction (so "up" in deep space is "away from the sun"), preventing NaN when all weights are tiny.
+
+  **Camera roll damping.** Even with blended gravity, rapid up-vector changes rotate the camera. Add a low-pass filter:
+  - `cameraUp = lerp(cameraUp, blendedUp, clamp(dt * 3, 0, 1))`
+  - Player controller uses `cameraUp` instead of `blendedUp` for orientation. Gravity force still uses the true `blendedUp` so physics stays correct; only the view lags slightly.
+  - Damping time constant ~0.3s — fast enough to feel responsive, slow enough that a fly-by doesn't whip the camera.
+
+  **Preserve heading.** Current code re-derives the forward vector from yaw/pitch each frame relative to the (changing) up. When up changes, forward projects onto the new tangent plane and rotates. Fix:
+  - On each frame, project the previous frame's forward onto the plane perpendicular to the new cameraUp, renormalize, and use that as the new forward. Heading stays continuous; only up re-aligns. Yaw input still adds to yaw around cameraUp.
+
+  ### Edge cases
+  - Piloting the Sphere: Sphere already orients to velocity, not gravity, so no up-vector fight there. But the transition that matters is when the player DISMOUNTS mid-flight — inherit the Sphere's current forward as the initial player forward (already needed for preserve-heading above).
+  - Inside the atmosphere of a super-large planet: weight is dominated by that one planet → blended up ≈ local up, same as today. No change to normal play.
+
+  ## 2. Sphere navigation HUD
+
+  ### Data model (client-side)
+  `discoveredPlanets: Set<string>` kept in the existing Zustand store (`useGameStore`). A planet is "discovered" when the player either:
+  - Enters its sphere-of-influence (`distance < worldRadius * 2.5`), or
+  - Flies within line-of-sight at close range (`distance < worldRadius * 8`) in the Sphere.
+
+  Persist this to `server/freeball-routes.ts` → `PUT /api/freeball/progress` (already exists, just extend payload). On load, `GET /api/freeball/progress` returns the saved set.
+
+  ### HUD components (rendered only while piloting the Sphere)
+  Toggle with `Tab` (already used? check — if taken, use `M` for map). Appears as an overlay, not world-space.
+
+  **a) Compass bar** (always visible while piloting; not toggle-gated)
+  Horizontal bar across the top of the viewport showing ticks for every discovered body within `6000u`. Each tick is positioned by projecting the body's world position onto the Sphere's current heading plane → x-offset in screen space. Labels show the name and distance. The star always renders as a ◉ tick. Color-coded by kind (voxel=green, moon=gray, gas giant=orange, asteroid cluster=brown, star=yellow).
+
+  **b) System map** (toggled on with `M`)
+  Center-screen semi-transparent panel. Top-down 2D projection of the ecliptic plane (Y flattened). Current Sphere position shown as a blue dot with a heading arrow. Discovered bodies shown as scaled circles; undiscovered ones show only as "?" at their position (so the player knows there's something unexplored). Click a discovered body to set it as the active waypoint.
+
+  **c) Waypoint marker** (rendered when a waypoint is set)
+  World-space billboard above the target body ("→ Verdania · 412u"). A subtle ring on the HUD horizon indicates the direction if the target is off-screen. Distance counts down as the Sphere approaches.
+
+  ### Files
+  - `client/src/pages/freeball/store.ts` (split out from freeball.tsx if not already done by #417) — add `discoveredPlanets`, `activeWaypointId`, `isMapOpen` + setters.
+  - `client/src/pages/freeball/hud.tsx` (new) — Compass, SystemMap, WaypointMarker components. Pure DOM over the canvas via a fixed-position React layer.
+  - `client/src/pages/freeball/gravity.ts` (new) — `computeBlendedGravity(playerPos, planets, starPos)` helper + unit-tested pure functions.
+  - `client/src/pages/freeball/index.tsx` — wire up the HUD and swap single-planet gravity for blended.
+  - `server/freeball-routes.ts` — extend progress shape with `discoveredPlanetIds: string[]`.
+  - `shared/schema.ts` — if freeball progress is a DB table, extend it; if JSON blob, no schema change.
+
+  ## Done looks like
+  - Walking across the terminator between two planets that are close together: camera up-vector eases from one to the other over ~0.3s instead of snapping. Heading is preserved — you're still looking the same real-world direction.
+  - Flying the Sphere through a triple-planet cluster: no rolls, no camera whip.
+  - Piloting: compass bar shows ticks for every discovered body. Press M: system map opens, click a planet to set waypoint. Close Sphere, re-open: waypoint persists for the session.
+  - Flying toward an undiscovered body: it's a "?" on the map. Once you cross its discovery radius, name and type populate; saved to server.
+  - Reload the page: discovered set persists.
+
+  ## Depends on
+  Task #417 (celestial kinds and PlanetDef shape must land first — this plan assumes PlanetDef exists).
+
+  ## Out of scope
+  - Fast-travel / warp-to-waypoint. Waypoint is a marker only.
+  - Minimap on foot (HUD is Sphere-only).
+
+
+---
+

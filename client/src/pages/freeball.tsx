@@ -9,6 +9,8 @@ import * as THREE from "three";
 import { create } from "zustand";
 import { createNoise3D } from "simplex-noise";
 import { Button } from "@/components/ui/button";
+import { computeBlendedGravity, preserveHeading, dampingFactor } from "./freeball-gravity";
+import { CompassBar, SystemMap, WaypointMarker, type CompassBody, type CelestialKind } from "./freeball-hud";
 
 interface Planet {
   id: number;
@@ -24,6 +26,7 @@ interface Progress {
   sparksSpent: number;
   unlockedSphere: boolean;
   inventory: Record<string, number>;
+  discoveredPlanetIds?: string[];
 }
 
 interface ChatMsg {
@@ -356,6 +359,22 @@ interface GameStore {
   setShowInventory: (s: boolean) => void;
   pickupToast: string;
   setPickupToast: (msg: string) => void;
+  // Sphere navigation HUD
+  discoveredPlanetIds: string[];
+  addDiscoveredPlanet: (id: string) => void;
+  setDiscoveredPlanetIds: (ids: string[]) => void;
+  activeWaypointId: string | null;
+  setActiveWaypointId: (id: string | null) => void;
+  isMapOpen: boolean;
+  setIsMapOpen: (open: boolean) => void;
+  // Per-frame Sphere transform mirror (throttled) so DOM HUD can render
+  sphereHud: {
+    pos: [number, number, number];
+    forward: [number, number, number];
+    up: [number, number, number];
+    dayTime: number;
+  };
+  setSphereHud: (h: GameStore["sphereHud"]) => void;
 }
 
 const useGameStore = create<GameStore>((set, get) => ({
@@ -391,6 +410,24 @@ const useGameStore = create<GameStore>((set, get) => ({
   setShowInventory: (s) => set({ showInventory: s }),
   pickupToast: "",
   setPickupToast: (msg) => set({ pickupToast: msg }),
+  discoveredPlanetIds: [],
+  addDiscoveredPlanet: (id) => {
+    const cur = get().discoveredPlanetIds;
+    if (cur.includes(id)) return;
+    set({ discoveredPlanetIds: [...cur, id] });
+  },
+  setDiscoveredPlanetIds: (ids) => set({ discoveredPlanetIds: Array.from(new Set(ids)) }),
+  activeWaypointId: null,
+  setActiveWaypointId: (id) => set({ activeWaypointId: id }),
+  isMapOpen: false,
+  setIsMapOpen: (open) => set({ isMapOpen: open }),
+  sphereHud: {
+    pos: [0, 0, 0],
+    forward: [0, 0, -1],
+    up: [0, 1, 0],
+    dayTime: 0.25,
+  },
+  setSphereHud: (h) => set({ sphereHud: h }),
 }));
 
 function makeRng(seed: number): () => number {
@@ -1266,9 +1303,10 @@ interface SceneProps {
   onPositionUpdate: (x: number, y: number, z: number) => void;
   onCrystalCollected: (count: number) => void;
   onPlanetSwitch: (newIndex: number) => void;
+  onDiscoveryChange: (ids: string[]) => void;
 }
 
-function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers, onSave, onPositionUpdate, onCrystalCollected, onPlanetSwitch }: SceneProps) {
+function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers, onSave, onPositionUpdate, onCrystalCollected, onPlanetSwitch, onDiscoveryChange }: SceneProps) {
   const { camera, gl } = useThree();
   const {
     setSelectedBlock,
@@ -1320,6 +1358,9 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
   const justJumped = useRef(false);
 
   const refForward = useRef(new THREE.Vector3(0, 0, -1));
+  const cameraUpRef = useRef(new THREE.Vector3(0, 1, 0));
+  const lastSphereHudUpdate = useRef(0);
+  const lastDiscoveryCheck = useRef(0);
   const pitchRef = useRef(0);
   const mouseDelta = useRef({ x: 0, y: 0 });
 
@@ -1398,6 +1439,18 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
         } catch {}
       }
       if (e.key === "Tab") { e.preventDefault(); useGameStore.getState().setShowTab(true); return; }
+      if (e.key === "m" || e.key === "M") {
+        // System map only meaningful while piloting the Sphere
+        if (useGameStore.getState().inVehicle) {
+          const open = !useGameStore.getState().isMapOpen;
+          useGameStore.getState().setIsMapOpen(open);
+          if (open) {
+            useGameStore.getState().setPaused(false);
+            document.exitPointerLock();
+          }
+        }
+        return;
+      }
       if (e.key === "i" || e.key === "I" || e.key === "b" || e.key === "B") {
         useGameStore.getState().setShowInventory(!useGameStore.getState().showInventory);
         return;
@@ -1486,6 +1539,18 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
     const activePos = inVehicle ? spherePos.current : playerPos.current;
     const activeVel = inVehicle ? sphereVel.current : playerVel.current;
 
+    // Compute true (physics) gravity from blended K=3 nearest planets so we
+    // don't snap orientation when crossing PLANET_LANDING_RANGE.
+    const sunAngle = dayTimeRef.current * Math.PI * 2 - Math.PI / 2;
+    const starPos = new THREE.Vector3(Math.cos(sunAngle) * 200, Math.sin(sunAngle) * 200, 0);
+    const gravityBodies = system.voxelDefs.map((def) => ({
+      position: def.position,
+      surfaceRadius: def.voxelRadius * def.voxelScale,
+    }));
+    const blended = computeBlendedGravity(activePos, gravityBodies, starPos, GRAVITY_STRENGTH);
+    const trueUp = blended.blendedUp;
+
+    // Nearest planet center (still needed for voxel queries / world-space ops)
     let nearestCenter = planetCenter;
     let nearestDist = activePos.distanceTo(planetCenter);
     let nearestVoxelScale = voxelScale;
@@ -1508,14 +1573,16 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
     const atmosphereHeight = surfaceRadius * ATMOSPHERE_SCALE;
     const inAtmosphere = altitude < atmosphereHeight;
 
-    const up = distFromCenter > 0.1
-      ? activePos.clone().sub(nearestCenter).normalize()
-      : new THREE.Vector3(0, 1, 0);
+    // Camera up follows true up with low-pass filter (~0.3s time constant).
+    // Player controller orients to cameraUp, but gravity force still uses trueUp.
+    cameraUpRef.current.lerp(trueUp, dampingFactor(clampedDt, 3));
+    if (cameraUpRef.current.lengthSq() < 0.0001) cameraUpRef.current.copy(trueUp);
+    cameraUpRef.current.normalize();
+    const up = cameraUpRef.current;
 
-    refForward.current.projectOnPlane(up).normalize();
-    if (refForward.current.lengthSq() < 0.01) {
-      refForward.current.set(1, 0, 0).projectOnPlane(up).normalize();
-    }
+    // Preserve heading: re-project previous frame's forward onto the new
+    // tangent plane so the camera doesn't whip when up changes.
+    refForward.current.copy(preserveHeading(refForward.current, up));
 
     const yawQuat = new THREE.Quaternion().setFromAxisAngle(up, -dx * 0.002);
     refForward.current.applyQuaternion(yawQuat).projectOnPlane(up).normalize();
@@ -1537,11 +1604,13 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
       if (keys["d"]) sphereVel.current.addScaledVector(localRight, thrust * clampedDt);
       if (keys[" "]) sphereVel.current.addScaledVector(up, thrust * clampedDt);
 
+      // Use blended gravity direction so transitions between planets are smooth.
+      const gravityDir = trueUp.clone().negate();
       if (inSpace) {
         const gravScale = Math.max(0, 1 - altitude / (surfaceRadius * 5));
-        sphereVel.current.addScaledVector(toCenter.normalize(), GRAVITY_STRENGTH * 0.3 * gravScale * clampedDt);
+        sphereVel.current.addScaledVector(gravityDir, GRAVITY_STRENGTH * 0.3 * gravScale * clampedDt);
       } else {
-        sphereVel.current.addScaledVector(toCenter.normalize(), GRAVITY_STRENGTH * clampedDt);
+        sphereVel.current.addScaledVector(gravityDir, GRAVITY_STRENGTH * clampedDt);
       }
 
       const drag = inSpace ? 0.998 : 0.97;
@@ -1728,7 +1797,8 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
       playerVel.current.copy(moveDir.multiplyScalar(speed)).add(radialVel);
 
       const footGravScale = Math.min(1, (surfaceRadius * 3) / Math.max(distFromCenter, 0.1));
-      playerVel.current.addScaledVector(toCenter.normalize(), GRAVITY_STRENGTH * footGravScale * clampedDt);
+      // Pull along blended gravity direction for smooth two-planet hand-off.
+      playerVel.current.addScaledVector(trueUp.clone().negate(), GRAVITY_STRENGTH * footGravScale * clampedDt);
 
       if ((keys[" "] || keys["spacebar"]) && onGround.current) {
         playerVel.current.addScaledVector(up, JUMP_IMPULSE);
@@ -1808,6 +1878,39 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
       lastPresence.current = state.clock.elapsedTime;
       const pos = inVehicle ? spherePos.current : playerPos.current;
       onPositionUpdate(pos.x, pos.y, pos.z);
+    }
+
+    // Sphere navigation HUD: push throttled transform to store, run discovery checks.
+    if (state.clock.elapsedTime - lastSphereHudUpdate.current > 0.1) {
+      lastSphereHudUpdate.current = state.clock.elapsedTime;
+      useGameStore.getState().setSphereHud({
+        pos: [spherePos.current.x, spherePos.current.y, spherePos.current.z],
+        forward: [refForward.current.x, refForward.current.y, refForward.current.z],
+        up: [up.x, up.y, up.z],
+        dayTime: dayTimeRef.current,
+      });
+    }
+    if (state.clock.elapsedTime - lastDiscoveryCheck.current > 0.5) {
+      lastDiscoveryCheck.current = state.clock.elapsedTime;
+      const cur = useGameStore.getState().discoveredPlanetIds;
+      const known = new Set(cur);
+      let changed = false;
+      for (let pi = 0; pi < system.voxelDefs.length; pi++) {
+        const def = system.voxelDefs[pi];
+        const id = String(def.planet.id);
+        if (known.has(id)) continue;
+        const sr = def.voxelRadius * def.voxelScale;
+        const radius = inVehicle ? sr * 8 : sr * 2.5;
+        if (activePos.distanceTo(def.position) < radius) {
+          useGameStore.getState().addDiscoveredPlanet(id);
+          known.add(id);
+          changed = true;
+        }
+      }
+      if (changed) {
+        // Persist the new discoveries; merging is handled server-side.
+        onDiscoveryChange(useGameStore.getState().discoveredPlanetIds);
+      }
     }
   });
 
@@ -1979,7 +2082,7 @@ function HUD({ planet, sparksBalance, progress }: { planet: Planet | null; spark
 
       {pointerLocked && (
         <div className="absolute bottom-20 left-3 text-white/40 text-xs" data-testid="freeball-controls-hint">
-          WASD move · Space jump · Shift sprint/boost · LMB break · RMB place · E enter/exit SPHERE · T third-person · I inventory · Tab players · Esc menu
+          WASD move · Space jump · Shift sprint/boost · LMB break · RMB place · E enter/exit SPHERE · T third-person · I inventory · M map (Sphere) · Tab players · Esc menu
         </div>
       )}
 
@@ -2247,6 +2350,70 @@ function ChatPanel({ messages, onSend }: { messages: ChatMsg[]; onSend: (msg: st
   );
 }
 
+function planetKind(type: string): CelestialKind {
+  // Existing planet types (verdania/desert/ice/alien) all render as voxel worlds.
+  // Future kinds from #417 (moon/gas/asteroid/star) map directly through.
+  switch (type) {
+    case "moon":
+    case "gas":
+    case "asteroid":
+    case "star":
+      return type;
+    default:
+      return "voxel";
+  }
+}
+
+function FreeballNavHud({ planets }: { planets: Planet[] }) {
+  const { sphereHud, discoveredPlanetIds, activeWaypointId, setActiveWaypointId, isMapOpen, setIsMapOpen, inVehicle } = useGameStore();
+  const spherePos = useMemo(() => new THREE.Vector3(...sphereHud.pos), [sphereHud.pos]);
+  const forward = useMemo(() => new THREE.Vector3(...sphereHud.forward).normalize(), [sphereHud.forward]);
+  const up = useMemo(() => new THREE.Vector3(...sphereHud.up).normalize(), [sphereHud.up]);
+  const known = useMemo(() => new Set(discoveredPlanetIds), [discoveredPlanetIds]);
+  const hudSystem = useMemo(() => buildSolarSystem(planets), [planets]);
+
+  const bodies = useMemo<CompassBody[]>(() => {
+    const list: CompassBody[] = hudSystem.voxelDefs.map((def) => ({
+      id: String(def.planet.id),
+      name: def.planet.name,
+      kind: planetKind(def.planet.type),
+      position: def.position,
+      discovered: known.has(String(def.planet.id)),
+    }));
+    // Star is always rendered (and always "discovered" — Sol is known)
+    const sunAngle = sphereHud.dayTime * Math.PI * 2 - Math.PI / 2;
+    list.push({
+      id: "sun",
+      name: "Sol",
+      kind: "star",
+      position: new THREE.Vector3(Math.cos(sunAngle) * 200, Math.sin(sunAngle) * 200, 0),
+      discovered: true,
+    });
+    return list;
+  }, [planets, known, sphereHud.dayTime]);
+
+  if (!inVehicle) return null;
+
+  const activeBody = activeWaypointId ? bodies.find((b) => b.id === activeWaypointId) ?? null : null;
+
+  return (
+    <>
+      <CompassBar spherePos={spherePos} forward={forward} up={up} bodies={bodies} activeWaypointId={activeWaypointId} />
+      <WaypointMarker spherePos={spherePos} forward={forward} up={up} body={activeBody} />
+      {isMapOpen && (
+        <SystemMap
+          spherePos={spherePos}
+          forward={forward}
+          bodies={bodies}
+          activeWaypointId={activeWaypointId}
+          onSelectWaypoint={(id) => setActiveWaypointId(id)}
+          onClose={() => setIsMapOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+
 function PlayerList({ players, planets, currentUser }: { players: OtherPlayer[]; planets: Planet[]; currentUser: CurrentUser | null }) {
   return (
     <div className="absolute top-12 left-1/2 -translate-x-1/2 z-40 bg-black/80 rounded-xl p-4 w-64" data-testid="freeball-player-list">
@@ -2310,6 +2477,9 @@ export default function FreeballPage() {
     }
     useGameStore.getState().setGameInventory(savedInventory);
     setCrystalsCollected(savedInventory["7"] ?? 0);
+    if (Array.isArray(progress.discoveredPlanetIds)) {
+      useGameStore.getState().setDiscoveredPlanetIds(progress.discoveredPlanetIds);
+    }
   }, [progress, planets]);
 
   const activePlanet = planets[activePlanetIndex] ?? null;
@@ -2366,7 +2536,7 @@ export default function FreeballPage() {
   });
 
   const progressMutation = useMutation({
-    mutationFn: (data: { currentPlanetId?: number; inventory?: Record<string, number>; sparksSpent?: number }) =>
+    mutationFn: (data: { currentPlanetId?: number; inventory?: Record<string, number>; sparksSpent?: number; discoveredPlanetIds?: string[] }) =>
       apiRequest("PATCH", "/api/freeball/progress", data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/freeball/progress"] }),
   });
@@ -2424,6 +2594,10 @@ export default function FreeballPage() {
     setPaused(false);
   }, []);
 
+  const handleDiscoveryChange = useCallback((ids: string[]) => {
+    progressMutation.mutate({ discoveredPlanetIds: ids });
+  }, []);
+
   const handlePlanetSwitch = useCallback((newIndex: number) => {
     if (newIndex < 0 || newIndex >= planets.length) return;
     if (activePlanetId) {
@@ -2466,6 +2640,7 @@ export default function FreeballPage() {
             onPositionUpdate={handlePositionUpdate}
             onCrystalCollected={handleCrystalCollected}
             onPlanetSwitch={handlePlanetSwitch}
+            onDiscoveryChange={handleDiscoveryChange}
           />
         </Canvas>
       )}
@@ -2477,6 +2652,8 @@ export default function FreeballPage() {
           progress={progress ?? null}
         />
       )}
+
+      <FreeballNavHud planets={planets} />
 
       <ChatPanel messages={chatMessages} onSend={handleSendChat} />
       {showTab && <PlayerList players={otherPlayers} planets={planets} currentUser={user} />}

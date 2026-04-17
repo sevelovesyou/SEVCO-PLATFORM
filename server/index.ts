@@ -466,6 +466,8 @@ async function runStartupMigrations() {
     unlocked_sphere boolean NOT NULL DEFAULT false,
     inventory jsonb NOT NULL DEFAULT '{}'
   );`);
+  // Task #422 — Sphere navigation HUD: persist discovered planets
+  await pool.query(`ALTER TABLE user_galaxy_progress ADD COLUMN IF NOT EXISTS discovered_planet_ids text[] NOT NULL DEFAULT '{}'`);
 
   // Task #305 — SEVCO Canvas
   await pool.query(`CREATE TABLE IF NOT EXISTS canvas_projects (

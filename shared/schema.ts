@@ -1272,6 +1272,7 @@ export const userGalaxyProgress = pgTable("user_galaxy_progress", {
   sparksSpent: integer("sparks_spent").notNull().default(0),
   unlockedSphere: boolean("unlocked_sphere").notNull().default(false),
   inventory: jsonb("inventory").notNull().default({}),
+  discoveredPlanetIds: text("discovered_planet_ids").array().notNull().default(sql`'{}'::text[]`),
 });
 
 export const insertGalaxyPlanetSchema = createInsertSchema(galaxyPlanets).omit({ id: true });

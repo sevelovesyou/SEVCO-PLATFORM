@@ -32,6 +32,7 @@ interface ProgressRow {
   sparks_spent: number;
   unlocked_sphere: boolean;
   inventory: Record<string, number>;
+  discovered_planet_ids: string[] | null;
 }
 
 function mapProgress(r: ProgressRow) {
@@ -41,6 +42,7 @@ function mapProgress(r: ProgressRow) {
     sparksSpent: r.sparks_spent,
     unlockedSphere: r.unlocked_sphere,
     inventory: r.inventory,
+    discoveredPlanetIds: Array.isArray(r.discovered_planet_ids) ? r.discovered_planet_ids : [],
   };
 }
 
@@ -105,6 +107,7 @@ const patchProgressSchema = z.object({
   currentPlanetId: z.number().int().nullable().optional(),
   inventory: z.record(z.number()).optional(),
   sparksSpent: z.number().int().min(0).optional(),
+  discoveredPlanetIds: z.array(z.string().min(1).max(64)).max(256).optional(),
 });
 
 router.patch("/progress", requireAuth, async (req, res) => {
@@ -112,7 +115,7 @@ router.patch("/progress", requireAuth, async (req, res) => {
     const userId = (req as AuthRequest).user!.id;
     const parsed = patchProgressSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: parsed.error.message });
-    const { currentPlanetId, inventory, sparksSpent } = parsed.data;
+    const { currentPlanetId, inventory, sparksSpent, discoveredPlanetIds } = parsed.data;
 
     // Ensure progress row exists (upsert-safe)
     const planets = await ensurePlanetsSeeded();
@@ -123,7 +126,7 @@ router.patch("/progress", requireAuth, async (req, res) => {
     );
 
     const updates: string[] = [];
-    const values: (string | number | boolean | null)[] = [userId];
+    const values: (string | number | boolean | null | string[])[] = [userId];
 
     if (currentPlanetId !== undefined) {
       updates.push(`current_planet_id = $${values.length + 1}`);
@@ -138,6 +141,15 @@ router.patch("/progress", requireAuth, async (req, res) => {
     if (sparksSpent !== undefined) {
       updates.push(`sparks_spent = $${values.length + 1}`);
       values.push(sparksSpent);
+    }
+
+    if (discoveredPlanetIds !== undefined) {
+      // Merge with existing so discoveries are additive (never lost on partial updates)
+      const existing = await pool.query<ProgressRow>(`SELECT discovered_planet_ids FROM user_galaxy_progress WHERE user_id = $1`, [userId]);
+      const existingIds: string[] = Array.isArray(existing.rows[0]?.discovered_planet_ids) ? existing.rows[0].discovered_planet_ids : [];
+      const merged = Array.from(new Set([...existingIds, ...discoveredPlanetIds]));
+      updates.push(`discovered_planet_ids = $${values.length + 1}`);
+      values.push(merged);
     }
 
     if (updates.length === 0) return res.json({ message: "no changes" });

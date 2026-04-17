@@ -18,6 +18,7 @@ import { SpotifyPlayerBar } from "@/components/spotify-player-bar";
 import { CartDrawer } from "@/components/cart-drawer";
 import { useEffect, useRef } from "react";
 import { hexToHsl } from "@/lib/colorUtils";
+import { derivedDarkSurfacesAsCssVars, DEFAULT_DARK_VALUES } from "@/lib/derive-dark-surfaces";
 import { isClientPlus } from "@/lib/permissions";
 import { useToast } from "@/hooks/use-toast";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -553,42 +554,6 @@ function toHsl(val: string): string | null {
   return null;
 }
 
-function parseHslTriple(val: string): { h: number; s: number; l: number } | null {
-  const parts = val.trim().split(/\s+/);
-  if (parts.length !== 3) return null;
-  const h = parseFloat(parts[0]);
-  const s = parseFloat(parts[1]);
-  const l = parseFloat(parts[2]);
-  if (!Number.isFinite(h) || !Number.isFinite(s) || !Number.isFinite(l)) return null;
-  return { h, s, l };
-}
-
-function fmtHsl(h: number, s: number, l: number): string {
-  const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
-  return `${clamp(h, 0, 360)} ${clamp(s, 0, 100)}% ${clamp(l, 0, 100)}%`;
-}
-
-function deriveDarkSurfaces(bgHsl: string): Record<string, string> {
-  const parsed = parseHslTriple(bgHsl);
-  if (!parsed) return {};
-  const { h, l } = parsed;
-  const s = Math.min(parsed.s, 14);
-  return {
-    "--border": fmtHsl(h, s, l + 10),
-    "--card": fmtHsl(h, s, l + 3),
-    "--card-border": fmtHsl(h, s, l + 10),
-    "--popover": fmtHsl(h, s, l + 3),
-    "--popover-border": fmtHsl(h, s, l + 10),
-    "--sidebar": fmtHsl(h, s, l + 2),
-    "--sidebar-border": fmtHsl(h, s, l + 10),
-    "--sidebar-accent": fmtHsl(h, s, l + 7),
-    "--muted": fmtHsl(h, s, l + 6),
-    "--secondary": fmtHsl(h, s, l + 8),
-    "--accent": fmtHsl(h, s, l + 8),
-    "--input": fmtHsl(h, s, l + 14),
-  };
-}
-
 function PlatformColorInjector() {
   const { data: settings } = useQuery<Record<string, string>>({
     queryKey: ["/api/platform-settings"],
@@ -695,7 +660,7 @@ function PlatformColorInjector() {
 
     const darkBgHsl = toHsl(settings["color.dark.background"] ?? "");
     if (darkBgHsl) {
-      const derived = deriveDarkSurfaces(darkBgHsl);
+      const derived = derivedDarkSurfacesAsCssVars(darkBgHsl);
       for (const [k, v] of Object.entries(derived)) {
         darkRules.push(`  ${k}: ${v};`);
       }
@@ -703,10 +668,16 @@ function PlatformColorInjector() {
 
     for (const key of COLOR_KEYS_DARK) {
       const val = settings[key];
-      if (val) {
-        const cssVar = CSS_VAR_MAP_DARK[key];
-        darkRules.push(`  ${cssVar}: ${val};`);
+      if (!val) continue;
+      // When a custom dark background is in use, skip explicit overrides that
+      // still match the built-in defaults so the derived surface values can
+      // take effect. This handles the case where settings are saved as a
+      // batch but the user only intentionally changed the background.
+      if (darkBgHsl && key !== "color.dark.background" && val.trim() === DEFAULT_DARK_VALUES[key]) {
+        continue;
       }
+      const cssVar = CSS_VAR_MAP_DARK[key];
+      darkRules.push(`  ${cssVar}: ${val};`);
     }
 
     if (homeCardAccent) darkRules.push(`  --home-card-accent: ${homeCardAccent};`);

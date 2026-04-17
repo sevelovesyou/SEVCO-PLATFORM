@@ -3,6 +3,7 @@ import { DEFAULT_SECTION_ORDER } from "@shared/section-order";
 import { useState, useEffect, useRef } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
+import { deriveDarkSurfaces, DEFAULT_DARK_VALUES } from "@/lib/derive-dark-surfaces";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -3055,30 +3056,40 @@ export default function CommandSettings() {
                         brandAccent: brandAccent,
                         brandHighlight: brandHighlight,
                       }}
-                      dark={{
-                        background: darkBackground,
-                        foreground: darkForeground,
-                        card: darkAccent,
-                        cardFg: darkForeground,
-                        primary: darkPrimary,
-                        primaryFg: lightPrimaryFg,
-                        secondary: darkAccent,
-                        secondaryFg: darkForeground,
-                        muted: darkAccent,
-                        mutedFg: darkForeground,
-                        accent: darkAccent,
-                        accentFg: darkForeground,
-                        destructive: lightDestructive,
-                        destructiveFg: "0 0% 100%",
-                        border: darkAccent,
-                        ring: darkPrimary,
-                        sidebarBg: navMainBg || darkAccent,
-                        sidebarFg: navMainText || darkForeground,
-                        brandMain: brandMain,
-                        brandSecondary: brandSecondary,
-                        brandAccent: brandAccent,
-                        brandHighlight: brandHighlight,
-                      }}
+                      dark={(() => {
+                        const derived = deriveDarkSurfaces(darkBackground);
+                        const accentExplicit = darkAccent && darkAccent !== DEFAULT_DARK_VALUES["color.dark.accent"];
+                        const surfaceAccent = accentExplicit ? darkAccent : (derived?.accent ?? darkAccent);
+                        const border = derived?.border ?? darkAccent;
+                        const card = derived?.card ?? darkAccent;
+                        const sidebar = derived?.sidebar ?? darkAccent;
+                        const muted = derived?.muted ?? darkAccent;
+                        const secondary = derived?.secondary ?? darkAccent;
+                        return {
+                          background: darkBackground,
+                          foreground: darkForeground,
+                          card,
+                          cardFg: darkForeground,
+                          primary: darkPrimary,
+                          primaryFg: lightPrimaryFg,
+                          secondary,
+                          secondaryFg: darkForeground,
+                          muted,
+                          mutedFg: darkForeground,
+                          accent: surfaceAccent,
+                          accentFg: darkForeground,
+                          destructive: lightDestructive,
+                          destructiveFg: "0 0% 100%",
+                          border,
+                          ring: darkPrimary,
+                          sidebarBg: navMainBg || sidebar,
+                          sidebarFg: navMainText || darkForeground,
+                          brandMain: brandMain,
+                          brandSecondary: brandSecondary,
+                          brandAccent: brandAccent,
+                          brandHighlight: brandHighlight,
+                        };
+                      })()}
                     />
                     <p className="text-[10px] text-muted-foreground text-center">Light & dark previews update as you change colors</p>
                   </div>

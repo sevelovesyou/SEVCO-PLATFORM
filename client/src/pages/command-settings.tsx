@@ -3057,7 +3057,8 @@ export default function CommandSettings() {
                         brandHighlight: brandHighlight,
                       }}
                       dark={(() => {
-                        const derived = deriveDarkSurfaces(darkBackground);
+                        const bgIsCustom = !!darkBackground && darkBackground !== DEFAULT_DARK_VALUES["color.dark.background"];
+                        const derived = bgIsCustom ? deriveDarkSurfaces(darkBackground) : null;
                         const accentExplicit = darkAccent && darkAccent !== DEFAULT_DARK_VALUES["color.dark.accent"];
                         const surfaceAccent = accentExplicit ? darkAccent : (derived?.accent ?? darkAccent);
                         const border = derived?.border ?? darkAccent;

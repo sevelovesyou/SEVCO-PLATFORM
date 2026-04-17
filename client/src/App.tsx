@@ -659,7 +659,8 @@ function PlatformColorInjector() {
     if (brandHighlight) darkRules.push(`  --brand-highlight: ${brandHighlight};`);
 
     const darkBgHsl = toHsl(settings["color.dark.background"] ?? "");
-    if (darkBgHsl) {
+    const darkBgIsCustom = !!darkBgHsl && darkBgHsl.trim() !== DEFAULT_DARK_VALUES["color.dark.background"];
+    if (darkBgIsCustom && darkBgHsl) {
       const derived = derivedDarkSurfacesAsCssVars(darkBgHsl);
       for (const [k, v] of Object.entries(derived)) {
         darkRules.push(`  ${k}: ${v};`);
@@ -673,7 +674,7 @@ function PlatformColorInjector() {
       // still match the built-in defaults so the derived surface values can
       // take effect. This handles the case where settings are saved as a
       // batch but the user only intentionally changed the background.
-      if (darkBgHsl && key !== "color.dark.background" && val.trim() === DEFAULT_DARK_VALUES[key]) {
+      if (darkBgIsCustom && key !== "color.dark.background" && val.trim() === DEFAULT_DARK_VALUES[key]) {
         continue;
       }
       const cssVar = CSS_VAR_MAP_DARK[key];

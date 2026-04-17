@@ -15,6 +15,14 @@ const CANONICAL_PLANETS = [
   { name: "Cratera", seed: 137, type: "desert", size: 150 },
   { name: "Glacius", seed: 256, type: "ice", size: 180 },
   { name: "Xenara", seed: 789, type: "alien", size: 160 },
+  // Task #423 — Moons & asteroids share the same voxel pipeline
+  { name: "Selari", seed: 311, type: "moon", size: 90 },
+  { name: "Pebble-1", seed: 1001, type: "asteroid_common", size: 45 },
+  { name: "Pebble-2", seed: 1002, type: "asteroid_common", size: 45 },
+  { name: "Frostshard", seed: 1101, type: "asteroid_icy", size: 45 },
+  { name: "Ironclad", seed: 1201, type: "asteroid_metallic", size: 45 },
+  { name: "Voidgleam", seed: 1301, type: "asteroid_rare", size: 45 },
+  { name: "Starsplinter", seed: 1302, type: "asteroid_rare", size: 45 },
 ];
 
 interface PlanetRow {

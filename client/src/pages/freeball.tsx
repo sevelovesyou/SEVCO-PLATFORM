@@ -20,6 +20,30 @@ interface Planet {
   size: number;
 }
 
+// Task #423 — universal voxel interactability (moons + asteroids)
+// `kind` is derived from the body's `type` so we can treat them uniformly
+// while still rendering distinct visuals + carving distinct biomes.
+type BodyKind = "planet" | "moon" | "asteroid";
+function bodyKindFor(type: string): BodyKind {
+  if (type === "moon") return "moon";
+  if (type.startsWith("asteroid")) return "asteroid";
+  return "planet";
+}
+// World-radius (in voxel units) for each body kind. Kept inside the shared 64³
+// grid to avoid refactoring the meshing pipeline; smaller bodies just fill
+// less of the grid.
+function worldRadiusFor(type: string): number {
+  const kind = bodyKindFor(type);
+  if (kind === "moon") return 18;
+  if (kind === "asteroid") return 9;
+  return PLANET_RADIUS;
+}
+function isMineable(type: string): boolean {
+  // All bodies in the current galaxy are mineable. Gas giants/stars would
+  // return false here once #417's full solar system lands.
+  return bodyKindFor(type) !== ("star" as BodyKind);
+}
+
 interface Progress {
   userId: string;
   currentPlanetId: number | null;
@@ -99,7 +123,24 @@ const BLOCK_TYPES = [
   { id: 22, name: "Flower Yellow",  color: 0xFFEB3B },
   { id: 23, name: "Autumn Leaves",  color: 0xFF6F00 },
   { id: 24, name: "Dark Leaves",    color: 0x1B5E20 },
+  // Task #423 — moon + asteroid materials
+  { id: 25, name: "Regolith",       color: 0xBDBDBD },
+  { id: 26, name: "Moonstone",      color: 0x90A4AE },
+  { id: 27, name: "Iron Ore",       color: 0x8D6E63 },
+  { id: 28, name: "Frozen Water",   color: 0x80DEEA },
+  { id: 29, name: "Rare Ore",       color: 0xFFC400 },
+  { id: 30, name: "Void Crystal",   color: 0xD500F9 },
 ] as const;
+
+const BLOCK_REGOLITH = 25;
+const BLOCK_MOONSTONE = 26;
+const BLOCK_IRON_ORE = 27;
+const BLOCK_FROZEN_WATER = 28;
+const BLOCK_RARE_ORE = 29;
+const BLOCK_VOID_CRYSTAL = 30;
+const RARE_MATERIAL_IDS = new Set<number>([
+  BLOCK_RARE_ORE, BLOCK_VOID_CRYSTAL, BLOCK_MOONSTONE, BLOCK_IRON_ORE,
+]);
 
 interface BiomeConfig {
   surface: number;
@@ -149,6 +190,45 @@ const BIOME_CONFIGS: Record<string, BiomeConfig> = {
     treeChance: 0.04, flowerChance: 0.08,
     terrainAmp: 6, noiseFreq: 2.0,
   },
+  // Task #423 — moon biome (no foliage, low amplitude rolling regolith)
+  moon: {
+    surface: BLOCK_REGOLITH, sub: BLOCK_MOONSTONE, deep: 16,
+    hasWater: false, waterColor: 0,
+    treeTrunk: 0, treeLeaf: 0,
+    flowerBlocks: [],
+    treeChance: 0, flowerChance: 0,
+    terrainAmp: 1.5, noiseFreq: 1.2,
+  },
+  // Asteroid biomes — irregular shape generated separately, biome.surface/sub/deep
+  // pick the materials the asteroid is made of.
+  asteroid_common: {
+    surface: 3, sub: 3, deep: 3,
+    hasWater: false, waterColor: 0,
+    treeTrunk: 0, treeLeaf: 0, flowerBlocks: [],
+    treeChance: 0, flowerChance: 0,
+    terrainAmp: 0, noiseFreq: 1.0,
+  },
+  asteroid_icy: {
+    surface: 16, sub: BLOCK_FROZEN_WATER, deep: BLOCK_FROZEN_WATER,
+    hasWater: false, waterColor: 0,
+    treeTrunk: 0, treeLeaf: 0, flowerBlocks: [],
+    treeChance: 0, flowerChance: 0,
+    terrainAmp: 0, noiseFreq: 1.0,
+  },
+  asteroid_metallic: {
+    surface: BLOCK_IRON_ORE, sub: 3, deep: 3,
+    hasWater: false, waterColor: 0,
+    treeTrunk: 0, treeLeaf: 0, flowerBlocks: [],
+    treeChance: 0, flowerChance: 0,
+    terrainAmp: 0, noiseFreq: 1.0,
+  },
+  asteroid_rare: {
+    surface: 3, sub: 3, deep: CRYSTAL_ID,
+    hasWater: false, waterColor: 0,
+    treeTrunk: 0, treeLeaf: 0, flowerBlocks: [],
+    treeChance: 0, flowerChance: 0,
+    terrainAmp: 0, noiseFreq: 1.0,
+  },
 };
 
 const PLANET_VISUALS: Record<string, { color: number; glow: number }> = {
@@ -156,6 +236,11 @@ const PLANET_VISUALS: Record<string, { color: number; glow: number }> = {
   desert: { color: 0xFFB74D, glow: 0xFF8A65 },
   ice: { color: 0xE3F2FD, glow: 0x81D4FA },
   alien: { color: 0xAA00FF, glow: 0xE040FB },
+  moon: { color: 0xCFD8DC, glow: 0xECEFF1 },
+  asteroid_common: { color: 0x6D6D6D, glow: 0x424242 },
+  asteroid_icy: { color: 0xB3E5FC, glow: 0x80DEEA },
+  asteroid_metallic: { color: 0x8D6E63, glow: 0xBCAAA4 },
+  asteroid_rare: { color: 0xFFC400, glow: 0xFFEB3B },
 };
 
 interface VoxelPlanetDef {
@@ -375,6 +460,9 @@ interface GameStore {
     dayTime: number;
   };
   setSphereHud: (h: GameStore["sphereHud"]) => void;
+  // Task #423 — Discoveries feed (rare-material finds)
+  discoveries: { id: number; text: string; t: number }[];
+  pushDiscovery: (text: string) => void;
 }
 
 const useGameStore = create<GameStore>((set, get) => ({
@@ -428,6 +516,10 @@ const useGameStore = create<GameStore>((set, get) => ({
     dayTime: 0.25,
   },
   setSphereHud: (h) => set({ sphereHud: h }),
+  discoveries: [],
+  pushDiscovery: (text) => set((s) => ({
+    discoveries: [{ id: Date.now() + Math.random(), text, t: Date.now() }, ...s.discoveries].slice(0, 5),
+  })),
 }));
 
 function makeRng(seed: number): () => number {
@@ -452,11 +544,19 @@ function setVoxel(data: Uint8Array, gx: number, gy: number, gz: number, val: num
   data[gridIndex(gx, gy, gz)] = val;
 }
 
-function generatePlanetData(seed: number, biomeType: string, planetRadius: number = PLANET_RADIUS): Uint8Array {
+function generatePlanetData(seed: number, biomeType: string, worldRadius: number = PLANET_RADIUS): Uint8Array {
   const biome = BIOME_CONFIGS[biomeType] || BIOME_CONFIGS.verdania;
   const rng = makeRng(seed);
   const noise = createNoise3D(rng);
   const data = new Uint8Array(GRID_SIZE * GRID_SIZE * GRID_SIZE);
+  const kind = bodyKindFor(biomeType);
+
+  // Asteroids use a density-threshold generator: lumpy, irregular, sometimes
+  // with crude internal tunnels. Otherwise we use the spherical surface-radius
+  // approach for planets and moons.
+  if (kind === "asteroid") {
+    return generateAsteroidData(seed, biomeType, worldRadius, biome, noise, rng);
+  }
 
   for (let gx = 0; gx < GRID_SIZE; gx++) {
     for (let gy = 0; gy < GRID_SIZE; gy++) {
@@ -467,9 +567,9 @@ function generatePlanetData(seed: number, biomeType: string, planetRadius: numbe
         const dist = Math.sqrt(x * x + y * y + z * z);
         if (dist < 1) continue;
 
-        const nx = x / planetRadius;
-        const ny = y / planetRadius;
-        const nz = z / planetRadius;
+        const nx = x / worldRadius;
+        const ny = y / worldRadius;
+        const nz = z / worldRadius;
 
         const terrainNoise =
           noise(nx * biome.noiseFreq, ny * biome.noiseFreq, nz * biome.noiseFreq) * biome.terrainAmp +
@@ -477,7 +577,7 @@ function generatePlanetData(seed: number, biomeType: string, planetRadius: numbe
           noise(nx * biome.noiseFreq * 4, ny * biome.noiseFreq * 4, nz * biome.noiseFreq * 4) * biome.terrainAmp * 0.25;
 
         const maxSurfaceRadius = GRID_HALF - 2;
-        const surfaceRadius = Math.min(planetRadius + terrainNoise, maxSurfaceRadius);
+        const surfaceRadius = Math.min(worldRadius + terrainNoise, maxSurfaceRadius);
 
         if (dist <= surfaceRadius) {
           const depth = surfaceRadius - dist;
@@ -486,8 +586,16 @@ function generatePlanetData(seed: number, biomeType: string, planetRadius: numbe
           else if (depth < 3) blockId = biome.sub;
           else blockId = biome.deep;
 
-          if (depth > 3 && Math.abs(noise(nx * 8, ny * 8, nz * 8)) > 0.82) {
+          if (kind === "planet" && depth > 3 && Math.abs(noise(nx * 8, ny * 8, nz * 8)) > 0.82) {
             blockId = CRYSTAL_ID;
+          }
+          // Moonstone glows; sprinkle iron-ore + rare deep on moons too
+          if (kind === "moon" && depth > 4 && Math.abs(noise(nx * 6, ny * 6, nz * 6)) > 0.85) {
+            blockId = BLOCK_IRON_ORE;
+          }
+          // Void-crystal: ultra-rare, deep below worldRadius * 0.3 in any body
+          if (dist < worldRadius * 0.3 && Math.abs(noise(nx * 12, ny * 12, nz * 12)) > 0.93) {
+            blockId = BLOCK_VOID_CRYSTAL;
           }
 
           data[gridIndex(gx, gy, gz)] = blockId;
@@ -497,6 +605,75 @@ function generatePlanetData(seed: number, biomeType: string, planetRadius: numbe
   }
 
   addFoliage(data, seed, biome);
+  return data;
+}
+
+function generateAsteroidData(
+  seed: number,
+  biomeType: string,
+  worldRadius: number,
+  biome: BiomeConfig,
+  noise: ReturnType<typeof createNoise3D>,
+  rng: () => number,
+): Uint8Array {
+  const data = new Uint8Array(GRID_SIZE * GRID_SIZE * GRID_SIZE);
+  const tunnelNoise = createNoise3D(makeRng(seed + 31337));
+  const richNoise = createNoise3D(makeRng(seed + 91011));
+  const isRare = biomeType === "asteroid_rare";
+  const isMetallic = biomeType === "asteroid_metallic";
+  const isIcy = biomeType === "asteroid_icy";
+  // Place exactly one rare-ore "vein" on rare asteroids
+  let placedRare = false;
+  // Falloff radius — voxels can survive up to ~worldRadius+2, but density falls off
+  for (let gx = 0; gx < GRID_SIZE; gx++) {
+    for (let gy = 0; gy < GRID_SIZE; gy++) {
+      for (let gz = 0; gz < GRID_SIZE; gz++) {
+        const x = gx - GRID_HALF;
+        const y = gy - GRID_HALF;
+        const z = gz - GRID_HALF;
+        const dist = Math.sqrt(x * x + y * y + z * z);
+        const maxR = Math.min(worldRadius + 3, GRID_HALF - 2);
+        if (dist > maxR) continue;
+        // Density: outer falloff + simplex lump noise
+        const nx = x / worldRadius;
+        const ny = y / worldRadius;
+        const nz = z / worldRadius;
+        const lump = noise(nx * 1.6, ny * 1.6, nz * 1.6) * 0.6
+                   + noise(nx * 3.2, ny * 3.2, nz * 3.2) * 0.3;
+        const radial = 1 - dist / Math.max(worldRadius, 1);
+        const density = radial + lump * 0.5;
+        if (density < 0.35) continue;
+        // Carve a tunnel through the body for interest
+        const tn = Math.abs(tunnelNoise(nx * 2.5, ny * 2.5, nz * 2.5));
+        if (tn < 0.08 && dist < worldRadius * 0.85) continue;
+        const depth = Math.max(0, worldRadius - dist);
+        let blockId = depth < 1 ? biome.surface : (depth < 2 ? biome.sub : biome.deep);
+        // Metallic asteroids: occasional iron-ore patches
+        if (isMetallic && Math.abs(richNoise(nx * 5, ny * 5, nz * 5)) > 0.7) {
+          blockId = BLOCK_IRON_ORE;
+        }
+        // Icy: sprinkle frozen-water near surface
+        if (isIcy && depth < 2 && rng() > 0.4) {
+          blockId = BLOCK_FROZEN_WATER;
+        }
+        // Rare asteroid: one rare-ore voxel near the core
+        if (isRare && !placedRare && dist < worldRadius * 0.4 && rng() > 0.7) {
+          blockId = BLOCK_RARE_ORE;
+          placedRare = true;
+        }
+        // Universal void-crystal in deepest core, all asteroids
+        if (dist < worldRadius * 0.25 && Math.abs(noise(nx * 14, ny * 14, nz * 14)) > 0.94) {
+          blockId = BLOCK_VOID_CRYSTAL;
+        }
+        data[gridIndex(gx, gy, gz)] = blockId;
+      }
+    }
+  }
+  // Guarantee a rare-ore block exists on rare asteroids even if rng didn't trigger
+  if (isRare && !placedRare) {
+    const cx = GRID_HALF, cy = GRID_HALF, cz = GRID_HALF;
+    if (data[gridIndex(cx, cy, cz)] !== 0) data[gridIndex(cx, cy, cz)] = BLOCK_RARE_ORE;
+  }
   return data;
 }
 
@@ -896,6 +1073,19 @@ function PlanetVoxelMesh({ data, center, revision, planetId, voxelScale }: { dat
   );
 }
 
+// Display name for a body type (used in HUD discoveries feed and planet label)
+function bodyDisplayKind(type: string): string {
+  const k = bodyKindFor(type);
+  if (k === "moon") return "Moon";
+  if (k === "asteroid") {
+    if (type === "asteroid_icy") return "Icy Asteroid";
+    if (type === "asteroid_metallic") return "Metallic Asteroid";
+    if (type === "asteroid_rare") return "Rare Asteroid";
+    return "Asteroid";
+  }
+  return "Planet";
+}
+
 function WaterShell({ center, biomeType, voxelScale, voxelRadius }: { center: THREE.Vector3; biomeType: string; voxelScale: number; voxelRadius: number }) {
   const biome = BIOME_CONFIGS[biomeType] || BIOME_CONFIGS.verdania;
   const matRef = useRef<THREE.ShaderMaterial>(null);
@@ -955,26 +1145,48 @@ function WaterShell({ center, biomeType, voxelScale, voxelRadius }: { center: TH
   );
 }
 
-function DistantPlanetSphere({ position, planetType, visualRadius }: {
+function DistantBody({ position, planetType, visualRadius, seed }: {
   position: THREE.Vector3;
   planetType: string;
   visualRadius: number;
+  seed: number;
 }) {
   const vis = PLANET_VISUALS[planetType] || PLANET_VISUALS.verdania;
+  const groupRef = useRef<THREE.Group>(null);
   const meshRef = useRef<THREE.Mesh>(null);
+  const kind = bodyKindFor(planetType);
+  // Asteroids spin around a deterministic random axis derived from seed
+  const spinAxis = useMemo(() => {
+    if (kind !== "asteroid") return new THREE.Vector3(0, 1, 0);
+    const r = makeRng(seed + 7);
+    return new THREE.Vector3(r() * 2 - 1, r() * 2 - 1, r() * 2 - 1).normalize();
+  }, [kind, seed]);
   useFrame((_, dt) => {
     if (meshRef.current) meshRef.current.rotation.y += dt * 0.02;
+    if (kind === "asteroid" && groupRef.current) {
+      groupRef.current.rotateOnAxis(spinAxis, dt * 0.15);
+    }
   });
+  // Asteroids: render as a low-poly irregular icosahedron
+  const geomArgs: [number, number, number] = kind === "asteroid"
+    ? [visualRadius, 1, 0]
+    : [visualRadius, 24, 24];
   return (
-    <group position={position}>
+    <group ref={groupRef} position={position}>
       <mesh ref={meshRef}>
-        <sphereGeometry args={[visualRadius, 24, 24]} />
-        <meshStandardMaterial color={vis.color} roughness={0.8} />
+        {kind === "asteroid" ? (
+          <icosahedronGeometry args={[geomArgs[0], geomArgs[1]]} />
+        ) : (
+          <sphereGeometry args={geomArgs as unknown as [number, number, number]} />
+        )}
+        <meshStandardMaterial color={vis.color} roughness={0.85} flatShading={kind === "asteroid"} />
       </mesh>
-      <mesh>
-        <sphereGeometry args={[visualRadius * 1.15, 24, 24]} />
-        <meshBasicMaterial color={vis.glow} transparent opacity={0.12} side={THREE.BackSide} />
-      </mesh>
+      {kind !== "asteroid" && (
+        <mesh>
+          <sphereGeometry args={[visualRadius * 1.15, 24, 24]} />
+          <meshBasicMaterial color={vis.glow} transparent opacity={0.12} side={THREE.BackSide} />
+        </mesh>
+      )}
     </group>
   );
 }
@@ -1326,6 +1538,7 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
   const voxelRadius = activeDef?.voxelRadius ?? PLANET_RADIUS;
   const surfaceWorldRadius = voxelRadius * voxelScale;
   const biomeType = activePlanet?.type || "verdania";
+  const activeWorldRadius = worldRadiusFor(biomeType);
 
   const [geoRevision, setGeoRevision] = useState(0);
   const prevBuildsRef = useRef(savedBuilds);
@@ -1503,6 +1716,10 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
           const blockName = (BLOCK_TYPES as readonly { id: number; name: string; color: number }[]).find((b) => b.id === blockVal)?.name ?? `Block ${blockVal}`;
           useGameStore.getState().setPickupToast(`+1 ${blockName}`);
           setTimeout(() => useGameStore.getState().setPickupToast(""), 1800);
+          // Task #423 — Rare-material discovery feed
+          if (RARE_MATERIAL_IDS.has(blockVal)) {
+            useGameStore.getState().pushDiscovery(`Discovered ${blockName} on ${activePlanet?.name ?? "this body"}`);
+          }
         }
         setVoxel(planetData, result.gx, result.gy, result.gz, 0);
         trackModification(activePlanet?.id ?? 0, result.gx, result.gy, result.gz, 0);
@@ -1971,11 +2188,12 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
         const dist = activePos.distanceTo(def.position);
         if (dist > def.voxelRadius * def.voxelScale * 50) return null;
         return (
-          <DistantPlanetSphere
+          <DistantBody
             key={def.planet.id}
             position={def.position}
             planetType={def.planet.type}
             visualRadius={def.voxelRadius * def.voxelScale}
+            seed={def.planet.seed}
           />
         );
       })}
@@ -2008,7 +2226,7 @@ function trackModification(planetId: number, gx: number, gy: number, gz: number,
 }
 
 function HUD({ planet, sparksBalance, progress }: { planet: Planet | null; sparksBalance: number; progress: Progress | null }) {
-  const { selectedBlock, setSelectedBlock, speed, altitude, inVehicle, pointerLocked, crystalsCollected, nearSphere, gameInventory, showInventory, setShowInventory, pickupToast } = useGameStore();
+  const { selectedBlock, setSelectedBlock, speed, altitude, inVehicle, pointerLocked, crystalsCollected, nearSphere, gameInventory, showInventory, setShowInventory, pickupToast, discoveries } = useGameStore();
 
   const allBlockTypes = BLOCK_TYPES as readonly { id: number; name: string; color: number }[];
   const artifactCount = gameInventory["artifact"] ?? 0;
@@ -2030,7 +2248,7 @@ function HUD({ planet, sparksBalance, progress }: { planet: Planet | null; spark
       )}
 
       <div className="absolute top-3 right-3 flex flex-col items-end gap-1" data-testid="freeball-info">
-        {planet && <div className="bg-black/60 text-white text-xs px-2 py-1 rounded font-mono">{planet.name} ({planet.type})</div>}
+        {planet && <div className="bg-black/60 text-white text-xs px-2 py-1 rounded font-mono" data-testid="text-active-body">{planet.name} · {bodyDisplayKind(planet.type)}</div>}
         <div className="bg-black/60 text-yellow-400 text-xs px-2 py-1 rounded font-mono">⚡ {sparksBalance}</div>
         {inVehicle && (
           <>
@@ -2095,6 +2313,27 @@ function HUD({ planet, sparksBalance, progress }: { planet: Planet | null; spark
       {progress?.unlockedSphere && (
         <div className="absolute top-3 left-3 bg-black/60 text-blue-400 text-xs px-2 py-1 rounded font-mono" data-testid="freeball-sphere-status">
           SPHERE ready (E)
+        </div>
+      )}
+
+      {discoveries.length > 0 && (
+        <div
+          className="absolute top-16 right-3 flex flex-col items-end gap-1 max-w-xs"
+          data-testid="freeball-discoveries"
+        >
+          <div className="bg-black/60 text-amber-300 text-[10px] px-2 py-0.5 rounded font-mono uppercase tracking-wider">
+            Discoveries
+          </div>
+          {discoveries.slice(0, 5).map((d, i) => (
+            <div
+              key={`${d.t}-${i}`}
+              className="bg-black/70 text-amber-200 text-xs px-2 py-1 rounded font-mono border border-amber-500/30"
+              style={{ opacity: Math.max(0.4, 1 - i * 0.15) }}
+              data-testid={`text-discovery-${i}`}
+            >
+              {d.text}
+            </div>
+          ))}
         </div>
       )}
 

@@ -28320,7 +28320,6 @@ On the Brand Guidelines page, each "Approved variants" tile uses a diagonal whit
 
 ---
 
-<<<<<<< HEAD
 ## Task — freeball-universal-voxel
 > Merged: 2026-04-17
 
@@ -28415,7 +28414,6 @@ On the Brand Guidelines page, each "Approved variants" tile uses a diagonal whit
   - Crafting recipes that consume rare materials (just collecting for now).
   - Destroyable gas giant / star.
   - Fluid dynamics, atmosphere entry burn, or orbital mechanics (moons still follow simple circular orbits).
-=======
 ## Task — task-421
 > Merged: 2026-04-17
 
@@ -28471,7 +28469,6 @@ Add an opt-in, push-to-talk voice chat layer to the existing Chat so authenticat
 - `client/src/components/floating-chat-window.tsx`
 - `client/src/lib/permissions.ts`
 - `client/src/App.tsx`
->>>>>>> efa9c70 (Post-merge setup completed successfully)
 
 
 ---
@@ -28630,6 +28627,107 @@ title: Freeball: smooth gravity transitions + Sphere navigation HUD
   ## Out of scope
   - Fast-travel / warp-to-waypoint. Waypoint is a marker only.
   - Minimap on foot (HUD is Sphere-only).
+
+
+---
+
+## Task — task-423
+> Merged: 2026-04-17
+
+---
+title: Freeball: make moons + asteroids walkable/mineable/buildable (voxel, not mesh)
+---
+# Universal voxel interactability: walkable moons + mineable asteroids
+
+  ## Why
+  Player wants every celestial body to be interactable in a voxelized way — not just walkable terrestrial planets. Moons should be landable/mineable/buildable. Asteroids should be mineable for rare materials. This supersedes the "mesh-only moon/asteroid" approach from #417 and unifies the world: if it's solid, you can land on it and dig into it.
+
+  ## 1. Promote Moon from mesh to voxel
+  Under #417, moons were planned as `meshStandardMaterial` spheres. Change:
+  - `<Moon>` becomes a voxel body with its own `PlanetDef` of `kind: 'moon'`, `worldRadius: 6–20u`.
+  - Reuses `generatePlanetData` + `buildPlanetGeometry` with a moon-specific biome: surface=regolith, subsurface=moonstone, occasional ice-core voxels. No foliage. Low noise amplitude → smooth rolling terrain.
+  - Grid size: `GRID_SIZE_MOON = 32` (half of the 64 used for planets) since moons are smaller and we don't need the same resolution. Keeps memory low.
+  - Orbit motion: moon's `PlanetDef.position` is computed every frame from its `parentId` + `orbit` params. Its voxel mesh moves with it as a `<group>`.
+  - Landing: `PLANET_LANDING_RANGE` logic already checks per-planet worldRadius → works out of the box for moons once they're voxel.
+
+  ### Biome: moon
+  ```
+  surface: 'regolith'        // new block, pale gray
+  subSurface: 'moonstone'    // new block, darker gray
+  core: 'ice'                // reuse existing
+  foliage: []                // none
+  noiseAmplitude: 0.3        // much flatter than planet biomes
+  ```
+
+  ## 2. Promote Asteroid from instanced mesh to voxel
+  Under #417, asteroids were an InstancedMesh belt. Change:
+  - Each asteroid is a small voxel body: `GRID_SIZE_ASTEROID = 16`, `worldRadius: 2–6u`.
+  - Irregular shape: use simplex noise with `threshold = 0.35` (sparser than planets) so the body is lumpy, not spherical. Some asteroids carved with crude tunnels for interest.
+  - Rotate slowly around a random axis (stored in PlanetDef).
+  - ~20 in the belt, placed in a torus-shaped region between the inner and outer planet rings.
+
+  ### Asteroid biomes (pick per-asteroid)
+  ```
+  common:   { surface: 'stone', core: 'stone' }        // 60%
+  icy:      { surface: 'ice', core: 'frozen-water' }   // 20%
+  metallic: { surface: 'iron-ore', core: 'stone' }     // 12%
+  rare:     { surface: 'stone', core: 'crystal', richCore: 'rare-ore' }  // 8%
+  ```
+
+  ## 3. Rare materials system
+  Extend `BLOCK_TYPES` (currently 24 entries) with new ore/material blocks:
+  | block | name | where it spawns | gameplay |
+  |---|---|---|---|
+  | regolith | Regolith | moon surface | cheap build material |
+  | moonstone | Moonstone | moon subsurface | glows faintly at night |
+  | iron-ore | Iron Ore | metallic asteroids, rarely in planet cores | crafting stub for now |
+  | frozen-water | Frozen Water | ice asteroids, ice planet cores | stackable resource |
+  | rare-ore | Rare Ore | rare asteroid cores (~1/body) | limited, high value |
+  | void-crystal | Void Crystal | deep below `worldRadius * 0.3` in all bodies | ultra-rare, 1-2 per body |
+
+  Mining a rare-ore block plays a distinct pickup sound and logs to a "Discoveries" feed in the HUD. Persisted in `server/freeball-routes.ts` → player inventory already exists; add new material IDs.
+
+  ## 4. Gas giant handling
+  Gas giants stay non-landable — solid collision sphere from #417. But add: a thin "cloud voxel" layer at `worldRadius ± 3` that the Sphere can briefly graze (visual effect only, no mining). Clarifies "this is gas, you can't stand on it" while still letting the player interact by flying through the top of the clouds for a particle-burst reward.
+
+  ## 5. Star handling
+  Star stays uninteractable (hostile per #417). A close approach reveals "solar sample" pickups as rare, persistent particles orbiting the star — Sphere can scoop one with proximity, granting a one-time consumable. Keeps it "interactable" without letting you land on the sun.
+
+  ## Scope/performance
+  - Adding 1 moon (32³ = 32k voxels) + 20 asteroids (16³ × 20 = 82k voxels) ≈ 114k extra voxels total. Each body is independently meshed, and the greedy mesher is fast. Well under the 262k-per-planet budget we already have.
+  - Voxel data is lazy-generated on first discovery (don't mesh all 20 asteroids on scene load). Pre-generate only those within `3000u` of the player; generate the rest on approach.
+
+  ## Data model changes (shared/schema.ts or freeball-routes payload)
+  `PlanetDef` gains optional fields:
+  - `gridSize?: number` — overrides default 64 (moons=32, asteroids=16)
+  - `rotationAxis?: Vector3` — for asteroids
+  - `isMineable: boolean` — false for star and gas giant; true otherwise
+  Player progress payload gains:
+  - `materials: Record<string, number>` — inventory of rare materials (may already exist; extend with new IDs)
+  - `discoveredBodyTypes: string[]` — for the "discoveries" HUD feed
+
+  ## Files
+  - `client/src/pages/freeball/planets.ts` — add moon + asteroid biomes, adjust `generatePlanetData` to take `gridSize` and `noiseAmplitude` from PlanetDef.
+  - `client/src/pages/freeball/celestial.tsx` — `<Moon>` and `<AsteroidField>` become voxel renderers using the same geometry pipeline as planets, not mesh spheres. Remove the mesh-only path except for Star + GasGiant.
+  - `client/src/pages/freeball/index.tsx` — lazy-generate voxel data on approach (LRU keyed by bodyId).
+  - `server/freeball-routes.ts` — extend inventory/progress.
+  - `shared/schema.ts` — if the inventory is a table, add new material columns or widen an existing JSONB field.
+
+  ## Done looks like
+  - Fly the Sphere to a moon; land; walk around; mine a moonstone block; place it elsewhere. Same experience as a planet, just smaller.
+  - Fly to an asteroid; orient; land on the irregular surface; mine through and find rare-ore in a "rare" asteroid. Pickup logs in HUD.
+  - 20 asteroids visible in the belt, each a different lumpy shape, rotating slowly.
+  - Leave and come back: moon surface edits persist (same as planet edits do today).
+  - Gas giant: fly close, see cloud graze particles; cannot land.
+  - Star: fly close, find a stray "solar sample" particle; scoop it; it's in inventory.
+
+  ## Depends on
+  Task #417 (PlanetDef, buildSolarSystem, collision framework must exist first). This task REPLACES #417's mesh-only moon/asteroid rendering with voxel renderers; coordinate with whoever builds #417 so they don't over-invest in the mesh versions.
+
+  ## Out of scope
+  - Crafting recipes that consume rare materials (just collecting for now).
+  - Destroyable gas giant / star.
+  - Fluid dynamics, atmosphere entry burn, or orbital mechanics (moons still follow simple circular orbits).
 
 
 ---

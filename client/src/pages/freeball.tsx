@@ -2883,7 +2883,9 @@ function FreeballPageInner() {
     if (!canvas) return;
     canvas.toBlob((blob) => {
       if (!blob) return;
-      const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      const d = new Date();
+      const pad = (n: number) => n.toString().padStart(2, "0");
+      const ts = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
       const planetName = (activePlanet?.name ?? "freeball").toLowerCase().replace(/\s+/g, "-");
       const filename = `freeball-${planetName}-${ts}.png`;
       const url = URL.createObjectURL(blob);

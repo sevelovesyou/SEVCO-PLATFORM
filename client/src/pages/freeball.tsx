@@ -55,6 +55,7 @@ interface CurrentUser {
 
 const VOXEL_SCALE = 0.45;
 const PLANET_RADIUS = 30;
+const SPHERE_RADIUS = 1.2;
 const GRID_SIZE = 64;
 const GRID_HALF = 32;
 const CRYSTAL_ID = 7;
@@ -147,13 +148,6 @@ const BIOME_CONFIGS: Record<string, BiomeConfig> = {
   },
 };
 
-const PLANET_POSITIONS = [
-  new THREE.Vector3(0, 0, 0),
-  new THREE.Vector3(280, 50, -120),
-  new THREE.Vector3(-220, -30, 260),
-  new THREE.Vector3(200, 70, 300),
-];
-
 const PLANET_VISUALS: Record<string, { color: number; glow: number }> = {
   verdania: { color: 0x2ECC40, glow: 0x81D4FA },
   desert: { color: 0xFFB74D, glow: 0xFF8A65 },
@@ -161,7 +155,178 @@ const PLANET_VISUALS: Record<string, { color: number; glow: number }> = {
   alien: { color: 0xAA00FF, glow: 0xE040FB },
 };
 
-const PLANET_LANDING_RANGE = PLANET_RADIUS * VOXEL_SCALE * 2.5;
+interface VoxelPlanetDef {
+  index: number;
+  planet: Planet;
+  position: THREE.Vector3;
+  voxelScale: number;
+  voxelRadius: number;
+  worldRadius: number;
+}
+
+interface StarDef {
+  position: THREE.Vector3;
+  worldRadius: number;
+}
+
+interface GasGiantDef {
+  id: string;
+  position: THREE.Vector3;
+  worldRadius: number;
+  seed: number;
+  hasRing: boolean;
+}
+
+type MoonParent = { kind: "voxel"; index: number } | { kind: "gas-giant"; index: number };
+
+interface MoonDef {
+  id: string;
+  parent: MoonParent;
+  orbitRadius: number;
+  orbitSpeed: number;
+  inclination: number;
+  phase: number;
+  worldRadius: number;
+  seed: number;
+}
+
+interface AsteroidBeltDef {
+  center: THREE.Vector3;
+  innerRadius: number;
+  outerRadius: number;
+  count: number;
+  seed: number;
+}
+
+interface SolarSystem {
+  voxelDefs: VoxelPlanetDef[];
+  star: StarDef;
+  gasGiants: GasGiantDef[];
+  moons: MoonDef[];
+  asteroidBelt: AsteroidBeltDef;
+}
+
+const VOXEL_TIERS = [
+  { voxelRadius: 22, scaleMin: 0.7, scaleMax: 1.0 },
+  { voxelRadius: 28, scaleMin: 1.6, scaleMax: 2.6 },
+  { voxelRadius: 30, scaleMin: 3.2, scaleMax: 4.5 },
+];
+
+function buildSolarSystem(planets: Planet[]): SolarSystem {
+  const star: StarDef = { position: new THREE.Vector3(0, 0, 0), worldRadius: 1800 };
+  const sysRng = makeRng(73821);
+  const voxelDefs: VoxelPlanetDef[] = [];
+  const placed: { pos: THREE.Vector3; r: number }[] = [];
+
+  // Pad to at least 6 voxel planets with synthetic decorative ones.
+  const allPlanets: Planet[] = [...planets];
+  const targetCount = 6;
+  for (let i = allPlanets.length; i < targetCount; i++) {
+    allPlanets.push({
+      id: -1000 - i,
+      name: `Planetoid ${i + 1}`,
+      seed: 90001 + i * 137,
+      type: ["verdania", "desert", "ice", "alien"][i % 4],
+      size: 120,
+    });
+  }
+
+  for (let i = 0; i < allPlanets.length; i++) {
+    const p = allPlanets[i];
+    const prng = makeRng(p.seed * 31 + 17);
+    const r = prng();
+    const tier = r < 0.25 ? VOXEL_TIERS[0] : r < 0.85 ? VOXEL_TIERS[1] : VOXEL_TIERS[2];
+    const voxelScale = tier.scaleMin + prng() * (tier.scaleMax - tier.scaleMin);
+    const voxelRadius = Math.min(GRID_HALF - 2, tier.voxelRadius);
+    const worldRadius = voxelScale * voxelRadius;
+
+    let pos = new THREE.Vector3();
+    for (let attempt = 0; attempt < 40; attempt++) {
+      const baseOrbit = star.worldRadius + 800 + i * 700;
+      const orbit = baseOrbit + (sysRng() - 0.5) * 600;
+      const angle = sysRng() * Math.PI * 2;
+      const yJit = (sysRng() - 0.5) * 250;
+      pos = new THREE.Vector3(Math.cos(angle) * orbit, yJit, Math.sin(angle) * orbit);
+      let ok = true;
+      for (const o of placed) {
+        if (pos.distanceTo(o.pos) < (worldRadius + o.r) * 2.5) { ok = false; break; }
+      }
+      if (ok) break;
+    }
+    placed.push({ pos, r: worldRadius });
+    voxelDefs.push({ index: i, planet: p, position: pos, voxelScale, voxelRadius, worldRadius });
+  }
+
+  // Gas giant placed beyond the outermost voxel planet
+  const gasGiants: GasGiantDef[] = [];
+  {
+    const angle = sysRng() * Math.PI * 2;
+    const orbit = 4500;
+    const pos = new THREE.Vector3(Math.cos(angle) * orbit, (sysRng() - 0.5) * 100, Math.sin(angle) * orbit);
+    gasGiants.push({ id: "gg-0", position: pos, worldRadius: 450, seed: 99001, hasRing: true });
+  }
+
+  // Moons
+  const moons: MoonDef[] = [];
+  for (let i = 0; i < Math.min(voxelDefs.length, 4); i++) {
+    if (sysRng() < 0.55) {
+      moons.push({
+        id: `moon-v${i}`,
+        parent: { kind: "voxel", index: i },
+        orbitRadius: voxelDefs[i].worldRadius * (3 + sysRng() * 2),
+        orbitSpeed: 0.04 + sysRng() * 0.08,
+        inclination: (sysRng() - 0.5) * 0.6,
+        phase: sysRng() * Math.PI * 2,
+        worldRadius: 5 + sysRng() * 14,
+        seed: 1234 + i * 17,
+      });
+    }
+  }
+  moons.push({
+    id: "moon-gg-0",
+    parent: { kind: "gas-giant", index: 0 },
+    orbitRadius: 800,
+    orbitSpeed: 0.04,
+    inclination: 0.18,
+    phase: sysRng() * Math.PI * 2,
+    worldRadius: 22,
+    seed: 5005,
+  });
+  moons.push({
+    id: "moon-gg-1",
+    parent: { kind: "gas-giant", index: 0 },
+    orbitRadius: 1100,
+    orbitSpeed: 0.025,
+    inclination: -0.1,
+    phase: sysRng() * Math.PI * 2,
+    worldRadius: 14,
+    seed: 5006,
+  });
+
+  const asteroidBelt: AsteroidBeltDef = {
+    center: new THREE.Vector3(0, 0, 0),
+    innerRadius: 3200,
+    outerRadius: 3700,
+    count: 22,
+    seed: 7777,
+  };
+
+  return { voxelDefs, star, gasGiants, moons, asteroidBelt };
+}
+
+function getMoonPosition(moon: MoonDef, system: SolarSystem, t: number): THREE.Vector3 {
+  let center: THREE.Vector3;
+  if (moon.parent.kind === "voxel") {
+    center = system.voxelDefs[moon.parent.index]?.position ?? new THREE.Vector3();
+  } else {
+    center = system.gasGiants[moon.parent.index]?.position ?? new THREE.Vector3();
+  }
+  const a = moon.phase + t * moon.orbitSpeed;
+  const x = Math.cos(a) * moon.orbitRadius;
+  const z = Math.sin(a) * moon.orbitRadius;
+  const y = Math.sin(a) * moon.orbitRadius * Math.sin(moon.inclination);
+  return new THREE.Vector3(center.x + x, center.y + y, center.z + z);
+}
 
 interface GameStore {
   selectedBlock: number;
@@ -250,7 +415,7 @@ function setVoxel(data: Uint8Array, gx: number, gy: number, gz: number, val: num
   data[gridIndex(gx, gy, gz)] = val;
 }
 
-function generatePlanetData(seed: number, biomeType: string): Uint8Array {
+function generatePlanetData(seed: number, biomeType: string, planetRadius: number = PLANET_RADIUS): Uint8Array {
   const biome = BIOME_CONFIGS[biomeType] || BIOME_CONFIGS.verdania;
   const rng = makeRng(seed);
   const noise = createNoise3D(rng);
@@ -265,9 +430,9 @@ function generatePlanetData(seed: number, biomeType: string): Uint8Array {
         const dist = Math.sqrt(x * x + y * y + z * z);
         if (dist < 1) continue;
 
-        const nx = x / PLANET_RADIUS;
-        const ny = y / PLANET_RADIUS;
-        const nz = z / PLANET_RADIUS;
+        const nx = x / planetRadius;
+        const ny = y / planetRadius;
+        const nz = z / planetRadius;
 
         const terrainNoise =
           noise(nx * biome.noiseFreq, ny * biome.noiseFreq, nz * biome.noiseFreq) * biome.terrainAmp +
@@ -275,7 +440,7 @@ function generatePlanetData(seed: number, biomeType: string): Uint8Array {
           noise(nx * biome.noiseFreq * 4, ny * biome.noiseFreq * 4, nz * biome.noiseFreq * 4) * biome.terrainAmp * 0.25;
 
         const maxSurfaceRadius = GRID_HALF - 2;
-        const surfaceRadius = Math.min(PLANET_RADIUS + terrainNoise, maxSurfaceRadius);
+        const surfaceRadius = Math.min(planetRadius + terrainNoise, maxSurfaceRadius);
 
         if (dist <= surfaceRadius) {
           const depth = surfaceRadius - dist;
@@ -385,13 +550,13 @@ interface PlanetGeo {
   indices: Uint32Array;
 }
 
-function buildPlanetGeometry(data: Uint8Array): PlanetGeo | null {
+function buildPlanetGeometry(data: Uint8Array, voxelScale: number = VOXEL_SCALE): PlanetGeo | null {
   const positions: number[] = [];
   const normals: number[] = [];
   const colors: number[] = [];
   const indices: number[] = [];
   const S = GRID_SIZE;
-  const scale = VOXEL_SCALE;
+  const scale = voxelScale;
 
   const AXES = [
     { u: 1, v: 2, w: 0, dir: 1,  normal: [1, 0, 0] },
@@ -452,21 +617,43 @@ function buildPlanetGeometry(data: Uint8Array): PlanetGeo | null {
           const c = new THREE.Color(blockDef.color);
 
           // Directional shading based on face normal
-          // Top faces (normal.y > 0) get full brightness, sides mid-tone, bottoms darker
           const ny = normal[1];
           let shade: number;
           if (ny > 0.5) shade = 1.0;
           else if (ny < -0.5) shade = 0.55;
           else shade = 0.75;
 
-          // Small seeded per-block variation (±5%) to break up flat plastic look
-          const blockSeed = (a * 1000 + b * 100 + layer * 10 + (dir > 0 ? 1 : 0)) * 2654435761;
-          const variation = 1.0 + ((blockSeed % 100) / 100 - 0.5) * 0.1;
-          const finalShade = shade * variation;
+          // Per-voxel color jitter (±4%) using a 3D hash, dampens the "plastic" look
+          const hashSeed = ((a * 374761393) ^ (b * 668265263) ^ (layer * 2147483647) ^ (dir > 0 ? 1 : 11)) >>> 0;
+          const variation = 1.0 + (((hashSeed % 1000) / 1000) - 0.5) * 0.08;
+          const baseShade = shade * variation;
 
-          c.r = Math.min(1, c.r * finalShade);
-          c.g = Math.min(1, c.g * finalShade);
-          c.b = Math.min(1, c.b * finalShade);
+          c.r = Math.min(1, c.r * baseShade);
+          c.g = Math.min(1, c.g * baseShade);
+          c.b = Math.min(1, c.b * baseShade);
+
+          // Vertex AO: probe the slab one voxel "above" the face along the normal direction
+          const slab = layer + dir;
+          const slabValid = slab >= 0 && slab < S;
+          const isSolidSlab = (uPos: number, vPos: number): boolean => {
+            if (!slabValid) return false;
+            if (uPos < 0 || uPos >= S || vPos < 0 || vPos >= S) return false;
+            const cc: [number, number, number] = [0, 0, 0];
+            cc[w] = slab; cc[u] = uPos; cc[v] = vPos;
+            return data[gridIndex(cc[0], cc[1], cc[2])] !== 0;
+          };
+          const aoLevel = (uPos: number, vPos: number, du: number, dv: number): number => {
+            const s1 = isSolidSlab(uPos + du, vPos);
+            const s2 = isSolidSlab(uPos, vPos + dv);
+            if (s1 && s2) return 0;
+            const cor = isSolidSlab(uPos + du, vPos + dv);
+            return 3 - ((s1 ? 1 : 0) + (s2 ? 1 : 0) + (cor ? 1 : 0));
+          };
+          const aoFactor = (lvl: number) => 0.55 + lvl * 0.15;
+          const ao00 = aoFactor(aoLevel(a, b, -1, -1));
+          const ao10 = aoFactor(aoLevel(a + width - 1, b, +1, -1));
+          const ao11 = aoFactor(aoLevel(a + width - 1, b + height - 1, +1, +1));
+          const ao01 = aoFactor(aoLevel(a, b + height - 1, -1, +1));
 
           const base: [number, number, number] = [0, 0, 0];
           base[w] = (dir === 1 ? layer + 1 : layer) - GRID_HALF;
@@ -484,15 +671,16 @@ function buildPlanetGeometry(data: Uint8Array): PlanetGeo | null {
           corners[2][v] += height * scale;
           corners[3][v] += height * scale;
 
-          const ordered = dir === 1
-            ? [corners[0], corners[1], corners[2], corners[3]]
-            : [corners[0], corners[3], corners[2], corners[1]];
+          const aos = [ao00, ao10, ao11, ao01];
+          const orderedIdx = dir === 1 ? [0, 1, 2, 3] : [0, 3, 2, 1];
 
           const baseIdx = positions.length / 3;
-          for (const corner of ordered) {
+          for (const oi of orderedIdx) {
+            const corner = corners[oi];
+            const ao = aos[oi];
             positions.push(corner[0], corner[1], corner[2]);
             normals.push(normal[0], normal[1], normal[2]);
-            colors.push(c.r, c.g, c.b);
+            colors.push(c.r * ao, c.g * ao, c.b * ao);
           }
           indices.push(baseIdx, baseIdx + 1, baseIdx + 2, baseIdx, baseIdx + 2, baseIdx + 3);
         }
@@ -524,12 +712,12 @@ function buildsFingerprint(builds: SavedBuild[]): string {
   return `${builds.length}:${h}`;
 }
 
-function getOrCreatePlanetData(planetId: number, seed: number, biomeType: string, savedBuilds: SavedBuild[]): Uint8Array {
+function getOrCreatePlanetData(planetId: number, seed: number, biomeType: string, savedBuilds: SavedBuild[], voxelRadius: number = PLANET_RADIUS): Uint8Array {
   const buildsKey = buildsFingerprint(savedBuilds);
   const prevKey = planetBuildsApplied.get(planetId) ?? "";
   if (planetDataCache.has(planetId) && prevKey === buildsKey) return planetDataCache.get(planetId)!;
 
-  const data = generatePlanetData(seed, biomeType);
+  const data = generatePlanetData(seed, biomeType, voxelRadius);
   for (const build of savedBuilds) {
     const cx = (build.chunkX || 0) * GRID_SIZE;
     const cy = (build.chunkY || 0) * GRID_SIZE;
@@ -552,17 +740,17 @@ function getOrCreatePlanetData(planetId: number, seed: number, biomeType: string
 }
 
 
-function worldToGrid(worldPos: THREE.Vector3, planetCenter: THREE.Vector3): [number, number, number] {
+function worldToGrid(worldPos: THREE.Vector3, planetCenter: THREE.Vector3, voxelScale: number = VOXEL_SCALE): [number, number, number] {
   const local = worldPos.clone().sub(planetCenter);
   return [
-    Math.floor(local.x / VOXEL_SCALE + GRID_HALF),
-    Math.floor(local.y / VOXEL_SCALE + GRID_HALF),
-    Math.floor(local.z / VOXEL_SCALE + GRID_HALF),
+    Math.floor(local.x / voxelScale + GRID_HALF),
+    Math.floor(local.y / voxelScale + GRID_HALF),
+    Math.floor(local.z / voxelScale + GRID_HALF),
   ];
 }
 
-function playerCollides(pos: THREE.Vector3, data: Uint8Array, center: THREE.Vector3, up: THREE.Vector3): boolean {
-  const r = VOXEL_SCALE * 0.42;
+function playerCollides(pos: THREE.Vector3, data: Uint8Array, center: THREE.Vector3, up: THREE.Vector3, voxelScale: number = VOXEL_SCALE): boolean {
+  const r = voxelScale * 0.38;
   const right = new THREE.Vector3(1, 0, 0);
   if (Math.abs(up.dot(right)) > 0.9) right.set(0, 0, 1);
   const localRight = right.clone().cross(up).normalize().multiplyScalar(r);
@@ -576,22 +764,53 @@ function playerCollides(pos: THREE.Vector3, data: Uint8Array, center: THREE.Vect
     localRight.clone().sub(localFwd),
     localRight.clone().negate().add(localFwd),
     localRight.clone().negate().sub(localFwd),
-    up.clone().multiplyScalar(VOXEL_SCALE * 1.6),
-    up.clone().multiplyScalar(-VOXEL_SCALE * 0.1),
+    up.clone().multiplyScalar(voxelScale * 1.6),
+    up.clone().multiplyScalar(-voxelScale * 0.1),
   ];
 
   for (const off of offsets) {
     const check = pos.clone().add(off);
-    const [gx, gy, gz] = worldToGrid(check, center);
+    const [gx, gy, gz] = worldToGrid(check, center, voxelScale);
     if (getVoxel(data, gx, gy, gz) !== 0) return true;
   }
   return false;
 }
 
-function groundCheck(pos: THREE.Vector3, data: Uint8Array, center: THREE.Vector3, up: THREE.Vector3): boolean {
-  const check = pos.clone().addScaledVector(up, -VOXEL_SCALE * 0.3);
-  const [gx, gy, gz] = worldToGrid(check, center);
+function groundCheck(pos: THREE.Vector3, data: Uint8Array, center: THREE.Vector3, up: THREE.Vector3, voxelScale: number = VOXEL_SCALE): boolean {
+  const check = pos.clone().addScaledVector(up, -voxelScale * 0.3);
+  const [gx, gy, gz] = worldToGrid(check, center, voxelScale);
   return getVoxel(data, gx, gy, gz) !== 0;
+}
+
+// Try to push the player out of any voxel they're stuck inside. Returns true if a clear position was found.
+function unstickPlayer(pos: THREE.Vector3, data: Uint8Array, center: THREE.Vector3, up: THREE.Vector3, voxelScale: number): boolean {
+  if (!playerCollides(pos, data, center, up, voxelScale)) return false;
+  const right = new THREE.Vector3(1, 0, 0);
+  if (Math.abs(up.dot(right)) > 0.9) right.set(0, 0, 1);
+  const tangent = right.clone().cross(up).normalize();
+  const bitangent = up.clone().cross(tangent).normalize();
+  for (let step = 1; step <= 4; step++) {
+    const dist = voxelScale * step * 0.5;
+    const probes = [
+      up.clone().multiplyScalar(dist),
+      up.clone().multiplyScalar(dist).addScaledVector(tangent, dist),
+      up.clone().multiplyScalar(dist).addScaledVector(tangent, -dist),
+      up.clone().multiplyScalar(dist).addScaledVector(bitangent, dist),
+      up.clone().multiplyScalar(dist).addScaledVector(bitangent, -dist),
+      tangent.clone().multiplyScalar(dist),
+      tangent.clone().multiplyScalar(-dist),
+      bitangent.clone().multiplyScalar(dist),
+      bitangent.clone().multiplyScalar(-dist),
+    ];
+    for (const off of probes) {
+      const candidate = pos.clone().add(off);
+      if (!playerCollides(candidate, data, center, up, voxelScale)) {
+        pos.copy(candidate);
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 interface RayResult {
@@ -604,14 +823,14 @@ interface RayResult {
   prevGz: number;
 }
 
-function raycastPlanet(origin: THREE.Vector3, dir: THREE.Vector3, data: Uint8Array, center: THREE.Vector3, maxDist = 8): RayResult {
+function raycastPlanet(origin: THREE.Vector3, dir: THREE.Vector3, data: Uint8Array, center: THREE.Vector3, maxDist = 8, voxelScale: number = VOXEL_SCALE): RayResult {
   const pos = origin.clone();
   const d = dir.clone().normalize();
-  const step = VOXEL_SCALE * 0.25;
-  let [pgx, pgy, pgz] = worldToGrid(pos, center);
+  const step = voxelScale * 0.25;
+  let [pgx, pgy, pgz] = worldToGrid(pos, center, voxelScale);
   for (let t = 0; t < maxDist; t += step) {
     pos.addScaledVector(d, step);
-    const [gx, gy, gz] = worldToGrid(pos, center);
+    const [gx, gy, gz] = worldToGrid(pos, center, voxelScale);
     if (gx < 0 || gx >= GRID_SIZE || gy < 0 || gy >= GRID_SIZE || gz < 0 || gz >= GRID_SIZE) {
       pgx = gx; pgy = gy; pgz = gz;
       continue;
@@ -624,8 +843,8 @@ function raycastPlanet(origin: THREE.Vector3, dir: THREE.Vector3, data: Uint8Arr
   return { hit: false, gx: 0, gy: 0, gz: 0, prevGx: 0, prevGy: 0, prevGz: 0 };
 }
 
-function PlanetVoxelMesh({ data, center, revision, planetId }: { data: Uint8Array; center: THREE.Vector3; revision: number; planetId: number }) {
-  const geo = useMemo(() => buildPlanetGeometry(data), [revision, planetId]);
+function PlanetVoxelMesh({ data, center, revision, planetId, voxelScale }: { data: Uint8Array; center: THREE.Vector3; revision: number; planetId: number; voxelScale: number }) {
+  const geo = useMemo(() => buildPlanetGeometry(data, voxelScale), [revision, planetId, voxelScale]);
   if (!geo) return null;
   return (
     <mesh position={center} castShadow receiveShadow>
@@ -640,7 +859,7 @@ function PlanetVoxelMesh({ data, center, revision, planetId }: { data: Uint8Arra
   );
 }
 
-function WaterShell({ center, biomeType }: { center: THREE.Vector3; biomeType: string }) {
+function WaterShell({ center, biomeType, voxelScale, voxelRadius }: { center: THREE.Vector3; biomeType: string; voxelScale: number; voxelRadius: number }) {
   const biome = BIOME_CONFIGS[biomeType] || BIOME_CONFIGS.verdania;
   const matRef = useRef<THREE.ShaderMaterial>(null);
   const meshRef = useRef<THREE.Mesh>(null);
@@ -650,7 +869,7 @@ function WaterShell({ center, biomeType }: { center: THREE.Vector3; biomeType: s
     }
   });
   if (!biome.hasWater) return null;
-  const waterRadius = (PLANET_RADIUS + WATER_LEVEL_OFFSET) * VOXEL_SCALE;
+  const waterRadius = (voxelRadius + WATER_LEVEL_OFFSET) * voxelScale;
   const waterColor = new THREE.Color(biome.waterColor);
   return (
     <mesh ref={meshRef} position={center}>
@@ -758,36 +977,6 @@ function OtherPlayers({ players }: { players: OtherPlayer[] }) {
   );
 }
 
-function SunFlare({ position, intensity }: { position: [number, number, number]; intensity: number }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  useFrame(({ camera }) => {
-    if (meshRef.current) meshRef.current.lookAt(camera.position);
-  });
-  const alpha = Math.pow(Math.max(0, intensity), 0.5);
-  return (
-    <group position={position}>
-      <mesh ref={meshRef}>
-        <planeGeometry args={[28, 28]} />
-        <meshBasicMaterial color={new THREE.Color(1, 0.95, 0.7)} transparent opacity={0.55 * alpha} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
-      <pointLight color={0xffeebb} intensity={intensity * 1.5} distance={400} decay={1.5} />
-    </group>
-  );
-}
-
-function Sun({ dayTime }: { dayTime: number }) {
-  const angle = dayTime * Math.PI * 2;
-  const intensity = Math.max(0, Math.sin(angle));
-  const sunPos: [number, number, number] = [Math.cos(angle) * 200, Math.sin(angle) * 200, 0];
-  return (
-    <>
-      <directionalLight position={sunPos} intensity={intensity * 2 + 0.3} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
-      <ambientLight intensity={0.3 + intensity * 0.4} />
-      {intensity > 0.05 && <SunFlare position={sunPos} intensity={intensity} />}
-    </>
-  );
-}
-
 function CustomStars({ opacity }: { opacity: number }) {
   const groupRef = useRef<THREE.Group>(null);
   const positions = useMemo(() => {
@@ -819,23 +1008,252 @@ function CustomStars({ opacity }: { opacity: number }) {
   );
 }
 
-function VoxelHighlight({ direction, data, center }: {
+function VoxelHighlight({ direction, data, center, voxelScale }: {
   direction: THREE.Vector3;
   data: Uint8Array;
   center: THREE.Vector3;
+  voxelScale: number;
 }) {
   const { camera } = useThree();
-  const result = raycastPlanet(camera.position, direction, data, center, 8);
+  const result = raycastPlanet(camera.position, direction, data, center, 8, voxelScale);
   if (!result.hit) return null;
-  const wx = (result.gx - GRID_HALF + 0.5) * VOXEL_SCALE + center.x;
-  const wy = (result.gy - GRID_HALF + 0.5) * VOXEL_SCALE + center.y;
-  const wz = (result.gz - GRID_HALF + 0.5) * VOXEL_SCALE + center.z;
+  const wx = (result.gx - GRID_HALF + 0.5) * voxelScale + center.x;
+  const wy = (result.gy - GRID_HALF + 0.5) * voxelScale + center.y;
+  const wz = (result.gz - GRID_HALF + 0.5) * voxelScale + center.z;
   return (
     <mesh position={[wx, wy, wz]}>
-      <boxGeometry args={[VOXEL_SCALE * 1.02, VOXEL_SCALE * 1.02, VOXEL_SCALE * 1.02]} />
+      <boxGeometry args={[voxelScale * 1.02, voxelScale * 1.02, voxelScale * 1.02]} />
       <meshBasicMaterial color={0xffffff} wireframe opacity={0.4} transparent />
     </mesh>
   );
+}
+
+function makeBandedTexture(seed: number): THREE.CanvasTexture {
+  const size = 256;
+  const c = document.createElement("canvas");
+  c.width = size; c.height = size;
+  const ctx = c.getContext("2d")!;
+  const rng = makeRng(seed);
+  const palettes = [
+    ["#d8a86b", "#b8784a", "#e8c8a0", "#a05d3a", "#f0d8b0"],
+    ["#c69c6d", "#8b5a2b", "#e8b489", "#6b3a1a", "#d6a07a"],
+    ["#7a98c4", "#5b7aa8", "#9cb6d8", "#3e5a8c", "#b8cce4"],
+  ];
+  const palette = palettes[Math.floor(rng() * palettes.length)];
+  let y = 0;
+  while (y < size) {
+    const bandH = 6 + Math.floor(rng() * 22);
+    const color = palette[Math.floor(rng() * palette.length)];
+    for (let yy = y; yy < Math.min(size, y + bandH); yy++) {
+      for (let x = 0; x < size; x++) {
+        const jitter = Math.sin(x * 0.08 + yy * 0.03 + seed) * 0.06;
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.85 + jitter;
+        ctx.fillRect(x, yy, 1, 1);
+      }
+    }
+    y += bandH;
+  }
+  ctx.globalAlpha = 1;
+  const tex = new THREE.CanvasTexture(c);
+  tex.needsUpdate = true;
+  return tex;
+}
+
+function makeCraterTexture(seed: number): THREE.CanvasTexture {
+  const size = 256;
+  const c = document.createElement("canvas");
+  c.width = size; c.height = size;
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#9a9a9a";
+  ctx.fillRect(0, 0, size, size);
+  const rng = makeRng(seed);
+  const noise = createNoise3D(rng);
+  const img = ctx.getImageData(0, 0, size, size);
+  for (let i = 0; i < size; i++) {
+    for (let j = 0; j < size; j++) {
+      const n = noise(i * 0.05, j * 0.05, 0) * 0.5 + 0.5;
+      const v = Math.floor(120 + n * 100);
+      const idx = (j * size + i) * 4;
+      img.data[idx] = v;
+      img.data[idx + 1] = v;
+      img.data[idx + 2] = v;
+      img.data[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  // Add a few crater rings
+  const craters = 12 + Math.floor(rng() * 12);
+  for (let k = 0; k < craters; k++) {
+    const cx = rng() * size;
+    const cy = rng() * size;
+    const r = 4 + rng() * 16;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(70,70,70,0.5)";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.6, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(220,220,220,0.3)";
+    ctx.fill();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.needsUpdate = true;
+  return tex;
+}
+
+function Star({ def }: { def: StarDef }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const matRef = useRef<THREE.ShaderMaterial>(null);
+  useFrame((state) => {
+    if (matRef.current) matRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+    if (meshRef.current) meshRef.current.rotation.y += 0.0008;
+  });
+  return (
+    <group position={def.position} data-testid="freeball-star">
+      <mesh ref={meshRef}>
+        <sphereGeometry args={[def.worldRadius, 48, 48]} />
+        <shaderMaterial
+          ref={matRef}
+          uniforms={{ uTime: { value: 0 } }}
+          vertexShader={`
+            varying vec3 vNormal;
+            varying vec3 vPos;
+            void main() {
+              vNormal = normalize(normalMatrix * normal);
+              vPos = position;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `}
+          fragmentShader={`
+            uniform float uTime;
+            varying vec3 vNormal;
+            varying vec3 vPos;
+            float hash(vec3 p) { return fract(sin(dot(p, vec3(127.1,311.7,74.7))) * 43758.5453); }
+            void main() {
+              float fres = pow(1.0 - abs(vNormal.z), 1.6);
+              float flare = hash(floor(vPos * 0.005 + uTime * 0.05));
+              vec3 hot = vec3(1.0, 0.85, 0.45);
+              vec3 cool = vec3(1.0, 0.55, 0.25);
+              vec3 col = mix(hot, cool, fres) + vec3(0.3, 0.15, 0.05) * flare;
+              gl_FragColor = vec4(col, 1.0);
+            }
+          `}
+        />
+      </mesh>
+      {/* Corona */}
+      <mesh>
+        <sphereGeometry args={[def.worldRadius * 1.15, 32, 32]} />
+        <meshBasicMaterial color={0xffaa55} transparent opacity={0.18} side={THREE.BackSide} />
+      </mesh>
+      <pointLight color={0xffeebb} intensity={1.2} distance={def.worldRadius * 8} decay={1.5} />
+    </group>
+  );
+}
+
+function GasGiant({ def }: { def: GasGiantDef }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const tex = useMemo(() => makeBandedTexture(def.seed), [def.seed]);
+  useFrame((_, dt) => {
+    if (meshRef.current) meshRef.current.rotation.y += dt * 0.04;
+  });
+  return (
+    <group position={def.position} data-testid={`freeball-gas-giant-${def.id}`}>
+      <mesh ref={meshRef}>
+        <sphereGeometry args={[def.worldRadius, 48, 48]} />
+        <meshStandardMaterial map={tex} roughness={0.85} emissive={0x553311} emissiveIntensity={0.06} />
+      </mesh>
+      {def.hasRing && (
+        <mesh rotation={[Math.PI / 2.4, 0, 0]}>
+          <ringGeometry args={[def.worldRadius * 1.4, def.worldRadius * 2.0, 64]} />
+          <meshBasicMaterial color={0xc8a878} transparent opacity={0.55} side={THREE.DoubleSide} />
+        </mesh>
+      )}
+    </group>
+  );
+}
+
+function Moon({ def, system }: { def: MoonDef; system: SolarSystem }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const tex = useMemo(() => makeCraterTexture(def.seed), [def.seed]);
+  useFrame((state) => {
+    if (groupRef.current) {
+      const p = getMoonPosition(def, system, state.clock.elapsedTime);
+      groupRef.current.position.copy(p);
+      groupRef.current.rotation.y += 0.003;
+    }
+  });
+  return (
+    <group ref={groupRef} data-testid={`freeball-moon-${def.id}`}>
+      <mesh>
+        <sphereGeometry args={[def.worldRadius, 32, 32]} />
+        <meshStandardMaterial map={tex} roughness={1} />
+      </mesh>
+    </group>
+  );
+}
+
+function generateAsteroids(def: AsteroidBeltDef): { pos: THREE.Vector3; r: number; rotSpeed: THREE.Vector3 }[] {
+  const rng = makeRng(def.seed);
+  const list: { pos: THREE.Vector3; r: number; rotSpeed: THREE.Vector3 }[] = [];
+  for (let i = 0; i < def.count; i++) {
+    const angle = rng() * Math.PI * 2;
+    const radius = def.innerRadius + rng() * (def.outerRadius - def.innerRadius);
+    const y = (rng() - 0.5) * 80;
+    list.push({
+      pos: new THREE.Vector3(Math.cos(angle) * radius + def.center.x, y + def.center.y, Math.sin(angle) * radius + def.center.z),
+      r: 1.5 + rng() * 4,
+      rotSpeed: new THREE.Vector3(rng() * 0.3, rng() * 0.3, rng() * 0.3),
+    });
+  }
+  return list;
+}
+
+function AsteroidField({ def }: { def: AsteroidBeltDef }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const asteroids = useMemo(() => generateAsteroids(def), [def.seed, def.count, def.innerRadius, def.outerRadius, def.center]);
+  useFrame((_, dt) => {
+    if (!groupRef.current) return;
+    groupRef.current.children.forEach((child, i) => {
+      const a = asteroids[i];
+      if (!a) return;
+      child.rotation.x += a.rotSpeed.x * dt;
+      child.rotation.y += a.rotSpeed.y * dt;
+    });
+  });
+  return (
+    <group ref={groupRef} data-testid="freeball-asteroid-belt">
+      {asteroids.map((a, i) => (
+        <mesh key={i} position={a.pos}>
+          <icosahedronGeometry args={[a.r, 0]} />
+          <meshStandardMaterial color={0x7a6a55} roughness={1} flatShading />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+interface CollidableSphere {
+  position: THREE.Vector3;
+  radius: number;
+  isStar?: boolean;
+}
+
+let asteroidCollisionCache: { seed: number; spheres: CollidableSphere[] } | null = null;
+function getAsteroidColliders(belt: AsteroidBeltDef): CollidableSphere[] {
+  if (asteroidCollisionCache && asteroidCollisionCache.seed === belt.seed) return asteroidCollisionCache.spheres;
+  const spheres = generateAsteroids(belt).map((a) => ({ position: a.pos, radius: a.r }));
+  asteroidCollisionCache = { seed: belt.seed, spheres };
+  return spheres;
+}
+
+function getMeshCollisionSpheres(system: SolarSystem, t: number): CollidableSphere[] {
+  const out: CollidableSphere[] = [];
+  out.push({ position: system.star.position.clone(), radius: system.star.worldRadius, isStar: true });
+  for (const g of system.gasGiants) out.push({ position: g.position.clone(), radius: g.worldRadius });
+  for (const m of system.moons) out.push({ position: getMoonPosition(m, system, t), radius: m.worldRadius });
+  for (const a of getAsteroidColliders(system.asteroidBelt)) out.push(a);
+  return out;
 }
 
 interface SceneProps {
@@ -862,8 +1280,13 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
     crystalsCollected, setCrystalsCollected,
   } = useGameStore();
 
+  const system = useMemo(() => buildSolarSystem(planets), [planets]);
   const activePlanet = planets[activePlanetIndex];
-  const planetCenter = PLANET_POSITIONS[activePlanetIndex] || PLANET_POSITIONS[0];
+  const activeDef = system.voxelDefs[activePlanetIndex];
+  const planetCenter = activeDef?.position ?? new THREE.Vector3();
+  const voxelScale = activeDef?.voxelScale ?? VOXEL_SCALE;
+  const voxelRadius = activeDef?.voxelRadius ?? PLANET_RADIUS;
+  const surfaceWorldRadius = voxelRadius * voxelScale;
   const biomeType = activePlanet?.type || "verdania";
 
   const [geoRevision, setGeoRevision] = useState(0);
@@ -871,8 +1294,8 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
 
   const planetData = useMemo(() => {
     if (!activePlanet) return new Uint8Array(GRID_SIZE * GRID_SIZE * GRID_SIZE);
-    return getOrCreatePlanetData(activePlanet.id, activePlanet.seed, biomeType, savedBuilds);
-  }, [activePlanet?.id, savedBuilds]);
+    return getOrCreatePlanetData(activePlanet.id, activePlanet.seed, biomeType, savedBuilds, voxelRadius);
+  }, [activePlanet?.id, savedBuilds, voxelRadius]);
 
   useEffect(() => {
     if (prevBuildsRef.current !== savedBuilds) {
@@ -882,19 +1305,19 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
   }, [savedBuilds]);
 
   const spawnUp = new THREE.Vector3(0, 1, 0);
-  const spawnPos = planetCenter.clone().addScaledVector(spawnUp, (PLANET_RADIUS + 3) * VOXEL_SCALE);
+  const spawnPos = planetCenter.clone().addScaledVector(spawnUp, surfaceWorldRadius + 3 * voxelScale);
 
   const playerPos = useRef(spawnPos.clone());
   const playerVel = useRef(new THREE.Vector3(0, 0, 0));
   const spawnTangent = new THREE.Vector3(1, 0, 0).cross(spawnUp).normalize();
   if (spawnTangent.lengthSq() < 0.01) spawnTangent.set(0, 0, 1);
-  // Start sphere 4 blocks above surface level, offset tangentially — gravity will ground it in frames
   const sphereSpawnBase = planetCenter.clone()
-    .addScaledVector(spawnUp, PLANET_RADIUS * VOXEL_SCALE + VOXEL_SCALE * 4)
-    .addScaledVector(spawnTangent, 3 * VOXEL_SCALE);
+    .addScaledVector(spawnUp, surfaceWorldRadius + 4 * voxelScale)
+    .addScaledVector(spawnTangent, 3 * voxelScale);
   const spherePos = useRef(sphereSpawnBase);
   const sphereVel = useRef(new THREE.Vector3(0, 0, 0));
   const onGround = useRef(false);
+  const justJumped = useRef(false);
 
   const refForward = useRef(new THREE.Vector3(0, 0, -1));
   const pitchRef = useRef(0);
@@ -906,7 +1329,6 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
   const planetCenterRef = useRef(planetCenter);
   planetCenterRef.current = planetCenter;
   const dayTimeRef = useRef(0.25);
-  const [dayTime, setDayTimeState] = useState(0.25);
   const lastSave = useRef(0);
   const lastPresence = useRef(0);
   const lastDayUpdate = useRef(0);
@@ -915,15 +1337,14 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
   useEffect(() => {
     if (!activePlanet) return;
     const up = new THREE.Vector3(0, 1, 0);
-    const newSpawn = planetCenter.clone().addScaledVector(up, (PLANET_RADIUS + 5) * VOXEL_SCALE);
+    const newSpawn = planetCenter.clone().addScaledVector(up, surfaceWorldRadius + 5 * voxelScale);
     playerPos.current.copy(newSpawn);
     playerVel.current.set(0, 0, 0);
     const tangent = new THREE.Vector3(1, 0, 0).cross(up).normalize();
     if (tangent.lengthSq() < 0.01) tangent.set(0, 0, 1);
-    // Place sphere 4 blocks above surface, offset tangentially — gravity will ground it in frames
     spherePos.current.copy(planetCenter)
-      .addScaledVector(up, PLANET_RADIUS * VOXEL_SCALE + VOXEL_SCALE * 4)
-      .addScaledVector(tangent, 3 * VOXEL_SCALE);
+      .addScaledVector(up, surfaceWorldRadius + 4 * voxelScale)
+      .addScaledVector(tangent, 3 * voxelScale);
     sphereVel.current.set(0, 0, 0);
     refForward.current.set(0, 0, -1);
     pitchRef.current = 0;
@@ -1005,7 +1426,7 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
 
       const dir = new THREE.Vector3();
       camera.getWorldDirection(dir);
-      const result = raycastPlanet(camera.position, dir, planetData, planetCenter, 8);
+      const result = raycastPlanet(camera.position, dir, planetData, planetCenter, 8, voxelScale);
       if (!result.hit) return;
 
       if (e.button === 0) {
@@ -1055,10 +1476,6 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
     const clampedDt = Math.min(dt, 0.05);
 
     dayTimeRef.current = (dayTimeRef.current + clampedDt / (20 * 60)) % 1;
-    if (state.clock.elapsedTime - lastDayUpdate.current > 5) {
-      lastDayUpdate.current = state.clock.elapsedTime;
-      setDayTimeState(dayTimeRef.current);
-    }
 
     const dx = mouseDelta.current.x;
     const dy = mouseDelta.current.y;
@@ -1071,16 +1488,22 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
 
     let nearestCenter = planetCenter;
     let nearestDist = activePos.distanceTo(planetCenter);
-    for (let pi = 0; pi < planets.length; pi++) {
-      const pc = PLANET_POSITIONS[pi];
-      if (!pc) continue;
-      const d = activePos.distanceTo(pc);
-      if (d < nearestDist) { nearestDist = d; nearestCenter = pc; }
+    let nearestVoxelScale = voxelScale;
+    let nearestVoxelRadius = voxelRadius;
+    for (let pi = 0; pi < system.voxelDefs.length; pi++) {
+      const def = system.voxelDefs[pi];
+      const d = activePos.distanceTo(def.position);
+      if (d < nearestDist) {
+        nearestDist = d;
+        nearestCenter = def.position;
+        nearestVoxelScale = def.voxelScale;
+        nearestVoxelRadius = def.voxelRadius;
+      }
     }
 
     const toCenter = nearestCenter.clone().sub(activePos);
     const distFromCenter = toCenter.length();
-    const surfaceRadius = PLANET_RADIUS * VOXEL_SCALE;
+    const surfaceRadius = nearestVoxelRadius * nearestVoxelScale;
     const altitude = distFromCenter - surfaceRadius;
     const atmosphereHeight = surfaceRadius * ATMOSPHERE_SCALE;
     const inAtmosphere = altitude < atmosphereHeight;
@@ -1123,15 +1546,117 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
 
       const drag = inSpace ? 0.998 : 0.97;
       sphereVel.current.multiplyScalar(Math.pow(drag, clampedDt * 60));
-      spherePos.current.addScaledVector(sphereVel.current, clampedDt);
 
+      // Swept sphere collision: substep prev -> new, stop at last clear step on hit.
+      const prevPos = spherePos.current.clone();
+      const moveVec = sphereVel.current.clone().multiplyScalar(clampedDt);
+      const moveLen = moveVec.length();
+      const sphereR = SPHERE_RADIUS;
+      const subStepLen = Math.max(nearestVoxelScale * 0.4, 0.1);
+      const numSubsteps = Math.max(1, Math.ceil(moveLen / subStepLen));
+      const stepDelta = moveVec.clone().multiplyScalar(1 / numSubsteps);
+      const meshBodies = getMeshCollisionSpheres(system, state.clock.elapsedTime);
+      const sampleOffsets = [
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(sphereR, 0, 0), new THREE.Vector3(-sphereR, 0, 0),
+        new THREE.Vector3(0, sphereR, 0), new THREE.Vector3(0, -sphereR, 0),
+        new THREE.Vector3(0, 0, sphereR), new THREE.Vector3(0, 0, -sphereR),
+      ];
+      const sweptDistMargin = sphereR + moveLen + nearestVoxelScale * 4;
+      const nearbyVoxelPlanets = system.voxelDefs.filter((def) => {
+        const c = def.position;
+        const closestApproach = Math.min(prevPos.distanceTo(c), spherePos.current.distanceTo(c));
+        return closestApproach < def.worldRadius + sweptDistMargin + 200;
+      });
+
+      const cur = prevPos.clone();
+      let blocked = false;
+      let commitResolved = false;
+      const resolvedPos = new THREE.Vector3();
+      const blockedNormal = new THREE.Vector3();
+      let starHit = false;
+      for (let s = 0; s < numSubsteps && !blocked; s++) {
+        const next = cur.clone().add(stepDelta);
+
+        for (const body of meshBodies) {
+          const diff = next.clone().sub(body.position);
+          const d = diff.length();
+          const minD = body.radius + sphereR;
+          if (d < minD && d > 0.001) {
+            const n = diff.divideScalar(d);
+            resolvedPos.copy(body.position).addScaledVector(n, minD);
+            blockedNormal.copy(n);
+            blocked = true;
+            commitResolved = true;
+            if (body.isStar) starHit = true;
+            break;
+          }
+        }
+
+        if (!blocked) {
+          for (const def of nearbyVoxelPlanets) {
+            const surfaceR = def.worldRadius;
+            const distToCenter = next.distanceTo(def.position);
+            if (distToCenter > surfaceR + sphereR + def.voxelScale * 4) continue;
+            const planetN = next.clone().sub(def.position).normalize();
+            if (def.index === activePlanetIndex) {
+              let hit = false;
+              for (const off of sampleOffsets) {
+                const p = next.clone().add(off);
+                const [gx, gy, gz] = worldToGrid(p, def.position, def.voxelScale);
+                if (getVoxel(planetData, gx, gy, gz) !== 0) { hit = true; break; }
+              }
+              if (hit) {
+                blockedNormal.copy(planetN);
+                blocked = true;
+                break;
+              }
+            } else if (distToCenter < surfaceR + sphereR) {
+              resolvedPos.copy(def.position).addScaledVector(planetN, surfaceR + sphereR);
+              blockedNormal.copy(planetN);
+              blocked = true;
+              commitResolved = true;
+              break;
+            }
+          }
+        }
+
+        if (!blocked) cur.copy(next);
+      }
+      spherePos.current.copy(commitResolved ? resolvedPos : cur);
+
+      if (blocked) {
+        const into = sphereVel.current.dot(blockedNormal);
+        if (into < 0) sphereVel.current.addScaledVector(blockedNormal, -into * 1.4);
+        const tangential = sphereVel.current.clone().addScaledVector(blockedNormal, -sphereVel.current.dot(blockedNormal));
+        sphereVel.current.addScaledVector(tangential, -0.2);
+      }
+
+      // Star hazard: tight heat zone just above the star surface; constant knockback inside.
+      const distToStar = spherePos.current.distanceTo(system.star.position);
+      const heatRadius = system.star.worldRadius + 200;
+      if (distToStar < heatRadius) {
+        const awayFromStar = spherePos.current.clone().sub(system.star.position).normalize();
+        const heat = 1 - (distToStar - system.star.worldRadius) / 200;
+        useGameStore.getState().setPickupToast(`! HEAT WARNING — ${Math.round(Math.max(0, heat) * 100)}%`);
+        sphereVel.current.addScaledVector(awayFromStar, 80 * Math.max(0, heat));
+        if (starHit || distToStar < system.star.worldRadius * 1.05) {
+          // Respawn safely above the active voxel planet.
+          spherePos.current.copy(planetCenter).addScaledVector(new THREE.Vector3(0, 1, 0), surfaceRadius + 8 * voxelScale);
+          sphereVel.current.set(0, 0, 0);
+          useGameStore.getState().setPickupToast("! Respawned away from the star");
+          setTimeout(() => useGameStore.getState().setPickupToast(""), 2500);
+        }
+      }
+
+      // Per-planet radius-based landing transition.
       const distToActivePlanet = spherePos.current.distanceTo(planetCenter);
-      for (let pi = 0; pi < planets.length; pi++) {
-        if (pi === activePlanetIndex) continue;
-        const otherCenter = PLANET_POSITIONS[pi] || PLANET_POSITIONS[0];
-        const distToOther = spherePos.current.distanceTo(otherCenter);
-        if (distToOther < PLANET_LANDING_RANGE && distToOther < distToActivePlanet) {
-          onPlanetSwitch(pi);
+      for (const def of system.voxelDefs) {
+        if (def.index === activePlanetIndex) continue;
+        const distToOther = spherePos.current.distanceTo(def.position);
+        const landingThreshold = def.worldRadius + def.voxelScale * 6;
+        if (distToOther < landingThreshold && distToOther < distToActivePlanet) {
+          onPlanetSwitch(def.index);
           return;
         }
       }
@@ -1145,14 +1670,16 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
     } else {
       // Apply gravity and physics to the SPHERE when not piloted
       {
-        // Compute nearest center from SPHERE position (not player position)
         let sphereNearestCenter = planetCenter;
         let sphereNearestDist = spherePos.current.distanceTo(planetCenter);
-        for (let pi = 0; pi < planets.length; pi++) {
-          const pc = PLANET_POSITIONS[pi];
-          if (!pc) continue;
-          const d = spherePos.current.distanceTo(pc);
-          if (d < sphereNearestDist) { sphereNearestDist = d; sphereNearestCenter = pc; }
+        let sphereVScale = voxelScale;
+        for (const def of system.voxelDefs) {
+          const d = spherePos.current.distanceTo(def.position);
+          if (d < sphereNearestDist) {
+            sphereNearestDist = d;
+            sphereNearestCenter = def.position;
+            sphereVScale = def.voxelScale;
+          }
         }
         const sphereToCenter = sphereNearestCenter.clone().sub(spherePos.current);
         const sphereDist = sphereToCenter.length();
@@ -1162,19 +1689,17 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
         sphereVel.current.addScaledVector(sphereToCenter.normalize(), GRAVITY_STRENGTH * clampedDt);
         spherePos.current.addScaledVector(sphereVel.current, clampedDt);
 
-        // Voxel-aware ground settle: step downward until hitting solid voxel or absolute floor
-        const sphereRadius = VOXEL_SCALE * 0.8;
-        const maxDrop = VOXEL_SCALE * 4;
-        const step = VOXEL_SCALE * 0.25;
+        const sphereRadius = SPHERE_RADIUS;
+        const maxDrop = sphereVScale * 4;
+        const step = sphereVScale * 0.25;
         let dropped = 0;
         let hitGround = false;
         const probe = spherePos.current.clone();
         while (dropped < maxDrop) {
           probe.addScaledVector(sphereUp, -step);
           dropped += step;
-          const [sgx, sgy, sgz] = worldToGrid(probe, sphereNearestCenter);
+          const [sgx, sgy, sgz] = worldToGrid(probe, sphereNearestCenter, sphereVScale);
           if (getVoxel(planetData, sgx, sgy, sgz) !== 0) {
-            // Snap sphere to just above the hit voxel
             spherePos.current.copy(probe).addScaledVector(sphereUp, step + sphereRadius);
             hitGround = true;
             break;
@@ -1208,18 +1733,21 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
       if ((keys[" "] || keys["spacebar"]) && onGround.current) {
         playerVel.current.addScaledVector(up, JUMP_IMPULSE);
         onGround.current = false;
+        justJumped.current = true;
       }
+
+      unstickPlayer(playerPos.current, planetData, nearestCenter, up, nearestVoxelScale);
 
       const tangentialMove = playerVel.current.clone().projectOnPlane(up).multiplyScalar(clampedDt);
       const radialMove = up.clone().multiplyScalar(playerVel.current.dot(up) * clampedDt);
 
       const newPos = playerPos.current.clone().add(tangentialMove);
-      if (!playerCollides(newPos, planetData, planetCenter, up)) {
+      if (!playerCollides(newPos, planetData, nearestCenter, up, nearestVoxelScale)) {
         playerPos.current.copy(newPos);
       } else {
-        // Step-up: try same move after lifting by 1 full voxel — gate on onGround to avoid mid-air jitter
-        const stepUpPos = newPos.clone().addScaledVector(up, VOXEL_SCALE * 1.0);
-        if (onGround.current && !playerCollides(stepUpPos, planetData, planetCenter, up)) {
+        const canStep = onGround.current || justJumped.current || playerVel.current.dot(up) > 0;
+        const stepUpPos = newPos.clone().addScaledVector(up, nearestVoxelScale * 1.0);
+        if (canStep && !playerCollides(stepUpPos, planetData, nearestCenter, up, nearestVoxelScale)) {
           playerPos.current.copy(stepUpPos);
         } else {
           const tv = playerVel.current.clone().projectOnPlane(up);
@@ -1228,17 +1756,26 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
       }
 
       const newPos2 = playerPos.current.clone().add(radialMove);
-      if (!playerCollides(newPos2, planetData, planetCenter, up)) {
+      const radialClear = !playerCollides(newPos2, planetData, nearestCenter, up, nearestVoxelScale);
+      if (radialClear) {
         playerPos.current.copy(newPos2);
-        onGround.current = groundCheck(playerPos.current, planetData, planetCenter, up);
+        onGround.current = groundCheck(playerPos.current, planetData, nearestCenter, up, nearestVoxelScale);
+        if (onGround.current) justJumped.current = false;
+      } else if (justJumped.current && playerVel.current.dot(up) > 0) {
+        playerPos.current.copy(newPos2);
+        unstickPlayer(playerPos.current, planetData, nearestCenter, up, nearestVoxelScale);
+        justJumped.current = false;
       } else {
         const rv = playerVel.current.dot(up);
         playerVel.current.addScaledVector(up, -rv);
-        if (rv < 0) onGround.current = true;
+        if (rv < 0) {
+          onGround.current = true;
+          justJumped.current = false;
+        }
       }
 
       if (distFromCenter < surfaceRadius * 0.3) {
-        const safePos = planetCenter.clone().addScaledVector(up.length() > 0 ? up : new THREE.Vector3(0, 1, 0), surfaceRadius + 3 * VOXEL_SCALE);
+        const safePos = nearestCenter.clone().addScaledVector(up.length() > 0 ? up : new THREE.Vector3(0, 1, 0), surfaceRadius + 3 * nearestVoxelScale);
         playerPos.current.copy(safePos);
         playerVel.current.set(0, 0, 0);
       }
@@ -1277,7 +1814,7 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
   const cameraDir = useRef(new THREE.Vector3());
   camera.getWorldDirection(cameraDir.current);
 
-  const surfaceRadius = PLANET_RADIUS * VOXEL_SCALE;
+  const surfaceRadius = surfaceWorldRadius;
   const activePos = inVehicle ? spherePos.current : playerPos.current;
   const distFromCenter = activePos.distanceTo(planetCenter);
   const altitude = distFromCenter - surfaceRadius;
@@ -1296,11 +1833,12 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
       <color attach="background" args={[bgColor.r, bgColor.g, bgColor.b]} />
       <fog attach="fog" args={[bgColor, fogNear, fogFar]} />
 
-      <Sun dayTime={dayTime} />
+      <pointLight position={system.star.position.toArray()} intensity={4} distance={20000} decay={0.6} color={0xfff2c8} castShadow />
+      <ambientLight intensity={0.25 + atmosphereFactor * 0.25} />
       <CustomStars opacity={starOpacity} />
 
-      <PlanetVoxelMesh data={planetData} center={planetCenter} revision={geoRevision} planetId={activePlanet?.id ?? 0} />
-      <WaterShell center={planetCenter} biomeType={biomeType} />
+      <PlanetVoxelMesh data={planetData} center={planetCenter} revision={geoRevision} planetId={activePlanet?.id ?? 0} voxelScale={voxelScale} />
+      <WaterShell center={planetCenter} biomeType={biomeType} voxelScale={voxelScale} voxelRadius={voxelRadius} />
 
       {atmosphereFactor > 0.01 && (
         <mesh position={planetCenter}>
@@ -1314,18 +1852,27 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
         </mesh>
       )}
 
-      {planets.map((p, i) => {
+      {/* Solar system: star, gas giants, moons, asteroid belt */}
+      <Star def={system.star} />
+      {system.gasGiants.map((g) => (
+        <GasGiant key={`gg-${g.id}`} def={g} />
+      ))}
+      {system.moons.map((m) => (
+        <Moon key={`moon-${m.id}`} def={m} system={system} />
+      ))}
+      <AsteroidField def={system.asteroidBelt} />
+
+      {/* Other voxel planets — shown as scaled spheres at their actual world radius */}
+      {system.voxelDefs.map((def, i) => {
         if (i === activePlanetIndex) return null;
-        const pos = PLANET_POSITIONS[i] || PLANET_POSITIONS[0];
-        const dist = activePos.distanceTo(pos);
-        if (dist > 800) return null;
-        const visRadius = Math.max(surfaceRadius, surfaceRadius * (100 / Math.max(dist, 1)));
+        const dist = activePos.distanceTo(def.position);
+        if (dist > def.voxelRadius * def.voxelScale * 50) return null;
         return (
           <DistantPlanetSphere
-            key={p.id}
-            position={pos}
-            planetType={p.type}
-            visualRadius={Math.min(visRadius, surfaceRadius * 2)}
+            key={def.planet.id}
+            position={def.position}
+            planetType={def.planet.type}
+            visualRadius={def.voxelRadius * def.voxelScale}
           />
         );
       })}
@@ -1343,6 +1890,7 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
           direction={cameraDir.current}
           data={planetData}
           center={planetCenter}
+          voxelScale={voxelScale}
         />
       )}
 
@@ -1903,7 +2451,7 @@ export default function FreeballPage() {
       {activePlanet && planets.length > 0 && (
         <Canvas
           className="w-full h-full"
-          camera={{ fov: 75, near: 0.1, far: 1000, position: [0, (PLANET_RADIUS + 5) * VOXEL_SCALE, 0] }}
+          camera={{ fov: 75, near: 0.1, far: 30000, position: [0, (PLANET_RADIUS + 5) * VOXEL_SCALE, 0] }}
           gl={{ antialias: false }}
           shadows
           onContextMenu={(e) => e.preventDefault()}

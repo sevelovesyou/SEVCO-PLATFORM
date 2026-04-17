@@ -218,7 +218,7 @@ function VpsStatusCard() {
   const isNotConfigured = isError && error instanceof Error && error.message.includes("not configured");
 
   return (
-    <Link href="/command/hosting">
+    <Link href="/command/settings?tab=advanced&section=integrations">
       <Card
         className="p-4 hover-elevate active-elevate-2 cursor-pointer overflow-visible group"
         data-testid="card-vps-status"
@@ -876,7 +876,7 @@ function Ga4Widget() {
           <p className="text-sm font-medium">GA4 not configured</p>
           <p className="text-xs text-muted-foreground">Connect a Google Analytics 4 property to see web analytics here.</p>
         </div>
-        <Link href="/command/settings">
+        <Link href="/command/settings?tab=advanced&section=analytics">
           <Button variant="outline" size="sm" data-testid="ga4-setup-link">Set up</Button>
         </Link>
       </Card>
@@ -889,7 +889,12 @@ function Ga4Widget() {
     return (
       <Card className="p-4 flex items-center gap-3" data-testid="ga4-error">
         <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
-        <p className="text-sm flex-1">Could not load analytics</p>
+        <div className="flex-1">
+          <p className="text-sm">Could not load analytics</p>
+          <Link href="/command/settings?tab=advanced&section=analytics" className="text-xs text-muted-foreground hover:underline" data-testid="ga4-error-config-link">
+            Check configuration →
+          </Link>
+        </div>
         <Button variant="outline" size="sm" onClick={() => retrySummary()} data-testid="ga4-retry">Retry</Button>
       </Card>
     );

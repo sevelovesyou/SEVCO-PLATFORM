@@ -1,7 +1,50 @@
-const HOSTINGER_BASE = "https://developers.hostinger.com";
+import { storage } from "./storage";
 
-function hostingerHeaders() {
-  const key = process.env.HOSTINGER_API_KEY;
+let _cachedApiKey: string | null = null;
+let _cacheExpiry = 0;
+
+async function getEffectiveApiKey(): Promise<string | null> {
+  if (process.env.HOSTINGER_API_KEY) return process.env.HOSTINGER_API_KEY;
+  const now = Date.now();
+  if (_cachedApiKey !== null && now < _cacheExpiry) return _cachedApiKey || null;
+  try {
+    const settings = await storage.getPlatformSettings();
+    _cachedApiKey = settings["hosting.apiKey"] || "";
+    _cacheExpiry = now + 30_000;
+    return _cachedApiKey || null;
+  } catch {
+    return null;
+  }
+}
+
+export function invalidateApiKeyCache() {
+  _cachedApiKey = null;
+  _cacheExpiry = 0;
+}
+
+let _cachedBaseUrl: string | null = null;
+let _baseUrlExpiry = 0;
+
+async function getEffectiveBaseUrl(): Promise<string> {
+  const now = Date.now();
+  if (_cachedBaseUrl !== null && now < _baseUrlExpiry) return _cachedBaseUrl;
+  try {
+    const settings = await storage.getPlatformSettings();
+    _cachedBaseUrl = settings["hosting.apiBaseUrl"] || "https://developers.hostinger.com";
+    _baseUrlExpiry = now + 30_000;
+    return _cachedBaseUrl;
+  } catch {
+    return "https://developers.hostinger.com";
+  }
+}
+
+export function invalidateBaseUrlCache() {
+  _cachedBaseUrl = null;
+  _baseUrlExpiry = 0;
+}
+
+async function hostingerHeaders(): Promise<Record<string, string>> {
+  const key = await getEffectiveApiKey();
   if (!key) throw new Error("HOSTINGER_API_KEY is not configured");
   return {
     "Authorization": `Bearer ${key}`,
@@ -10,14 +53,15 @@ function hostingerHeaders() {
 }
 
 async function hostingerFetch(path: string, options: RequestInit = {}) {
-  const url = `${HOSTINGER_BASE}${path}`;
+  const base = await getEffectiveBaseUrl();
+  const url = `${base}${path}`;
   console.log(`[Hostinger] ${options.method ?? "GET"} ${path}`);
   let res: Response;
   try {
     res = await fetch(url, {
       ...options,
       headers: {
-        ...hostingerHeaders(),
+        ...await hostingerHeaders(),
         ...(options.headers as Record<string, string> ?? {}),
       },
     });
@@ -38,8 +82,9 @@ async function hostingerFetch(path: string, options: RequestInit = {}) {
   return json;
 }
 
-export function isHostingerConfigured() {
-  return !!process.env.HOSTINGER_API_KEY;
+export async function isHostingerConfigured(): Promise<boolean> {
+  const key = await getEffectiveApiKey();
+  return !!key;
 }
 
 export async function getVirtualMachines() {

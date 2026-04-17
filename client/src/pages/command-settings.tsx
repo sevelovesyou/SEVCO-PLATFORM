@@ -1150,12 +1150,16 @@ export default function CommandSettings() {
     "page-accents": "page-accents",
     navigation: "navigation",
   };
+  const VALID_ACCORDION_SECTIONS = new Set(["integrations", "analytics", "optimization"]);
   const getInitialTabFromUrl = () => {
     if (typeof window === "undefined") return { tab: "hero", section: "integrations", themeSection: "brand-identity" };
     const params = new URLSearchParams(window.location.search);
     const raw = params.get("tab") || "hero";
     const resolved = LEGACY_TAB_MAP[raw] ?? raw;
-    const section = LEGACY_TO_ACCORDION[raw] ?? "integrations";
+    const sectionParam = params.get("section") ?? "";
+    const section = VALID_ACCORDION_SECTIONS.has(sectionParam)
+      ? sectionParam
+      : (LEGACY_TO_ACCORDION[raw] ?? "integrations");
     const themeSection = LEGACY_TO_THEME_SECTION[raw] ?? "brand-identity";
     return { tab: resolved, section, themeSection };
   };
@@ -4143,6 +4147,58 @@ function XaiApiKeyStatus() {
 }
 
 function HostingSection() {
+  const { toast } = useToast();
+
+  const { data: platformSettings = {} } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
+  });
+
+  const [apiKey, setApiKey] = useState("");
+  const [apiBaseUrl, setApiBaseUrl] = useState("");
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [isTesting, setIsTesting] = useState(false);
+
+  useEffect(() => {
+    if (platformSettings["hosting.apiKey"] !== undefined) {
+      setApiKey(platformSettings["hosting.apiKey"] ?? "");
+    }
+    if (platformSettings["hosting.apiBaseUrl"] !== undefined) {
+      setApiBaseUrl(platformSettings["hosting.apiBaseUrl"] ?? "");
+    }
+  }, [platformSettings]);
+
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("PATCH", "/api/hosting/config", {
+        apiKey,
+        apiBaseUrl: apiBaseUrl || "https://developers.hostinger.com",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/platform-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hosting/vps-list"] });
+      toast({ title: "Hosting configuration saved" });
+      setTestResult(null);
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to save", description: err.message, variant: "destructive" });
+    },
+  });
+
+  async function handleTest() {
+    setIsTesting(true);
+    setTestResult(null);
+    try {
+      const res = await apiRequest("GET", "/api/hosting/test");
+      const data = await res.json();
+      setTestResult(data);
+    } catch {
+      setTestResult({ ok: false, message: "Request failed" });
+    } finally {
+      setIsTesting(false);
+    }
+  }
+
   const { data: vpsData, isLoading, refetch, isFetching } = useQuery<VpsListResponse>({
     queryKey: ["/api/hosting/vps-list"],
     staleTime: 60_000,
@@ -4152,7 +4208,7 @@ function HostingSection() {
   const vms = vpsData?.data ?? [];
 
   return (
-    <Card data-search-label="hosting VPS domain Hostinger server">
+    <Card data-search-label="hosting VPS domain Hostinger server API key configuration">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -4161,7 +4217,7 @@ function HostingSection() {
               Hosting / VPS
             </CardTitle>
             <CardDescription className="mt-1">
-              Live server status from Hostinger. Requires <code className="bg-muted px-1 rounded text-[11px]">HOSTINGER_API_KEY</code> to be configured.
+              Configure your Hostinger API connection and view live VPS status.
             </CardDescription>
           </div>
           <Tooltip>
@@ -4182,22 +4238,124 @@ function HostingSection() {
           </Tooltip>
         </div>
       </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[1, 2].map((i) => <Skeleton key={i} className="h-48 w-full rounded-lg" />)}
+      <CardContent className="space-y-6">
+        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4" data-testid="hosting-config-section">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Configuration</p>
+
+          <div className="space-y-2">
+            <Label htmlFor="hosting-api-key" className="text-sm">Hostinger API Key</Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  id="hosting-api-key"
+                  type={showApiKey ? "text" : "password"}
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="Enter Hostinger API key…"
+                  className="pr-10"
+                  data-testid="input-hosting-api-key"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setShowApiKey((v) => !v)}
+                  aria-label={showApiKey ? "Hide key" : "Show key"}
+                  data-testid="button-toggle-api-key-visibility"
+                >
+                  {showApiKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Generate a key at{" "}
+              <a
+                href="https://hpanel.hostinger.com/api-access"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-foreground"
+              >
+                hpanel.hostinger.com/api-access
+              </a>
+              . Falls back to <code className="bg-muted px-1 rounded">HOSTINGER_API_KEY</code> environment variable if set.
+            </p>
           </div>
-        ) : vms.length === 0 ? (
-          <div className="text-center py-10 text-muted-foreground" data-testid="text-vps-empty">
-            <Server className="h-8 w-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">No VPS instances found.</p>
-            <p className="text-xs mt-1">Check that your Hostinger API key is configured correctly.</p>
+
+          <div className="space-y-2">
+            <Label htmlFor="hosting-base-url" className="text-sm">API Base URL</Label>
+            <Input
+              id="hosting-base-url"
+              type="text"
+              value={apiBaseUrl}
+              onChange={(e) => setApiBaseUrl(e.target.value)}
+              placeholder="https://developers.hostinger.com"
+              data-testid="input-hosting-base-url"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Domain root only — do not include a path. API routes are appended automatically (e.g. <code className="bg-muted px-1 rounded">/api/vps/v1/…</code>). Leave blank to use the Hostinger default.
+            </p>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {vms.map((vm) => <VpsCard key={vm.id} vm={vm} />)}
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button
+              size="sm"
+              onClick={() => saveMutation.mutate()}
+              disabled={saveMutation.isPending}
+              data-testid="button-save-hosting-config"
+            >
+              <Save className="h-3.5 w-3.5 mr-1.5" />
+              {saveMutation.isPending ? "Saving…" : "Save Configuration"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleTest}
+              disabled={isTesting}
+              data-testid="button-test-hosting-connection"
+            >
+              {isTesting ? "Testing…" : "Test Connection"}
+            </Button>
+            {testResult && (
+              <div
+                className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border font-medium ${
+                  testResult.ok
+                    ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20"
+                    : "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20"
+                }`}
+                data-testid="badge-hosting-test-result"
+              >
+                {testResult.ok ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                ) : (
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                )}
+                {testResult.message}
+              </div>
+            )}
           </div>
-        )}
+        </div>
+
+        <Separator />
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">VPS Instances</p>
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[1, 2].map((i) => <Skeleton key={i} className="h-48 w-full rounded-lg" />)}
+            </div>
+          ) : vms.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground" data-testid="text-vps-empty">
+              <Server className="h-8 w-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No VPS instances found.</p>
+              <p className="text-xs mt-1">Save your API key above then click refresh to load your servers.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {vms.map((vm) => <VpsCard key={vm.id} vm={vm} />)}
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

@@ -4582,7 +4582,7 @@ export async function registerRoutes(
   const CAN_MANAGE_HOSTING: Role[] = ["admin"];
 
   app.get("/api/hostinger/vps", requireAuth, requireRole(...CAN_MANAGE_HOSTING), async (_req, res) => {
-    if (!hostinger.isHostingerConfigured()) {
+    if (!await hostinger.isHostingerConfigured()) {
       return res.status(503).json({ message: "Hostinger API is not configured. HOSTINGER_API_KEY is missing." });
     }
     try {
@@ -4597,7 +4597,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/hostinger/vps/:id", requireAuth, requireRole(...CAN_MANAGE_HOSTING), async (req, res) => {
-    if (!hostinger.isHostingerConfigured()) {
+    if (!await hostinger.isHostingerConfigured()) {
       return res.status(503).json({ message: "Hostinger API is not configured. HOSTINGER_API_KEY is missing." });
     }
     try {
@@ -4609,8 +4609,52 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/hosting/vps-list", requireAuth, requireRole(...CAN_MANAGE_HOSTING), async (_req, res) => {
+    if (!await hostinger.isHostingerConfigured()) {
+      return res.json({ data: [], configured: false });
+    }
+    try {
+      const data = await hostinger.getVirtualMachines();
+      const vms: any[] = Array.isArray(data) ? data : ((data as any)?.data ?? []);
+      res.json({ data: vms, configured: true });
+    } catch (err: any) {
+      console.error("[Hostinger] VPS list error:", err.message);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/hosting/test", requireAuth, requireRole(...CAN_MANAGE_HOSTING), async (_req, res) => {
+    try {
+      if (!await hostinger.isHostingerConfigured()) {
+        return res.json({ ok: false, message: "No API key configured. Enter a Hostinger API key and save first." });
+      }
+      const data = await hostinger.getVirtualMachines();
+      const vms: any[] = Array.isArray(data) ? data : ((data as any)?.data ?? []);
+      return res.json({ ok: true, message: `Connected — ${vms.length} VPS instance${vms.length === 1 ? "" : "s"} found.` });
+    } catch (err: any) {
+      return res.json({ ok: false, message: err.message || "Connection failed" });
+    }
+  });
+
+  app.patch("/api/hosting/config", requireAuth, requireRole(...CAN_MANAGE_HOSTING), async (req, res) => {
+    try {
+      const { apiKey, apiBaseUrl } = req.body as { apiKey?: string; apiBaseUrl?: string };
+      const updates: Record<string, string> = {};
+      if (typeof apiKey === "string") updates["hosting.apiKey"] = apiKey;
+      if (typeof apiBaseUrl === "string") updates["hosting.apiBaseUrl"] = apiBaseUrl;
+      if (Object.keys(updates).length > 0) {
+        await storage.setPlatformSettings(updates);
+        hostinger.invalidateApiKeyCache();
+        hostinger.invalidateBaseUrlCache();
+      }
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.post("/api/hostinger/domains/availability", async (req, res) => {
-    if (!process.env.HOSTINGER_API_KEY) {
+    if (!await hostinger.isHostingerConfigured()) {
       return res.status(503).json({ message: "Domain search is not configured. HOSTINGER_API_KEY is missing." });
     }
     try {

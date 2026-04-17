@@ -6,7 +6,7 @@ import fs from "fs";
 import path from "path";
 import { nanoid } from "nanoid";
 import { storage } from "./storage";
-import { buildGtagSnippet, injectOgMeta } from "./static";
+import { injectOgMeta } from "./static";
 
 const viteLogger = createLogger();
 
@@ -51,16 +51,8 @@ export async function setupVite(server: Server, app: Express) {
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
 
-      // Inject GA4 gtag.js if a Measurement ID is configured
       try {
         const platformSettings = await storage.getPlatformSettings();
-        const measurementId = platformSettings["analytics.ga4MeasurementId"];
-        if (measurementId && measurementId.trim()) {
-          const snippet = buildGtagSnippet(measurementId.trim());
-          if (snippet) {
-            template = template.replace("</head>", `${snippet}\n  </head>`);
-          }
-        }
         const proto = (req.headers["x-forwarded-proto"] as string) || "https";
         const host = req.hostname;
         const canonicalUrl = `${proto}://${host}`;

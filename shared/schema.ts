@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, serial, timestamp, jsonb, boolean, real, pgEnum, uniqueIndex, index, primaryKey, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, serial, bigserial, date, timestamp, jsonb, boolean, real, pgEnum, uniqueIndex, index, primaryKey, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -1392,3 +1392,38 @@ export const insertWebsitePageSchema = createInsertSchema(websitePages).omit({
 });
 export type InsertWebsitePage = z.infer<typeof insertWebsitePageSchema>;
 export type WebsitePage = typeof websitePages.$inferSelect;
+
+// Internal per-page analytics (replaces GA4)
+export const pageviews = pgTable("pageviews", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  path: varchar("path", { length: 512 }).notNull(),
+  referrerHost: varchar("referrer_host", { length: 255 }),
+  visitorHash: varchar("visitor_hash", { length: 64 }).notNull(),
+  sessionHash: varchar("session_hash", { length: 64 }).notNull(),
+  country: varchar("country", { length: 2 }),
+  device: varchar("device", { length: 16 }).notNull(),
+  isBot: boolean("is_bot").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  createdAtIdx: index("pageviews_created_at_idx").on(t.createdAt),
+  pathCreatedIdx: index("pageviews_path_created_idx").on(t.path, t.createdAt),
+  visitorCreatedIdx: index("pageviews_visitor_created_idx").on(t.visitorHash, t.createdAt),
+  referrerCreatedIdx: index("pageviews_referrer_created_idx").on(t.referrerHost, t.createdAt),
+}));
+
+export const analyticsSalts = pgTable("analytics_salts", {
+  day: date("day").primaryKey(),
+  salt: varchar("salt", { length: 64 }).notNull(),
+});
+
+export const insertPageviewSchema = createInsertSchema(pageviews).omit({
+  id: true,
+  createdAt: true,
+  visitorHash: true,
+  sessionHash: true,
+  country: true,
+  device: true,
+  isBot: true,
+});
+export type Pageview = typeof pageviews.$inferSelect;
+export type InsertPageview = z.infer<typeof insertPageviewSchema>;

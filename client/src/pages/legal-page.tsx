@@ -37,7 +37,7 @@ const PRACTICE_AREAS = [
     icon: Lock,
     title: "Privacy & Data Protection",
     description:
-      "Upholding user privacy rights and maintaining compliance with data protection frameworks including GDPR, CCPA, and similar regulations.",
+      "Upholding user privacy rights and maintaining compliance with data protection frameworks including GDPR, CCPA, and similar regulations. We record anonymous page views (path, referring site, coarse country, device class) using a daily-rotating salted hash. We do not store IP addresses, do not set cookies for analytics, and do not share this data with third parties. Honors Do-Not-Track; opt out anytime by setting localStorage 'sevco-analytics-opt-out' to '1'.",
   },
   {
     icon: Users,

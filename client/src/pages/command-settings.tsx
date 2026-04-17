@@ -1105,15 +1105,6 @@ export default function CommandSettings() {
     queryKey: ["/api/platform-settings"],
   });
 
-  const { data: ga4Status } = useQuery<{
-    configured: boolean;
-    hasServiceAccount: boolean;
-    propertyId: string | null;
-    measurementId: string | null;
-  }>({
-    queryKey: ["/api/analytics/ga4/status"],
-  });
-
   const mutation = useMutation({
     mutationFn: async (entries: Record<string, string>) => {
       return apiRequest("PUT", "/api/platform-settings", entries);
@@ -1121,7 +1112,6 @@ export default function CommandSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/platform-settings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/meta"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/analytics/ga4/status"] });
       toast({ title: "Settings saved" });
     },
     onError: (err: any) => {
@@ -1201,10 +1191,6 @@ export default function CommandSettings() {
   const [ogImageUrl, setOgImageUrl] = useState("");
   const [platformLogoUrl, setPlatformLogoUrl] = useState("");
   const [platformDescription, setPlatformDescription] = useState("");
-
-  // ── Analytics state ──
-  const [ga4MeasurementId, setGa4MeasurementId] = useState("");
-  const [ga4PropertyId, setGa4PropertyId] = useState("");
 
   // ── Theme color state ──
   // Pure black/white defaults — match index.css and DEFAULT_LIGHT_VALUES/DEFAULT_DARK_VALUES.
@@ -1485,8 +1471,6 @@ export default function CommandSettings() {
     setServicesAccentColor(settings["services.accentColor"] || "");
     setMusicAccentColor(settings["music.accentColor"] || "");
     setWikiTagColor(settings["wiki.tagColor"] || "");
-    setGa4MeasurementId(settings["analytics.ga4MeasurementId"] || "");
-    setGa4PropertyId(settings["analytics.ga4PropertyId"] || "");
 
     // Typography
     setHeadingFont(settings["theme.font.heading"] || "Inter");
@@ -1797,13 +1781,6 @@ export default function CommandSettings() {
       "platform.ogImageUrl": ogImageUrl,
       "platform.logoUrl": platformLogoUrl,
       "platform.description": platformDescription,
-    });
-  }
-
-  function saveAnalytics() {
-    mutation.mutate({
-      "analytics.ga4MeasurementId": ga4MeasurementId,
-      "analytics.ga4PropertyId": ga4PropertyId,
     });
   }
 
@@ -3235,112 +3212,29 @@ export default function CommandSettings() {
           <AccordionItem value="analytics" className="border rounded-lg px-4">
             <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">Analytics</AccordionTrigger>
             <AccordionContent className="pb-4 space-y-6">
-              <Card data-search-label="Google Analytics GA4 measurement ID property ID service account tracking" className={cardVisible("Google Analytics GA4 measurement ID property ID service account tracking") ? "" : "hidden"}>
+              <Card data-search-label="internal analytics pageviews privacy first-party tracking" className={cardVisible("internal analytics pageviews privacy first-party tracking") ? "" : "hidden"}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <BarChart2 className="h-4 w-4" />
-                    {highlight("Google Analytics 4")}
+                    {highlight("Internal Analytics")}
                   </CardTitle>
                   <CardDescription>
-                    {highlight("Connect GA4 to inject the tracking script on every page and power the native analytics dashboard in CMD → Traffic.")}
+                    {highlight("Page views are recorded by our own first-party tracker and stored in our database. No external services, no cookies, no shared data.")}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-5">
-                  <div className={`flex items-start gap-3 p-3 rounded-lg border ${ga4Status?.configured ? "bg-green-500/10 border-green-500/20" : ga4Status?.measurementId || ga4Status?.propertyId ? "bg-amber-500/10 border-amber-500/20" : "bg-muted/40"}`}>
-                    {ga4Status?.configured ? (
-                      <>
-                        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium">GA4 fully configured</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">Measurement ID, Property ID, and service account are all set. The Data API and tracking script are active.</p>
-                        </div>
-                      </>
-                    ) : ga4Status?.measurementId || ga4Status?.propertyId ? (
-                      <>
-                        <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium">GA4 partially configured</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {ga4Status?.measurementId && ga4Status?.propertyId
-                              ? "Measurement ID and Property ID are saved. Add the GOOGLE_SERVICE_ACCOUNT_JSON secret to enable the Data API."
-                              : "Enter both Measurement ID and Property ID, then add the GOOGLE_SERVICE_ACCOUNT_JSON secret to enable analytics."}
-                          </p>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium">GA4 not configured</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">Enter your Measurement ID and Property ID below, then add the GOOGLE_SERVICE_ACCOUNT_JSON secret to enable analytics.</p>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="input-ga4-measurement-id">
-                      {highlight("Measurement ID")}
-                      <span className="text-muted-foreground text-xs ml-2">(controls gtag.js injection)</span>
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="input-ga4-measurement-id"
-                        data-testid="input-ga4-measurement-id"
-                        placeholder="G-XXXXXXXXXX"
-                        value={ga4MeasurementId}
-                        onChange={(e) => setGa4MeasurementId(e.target.value)}
-                        className="font-mono"
-                      />
-                      <Button size="sm" onClick={saveAnalytics} disabled={mutation.isPending} data-testid="button-save-ga4-measurement-id">
-                        <Save className="h-4 w-4 mr-1" />
-                        Save
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Found in GA4 Admin → Data Streams → your web stream. Starts with G-.</p>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="input-ga4-property-id">
-                      {highlight("Property ID")}
-                      <span className="text-muted-foreground text-xs ml-2">(controls Data API connection)</span>
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="input-ga4-property-id"
-                        data-testid="input-ga4-property-id"
-                        placeholder="123456789"
-                        value={ga4PropertyId}
-                        onChange={(e) => setGa4PropertyId(e.target.value)}
-                        className="font-mono"
-                      />
-                      <Button size="sm" onClick={saveAnalytics} disabled={mutation.isPending} data-testid="button-save-ga4-property-id">
-                        <Save className="h-4 w-4 mr-1" />
-                        Save
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Found in GA4 Admin → Property Settings. Numeric ID only (no "properties/" prefix).</p>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      {highlight("Service Account JSON Key")}
-                      <span className="text-xs text-muted-foreground">(required for Data API)</span>
-                    </Label>
-                    <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
-                      <p className="text-xs text-muted-foreground">
-                        Add the <span className="font-mono bg-muted px-1 rounded">GOOGLE_SERVICE_ACCOUNT_JSON</span> environment secret with the contents of your downloaded service account key JSON file.
+                <CardContent className="space-y-3">
+                  <div className="flex items-start gap-3 p-3 rounded-lg border bg-green-500/10 border-green-500/20">
+                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">Internal analytics is active</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Anonymous page views (path, referrer host, coarse country, device class) are stored with daily-rotating salted hashes. IPs are never persisted. Honors Do-Not-Track and the <span className="font-mono bg-muted px-1 rounded">sevco-analytics-opt-out</span> localStorage flag.
                       </p>
-                      <ol className="list-decimal list-inside space-y-1">
-                        <li className="text-xs text-muted-foreground">Go to <a href="https://console.cloud.google.com/iam-admin/serviceaccounts" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google Cloud Console → Service Accounts</a></li>
-                        <li className="text-xs text-muted-foreground">Create a service account and download a JSON key</li>
-                        <li className="text-xs text-muted-foreground">In GA4 Admin → Property Access Management, add the service account email as a Viewer</li>
-                        <li className="text-xs text-muted-foreground">Add the JSON key contents as the <span className="font-mono bg-muted px-1 rounded">GOOGLE_SERVICE_ACCOUNT_JSON</span> secret in Replit Secrets</li>
-                      </ol>
                     </div>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    See live stats in <span className="font-medium">CMD → Traffic</span> and on the Overview dashboard.
+                  </p>
                 </CardContent>
               </Card>
             </AccordionContent>

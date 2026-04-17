@@ -22,7 +22,7 @@ The platform is built with a modern web stack:
     - **Authentication**: Session-based login/registration using bcrypt and Passport.js, with email verification and X (Twitter) OAuth 2.0 integration.
     - **E-commerce**: Stripe integration for product management, checkout, and order tracking, including product synchronization and webhook handling.
     - **Supabase Storage**: Utilized for file uploads (avatars, banners, music tracks, gallery, brand assets) with public and private buckets. All Supabase storage URLs are proxied through `GET /images/:bucket/*` on the Express server, which adds `Cache-Control: immutable` headers and blocks the private `tracks` bucket (403). The upload API returns `/images/:bucket/:path` proxy paths directly. All frontend image renders must use `resolveImageUrl()` from `client/src/lib/resolve-image-url.ts` to rewrite raw Supabase storage URLs to proxy paths.
-    - **Analytics**: Google Analytics 4 integration via GA4 Data API for admin dashboards, including session data, top pages, traffic sources, and device information.
+    - **Analytics**: First-party pageview tracker (`server/internalAnalytics.ts`) that records anonymous, salted-hash pageviews to Postgres for the CMD admin dashboards (sessions, top pages, traffic sources, devices, countries). No external services, no cookies. Honors Do-Not-Track and a `sevco-analytics-opt-out` localStorage flag.
     - **Dynamic Content**: AI-powered news features (summarization, image generation), trending hashtags, and personalized news feeds with bookmarking and preference management.
     - **Email System**: Threaded email conversation view with inbox, starred, and send functionalities.
     - **Hostinger Integration**: Manages VPS hosting, domains, and WHOIS lookups through the Hostinger API.
@@ -66,7 +66,7 @@ Alternatively, append a one-time query string (e.g. `?v=2`) to the URL you share
 - **Email Service**: Resend (via Replit connector)
 - **Payment Gateway**: Stripe (via Replit integration)
 - **Cloud Storage**: Supabase Storage
-- **Analytics**: Google Analytics 4 (via `@google-analytics/data` package)
+- **Analytics**: First-party pageview tracker (Postgres-backed, no external services)
 - **AI Services**: Grok AI (for news summarization, image generation, etc.)
 - **Hosting Management**: Hostinger API (for VPS, domains, catalog, WHOIS)
 - **Frontend Libraries**: React, Vite, TailwindCSS, Shadcn UI, Wouter, TanStack Query

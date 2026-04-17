@@ -34,15 +34,17 @@ import { freeballRouter } from "./freeball-routes";
 import { sitesRouter } from "./sites-routes";
 import { canvasRouter } from "./canvas-routes";
 import {
-  getGA4Status,
-  getRealtimeActiveUsers,
-  getSummary,
-  getSessionsOverTime,
-  getTopPages,
-  getTrafficSources,
-  getCountryBreakdown,
-  getDeviceSplit,
-} from "./analytics";
+  recordPageview,
+  rateLimitAllow,
+  getInternalStatus,
+  getSummary as getInternalSummary,
+  getTopPages as getInternalTopPages,
+  getTopSources as getInternalTopSources,
+  getSessionsOverTime as getInternalSessionsOverTime,
+  getCountryBreakdown as getInternalCountries,
+  getDeviceSplit as getInternalDevices,
+  getRealtimeActiveUsers as getInternalRealtime,
+} from "./internalAnalytics";
 import { isUsernameReserved } from "./usernameUtils";
 import { db } from "./db";
 import { sql, eq, and, desc } from "drizzle-orm";
@@ -6462,107 +6464,101 @@ export async function registerRoutes(
     }
   });
 
-  // ─── GA4 Analytics Routes ───────────────────────────────
-  app.get("/api/analytics/ga4/status", requireAuth, requireRole("admin"), async (req, res) => {
-    try {
-      const settings = await storage.getPlatformSettings();
-      const propertyId = settings["analytics.ga4PropertyId"];
-      const measurementId = settings["analytics.ga4MeasurementId"];
-      const status = await getGA4Status(propertyId, measurementId);
-      res.json(status);
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
+  // ─── Internal Per-Page Analytics (replaces GA4) ─────────
+  const trackBodySchema = z.object({
+    path: z.string().min(1).max(1024),
+    referrer: z.string().max(2048).nullable().optional(),
   });
 
-  app.get("/api/analytics/ga4/summary", requireAuth, requireRole("admin"), async (req, res) => {
+  app.post("/api/analytics/track", async (req, res) => {
+    const ip = (req.ip || req.socket.remoteAddress || "").toString();
+    if (!rateLimitAllow(ip)) return res.status(204).end();
+    const parsed = trackBodySchema.safeParse(req.body ?? {});
+    if (!parsed.success) return res.status(204).end();
+    const ua = (req.headers["user-agent"] as string) || "";
+    const country =
+      (req.headers["cf-ipcountry"] as string) ||
+      (req.headers["x-vercel-ip-country"] as string) ||
+      null;
+    await recordPageview({
+      path: parsed.data.path,
+      referrer: parsed.data.referrer ?? null,
+      ip,
+      userAgent: ua,
+      country,
+    });
+    return res.status(204).end();
+  });
+
+  app.get("/api/analytics/internal/status", requireAuth, requireRole("admin"), async (_req, res) => {
+    res.json(await getInternalStatus());
+  });
+
+  app.get("/api/analytics/internal/summary", requireAuth, requireRole("admin"), async (req, res) => {
     try {
-      const settings = await storage.getPlatformSettings();
-      const propertyId = settings["analytics.ga4PropertyId"];
-      if (!propertyId) return res.status(400).json({ message: "GA4 Property ID not configured" });
       const range = (req.query.range as string) || "28d";
-      const data = await getSummary(propertyId, range);
-      res.json(data);
+      res.json(await getInternalSummary(range));
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });
 
-  app.get("/api/analytics/ga4/sessions", requireAuth, requireRole("admin"), async (req, res) => {
+  app.get("/api/analytics/internal/pages", requireAuth, requireRole("admin"), async (req, res) => {
     try {
-      const settings = await storage.getPlatformSettings();
-      const propertyId = settings["analytics.ga4PropertyId"];
-      if (!propertyId) return res.status(400).json({ message: "GA4 Property ID not configured" });
       const range = (req.query.range as string) || "28d";
-      const data = await getSessionsOverTime(propertyId, range);
-      res.json(data);
+      res.json(await getInternalTopPages(range));
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });
 
-  app.get("/api/analytics/ga4/pages", requireAuth, requireRole("admin"), async (req, res) => {
+  app.get("/api/analytics/internal/sources", requireAuth, requireRole("admin"), async (req, res) => {
     try {
-      const settings = await storage.getPlatformSettings();
-      const propertyId = settings["analytics.ga4PropertyId"];
-      if (!propertyId) return res.status(400).json({ message: "GA4 Property ID not configured" });
       const range = (req.query.range as string) || "28d";
-      const data = await getTopPages(propertyId, range);
-      res.json(data);
+      res.json(await getInternalTopSources(range));
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });
 
-  app.get("/api/analytics/ga4/sources", requireAuth, requireRole("admin"), async (req, res) => {
+  app.get("/api/analytics/internal/sessions", requireAuth, requireRole("admin"), async (req, res) => {
     try {
-      const settings = await storage.getPlatformSettings();
-      const propertyId = settings["analytics.ga4PropertyId"];
-      if (!propertyId) return res.status(400).json({ message: "GA4 Property ID not configured" });
       const range = (req.query.range as string) || "28d";
-      const data = await getTrafficSources(propertyId, range);
-      res.json(data);
+      res.json(await getInternalSessionsOverTime(range));
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });
 
-  app.get("/api/analytics/ga4/countries", requireAuth, requireRole("admin"), async (req, res) => {
+  app.get("/api/analytics/internal/countries", requireAuth, requireRole("admin"), async (req, res) => {
     try {
-      const settings = await storage.getPlatformSettings();
-      const propertyId = settings["analytics.ga4PropertyId"];
-      if (!propertyId) return res.status(400).json({ message: "GA4 Property ID not configured" });
       const range = (req.query.range as string) || "28d";
-      const data = await getCountryBreakdown(propertyId, range);
-      res.json(data);
+      res.json(await getInternalCountries(range));
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });
 
-  app.get("/api/analytics/ga4/devices", requireAuth, requireRole("admin"), async (req, res) => {
+  app.get("/api/analytics/internal/devices", requireAuth, requireRole("admin"), async (req, res) => {
     try {
-      const settings = await storage.getPlatformSettings();
-      const propertyId = settings["analytics.ga4PropertyId"];
-      if (!propertyId) return res.status(400).json({ message: "GA4 Property ID not configured" });
       const range = (req.query.range as string) || "28d";
-      const data = await getDeviceSplit(propertyId, range);
-      res.json(data);
+      res.json(await getInternalDevices(range));
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });
 
-  app.get("/api/analytics/ga4/realtime", requireAuth, requireRole("admin"), async (req, res) => {
+  app.get("/api/analytics/internal/realtime", requireAuth, requireRole("admin"), async (_req, res) => {
     try {
-      const settings = await storage.getPlatformSettings();
-      const propertyId = settings["analytics.ga4PropertyId"];
-      if (!propertyId) return res.status(400).json({ message: "GA4 Property ID not configured" });
-      const activeUsers = await getRealtimeActiveUsers(propertyId);
-      res.json({ activeUsers });
+      res.json({ activeUsers: await getInternalRealtime() });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
+  });
+
+  // Legacy GA4 endpoints — return 410 Gone. Replaced by /api/analytics/internal/*.
+  app.all("/api/analytics/ga4/{*rest}", (_req, res) => {
+    res.status(410).json({ message: "GA4 analytics has been replaced by internal per-page analytics.", replacement: "/api/analytics/internal/*" });
   });
 
   app.post("/api/admin/run-wiki-seed", requireAuth, requireRole("admin"), async (req, res) => {

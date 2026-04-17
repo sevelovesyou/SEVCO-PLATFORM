@@ -60,13 +60,6 @@ type TrafficSettings = {
   watchedSites: WatchedSite[];
 };
 
-type GA4Status = {
-  configured: boolean;
-  hasServiceAccount: boolean;
-  propertyId: string | null;
-  measurementId: string | null;
-};
-
 type SummaryData = {
   sessions: number;
   pageviews: number;
@@ -123,89 +116,12 @@ function StatCard({ label, value, sub, icon: Icon }: { label: string; value: str
   );
 }
 
-function GA4SetupGuide({ status }: { status: GA4Status }) {
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <BarChart2 className="h-5 w-5 text-muted-foreground" />
-          <CardTitle>Platform Analytics (GA4)</CardTitle>
-        </div>
-        <CardDescription>
-          Connect Google Analytics 4 to see native traffic data — sessions, pageviews, top pages, and more.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-          <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-          <div>
-            <p className="text-sm font-medium">GA4 not yet configured</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Follow these steps to connect Google Analytics 4 to the CMD dashboard.
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {[
-            {
-              step: 1,
-              title: "Create a GA4 Property",
-              desc: "In Google Analytics, go to Admin → Create Property and set up a GA4 property for your domain.",
-              done: false,
-            },
-            {
-              step: 2,
-              title: "Get your Measurement ID",
-              desc: "In Admin → Data Streams → your web stream, find the Measurement ID (starts with G-).",
-              done: !!status.measurementId,
-            },
-            {
-              step: 3,
-              title: "Get your Property ID",
-              desc: "In Admin → Property Settings, find the Property ID (a numeric ID like 123456789).",
-              done: !!status.propertyId,
-            },
-            {
-              step: 4,
-              title: "Create a Service Account",
-              desc: "In Google Cloud Console, create a service account, download the JSON key, and grant it Viewer access in GA4 Admin → Property Access Management.",
-              done: status.hasServiceAccount,
-            },
-            {
-              step: 5,
-              title: "Add settings in CMD → Settings → Analytics",
-              desc: "Paste your Measurement ID and Property ID in the Analytics section of Command Settings, then add the service account JSON as the GOOGLE_SERVICE_ACCOUNT_JSON secret.",
-              done: status.configured,
-            },
-          ].map(({ step, title, desc, done }) => (
-            <div key={step} className="flex items-start gap-3 p-3 border rounded-lg">
-              <div className={`flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${done ? "bg-green-500/20 text-green-600" : "bg-muted text-muted-foreground"}`}>
-                {done ? <CheckCircle2 className="h-4 w-4" /> : step}
-              </div>
-              <div>
-                <p className="text-sm font-medium">{title}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2">
-          <Info className="h-3.5 w-3.5 shrink-0" />
-          <span>Configure your Measurement ID and Property ID in <strong>CMD → Settings → Analytics</strong>.</span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 type RangeOption = "7d" | "28d" | "90d";
 
-function GA4Dashboard({ propertyId }: { propertyId: string }) {
+function InternalAnalyticsDashboard() {
   const [range, setRange] = useState<RangeOption>("28d");
 
-  async function ga4Fetch<T>(url: string): Promise<T> {
+  async function fetchJson<T>(url: string): Promise<T> {
     const r = await fetch(url);
     if (!r.ok) {
       const err = await r.json().catch(() => ({ message: r.statusText }));
@@ -215,38 +131,38 @@ function GA4Dashboard({ propertyId }: { propertyId: string }) {
   }
 
   const summaryQ = useQuery<SummaryData>({
-    queryKey: ["/api/analytics/ga4/summary", range],
-    queryFn: () => ga4Fetch<SummaryData>(`/api/analytics/ga4/summary?range=${range}`),
+    queryKey: ["/api/analytics/internal/summary", range],
+    queryFn: () => fetchJson<SummaryData>(`/api/analytics/internal/summary?range=${range}`),
   });
 
   const sessionsQ = useQuery<SessionRow[]>({
-    queryKey: ["/api/analytics/ga4/sessions", range],
-    queryFn: () => ga4Fetch<SessionRow[]>(`/api/analytics/ga4/sessions?range=${range}`),
+    queryKey: ["/api/analytics/internal/sessions", range],
+    queryFn: () => fetchJson<SessionRow[]>(`/api/analytics/internal/sessions?range=${range}`),
   });
 
   const pagesQ = useQuery<PageRow[]>({
-    queryKey: ["/api/analytics/ga4/pages", range],
-    queryFn: () => ga4Fetch<PageRow[]>(`/api/analytics/ga4/pages?range=${range}`),
+    queryKey: ["/api/analytics/internal/pages", range],
+    queryFn: () => fetchJson<PageRow[]>(`/api/analytics/internal/pages?range=${range}`),
   });
 
   const sourcesQ = useQuery<SourceRow[]>({
-    queryKey: ["/api/analytics/ga4/sources", range],
-    queryFn: () => ga4Fetch<SourceRow[]>(`/api/analytics/ga4/sources?range=${range}`),
+    queryKey: ["/api/analytics/internal/sources", range],
+    queryFn: () => fetchJson<SourceRow[]>(`/api/analytics/internal/sources?range=${range}`),
   });
 
   const countriesQ = useQuery<CountryRow[]>({
-    queryKey: ["/api/analytics/ga4/countries", range],
-    queryFn: () => ga4Fetch<CountryRow[]>(`/api/analytics/ga4/countries?range=${range}`),
+    queryKey: ["/api/analytics/internal/countries", range],
+    queryFn: () => fetchJson<CountryRow[]>(`/api/analytics/internal/countries?range=${range}`),
   });
 
   const devicesQ = useQuery<DeviceRow[]>({
-    queryKey: ["/api/analytics/ga4/devices", range],
-    queryFn: () => ga4Fetch<DeviceRow[]>(`/api/analytics/ga4/devices?range=${range}`),
+    queryKey: ["/api/analytics/internal/devices", range],
+    queryFn: () => fetchJson<DeviceRow[]>(`/api/analytics/internal/devices?range=${range}`),
   });
 
   const realtimeQ = useQuery<{ activeUsers: number }>({
-    queryKey: ["/api/analytics/ga4/realtime"],
-    queryFn: () => ga4Fetch<{ activeUsers: number }>("/api/analytics/ga4/realtime"),
+    queryKey: ["/api/analytics/internal/realtime"],
+    queryFn: () => fetchJson<{ activeUsers: number }>("/api/analytics/internal/realtime"),
     refetchInterval: 60000,
   });
 
@@ -276,9 +192,9 @@ function GA4Dashboard({ propertyId }: { propertyId: string }) {
           <div className="flex items-center gap-2">
             <BarChart2 className="h-5 w-5 text-muted-foreground" />
             <div>
-              <CardTitle>Platform Analytics (GA4)</CardTitle>
+              <CardTitle>Platform Analytics</CardTitle>
               <CardDescription className="mt-0.5">
-                Property ID: <span className="font-mono text-foreground">{propertyId}</span>
+                First-party pageview tracking
                 {realtimeQ.data && (
                   <span className="ml-3 inline-flex items-center gap-1 text-green-600 dark:text-green-400">
                     <span className="h-1.5 w-1.5 bg-green-500 rounded-full inline-block motion-safe:animate-pulse" />
@@ -319,7 +235,7 @@ function GA4Dashboard({ propertyId }: { propertyId: string }) {
             <StatCard label="Sessions Today" value={summary.sessionsToday.toLocaleString()} icon={TrendingUp} />
             <StatCard label="Active Users (30d)" value={summary.activeUsers30d.toLocaleString()} icon={Users} />
             <StatCard label="Pageviews (30d)" value={summary.pageviews30d.toLocaleString()} icon={FileText} />
-            <StatCard label="Bounce Rate" value={`${(summary.bounceRate * 100).toFixed(1)}%`} icon={BarChart2} />
+            <StatCard label="Bounce Rate" value={`${summary.bounceRate.toFixed(1)}%`} icon={BarChart2} />
           </div>
         ) : (
           <div className="p-4 text-sm text-muted-foreground bg-muted/30 rounded-lg">
@@ -522,10 +438,6 @@ export default function CommandTraffic() {
     queryKey: ["/api/traffic-settings"],
   });
 
-  const { data: ga4Status, isLoading: ga4StatusLoading } = useQuery<GA4Status>({
-    queryKey: ["/api/analytics/ga4/status"],
-  });
-
   const mutation = useMutation({
     mutationFn: async (payload: TrafficSettings) => {
       return apiRequest("POST", "/api/traffic-settings", payload);
@@ -601,7 +513,7 @@ export default function CommandTraffic() {
     mutation.mutate({ embedUrl, watchedSites: updated });
   }
 
-  if (isLoading || ga4StatusLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -611,12 +523,7 @@ export default function CommandTraffic() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* GA4 Native Dashboard or Setup Guide */}
-      {ga4Status?.configured ? (
-        <GA4Dashboard propertyId={ga4Status.propertyId!} />
-      ) : (
-        <GA4SetupGuide status={ga4Status ?? { configured: false, hasServiceAccount: false, propertyId: null, measurementId: null }} />
-      )}
+      <InternalAnalyticsDashboard />
 
       {/* Watched Sites */}
       <Card>
@@ -632,7 +539,7 @@ export default function CommandTraffic() {
             </Button>
           </div>
           <CardDescription>
-            Track additional owned or monitored websites. Each entry can optionally include an analytics embed URL for non-GA4 properties.
+            Track additional owned or monitored websites. Each entry can optionally include an analytics embed URL for external properties.
           </CardDescription>
         </CardHeader>
         <CardContent>

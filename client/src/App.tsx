@@ -23,6 +23,7 @@ import { isClientPlus } from "@/lib/permissions";
 import { useToast } from "@/hooks/use-toast";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { AnimatedPage } from "@/components/animated-page";
+import { useAnalyticsTracker } from "@/lib/analytics-tracker";
 
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
@@ -797,6 +798,7 @@ function AppShell() {
   const { user, isLoading } = useAuth();
   const [location] = useLocation();
   const { activePlaylist } = useSpotifyPlayer();
+  useAnalyticsTracker();
 
   const isAuthPage = location === "/auth" || location === "/verify-email";
 

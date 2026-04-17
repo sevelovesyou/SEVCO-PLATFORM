@@ -126,7 +126,7 @@ interface StoreStats {
   byStockStatus: Array<{ status: string; count: number }>;
 }
 
-interface Ga4Summary {
+interface AnalyticsSummary {
   sessions: number;
   pageviews: number;
   activeUsers: number;
@@ -135,8 +135,8 @@ interface Ga4Summary {
   activeUsers30d: number;
   pageviews30d: number;
 }
-interface Ga4Page { pagePath: string; screenPageViews: number; }
-interface Ga4Source { sessionDefaultChannelGroup: string; sessions: number; }
+interface AnalyticsPage { pagePath: string; screenPageViews: number; }
+interface AnalyticsSource { sessionDefaultChannelGroup: string; sessions: number; }
 
 interface VirtualMachine {
   id: number;
@@ -818,84 +818,46 @@ function RecentNotesWidget({ userId }: { userId: string }) {
   );
 }
 
-function Ga4Widget() {
+function WebAnalyticsWidget() {
   const [range, setRange] = useState<"7d" | "28d">("28d");
 
-  const { data: status, isLoading: statusLoading } = useQuery<{ configured: boolean; hasServiceAccount: boolean; propertyId: string | null; measurementId: string | null }>({
-    queryKey: ["/api/analytics/ga4/status"],
-  });
-
-  const configured = status?.configured && !!status?.propertyId;
-
-  const { data: summary, isLoading: summaryLoading, isError: summaryError, refetch: retrySummary } = useQuery<Ga4Summary>({
-    queryKey: ["/api/analytics/ga4/summary", range],
+  const { data: summary, isLoading: summaryLoading, isError: summaryError, refetch: retrySummary } = useQuery<AnalyticsSummary>({
+    queryKey: ["/api/analytics/internal/summary", range],
     queryFn: async () => {
-      const res = await fetch(`/api/analytics/ga4/summary?range=${range}`);
+      const res = await fetch(`/api/analytics/internal/summary?range=${range}`);
       if (!res.ok) throw new Error("Failed to load analytics summary");
       return res.json();
     },
-    enabled: !!configured,
   });
 
-  const { data: pages, isLoading: pagesLoading, isError: pagesError, refetch: retryPages } = useQuery<Ga4Page[]>({
-    queryKey: ["/api/analytics/ga4/pages", range],
+  const { data: pages, isLoading: pagesLoading, isError: pagesError, refetch: retryPages } = useQuery<AnalyticsPage[]>({
+    queryKey: ["/api/analytics/internal/pages", range],
     queryFn: async () => {
-      const res = await fetch(`/api/analytics/ga4/pages?range=${range}`);
+      const res = await fetch(`/api/analytics/internal/pages?range=${range}`);
       if (!res.ok) throw new Error("Failed to load pages");
       return res.json();
     },
-    enabled: !!configured,
   });
 
-  const { data: sources, isLoading: sourcesLoading, isError: sourcesError, refetch: retrySources } = useQuery<Ga4Source[]>({
-    queryKey: ["/api/analytics/ga4/sources", range],
+  const { data: sources, isLoading: sourcesLoading, isError: sourcesError, refetch: retrySources } = useQuery<AnalyticsSource[]>({
+    queryKey: ["/api/analytics/internal/sources", range],
     queryFn: async () => {
-      const res = await fetch(`/api/analytics/ga4/sources?range=${range}`);
+      const res = await fetch(`/api/analytics/internal/sources?range=${range}`);
       if (!res.ok) throw new Error("Failed to load sources");
       return res.json();
     },
-    enabled: !!configured,
   });
-
-  if (statusLoading) {
-    return (
-      <Card className="p-4">
-        <Skeleton className="h-5 w-32 mb-3" />
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full rounded-md" />)}
-        </div>
-      </Card>
-    );
-  }
-
-  if (!configured) {
-    return (
-      <Card className="p-4 flex items-center gap-3" data-testid="ga4-not-configured">
-        <BarChart3 className="h-8 w-8 text-muted-foreground shrink-0" />
-        <div className="flex-1">
-          <p className="text-sm font-medium">GA4 not configured</p>
-          <p className="text-xs text-muted-foreground">Connect a Google Analytics 4 property to see web analytics here.</p>
-        </div>
-        <Link href="/command/settings?tab=advanced&section=analytics">
-          <Button variant="outline" size="sm" data-testid="ga4-setup-link">Set up</Button>
-        </Link>
-      </Card>
-    );
-  }
 
   const isLoading = summaryLoading || pagesLoading || sourcesLoading;
 
   if (summaryError) {
     return (
-      <Card className="p-4 flex items-center gap-3" data-testid="ga4-error">
+      <Card className="p-4 flex items-center gap-3" data-testid="analytics-error">
         <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
         <div className="flex-1">
           <p className="text-sm">Could not load analytics</p>
-          <Link href="/command/settings?tab=advanced&section=analytics" className="text-xs text-muted-foreground hover:underline" data-testid="ga4-error-config-link">
-            Check configuration →
-          </Link>
         </div>
-        <Button variant="outline" size="sm" onClick={() => retrySummary()} data-testid="ga4-retry">Retry</Button>
+        <Button variant="outline" size="sm" onClick={() => retrySummary()} data-testid="analytics-retry">Retry</Button>
       </Card>
     );
   }
@@ -903,16 +865,16 @@ function Ga4Widget() {
   const totalSourceSessions = (sources ?? []).reduce((sum, s) => sum + s.sessions, 0);
 
   return (
-    <Card className="p-4" data-testid="ga4-widget">
+    <Card className="p-4" data-testid="analytics-widget">
       <div className="flex items-center justify-between mb-4">
         <span className="text-sm font-semibold">Web Analytics</span>
-        <Select value={range} onValueChange={(v) => setRange(v as "7d" | "28d")} data-testid="ga4-range-select">
-          <SelectTrigger className="h-7 w-24 text-xs" data-testid="ga4-range-trigger">
+        <Select value={range} onValueChange={(v) => setRange(v as "7d" | "28d")} data-testid="analytics-range-select">
+          <SelectTrigger className="h-7 w-24 text-xs" data-testid="analytics-range-trigger">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="7d" data-testid="ga4-range-7d">Last 7 days</SelectItem>
-            <SelectItem value="28d" data-testid="ga4-range-28d">Last 28 days</SelectItem>
+            <SelectItem value="7d" data-testid="analytics-range-7d">Last 7 days</SelectItem>
+            <SelectItem value="28d" data-testid="analytics-range-28d">Last 28 days</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -922,19 +884,19 @@ function Ga4Widget() {
           [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full rounded-md" />)
         ) : (
           <>
-            <div className="rounded-md bg-muted/40 p-3" data-testid="ga4-tile-sessions">
+            <div className="rounded-md bg-muted/40 p-3" data-testid="analytics-tile-sessions">
               <p className="text-[11px] text-muted-foreground mb-1">Sessions</p>
               <p className="text-xl font-bold">{(summary?.sessions ?? 0).toLocaleString()}</p>
             </div>
-            <div className="rounded-md bg-muted/40 p-3" data-testid="ga4-tile-pageviews">
+            <div className="rounded-md bg-muted/40 p-3" data-testid="analytics-tile-pageviews">
               <p className="text-[11px] text-muted-foreground mb-1">Page Views</p>
               <p className="text-xl font-bold">{(summary?.pageviews ?? 0).toLocaleString()}</p>
             </div>
-            <div className="rounded-md bg-muted/40 p-3" data-testid="ga4-tile-active-users">
+            <div className="rounded-md bg-muted/40 p-3" data-testid="analytics-tile-active-users">
               <p className="text-[11px] text-muted-foreground mb-1">Active Users</p>
               <p className="text-xl font-bold">{(summary?.activeUsers ?? 0).toLocaleString()}</p>
             </div>
-            <div className="rounded-md bg-muted/40 p-3" data-testid="ga4-tile-bounce-rate">
+            <div className="rounded-md bg-muted/40 p-3" data-testid="analytics-tile-bounce-rate">
               <p className="text-[11px] text-muted-foreground mb-1">Bounce Rate</p>
               <p className="text-xl font-bold">{summary ? `${summary.bounceRate.toFixed(1)}%` : "—"}</p>
             </div>
@@ -943,7 +905,7 @@ function Ga4Widget() {
       </div>
 
       {!isLoading && summary && (
-        <div className="rounded-md bg-primary/5 border border-primary/10 px-3 py-2 mb-4 flex items-center gap-2" data-testid="ga4-sessions-today">
+        <div className="rounded-md bg-primary/5 border border-primary/10 px-3 py-2 mb-4 flex items-center gap-2" data-testid="analytics-sessions-today">
           <BarChart3 className="h-4 w-4 text-primary shrink-0" />
           <span className="text-xs text-muted-foreground">Sessions today:</span>
           <span className="text-xs font-semibold">{summary.sessionsToday.toLocaleString()}</span>
@@ -951,20 +913,20 @@ function Ga4Widget() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div data-testid="ga4-top-pages">
+        <div data-testid="analytics-top-pages">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Top Pages</p>
           {pagesLoading ? (
             <div className="space-y-2">{[0,1,2,3,4].map((i) => <Skeleton key={i} className="h-6 w-full" />)}</div>
           ) : pagesError ? (
-            <div className="flex items-center gap-2" data-testid="ga4-pages-error">
+            <div className="flex items-center gap-2" data-testid="analytics-pages-error">
               <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
               <span className="text-xs text-muted-foreground flex-1">Could not load pages</span>
-              <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => retryPages()} data-testid="ga4-pages-retry">Retry</Button>
+              <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => retryPages()} data-testid="analytics-pages-retry">Retry</Button>
             </div>
           ) : (
             <div className="divide-y divide-border">
               {(pages ?? []).slice(0, 5).map((page, i) => (
-                <div key={i} className="flex items-center justify-between py-1.5 gap-2" data-testid={`ga4-page-row-${i}`}>
+                <div key={i} className="flex items-center justify-between py-1.5 gap-2" data-testid={`analytics-page-row-${i}`}>
                   <span className="text-xs text-ellipsis overflow-hidden whitespace-nowrap max-w-[70%]" title={page.pagePath}>{page.pagePath}</span>
                   <span className="text-xs font-medium shrink-0">{page.screenPageViews.toLocaleString()}</span>
                 </div>
@@ -973,22 +935,22 @@ function Ga4Widget() {
           )}
         </div>
 
-        <div data-testid="ga4-traffic-sources">
+        <div data-testid="analytics-traffic-sources">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Traffic Sources</p>
           {sourcesLoading ? (
             <div className="space-y-2">{[0,1,2,3].map((i) => <Skeleton key={i} className="h-7 w-full" />)}</div>
           ) : sourcesError ? (
-            <div className="flex items-center gap-2" data-testid="ga4-sources-error">
+            <div className="flex items-center gap-2" data-testid="analytics-sources-error">
               <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
               <span className="text-xs text-muted-foreground flex-1">Could not load sources</span>
-              <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => retrySources()} data-testid="ga4-sources-retry">Retry</Button>
+              <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => retrySources()} data-testid="analytics-sources-retry">Retry</Button>
             </div>
           ) : (
             <div className="space-y-2">
               {(sources ?? []).slice(0, 4).map((src, i) => {
                 const pct = totalSourceSessions > 0 ? Math.round((src.sessions / totalSourceSessions) * 100) : 0;
                 return (
-                  <div key={i} data-testid={`ga4-source-row-${i}`}>
+                  <div key={i} data-testid={`analytics-source-row-${i}`}>
                     <div className="flex items-center justify-between mb-0.5">
                       <span className="text-xs text-ellipsis overflow-hidden whitespace-nowrap max-w-[70%]">{src.sessionDefaultChannelGroup || "Direct"}</span>
                       <span className="text-xs font-medium shrink-0">{src.sessions.toLocaleString()} ({pct}%)</span>
@@ -1028,7 +990,7 @@ function AdminOverview({ data, summary, summaryLoading, userId, latestPlatformEn
           Web Analytics
         </h2>
         <WidgetErrorBoundary label="Analytics">
-          <Ga4Widget />
+          <WebAnalyticsWidget />
         </WidgetErrorBoundary>
       </div>
 

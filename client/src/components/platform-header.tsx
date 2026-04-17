@@ -107,7 +107,7 @@ import { useMusicPlayer } from "@/contexts/music-player-context";
 import { Volume2, VolumeX, Bell } from "lucide-react";
 import type { Project, Service } from "@shared/schema";
 import { NotificationDropdown } from "@/components/notification-dropdown";
-import { AnnouncementBell } from "@/components/announcement-bell";
+import { useUnreadAnnouncements } from "@/hooks/use-unread-announcements";
 import { useLens } from "@/contexts/lens-context";
 
 function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
@@ -1026,6 +1026,9 @@ export function PlatformHeader() {
     enabled: !!user,
   });
   const unreadNotifCount = notifCount?.count ?? 0;
+  const { announcements: announcementsList, dismissedSet: announcementsDismissedSet, unreadCount: unreadAnnouncementsCount } = useUnreadAnnouncements();
+  const combinedUnread = unreadNotifCount + unreadAnnouncementsCount;
+
   const prevCountRef = useRef(-1);
   useEffect(() => {
     if (prevCountRef.current === -1) {
@@ -1037,6 +1040,20 @@ export function PlatformHeader() {
     }
     prevCountRef.current = unreadNotifCount;
   }, [unreadNotifCount, playNotification]);
+
+  const lastSeenAnnouncementIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (announcementsList.length === 0) return;
+    const maxId = announcementsList.reduce((m, a) => (a.id > m ? a.id : m), 0);
+    if (lastSeenAnnouncementIdRef.current === null) {
+      lastSeenAnnouncementIdRef.current = maxId;
+      return;
+    }
+    if (maxId > lastSeenAnnouncementIdRef.current && !announcementsDismissedSet.has(maxId)) {
+      playNotification();
+    }
+    lastSeenAnnouncementIdRef.current = maxId;
+  }, [announcementsList, announcementsDismissedSet, playNotification]);
 
   const { data: unreadNotifs = [] } = useQuery<import("@shared/schema").Notification[]>({
     queryKey: ["/api/notifications"],
@@ -1193,40 +1210,36 @@ export function PlatformHeader() {
         {/* Right side actions */}
         <div className="flex items-center gap-1.5">
           <TooltipProvider delayDuration={400}>
-          {/* Announcement bell — visible to all (incl. anonymous) */}
-          <AnnouncementBell />
-          {/* Notification bell — logged-in only */}
-          {user && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="relative" ref={notifTriggerRef}>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`h-8 w-8 relative ${hasUnreadSpark ? "spark-bell-glow" : ""}`}
-                    onClick={() => setNotifOpen((o) => !o)}
-                    data-testid="button-notifications"
-                    aria-label="Notifications"
-                  >
-                    {hasUnreadSpark && (
-                      <span className="absolute inset-0 rounded-md animate-ping bg-yellow-400/30 pointer-events-none" />
-                    )}
-                    <Bell className={`h-4 w-4 relative z-10 ${hasUnreadSpark ? "text-yellow-400" : ""}`} aria-hidden="true" />
-                  </Button>
-                  {unreadNotifCount > 0 && (
-                    <span
-                      className={`absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full text-white text-[10px] font-semibold flex items-center justify-center pointer-events-none ${hasUnreadSpark ? "bg-yellow-500" : "bg-red-500"}`}
-                      data-testid="badge-notif-count"
-                    >
-                      {unreadNotifCount > 99 ? "99+" : unreadNotifCount}
-                    </span>
+          {/* Notification bell — visible to all (incl. anonymous for announcements) */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="relative" ref={notifTriggerRef}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-8 w-8 relative ${hasUnreadSpark ? "spark-bell-glow" : ""}`}
+                  onClick={() => setNotifOpen((o) => !o)}
+                  data-testid="button-notifications"
+                  aria-label="Notifications"
+                >
+                  {hasUnreadSpark && (
+                    <span className="absolute inset-0 rounded-md animate-ping bg-yellow-400/30 pointer-events-none" />
                   )}
-                  <NotificationDropdown open={notifOpen} onClose={() => setNotifOpen(false)} triggerRef={notifTriggerRef} />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Notifications{unreadNotifCount > 0 ? ` (${unreadNotifCount})` : ""}</TooltipContent>
-            </Tooltip>
-          )}
+                  <Bell className={`h-4 w-4 relative z-10 ${hasUnreadSpark ? "text-yellow-400" : ""}`} aria-hidden="true" />
+                </Button>
+                {combinedUnread > 0 && (
+                  <span
+                    className={`absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full text-white text-[10px] font-semibold flex items-center justify-center pointer-events-none ${hasUnreadSpark ? "bg-yellow-500" : "bg-red-500"}`}
+                    data-testid="badge-notif-count"
+                  >
+                    {combinedUnread > 99 ? "99+" : combinedUnread}
+                  </span>
+                )}
+                <NotificationDropdown open={notifOpen} onClose={() => setNotifOpen(false)} triggerRef={notifTriggerRef} />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Notifications{combinedUnread > 0 ? ` (${combinedUnread})` : ""}</TooltipContent>
+          </Tooltip>
 
           {/* Tools dropdown */}
           <ToolsDropdown

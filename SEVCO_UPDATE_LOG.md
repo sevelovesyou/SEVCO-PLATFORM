@@ -28142,3 +28142,36 @@ Three related theming problems on SEVCO:
 
 ---
 
+## Task — brand-logo-tile-contrast
+> Merged: 2026-04-17
+
+# Fix logo visibility on split brand tiles
+
+## What & Why
+On the Brand Guidelines page, each "Approved variants" tile uses a diagonal white/black split background to show the logo against both backgrounds. Today the logo is centered on the split, so the white logo disappears into the white half and the black logo disappears into the black half. Visitors can only see roughly half of each monochrome mark, which defeats the purpose of the showcase.
+
+## Done looks like
+- On every approved-variant tile, the entire logo is clearly visible against a contrasting background.
+- White / light logos read fully against the dark half of the tile.
+- Black / dark logos read fully against the light half of the tile.
+- Full-color logos (e.g. "SEVCO TEXT LOGO Colors") continue to display centered across the split, since they read on both sides.
+- Layout still looks balanced; tile height, card chrome, captions, and the "PNG" badge are unchanged.
+- Behavior is consistent for both uploaded image assets and the fallback `SevcoLogo` component.
+
+## Out of scope
+- Redesigning the Brand Guidelines page layout, copy, or other sections (Clear space, Minimum size, Contrast, Don't rules).
+- Changing the underlying logo asset files or palette.
+- Adding new variant types or upload flows.
+
+## Tasks
+1. In the approved-variants tile, drive logo placement from the variant's intended background (light / dark / any) instead of always centering. Light-on-dark variants should sit on the dark half of the split, dark-on-light variants on the light half, and "any background" variants stay centered.
+2. Apply the same alignment logic to both the uploaded `<img>` asset and the fallback `SevcoLogo` rendering, so the behavior is identical regardless of whether an asset has been uploaded.
+3. Verify each existing variant (TEXT LOGO Colors / White / Black, Planet Logo Black / White) renders fully visible on the split tile, and confirm nothing else on the Brand page shifts.
+
+## Relevant files
+- `client/src/pages/brand-page.tsx:37-45,247-263`
+- `client/src/components/sevco-logo.tsx`
+
+
+---
+

@@ -80,6 +80,7 @@ const CONTROL_SECTIONS: ControlSection[] = [
     controls: [
       { keys: ["T"], description: "Toggle third-person camera view" },
       { keys: ["Tab"], description: "Show / hide the player list for the current planet" },
+      { keys: ["P", "F2"], description: "Take a screenshot — saves a PNG and copies it to the clipboard" },
     ],
   },
 ];

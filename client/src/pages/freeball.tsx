@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { Component, useEffect, useRef, useState, useCallback, useMemo, type ReactNode } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -1511,6 +1511,7 @@ interface SceneProps {
   progress: Progress;
   savedBuilds: SavedBuild[];
   otherPlayers: OtherPlayer[];
+  system: SolarSystem;
   onSave: (modified: Map<string, number>, currentPlanetId: number, inventory: Record<string, number>) => void;
   onPositionUpdate: (x: number, y: number, z: number) => void;
   onCrystalCollected: (count: number) => void;
@@ -1518,7 +1519,7 @@ interface SceneProps {
   onDiscoveryChange: (ids: string[]) => void;
 }
 
-function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers, onSave, onPositionUpdate, onCrystalCollected, onPlanetSwitch, onDiscoveryChange }: SceneProps) {
+function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers, system, onSave, onPositionUpdate, onCrystalCollected, onPlanetSwitch, onDiscoveryChange }: SceneProps) {
   const { camera, gl } = useThree();
   const {
     setSelectedBlock,
@@ -1529,8 +1530,6 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
     setSpeed, setAltitude,
     crystalsCollected, setCrystalsCollected,
   } = useGameStore();
-
-  const system = useMemo(() => buildSolarSystem(planets), [planets]);
   const activePlanet = planets[activePlanetIndex];
   const activeDef = system.voxelDefs[activePlanetIndex];
   const planetCenter = activeDef?.position ?? new THREE.Vector3();
@@ -2467,10 +2466,11 @@ function SparksStoreTab({ sparksBalance }: { sparksBalance: number }) {
   );
 }
 
-function PauseMenu({ onResume, onSave, onExit, planets, progress, onUnlockSphere, sparksBalance, crystalsCollected }: {
+function PauseMenu({ onResume, onSave, onExit, onScreenshot, planets, progress, onUnlockSphere, sparksBalance, crystalsCollected }: {
   onResume: () => void;
   onSave: () => void;
   onExit: () => void;
+  onScreenshot: () => void;
   planets: Planet[];
   progress: Progress | null;
   onUnlockSphere: () => void;
@@ -2515,6 +2515,7 @@ function PauseMenu({ onResume, onSave, onExit, planets, progress, onUnlockSphere
             <div className="flex flex-col gap-2 mb-5">
               <Button data-testid="freeball-btn-resume" onClick={onResume} className="w-full bg-blue-700 hover:bg-blue-600">Resume</Button>
               <Button data-testid="freeball-btn-save" onClick={onSave} variant="outline" className="w-full border-gray-600 text-white hover:bg-gray-700">Save Game</Button>
+              <Button data-testid="freeball-btn-screenshot" onClick={onScreenshot} variant="outline" className="w-full border-gray-600 text-white hover:bg-gray-700">📸 Take Screenshot (P)</Button>
             </div>
 
             {!progress?.unlockedSphere && (
@@ -2603,16 +2604,15 @@ function planetKind(type: string): CelestialKind {
   }
 }
 
-function FreeballNavHud({ planets }: { planets: Planet[] }) {
+function FreeballNavHud({ system }: { system: SolarSystem }) {
   const { sphereHud, discoveredPlanetIds, activeWaypointId, setActiveWaypointId, isMapOpen, setIsMapOpen, inVehicle } = useGameStore();
   const spherePos = useMemo(() => new THREE.Vector3(...sphereHud.pos), [sphereHud.pos]);
   const forward = useMemo(() => new THREE.Vector3(...sphereHud.forward).normalize(), [sphereHud.forward]);
   const up = useMemo(() => new THREE.Vector3(...sphereHud.up).normalize(), [sphereHud.up]);
   const known = useMemo(() => new Set(discoveredPlanetIds), [discoveredPlanetIds]);
-  const hudSystem = useMemo(() => buildSolarSystem(planets), [planets]);
 
   const bodies = useMemo<CompassBody[]>(() => {
-    const list: CompassBody[] = hudSystem.voxelDefs.map((def) => ({
+    const list: CompassBody[] = system.voxelDefs.map((def) => ({
       id: String(def.planet.id),
       name: def.planet.name,
       kind: planetKind(def.planet.type),
@@ -2629,7 +2629,7 @@ function FreeballNavHud({ planets }: { planets: Planet[] }) {
       discovered: true,
     });
     return list;
-  }, [planets, known, sphereHud.dayTime]);
+  }, [system, known, sphereHud.dayTime]);
 
   if (!inVehicle) return null;
 
@@ -2674,7 +2674,65 @@ function PlayerList({ players, planets, currentUser }: { players: OtherPlayer[];
   );
 }
 
-export default function FreeballPage() {
+interface FreeballErrorBoundaryState { error: Error | null; info: string }
+class FreeballErrorBoundary extends Component<{ children: ReactNode }, FreeballErrorBoundaryState> {
+  state: FreeballErrorBoundaryState = { error: null, info: "" };
+  static getDerivedStateFromError(error: Error): FreeballErrorBoundaryState {
+    return { error, info: "" };
+  }
+  componentDidCatch(error: Error, info: { componentStack?: string | null }) {
+    const stack = info?.componentStack ?? "";
+    // Always log the real error so it's visible in DevTools instead of being eaten.
+    console.error("[Freeball] crash:", error, stack);
+    this.setState({ error, info: stack });
+  }
+  private isDevHost(): boolean {
+    if (typeof window === "undefined") return false;
+    const h = window.location.hostname;
+    return h === "localhost" || h === "127.0.0.1" || h.endsWith(".replit.dev") || h.endsWith(".repl.co");
+  }
+  private copyError = () => {
+    const { error, info } = this.state;
+    if (!error) return;
+    const text = `${error.message}\n\n${error.stack ?? ""}\n\nComponent stack:${info}`;
+    try { navigator.clipboard?.writeText(text); } catch { /* noop */ }
+  };
+  render() {
+    const { error, info } = this.state;
+    if (!error) return this.props.children;
+    const showDetails = this.isDevHost();
+    const stackLines = (error.stack || "").split("\n").slice(0, 12).join("\n");
+    return (
+      <div className="fixed inset-0 bg-gray-950 text-white flex items-center justify-center p-6 z-[200]" data-testid="freeball-error-boundary">
+        <div className="max-w-2xl w-full bg-gray-900 border border-red-900 rounded-xl p-6 shadow-2xl">
+          <h2 className="text-xl font-bold mb-2 text-red-300">Freeball hit an error</h2>
+          <p className="text-sm text-gray-300 mb-4">
+            Something went wrong loading the game. Try refreshing the page. If it keeps happening, copy the error and let us know.
+          </p>
+          <div className="flex gap-2 mb-4">
+            <Button data-testid="freeball-error-reload" onClick={() => window.location.reload()} className="bg-blue-700 hover:bg-blue-600">Reload</Button>
+            <Button data-testid="freeball-error-home" onClick={() => { window.location.href = "/"; }} variant="outline" className="border-gray-600 text-white hover:bg-gray-700">Back to platform</Button>
+            {showDetails && (
+              <Button data-testid="freeball-error-copy" onClick={this.copyError} variant="outline" className="border-gray-600 text-white hover:bg-gray-700">Copy error</Button>
+            )}
+          </div>
+          {showDetails && (
+            <details open className="text-xs">
+              <summary className="cursor-pointer text-gray-400 mb-2">Error details (visible on dev hosts only)</summary>
+              <div className="font-mono text-red-300 mb-2 break-words">{error.message}</div>
+              <pre className="bg-black/60 p-3 rounded text-gray-300 overflow-auto max-h-64 whitespace-pre-wrap">{stackLines}</pre>
+              {info && (
+                <pre className="bg-black/60 p-3 mt-2 rounded text-gray-400 overflow-auto max-h-48 whitespace-pre-wrap">{info}</pre>
+              )}
+            </details>
+          )}
+        </div>
+      </div>
+    );
+  }
+}
+
+function FreeballPageInner() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const qc = useQueryClient();
@@ -2723,6 +2781,51 @@ export default function FreeballPage() {
 
   const activePlanet = planets[activePlanetIndex] ?? null;
   const activePlanetId = activePlanet?.id ?? null;
+
+  // Single source of truth for the solar system — shared between Scene and the
+  // navigation HUD so body IDs / positions never drift between the two.
+  const system = useMemo(() => buildSolarSystem(planets), [planets]);
+
+  const handleScreenshot = useCallback(() => {
+    if (typeof document === "undefined") return;
+    const canvas = document.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!canvas) return;
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      const planetName = (activePlanet?.name ?? "freeball").toLowerCase().replace(/\s+/g, "-");
+      const filename = `freeball-${planetName}-${ts}.png`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      try {
+        const nav = navigator as Navigator & { clipboard?: { write?: (items: ClipboardItem[]) => Promise<void> } };
+        if (nav.clipboard?.write && typeof ClipboardItem !== "undefined") {
+          nav.clipboard.write([new ClipboardItem({ "image/png": blob })]).catch(() => {});
+        }
+      } catch { /* clipboard unsupported — download still works */ }
+      useGameStore.getState().setPickupToast("📸 Screenshot saved");
+      setTimeout(() => useGameStore.getState().setPickupToast(""), 1500);
+    }, "image/png");
+  }, [activePlanet?.name]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "p" && e.key !== "P" && e.key !== "F2") return;
+      const tag = (document.activeElement?.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea") return;
+      if (useGameStore.getState().paused) return;
+      e.preventDefault();
+      handleScreenshot();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleScreenshot]);
 
   const { data: savedBuilds = [] } = useQuery<SavedBuild[]>({
     queryKey: ["/api/freeball/builds", activePlanetId],
@@ -2865,7 +2968,7 @@ export default function FreeballPage() {
         <Canvas
           className="w-full h-full"
           camera={{ fov: 75, near: 0.1, far: 30000, position: [0, (PLANET_RADIUS + 5) * VOXEL_SCALE, 0] }}
-          gl={{ antialias: false }}
+          gl={{ antialias: false, preserveDrawingBuffer: true, powerPreference: "high-performance" }}
           shadows
           onContextMenu={(e) => e.preventDefault()}
         >
@@ -2875,6 +2978,7 @@ export default function FreeballPage() {
             progress={progress ?? { userId: "", currentPlanetId: null, sparksSpent: 0, unlockedSphere: false, inventory: {} }}
             savedBuilds={savedBuilds}
             otherPlayers={otherPlayers}
+            system={system}
             onSave={handleSave}
             onPositionUpdate={handlePositionUpdate}
             onCrystalCollected={handleCrystalCollected}
@@ -2892,7 +2996,7 @@ export default function FreeballPage() {
         />
       )}
 
-      <FreeballNavHud planets={planets} />
+      {planets.length > 0 && <FreeballNavHud system={system} />}
 
       <ChatPanel messages={chatMessages} onSend={handleSendChat} />
       {showTab && <PlayerList players={otherPlayers} planets={planets} currentUser={user} />}
@@ -2905,6 +3009,7 @@ export default function FreeballPage() {
           }}
           onSave={() => { handleManualSave(); setPaused(false); }}
           onExit={() => navigate("/")}
+          onScreenshot={handleScreenshot}
           planets={planets}
           progress={progress ?? null}
           onUnlockSphere={handleUnlockSphere}
@@ -2923,5 +3028,13 @@ export default function FreeballPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function FreeballPage() {
+  return (
+    <FreeballErrorBoundary>
+      <FreeballPageInner />
+    </FreeballErrorBoundary>
   );
 }

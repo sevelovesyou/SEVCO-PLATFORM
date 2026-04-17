@@ -28476,3 +28476,75 @@ Add an opt-in, push-to-talk voice chat layer to the existing Chat so authenticat
 
 ---
 
+## Task — merge-announcement-into-notification-bell
+> Merged: 2026-04-17
+
+# Merge AnnouncementBell into the Notifications Bell
+
+  ## Why
+  Header currently shows two adjacent icons — Megaphone (AnnouncementBell) and Bell (notifications). User wants one icon. Consolidate announcements into the notifications dropdown as a top section so there's a single point of attention in the header.
+
+  ## Current state
+  - `client/src/components/announcement-bell.tsx` (129 lines): Megaphone button + popover with full announcements list, audio playback, pinned items, dismiss-per-user. Visible to anonymous users (uses `visitorKey` from VoiceContext).
+  - `client/src/components/platform-header.tsx` ~L1197: `<AnnouncementBell />` rendered before the Notifications bell.
+  - `client/src/components/platform-header.tsx` ~L1199–1229: Bell icon, count badge, `NotificationDropdown`. Logged-in-only.
+  - `client/src/components/notification-dropdown.tsx` exists (referenced, not yet read) — the dropdown body.
+
+  ## Target behavior
+  - **Single Bell icon** in the header. Icon: `Bell` (lucide-react). No more Megaphone.
+  - **Visible to everyone** — anonymous visitors see the Bell too, but only because they may have unread announcements. Regular notifications remain logged-in-only inside the dropdown.
+  - **Badge count** = unread notifications (logged-in users) + unread announcements (all users). A single red pill with the combined total, capped at `99+`.
+  - **Dropdown contents** (in this vertical order):
+    1. **Announcements section** — header "Announcements" with "Mark all read" action. List of up to 5 most recent announcements (pinned first, then by date). Each row: title, date, body preview, inline `<audio>` control if `audioUrl`, author, mark-read. Empty state hidden (collapse the whole section when there are zero announcements).
+    2. Visual divider.
+    3. **Notifications section** — existing notifications UI (whatever `NotificationDropdown` currently renders). Only visible to logged-in users. For anonymous users, this section is hidden entirely.
+  - **Sparkle/yellow glow** treatment (`hasUnreadSpark`, `spark-bell-glow` class, ping animation) stays tied to special-sparked notifications only, not announcements. Announcements don't trigger the yellow treatment.
+  - **Sound**: `playNotification()` currently fires on unread-count increase. Extend so a new unread announcement ALSO plays it (once, guarded by a ref tracking the last seen announcement id).
+
+  ## Implementation plan
+
+  ### 1. Fold AnnouncementBell's logic into NotificationDropdown
+  - Move the two queries (`/api/announcements` and `/api/announcements/dismissals`) from `announcement-bell.tsx` into `notification-dropdown.tsx`.
+  - Keep the `sevco:announcement` window event listener that refetches announcements in realtime.
+  - Render a new `<AnnouncementsSection />` subcomponent at the top of the dropdown; reuse the exact row markup currently in AnnouncementBell (no UX regression). Show at most 5; if `announcements.length > 5`, show a "View all (N)" link at the bottom of the section that currently just expands the list in-place (full paginated page is a follow-up, not this task).
+  - `markRead` helper moves with it.
+
+  ### 2. Unify the badge count in platform-header
+  - Keep the existing `unreadNotifCount` query (`/api/notifications/count`).
+  - Add the announcements query here too (or lift a shared hook `useUnreadAnnouncements()`) so the header can compute `unreadAnnouncementsCount` for the badge without rendering AnnouncementBell.
+  - New derived value: `combinedUnread = unreadNotifCount + unreadAnnouncementsCount`.
+  - Render the badge whenever `combinedUnread > 0`. Badge color logic unchanged (yellow only for sparked notifications).
+  - Show the Bell for **all users** (drop the `{user && ...}` wrapper). For anonymous users, the button still opens the same dropdown — which will only show the Announcements section since the Notifications query doesn't run without a session.
+
+  ### 3. Gate the Notifications section inside the dropdown
+  - `NotificationDropdown` currently assumes a logged-in user. Add `user` from `useAuth` and wrap the Notifications list in `{user && ...}`. For anonymous users it's just the announcements section.
+  - If BOTH sections would be empty (anonymous user with zero announcements; or logged-in user with zero of both), render a single empty state ("You're all caught up").
+
+  ### 4. Remove AnnouncementBell
+  - Delete the `<AnnouncementBell />` render in platform-header.tsx.
+  - Delete the import.
+  - Delete the file `client/src/components/announcement-bell.tsx` entirely — no other consumers (grep confirmed only platform-header imports it).
+
+  ### 5. Sound trigger for new announcements
+  - Inside the dropdown (or lifted hook), track `lastSeenAnnouncementIdRef`. When a new id appears in the fetched list and is unread, call `playNotification()` once. Initial mount seeds the ref so we don't play on first load.
+
+  ## Files
+  - `client/src/components/notification-dropdown.tsx` — add AnnouncementsSection + announcement queries + markRead + sound trigger.
+  - `client/src/components/platform-header.tsx` — remove AnnouncementBell import and render; add announcements query for badge count; drop `{user && ...}` wrapper around the Bell (but keep it inside NotificationDropdown for the notifications section only).
+  - `client/src/components/announcement-bell.tsx` — delete.
+
+  ## Verification
+  - Logged-in user with 2 notifications and 3 unread announcements: Bell badge shows `5`. Open dropdown: Announcements section shows 3 items on top, notifications below. Mark-all-read in announcements clears the 3; badge drops to 2.
+  - Anonymous visitor with 1 pinned announcement: Bell is visible with badge `1`. Open dropdown: only the Announcements section appears, no notifications heading. Mark read dismisses.
+  - Anonymous visitor with no announcements: Bell is visible with no badge. Open dropdown: "You're all caught up" empty state.
+  - Admin posts a new live announcement via the composer: within a few seconds, open clients see the badge increment and hear the notification sound once.
+  - Header has exactly one icon in the slot where two used to be; spacing matches other header icons.
+
+  ## Out of scope
+  - A full paginated announcements history page.
+  - In-dropdown reply/interaction with notifications (unchanged).
+  - Push notifications.
+
+
+---
+

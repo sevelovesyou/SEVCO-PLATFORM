@@ -34,6 +34,29 @@ function planetFallback(name: string): "black" | "white" | null {
   return null;
 }
 
+// Determine which half of the split tile a logo should sit on, based on the
+// background it was designed for. White/light marks need the dark half; black/
+// dark marks need the light half; full-color marks read on either side and
+// stay centered. "Colors" wins over "white"/"black" in the name (e.g. a file
+// named "TEXT LOGO Colors" is treated as full-color even if it contains the
+// word "black" elsewhere).
+type VariantPlacement = "light" | "dark" | "any";
+function variantPlacement(name: string): VariantPlacement {
+  if (/colors?\b/i.test(name)) return "any";
+  if (/\bwhite\b/i.test(name)) return "dark";
+  if (/\bblack\b/i.test(name)) return "light";
+  return "any";
+}
+
+// Background gradient is 135deg: white fills the top-left triangle, dark fills
+// the bottom-right triangle. Align logos toward the corresponding corner so
+// the full mark sits clearly on the contrasting half.
+const PLACEMENT_ALIGN_CLASS: Record<VariantPlacement, string> = {
+  light: "items-start justify-start",
+  dark: "items-end justify-end",
+  any: "items-center justify-center",
+};
+
 // Logo preview tiles use a diagonal two-tone (white + near-black) backdrop so
 // any monochrome logo has guaranteed contrast against at least one half of the
 // tile. This is independent of filename, page theme, or whether the asset is
@@ -241,23 +264,35 @@ export default function BrandPage() {
                           // Bundled SevcoLogo variant inference is only used to pick the
                           // correct invert mode for the fallback render; backdrop choice
                           // is independent of filename so contrast is always guaranteed.
-                          const fallback = planetFallback(asset.name);
                           const hasUploadedImage = !!(asset.previewUrl || asset.downloadUrl);
+                          const placement = variantPlacement(asset.name);
+                          // Fallback contrast is driven by the variant's
+                          // intended background — not by planet-specific name
+                          // matching — so a "TEXT LOGO White" record without
+                          // an uploaded image still renders as a white mark on
+                          // the dark half. planetFallback() is kept only as a
+                          // tiebreaker for ambiguous "any" variants.
+                          const fallbackInvert: "always" | "none" =
+                            placement === "dark"
+                              ? "always"
+                              : placement === "light"
+                                ? "none"
+                                : planetFallback(asset.name) === "white"
+                                  ? "always"
+                                  : "none";
                           return (
                             <div
-                              className="h-24 flex items-center justify-center border-b border-border"
+                              className={`h-24 flex p-2 border-b border-border ${PLACEMENT_ALIGN_CLASS[placement]}`}
                               style={LOGO_TILE_DUAL_BACKDROP_STYLE}
                             >
                               {hasUploadedImage ? (
                                 <img
                                   src={resolveImageUrl(asset.previewUrl || asset.downloadUrl)}
                                   alt={asset.name}
-                                  className="max-h-20 max-w-full object-contain p-2"
+                                  className={`max-h-20 object-contain ${placement === "any" ? "max-w-full" : "max-w-[55%]"}`}
                                 />
-                              ) : fallback === "white" ? (
-                                <SevcoLogo size={80} invert="always" alt={asset.name} />
                               ) : (
-                                <SevcoLogo size={80} invert="none" alt={asset.name} />
+                                <SevcoLogo size={72} invert={fallbackInvert} alt={asset.name} />
                               )}
                             </div>
                           );

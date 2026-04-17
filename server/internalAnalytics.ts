@@ -118,8 +118,14 @@ export function rangeToWindow(range: Range | string): { from: Date; to: Date; pr
   else if (range === "90d") days = 90;
   const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
   const prevFrom = new Date(from.getTime() - days * 24 * 60 * 60 * 1000);
-  const prevTo = from;
-  return { from, to, prevFrom, prevTo };
+  return { from, to, prevFrom, prevTo: from };
+}
+
+// Format a JS Date as an ISO timestamp string for safe interpolation into the
+// drizzle sql template. Passing strings instead of raw Date objects avoids any
+// parameter-binding ambiguity across driver versions.
+function ts(d: Date): string {
+  return d.toISOString();
 }
 
 const SEARCH_HOSTS = /(^|\.)(google|bing|duckduckgo|yahoo|yandex|baidu)\./i;
@@ -133,22 +139,6 @@ function classifyChannel(referrerHost: string | null, ownHosts: Set<string>): st
   return "Referral";
 }
 
-async function countsForWindow(from: Date, to: Date) {
-  const rows = await db.execute<{ total_users: string; total_sessions: string; total_pageviews: string; avg_dur: string | null; sessions_today: string; active_users_30d: string; pageviews_30d: string }>(sql`
-    SELECT
-      COUNT(DISTINCT visitor_hash) FILTER (WHERE is_bot = false) AS total_users,
-      COUNT(DISTINCT session_hash) FILTER (WHERE is_bot = false) AS total_sessions,
-      COUNT(*) FILTER (WHERE is_bot = false) AS total_pageviews,
-      0 AS avg_dur,
-      0 AS sessions_today,
-      0 AS active_users_30d,
-      0 AS pageviews_30d
-    FROM pageviews
-    WHERE created_at >= ${from} AND created_at < ${to}
-  `);
-  return rows.rows[0];
-}
-
 export async function getSummary(range: Range | string) {
   const { from, to, prevFrom, prevTo } = rangeToWindow(range);
 
@@ -159,7 +149,7 @@ export async function getSummary(range: Range | string) {
       COUNT(DISTINCT session_hash)::int AS total_sessions,
       COUNT(*)::int AS total_pageviews
     FROM pageviews
-    WHERE is_bot = false AND created_at >= ${from} AND created_at < ${to}
+    WHERE is_bot = false AND created_at >= ${ts(from)} AND created_at < ${ts(to)}
   `);
   const m = main.rows[0] ?? { total_users: 0, total_sessions: 0, total_pageviews: 0 };
 
@@ -168,7 +158,7 @@ export async function getSummary(range: Range | string) {
     SELECT COALESCE(AVG(dur), 0)::float AS avg_dur FROM (
       SELECT EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at)))::float AS dur
       FROM pageviews
-      WHERE is_bot = false AND created_at >= ${from} AND created_at < ${to}
+      WHERE is_bot = false AND created_at >= ${ts(from)} AND created_at < ${ts(to)}
       GROUP BY session_hash
     ) s
   `);
@@ -177,7 +167,7 @@ export async function getSummary(range: Range | string) {
   // Previous window pageviews for delta
   const prev = await db.execute<{ total_pageviews: number }>(sql`
     SELECT COUNT(*)::int AS total_pageviews FROM pageviews
-    WHERE is_bot = false AND created_at >= ${prevFrom} AND created_at < ${prevTo}
+    WHERE is_bot = false AND created_at >= ${ts(prevFrom)} AND created_at < ${ts(prevTo)}
   `);
   const prevPv = prev.rows[0]?.total_pageviews ?? 0;
   const deltaPct = prevPv > 0 ? ((m.total_pageviews - prevPv) / prevPv) * 100 : 0;
@@ -186,7 +176,7 @@ export async function getSummary(range: Range | string) {
   const todayStart = new Date(); todayStart.setUTCHours(0, 0, 0, 0);
   const todayRes = await db.execute<{ sessions_today: number }>(sql`
     SELECT COUNT(DISTINCT session_hash)::int AS sessions_today FROM pageviews
-    WHERE is_bot = false AND created_at >= ${todayStart}
+    WHERE is_bot = false AND created_at >= ${ts(todayStart)}
   `);
   const sessionsToday = todayRes.rows[0]?.sessions_today ?? 0;
 
@@ -194,7 +184,7 @@ export async function getSummary(range: Range | string) {
   const bounceRes = await db.execute<{ bounce: number }>(sql`
     SELECT COALESCE(AVG(CASE WHEN cnt = 1 THEN 100.0 ELSE 0 END), 0)::float AS bounce FROM (
       SELECT COUNT(*) AS cnt FROM pageviews
-      WHERE is_bot = false AND created_at >= ${from} AND created_at < ${to}
+      WHERE is_bot = false AND created_at >= ${ts(from)} AND created_at < ${ts(to)}
       GROUP BY session_hash
     ) s
   `);
@@ -204,7 +194,7 @@ export async function getSummary(range: Range | string) {
   const thirty = new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000);
   const thirtyRes = await db.execute<{ active_users_30d: number; pageviews_30d: number }>(sql`
     SELECT COUNT(DISTINCT visitor_hash)::int AS active_users_30d, COUNT(*)::int AS pageviews_30d
-    FROM pageviews WHERE is_bot = false AND created_at >= ${thirty}
+    FROM pageviews WHERE is_bot = false AND created_at >= ${ts(thirty)}
   `);
   const t30 = thirtyRes.rows[0] ?? { active_users_30d: 0, pageviews_30d: 0 };
 
@@ -230,7 +220,7 @@ export async function getTopPages(range: Range | string, limit = 10) {
   const { from, to } = rangeToWindow(range);
   const res = await db.execute<{ path: string; views: number }>(sql`
     SELECT path, COUNT(*)::int AS views FROM pageviews
-    WHERE is_bot = false AND created_at >= ${from} AND created_at < ${to}
+    WHERE is_bot = false AND created_at >= ${ts(from)} AND created_at < ${ts(to)}
     GROUP BY path ORDER BY views DESC LIMIT ${limit}
   `);
   return res.rows.map((r) => ({
@@ -250,7 +240,7 @@ export async function getTopSources(range: Range | string, limit = 10) {
 
   const res = await db.execute<{ referrer_host: string | null; sessions: number }>(sql`
     SELECT referrer_host, COUNT(DISTINCT session_hash)::int AS sessions FROM pageviews
-    WHERE is_bot = false AND created_at >= ${from} AND created_at < ${to}
+    WHERE is_bot = false AND created_at >= ${ts(from)} AND created_at < ${ts(to)}
     GROUP BY referrer_host
   `);
 
@@ -276,7 +266,7 @@ export async function getSessionsOverTime(range: Range | string) {
     SELECT to_char(date_trunc('day', created_at), 'YYYYMMDD') AS day,
            COUNT(DISTINCT session_hash)::int AS sessions
     FROM pageviews
-    WHERE is_bot = false AND created_at >= ${from} AND created_at < ${to}
+    WHERE is_bot = false AND created_at >= ${ts(from)} AND created_at < ${ts(to)}
     GROUP BY day ORDER BY day ASC
   `);
   return res.rows.map((r) => ({ date: r.day, sessions: r.sessions }));
@@ -286,7 +276,7 @@ export async function getCountryBreakdown(range: Range | string, limit = 10) {
   const { from, to } = rangeToWindow(range);
   const res = await db.execute<{ country: string | null; sessions: number }>(sql`
     SELECT country, COUNT(DISTINCT session_hash)::int AS sessions FROM pageviews
-    WHERE is_bot = false AND created_at >= ${from} AND created_at < ${to}
+    WHERE is_bot = false AND created_at >= ${ts(from)} AND created_at < ${ts(to)}
     GROUP BY country ORDER BY sessions DESC LIMIT ${limit}
   `);
   return res.rows.map((r) => ({ country: r.country || "Unknown", sessions: r.sessions }));
@@ -296,7 +286,7 @@ export async function getDeviceSplit(range: Range | string) {
   const { from, to } = rangeToWindow(range);
   const res = await db.execute<{ device: string; sessions: number }>(sql`
     SELECT device, COUNT(DISTINCT session_hash)::int AS sessions FROM pageviews
-    WHERE is_bot = false AND created_at >= ${from} AND created_at < ${to}
+    WHERE is_bot = false AND created_at >= ${ts(from)} AND created_at < ${ts(to)}
     GROUP BY device ORDER BY sessions DESC
   `);
   return res.rows.map((r) => ({ device: r.device, sessions: r.sessions }));
@@ -306,7 +296,7 @@ export async function getRealtimeActiveUsers(): Promise<number> {
   const since = new Date(Date.now() - 5 * 60 * 1000);
   const res = await db.execute<{ c: number }>(sql`
     SELECT COUNT(DISTINCT visitor_hash)::int AS c FROM pageviews
-    WHERE is_bot = false AND created_at >= ${since}
+    WHERE is_bot = false AND created_at >= ${ts(since)}
   `);
   return res.rows[0]?.c ?? 0;
 }

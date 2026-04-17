@@ -617,10 +617,17 @@ export default function BrandPage() {
                               const isLogo = asset.assetType === "logo";
                               const fallback = isLogo ? planetFallback(asset.name) : null;
                               const hasUploadedImage = !!(asset.previewUrl || (isLogo && asset.downloadUrl));
+                              const placement = isLogo ? variantPlacement(asset.name) : "any";
+                              const tileClass = isLogo
+                                ? PLACEMENT_TILE_CLASS[placement]
+                                : "bg-muted/30";
+                              const tileStyle = isLogo
+                                ? PLACEMENT_TILE_STYLE[placement]
+                                : undefined;
                               return (
                                 <div
-                                  className={`h-28 flex items-center justify-center border-b border-border ${isLogo ? "" : "bg-muted/30"}`}
-                                  style={isLogo ? LOGO_TILE_DUAL_BACKDROP_STYLE : undefined}
+                                  className={`h-28 flex items-center justify-center border-b border-border ${tileClass}`}
+                                  style={tileStyle}
                                 >
                                   {hasUploadedImage ? (
                                     <img

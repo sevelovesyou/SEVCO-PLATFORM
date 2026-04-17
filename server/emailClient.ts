@@ -65,8 +65,7 @@ async function getCredentials(): Promise<{ apiKey: string; source: string }> {
 }
 
 async function getUncachableResendClient() {
-  const { apiKey, source } = await getCredentials();
-  console.log(`[emailClient] Instantiating Resend client (key source: ${source})`);
+  const { apiKey } = await getCredentials();
   return new Resend(apiKey);
 }
 

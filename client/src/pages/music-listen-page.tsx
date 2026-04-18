@@ -47,7 +47,8 @@ function TrackCard({ track, allTracks }: { track: MusicTrack; allTracks: MusicTr
 
   return (
     <div
-      className="group relative flex items-center gap-3 p-3 rounded-xl border border-border bg-background hover:bg-muted/30 transition-all"
+      id={`track-${track.id}`}
+      className="group relative flex items-center gap-3 p-3 rounded-xl border border-border bg-background hover:bg-muted/30 transition-all scroll-mt-24"
       data-testid={`card-track-${track.id}`}
     >
       <div className="relative shrink-0">

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Trophy, ArrowLeft, User, FileText, Images } from "lucide-react";
+import { Trophy, ArrowLeft, User, FileText, Images, Music, ShoppingBag, FolderKanban, Wrench, Sparkles, type LucideIcon } from "lucide-react";
 import { SparkIcon } from "@/components/spark-icon";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,9 +27,63 @@ type LeaderboardData = {
   topContent: {
     id: number;
     title: string;
-    contentType: "article" | "gallery";
+    contentType: "article" | "gallery" | "track" | "product" | "project" | "service";
+    slug?: string | null;
     sparksReceived: number;
   }[];
+};
+
+type ContentTypeMeta = {
+  label: string;
+  icon: LucideIcon;
+  badgeClass: string;
+  href: (item: { id: number; slug?: string | null }) => string;
+};
+
+const CONTENT_TYPE_META: Record<LeaderboardData["topContent"][0]["contentType"], ContentTypeMeta> = {
+  article: {
+    label: "Article",
+    icon: FileText,
+    badgeClass: "bg-blue-400/10 text-blue-500",
+    href: ({ id, slug }) => (slug ? `/wiki/${slug}` : `/wiki/${id}`),
+  },
+  gallery: {
+    label: "Gallery",
+    icon: Images,
+    badgeClass: "bg-purple-400/10 text-purple-500",
+    href: () => `/gallery`,
+  },
+  track: {
+    label: "Track",
+    icon: Music,
+    badgeClass: "bg-red-400/10 text-red-500",
+    href: ({ id }) => `/music/listen#track-${id}`,
+  },
+  product: {
+    label: "Product",
+    icon: ShoppingBag,
+    badgeClass: "bg-green-400/10 text-green-500",
+    href: ({ id, slug }) => (slug ? `/store/products/${slug}` : `/store`),
+  },
+  project: {
+    label: "Project",
+    icon: FolderKanban,
+    badgeClass: "bg-indigo-400/10 text-indigo-500",
+    href: ({ id, slug }) => (slug ? `/projects/${slug}` : `/projects`),
+  },
+  service: {
+    label: "Service",
+    icon: Wrench,
+    badgeClass: "bg-cyan-400/10 text-cyan-500",
+    href: ({ id, slug }) => (slug ? `/services/${slug}` : `/services`),
+  },
+};
+
+const FALLBACK_CONTENT_META: ContentTypeMeta = {
+  label: "Content",
+  icon: Sparkles,
+  badgeClass: "bg-muted text-muted-foreground",
+  href: () => `/`,
 };
 
 function useCountUp(target: number, duration = 1200) {
@@ -145,7 +199,9 @@ function PostCard({ post, rank }: { post: LeaderboardData["topPosts"][0]; rank: 
 
 function ContentCard({ item, rank }: { item: LeaderboardData["topContent"][0]; rank: number }) {
   const isTop3 = rank <= 3;
-  const href = item.contentType === "article" ? `/wiki/${item.id}` : `/gallery`;
+  const meta = CONTENT_TYPE_META[item.contentType] ?? FALLBACK_CONTENT_META;
+  const Icon = meta.icon;
+  const href = meta.href({ id: item.id, slug: item.slug });
   return (
     <Link href={href}>
       <div
@@ -159,17 +215,10 @@ function ContentCard({ item, rank }: { item: LeaderboardData["topContent"][0]; r
           <p className="text-sm font-medium truncate">{item.title}</p>
           <Badge
             variant="secondary"
-            className={`mt-1 text-[10px] px-1.5 py-0 h-4 ${
-              item.contentType === "article"
-                ? "bg-blue-400/10 text-blue-500"
-                : "bg-purple-400/10 text-purple-500"
-            }`}
+            className={`mt-1 text-[10px] px-1.5 py-0 h-4 ${meta.badgeClass}`}
           >
-            {item.contentType === "article" ? (
-              <><FileText className="h-2.5 w-2.5 mr-0.5" />Article</>
-            ) : (
-              <><Images className="h-2.5 w-2.5 mr-0.5" />Gallery</>
-            )}
+            <Icon className="h-2.5 w-2.5 mr-0.5" />
+            {meta.label}
           </Badge>
         </div>
         <div className="flex items-center gap-1 text-yellow-500 font-bold text-sm shrink-0">
@@ -296,7 +345,7 @@ export default function SparksLeaderboard() {
         <div className="flex items-center gap-2 mb-3">
           <FileText className="h-4 w-4 text-blue-400" />
           <h2 className="text-base font-bold">Top Content</h2>
-          <span className="text-xs text-muted-foreground">articles &amp; gallery</span>
+          <span className="text-xs text-muted-foreground">most sparked</span>
         </div>
         {isLoading ? (
           <SectionSkeleton />

@@ -3846,13 +3846,14 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: articles.id,
         title: articles.title,
+        slug: articles.slug,
         authorId: articles.authorId,
         sparksReceived: sql<number>`cast(count(*) as integer)`,
       })
       .from(articleSparks)
       .innerJoin(articles, eq(articles.id, articleSparks.articleId))
       .where(cutoff ? gte(articleSparks.createdAt, cutoff) : undefined)
-      .groupBy(articles.id, articles.title, articles.authorId)
+      .groupBy(articles.id, articles.title, articles.slug, articles.authorId)
       .orderBy(sql`count(*) desc`)
       .limit(10);
 
@@ -3904,7 +3905,7 @@ export class DatabaseStorage implements IStorage {
       .limit(10);
 
     const topContent: { id: number; title: string; contentType: "article" | "gallery" | "track" | "product" | "project" | "service"; slug?: string | null; sparksReceived: number }[] = [
-      ...topArticleRows.map((a) => ({ id: a.id, title: a.title, contentType: "article" as const, sparksReceived: a.sparksReceived })),
+      ...topArticleRows.map((a) => ({ id: a.id, title: a.title, slug: a.slug, contentType: "article" as const, sparksReceived: a.sparksReceived })),
       ...topGalleryRows.map((g) => ({ id: g.id, title: g.title, contentType: "gallery" as const, sparksReceived: g.sparksReceived })),
       ...topTrackRowsLb.map((t) => ({ id: t.id, title: t.title, contentType: "track" as const, sparksReceived: t.sparksReceived })),
       ...topProductRowsLb.map((p) => ({ id: p.id, title: p.title, slug: p.slug, contentType: "product" as const, sparksReceived: p.sparksReceived })),

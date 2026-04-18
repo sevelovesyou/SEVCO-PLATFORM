@@ -80,7 +80,9 @@ export function SparkButton({
 
   if (isOwner) return null;
 
-  const handleClick = () => {
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    event.preventDefault();
     if (!user) return;
     if (sparkedByCurrentUser) {
       setTooltipOpen(true);

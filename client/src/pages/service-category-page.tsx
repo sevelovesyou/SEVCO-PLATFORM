@@ -5,8 +5,9 @@ import {
   ArrowRight, ArrowLeft, Code2, Sparkles, Megaphone,
   HeadphonesIcon, Server, Shield, CheckCircle, Users, Zap,
   Target, Layers, Globe, Lock, TrendingUp, BookOpen, Palette,
-  ChevronRight, Star, Building2, Music, ShoppingBag,
+  ChevronRight, Star, Building2, Music, ShoppingBag, Briefcase,
 } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -345,11 +346,11 @@ const CATEGORY_PAGE_CONFIG: Record<CategorySlug, CategoryPageConfig> = {
   },
 };
 
-const SERVICE_ICON_MAP: Record<string, React.ElementType> = {
-  Code2, Sparkles, Megaphone, HeadphonesIcon, Server, Shield,
-  Palette, TrendingUp, Target, BookOpen, Globe,
-  Zap, Lock, Layers, Users, CheckCircle, ShoppingBag, Building2,
-};
+function getLucideIcon(name: string | null | undefined): React.ElementType {
+  if (!name) return Briefcase;
+  const Icon = (LucideIcons as Record<string, unknown>)[name] as React.ElementType | undefined;
+  return Icon || Briefcase;
+}
 
 const DEFAULT_SOCIAL_PROOF_ITEMS = [
   "Enterprise Teams", "Startups", "Indie Creators", "Agencies", "Open-Source Projects",
@@ -536,7 +537,7 @@ export default function ServiceCategoryPage() {
           ) : (
             <div className="grid md:grid-cols-3 gap-4">
               {services.map((service) => {
-                const SvcIcon = (service.iconName && SERVICE_ICON_MAP[service.iconName]) ? SERVICE_ICON_MAP[service.iconName] : Icon;
+                const SvcIcon = getLucideIcon(service.iconName);
                 const href = service.linkUrl || `/services/${service.slug}`;
                 const isExternal = service.linkUrl?.startsWith("http");
                 const cardContent = (

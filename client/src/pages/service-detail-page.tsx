@@ -2,20 +2,18 @@ import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { PageHead } from "@/components/page-head";
 import {
-  ArrowLeft, ArrowRight, CircleX, ExternalLink, Mail,
-  Code2, Plug, Lightbulb, Palette, MousePointer2, Sparkles,
-  FileText, Share2, TrendingUp, ClipboardList, Settings2,
-  Handshake, Target, BookOpen, HeadphonesIcon,
+  ArrowLeft, ArrowRight, CircleX, ExternalLink, Mail, Briefcase,
 } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Service } from "@shared/schema";
 
-const ICON_MAP: Record<string, React.ElementType> = {
-  Code2, Plug, Lightbulb, Palette, MousePointer2, Sparkles,
-  FileText, Share2, TrendingUp, ClipboardList, Settings2,
-  Handshake, Target, BookOpen, HeadphonesIcon,
-};
+function getLucideIcon(name: string | null | undefined): React.ElementType {
+  if (!name) return Briefcase;
+  const Icon = (LucideIcons as Record<string, unknown>)[name] as React.ElementType | undefined;
+  return Icon || Briefcase;
+}
 
 const CATEGORY_STYLES: Record<string, { bg: string; text: string; badge: string }> = {
   Engineering: { bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", badge: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20" },
@@ -42,7 +40,7 @@ function parseMarkdownBlocks(text: string): Array<{ type: "heading" | "bullet" |
 }
 
 function ServiceIcon({ iconName, className }: { iconName: string | null | undefined; className?: string }) {
-  const Icon = ICON_MAP[iconName ?? ""] ?? Code2;
+  const Icon = getLucideIcon(iconName);
   return <Icon className={className} />;
 }
 

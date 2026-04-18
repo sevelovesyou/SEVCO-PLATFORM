@@ -2,12 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { PageHead } from "@/components/page-head";
 import {
-  ArrowRight, ChevronRight,
-  Code2, Plug, Lightbulb, Palette, MousePointer2, Sparkles,
-  FileText, Share2, TrendingUp, ClipboardList, Settings2,
-  Handshake, Target, BookOpen, HeadphonesIcon,
-  Server, Globe, Shield, Megaphone,
+  ArrowRight, ChevronRight, Briefcase, Shield,
 } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,11 +29,11 @@ const DEFAULT_SOCIAL_PROOF_ITEMS = [
   "Open-Source Projects",
 ];
 
-const ICON_MAP: Record<string, React.ElementType> = {
-  Code2, Plug, Lightbulb, Palette, MousePointer2, Sparkles,
-  FileText, Share2, TrendingUp, ClipboardList, Settings2,
-  Handshake, Target, BookOpen, HeadphonesIcon, Server, Globe, Megaphone,
-};
+function getLucideIcon(name: string | null | undefined): React.ElementType {
+  if (!name) return Briefcase;
+  const Icon = (LucideIcons as Record<string, unknown>)[name] as React.ElementType | undefined;
+  return Icon || Briefcase;
+}
 
 const CATEGORY_STYLES: Record<string, { accent: string; badge: string }> = {
   Technology:     { accent: "text-blue-600 dark:text-blue-400",    badge: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20" },
@@ -182,7 +179,7 @@ export default function ServicesListingPage() {
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Featured</p>
             <div className="grid md:grid-cols-2 gap-4">
               {featured.map((service) => {
-                const Icon = (service.iconName && ICON_MAP[service.iconName]) ? ICON_MAP[service.iconName] : Sparkles;
+                const Icon = getLucideIcon(service.iconName);
                 const styles = CATEGORY_STYLES[service.category] ?? CATEGORY_STYLES.Technology;
                 const href = service.linkUrl || `/services/${service.slug}`;
                 const isExternal = service.linkUrl?.startsWith("http");
@@ -241,7 +238,7 @@ export default function ServicesListingPage() {
               </div>
               <div className="grid md:grid-cols-3 gap-3">
                 {items.map((service) => {
-                  const Icon = (service.iconName && ICON_MAP[service.iconName]) ? ICON_MAP[service.iconName] : Sparkles;
+                  const Icon = getLucideIcon(service.iconName);
                   const href = service.linkUrl || `/services/${service.slug}`;
                   const isExternal = service.linkUrl?.startsWith("http");
                   const cardContent = (

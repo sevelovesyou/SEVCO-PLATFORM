@@ -28801,3 +28801,43 @@ Two small but impactful fixes in the Command Center:
 
 ---
 
+## Task — freeball-prod-syntax-error-global-net
+> Merged: 2026-04-18
+
+# Catch the Freeball production SyntaxError
+
+  ## What & Why
+  Production /freeball/play on sev.cx still shows the "Freeball hit an error" panel after Task #442 deployed the safety net. The browser console exposes the real cause: an **unhandled `SyntaxError: Invalid or unexpected token`** with no file/line info — a JS parse-time error. The React error boundary added in #442 never fires because the error happens *outside* React's lifecycle, so its POST to /api/freeball/client-error never runs and we still don't see the offending script in deploy logs. We need a wider net (global `window.onerror` + `unhandledrejection` listeners) so we can finally see the source file/line, then patch whatever is broken in the production bundle.
+
+  Also: the local "Start application" workflow died with `EADDRINUSE 0.0.0.0:5000` from an orphan tsx process — dev preview is unusable until restarted.
+
+  ## Done looks like
+  - Loading any page on sev.cx (especially /freeball/play) for the first time produces a deploy-log line like `[client-error] SyntaxError: Invalid or unexpected token at https://sev.cx/assets/index-XXXX.js:LINE:COL` — i.e. the offending production asset, line, and column are visible in deploy logs.
+  - The actual SyntaxError-causing code in the production bundle is identified and patched in source. /freeball/play loads to the loading screen → first-person Sphere render with no error panel and no entry in window.onerror.
+  - /freeball/play?debug=1 still shows the inline panel from Task #442 with stack details, unchanged.
+  - Local `Start application` workflow runs cleanly on port 5000 again.
+
+  ## Out of scope
+  - Switching error reporting to a third-party service (Sentry, etc.).
+  - Refactoring the freeball bundle structure or changing route loading strategy.
+  - Anything outside the Freeball page + the small new global-error listener.
+
+  ## Steps
+  1. **Restart the dead local dev workflow** — Resolve EADDRINUSE on :5000 (kill the orphan tsx process or restart the workflow) so we can actually iterate locally. The error path being tested is production-only, but local dev is needed for safe edits.
+  2. **Add a global error listener early in app boot** — In client/src/main.tsx (or whichever file is the very first client entry, before App.tsx mounts), register `window.addEventListener("error", ev => …)` and `window.addEventListener("unhandledrejection", ev => …)`. Both fire-and-forget POST to the existing /api/freeball/client-error endpoint with payload `{ message, source: ev.filename, line: ev.lineno, col: ev.colno, stack: ev.error?.stack ?? "", componentStack: "", url: location.href, userAgent: navigator.userAgent, kind: "error" | "unhandledrejection" }`. Wrap each handler in try/catch so listeners cannot themselves throw. De-duplicate identical messages within 5 s to avoid log floods.
+  3. **Extend the server endpoint to accept the new fields** — In server/freeball-routes.ts, broaden the POST /api/freeball/client-error zod schema to accept optional `source`, `line`, `col`, `kind`. Keep size limit (8 KB), keep rate limit (10/min/IP). Update the console.error one-liner to include source:line:col when present so it's grep-friendly in deploy logs.
+  4. **Deploy and read the offending file/line from deploy logs** — Publish, hit /freeball/play once, then fetch deploy logs filtered by `[client-error]` to capture the exact production asset URL, line, and column the SyntaxError points to. Cross-reference back to source via the asset's sourcemap (Vite emits sourcemaps to dist/public/assets/*.js.map at build).
+  5. **Patch the actual cause in source** — Most likely candidates given recent changes (Task #439, #442): unusual unicode in a JSX string (em dash / curly quote), a stray template-literal backtick imbalance, or a TypeScript construct that the production minifier rejects but tsx tolerates. Specifically re-read `client/src/pages/freeball.tsx:2739-2795` (FreeballErrorBoundary class with private fields + arrow methods), `client/src/pages/freeball.tsx:2802-2825` (playShutter try/catch with empty-string catch comment), and `server/freeball-routes.ts` for any character that breaks JSON serialization. Apply the minimal fix once located.
+  6. **Verify fix end-to-end on sev.cx** — Production /freeball/play loads without the error panel; deploy logs contain no new [client-error] entries from a normal load; /freeball/play?debug=1 still reaches the inline debug panel only when a real future error happens. Local dev workflow stays green.
+
+  ## Relevant files
+  - `client/src/main.tsx` — register the global error listeners here, very early (before `createRoot(...).render(<App />)`)
+  - `client/src/pages/freeball.tsx:2739-2795` — FreeballErrorBoundary (already POSTs on React errors; left alone here)
+  - `client/src/pages/freeball.tsx:2802-2825` — playShutter try/catch (suspect for stray characters)
+  - `server/freeball-routes.ts` — extend the existing POST /api/freeball/client-error schema and log line
+  - `vite.config.ts` — confirm sourcemaps enabled in build (so step 4 can decode the production line)
+  - `.replit` — workflow definition for "Start application" (only if the dev workflow needs an orphan-process kill or port change)
+
+
+---
+

@@ -29700,3 +29700,58 @@ The onboarding checklist currently shows 5 tasks (avatar, bio, first post, first
 
 ---
 
+## Task — gallery-fullscreen-larger-hover-download
+> Merged: 2026-04-18
+
+# Gallery: Fullscreen, Larger Images, Hover-only Buttons, Download
+
+## What & Why
+Today the Gallery is constrained to a `max-w-6xl` container with side gutters, the masonry caps at 4 columns so images stay quite small, every card has a permanent row of action buttons + a metadata block beneath the image (which clutters the grid), the spark count is only visible through the spark button (which is hidden for the image's own uploader), and there's no way to download an image — only "Copy Link" and "Open Full Size". The result feels boxed-in and busy. The Gallery should look like a proper image-first browse experience: full bleed, big images, clean visuals at rest, and the controls reveal on hover so the grid reads as photography.
+
+## Done looks like
+- The Gallery uses the full viewport width — no `max-w-*` cap on the masonry grid container — with sensible edge padding (e.g. `px-4 md:px-6`) so images don't kiss the screen edge.
+- The masonry scales further up: roughly `columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6` (tune to feel right at common breakpoints), and each image renders larger overall as a result of the wider container.
+- Every card always shows the spark count overlay in the bottom-left of the image — for everyone, including the image's uploader. (Currently the count is only inside the spark button, which is hidden for the uploader.)
+- At rest, no buttons are visible on a card. On hover (and on focus for keyboard users, and on tap for touch devices), a subtle dark gradient fades in over the bottom of the image and reveals a compact action row: Spark, Download, Copy Link, Open Full Size. The category badge and title/uploader metadata that used to live below the image now sit inside that hover overlay so the grid is purely images at rest.
+- A download button is added to every card, both in the hover overlay and in the lightbox. Clicking it downloads the original image file with a clean filename (e.g. `<title-slug>.<ext>`), not opening it in a new tab.
+- The lightbox is unchanged in structure but also gains the new Download button alongside Copy Link / Open Full Size.
+- All hover/reveal animations respect `prefers-reduced-motion: reduce` (instant show, no fade).
+- All existing behavior — spark mutation, daily-limit messaging, "already sparked", uploader-can't-spark-self, lightbox, filtering tabs, members-only badge, error fallback — keeps working unchanged.
+
+## Out of scope
+- Adding new image categories, filters, or sort options.
+- Reworking the lightbox layout beyond adding a Download button.
+- Adding image upload/edit UI on the Gallery page (use the existing flow elsewhere).
+- Infinite scroll / pagination tweaks.
+
+## Steps
+1. **Container goes fullscreen.** In `client/src/pages/gallery-page.tsx` (~line 127), change the outer wrapper from `max-w-6xl mx-auto px-4 py-8` to a fullscreen-friendly equivalent: `w-full px-4 md:px-6 py-6`. The header/tabs and grid should all expand to fill the viewport. Confirm there's no parent layout that re-constrains the width (Gallery is rendered as a top-level route in `client/src/App.tsx`).
+
+2. **Wider, larger masonry.** Bump the column counts on the masonry grid (~line 188 and the loading skeleton at ~line 159) to `columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6` and keep the `gap-4 space-y-4`. The card root gets a `block` so it fills its column properly. Optionally lift `gap-4` to `gap-5` at `md+` for more breathing room.
+
+3. **Always-visible spark count overlay.** Keep the existing bottom-left spark count badge in the corner of every image, but stop gating it on `(image.sparkCount ?? 0) > 0`: render it for every image, showing `0` when there are no sparks. Make it slightly bigger (e.g. text-xs, `gap-1`, `px-2 py-0.5`) so it reads at a glance on the larger images.
+
+4. **Move all controls into a hover overlay.** Restructure each card so the only thing visible at rest is the image + the spark-count badge. Wrap the card in a `relative group` and add an absolutely-positioned overlay layered on top of the image with:
+   - A bottom-anchored gradient (`bg-gradient-to-t from-black/80 via-black/40 to-transparent`) covering ~40% of the image height.
+   - The title, uploader, and category badge in white-on-gradient text.
+   - An action row with: Spark button, Download button, Copy Link button, Open Full Size button.
+   The overlay is hidden at rest (`opacity-0`) and revealed on `group-hover:opacity-100 group-focus-within:opacity-100` with a `transition-opacity duration-200`. Keep the existing "Members only" badge in the top-right at all times. Remove the old `<div className="p-3 flex flex-col gap-2">` metadata block beneath the image (it now lives inside the overlay).
+
+5. **Touch-friendly reveal.** On touch devices `:hover` is finicky. Detect touch via a `useMediaQuery('(hover: none)')` (or similar) and on touch devices either keep the overlay subtly visible (e.g. `opacity-60` at rest, `opacity-100` after first tap) or toggle it on tap (tap the image once → overlay shows; tap empty area or another image → it hides). Pick the simpler tap-to-reveal pattern.
+
+6. **Spark button placement.** The current spark button is hidden when `user?.id === image.uploadedBy`. Keep that gate (uploaders still can't spark their own image), but make sure the spark count overlay (step 3) covers the visibility need on those cards. Inside the hover overlay, when the uploader is viewing their own card, render a non-interactive Zap+count chip in the action row's spot so the layout doesn't shift between viewer types.
+
+7. **Add a Download action.** Add a small `downloadImage(url, title)` helper that fetches the image as a Blob, constructs a temporary `<a>` with `download="<slug>.<ext>"` from `title`, clicks it, and revokes the object URL. Hook it to a Download button (`Download` icon from `lucide-react`) inside both the card hover overlay and the lightbox action row. Toast on failure. CORS edge case: if the asset host doesn't allow CORS Blob download, fall back to opening the image URL with `target="_blank"` and a brief toast explaining "Opening in a new tab — right-click → Save image".
+
+8. **Lightbox parity.** In the lightbox dialog (~line 303), add the Download button to the same action row alongside Copy Link / Open Full Size. Keep button widths balanced (e.g. each `flex-1`).
+
+9. **Reduced motion.** Wrap the overlay's `transition-opacity` so it's a no-op when `prefers-reduced-motion: reduce` is set — the overlay still appears on hover/focus, but instantly. Tailwind handles this via `motion-reduce:transition-none`.
+
+10. **Verify.** Restart the dev server and check: at rest the Gallery is full-bleed with bigger images and clean visuals; the spark count is visible on every card including the uploader's own; hovering a card reveals the four-button action row + title/uploader/category chip; Download saves the file with the title-derived filename; the lightbox also has Download; reducing motion removes the fade; on a touch device, tapping reveals the overlay; spark behavior, daily limits, and members-only badge are unchanged; mobile (1-2 col) still feels good.
+
+## Relevant files
+- `client/src/pages/gallery-page.tsx` (entire file — container at ~127, grid at ~188, lightbox at ~303)
+
+
+---
+

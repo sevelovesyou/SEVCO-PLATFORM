@@ -349,21 +349,12 @@ export default function Landing() {
 
   const hasCustomBtn1 = !!(settings["hero.button1.label"] || settings["hero.button1.url"]);
 
-  // For logged-out visitors on the v2 layout we always force the dominant
-  // hero button to the sign-up flow so the hero/mid/closer sign-up CTA
-  // contract is enforceable regardless of admin button overrides. Logged-in
-  // users keep the configured destinations.
-  const forceHeroSignup = !user; // only used when v2 path is active
-  const btn1Label = forceHeroSignup
-    ? "Sign Up Free"
-    : hasCustomBtn1
-      ? (settings["hero.button1.label"] || DEFAULT_BTN1_LABEL)
-      : "Go to Platform";
-  const btn1Url = forceHeroSignup
-    ? "/auth"
-    : hasCustomBtn1
-      ? (settings["hero.button1.url"] || DEFAULT_BTN1_URL)
-      : "/dashboard";
+  const btn1Label = hasCustomBtn1
+    ? (settings["hero.button1.label"] || DEFAULT_BTN1_LABEL)
+    : (user ? "Open Platform" : "Get Started");
+  const btn1Url = hasCustomBtn1
+    ? (settings["hero.button1.url"] || DEFAULT_BTN1_URL)
+    : (user ? "/dashboard" : "/auth");
 
   const btn2Label = settings["hero.button2.label"] || DEFAULT_BTN2_LABEL;
   const btn2Url = settings["hero.button2.url"] || DEFAULT_BTN2_URL;
@@ -633,14 +624,10 @@ export default function Landing() {
                     variant={button1IsPrimary ? "destructive" : "outline"}
                     className={
                       button1IsPrimary
-                        ? (useV2Layout
-                            ? (btn1Color
-                                ? "hover:opacity-90 text-white font-semibold gap-2 px-8 py-6 text-base shadow-xl shadow-red-900/40 ring-1 ring-white/10"
-                                : "font-semibold gap-2 px-8 py-6 text-base shadow-xl shadow-red-900/40 bg-red-600 hover:bg-red-500 text-white border-0 ring-1 ring-white/10")
-                            : (btn1Color
-                                ? "hover:opacity-90 text-white font-semibold gap-2 px-7 shadow-lg shadow-red-900/30"
-                                : "font-semibold gap-2 px-7 shadow-lg shadow-red-900/30 bg-red-600 hover:bg-red-500 text-white border-0"))
-                        : "text-white/80 hover:text-white hover:bg-white/10 border border-white/20 font-semibold gap-2 px-6"
+                        ? (btn1Color
+                            ? "hover:opacity-90 text-white font-medium gap-2"
+                            : "font-medium gap-2 bg-red-600 hover:bg-red-500 text-white border-0 shadow-md shadow-red-900/20")
+                        : "text-white/85 hover:text-white hover:bg-white/[0.06] border-white/15 font-medium gap-2"
                     }
                     style={
                       button1IsPrimary && btn1Color
@@ -663,10 +650,10 @@ export default function Landing() {
                     variant={button1IsPrimary ? "outline" : "destructive"}
                     className={
                       button1IsPrimary
-                        ? "text-white/70 hover:text-white hover:bg-white/10 border border-white/20 font-semibold gap-2 px-6"
+                        ? "text-white/85 hover:text-white hover:bg-white/[0.06] border-white/15 font-medium gap-2"
                         : (btn2Color
-                            ? "hover:opacity-90 text-white font-semibold gap-2 px-8 py-6 text-base shadow-xl shadow-red-900/40 ring-1 ring-white/10"
-                            : "font-semibold gap-2 px-8 py-6 text-base shadow-xl shadow-red-900/40 bg-red-600 hover:bg-red-500 text-white border-0 ring-1 ring-white/10")
+                            ? "hover:opacity-90 text-white font-medium gap-2"
+                            : "font-medium gap-2 bg-red-600 hover:bg-red-500 text-white border-0 shadow-md shadow-red-900/20")
                     }
                     style={btn2Color ? { backgroundColor: btn2Color, borderColor: btn2Color, color: "#fff" } : undefined}
                     data-testid="button-hero-secondary"
@@ -678,18 +665,6 @@ export default function Landing() {
                 </Link>
               </motion.div>
 
-              {/* Trust microcopy under CTAs — v2 only; v1 keeps the original CTA-only hero */}
-              {useV2Layout && !user && (
-                <motion.p
-                  className="text-[11px] uppercase tracking-widest text-white/40"
-                  initial={motionOn ? { opacity: 0 } : false}
-                  animate={motionOn ? { opacity: 1 } : { opacity: 1 }}
-                  transition={motionOn ? { delay: ctaDelay + 0.25, duration: 0.6 } : { duration: 0 }}
-                  data-testid="text-hero-trust-microcopy"
-                >
-                  Free to join · No credit card · 1-click sign up
-                </motion.p>
-              )}
             </div>
 
             {/* Right — floating frosted-glass preview cards (with subtle scroll parallax) */}
@@ -1063,35 +1038,23 @@ export default function Landing() {
             return (
               <section
                 key="midCta"
-                className="relative overflow-hidden border-y border-white/[0.06] bg-gradient-to-r from-red-950/40 via-[#0a0a14] to-indigo-950/40"
+                className="bg-[#08080f] border-y border-white/[0.05]"
                 data-testid="section-mid-cta"
               >
-                <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-                  <div className="absolute -top-10 left-1/3 w-[300px] h-[300px] rounded-full bg-red-700/10 blur-[80px] motion-safe:animate-[pulse_10s_ease-in-out_infinite]" />
-                </div>
-                <div className="relative z-10 max-w-5xl mx-auto px-6 py-7 md:py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 text-center sm:text-left">
-                    <div className="hidden sm:flex h-9 w-9 rounded-xl bg-red-600/20 items-center justify-center shrink-0">
-                      <Star className="h-4 w-4 text-red-300" />
-                    </div>
-                    <div>
-                      <p className="text-sm md:text-base font-semibold text-white" data-testid="text-mid-cta-label">
-                        {midCtaLabel}
-                      </p>
-                      <p className="text-[11px] text-white/40 mt-0.5">
-                        Free to join · No credit card · Takes 30 seconds
-                      </p>
-                    </div>
-                  </div>
+                <div className="max-w-5xl mx-auto px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <p className="text-sm md:text-base text-white/80 text-center sm:text-left" data-testid="text-mid-cta-label">
+                    {midCtaLabel}
+                  </p>
                   <Link href={midCtaUrl}>
                     <Button
-                      size="default"
-                      className="bg-red-600 hover:bg-red-500 text-white font-semibold gap-2 shrink-0 shadow-lg shadow-red-900/30"
+                      size="sm"
+                      variant="outline"
+                      className="text-white/85 hover:text-white hover:bg-white/[0.06] border-white/15 font-medium gap-1.5 shrink-0"
                       data-testid="button-mid-cta"
                       onClick={() => trackCtaClick("mid")}
                     >
-                      Sign Up Free
-                      <ArrowRight className="h-4 w-4" />
+                      {btn1Label}
+                      <ArrowRight className="h-3.5 w-3.5" />
                     </Button>
                   </Link>
                 </div>
@@ -1626,72 +1589,46 @@ export default function Landing() {
               <section
                 key="signupCta"
                 ref={signupCtaRef.ref}
-                className="relative overflow-hidden bg-[#080810] text-white"
+                className="relative overflow-hidden bg-[#0a0a12] text-white border-t border-white/[0.04]"
                 data-testid="section-signup-cta"
               >
-                <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-                  <div className="absolute top-0 left-1/4 w-[500px] h-[500px] rounded-full bg-red-900/20 blur-[130px] motion-safe:animate-[pulse_9s_ease-in-out_infinite]" />
-                  <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full bg-indigo-900/15 blur-[110px] motion-safe:animate-[pulse_11s_ease-in-out_infinite_4s]" />
-                </div>
-                <div className={`relative z-10 max-w-5xl mx-auto px-6 py-20 md:py-28 transition-all duration-700 ${signupCtaRef.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-                  <div className="grid lg:grid-cols-2 gap-12 items-center">
+                <div className={`relative z-10 max-w-5xl mx-auto px-6 py-24 md:py-32 transition-all duration-700 ${signupCtaRef.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
+                  <div className="grid lg:grid-cols-[1.1fr_1fr] gap-16 items-center">
                     <div>
-                      <Badge className="mb-4 bg-red-600/20 text-red-300 border-red-500/20 text-xs font-semibold uppercase tracking-wider">
-                        Join SEVCO
-                      </Badge>
-                      <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-4 leading-tight">
-                        One account.<br />
-                        <span style={{ color: "#ef4444" }}>Everything unlocked.</span>
+                      <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4 leading-[1.1] text-white">
+                        One account. Everything unlocked.
                       </h2>
-                      <p className="text-white/50 text-sm leading-relaxed mb-6">
-                        Create a free SEVCO account and get instant access to the full platform — store, music, wiki, news, projects, and more.
+                      <p className="text-white/55 text-base leading-relaxed mb-8 max-w-md">
+                        Store, music, wiki, news, projects — one free SEVCO account, instant access.
                       </p>
-                      <div className="flex flex-col items-start gap-2">
-                        <Link href="/auth">
-                          <Button
-                            size="lg"
-                            className={
-                              useV2Layout
-                                ? "bg-red-600 hover:bg-red-500 text-white font-semibold gap-2 shadow-xl shadow-red-900/40 px-8 py-6 text-base ring-1 ring-white/10"
-                                : "bg-red-600 hover:bg-red-500 text-white font-semibold gap-2 shadow-lg shadow-red-900/30"
-                            }
-                            data-testid="button-signup-cta-create-account"
-                            onClick={() => trackCtaClick("closer")}
-                          >
-                            <Star className="h-4 w-4" />
-                            Create Free Account
-                          </Button>
-                        </Link>
-                        {useV2Layout && (
-                          <p className="text-[10px] uppercase tracking-widest text-white/40">
-                            Free · No credit card · 30 seconds
-                          </p>
-                        )}
-                      </div>
+                      <Link href="/auth">
+                        <Button
+                          size="lg"
+                          className="bg-red-600 hover:bg-red-500 text-white font-medium gap-2 shadow-md shadow-red-900/20"
+                          data-testid="button-signup-cta-create-account"
+                          onClick={() => trackCtaClick("closer")}
+                        >
+                          {btn1Label}
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </Link>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-2.5">
                       {[
-                        { icon: Music, label: "SEVCO RECORDS", desc: "Stream & discover music", color: "#3b82f6" },
-                        { icon: ShoppingBag, label: "Store", desc: "Shop exclusive drops", color: "#ef4444" },
-                        { icon: Folder, label: "Ventures", desc: "Follow active projects", color: "#22c55e" },
-                        { icon: Newspaper, label: "News Feed", desc: "AI-curated creator news", color: "#eab308" },
-                        { icon: Users, label: "Community", desc: "Connect with creators", color: "#6366f1" },
-                        { icon: BookOpen, label: "Wiki", desc: "Platform knowledge base", color: "#3b82f6" },
-                      ].map(({ icon: Icon, label, desc, color }) => (
+                        { icon: Music, label: "SEVCO RECORDS", color: "#60a5fa" },
+                        { icon: ShoppingBag, label: "Store", color: "#f87171" },
+                        { icon: Folder, label: "Ventures", color: "#4ade80" },
+                        { icon: Newspaper, label: "News", color: "#facc15" },
+                        { icon: Users, label: "Community", color: "#a78bfa" },
+                        { icon: BookOpen, label: "Wiki", color: "#38bdf8" },
+                      ].map(({ icon: Icon, label, color }) => (
                         <div
                           key={label}
-                          className="rounded-xl border border-white/[0.07] p-4"
-                          style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(12px)" }}
+                          className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-3 flex items-center gap-2.5"
                           data-testid={`card-signup-feature-${label.toLowerCase().replace(/\s+/g, "-")}`}
                         >
-                          <div
-                            className="h-8 w-8 rounded-lg flex items-center justify-center mb-2"
-                            style={{ backgroundColor: `${color}20` }}
-                          >
-                            <Icon className="h-4 w-4" style={{ color }} />
-                          </div>
-                          <p className="text-xs font-bold text-white mb-0.5">{label}</p>
-                          <p className="text-[11px] text-white/40 leading-tight">{desc}</p>
+                          <Icon className="h-4 w-4 shrink-0" style={{ color }} />
+                          <p className="text-xs font-medium text-white/85 truncate">{label}</p>
                         </div>
                       ))}
                     </div>

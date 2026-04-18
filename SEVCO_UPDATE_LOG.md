@@ -29319,3 +29319,48 @@ After Task #468 shipped, the Projects, Services, Music, and Sparks Leaderboard p
 
 ---
 
+## Task — task-476
+> Merged: 2026-04-18
+
+---
+title: Apply spark-tables + lead_user_id migration to the production database (live site is 500ing)
+---
+# Apply the spark-tables + lead_user_id migration to the production database
+
+## What & Why
+On the deployed (live) site, Projects, Services, the Store, the Music browse, and the Sparks Leaderboard all return 500. Production deployment logs show:
+- `column "lead_user_id" does not exist` (when selecting from `projects` and `services`)
+- `relation "track_sparks" does not exist` (when computing the leaderboard)
+
+The schema and code from Task #468 expect four new spark tables (`track_sparks`, `product_sparks`, `project_sparks`, `service_sparks`) and two new columns (`projects.lead_user_id`, `services.lead_user_id`). Task #475 created them in the dev database but the production database never got them, so the deployed site is broken even though dev looks fine.
+
+## Done looks like
+- The production database has the four new spark tables (same shape as `post_sparks`: bigint id, entity FK with cascade delete, user FK with cascade delete, `created_at` timestamp, unique index on (entity, user)).
+- The production database has `projects.lead_user_id` and `services.lead_user_id` as nullable `varchar` FKs to `users.id` with `ON DELETE SET NULL`.
+- After redeploy (or a server restart against prod), `GET /api/projects`, `/api/services`, `/api/store/products`, `/api/music/tracks`, and `/api/sparks/leaderboard` on the live URL all return 200 with their existing rows.
+- `replit.md` notes that the prod DB now matches the dev DB and adds a checklist line: any future schema-altering task must apply DDL to **both** dev and prod (or run `db push` against prod) before deploying.
+
+## Out of scope
+- Any code changes — the schema is already correct in `shared/schema.ts`.
+- Backfilling `lead_user_id` for any existing project/service.
+- Touching the music tracks/artists/albums data (still legitimately empty).
+
+## Steps
+1. Connect to the production database (use the production database connection / read-write credentials, not the dev one).
+2. Apply the same DDL Task #475 used on dev:
+   - `ALTER TABLE projects ADD COLUMN IF NOT EXISTS lead_user_id varchar REFERENCES users(id) ON DELETE SET NULL;`
+   - `ALTER TABLE services ADD COLUMN IF NOT EXISTS lead_user_id varchar REFERENCES users(id) ON DELETE SET NULL;`
+   - `CREATE TABLE IF NOT EXISTS track_sparks (...)`, `product_sparks`, `project_sparks`, `service_sparks` — mirror the existing `post_sparks` shape exactly: bigserial-or-bigint identity id, `<entity>_id` FK with `ON DELETE CASCADE`, `user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE`, `created_at timestamptz NOT NULL DEFAULT now()`, plus a `UNIQUE (<entity>_id, user_id)` index.
+   - If the `content_sparks` table is still present in prod, drop it (Task #466 retired it).
+3. From the live URL, hit `/api/projects`, `/api/services`, `/api/store/products`, `/api/music/tracks`, `/api/sparks/leaderboard` and confirm 200 with non-empty payloads (music can stay empty).
+4. Check the deployment logs for any remaining "does not exist" errors and address if any surface.
+5. Update `replit.md` with the prod-sync note + reminder for future schema tasks.
+
+## Relevant files
+- `shared/schema.ts` (`projects` ~L234, `services` ~L263, the four `*_sparks` tables — source of truth for the DDL shape)
+- `server/index.ts` (boot-time DROP for `content_sparks` already lives here from Task #466)
+- `replit.md`
+
+
+---
+

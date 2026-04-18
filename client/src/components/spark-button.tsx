@@ -13,7 +13,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export type SparkEntityType = "track" | "product" | "project" | "service" | "article";
+export type SparkEntityType = "track" | "product" | "project" | "service" | "article" | "gallery";
 
 const ENDPOINTS: Record<SparkEntityType, (id: number | string) => string> = {
   track: (id) => `/api/music/tracks/${id}/spark`,
@@ -21,6 +21,7 @@ const ENDPOINTS: Record<SparkEntityType, (id: number | string) => string> = {
   project: (id) => `/api/projects/${id}/spark`,
   service: (id) => `/api/services/${id}/spark`,
   article: (id) => `/api/articles/${id}/spark`,
+  gallery: (id) => `/api/gallery/${id}/spark`,
 };
 
 // Entity types that support unsparking (toggle off)
@@ -30,6 +31,7 @@ const SUPPORTS_UNSPARK: Record<SparkEntityType, boolean> = {
   project: false,
   service: false,
   article: false,
+  gallery: false,
 };
 
 const INVALIDATE_KEYS: Record<SparkEntityType, string[]> = {
@@ -38,6 +40,7 @@ const INVALIDATE_KEYS: Record<SparkEntityType, string[]> = {
   project: ["/api/projects"],
   service: ["/api/services"],
   article: ["/api/articles", "/api/search"],
+  gallery: ["/api/gallery"],
 };
 
 interface SparkButtonProps {
@@ -120,21 +123,6 @@ export function SparkButton({
     },
   });
 
-  if (isOwner) {
-    if (!showCountWhenOwner) return null;
-    const sizing =
-      size === "md" ? "h-9 px-2.5 text-sm gap-1.5" : "h-7 px-1.5 text-xs gap-1";
-    const iconEmojiSize = size === "md" ? "md" : "sm";
-    return (
-      <span
-        className={`flex items-center text-muted-foreground ${sizing} ${className}`}
-        data-testid={`text-${entityType}-spark-count-${entityId}`}
-      >
-        <SparkIcon size={iconEmojiSize} decorative />
-        <span className="tabular-nums">{displayCount}</span>
-      </span>
-    );
-  }
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     event.preventDefault();

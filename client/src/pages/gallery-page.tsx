@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { PageHead } from "@/components/page-head";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -12,15 +11,14 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link } from "wouter";
 import { articleUrl } from "@/lib/wiki-urls";
 import { Copy, ImageOff, ExternalLink, X, Download } from "lucide-react";
 import { SparkIcon } from "@/components/spark-icon";
+import { SparkButton } from "@/components/spark-button";
 import { EmptyState } from "@/components/empty-state";
 import type { GalleryImage } from "@shared/schema";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
-import { playSparkSound } from "@/lib/spark-sound";
 
 const CATEGORY_LABELS: Record<string, string> = {
   profile: "Profile Pics",
@@ -79,7 +77,6 @@ export default function GalleryPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("all");
   const [lightboxImage, setLightboxImage] = useState<GalleryImageWithSpark | null>(null);
-  const [sparkTooltips, setSparkTooltips] = useState<Record<number, boolean>>({});
   const [revealedCardId, setRevealedCardId] = useState<number | null>(null);
   const [isTouch, setIsTouch] = useState(false);
 
@@ -116,37 +113,6 @@ export default function GalleryPage() {
       return res.json();
     },
   });
-
-  const { data: dailyQuota } = useQuery<{ given: number; limit: number; remaining: number }>({
-    queryKey: ["/api/sparks/daily-quota"],
-    enabled: !!user,
-  });
-  const dailyLimitReached = (dailyQuota?.remaining ?? 1) === 0;
-
-  const sparkMutation = useMutation({
-    mutationFn: (imageId: number) => apiRequest("POST", `/api/gallery/${imageId}/spark`),
-    onSuccess: () => {
-      playSparkSound();
-      queryClient.invalidateQueries({ queryKey: ["/api/gallery"] });
-    },
-    onError: (err: any) => {
-      if (err?.status === 429 || err?.message?.includes("429")) {
-        toast({ title: "Daily limit reached", description: "You can give 10 sparks per day." });
-      } else if (err?.status === 403 || err?.message?.includes("403")) {
-        toast({ title: "Cannot spark your own content", variant: "destructive" });
-      }
-    },
-  });
-
-  function handleSpark(image: GalleryImageWithSpark) {
-    if (!user) return;
-    if (image.isSparkedByMe) {
-      setSparkTooltips((prev) => ({ ...prev, [image.id]: true }));
-      setTimeout(() => setSparkTooltips((prev) => ({ ...prev, [image.id]: false })), 2000);
-      return;
-    }
-    sparkMutation.mutate(image.id);
-  }
 
   async function copyLink(imageUrl: string, title: string) {
     try {
@@ -330,40 +296,15 @@ export default function GalleryPage() {
                     </Badge>
                   </div>
                   <div className="flex gap-1.5 items-center">
-                    {isOwner ? (
-                      <div
-                        className="flex items-center gap-1 text-xs text-amber-400 h-7 px-2 rounded bg-black/40"
-                        data-testid={`chip-gallery-spark-owner-${image.id}`}
-                      >
-                        <SparkIcon size="sm" decorative />
-                        <span>{image.sparkCount ?? 0}</span>
-                      </div>
-                    ) : (
-                      <TooltipProvider>
-                        <Tooltip open={sparkTooltips[image.id] ?? false}>
-                          <TooltipTrigger asChild>
-                            <button
-                              className={`flex items-center gap-1 text-xs transition-colors h-7 px-2 rounded bg-black/40 ${
-                                image.isSparkedByMe
-                                  ? "text-amber-400"
-                                  : dailyLimitReached && !image.isSparkedByMe
-                                  ? "text-white/50 cursor-not-allowed"
-                                  : "text-white hover:text-amber-400"
-                              } ${!user ? "opacity-50 cursor-default" : ""}`}
-                              onClick={(e) => { e.stopPropagation(); handleSpark(image); }}
-                              disabled={dailyLimitReached && !image.isSparkedByMe}
-                              data-testid={`button-gallery-spark-${image.id}`}
-                            >
-                              <SparkIcon size="sm" decorative />
-                              <span>{image.sparkCount ?? 0}</span>
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top">
-                            {image.isSparkedByMe ? "Already sparked!" : dailyLimitReached ? "Daily spark limit reached (10/day)" : "Spark this image"}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
+                    <SparkButton
+                      entityType="gallery"
+                      entityId={image.id}
+                      sparkCount={image.sparkCount ?? 0}
+                      sparkedByCurrentUser={!!image.isSparkedByMe}
+                      isOwner={isOwner}
+                      size="sm"
+                      className="!h-7 !w-7 !px-0 justify-center bg-black/40 !text-white hover:!text-amber-400 [&>span:last-child]:hidden"
+                    />
                     <Button
                       size="sm"
                       variant="secondary"

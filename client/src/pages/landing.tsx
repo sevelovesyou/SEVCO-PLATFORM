@@ -840,7 +840,7 @@ export default function Landing() {
                       data-testid="button-mid-cta"
                       onClick={() => trackCtaClick("mid")}
                     >
-                      {btn1Label}
+                      Sign Up
                       <ArrowRight className="h-3.5 w-3.5" />
                     </Button>
                   </Link>
@@ -1307,7 +1307,7 @@ export default function Landing() {
                           data-testid="button-signup-cta-create-account"
                           onClick={() => trackCtaClick("closer")}
                         >
-                          {btn1Label}
+                          Sign Up
                           <ArrowRight className="h-4 w-4" />
                         </Button>
                       </Link>
@@ -1418,7 +1418,7 @@ export default function Landing() {
                     {!user && (
                       <Link href="/auth">
                         <Button size="lg" variant="ghost" className="text-muted-foreground hover:text-foreground font-medium" data-testid="button-community-sign-up">
-                          Create account
+                          Sign Up
                         </Button>
                       </Link>
                     )}

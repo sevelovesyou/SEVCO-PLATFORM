@@ -1226,24 +1226,6 @@ export const insertSparkPackSchema = createInsertSchema(sparkPacks).omit({ id: t
 export type SparkPack = typeof sparkPacks.$inferSelect;
 export type InsertSparkPack = z.infer<typeof insertSparkPackSchema>;
 
-export const contentSparkContentTypeEnum = pgEnum("content_spark_content_type", ["post", "article", "gallery"]);
-
-export const contentSparks = pgTable("content_sparks", {
-  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  senderId: varchar("sender_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  recipientId: varchar("recipient_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  contentType: contentSparkContentTypeEnum("content_type").notNull(),
-  contentId: integer("content_id").notNull(),
-  amount: integer("amount").notNull().default(1),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (t) => [
-  uniqueIndex("content_sparks_sender_content_idx").on(t.senderId, t.contentType, t.contentId),
-]);
-
-export const insertContentSparkSchema = createInsertSchema(contentSparks).omit({ id: true, createdAt: true });
-export type ContentSpark = typeof contentSparks.$inferSelect;
-export type InsertContentSpark = z.infer<typeof insertContentSparkSchema>;
-
 // Task #285 — Freeball voxel space game
 
 export const galaxyPlanets = pgTable("galaxy_planets", {

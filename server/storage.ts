@@ -54,7 +54,6 @@ import {
   type NewsItem,
   type SparkTransaction, type InsertSparkTransaction,
   type SparkPack, type InsertSparkPack,
-  type ContentSpark, type InsertContentSpark,
   type WikiLinkStub,
   users, categories, articles, revisions, citations, crosslinks, wikiLinkStubs,
   artists, albums, products, projects, changelog, orders, services,
@@ -85,7 +84,6 @@ import {
   newsItems,
   sparkTransactions,
   sparkPacks,
-  contentSparks,
   wikiSources,
   type WikiSource,
   type InsertWikiSource,
@@ -505,9 +503,6 @@ export interface IStorage {
     topItems: Array<{ type: string; title: string; sparkCount: number; id: number | string; slug?: string; authorUsername?: string; uploaderUsername?: string }>;
   }>;
 
-  createContentSpark(data: InsertContentSpark): Promise<ContentSpark>;
-  hasContentSpark(senderId: string, contentType: string, contentId: number): Promise<boolean>;
-  getContentSparkCount(contentType: string, contentId: number): Promise<number>;
   getSparksLeaderboard(period: "month" | "all"): Promise<{
     topCreators: { userId: string; username: string; displayName: string | null; avatarUrl: string | null; sparksReceived: number }[];
     topPosts: { id: number; content: string; authorUsername: string; authorDisplayName: string | null; sparksReceived: number }[];
@@ -3427,35 +3422,6 @@ export class DatabaseStorage implements IStorage {
       topRewardedCreatorThisMonth: topCreator,
       topItems: combined,
     };
-  }
-
-  async createContentSpark(data: InsertContentSpark): Promise<ContentSpark> {
-    const [row] = await db.insert(contentSparks).values(data).returning();
-    return row;
-  }
-
-  async hasContentSpark(senderId: string, contentType: string, contentId: number): Promise<boolean> {
-    const [row] = await db
-      .select({ id: contentSparks.id })
-      .from(contentSparks)
-      .where(and(
-        eq(contentSparks.senderId, senderId),
-        eq(contentSparks.contentType, contentType as any),
-        eq(contentSparks.contentId, contentId),
-      ))
-      .limit(1);
-    return !!row;
-  }
-
-  async getContentSparkCount(contentType: string, contentId: number): Promise<number> {
-    const [row] = await db
-      .select({ count: sql<number>`cast(count(*) as integer)` })
-      .from(contentSparks)
-      .where(and(
-        eq(contentSparks.contentType, contentType as any),
-        eq(contentSparks.contentId, contentId),
-      ));
-    return row?.count ?? 0;
   }
 
   async getSparksLeaderboard(period: "month" | "all"): Promise<{

@@ -362,21 +362,9 @@ async function runStartupMigrations() {
     created_at timestamp NOT NULL DEFAULT NOW(),
     CONSTRAINT gallery_sparks_image_user_unique UNIQUE (image_id, user_id)
   );`);
-  // Task #276 — content_sparks table (leaderboard / notifications)
-  await pool.query(`DO $$ BEGIN
-    CREATE TYPE content_spark_content_type AS ENUM ('post', 'article', 'gallery');
-  EXCEPTION WHEN duplicate_object THEN NULL;
-  END $$;`);
-  await pool.query(`CREATE TABLE IF NOT EXISTS content_sparks (
-    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    sender_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    recipient_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    content_type content_spark_content_type NOT NULL,
-    content_id integer NOT NULL,
-    amount integer NOT NULL DEFAULT 1,
-    created_at timestamp NOT NULL DEFAULT NOW()
-  );`);
-  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS content_sparks_sender_content_idx ON content_sparks (sender_id, content_type, content_id);`);
+  // Task #466 — drop the unused content_sparks table (leaderboard now reads legacy tables)
+  await pool.query(`DROP TABLE IF EXISTS content_sparks;`);
+  await pool.query(`DROP TYPE IF EXISTS content_spark_content_type;`);
 
   // Task #280 — Delete old auto-generated task articles from production
   // Only delete if >= 10 such articles exist (production guard, safe after dev cleanup)

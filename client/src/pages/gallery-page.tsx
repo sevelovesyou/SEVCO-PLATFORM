@@ -269,19 +269,19 @@ export default function GalleryPage() {
                     sparkedByCurrentUser={!!image.isSparkedByMe}
                     isOwner={user?.id === image.uploadedBy}
                     size="sm"
-                    className="!bg-black/60 !text-amber-400 hover:!text-amber-300 backdrop-blur-sm rounded-md !px-2 !py-0.5 !h-auto"
+                    className="bg-black/60 backdrop-blur-sm rounded-md"
                   />
                 </div>
 
                 {/* Hover/focus reveal overlay with metadata + actions */}
                 <div
-                  className={`absolute inset-x-0 bottom-0 z-20 flex flex-col gap-2 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-16 transition-opacity duration-200 motion-reduce:transition-none pointer-events-none ${
+                  className={`absolute inset-x-0 bottom-0 z-20 flex flex-col gap-2 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-16 transition-opacity duration-200 motion-reduce:transition-none pointer-events-none [&_.overlay-interactive]:pointer-events-none ${
                     isRevealed
-                      ? "opacity-100"
-                      : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                      ? "opacity-100 [&_.overlay-interactive]:pointer-events-auto"
+                      : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 group-hover:[&_.overlay-interactive]:pointer-events-auto group-focus-within:[&_.overlay-interactive]:pointer-events-auto"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-2 pointer-events-auto">
+                  <div className="flex items-start justify-between gap-2 overlay-interactive">
                     <div className="min-w-0">
                       <p className="text-xs font-semibold leading-tight line-clamp-2 text-white" data-testid={`text-gallery-title-${image.id}`}>
                         {image.title}
@@ -300,7 +300,7 @@ export default function GalleryPage() {
                       {CATEGORY_LABELS[image.category] ?? image.category}
                     </Badge>
                   </div>
-                  <div className="flex gap-1.5 items-center justify-end pointer-events-auto">
+                  <div className="flex gap-1.5 items-center justify-end overlay-interactive">
                     <Button
                       size="icon"
                       variant="secondary"

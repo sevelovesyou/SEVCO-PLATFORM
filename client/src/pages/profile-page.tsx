@@ -1846,18 +1846,6 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
           </div>
         </div>
 
-        <div
-          className="mt-4 rounded-xl border px-5 py-4 text-xs"
-          style={{
-            background: bgColor ? `${bgColor}88` : "var(--card)",
-            borderColor: accentColor ? `${accentColor}33` : "var(--border)",
-            color: accentColor ? `${accentColor}99` : "var(--muted-foreground)",
-          }}
-        >
-          <span className="font-medium">SEVCO Platform Member</span>
-          {profile.emailVerified && <span className="ml-3 opacity-60">· Verified</span>}
-        </div>
-
         {/* Unified profile tab bar (Overview / Posts / Articles / Music) */}
         {(() => {
           const unifiedTabs: Array<{ id: "overview" | "posts" | "articles" | "music"; label: string }> = [

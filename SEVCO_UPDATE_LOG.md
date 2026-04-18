@@ -29594,3 +29594,43 @@ Sparking content is the platform's primary engagement signal, but the current Sp
 
 ---
 
+## Task — profile-bg-stable-on-tab-switch
+> Merged: 2026-04-18
+
+# Stable Profile Background When Switching Tabs
+
+## What & Why
+On profile pages, the background image is rendered as `absolute inset-0` inside a `min-h-screen` container. The container's actual height is driven by the inner content, so as soon as the user switches tabs (Overview ↔ Music, Posts ↔ Wiki Contributions) and the content height changes, the background div resizes and `bg-cover` re-fits the image to the new size — producing a jarring zoom/shift effect under the profile card. The background should feel like a stable backdrop, not a layer that bounces with every interaction.
+
+## Done looks like
+- Switching tabs on a profile (top-level Overview/Music tabs and the Overview sub-tabs Posts/Wiki Contributions) no longer causes the background image to visibly resize, zoom, or shift.
+- The background remains crisp and correctly cropped on every viewport size.
+- The profile card itself doesn't pop visibly taller/shorter when switching between Overview sub-tabs (modest stability so the layout feels calm, without leaving large dead space when a tab has little content).
+- Scroll behavior is unchanged: the page still scrolls normally; the backdrop simply stays put behind the content.
+- Works on desktop, tablet, and mobile (including iOS Safari URL-bar resize edge cases).
+- All existing settings — `bgImage`, `bgColor`, `bgOpacity`, banner image — keep behaving the same.
+
+## Out of scope
+- Adding parallax, blur-on-scroll, or any new background effects.
+- Changing the banner image inside the profile card (that's a separate element and is unaffected by the tab-switch resize).
+- Changes to non-profile pages.
+
+## Steps
+1. **Pin the background layer to the viewport.** In `client/src/pages/profile-page.tsx` (~line 1571), change the background `<div>` from `absolute inset-0 bg-cover ...` to `fixed inset-0 bg-cover ...`. This decouples the background's size from the document's height so tab switches no longer cause it to resize. Keep the `bgOpacity` inline style and the existing `backgroundImage` URL untouched. The outer container can stay `min-h-screen relative` as today.
+
+2. **Verify z-index stacking.** The fixed background must sit behind the profile content. The content wrapper around line 1577 already uses `relative z-10`, so it should stack correctly above a `fixed inset-0` background — but double-check that no other fixed/sticky elements (header/nav) end up beneath it. If a stacking issue appears, give the bg `-z-10` and the content `z-0` (or higher).
+
+3. **Stabilize the tab panel height (light touch).** In the same file, around the Overview sub-tabs panel (Posts/Wiki Contributions, ~line 1918) and the top-level tab content containers, add a modest `min-h` (e.g. `min-h-[40vh]` or `min-h-[320px]`) to the swapping panel so the card height doesn't visibly pop between sub-tabs. Don't make it so tall that short tabs leave huge empty space — pick a value that smooths the most common cases.
+
+4. **Solid-color background fallback.** If the user has set `bgColor` but no `bgImage`, the existing `style={{ backgroundColor: bgColor }}` on the outer `min-h-screen` container is fine — solid colors don't suffer from the resize artifact. Leave that path untouched.
+
+5. **Mobile sanity check.** On iOS Safari, `fixed` backgrounds can flicker during the URL-bar show/hide. Test scrolling on a mobile viewport (or device-emulation in DevTools) and confirm the backdrop stays stable. If a flicker appears, add `transform: translateZ(0)` to the background div to force a compositor layer.
+
+6. **Verify.** Restart the dev server and confirm: the background image stays put when switching between Overview and Music, when switching between Posts and Wiki Contributions, and across viewport widths; profile card height changes smoothly between sub-tabs without leaving an awkward void; profiles with `bgColor` only or with no background still render correctly.
+
+## Relevant files
+- `client/src/pages/profile-page.tsx` (background div at ~line 1571; tab containers around lines 1880-1950)
+
+
+---
+

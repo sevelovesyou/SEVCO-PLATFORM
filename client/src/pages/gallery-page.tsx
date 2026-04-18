@@ -269,7 +269,7 @@ export default function GalleryPage() {
                     sparkedByCurrentUser={!!image.isSparkedByMe}
                     isOwner={user?.id === image.uploadedBy}
                     size="sm"
-                    className="bg-black/60 backdrop-blur-sm rounded-md"
+                    className="bg-black/60 backdrop-blur-sm rounded-md text-amber-400 hover:text-amber-300 font-semibold"
                   />
                 </div>
 

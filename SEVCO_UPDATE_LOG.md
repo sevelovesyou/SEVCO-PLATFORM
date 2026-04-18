@@ -29364,3 +29364,52 @@ The schema and code from Task #468 expect four new spark tables (`track_sparks`,
 
 ---
 
+## Task — profile-music-user-owned
+> Merged: 2026-04-18
+
+# Music Lives On Profiles
+
+## What & Why
+The previous "merge artists into profiles" pass left music behind: tracks still belong to a separate `artists` table and only appear on a profile when an admin manually sets that user's `linkedArtistId`. Today zero users have that link set, so the Music section never appears on any profile, and there is no way for a regular user to upload their own music. Make tracks belong to users directly so any profile that has uploaded music shows it automatically, and let any user upload from their own profile.
+
+## Done looks like
+- Any user with at least one uploaded track shows a Music section on their public profile (albums + track list with cover art, duration, stream count, Play button) — no admin step required.
+- Profiles with no music simply don't render the section. No "empty state" clutter for everyone else.
+- Signed-in users see an "Upload track" button on their own profile and a Music management area in their account settings where they can add, edit cover/title/genre, and delete their tracks.
+- Tracks uploaded from a profile appear in the public `/music/tracks` browse page and the uploader appears on the `/music/artists` grid (linking to their profile).
+- Existing artist-linked tracks (legacy `linkedArtistId` flow) keep working — nothing is lost during the transition.
+
+## Out of scope
+- Album CRUD from the user-facing UI (albums stay admin-managed in this pass; user-uploaded tracks just show as standalone tracks until grouped).
+- Removing the legacy `artists` table or the `linkedArtistId` admin flow — both stay so existing data is preserved.
+- Monetization, royalty splits, or paid downloads.
+- Audio transcoding, waveform generation, or analytics dashboards for creators.
+
+## Steps
+1. **Add user ownership to tracks** — Add a nullable `user_id` foreign key to `music_tracks` (varchar referencing `users.id`, ON DELETE SET NULL) in the shared schema, mirror the same DDL in the startup self-heal block so production picks it up, and backfill any existing rows whose `artist_id` matches a user's `linked_artist_id`.
+
+2. **Profile API surfaces user-owned music** — When fetching a public profile, also return that user's tracks and any albums they own. The Music section should render whenever this list is non-empty, independent of `linkedArtistId`.
+
+3. **Profile page renders music for everyone with tracks** — Update the profile page so the Music section shows the user's own tracks first, falls back to the legacy artist-linked content when present, and renders nothing when both are empty. Use the existing album/track card visual treatment.
+
+4. **User upload flow** — On the signed-in user's own profile, show an "Upload track" affordance. Build a small upload form (title, optional album name, genre, cover image, audio file) that uses the existing Supabase storage upload pattern and creates a `music_tracks` row with `user_id` set to the current user. Mirror the same form in the account/profile-edit area along with a list of the user's tracks where they can edit metadata or delete.
+
+5. **Browse pages include user-owned music** — Update the `/music/tracks` and `/music/artists` listings (plus their backing endpoints) so user-uploaded tracks appear alongside legacy artist tracks, and so each card links to the correct destination — `/profile/:username` for user-owned, existing `/music/artists/:slug` for legacy unlinked artists.
+
+6. **Smoke test the full loop** — Verify a fresh signed-in user can upload a track from their profile, see it on their own profile, see it in `/music/tracks`, see themselves on `/music/artists` linking back to their profile, and that signing out then visiting the profile still shows the music. Verify that profiles with zero tracks render no Music section.
+
+## Relevant files
+- `shared/schema.ts:1123-1141`
+- `server/index.ts:91-405`
+- `server/routes.ts:2402-2440,2801-2830,3768-3800`
+- `server/storage.ts`
+- `client/src/pages/profile-page.tsx:140-150,963-1100,1675-1690`
+- `client/src/pages/account-page.tsx`
+- `client/src/pages/music-tracks-page.tsx`
+- `client/src/pages/music-artists-page.tsx`
+- `client/src/pages/music-artist-detail.tsx`
+- `client/src/contexts/music-player-context.tsx`
+
+
+---
+

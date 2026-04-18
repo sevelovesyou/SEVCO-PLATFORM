@@ -210,19 +210,6 @@ export function CommandSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                tooltip="Shader Studio"
-                data-active={isActive("/command/shaders")}
-                className="h-8"
-              >
-                <Link href="/command/shaders" data-testid="link-command-nav-shader-studio">
-                  <Settings2 className="h-4 w-4" />
-                  <span>Shader Studio</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
                 tooltip="Platform Settings"
                 data-active={isActive("/command/settings")}
                 className="h-8"

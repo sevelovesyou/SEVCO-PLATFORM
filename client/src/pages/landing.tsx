@@ -400,6 +400,7 @@ export default function Landing() {
   const showIconPills = toBool(settings["section.iconPills.visible"]);
   const showWallpaper = toBool(settings["section.wallpaper.visible"]);
   const showSparks = toBool(settings["section.sparks.visible"]);
+  const showHero = toBool(settings["section.hero.visible"]);
 
   const sectionOrder: string[] = (() => {
     try {
@@ -442,6 +443,7 @@ export default function Landing() {
       />
 
       {/* ── HERO ── */}
+      {showHero && (
       <section
         className="relative overflow-hidden bg-[#0a0a12] text-white"
         data-testid="section-hero"
@@ -545,6 +547,7 @@ export default function Landing() {
 
         </div>
       </section>
+      )}
 
       {/* ── USER SNAPSHOT — tasks, inbox, notes (logged-in only) ── */}
       {user && (

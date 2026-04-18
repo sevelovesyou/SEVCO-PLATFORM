@@ -24,8 +24,7 @@ import {
   ChevronUp, ChevronDown, Settings2, Layout, Star, BarChart2, CheckCircle2, AlertCircle,
   Mail, Send, Search, X, Sparkles, TrendingUp, FileText, Bot,
 } from "lucide-react";
-import { ShaderSettingsPanel } from "@/components/shader-settings-panel";
-import { PageShaderAssignmentsTable } from "@/components/page-shader-assignments-table";
+import CommandShaderStudio from "@/pages/command-shader-studio";
 import { Slider } from "@/components/ui/slider";
 import { FileUploadWithFallback } from "@/components/file-upload";
 import type { BrandAsset, InsertBrandAsset, PlatformSocialLink } from "@shared/schema";
@@ -49,6 +48,7 @@ import {
 // ─────────────────────────────────────────────────────────
 const SECTION_KEYS = [
   { key: "section.platformGrid.visible", label: "Platform Grid", description: "The six platform section cards (Wiki, Store, Music, etc.)" },
+  { key: "section.midCta.visible", label: "Mid-page CTA", description: "Thin sign-up call-to-action band shown to logged-out visitors between Platform Grid and What's New" },
   { key: "section.whatsNew.visible", label: "What's New", description: "Platform Updates changelog cards — latest 3 entries with live badge" },
   { key: "section.feed.visible", label: "SEVCO Feed", description: "Latest community and official posts from the SEVCO team" },
   { key: "section.news.visible", label: "News — Top Stories", description: "Curated news bento grid and category swimlanes" },
@@ -60,10 +60,16 @@ const SECTION_KEYS = [
   { key: "section.wikiLatest.visible", label: "From the Wiki", description: "Latest 10 wiki articles in a compact grid" },
   { key: "section.communityCta.visible", label: "Community CTA", description: "Discord join section at the bottom" },
   { key: "section.bulletin.visible", label: "Bulletin", description: "Pinned announcement post displayed near the top of the home page" },
-  { key: "section.iconPills.visible", label: "Feature Pills", description: "Icon pill strip below the hero showing platform features" },
+  { key: "section.iconPills.visible", label: "Colored Icon Pill Menu", description: "Colored icon pill row directly beneath the hero linking to platform sections" },
   { key: "section.wallpaper.visible", label: "Wallpaper of the Day", description: "Full-width latest wallpaper from the Gallery" },
   { key: "section.sparks.visible", label: "Sparks", description: "Sparks marketing section with CTA linking to /sparks" },
+  { key: "section.hero.visible", label: "Hero", description: "Top-of-page hero block with logo, headline, tagline, and CTA buttons" },
 ];
+
+// Sections that always render in fixed slots and are not part of the
+// reorderable list. Hero sits at the very top; Icon Pills + Wallpaper
+// directly beneath it.
+const FIXED_SECTION_IDS = ["hero", "iconPills", "wallpaper"];
 
 const SECTION_KEY_META: Record<string, { label: string; description: string }> = Object.fromEntries(
   SECTION_KEYS.map((s) => [s.key.replace("section.", "").replace(".visible", ""), { label: s.label, description: s.description }])
@@ -2051,27 +2057,19 @@ export default function CommandSettings() {
 
           {/* ════════════ HERO & CTAs ════════════ */}
           <TabsContent value="hero" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "hero") ? "none" : "block" }}>
-              {/* Shader Studio */}
-              <Card data-search-label="shader studio hero background page assignments preset" className={cardVisible("shader studio hero background page assignments preset") ? "" : "hidden"}>
+              {/* Shader Studio (inlined — full editor + page assignments) */}
+              <Card data-search-label="shader studio hero background page assignments preset layers preview" className={cardVisible("shader studio hero background page assignments preset layers preview") ? "" : "hidden"}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4" />
                     {highlight("Shader Studio")}
                   </CardTitle>
                   <CardDescription>
-                    {highlight("Assign shader presets to hero sections and CTAs across the platform. Open the full Shader Studio to edit layers and preview presets.")}
+                    {highlight("Author animated shader presets, preview layers live, and assign them to landing/hero/CTA pages.")}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <PageShaderAssignmentsTable />
-                  <div className="flex justify-end pt-2 border-t">
-                    <Button asChild size="sm" className="gap-2" data-testid="button-open-shader-studio">
-                      <a href="/command/shaders">
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        Open full Shader Studio
-                      </a>
-                    </Button>
-                  </div>
+                <CardContent>
+                  <CommandShaderStudio />
                 </CardContent>
               </Card>
 
@@ -2271,10 +2269,6 @@ export default function CommandSettings() {
                       Save Hero
                     </Button>
                   </div>
-
-                  <Separator />
-
-                  <ShaderSettingsPanel settings={settings} />
                 </CardContent>
               </Card>
 
@@ -2288,7 +2282,44 @@ export default function CommandSettings() {
                   <CardDescription>{highlight("Toggle which sections appear on the public landing page.")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {sectionOrder.map((sectionId, index) => {
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Fixed-position sections</p>
+                    <p className="text-xs text-muted-foreground mb-2">These render in fixed slots at the top of the home page and cannot be reordered.</p>
+                    <div className="space-y-1">
+                      {FIXED_SECTION_IDS.map((sectionId) => {
+                        const meta = SECTION_KEY_META[sectionId];
+                        if (!meta) return null;
+                        const visKey = `section.${sectionId}.visible`;
+                        return (
+                          <div key={sectionId} className="flex items-center gap-2 py-2 border-b border-border/50 last:border-0" data-testid={`row-section-${sectionId}`}>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground">{highlight(meta.label)}</p>
+                              <p className="text-xs text-muted-foreground">{highlight(meta.description)}</p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {sectionVisibility[visKey] !== false ? (
+                                <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                              ) : (
+                                <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                              )}
+                              <Switch
+                                checked={sectionVisibility[visKey] !== false}
+                                onCheckedChange={(checked) =>
+                                  setSectionVisibility((prev) => ({ ...prev, [visKey]: checked }))
+                                }
+                                data-testid={`switch-section-${visKey}`}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-border/50">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Reorderable sections</p>
+                  </div>
+                  {sectionOrder.filter((id) => !FIXED_SECTION_IDS.includes(id)).map((sectionId, index) => {
                     const meta = SECTION_KEY_META[sectionId];
                     if (!meta) return null;
                     const visKey = `section.${sectionId}.visible`;

@@ -3466,102 +3466,163 @@ export class DatabaseStorage implements IStorage {
     const cutoff = period === "month"
       ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
       : undefined;
-    const periodFilter = cutoff ? gte(contentSparks.createdAt, cutoff) : undefined;
 
-    const creatorRows = await db
+    // === Top Posts (from post_sparks) ===
+    const topPostsRows = await db
       .select({
-        userId: contentSparks.recipientId,
-        username: users.username,
-        displayName: users.displayName,
-        avatarUrl: users.avatarUrl,
+        id: posts.id,
+        content: posts.content,
+        authorId: posts.authorId,
+        authorUsername: users.username,
+        authorDisplayName: users.displayName,
+        authorAvatarUrl: users.avatarUrl,
         sparksReceived: sql<number>`cast(count(*) as integer)`,
       })
-      .from(contentSparks)
-      .innerJoin(users, eq(users.id, contentSparks.recipientId))
-      .where(periodFilter ?? undefined)
-      .groupBy(contentSparks.recipientId, users.username, users.displayName, users.avatarUrl)
+      .from(postSparks)
+      .innerJoin(posts, eq(posts.id, postSparks.postId))
+      .innerJoin(users, eq(users.id, posts.authorId))
+      .where(cutoff ? gte(postSparks.createdAt, cutoff) : undefined)
+      .groupBy(posts.id, posts.content, posts.authorId, users.username, users.displayName, users.avatarUrl)
       .orderBy(sql`count(*) desc`)
       .limit(10);
 
-    const postRows = await db
+    const topPosts = topPostsRows.map((p) => ({
+      id: p.id,
+      content: p.content,
+      authorUsername: p.authorUsername,
+      authorDisplayName: p.authorDisplayName,
+      sparksReceived: p.sparksReceived,
+    }));
+
+    // === Top Articles (from article_sparks) ===
+    const topArticleRows = await db
       .select({
-        id: contentSparks.contentId,
+        id: articles.id,
+        title: articles.title,
+        authorId: articles.authorId,
         sparksReceived: sql<number>`cast(count(*) as integer)`,
       })
-      .from(contentSparks)
-      .where(periodFilter ? and(eq(contentSparks.contentType, "post"), periodFilter) : eq(contentSparks.contentType, "post"))
-      .groupBy(contentSparks.contentId)
+      .from(articleSparks)
+      .innerJoin(articles, eq(articles.id, articleSparks.articleId))
+      .where(cutoff ? gte(articleSparks.createdAt, cutoff) : undefined)
+      .groupBy(articles.id, articles.title, articles.authorId)
       .orderBy(sql`count(*) desc`)
       .limit(10);
 
-    const topPosts = await Promise.all(
-      postRows.map(async (r) => {
-        const [post] = await db
-          .select({
-            id: posts.id,
-            content: posts.content,
-            authorUsername: users.username,
-            authorDisplayName: users.displayName,
-          })
-          .from(posts)
-          .innerJoin(users, eq(users.id, posts.authorId))
-          .where(eq(posts.id, r.id))
-          .limit(1);
-        return post ? { ...post, sparksReceived: r.sparksReceived } : null;
-      })
-    );
-
-    const articleRows = await db
+    // === Top Gallery Images (from gallery_sparks) ===
+    const topGalleryRows = await db
       .select({
-        id: contentSparks.contentId,
+        id: galleryImages.id,
+        title: galleryImages.title,
         sparksReceived: sql<number>`cast(count(*) as integer)`,
       })
-      .from(contentSparks)
-      .where(periodFilter ? and(eq(contentSparks.contentType, "article"), periodFilter) : eq(contentSparks.contentType, "article"))
-      .groupBy(contentSparks.contentId)
+      .from(gallerySparks)
+      .innerJoin(galleryImages, eq(galleryImages.id, gallerySparks.imageId))
+      .where(cutoff ? gte(gallerySparks.createdAt, cutoff) : undefined)
+      .groupBy(galleryImages.id, galleryImages.title)
       .orderBy(sql`count(*) desc`)
       .limit(10);
 
-    const galleryRows = await db
+    const topContent: { id: number; title: string; contentType: "article" | "gallery"; sparksReceived: number }[] = [
+      ...topArticleRows.map((a) => ({ id: a.id, title: a.title, contentType: "article" as const, sparksReceived: a.sparksReceived })),
+      ...topGalleryRows.map((g) => ({ id: g.id, title: g.title, contentType: "gallery" as const, sparksReceived: g.sparksReceived })),
+    ]
+      .sort((a, b) => b.sparksReceived - a.sparksReceived)
+      .slice(0, 10);
+
+    // === Top Creators: aggregate sparks received per author across post_sparks + article_sparks ===
+    // Posts: credit posts.authorId. Gallery sparks have no author and are skipped.
+    // Articles: credit via the latest approved revision's authorName -> users.username
+    // (matching the admin overview pattern), falling back to articles.authorId when set.
+    const creatorTotals = new Map<string, number>();
+
+    const postCreatorRows = await db
       .select({
-        id: contentSparks.contentId,
+        userId: posts.authorId,
         sparksReceived: sql<number>`cast(count(*) as integer)`,
       })
-      .from(contentSparks)
-      .where(periodFilter ? and(eq(contentSparks.contentType, "gallery"), periodFilter) : eq(contentSparks.contentType, "gallery"))
-      .groupBy(contentSparks.contentId)
-      .orderBy(sql`count(*) desc`)
-      .limit(10);
+      .from(postSparks)
+      .innerJoin(posts, eq(posts.id, postSparks.postId))
+      .where(cutoff ? gte(postSparks.createdAt, cutoff) : undefined)
+      .groupBy(posts.authorId);
+    for (const row of postCreatorRows) {
+      if (!row.userId) continue;
+      creatorTotals.set(row.userId, (creatorTotals.get(row.userId) ?? 0) + row.sparksReceived);
+    }
 
-    const articleItems = await Promise.all(
-      articleRows.map(async (r) => {
-        const [article] = await db
-          .select({ id: articles.id, title: articles.title })
+    // Article author resolution: prefer articles.authorId, else latest approved revision authorName -> users.username
+    const articleAggRows = await db
+      .select({
+        articleId: articleSparks.articleId,
+        sparksReceived: sql<number>`cast(count(*) as integer)`,
+      })
+      .from(articleSparks)
+      .where(cutoff ? gte(articleSparks.createdAt, cutoff) : undefined)
+      .groupBy(articleSparks.articleId);
+
+    if (articleAggRows.length > 0) {
+      const articleIds = articleAggRows.map((r) => r.articleId);
+      const authorIdByArticle = new Map<number, string>();
+
+      // Primary: map each article to its latest approved revision's authorName -> users.username
+      // (matches the admin overview's revisions-based attribution pattern).
+      const revRows = await db
+        .selectDistinctOn([revisions.articleId], {
+          articleId: revisions.articleId,
+          userId: users.id,
+        })
+        .from(revisions)
+        .leftJoin(users, eq(users.username, revisions.authorName))
+        .where(and(
+          inArray(revisions.articleId, articleIds),
+          eq(revisions.status, "approved"),
+        ))
+        .orderBy(revisions.articleId, desc(revisions.createdAt));
+      for (const row of revRows) {
+        if (row.userId) authorIdByArticle.set(row.articleId, row.userId);
+      }
+
+      // Fallback: articles.authorId for articles with no approved-revision author match
+      const needsFallback = articleIds.filter((id) => !authorIdByArticle.has(id));
+      if (needsFallback.length > 0) {
+        const articleMeta = await db
+          .select({ id: articles.id, authorId: articles.authorId })
           .from(articles)
-          .where(eq(articles.id, r.id))
-          .limit(1);
-        return article ? { id: article.id, title: article.title, contentType: "article" as const, sparksReceived: r.sparksReceived } : null;
-      })
-    );
+          .where(inArray(articles.id, needsFallback));
+        for (const a of articleMeta) {
+          if (a.authorId) authorIdByArticle.set(a.id, a.authorId);
+        }
+      }
 
-    const galleryItems = await Promise.all(
-      galleryRows.map(async (r) => {
-        const [img] = await db
-          .select({ id: galleryImages.id, title: galleryImages.title })
-          .from(galleryImages)
-          .where(eq(galleryImages.id, r.id))
-          .limit(1);
-        return img ? { id: img.id, title: img.title, contentType: "gallery" as const, sparksReceived: r.sparksReceived } : null;
-      })
-    );
+      for (const r of articleAggRows) {
+        const userId = authorIdByArticle.get(r.articleId);
+        if (!userId) continue;
+        creatorTotals.set(userId, (creatorTotals.get(userId) ?? 0) + r.sparksReceived);
+      }
+    }
 
-    const topContent = [...articleItems.filter(Boolean), ...galleryItems.filter(Boolean)]
-      .sort((a, b) => b!.sparksReceived - a!.sparksReceived)
-      .slice(0, 10) as { id: number; title: string; contentType: "article" | "gallery"; sparksReceived: number }[];
+    let topCreators: { userId: string; username: string; displayName: string | null; avatarUrl: string | null; sparksReceived: number }[] = [];
+    if (creatorTotals.size > 0) {
+      const creatorIds = Array.from(creatorTotals.keys());
+      const userRows = await db
+        .select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl })
+        .from(users)
+        .where(inArray(users.id, creatorIds));
+      topCreators = userRows
+        .map((u) => ({
+          userId: u.id,
+          username: u.username,
+          displayName: u.displayName,
+          avatarUrl: u.avatarUrl,
+          sparksReceived: creatorTotals.get(u.id) ?? 0,
+        }))
+        .sort((a, b) => b.sparksReceived - a.sparksReceived)
+        .slice(0, 10);
+    }
 
     return {
-      topCreators: creatorRows,
-      topPosts: topPosts.filter(Boolean) as any,
+      topCreators,
+      topPosts,
       topContent,
     };
   }

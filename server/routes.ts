@@ -2337,12 +2337,40 @@ export async function registerRoutes(
     res.json(stats);
   });
 
+  app.get("/music/artists/:slug", async (req, res, next) => {
+    if (!req.accepts("html")) return next();
+    const slug = req.params.slug;
+    if (!slug || slug === "new") return next();
+    try {
+      const artist = await storage.getArtistBySlug(slug);
+      if (!artist) return next();
+      const linkedUser = await storage.getUserByLinkedArtistId(artist.id);
+      if (linkedUser?.username) {
+        return res.redirect(301, `/profile/${linkedUser.username}`);
+      }
+    } catch {}
+    return next();
+  });
+
   app.get("/api/music/artists", async (_req, res) => {
     try {
       const all = await storage.getArtists();
       const users = await storage.getUsersWithLinkedArtist();
-      const linkedMap = new Map(users.map((u) => [u.linkedArtistId!, u.username]));
-      const result = all.map((a) => ({ ...a, linkedUsername: linkedMap.get(a.id) ?? null }));
+      const linkedMap = new Map(
+        users.map((u) => [
+          u.linkedArtistId!,
+          { username: u.username, displayName: u.displayName, avatarUrl: u.avatarUrl },
+        ]),
+      );
+      const result = all.map((a) => {
+        const linked = linkedMap.get(a.id);
+        return {
+          ...a,
+          linkedUsername: linked?.username ?? null,
+          linkedDisplayName: linked?.displayName ?? null,
+          linkedAvatarUrl: linked?.avatarUrl ?? null,
+        };
+      });
       res.json(result);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -2949,7 +2977,7 @@ export async function registerRoutes(
 
   app.patch("/api/users/:id/profile", requireAuth, requireRole("admin"), async (req: any, res) => {
     try {
-      const { displayName, email, username } = req.body;
+      const { displayName, email, username, linkedArtistId } = req.body;
       if (username !== undefined) {
         if (typeof username !== "string" || username.trim().length < 2) {
           return res.status(400).json({ message: "Username must be at least 2 characters" });
@@ -2964,9 +2992,28 @@ export async function registerRoutes(
         }
         await storage.updateUsername(req.params.id, trimmed);
       }
-      const profileData: { displayName?: string; email?: string } = {};
+      const profileData: { displayName?: string; email?: string; linkedArtistId?: number | null } = {};
       if (displayName !== undefined) profileData.displayName = displayName;
       if (email !== undefined) profileData.email = email;
+      if (linkedArtistId !== undefined) {
+        if (linkedArtistId === null) {
+          profileData.linkedArtistId = null;
+        } else {
+          const artistIdNum = Number(linkedArtistId);
+          if (!Number.isInteger(artistIdNum) || artistIdNum <= 0) {
+            return res.status(400).json({ message: "Invalid linkedArtistId" });
+          }
+          const allArtistsForCheck = await storage.getArtists();
+          if (!allArtistsForCheck.some((a) => a.id === artistIdNum)) {
+            return res.status(404).json({ message: "Artist not found" });
+          }
+          const otherUser = await storage.getUserByLinkedArtistId(artistIdNum);
+          if (otherUser && otherUser.id !== req.params.id) {
+            return res.status(409).json({ message: `Artist already linked to @${otherUser.username}` });
+          }
+          profileData.linkedArtistId = artistIdNum;
+        }
+      }
       let result;
       if (Object.keys(profileData).length > 0) {
         result = await storage.updateUser(req.params.id, profileData);
@@ -3718,7 +3765,7 @@ export async function registerRoutes(
       const isStaffRole = user && ["admin", "executive", "staff"].includes(user.role);
       const publishedOnly = !isStaffRole;
 
-      const artistIdRaw = req.query.artist_id;
+      const artistIdRaw = req.query.artistId ?? req.query.artist_id;
       const artistId = typeof artistIdRaw === "string" && artistIdRaw ? parseInt(artistIdRaw) : undefined;
       const albumNameRaw = req.query.album_name;
       const albumName = typeof albumNameRaw === "string" && albumNameRaw ? albumNameRaw : undefined;

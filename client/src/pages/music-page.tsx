@@ -17,6 +17,7 @@ import { resolveImageUrl } from "@/lib/resolve-image-url";
 
 const CAN_MANAGE_MUSIC = ["admin", "executive", "staff"];
 
+type ArtistWithLinked = Artist & { linkedUsername?: string | null; linkedAvatarUrl?: string | null; linkedDisplayName?: string | null };
 type AlbumWithArtist = Album & { artist: Artist };
 
 const PLATFORM_ICONS: Record<string, React.ElementType> = {
@@ -33,26 +34,35 @@ const PLATFORM_COLORS: Record<string, string> = {
   SoundCloud: "bg-[#FF5500]/10 text-[#FF5500] border-[#FF5500]/20",
 };
 
-function ArtistCard({ artist }: { artist: Artist }) {
-  return (
-    <Link href={`/music/artists/${artist.slug}`}>
-      <div
-        className="flex items-center gap-3 px-4 py-3 rounded-xl border hover:border-foreground/20 hover:bg-muted/30 transition-all cursor-pointer group"
-        data-testid={`card-artist-${artist.id}`}
-      >
-        <div className="h-10 w-10 rounded-full bg-blue-600/10 flex items-center justify-center shrink-0">
-          <Users className="h-4 w-4 text-blue-600" />
-        </div>
+function ArtistCard({ artist }: { artist: ArtistWithLinked }) {
+  const displayName = artist.linkedDisplayName || artist.name;
+  const isLinked = !!artist.linkedUsername;
+  const inner = (
+    <div
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all group ${
+        isLinked ? "hover:border-foreground/20 hover:bg-muted/30 cursor-pointer" : "opacity-90"
+      }`}
+      data-testid={`card-artist-${artist.id}`}
+    >
+        {artist.linkedAvatarUrl ? (
+          <img src={resolveImageUrl(artist.linkedAvatarUrl)} alt={displayName} className="h-10 w-10 rounded-full object-cover shrink-0" />
+        ) : (
+          <div className="h-10 w-10 rounded-full bg-blue-600/10 flex items-center justify-center shrink-0">
+            <Users className="h-4 w-4 text-blue-600" />
+          </div>
+        )}
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm truncate">{artist.name}</p>
+          <p className="font-semibold text-sm truncate">{displayName}</p>
           {artist.genres && artist.genres.length > 0 && (
             <p className="text-[11px] text-muted-foreground truncate">{artist.genres.slice(0, 2).join(", ")}</p>
           )}
         </div>
-        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
+        {isLinked && (
+          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
+        )}
       </div>
-    </Link>
   );
+  return isLinked ? <Link href={`/profile/${artist.linkedUsername}`}>{inner}</Link> : inner;
 }
 
 function AlbumCard({ album }: { album: AlbumWithArtist }) {
@@ -148,7 +158,7 @@ export default function MusicPage() {
 
   const musicAccentHsl = platformSettings["music.accentColor"];
 
-  const { data: artistsList, isLoading: artistsLoading } = useQuery<Artist[]>({
+  const { data: artistsList, isLoading: artistsLoading } = useQuery<ArtistWithLinked[]>({
     queryKey: ["/api/music/artists"],
   });
 
@@ -160,7 +170,8 @@ export default function MusicPage() {
     queryKey: ["/api/music/playlists"],
   });
 
-  const featuredArtists = artistsList?.slice(0, 6) || [];
+  const linkedArtistsOnly = (artistsList ?? []).filter((a) => a.linkedUsername);
+  const featuredArtists = (canManage ? artistsList ?? [] : linkedArtistsOnly).slice(0, 6);
   const latestAlbums = albumsList?.slice(0, 8) || [];
   const featuredPlaylists = playlistsList?.slice(0, 4) || [];
 

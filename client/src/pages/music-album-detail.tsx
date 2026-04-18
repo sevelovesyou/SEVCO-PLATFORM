@@ -11,6 +11,7 @@ import { useSpotifyPlayer } from "@/hooks/use-spotify-player";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
 
 type AlbumDetail = Album & { artist: Artist };
+type ArtistWithLinked = Artist & { linkedUsername: string | null };
 type TrackWithMeta = MusicTrack & { artist: { id: number; name: string } | null };
 
 function formatStreamCount(n: number): string {
@@ -59,6 +60,15 @@ export default function MusicAlbumDetail() {
     queryFn: () => fetch(`/api/music/tracks?album_name=${encodeURIComponent(album!.title)}`).then((r) => r.json()),
     enabled: !!album?.title,
   });
+
+  const { data: artistDetail } = useQuery<ArtistWithLinked>({
+    queryKey: ["/api/music/artists", album?.artist?.slug],
+    queryFn: () => fetch(`/api/music/artists/${album!.artist.slug}`).then((r) => r.json()),
+    enabled: !!album?.artist?.slug,
+  });
+  const artistHref = artistDetail?.linkedUsername
+    ? `/profile/${artistDetail.linkedUsername}`
+    : "/music/artists";
 
   const totalStreams = tracks.reduce((sum, t) => sum + (t.streamCount ?? 0), 0);
 
@@ -111,8 +121,8 @@ export default function MusicAlbumDetail() {
         ogUrl={`https://sevco.us/music/albums/${album.slug}`}
       />
       <div className="flex items-center gap-2">
-        <Link href={`/music/artists/${album.artist.slug}`}>
-          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
+        <Link href={artistHref}>
+          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" data-testid="link-back-artist">
             <ChevronLeft className="h-4 w-4" />
             {album.artist.name}
           </Button>
@@ -133,8 +143,8 @@ export default function MusicAlbumDetail() {
         )}
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">{album.title}</h1>
-          <Link href={`/music/artists/${album.artist.slug}`}>
-            <div className="flex items-center gap-1.5 mt-1.5 text-muted-foreground hover:text-foreground transition-colors w-fit">
+          <Link href={artistHref}>
+            <div className="flex items-center gap-1.5 mt-1.5 text-muted-foreground hover:text-foreground transition-colors w-fit" data-testid="link-album-artist">
               <Users className="h-3.5 w-3.5" />
               <span className="text-sm">{album.artist.name}</span>
             </div>

@@ -65,6 +65,7 @@ interface DashboardUser {
   displayName: string | null;
   email: string | null;
   role: Role;
+  linkedArtistId: number | null;
 }
 
 interface DashboardData {
@@ -237,10 +238,23 @@ function EditUserDialog({
   const [username, setUsername] = useState(user.username);
   const [displayName, setDisplayName] = useState(user.displayName ?? "");
   const [email, setEmail] = useState(user.email ?? "");
+  const [linkedArtistId, setLinkedArtistId] = useState<string>(
+    user.linkedArtistId != null ? String(user.linkedArtistId) : "none",
+  );
+
+  const { data: artists } = useQuery<Array<{ id: number; name: string; slug: string; linkedUsername: string | null }>>({
+    queryKey: ["/api/music/artists"],
+    enabled: open,
+  });
 
   const mutation = useMutation({
     mutationFn: () =>
-      apiRequest("PATCH", `/api/users/${user.id}/profile`, { username, displayName, email }),
+      apiRequest("PATCH", `/api/users/${user.id}/profile`, {
+        username,
+        displayName,
+        email,
+        linkedArtistId: linkedArtistId === "none" ? null : Number(linkedArtistId),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       toast({ title: "User profile updated" });
@@ -286,6 +300,27 @@ function EditUserDialog({
               onChange={(e) => setEmail(e.target.value)}
               data-testid="input-edit-email"
             />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>Linked artist profile</Label>
+            <Select value={linkedArtistId} onValueChange={setLinkedArtistId}>
+              <SelectTrigger data-testid="select-linked-artist">
+                <SelectValue placeholder="Not linked" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Not linked</SelectItem>
+                {(artists ?? [])
+                  .filter((a) => !a.linkedUsername || a.id === user.linkedArtistId)
+                  .map((a) => (
+                    <SelectItem key={a.id} value={String(a.id)} data-testid={`option-artist-${a.id}`}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground">
+              Linking shows this user's profile as the artist's public page.
+            </p>
           </div>
         </div>
         <DialogFooter>

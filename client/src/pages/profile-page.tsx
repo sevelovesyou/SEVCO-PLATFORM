@@ -973,9 +973,9 @@ function ArtistMusicSection({ artistId, accentColor, bgColor }: { artistId: numb
   });
 
   const { data: tracks = [], isLoading: tracksLoading } = useQuery<MusicTrack[]>({
-    queryKey: ["/api/music/tracks", { artist_id: artistId }],
+    queryKey: ["/api/music/tracks", { artistId }],
     queryFn: async () => {
-      const res = await fetch(`/api/music/tracks?artist_id=${artistId}`);
+      const res = await fetch(`/api/music/tracks?artistId=${artistId}`);
       if (!res.ok) return [];
       return res.json();
     },
@@ -985,8 +985,32 @@ function ArtistMusicSection({ artistId, accentColor, bgColor }: { artistId: numb
   const cardBg = bgColor ? `${bgColor}88` : "var(--card)";
   const mutedColor = accentColor ? `${accentColor}99` : "var(--muted-foreground)";
 
+  const isLoading = albumsLoading || tracksLoading;
+  const hasContent = albums.length > 0 || tracks.length > 0;
+
+  if (!isLoading && !hasContent) {
+    return (
+      <div className="mt-5" data-testid="section-artist-music">
+        <h2
+          className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2"
+          style={{ color: mutedColor }}
+        >
+          <Music className="h-3.5 w-3.5" />
+          Music
+        </h2>
+        <div
+          className="rounded-xl border px-5 py-6 text-center"
+          style={{ background: cardBg, borderColor }}
+        >
+          <p className="text-sm" style={{ color: mutedColor }} data-testid="empty-music">No music yet.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-5 space-y-5" data-testid="section-artist-music">
+      {(albumsLoading || albums.length > 0) && (
       <div>
         <h2
           className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2"
@@ -1000,13 +1024,6 @@ function ArtistMusicSection({ artistId, accentColor, bgColor }: { artistId: numb
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-32 w-28 rounded-xl flex-shrink-0" />
             ))}
-          </div>
-        ) : albums.length === 0 ? (
-          <div
-            className="rounded-xl border px-5 py-6 text-center"
-            style={{ background: cardBg, borderColor }}
-          >
-            <p className="text-sm" style={{ color: mutedColor }}>No albums yet.</p>
           </div>
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-1">
@@ -1045,7 +1062,9 @@ function ArtistMusicSection({ artistId, accentColor, bgColor }: { artistId: numb
           </div>
         )}
       </div>
+      )}
 
+      {(tracksLoading || tracks.length > 0) && (
       <div>
         <h2
           className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2"
@@ -1105,6 +1124,13 @@ function ArtistMusicSection({ artistId, accentColor, bgColor }: { artistId: numb
                       {formatStreamCount(track.streamCount ?? 0)} streams
                     </p>
                   </div>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] px-1.5 shrink-0"
+                    data-testid={`badge-track-type-${track.id}`}
+                  >
+                    {track.type === "instrumental" ? "Beat" : "Song"}
+                  </Badge>
                   {track.genre && (
                     <Badge
                       variant="secondary"
@@ -1117,6 +1143,16 @@ function ArtistMusicSection({ artistId, accentColor, bgColor }: { artistId: numb
                   <span className="text-xs shrink-0 tabular-nums" style={{ color: mutedColor }}>
                     {formatDuration(track.duration)}
                   </span>
+                  <button
+                    type="button"
+                    className="h-7 px-1.5 shrink-0 inline-flex items-center gap-0.5 text-xs rounded text-muted-foreground hover:text-amber-500 transition-colors disabled:opacity-50"
+                    aria-label={`Spark ${track.title}`}
+                    data-testid={`button-spark-track-profile-${track.id}`}
+                    disabled
+                    title="Sparking tracks coming soon"
+                  >
+                    <Zap className="h-3.5 w-3.5" />
+                  </button>
                   {track.fileUrl && (
                     <Button
                       variant="ghost"
@@ -1135,6 +1171,7 @@ function ArtistMusicSection({ artistId, accentColor, bgColor }: { artistId: numb
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

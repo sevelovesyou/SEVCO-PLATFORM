@@ -183,7 +183,7 @@ export default function ServicesListingPage() {
         {!isLoading && featured.length > 0 && (
           <div className="mb-12">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Featured</p>
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {featured.map((service) => {
                 const Icon = getLucideIcon(service.iconName);
                 const styles = CATEGORY_STYLES[service.category] ?? CATEGORY_STYLES.Technology;
@@ -192,15 +192,15 @@ export default function ServicesListingPage() {
                 const cardContent = (
                     <div
                       data-testid={`card-service-featured-${service.id}`}
-                      className="group border rounded-xl p-6 hover:border-foreground/20 hover:shadow-sm transition-all cursor-pointer bg-background"
+                      className="group h-full flex flex-col border rounded-xl p-5 lg:p-4 hover:border-foreground/20 hover:shadow-sm transition-all cursor-pointer bg-background"
                     >
-                      <div className="flex items-start gap-4">
-                        <div className={`p-2.5 rounded-lg bg-muted ${styles.accent}`}>
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className={`p-2.5 rounded-lg bg-muted ${styles.accent} shrink-0`}>
                           <Icon className="h-5 w-5" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-base">{service.name}</h3>
+                        <div className="flex-1 min-w-0 flex flex-col">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1 min-w-0">
+                            <h3 className="font-semibold text-base line-clamp-1 min-w-0">{service.name}</h3>
                             <Badge variant="outline" className={`text-xs ${styles.badge}`}>
                               {service.category}
                             </Badge>
@@ -208,7 +208,7 @@ export default function ServicesListingPage() {
                           {service.tagline && (
                             <p className="text-sm text-muted-foreground line-clamp-2">{service.tagline}</p>
                           )}
-                          <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                          <div className="mt-auto pt-2" onClick={(e) => e.stopPropagation()}>
                             <SparkButton
                               entityType="service"
                               entityId={service.id}
@@ -223,11 +223,11 @@ export default function ServicesListingPage() {
                     </div>
                 );
                 return isExternal ? (
-                  <a href={href} key={service.id} target="_blank" rel="noopener noreferrer">
+                  <a href={href} key={service.id} target="_blank" rel="noopener noreferrer" className="block">
                     {cardContent}
                   </a>
                 ) : (
-                  <Link href={href} key={service.id}>
+                  <Link href={href} key={service.id} className="block">
                     {cardContent}
                   </Link>
                 );

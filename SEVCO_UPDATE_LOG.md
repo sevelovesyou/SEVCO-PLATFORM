@@ -29131,3 +29131,47 @@ The project detail page (`/projects/<slug>`) has the same blind spot — it fall
 
 ---
 
+## Task — sparks-leaderboard-source-of-truth
+> Merged: 2026-04-18
+
+# Make the public Sparks Leaderboard read from the same source as the admin Sparks dashboard
+
+## What & Why
+The public `/sparks/leaderboard` page is empty even though the admin Sparks dashboard at `/command/sparks` shows real activity (3 total social sparks, top creator, top sparked posts/articles, etc.). The two pages read from **different tables**:
+
+- **What gets written when users click the spark button (and what the admin dashboard reads):** the legacy per-type tables `post_sparks`, `article_sparks`, `gallery_sparks` (via `storage.sparkPost / sparkArticle / sparkImage`).
+- **What the public leaderboard reads:** the unified `content_sparks` table (via `storage.getSparksLeaderboard`), which is essentially empty in production because nothing is writing to it.
+
+Why nothing writes to `content_sparks`: `server/routes.ts` registers each spark POST endpoint **twice** (e.g. `/api/posts/:id/spark` at ~L4369 and again at ~L8884). Express keeps the first registration, which is the legacy one. The newer handlers that would have written to `content_sparks` are dead code.
+
+The cleanest, lowest-risk fix is to make the leaderboard read from the same legacy tables the admin dashboard already trusts, so the public page reflects real activity immediately and stays consistent with the admin numbers going forward.
+
+## Done looks like
+- `/sparks/leaderboard` shows the same activity that's visible in the admin Sparks dashboard for both "This Month" and "All Time" periods. With the current data, Demonguy2177 appears as the top creator, the Minecraft post appears under Top Posts, and "Terms of Service" / "Privacy Policy" appear under Top Content.
+- "This Month" filters to sparks from the last 30 days; "All Time" includes everything.
+- Empty sections continue to show the existing "No X sparked yet, be the first!" copy when there's truly no data for the chosen period.
+- The leaderboard's response shape (the `LeaderboardData` type the client expects: `topCreators`, `topPosts`, `topContent` with the same fields) is unchanged, so no client code needs to change.
+- Admin dashboard and public leaderboard never disagree on totals or rankings again.
+
+## Out of scope
+- Removing the duplicate `/api/posts/:id/spark`, `/api/articles/:slug/spark`, `/api/gallery/:id/spark`, `/api/wiki/:slug/spark` route registrations and the dead `content_sparks` write path. That's worth doing as a separate cleanup task to retire the unused unified table, but is not required to fix the leaderboard.
+- Backfilling or dropping the `content_sparks` table.
+- Changing how the spark button works on the client.
+- Changing the `LeaderboardData` shape or the leaderboard UI.
+
+## Steps
+1. In `server/storage.ts`, rewrite `getSparksLeaderboard(period)` so it builds its three result sets from `post_sparks`, `article_sparks`, and `gallery_sparks` instead of `content_sparks`.
+   - **Top Creators**: aggregate sparks received per author across all three tables. Posts authored via `posts.authorId`, articles via the latest approved `revisions.authorName` → `users.username` (matching the admin overview's existing pattern in the same file), gallery sparks have no author (skip them for creator credit, same as today). Sum across the three sources, join `users` for `username`/`displayName`/`avatarUrl`, sort desc by total, limit 10. Apply the period filter to each table's `created_at`.
+   - **Top Posts**: count rows per `post_id` in `post_sparks` (filtered by period), join `posts` + `users` for `content`, `authorUsername`, `authorDisplayName`, sort desc, limit 10.
+   - **Top Content**: count rows per `article_id` in `article_sparks` and per `image_id` in `gallery_sparks` (filtered by period), join `articles` / `gallery_images` for titles, merge into one list with `contentType`, sort desc by count, limit 10. Match the existing return type.
+2. Use the existing `getSparksOverview` / admin overview implementation in `server/storage.ts` (same file) as a reference for join shapes and the article-author-via-revisions pattern.
+3. Manually verify with the live data: visit `/sparks/leaderboard` while logged in, confirm both "This Month" and "All Time" populate with the same items shown in the admin dashboard, and confirm empty states still trigger when expected (e.g. switch to a period with no activity).
+
+## Relevant files
+- `server/storage.ts` — `getSparksLeaderboard` ~L3461-3567 (rewrite); reference admin overview that already uses the legacy tables ~L3320-3400.
+- `server/routes.ts` — leaderboard route ~L8972 (no change expected); duplicate spark endpoints noted at L4369/L8884, L4383/L8911, L4397/L8950 (out of scope, mention in PR description).
+- `client/src/pages/sparks-leaderboard.tsx` — consumer; no change needed if response shape is preserved.
+
+
+---
+

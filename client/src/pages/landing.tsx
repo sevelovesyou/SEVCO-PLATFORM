@@ -30,6 +30,7 @@ import { UserSnapshotPanel } from "@/components/user-snapshot-panel";
 import { formatDistanceToNow } from "date-fns";
 import planetIconWhite from "@assets/SEVCO_App_Icon_-_Artboard_71_1774998179682.png";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
+import { SevcoLogo } from "@/components/sevco-logo";
 
 function getLucideIcon(name: string | undefined): LucideIcons.LucideIcon | null {
   if (!name) return null;
@@ -486,12 +487,10 @@ export default function Landing() {
             initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 mb-8"
+            className="flex items-center justify-center mb-8"
+            data-testid="img-hero-planet"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-            <span className="text-xs font-medium text-white/65 tracking-wide">
-              Independent creator platform
-            </span>
+            <SevcoLogo size={44} invert="none" alt="SEVCO" />
           </motion.div>
 
           <motion.h1
@@ -544,21 +543,6 @@ export default function Landing() {
             </Link>
           </motion.div>
 
-          {/* Quiet capability row — restrained breadth signal, no marketing copy. */}
-          <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.7, delay: 0.45 }}
-            className="mt-20 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-white/35 text-[11px] uppercase tracking-[0.18em] font-medium"
-            aria-label="Platform capabilities"
-          >
-            <span className="flex items-center gap-1.5"><Music className="h-3.5 w-3.5" />Music</span>
-            <span className="flex items-center gap-1.5"><ShoppingBag className="h-3.5 w-3.5" />Store</span>
-            <span className="flex items-center gap-1.5"><Folder className="h-3.5 w-3.5" />Projects</span>
-            <span className="flex items-center gap-1.5"><Briefcase className="h-3.5 w-3.5" />Services</span>
-            <span className="flex items-center gap-1.5"><BookOpen className="h-3.5 w-3.5" />Wiki</span>
-            <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5" />Community</span>
-          </motion.div>
         </div>
       </section>
 

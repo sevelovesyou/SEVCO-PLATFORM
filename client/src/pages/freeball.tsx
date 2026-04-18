@@ -1362,7 +1362,7 @@ function Star({ def }: { def: StarDef }) {
     if (meshRef.current) meshRef.current.rotation.y += 0.0008;
   });
   return (
-    <group position={def.position} data-testid="freeball-star">
+    <group position={def.position} name="freeball-star">
       <mesh ref={meshRef}>
         <sphereGeometry args={[def.worldRadius, 48, 48]} />
         <shaderMaterial
@@ -1410,7 +1410,7 @@ function GasGiant({ def }: { def: GasGiantDef }) {
     if (meshRef.current) meshRef.current.rotation.y += dt * 0.04;
   });
   return (
-    <group position={def.position} data-testid={`freeball-gas-giant-${def.id}`}>
+    <group position={def.position} name={`freeball-gas-giant-${def.id}`}>
       <mesh ref={meshRef}>
         <sphereGeometry args={[def.worldRadius, 48, 48]} />
         <meshStandardMaterial map={tex} roughness={0.85} emissive={0x553311} emissiveIntensity={0.06} />
@@ -1443,7 +1443,7 @@ function Moon({ def, system }: { def: MoonDef; system: SolarSystem }) {
   });
   if (!parentValid) return null;
   return (
-    <group ref={groupRef} data-testid={`freeball-moon-${def.id}`}>
+    <group ref={groupRef} name={`freeball-moon-${def.id}`}>
       <mesh>
         <sphereGeometry args={[def.worldRadius, 32, 32]} />
         <meshStandardMaterial map={tex} roughness={1} />
@@ -1481,7 +1481,7 @@ function AsteroidField({ def }: { def: AsteroidBeltDef }) {
     });
   });
   return (
-    <group ref={groupRef} data-testid="freeball-asteroid-belt">
+    <group ref={groupRef} name="freeball-asteroid-belt">
       {asteroids.map((a, i) => (
         <mesh key={i} position={a.pos}>
           <icosahedronGeometry args={[a.r, 0]} />

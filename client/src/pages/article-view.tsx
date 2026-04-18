@@ -25,6 +25,7 @@ import { RevisionTimeline } from "@/components/revision-timeline";
 import { AttachNotePanel } from "@/components/attach-note-panel";
 import { StaffNotes } from "@/components/staff-notes";
 import { useToast } from "@/hooks/use-toast";
+import { playSparkSound } from "@/lib/spark-sound";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Edit,
@@ -270,7 +271,10 @@ export default function ArticleView() {
 
   const sparkMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/articles/${slug}/spark`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/articles", slug] }),
+    onSuccess: () => {
+      playSparkSound();
+      queryClient.invalidateQueries({ queryKey: ["/api/articles", slug] });
+    },
     onError: (err: any) => {
       if (err?.status === 429 || err?.message?.includes("429")) {
         toast({ title: "Daily limit reached", description: "You can give 10 sparks per day." });

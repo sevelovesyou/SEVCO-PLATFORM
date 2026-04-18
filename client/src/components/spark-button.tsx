@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Zap } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { playSparkSound } from "@/lib/spark-sound";
 import {
   Tooltip,
   TooltipContent,
@@ -45,6 +47,13 @@ interface SparkButtonProps {
   className?: string;
 }
 
+function prefersReducedMotion(): boolean {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+const PARTICLE_COUNT = 6;
+
 export function SparkButton({
   entityType,
   entityId,
@@ -57,6 +66,13 @@ export function SparkButton({
   const { user } = useAuth();
   const { toast } = useToast();
   const [tooltipOpen, setTooltipOpen] = useState(false);
+  const [burstId, setBurstId] = useState(0);
+  const [displayCount, setDisplayCount] = useState(sparkCount);
+  const reducedMotionRef = useRef(prefersReducedMotion());
+
+  useEffect(() => {
+    setDisplayCount(sparkCount);
+  }, [sparkCount]);
 
   const { data: dailyQuota } = useQuery<{ given: number; limit: number; remaining: number }>({
     queryKey: ["/api/sparks/daily-quota"],
@@ -70,6 +86,11 @@ export function SparkButton({
     mutationFn: (action: "spark" | "unspark") =>
       apiRequest(action === "spark" ? "POST" : "DELETE", ENDPOINTS[entityType](entityId)),
     onSuccess: () => {
+      playSparkSound();
+      setDisplayCount((c) => c + 1);
+      if (!reducedMotionRef.current) {
+        setBurstId((b) => b + 1);
+      }
       INVALIDATE_KEYS[entityType].forEach((key) =>
         queryClient.invalidateQueries({ queryKey: [key] })
       );
@@ -112,6 +133,8 @@ export function SparkButton({
   const sizing =
     size === "md" ? "h-9 px-2.5 text-sm gap-1.5" : "h-7 px-1.5 text-xs gap-1";
   const iconSize = size === "md" ? "h-4 w-4" : "h-3 w-3";
+  const iconBoxSize = size === "md" ? "h-4 w-4" : "h-3 w-3";
+  const burstActive = burstId > 0 && !reducedMotionRef.current;
 
   return (
     <TooltipProvider>
@@ -130,8 +153,70 @@ export function SparkButton({
             disabled={disabled || mutation.isPending}
             data-testid={`button-${entityType}-spark-${entityId}`}
           >
-            <Zap className={`${iconSize} ${sparkedByCurrentUser ? "fill-amber-500" : ""}`} />
-            <span data-testid={`text-${entityType}-spark-count-${entityId}`}>{sparkCount}</span>
+            <span className={`relative inline-flex items-center justify-center ${iconBoxSize}`}>
+              <motion.span
+                key={burstId}
+                initial={{ scale: 1 }}
+                animate={burstActive ? { scale: [1, 1.45, 1] } : { scale: 1 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="inline-flex"
+              >
+                <Zap className={`${iconSize} ${sparkedByCurrentUser ? "fill-amber-500" : ""}`} />
+              </motion.span>
+              <AnimatePresence>
+                {burstActive && (
+                  <motion.span
+                    key={`burst-${burstId}`}
+                    className="pointer-events-none absolute inset-0 flex items-center justify-center"
+                    initial={{ opacity: 1 }}
+                    animate={{ opacity: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                    onAnimationComplete={() => setBurstId(0)}
+                    aria-hidden="true"
+                  >
+                    <motion.span
+                      className="absolute rounded-full border-2 border-sky-400"
+                      initial={{ width: 6, height: 6, opacity: 0.9 }}
+                      animate={{ width: 28, height: 28, opacity: 0 }}
+                      transition={{ duration: 0.55, ease: "easeOut" }}
+                    />
+                    {Array.from({ length: PARTICLE_COUNT }).map((_, i) => {
+                      const angle = (i / PARTICLE_COUNT) * Math.PI * 2;
+                      const dist = size === "md" ? 16 : 12;
+                      const x = Math.cos(angle) * dist;
+                      const y = Math.sin(angle) * dist;
+                      return (
+                        <motion.span
+                          key={i}
+                          className="absolute h-1 w-1 rounded-full bg-sky-400"
+                          initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+                          animate={{ x, y, opacity: 0, scale: 0.4 }}
+                          transition={{ duration: 0.55, ease: "easeOut" }}
+                        />
+                      );
+                    })}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </span>
+            <span
+              className="relative inline-flex overflow-hidden"
+              data-testid={`text-${entityType}-spark-count-${entityId}`}
+            >
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.span
+                  key={displayCount}
+                  initial={reducedMotionRef.current ? { y: 0, opacity: 1 } : { y: 8, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={reducedMotionRef.current ? { y: 0, opacity: 0 } : { y: -8, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className="inline-block tabular-nums"
+                >
+                  {displayCount}
+                </motion.span>
+              </AnimatePresence>
+            </span>
           </button>
         </TooltipTrigger>
         <TooltipContent side="top">

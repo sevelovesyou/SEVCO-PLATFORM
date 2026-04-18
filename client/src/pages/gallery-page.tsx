@@ -19,6 +19,7 @@ import { Copy, ImageOff, ExternalLink, X, Zap } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import type { GalleryImage } from "@shared/schema";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
+import { playSparkSound } from "@/lib/spark-sound";
 
 const CATEGORY_LABELS: Record<string, string> = {
   profile: "Profile Pics",
@@ -82,7 +83,10 @@ export default function GalleryPage() {
 
   const sparkMutation = useMutation({
     mutationFn: (imageId: number) => apiRequest("POST", `/api/gallery/${imageId}/spark`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/gallery"] }),
+    onSuccess: () => {
+      playSparkSound();
+      queryClient.invalidateQueries({ queryKey: ["/api/gallery"] });
+    },
     onError: (err: any) => {
       if (err?.status === 429 || err?.message?.includes("429")) {
         toast({ title: "Daily limit reached", description: "You can give 10 sparks per day." });

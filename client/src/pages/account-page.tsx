@@ -24,6 +24,7 @@ import { User, Loader2, ExternalLink, Music, ArrowRight, Trash2, Upload, Pencil 
 import { SiX } from "react-icons/si";
 import { Link } from "wouter";
 import { useSounds } from "@/hooks/use-sounds";
+import { isSparkSoundMuted, setSparkSoundMuted } from "@/lib/spark-sound";
 import { useVoice, formatKey } from "@/contexts/voice-context";
 import type { Artist, MusicTrack } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
@@ -577,6 +578,7 @@ export default function AccountPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { soundEnabled, toggleSound } = useSounds();
+  const [sparkSoundOn, setSparkSoundOn] = useState(() => !isSparkSoundMuted());
   const [localPrefs, setLocalPref] = useLocalPrefs();
   const [selectedArtistId, setSelectedArtistId] = useState<number | null>(user?.linkedArtistId ?? null);
 
@@ -912,9 +914,21 @@ export default function AccountPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Notification Settings</CardTitle>
+          <CardTitle className="text-base">Preferences</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Play sound when sparking</p>
+              <p className="text-xs text-muted-foreground">A soft chime plays when you spark a post, track, product, or service.</p>
+            </div>
+            <Switch
+              checked={sparkSoundOn}
+              onCheckedChange={(v) => { setSparkSoundOn(v); setSparkSoundMuted(!v); }}
+              data-testid="toggle-spark-sound"
+            />
+          </div>
+          <Separator />
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Sound Notifications</p>

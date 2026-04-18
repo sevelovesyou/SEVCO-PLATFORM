@@ -1254,6 +1254,16 @@ function ProfileMusicTab({ username, isOwnProfile, accentColor, bgColor, tracks,
         <span className="text-xs shrink-0 tabular-nums" style={{ color: mutedColor }} data-testid={`text-track-duration-${track.id}`}>
           {formatDuration(track.duration)}
         </span>
+        <span className="shrink-0" onClick={(e) => e.stopPropagation()}>
+          <SparkButton
+            entityType="track"
+            entityId={track.id}
+            sparkCount={(track as any).sparkCount ?? 0}
+            sparkedByCurrentUser={(track as any).sparkedByCurrentUser ?? false}
+            isOwner={isOwnProfile}
+            size="sm"
+          />
+        </span>
         {isOwnProfile && (
           <Button
             variant="ghost"

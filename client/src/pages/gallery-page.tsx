@@ -15,7 +15,6 @@ import { Link } from "wouter";
 import { articleUrl } from "@/lib/wiki-urls";
 import { Copy, ImageOff, ExternalLink, X, Download } from "lucide-react";
 import { SparkIcon } from "@/components/spark-icon";
-import { SparkButton } from "@/components/spark-button";
 import { EmptyState } from "@/components/empty-state";
 import type { GalleryImage } from "@shared/schema";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
@@ -217,7 +216,6 @@ export default function GalleryPage() {
       {!isLoading && images && images.length > 0 && (
         <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 md:gap-5 space-y-4" data-testid="gallery-grid">
           {images.map((image) => {
-            const isOwner = user?.id === image.uploadedBy;
             const isRevealed = isTouch && revealedCardId === image.id;
             return (
               <div
@@ -296,17 +294,8 @@ export default function GalleryPage() {
                     </Badge>
                   </div>
                   <div className="flex gap-1.5 items-center">
-                    <SparkButton
-                      entityType="gallery"
-                      entityId={image.id}
-                      sparkCount={image.sparkCount ?? 0}
-                      sparkedByCurrentUser={!!image.isSparkedByMe}
-                      isOwner={isOwner}
-                      size="sm"
-                      className="!h-7 !w-7 !px-0 justify-center bg-black/40 !text-white hover:!text-amber-400 [&>span:last-child]:hidden"
-                    />
                     <Button
-                      size="sm"
+                      size="icon"
                       variant="secondary"
                       className="h-7 w-7 p-0 shrink-0"
                       onClick={(e) => { e.stopPropagation(); downloadImage(image.imageUrl, image.title); }}

@@ -29804,3 +29804,50 @@ The Sparks icon has drifted again — different surfaces use different visuals (
 
 ---
 
+## Task — spark-button-always-show-for-owners
+> Merged: 2026-04-18
+
+# Always Show Spark Count + Button (Even on Own Content)
+
+## What & Why
+Across the platform, the Spark button is hidden when the viewer is the content's author/uploader: SparkButton returns `null` for owners unless `showCountWhenOwner` is opted in, the article view has its own `user?.id !== article.authorId` wrapper, and the gallery hides the spark button for the image's uploader. This makes the UI inconsistent — a card looks different to the author than to everyone else, and creators can't see how their content is being received at a glance the same way visitors do. The user wants the Spark button + count to always render the same way for everyone, with the owner gracefully prevented from sparking their own content (a friendly disabled state with a tooltip).
+
+## Done looks like
+- Every Sparks affordance — post cards, article cards/lists, article view, profile Top Posts, services, store, projects, music tracks, gallery cards, gallery hover overlay — shows the Spark icon + count to **everyone**, including the content's author/uploader.
+- For the content's owner, the Spark button is visibly **disabled** (subtle muted styling, `cursor-not-allowed`) and shows a tooltip on hover/focus that reads "You can't spark your own content".
+- Clicking the disabled button does nothing (no mutation, no toast, no chime, no animation, no navigation).
+- For everyone else, behavior is unchanged: the button works exactly as today, with the chime, blue burst, count tween, daily-limit handling, already-sparked handling, and unauthenticated handling all intact.
+- The visual styling of the count + icon is the same for owner and non-owner so the layout doesn't shift between viewers — only color/opacity/cursor differ.
+- The change applies platform-wide via the shared `SparkButton`. Per-call-site wrappers that hide the button for owners are removed (article view), and the gallery's spark button reappears for owners on their own images (in disabled form).
+
+## Out of scope
+- Letting owners "see who sparked" their content (separate idea).
+- Changing the visual style or copy of the daily-limit / already-sparked tooltips.
+- Changing the SparkButton component's existing `isOwner` prop name or call-site signatures (just behavior).
+- Touching the article view's bespoke spark UI (already replaced with SparkButton in a prior task).
+
+## Steps
+1. **Flip SparkButton's owner default to "always show, but disabled".** In `client/src/components/spark-button.tsx`, replace the early `if (isOwner) { if (!showCountWhenOwner) return null; ...}` block with a path that always renders the same button structure as the non-owner path, except:
+   - `disabled={true}` on the button
+   - Disabled className: `text-muted-foreground opacity-60 cursor-not-allowed` (matches the daily-limit visual treatment).
+   - The Tooltip content reads: "You can't spark your own content".
+   - The click handler short-circuits for owners (no mutation, no sound, no burst).
+   The existing `showCountWhenOwner` prop becomes a no-op for backward compat (don't break call-sites that pass it). Add a brief comment noting the prop is deprecated.
+
+2. **Remove the article-view owner gate.** In `client/src/pages/article-view.tsx` around line 415, remove the `user?.id !== article.authorId &&` wrapper around `<SparkButton ... />`. SparkButton now handles the owner case internally — pass `isOwner={user?.id === article.authorId}`.
+
+3. **Restore the gallery spark button for owners.** In `client/src/pages/gallery-page.tsx`, the hover-overlay action row currently renders the Spark button only when `user?.id !== image.uploadedBy`. Remove that gate so the Spark button always renders in the action row alongside Download / Copy Link / Open Full Size, passing `isOwner={user?.id === image.uploadedBy}` so SparkButton renders the disabled state for the uploader. The existing always-on bottom-left spark count badge can stay; it's redundant on the owner case but matches the "consistent layout for everyone" goal.
+
+4. **Audit other call sites for owner gates.** Search the codebase for any remaining wrappers of the form `user?.id !== entity.authorId/uploadedBy/userId && <SparkButton .../>` and remove them — pass `isOwner` through instead. (Article view is currently the only one outstanding per the latest grep, but check pages added since: feed-page, post-card, news cards, freeball cards, etc. that may render sparks via the shared component.)
+
+5. **Visual sweep.** Restart the dev server and verify, while signed in as a content owner: posts you authored, articles you wrote, music tracks you uploaded, products you listed, projects you posted, services you offer, gallery images you uploaded — all show the Spark button + count, all are disabled, all show the "You can't spark your own content" tooltip on hover. Signed in as a non-owner, every one of those still sparks normally with the chime/burst/count tween.
+
+## Relevant files
+- `client/src/components/spark-button.tsx` (lines ~122-136)
+- `client/src/pages/article-view.tsx` (~line 415)
+- `client/src/pages/gallery-page.tsx` (overlay action row)
+- Any other page rendering SparkButton inside a `user?.id !== ...` ternary (sweep)
+
+
+---
+

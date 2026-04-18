@@ -462,10 +462,9 @@ export default function Landing() {
         }}
       />
 
-      {/* ── HERO — GLSL shader background ── */}
+      {/* ── HERO ── */}
       <section
-        className="relative overflow-hidden bg-[#07070f] text-white flex items-center"
-        style={{ height: "100dvh", minHeight: "600px" }}
+        className="relative overflow-hidden bg-[#0a0a12] text-white"
         data-testid="section-hero"
         onPointerMove={(e) => {
           const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -475,291 +474,114 @@ export default function Landing() {
           ];
         }}
       >
-        {/* Static gradient (or hero image) is rendered first so it's always
-            visible as the base layer. The Shader Studio assignment for this
-            page is layered on top via <PageShader /> below; when no preset is
-            assigned, when the user prefers reduced motion, or when the preset
-            opts into mobileFallback on small screens, PageShader simply
-            renders nothing and the gradient/image remains visible.
-
-            The legacy ShaderBackground / hero.shader.* settings are no longer
-            consulted at runtime — assignment via the Shader Studio is now
-            the single source of truth for hero visuals. */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={heroBgUrl ? {
-            backgroundImage: `url(${resolveImageUrl(heroBgUrl)})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          } : {
-            background: "radial-gradient(ellipse 80% 60% at 20% 30%, rgba(190,0,7,0.32) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 70%, rgba(28,84,224,0.28) 0%, transparent 55%), linear-gradient(160deg, #0b0830 0%, #07071a 50%, #100510 100%)",
-          }}
-          aria-hidden="true"
-        />
-        <PageShader pageKey="landing" className="absolute inset-0 pointer-events-none" />
-
-        {/* Directional overlay — transparent center-top, stronger at edges/bottom */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: heroBgUrl
-              ? `rgba(7,7,15,${heroOverlayOpacity})`
-              : `rgba(7,7,15,${shaderOverlayStrength})`,
-          }}
-          aria-hidden="true"
-        />
-
-        {/* Subtle dot-grid texture */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-            maskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%)",
-          }}
-          aria-hidden="true"
-        />
-
-        {/* Content — fades + rises gently on scroll */}
-        <div
-          className="relative z-10 max-w-6xl mx-auto px-6 py-24 md:py-36 w-full"
-          style={{
-            opacity: Math.max(0, 1 - heroScrollY / 380),
-            transform: `translateY(${heroScrollY * 0.12}px)`,
-            willChange: "opacity, transform",
-          }}
-        >
-          {(() => {
-            // Resolve which CTA is dominant. Default = button1 = primary.
-            const button1IsPrimary = heroPrimarySlot !== "button2";
-            const intensityMul =
-              heroMotionIntensity === "rich" ? 1.3
-              : heroMotionIntensity === "subtle" ? 0.55
-              : 1;
-            // motionOn = master switch: respects user setting + OS reduced-motion.
-            const motionOn = heroMotionEnabled && !prefersReducedMotion;
-            const wordRiseY = 24 * intensityMul;
-            const wordStagger = 0.07;
-
-            const renderHeadlineWord = (word: string, i: number, isAccented: boolean) => (
-              <motion.span
-                key={i}
-                className="inline-block mr-[0.25em]"
-                initial={motionOn ? { opacity: 0, y: wordRiseY } : false}
-                animate={motionOn ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
-                transition={motionOn ? { delay: i * wordStagger, duration: 0.55, ease: [0.22, 1, 0.36, 1] } : { duration: 0 }}
-                style={isAccented ? {
-                  background: "linear-gradient(135deg, #ff3333 0%, #cc0000 50%, #ff6666 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                } : {
-                  color: "rgba(255,255,255,0.92)",
-                }}
-              >
-                {word}
-              </motion.span>
-            );
-
-            const headlineWords = heroHeadline
-              ? heroHeadline.split(" ").map((word, i) => {
-                  const isAccented = word.startsWith("*") && word.endsWith("*") && word.length > 2;
-                  return renderHeadlineWord(isAccented ? word.slice(1, -1) : word, i, isAccented);
-                })
-              : ["A", "Creative", "Platform"].map((word, i) => renderHeadlineWord(word, i, i === 0));
-
-            // Trailing-stagger delays so subhead + CTAs come in after the headline.
-            const subheadDelay = motionOn ? Math.max(0.15, headlineWords.length * wordStagger) : 0;
-            const ctaDelay = motionOn ? subheadDelay + 0.18 : 0;
-            const previewDelay = motionOn ? subheadDelay + 0.32 : 0;
-
-            return (
-          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
-            {/* Left — headline + CTAs */}
-            <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left gap-6">
-              <motion.div
-                className="overflow-visible p-1 shrink-0"
-                initial={motionOn ? { opacity: 0, scale: 0.85 } : false}
-                animate={motionOn ? { opacity: 1, scale: 1 } : { opacity: 1, scale: 1 }}
-                transition={motionOn ? { duration: 0.7, ease: [0.22, 1, 0.36, 1] } : { duration: 0 }}
-              >
-                <img
-                  src={resolveImageUrl(settings["hero.logoUrl"] || settings["platform.logoUrl"]) || planetIconWhite}
-                  alt="SEVCO"
-                  className="h-20 w-20 md:h-24 md:w-24 object-contain"
-                  data-testid="img-planet-hero"
-                />
-              </motion.div>
-
-              <div>
-                <h1
-                  className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-extrabold mb-4 leading-[1.05]"
-                  style={{
-                    letterSpacing: "-0.03em",
-                    textShadow: "0 0 40px rgba(190,0,7,0.35), 0 2px 24px rgba(0,0,0,0.6)",
-                  }}
-                >
-                  {headlineWords}
-                </h1>
-                <motion.p
-                  className="text-white/80 text-base md:text-lg max-w-lg leading-relaxed"
-                  initial={motionOn ? { opacity: 0, y: 12 } : false}
-                  animate={motionOn ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
-                  transition={motionOn ? { delay: subheadDelay, duration: 0.55, ease: "easeOut" } : { duration: 0 }}
-                >
-                  {heroText}
-                </motion.p>
-              </div>
-
-              <motion.div
-                className="flex flex-col sm:flex-row items-center gap-3"
-                initial={motionOn ? { opacity: 0, y: 16 } : false}
-                animate={motionOn ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
-                transition={motionOn ? { delay: ctaDelay, duration: 0.5, ease: "easeOut" } : { duration: 0 }}
-              >
-                {/* Button 1 */}
-                <Link href={btn1Url}>
-                  <Button
-                    size="lg"
-                    variant={button1IsPrimary ? "destructive" : "outline"}
-                    className={
-                      button1IsPrimary
-                        ? (btn1Color
-                            ? "hover:opacity-90 text-white font-medium gap-2"
-                            : "font-medium gap-2 bg-red-600 hover:bg-red-500 text-white border-0 shadow-md shadow-red-900/20")
-                        : "text-white/85 hover:text-white hover:bg-white/[0.06] border-white/15 font-medium gap-2"
-                    }
-                    style={
-                      button1IsPrimary && btn1Color
-                        ? { backgroundColor: btn1Color, borderColor: btn1Color, color: "#fff" }
-                        : (!button1IsPrimary && btn1Color
-                            ? { backgroundColor: btn1Color, borderColor: btn1Color, color: "#fff" }
-                            : undefined)
-                    }
-                    data-testid="button-hero-primary"
-                    onClick={button1IsPrimary ? () => trackCtaClick("hero") : undefined}
-                  >
-                    <Btn1Icon className="h-4 w-4" />
-                    {btn1Label}
-                  </Button>
-                </Link>
-                {/* Button 2 */}
-                <Link href={btn2Url}>
-                  <Button
-                    size="lg"
-                    variant={button1IsPrimary ? "outline" : "destructive"}
-                    className={
-                      button1IsPrimary
-                        ? "text-white/85 hover:text-white hover:bg-white/[0.06] border-white/15 font-medium gap-2"
-                        : (btn2Color
-                            ? "hover:opacity-90 text-white font-medium gap-2"
-                            : "font-medium gap-2 bg-red-600 hover:bg-red-500 text-white border-0 shadow-md shadow-red-900/20")
-                    }
-                    style={btn2Color ? { backgroundColor: btn2Color, borderColor: btn2Color, color: "#fff" } : undefined}
-                    data-testid="button-hero-secondary"
-                    onClick={!button1IsPrimary ? () => trackCtaClick("hero") : undefined}
-                  >
-                    <Btn2Icon className="h-4 w-4" />
-                    {btn2Label}
-                  </Button>
-                </Link>
-              </motion.div>
-
-            </div>
-
-            {/* Right — floating frosted-glass preview cards (with subtle scroll parallax) */}
-            <motion.div
-              className="hidden lg:flex flex-col gap-3 shrink-0 w-72"
-              initial={motionOn ? { opacity: 0, x: 30 } : false}
-              animate={motionOn ? { opacity: 1, x: 0 } : { opacity: 1, x: 0 }}
-              transition={motionOn ? { delay: previewDelay, duration: 0.7, ease: [0.22, 1, 0.36, 1] } : { duration: 0 }}
-              style={motionOn ? { transform: `translateY(${heroScrollY * -0.08 * intensityMul}px)` } : undefined}
-            >
-              {/* Tilted frosted card */}
-              <div
-                className="rounded-2xl border border-white/10 p-5 motion-safe:animate-[float_6s_ease-in-out_infinite]"
-                style={{
-                  background: "rgba(255,255,255,0.04)",
-                  backdropFilter: "blur(20px)",
-                  WebkitBackdropFilter: "blur(20px)",
-                  transform: "rotate(-2deg)",
-                  boxShadow: "0 24px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06)",
-                }}
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-10 w-10 rounded-xl bg-red-600/20 flex items-center justify-center">
-                    <ShoppingBag className="h-5 w-5 text-red-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-white">Store</p>
-                    <p className="text-[11px] text-white/40">Latest drop available</p>
-                  </div>
-                  <Badge className="ml-auto bg-red-600/20 text-red-300 border-red-500/20 text-[10px]">New</Badge>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {Array.from({ length: 3 }).map((_, i) => {
-                    const p = latestProducts[i];
-                    const imgSrc = p ? resolveImageUrl(p.imageUrls?.[0] ?? p.imageUrl ?? null) : null;
-                    return (
-                      <div key={i} className="aspect-square rounded-lg bg-white/[0.04] border border-white/[0.07] overflow-hidden flex items-center justify-center">
-                        {imgSrc ? (
-                          <img src={imgSrc} alt={p.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <ShoppingBag className="h-5 w-5 text-white/30" />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div
-                className="rounded-2xl border border-white/10 p-4 motion-safe:animate-[float_6s_ease-in-out_infinite_1.5s]"
-                style={{
-                  background: "rgba(255,255,255,0.03)",
-                  backdropFilter: "blur(20px)",
-                  WebkitBackdropFilter: "blur(20px)",
-                  transform: "rotate(1.5deg)",
-                  boxShadow: "0 16px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05)",
-                }}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="h-7 w-7 rounded-lg bg-blue-600/20 flex items-center justify-center">
-                    <Music className="h-3.5 w-3.5 text-blue-400" />
-                  </div>
-                  <p className="text-xs font-semibold text-white">SEVCO RECORDS</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-green-400 motion-safe:animate-pulse" />
-                  <p className="text-[11px] text-white/50">Streaming now</p>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-            );
-          })()}
-        </div>
-
-        {/* Scroll cue — gentle bounce inviting the visitor to keep going. */}
-        {heroScrollCueVisible && heroMotionEnabled && !prefersReducedMotion && heroScrollY < 60 && (
-          <motion.div
-            className="absolute bottom-6 left-0 right-0 z-10 flex flex-col items-center gap-1 pointer-events-none"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1, y: [0, 6, 0] }}
-            transition={{
-              opacity: { delay: 1.2, duration: 0.8 },
-              y: { delay: 1.2, duration: 1.8, repeat: Infinity, ease: "easeInOut" },
+        {/* Single subtle radial accent — no shader, no dot grid, no parallax cards. */}
+        {heroBgUrl ? (
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage: `url(${resolveImageUrl(heroBgUrl)})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              opacity: 0.55,
             }}
             aria-hidden="true"
-            data-testid="hero-scroll-cue"
-          >
-            <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">Scroll</span>
-            <ChevronRight className="h-3.5 w-3.5 text-white/40 rotate-90" />
-          </motion.div>
+          />
+        ) : (
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse 70% 55% at 50% 0%, rgba(190,0,7,0.18) 0%, transparent 65%), radial-gradient(ellipse 50% 40% at 80% 90%, rgba(28,84,224,0.10) 0%, transparent 70%)",
+            }}
+            aria-hidden="true"
+          />
         )}
+        <PageShader pageKey="landing" className="absolute inset-0 pointer-events-none opacity-50" />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: `rgba(10,10,18,${heroBgUrl ? heroOverlayOpacity : 0.35})` }}
+          aria-hidden="true"
+        />
 
-        {/* Bottom fade to next section */}
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[#07070f] to-transparent pointer-events-none" />
+        <div className="relative z-10 max-w-3xl mx-auto px-6 pt-32 pb-24 md:pt-44 md:pb-32 text-center">
+          <motion.div
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 mb-8"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+            <span className="text-xs font-medium text-white/65 tracking-wide">
+              Independent creator platform
+            </span>
+          </motion.div>
+
+          <motion.h1
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.05] mb-6 text-white"
+            style={{ letterSpacing: "-0.025em" }}
+            data-testid="text-hero-headline"
+          >
+            {heroHeadline || "Music, merch, projects — all under one roof."}
+          </motion.h1>
+
+          <motion.p
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.18, ease: "easeOut" }}
+            className="text-base md:text-lg text-white/55 max-w-xl mx-auto leading-relaxed mb-10"
+            data-testid="text-hero-subhead"
+          >
+            {heroText}
+          </motion.p>
+
+          <motion.div
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.28, ease: "easeOut" }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-3"
+          >
+            <Link href={btn1Url}>
+              <Button
+                size="lg"
+                className="bg-red-600 hover:bg-red-500 text-white font-medium gap-2 shadow-sm shadow-red-900/20"
+                data-testid="button-hero-primary"
+                onClick={() => trackCtaClick("hero")}
+              >
+                {btn1Label}
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Link href={btn2Url}>
+              <Button
+                size="lg"
+                variant="ghost"
+                className="text-white/85 hover:text-white hover:bg-white/[0.05] font-medium gap-2"
+                data-testid="button-hero-secondary"
+              >
+                {btn2Label}
+              </Button>
+            </Link>
+          </motion.div>
+
+          {/* Quiet capability row — restrained breadth signal, no marketing copy. */}
+          <motion.div
+            initial={prefersReducedMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.7, delay: 0.45 }}
+            className="mt-20 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-white/35 text-[11px] uppercase tracking-[0.18em] font-medium"
+            aria-label="Platform capabilities"
+          >
+            <span className="flex items-center gap-1.5"><Music className="h-3.5 w-3.5" />Music</span>
+            <span className="flex items-center gap-1.5"><ShoppingBag className="h-3.5 w-3.5" />Store</span>
+            <span className="flex items-center gap-1.5"><Folder className="h-3.5 w-3.5" />Projects</span>
+            <span className="flex items-center gap-1.5"><Briefcase className="h-3.5 w-3.5" />Services</span>
+            <span className="flex items-center gap-1.5"><BookOpen className="h-3.5 w-3.5" />Wiki</span>
+            <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5" />Community</span>
+          </motion.div>
+        </div>
       </section>
 
       {/* ── USER SNAPSHOT — tasks, inbox, notes (logged-in only) ── */}

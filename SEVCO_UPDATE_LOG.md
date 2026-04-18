@@ -29926,3 +29926,55 @@ The platform currently caps each user at 10 Sparks given per day. Raise that cap
 
 ---
 
+## Task — unify-platform-changelog-source
+> Merged: 2026-04-18
+
+# Unify /platform and /changelog Data Source
+
+## What & Why
+`/changelog`, `/command/changelog`, and `/platform` currently render from **two different sources**:
+
+- `/changelog` and `/command/changelog` query `/api/changelog` (the `changelog` DB table).
+- `/platform` queries `/api/platform-history` (published wiki articles in the `sevco-platform` category).
+
+The post-merge auto-updater is supposed to write to **both** on every merge, but it has been silently failing on the wiki-article half. As of today, the `changelog` table has fresh entries for Tasks #491–#495, but the `articles` table only has the wiki article for #495 — Tasks #491, #492, #493, #494 never persisted as platform wiki articles. Result: `/platform` is missing 4 of the last 5 merges while `/changelog` shows them all.
+
+The fix has two parts: make `/platform` read from the same source of truth as `/changelog` so they can never drift again, and backfill the historical wiki articles for entries that do have a `wiki_slug` cross-link but no matching article (so the "Read more" deep links keep working).
+
+## Done looks like
+- `/platform` and `/changelog` always show the exact same set of entries in the same order, including the most recent merges (#491–#495 should all appear on `/platform`).
+- The "feature spotlight" / category filters / search on `/platform` continue to work, sourced from the unified data.
+- Where a changelog row has a `wiki_slug` pointing at a real wiki article, the entry on `/platform` still links through to that article. Where it doesn't, the entry renders without a deep link rather than 404'ing.
+- A one-time backfill creates stub published wiki articles in the `sevco-platform` category for every changelog row that has `wiki_slug LIKE 'platform-task-%'` but no matching article. The stub uses the changelog title/description/version as content so existing links resolve.
+- Future merges cannot create this drift: the post-merge `append-to-update-log.js` step that posts the platform wiki article must hard-fail (non-zero exit) if the wiki POST returns non-2xx, instead of `console.warn` + continue. The changelog entry should only be written **after** the wiki article succeeds, so the two stay in lockstep.
+
+## Out of scope
+- Redesigning the `/platform` or `/changelog` page UI.
+- Changing how `create-wiki-article.js` (the first post-merge step) appends to feature articles.
+- Changing the changelog admin form at `/command/changelog`.
+- Touching the `version` auto-increment scheme.
+
+## Steps
+1. **Switch `/api/platform-history` to source from the changelog table.** Replace the wiki-article query with a query over `changelog` rows, mapping each row to the existing `PlatformHistoryEntry` shape (`id`, `title`, `description`, `version`, `category`, `slug` ← `wiki_slug`, `createdAt`). Preserve the `?limit=` query param and the existing sort order (newest first). Keep the response shape identical so the frontend needs no changes.
+
+2. **Backfill missing platform wiki articles.** Add an idempotent startup migration (or one-off script invoked from `runStartupMigrations`) that finds every `changelog` row whose `wiki_slug` matches `platform-task-%` and has no corresponding `articles` row, and creates a published stub article in the `sevco-platform` category using the changelog `title`, `description`, and `version` as content. Skip rows that already have an article.
+
+3. **Make the post-merge updater fail loudly on drift.** In `scripts/append-to-update-log.js`, change the platform-wiki-article POST so a non-2xx response causes the script to `process.exit(1)` and the changelog entry is not written. This guarantees the two sources stay in sync going forward — if the wiki side breaks, the merge surfaces the failure instead of hiding it.
+
+4. **Verify end-to-end.** After the migration runs, confirm that `/platform` shows entries for Tasks #491, #492, #493, #494, #495 (and all earlier merges that had changelog rows but no article), that `/changelog` shows the same set, and that clicking through to a backfilled stub article loads without a 404.
+
+## Relevant files
+- `client/src/pages/platform-page.tsx:148-184`
+- `client/src/pages/command-changelog.tsx:74-122`
+- `client/src/pages/changelog-page.tsx:22-45`
+- `server/routes.ts:2884-2922`
+- `server/routes.ts:3380-3456`
+- `scripts/post-merge.sh`
+- `scripts/append-to-update-log.js:340-410`
+- `scripts/create-wiki-article.js`
+- `shared/schema.ts`
+- `server/storage.ts`
+
+
+---
+

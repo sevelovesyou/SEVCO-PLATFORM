@@ -1882,7 +1882,8 @@ export async function registerRoutes(
     if (!child) return res.status(404).json({ message: "Subcategory not found" });
     const catArticles = await storage.getArticlesByCategory(child.id);
     const subchildren = allCats.filter((c) => c.parentId === child.id);
-    res.json({ ...child, articles: catArticles.filter((a) => a.status !== "archived"), subcategories: subchildren });
+    const visible = catArticles.filter((a) => a.status !== "archived");
+    res.json({ ...child, articles: await attachArticleSparks(req, visible), subcategories: subchildren });
   });
 
   app.get("/api/categories/:slug", async (req, res) => {
@@ -1891,30 +1892,38 @@ export async function registerRoutes(
     const catArticles = await storage.getArticlesByCategory(cat.id);
     const allCats = await storage.getCategories();
     const subcategories = allCats.filter((c) => c.parentId === cat.id);
-    res.json({ ...cat, articles: catArticles.filter((a) => a.status !== "archived"), subcategories });
+    const visible = catArticles.filter((a) => a.status !== "archived");
+    res.json({ ...cat, articles: await attachArticleSparks(req, visible), subcategories });
   });
 
-  app.get("/api/articles", requireAuth, requireRole(...CAN_ACCESS_ARCHIVE), async (_req, res) => {
+  async function attachArticleSparks(req: any, articles: any[]): Promise<any[]> {
+    const ids = articles.map((a) => a.id);
+    const counts = await storage.getArticleSparkCounts(ids);
+    const mySet = req.isAuthenticated() ? await storage.getArticleSparkedByUser(ids, (req.user as any).id) : new Set<number>();
+    return articles.map((a) => ({ ...a, sparkCount: counts.get(a.id) ?? 0, sparkedByCurrentUser: mySet.has(a.id) }));
+  }
+
+  app.get("/api/articles", requireAuth, requireRole(...CAN_ACCESS_ARCHIVE), async (req, res) => {
     try {
       const all = await storage.getArticles();
-      res.json(all);
+      res.json(await attachArticleSparks(req, all));
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });
 
-  app.get("/api/articles/archived", requireAuth, requireRole(...CAN_ACCESS_ARCHIVE), async (_req, res) => {
+  app.get("/api/articles/archived", requireAuth, requireRole(...CAN_ACCESS_ARCHIVE), async (req, res) => {
     try {
       const all = await storage.getArticles();
-      res.json(all.filter((a) => a.status === "archived"));
+      res.json(await attachArticleSparks(req, all.filter((a) => a.status === "archived")));
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
   });
 
-  app.get("/api/articles/recent", async (_req, res) => {
+  app.get("/api/articles/recent", async (req, res) => {
     const arts = await storage.getArticles();
-    res.json(arts.filter((a) => a.status !== "archived"));
+    res.json(await attachArticleSparks(req, arts.filter((a) => a.status !== "archived")));
   });
 
   app.get("/api/articles/latest-update", async (_req, res) => {
@@ -2005,6 +2014,16 @@ export async function registerRoutes(
     const isStaff = !!userRole && (["admin", "executive", "staff"] as Role[]).includes(userRole);
 
     const results = await storage.searchAll(query, isStaff, limit);
+    if (results.wiki.length > 0) {
+      const ids = results.wiki.map((w) => w.id);
+      const counts = await storage.getArticleSparkCounts(ids);
+      const mySet = req.isAuthenticated() ? await storage.getArticleSparkedByUser(ids, (req.user as any).id) : new Set<number>();
+      results.wiki = results.wiki.map((w) => ({
+        ...w,
+        sparkCount: counts.get(w.id) ?? 0,
+        sparkedByCurrentUser: mySet.has(w.id),
+      }));
+    }
     res.json(results);
   });
 
@@ -2033,7 +2052,7 @@ export async function registerRoutes(
       arts = arts.filter((a: any) => a.status !== "archived");
     }
 
-    res.json(arts);
+    res.json(await attachArticleSparks(req, arts));
   });
 
   app.get("/api/articles/:slug", async (req: any, res) => {

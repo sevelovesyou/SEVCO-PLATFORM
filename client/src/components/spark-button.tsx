@@ -13,13 +13,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export type SparkEntityType = "track" | "product" | "project" | "service";
+export type SparkEntityType = "track" | "product" | "project" | "service" | "article";
 
-const ENDPOINTS: Record<SparkEntityType, (id: number) => string> = {
+const ENDPOINTS: Record<SparkEntityType, (id: number | string) => string> = {
   track: (id) => `/api/music/tracks/${id}/spark`,
   product: (id) => `/api/store/products/${id}/spark`,
   project: (id) => `/api/projects/${id}/spark`,
   service: (id) => `/api/services/${id}/spark`,
+  article: (id) => `/api/articles/${id}/spark`,
 };
 
 // Entity types that support unsparking (toggle off)
@@ -28,6 +29,7 @@ const SUPPORTS_UNSPARK: Record<SparkEntityType, boolean> = {
   product: false,
   project: false,
   service: false,
+  article: false,
 };
 
 const INVALIDATE_KEYS: Record<SparkEntityType, string[]> = {
@@ -35,14 +37,16 @@ const INVALIDATE_KEYS: Record<SparkEntityType, string[]> = {
   product: ["/api/store/products"],
   project: ["/api/projects"],
   service: ["/api/services"],
+  article: ["/api/articles", "/api/search"],
 };
 
 interface SparkButtonProps {
   entityType: SparkEntityType;
-  entityId: number;
+  entityId: number | string;
   sparkCount: number;
   sparkedByCurrentUser: boolean;
   isOwner?: boolean;
+  showCountWhenOwner?: boolean;
   size?: "sm" | "md";
   className?: string;
 }
@@ -60,6 +64,7 @@ export function SparkButton({
   sparkCount,
   sparkedByCurrentUser,
   isOwner = false,
+  showCountWhenOwner = false,
   size = "sm",
   className = "",
 }: SparkButtonProps) {
@@ -94,6 +99,9 @@ export function SparkButton({
       INVALIDATE_KEYS[entityType].forEach((key) =>
         queryClient.invalidateQueries({ queryKey: [key] })
       );
+      if (entityType === "article") {
+        queryClient.invalidateQueries({ queryKey: ["/api/articles", entityId] });
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/sparks/daily-quota"] });
       queryClient.invalidateQueries({ queryKey: ["/api/sparks/balance"] });
     },
@@ -111,7 +119,21 @@ export function SparkButton({
     },
   });
 
-  if (isOwner) return null;
+  if (isOwner) {
+    if (!showCountWhenOwner) return null;
+    const sizing =
+      size === "md" ? "h-9 px-2.5 text-sm gap-1.5" : "h-7 px-1.5 text-xs gap-1";
+    const iconSize = size === "md" ? "h-4 w-4" : "h-3 w-3";
+    return (
+      <span
+        className={`flex items-center text-muted-foreground ${sizing} ${className}`}
+        data-testid={`text-${entityType}-spark-count-${entityId}`}
+      >
+        <Zap className={iconSize} />
+        <span className="tabular-nums">{displayCount}</span>
+      </span>
+    );
+  }
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();

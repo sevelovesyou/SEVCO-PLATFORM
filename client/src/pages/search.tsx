@@ -18,6 +18,8 @@ import {
   X,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { SparkButton } from "@/components/spark-button";
+import { useAuth } from "@/hooks/use-auth";
 
 type XPost = {
   url: string;
@@ -38,6 +40,10 @@ type SearchResultItem = {
   description?: string | null;
   href: string;
   meta?: string | null;
+  slug?: string;
+  authorId?: string | null;
+  sparkCount?: number;
+  sparkedByCurrentUser?: boolean;
 };
 
 type SearchResults = {
@@ -66,6 +72,7 @@ function getQueryFromUrl(): string {
 
 export default function SearchPage() {
   const [location, navigate] = useLocation();
+  const { user } = useAuth();
   const [inputValue, setInputValue] = useState(getQueryFromUrl);
   const [query, setQuery] = useState(getQueryFromUrl);
 
@@ -220,6 +227,17 @@ export default function SearchPage() {
                               </div>
                               {item.meta && (
                                 <Badge variant="outline" className="text-[10px] shrink-0 capitalize">{item.meta}</Badge>
+                              )}
+                              {key === "wiki" && item.slug && (
+                                <SparkButton
+                                  entityType="article"
+                                  entityId={item.slug}
+                                  sparkCount={item.sparkCount ?? 0}
+                                  sparkedByCurrentUser={item.sparkedByCurrentUser ?? false}
+                                  isOwner={!!user && !!item.authorId && user.id === item.authorId}
+                                  showCountWhenOwner
+                                  size="sm"
+                                />
                               )}
                               <ArrowRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors shrink-0" />
                             </div>

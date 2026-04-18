@@ -24,9 +24,18 @@ import {
 } from "lucide-react";
 import type { Article, Category } from "@shared/schema";
 import { articleUrl } from "@/lib/wiki-urls";
+import { SparkButton } from "@/components/spark-button";
+import { useAuth } from "@/hooks/use-auth";
+
+type ArticleWithSparks = Article & {
+  category?: { id: number; name: string; slug: string } | null;
+  sparkCount?: number;
+  sparkedByCurrentUser?: boolean;
+};
 
 export default function Home() {
-  const { data: articles, isLoading: artLoading } = useQuery<(Article & { category?: { id: number; name: string; slug: string } | null })[]>({
+  const { user } = useAuth();
+  const { data: articles, isLoading: artLoading } = useQuery<ArticleWithSparks[]>({
     queryKey: ["/api/articles", "recent"],
   });
 
@@ -114,7 +123,18 @@ export default function Home() {
                   {tag}
                 </Badge>
               ))}
-              <ArrowRight className="h-3 w-3 ml-auto text-muted-foreground" />
+              <div className="ml-auto flex items-center gap-2">
+                <SparkButton
+                  entityType="article"
+                  entityId={featuredArticle.slug}
+                  sparkCount={featuredArticle.sparkCount ?? 0}
+                  sparkedByCurrentUser={featuredArticle.sparkedByCurrentUser ?? false}
+                  isOwner={!!user && user.id === featuredArticle.authorId}
+                  showCountWhenOwner
+                  size="sm"
+                />
+                <ArrowRight className="h-3 w-3 text-muted-foreground" />
+              </div>
             </div>
           </Card>
         </Link>
@@ -157,7 +177,18 @@ export default function Home() {
                             </p>
                           )}
                         </div>
-                        <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                        <div className="flex items-center gap-2 shrink-0">
+                          <SparkButton
+                            entityType="article"
+                            entityId={article.slug}
+                            sparkCount={article.sparkCount ?? 0}
+                            sparkedByCurrentUser={article.sparkedByCurrentUser ?? false}
+                            isOwner={!!user && user.id === article.authorId}
+                            showCountWhenOwner
+                            size="sm"
+                          />
+                          <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                        </div>
                       </div>
                     </Card>
                   </Link>

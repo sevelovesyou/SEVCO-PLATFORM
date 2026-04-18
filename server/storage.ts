@@ -503,6 +503,8 @@ export interface IStorage {
   getTrackSparkedByUser(trackIds: number[], userId: string): Promise<Set<number>>;
   getProductSparkCounts(productIds: number[]): Promise<Map<number, number>>;
   getProductSparkedByUser(productIds: number[], userId: string): Promise<Set<number>>;
+  getArticleSparkCounts(articleIds: number[]): Promise<Map<number, number>>;
+  getArticleSparkedByUser(articleIds: number[], userId: string): Promise<Set<number>>;
   getProjectSparkCounts(projectIds: number[]): Promise<Map<number, number>>;
   getProjectSparkedByUser(projectIds: number[], userId: string): Promise<Set<number>>;
   getServiceSparkCounts(serviceIds: number[]): Promise<Map<number, number>>;
@@ -547,6 +549,10 @@ export type SearchResultItem = {
   description?: string | null;
   href: string;
   meta?: string | null;
+  slug?: string;
+  authorId?: string | null;
+  sparkCount?: number;
+  sparkedByCurrentUser?: boolean;
 };
 
 export type SearchAllResult = {
@@ -1893,8 +1899,10 @@ export class DatabaseStorage implements IStorage {
     const pattern = `%${query}%`;
 
     const wikiRows = await db
-      .select({ id: articles.id, title: articles.title, summary: articles.summary, slug: articles.slug, status: articles.status })
-      .from(articles).where(
+      .select({ id: articles.id, title: articles.title, summary: articles.summary, slug: articles.slug, status: articles.status, authorId: articles.authorId, categorySlug: categories.slug })
+      .from(articles)
+      .leftJoin(categories, eq(categories.id, articles.categoryId))
+      .where(
         and(
           isStaff ? undefined : eq(articles.status, "published"),
           or(ilike(articles.title, pattern), ilike(articles.summary, pattern))
@@ -1964,8 +1972,10 @@ export class DatabaseStorage implements IStorage {
       id: a.id,
       title: a.title,
       description: a.summary,
-      href: `/wiki/${a.slug}`,
+      href: a.categorySlug ? `/wiki/${a.categorySlug}/${a.slug}` : `/wiki/${a.slug}`,
       meta: a.status !== "published" ? a.status : undefined,
+      slug: a.slug,
+      authorId: a.authorId ?? null,
     }));
 
     const projectItems: SearchResultItem[] = projectRows.map((p) => ({
@@ -3550,6 +3560,22 @@ export class DatabaseStorage implements IStorage {
     if (productIds.length === 0) return set;
     const rows = await db.select({ productId: productSparks.productId }).from(productSparks).where(and(inArray(productSparks.productId, productIds), eq(productSparks.userId, userId)));
     for (const r of rows) set.add(r.productId);
+    return set;
+  }
+
+  async getArticleSparkCounts(articleIds: number[]): Promise<Map<number, number>> {
+    const map = new Map<number, number>();
+    if (articleIds.length === 0) return map;
+    const rows = await db.select({ articleId: articleSparks.articleId, count: sql<number>`COUNT(*)::int` }).from(articleSparks).where(inArray(articleSparks.articleId, articleIds)).groupBy(articleSparks.articleId);
+    for (const r of rows) map.set(r.articleId, r.count);
+    return map;
+  }
+
+  async getArticleSparkedByUser(articleIds: number[], userId: string): Promise<Set<number>> {
+    const set = new Set<number>();
+    if (articleIds.length === 0) return set;
+    const rows = await db.select({ articleId: articleSparks.articleId }).from(articleSparks).where(and(inArray(articleSparks.articleId, articleIds), eq(articleSparks.userId, userId)));
+    for (const r of rows) set.add(r.articleId);
     return set;
   }
 

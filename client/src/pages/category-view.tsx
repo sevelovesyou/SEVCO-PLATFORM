@@ -18,9 +18,13 @@ import {
 import type { Article, Category } from "@shared/schema";
 import { articleUrl } from "@/lib/wiki-urls";
 import { usePermission } from "@/hooks/use-permission";
+import { SparkButton } from "@/components/spark-button";
+import { useAuth } from "@/hooks/use-auth";
 
 export interface ArticleWithCategory extends Article {
   category?: { id: number; name: string; slug: string } | null;
+  sparkCount?: number;
+  sparkedByCurrentUser?: boolean;
 }
 
 export interface CategoryWithArticles extends Category {
@@ -34,6 +38,7 @@ export default function CategoryView({ overrideData }: { overrideData?: Category
   const slug = paramsTwo?.childSlug ?? paramsOne?.slug;
   const [, navigate] = useLocation();
   const { canCreateArticle } = usePermission();
+  const { user } = useAuth();
 
   const { data: fetchedData, isLoading: catLoading } = useQuery<CategoryWithArticles>({
     queryKey: ["/api/categories", slug],
@@ -203,6 +208,15 @@ export default function CategoryView({ overrideData }: { overrideData?: Category
                         by {(article as any).author.username}
                       </span>
                     )}
+                    <SparkButton
+                      entityType="article"
+                      entityId={article.slug}
+                      sparkCount={article.sparkCount ?? 0}
+                      sparkedByCurrentUser={article.sparkedByCurrentUser ?? false}
+                      isOwner={!!user && user.id === article.authorId}
+                      showCountWhenOwner
+                      size="sm"
+                    />
                   </div>
                 </div>
                 <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />

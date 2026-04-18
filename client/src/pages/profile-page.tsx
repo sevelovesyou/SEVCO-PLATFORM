@@ -1858,27 +1858,56 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
           {profile.emailVerified && <span className="ml-3 opacity-60">· Verified</span>}
         </div>
 
-        {/* Top-level profile tab bar (Overview / Music) */}
-        <div
-          className="mt-5 flex gap-1 border-b overflow-x-auto"
-          style={{ borderColor: accentColor ? `${accentColor}22` : "var(--border)" }}
-          data-testid="profile-tab-bar"
-        >
-          {([
-            { id: "overview" as const, label: "Overview" },
+        {/* Unified profile tab bar (Overview / Posts / Articles / Music) */}
+        {(() => {
+          const unifiedTabs: Array<{ id: "overview" | "posts" | "articles" | "music"; label: string }> = [
+            { id: "overview", label: "Overview" },
+            { id: "posts", label: "Posts" },
+            { id: "articles", label: "Articles" },
             ...(showMusicTab ? [{ id: "music" as const, label: "Music" }] : []),
-          ]).map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveProfileTab(tab.id)}
-              className={`px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors ${activeProfileTab === tab.id ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-              style={activeProfileTab === tab.id && accentColor ? { borderColor: accentColor, color: accentColor } : {}}
-              data-testid={`tab-profile-top-${tab.id}`}
+          ];
+          const isTabActive = (id: "overview" | "posts" | "articles" | "music") => {
+            if (id === "music") return activeProfileTab === "music";
+            if (id === "overview") return activeProfileTab === "overview";
+            return activeProfileTab === "overview" && activeTab === id;
+          };
+          return (
+            <div
+              className="mt-5 rounded-xl border overflow-hidden"
+              style={{
+                background: bgColor ? `${bgColor}88` : "var(--card)",
+                borderColor: accentColor ? `${accentColor}33` : "var(--border)",
+              }}
+              data-testid="profile-tab-bar"
             >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+              <div className="flex gap-1 overflow-x-auto px-2">
+                {unifiedTabs.map((tab) => {
+                  const isActive = isTabActive(tab.id);
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        if (tab.id === "music") {
+                          setActiveProfileTab("music");
+                        } else if (tab.id === "overview") {
+                          setActiveProfileTab("overview");
+                        } else {
+                          setActiveProfileTab("overview");
+                          setActiveTab(tab.id);
+                        }
+                      }}
+                      className={`px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors ${isActive ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+                      style={isActive && accentColor ? { borderColor: accentColor, color: accentColor } : {}}
+                      data-testid={`tab-profile-${tab.id}`}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {activeProfileTab === "music" && (
           <div className="mt-5">
@@ -1896,24 +1925,6 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
 
         {activeProfileTab === "overview" && (
         <>
-        {/* Sub-tabs inside Overview */}
-        <div className="mt-5 flex border-b" style={{ borderColor: accentColor ? `${accentColor}22` : "var(--border)" }}>
-          {[
-            { id: "posts" as const, label: "Posts" },
-            { id: "articles" as const, label: "Wiki Contributions" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-              style={activeTab === tab.id && accentColor ? { borderColor: accentColor, color: accentColor } : {}}
-              data-testid={`tab-profile-${tab.id}`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
         {/* Posts tab */}
         {activeTab === "posts" && (
           <div className="mt-4 space-y-3">
@@ -1955,7 +1966,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
                   className="px-5 py-3 border-b text-xs font-semibold uppercase tracking-wider"
                   style={{ borderColor: accentColor ? `${accentColor}22` : "var(--border)", color: accentColor ? `${accentColor}99` : "var(--muted-foreground)" }}
                 >
-                  Wiki Contributions
+                  Articles
                 </div>
                 <div className="divide-y" style={{ borderColor: accentColor ? `${accentColor}11` : "var(--border)" }}>
                   {recentArticles.map((article) => (
@@ -1981,7 +1992,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
                 style={{ background: bgColor ? `${bgColor}88` : "var(--card)", borderColor: accentColor ? `${accentColor}33` : "var(--border)" }}
               >
                 <p className="text-sm" style={{ color: accentColor ? `${accentColor}88` : "var(--muted-foreground)" }}>
-                  No wiki contributions yet.
+                  No articles yet.
                 </p>
               </div>
             )}

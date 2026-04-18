@@ -29894,3 +29894,35 @@ The gallery card's hover-overlay action row still renders the Sparks count twice
 
 ---
 
+## Task — raise-daily-spark-limit-100
+> Merged: 2026-04-18
+
+# Raise daily Spark limit to 100
+
+## What & Why
+The platform currently caps each user at 10 Sparks given per day. Raise that cap to 100 per user per day across the entire platform so users can engage more freely.
+
+## Done looks like
+- Each signed-in user can give up to 100 Sparks per day (counting posts, articles, gallery images, tracks, products, projects, and services combined) before hitting the rate limit.
+- All user-facing copy (toasts, tooltips, API error messages) reflects the new 100/day limit instead of 10/day.
+- Existing behavior is otherwise unchanged: re-sparking a previously revoked track still bypasses the cap, self-spark prevention, "already sparked" handling, and the daily quota endpoint all keep working.
+
+## Out of scope
+- Making the limit admin-configurable from the Command Center.
+- Changing the free monthly Sparks allocation or any other Sparks economy values.
+- Changing the Sparks earned per action or any recipient credit logic.
+
+## Steps
+1. Update the server-side daily cap check from `>= 10` to `>= 100` in every Spark mutation path (post, article, gallery, track, product, project, service).
+2. Update the API 429 response messages to say "100 per day" instead of "10 per day".
+3. Update the frontend toast and tooltip copy ("You can give 10 sparks per day", "Daily spark limit reached (10/day)") to use 100 instead of 10.
+
+## Relevant files
+- `server/storage.ts:3354-3536`
+- `server/routes.ts:4540-4595`
+- `client/src/components/spark-button.tsx:110-250`
+- `client/src/pages/feed-page.tsx:340-530`
+
+
+---
+

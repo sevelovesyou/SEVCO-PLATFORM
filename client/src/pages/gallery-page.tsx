@@ -221,7 +221,7 @@ export default function GalleryPage() {
 
       {/* Loading — masonry-style skeleton */}
       {isLoading && (
-        <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-4 md:gap-5 space-y-4">
+        <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 md:gap-5 space-y-4">
           {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="break-inside-avoid mb-4">
               <Skeleton className={`${SKELETON_HEIGHTS[i % SKELETON_HEIGHTS.length]} w-full rounded-xl`} />
@@ -248,7 +248,7 @@ export default function GalleryPage() {
 
       {/* Masonry image grid */}
       {!isLoading && images && images.length > 0 && (
-        <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-4 md:gap-5 space-y-4" data-testid="gallery-grid">
+        <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 md:gap-5 space-y-4" data-testid="gallery-grid">
           {images.map((image) => {
             const isOwner = user?.id === image.uploadedBy;
             const isRevealed = isTouch && revealedCardId === image.id;
@@ -329,15 +329,7 @@ export default function GalleryPage() {
                     </Badge>
                   </div>
                   <div className="flex gap-1.5 items-center">
-                    {isOwner ? (
-                      <div
-                        className="flex items-center gap-1 text-xs text-amber-400 h-7 px-2 rounded bg-black/40"
-                        data-testid={`chip-gallery-spark-owner-${image.id}`}
-                      >
-                        <Zap className="h-3 w-3 fill-amber-400" />
-                        <span>{image.sparkCount ?? 0}</span>
-                      </div>
-                    ) : (
+                    {!isOwner && (
                       <TooltipProvider>
                         <Tooltip open={sparkTooltips[image.id] ?? false}>
                           <TooltipTrigger asChild>
@@ -354,7 +346,6 @@ export default function GalleryPage() {
                               data-testid={`button-gallery-spark-${image.id}`}
                             >
                               <Zap className={`h-3 w-3 ${image.isSparkedByMe ? "fill-amber-400" : ""}`} />
-                              <span>{image.sparkCount ?? 0}</span>
                             </button>
                           </TooltipTrigger>
                           <TooltipContent side="top">

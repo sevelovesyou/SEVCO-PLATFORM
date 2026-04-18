@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { PageShader } from "@/components/page-shader";
-import { usePageShader } from "@/hooks/use-page-shader";
 import { StaggerGrid } from "@/components/stagger-grid";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -24,7 +23,7 @@ import { SiDiscord, SiSpotify, SiApplemusic } from "react-icons/si";
 import type { Article, Product, FeedPost, Project, ChangelogCategory } from "@shared/schema";
 import { articleUrl } from "@/lib/wiki-urls";
 import { DEFAULT_SECTION_ORDER } from "@shared/section-order";
-import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import { trackCtaClick } from "@/lib/analytics-tracker";
 import { HomeNewsAndMarkets } from "@/components/home-news-markets";
 import { UserSnapshotPanel } from "@/components/user-snapshot-panel";
@@ -360,16 +359,30 @@ export default function Landing() {
   const btn2Label = settings["hero.button2.label"] || DEFAULT_BTN2_LABEL;
   const btn2Url = settings["hero.button2.url"] || DEFAULT_BTN2_URL;
 
-  // Modernized hero controls (added Task #450)
-  const heroMotionEnabled = settings["hero.motion.enabled"] !== "false";
+  // Layout version gate. Defaults to v2 (the modernized layout). Either an
+  // admin setting (landing.layout) or a `?layout=v1` URL override flips the
+  // page back to the pre-redesign behavior in a single switch — this is the
+  // rollback gate for Task #450 so we can revert without a code deploy.
+  const useV2Layout = useMemo(() => {
+    if (typeof window !== "undefined") {
+      const override = new URLSearchParams(window.location.search).get("layout");
+      if (override === "v1") return false;
+      if (override === "v2") return true;
+    }
+    return (settings["landing.layout"] || "v2") !== "v1";
+  }, [settings]);
+
+  // Modernized hero controls (added Task #450). All effectively disabled in v1.
+  const heroMotionEnabled = useV2Layout && settings["hero.motion.enabled"] !== "false";
   const heroMotionIntensity =
     (settings["hero.motion.intensity"] as "subtle" | "standard" | "rich" | undefined) || "standard";
-  const heroPrimarySlot =
-    (settings["hero.cta.primarySlot"] as "button1" | "button2" | undefined) || "button1";
-  const heroScrollCueVisible = settings["hero.scrollCue.visible"] !== "false";
+  const heroPrimarySlot: "button1" | "button2" = useV2Layout
+    ? ((settings["hero.cta.primarySlot"] as "button1" | "button2" | undefined) || "button1")
+    : "button1";
+  const heroScrollCueVisible = useV2Layout && settings["hero.scrollCue.visible"] !== "false";
 
-  // Mid-page CTA band (rendered between platformGrid and the next section)
-  const showMidCta = settings["section.midCta.visible"] !== "false";
+  // Mid-page CTA band (rendered between platformGrid and the next section). v2 only.
+  const showMidCta = useV2Layout && settings["section.midCta.visible"] !== "false";
   const midCtaLabel = settings["section.midCta.label"] || "Free to join — start your SEVCO";
   const midCtaUrl = settings["section.midCta.url"] || (user ? "/dashboard" : "/auth");
 
@@ -611,9 +624,13 @@ export default function Landing() {
                     variant={button1IsPrimary ? "destructive" : "outline"}
                     className={
                       button1IsPrimary
-                        ? (btn1Color
-                            ? "hover:opacity-90 text-white font-semibold gap-2 px-8 py-6 text-base shadow-xl shadow-red-900/40 ring-1 ring-white/10"
-                            : "font-semibold gap-2 px-8 py-6 text-base shadow-xl shadow-red-900/40 bg-red-600 hover:bg-red-500 text-white border-0 ring-1 ring-white/10")
+                        ? (useV2Layout
+                            ? (btn1Color
+                                ? "hover:opacity-90 text-white font-semibold gap-2 px-8 py-6 text-base shadow-xl shadow-red-900/40 ring-1 ring-white/10"
+                                : "font-semibold gap-2 px-8 py-6 text-base shadow-xl shadow-red-900/40 bg-red-600 hover:bg-red-500 text-white border-0 ring-1 ring-white/10")
+                            : (btn1Color
+                                ? "hover:opacity-90 text-white font-semibold gap-2 px-7 shadow-lg shadow-red-900/30"
+                                : "font-semibold gap-2 px-7 shadow-lg shadow-red-900/30 bg-red-600 hover:bg-red-500 text-white border-0"))
                         : "text-white/80 hover:text-white hover:bg-white/10 border border-white/20 font-semibold gap-2 px-6"
                     }
                     style={
@@ -1624,7 +1641,11 @@ export default function Landing() {
                         <Link href="/auth">
                           <Button
                             size="lg"
-                            className="bg-red-600 hover:bg-red-500 text-white font-semibold gap-2 shadow-xl shadow-red-900/40 px-8 py-6 text-base ring-1 ring-white/10"
+                            className={
+                              useV2Layout
+                                ? "bg-red-600 hover:bg-red-500 text-white font-semibold gap-2 shadow-xl shadow-red-900/40 px-8 py-6 text-base ring-1 ring-white/10"
+                                : "bg-red-600 hover:bg-red-500 text-white font-semibold gap-2 shadow-lg shadow-red-900/30"
+                            }
                             data-testid="button-signup-cta-create-account"
                             onClick={() => trackCtaClick("closer")}
                           >
@@ -1632,9 +1653,11 @@ export default function Landing() {
                             Create Free Account
                           </Button>
                         </Link>
-                        <p className="text-[10px] uppercase tracking-widest text-white/40">
-                          Free · No credit card · 30 seconds
-                        </p>
+                        {useV2Layout && (
+                          <p className="text-[10px] uppercase tracking-widest text-white/40">
+                            Free · No credit card · 30 seconds
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">

@@ -107,6 +107,7 @@ export default function CommandDisplay() {
   const [midCtaVisible, setMidCtaVisible] = useState(true);
   const [midCtaLabel, setMidCtaLabel] = useState("");
   const [midCtaUrl, setMidCtaUrl] = useState("");
+  const [landingLayout, setLandingLayout] = useState<"v1" | "v2">("v2");
   const [sectionVisibility, setSectionVisibility] = useState<Record<string, boolean>>({});
   const [faviconUrl, setFaviconUrl] = useState("");
   const [ogImageUrl, setOgImageUrl] = useState("");
@@ -168,6 +169,8 @@ export default function CommandDisplay() {
     setMidCtaVisible(settings["section.midCta.visible"] ? toBool(settings["section.midCta.visible"]) : true);
     setMidCtaLabel(settings["section.midCta.label"] ?? "Join SEVCO — built by creators, for creators.");
     setMidCtaUrl(settings["section.midCta.url"] ?? "/auth");
+    const layout = settings["landing.layout"];
+    setLandingLayout(layout === "v1" ? "v1" : "v2");
     setFaviconUrl(settings["platform.faviconUrl"] ?? "");
     setOgImageUrl(settings["platform.ogImageUrl"] ?? "");
     setGlobalDescription(settings["platform.description"] ?? "");
@@ -249,6 +252,7 @@ export default function CommandDisplay() {
       "section.midCta.visible": String(midCtaVisible),
       "section.midCta.label": midCtaLabel,
       "section.midCta.url": midCtaUrl,
+      "landing.layout": landingLayout,
     });
   }
 
@@ -753,6 +757,28 @@ export default function CommandDisplay() {
                 Reset
               </Button>
             </div>
+          </div>
+
+          <Separator />
+
+          {/* Landing page layout version (rollback gate) */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold flex items-center gap-1.5">
+              <Layers className="h-3.5 w-3.5" />
+              Landing page layout
+            </Label>
+            <Select value={landingLayout} onValueChange={(v) => setLandingLayout(v as "v1" | "v2")}>
+              <SelectTrigger data-testid="select-landing-layout">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="v2">V2 — Modernized (default)</SelectItem>
+                <SelectItem value="v1">V1 — Original (rollback)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              One-flip rollback for the modernized home page. V1 disables motion, the mid-page CTA band, and the hero-weight closer styling. Visitors can also force a version with <code className="font-mono text-[10px]">?layout=v1</code> or <code className="font-mono text-[10px]">?layout=v2</code> in the URL.
+            </p>
           </div>
 
           <Separator />

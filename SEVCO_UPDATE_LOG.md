@@ -29460,3 +29460,54 @@ Music is a core function of a SEVCO profile, but it currently renders as a small
 
 ---
 
+## Task — spark-button-blue-burst
+> Merged: 2026-04-18
+
+# Satisfying Spark Button
+
+## What & Why
+Sparking content is the platform's primary engagement signal, but the current Spark button is a mute color swap from grey to amber with no motion or feedback. Make sparking feel rewarding: a quick blue burst animation on the icon and a soft, pleasing chime so people enjoy doing it. The animation/sound should fire on every successful spark across every entity (posts, articles, gallery, tracks, products, projects, services) — the existing single SparkButton component is reused everywhere, so a single change covers all of them.
+
+## Done looks like
+- Clicking Spark on any sparkable item (post, article, gallery image, track, product, project, service) plays a quick (~600ms) blue particle/ring burst centered on the lightning icon.
+- A soft, short, pleasing chime (~200-400ms, quiet by default) plays in sync with the burst.
+- The Zap icon does a small "pop" — quick scale up then settle — on the same beat as the burst.
+- The number animates up by one (e.g. tween from old to new count or a brief bounce on the digit) so the user sees the result land.
+- The animation/sound fire only on a successful spark (not on hover, not on "already sparked" tooltip, not on owner-disabled buttons, not on daily-limit-reached).
+- A user setting (in Account → Preferences) lets people mute the spark sound. The setting persists in localStorage. Animation always plays — only the sound is mutable. Default is sound on.
+- Respects `prefers-reduced-motion` — when the OS setting is on, the burst falls back to a simple instant color change (no particles, no scale pop) but the chime still plays unless muted.
+- No visible layout shift on small (`size="sm"`) instances of the button — the burst is absolutely positioned over the icon and clipped to a small radius so it doesn't bump neighboring content.
+- Works on mobile with the Web Audio API (no autoplay block since the sound is triggered by a user click).
+
+## Out of scope
+- A full "haptics" pass (vibration API) — sound + visual is enough for this round.
+- Animations or sounds for **un-sparking** (we don't currently support that flow).
+- Custom audio files per entity type — one universal chime.
+- Daily-quota celebration ("you sparked 10 today!") — a separate idea.
+- Spark count animations on cards that don't render a SparkButton (e.g. plain spark counter labels in lists).
+
+## Steps
+1. **Add a short chime asset** — Source or generate a small (<10kB) royalty-free `.mp3` or `.ogg` chime around 200-400ms — a soft "ding" or synth pluck in a major key. Store it under `client/src/assets/sounds/spark.mp3` (or equivalent) and import it via the `@assets` alias.
+
+2. **Sound playback helper** — Add a small audio helper (e.g. `client/src/lib/spark-sound.ts`) that lazily creates a single shared `Audio` instance, reads a `spark-sound-muted` localStorage flag, and exposes `playSparkSound()`. Use a low default volume (~0.4).
+
+3. **Burst animation in SparkButton** — Inside `client/src/components/spark-button.tsx`, wrap the icon area in a relatively-positioned container, and on successful mutation render a short-lived blue burst overlay (e.g. expanding ring + a few outward particles) using framer-motion (already in the project). Animation runs ~600ms then unmounts. Add a quick scale-up-and-settle on the Zap icon itself.
+
+4. **Animated count increment** — When the local optimistic count changes, briefly animate the number (tween or scale-bounce) so the result lands visually. Use framer-motion `AnimatePresence` keyed on the count.
+
+5. **Trigger on success only** — Wire the burst + sound + count animation to fire from the mutation's `onSuccess`, never from `onError`, hover, owner-disabled, or daily-limit states.
+
+6. **Reduced motion fallback** — Detect `prefers-reduced-motion: reduce` via `window.matchMedia` and skip the burst + scale pop in that case (still allow the sound).
+
+7. **Sound mute setting in Account** — Add a single toggle in `client/src/pages/account-page.tsx` (under a Preferences section) labeled something like "Play sound when sparking", backed by the same localStorage flag. Default on.
+
+8. **Visual / audio QA** — Restart the dev server and verify: sparking a post shows a blue burst + chime; sparking a track from the profile Music tab does the same; toggling the sound off in Account silences the chime but keeps the visual; on a `prefers-reduced-motion` browser session the burst is suppressed but the chime still plays; on mobile (touch) the chime plays after the user's first interaction.
+
+## Relevant files
+- `client/src/components/spark-button.tsx`
+- `client/src/pages/account-page.tsx`
+- `client/src/assets/` (new `sounds/` subfolder for the chime)
+
+
+---
+

@@ -1195,6 +1195,7 @@ export default function Landing() {
                       {featuredProjects.map((project) => {
                         const statusKey = (project.status || "active").toLowerCase();
                         const statusStyle = PROJECT_STATUS_COLORS[statusKey] || PROJECT_STATUS_COLORS["active"];
+                        const MenuIcon = getLucideIcon(project.menuIcon ?? undefined) || Folder;
                         return (
                           <Link key={project.id} href={`/projects/${project.slug}`}>
                             <div
@@ -1210,7 +1211,7 @@ export default function Landing() {
                                       className="h-9 w-9 rounded-lg object-cover"
                                     />
                                   ) : (
-                                    <Folder className="h-4 w-4 text-muted-foreground" />
+                                    <MenuIcon className="h-4 w-4 text-muted-foreground" />
                                   )}
                                 </div>
                                 <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium ${statusStyle.bg} ${statusStyle.text}`}>

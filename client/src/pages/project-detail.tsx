@@ -164,6 +164,16 @@ const CATEGORY_ICON_BG: Record<string, string> = {
   Other:    "bg-muted text-muted-foreground",
 };
 
+function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
+  if (!name) return null;
+  const icons = LucideIcons as Record<string, unknown>;
+  const comp = icons[name] ?? icons[name.charAt(0).toUpperCase() + name.slice(1)];
+  if (typeof comp === "function" || (typeof comp === "object" && comp !== null)) {
+    return comp as React.ComponentType<{ className?: string }>;
+  }
+  return null;
+}
+
 function CategoryIcon({ category, className }: { category: string | null | undefined; className?: string }) {
   const cat = category ?? "Other";
   const initials = cat.slice(0, 2).toUpperCase();
@@ -309,12 +319,25 @@ export default function ProjectDetail() {
                   alt={project.name}
                   className="h-16 w-16 rounded-xl object-contain border bg-background shadow-sm shrink-0"
                 />
-              ) : (
-                <CategoryIcon
-                  category={project.category}
-                  className="h-16 w-16 shrink-0 shadow-sm border border-border/50"
-                />
-              )}
+              ) : (() => {
+                const MenuIcon = resolveLucideIcon(project.menuIcon);
+                if (MenuIcon) {
+                  return (
+                    <div
+                      className="h-16 w-16 rounded-xl flex items-center justify-center bg-muted/50 border border-border/50 shadow-sm shrink-0"
+                      data-testid="icon-project-menu"
+                    >
+                      <MenuIcon className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  );
+                }
+                return (
+                  <CategoryIcon
+                    category={project.category}
+                    className="h-16 w-16 shrink-0 shadow-sm border border-border/50"
+                  />
+                );
+              })()}
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">

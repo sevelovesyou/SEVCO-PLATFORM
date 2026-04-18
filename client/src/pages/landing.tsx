@@ -349,12 +349,21 @@ export default function Landing() {
 
   const hasCustomBtn1 = !!(settings["hero.button1.label"] || settings["hero.button1.url"]);
 
-  const btn1Label = hasCustomBtn1
-    ? (settings["hero.button1.label"] || DEFAULT_BTN1_LABEL)
-    : (user ? "Go to Platform" : "Sign Up Free");
-  const btn1Url = hasCustomBtn1
-    ? (settings["hero.button1.url"] || DEFAULT_BTN1_URL)
-    : (user ? "/dashboard" : "/auth");
+  // For logged-out visitors on the v2 layout we always force the dominant
+  // hero button to the sign-up flow so the hero/mid/closer sign-up CTA
+  // contract is enforceable regardless of admin button overrides. Logged-in
+  // users keep the configured destinations.
+  const forceHeroSignup = !user; // only used when v2 path is active
+  const btn1Label = forceHeroSignup
+    ? "Sign Up Free"
+    : hasCustomBtn1
+      ? (settings["hero.button1.label"] || DEFAULT_BTN1_LABEL)
+      : "Go to Platform";
+  const btn1Url = forceHeroSignup
+    ? "/auth"
+    : hasCustomBtn1
+      ? (settings["hero.button1.url"] || DEFAULT_BTN1_URL)
+      : "/dashboard";
 
   const btn2Label = settings["hero.button2.label"] || DEFAULT_BTN2_LABEL;
   const btn2Url = settings["hero.button2.url"] || DEFAULT_BTN2_URL;
@@ -669,8 +678,8 @@ export default function Landing() {
                 </Link>
               </motion.div>
 
-              {/* Trust microcopy under CTAs — reduces signup anxiety without adding a new section */}
-              {!user && (
+              {/* Trust microcopy under CTAs — v2 only; v1 keeps the original CTA-only hero */}
+              {useV2Layout && !user && (
                 <motion.p
                   className="text-[11px] uppercase tracking-widest text-white/40"
                   initial={motionOn ? { opacity: 0 } : false}

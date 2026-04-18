@@ -54,7 +54,11 @@ function send(path: string) {
 export function trackCtaClick(slot: string): void {
   if (typeof window === "undefined") return;
   const safe = slot.replace(/[^a-z0-9_-]/gi, "").slice(0, 32) || "unknown";
-  send(`/cta/${safe}`);
+  const path = `/cta/${safe}`;
+  // Honour the same DNT / opt-out / admin-route exclusions that pageview
+  // tracking uses, so CTA events never bypass the privacy contract.
+  if (shouldSkip(path)) return;
+  send(path);
 }
 
 export function useAnalyticsTracker(): void {

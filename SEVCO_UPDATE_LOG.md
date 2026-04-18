@@ -28764,3 +28764,40 @@ Two small but impactful fixes in the Command Center:
 
 ---
 
+## Task — freeball-prod-crash-surface-and-fix
+> Merged: 2026-04-18
+
+# Surface Freeball production crash
+
+  ## What & Why
+  The /freeball/play page is broken on production (sev.cx) — users see the local "Freeball hit an error" panel but the error stack is hidden because the dev-host check excludes sev.cx. Without the stack we're guessing at the bug. This task makes the crash visible (safely) and fixes whatever it reveals.
+
+  ## Done looks like
+  - Visiting https://sev.cx/freeball/play?debug=1 shows the error message + stack + component stack in the existing red error panel, with a working "Copy error" button.
+  - Whenever FreeballErrorBoundary catches an error in any environment, the browser POSTs a sanitized payload (message, first 20 stack lines, component stack, url, userAgent, build hash if available) to a new server route POST /api/freeball/client-error, which logs it via the existing express logger so it shows up in deployment logs.
+  - The actual runtime crash on /freeball/play is identified from those logs and fixed; /freeball/play loads to the loading screen → Sphere render with no error panel for a logged-in user on production.
+  - No PII beyond what's already in the URL is sent. Endpoint is rate-limited (≤10 req/min/IP) and ignores payloads larger than 8 KB.
+
+  ## Out of scope
+  - Wiring a third-party error tracker (Sentry, etc.).
+  - Reworking the whole error boundary UX. Stick to surfacing + fixing.
+  - Any non-Freeball pages.
+
+  ## Steps
+  1. **Make the error panel opt-in visible in production** — In FreeballErrorBoundary.isDevHost(), additionally return true when `new URLSearchParams(window.location.search).get("debug") === "1"`. Keep the existing dev-host whitelist. This lets us (and the user) inspect the stack on sev.cx without exposing it to every visitor by default.
+  2. **Add a tiny client-error reporting endpoint** — New route POST /api/freeball/client-error in server/freeball-routes.ts that accepts JSON `{ message, stack, componentStack, url, userAgent }`, validates with a small zod schema, truncates each string field to 4 KB, and console.errors a one-line summary plus the full payload (so it lands in deploy logs). Include simple in-memory IP rate limiting (10/min). No DB writes.
+  3. **Have the boundary report on catch** — In componentDidCatch, fire-and-forget a `fetch("/api/freeball/client-error", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(...), keepalive:true })` with the sanitized payload. Wrap in try/catch so the boundary itself can never throw.
+  4. **Trigger and read the production stack** — Deploy, load /freeball/play?debug=1 on sev.cx, copy the stack from the panel, also confirm the same stack appears in deployment logs.
+  5. **Fix the underlying crash** — Patch the offending code path in client/src/pages/freeball.tsx (or freeball-hud.tsx / freeball-gravity.ts) based on the stack. Likely culprits to sanity-check while you're in there: (a) the new `nearestVoxelIndices` useMemo in Scene assumes `system.voxelDefs[activeIdx]` exists after findIndex — fine in theory, but add a final `if (!system.voxelDefs[activeIdx]) return [];` guard; (b) FreeballNavHud spreads sphereHud.pos/forward/up into THREE.Vector3 — guard against undefined/wrong-length tuples; (c) any place that destructures `activeDef` without optional chaining. Re-verify after deploy.
+  6. **Confirm fix end-to-end** — Production /freeball/play loads with no error panel for a normal logged-in user, and /freeball/play?debug=1 also loads cleanly. Remove no code added in steps 1–3 — they stay in as a safety net for future regressions.
+
+  ## Relevant files
+  - `client/src/pages/freeball.tsx:2739-2795` — FreeballErrorBoundary (host check + componentDidCatch)
+  - `client/src/pages/freeball.tsx:1532-1590` — Scene hooks (nearestVoxelIndices, distantBodiesReady)
+  - `client/src/pages/freeball.tsx:2669-2700` — FreeballNavHud (sphereHud spread)
+  - `client/src/pages/freeball.tsx:3095-3110` — FreeballPageInner JSX root that mounts Scene + HUD
+  - `server/freeball-routes.ts` — add the new POST /api/freeball/client-error route
+
+
+---
+

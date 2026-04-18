@@ -1568,7 +1568,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
   return (
     <div className="min-h-screen relative" style={bgColor ? { backgroundColor: bgColor } : {}}>
       {bgImage && (
-        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${resolveImageUrl(bgImage)})`, opacity: bgOpacity }} />
+        <div className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${resolveImageUrl(bgImage)})`, opacity: bgOpacity, transform: "translateZ(0)", zIndex: 0 }} />
       )}
       {profileFont === "handwritten" && (
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap" />
@@ -1910,7 +1910,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
         })()}
 
         {activeProfileTab === "music" && (
-          <div className="mt-5">
+          <div className="mt-5 min-h-[40vh]">
             <ProfileMusicTab
               username={profile.username}
               isOwnProfile={isOwnProfile}
@@ -1927,7 +1927,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
         <>
         {/* Posts tab */}
         {activeTab === "posts" && (
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 space-y-3 min-h-[40vh]">
             {postsLoading ? (
               Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)
             ) : (userPosts ?? []).length === 0 ? (
@@ -1956,7 +1956,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
 
         {/* Articles tab */}
         {activeTab === "articles" && (
-          <div className="mt-4">
+          <div className="mt-4 min-h-[40vh]">
             {recentArticles && recentArticles.length > 0 ? (
               <div
                 className="rounded-xl border overflow-hidden"

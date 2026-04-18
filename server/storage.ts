@@ -95,7 +95,7 @@ import {
   type InsertWikiLlmUsage,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, asc, and, sql, ilike, or, inArray, gte, lte, count as countFn, type SQL } from "drizzle-orm";
+import { eq, desc, asc, and, sql, ilike, or, inArray, gte, lte, isNull, count as countFn, type SQL } from "drizzle-orm";
 
 export class InsufficientSparksError extends Error {
   readonly currentBalance: number;
@@ -489,6 +489,7 @@ export interface IStorage {
   sparkArticle(articleId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
   sparkGalleryImage(imageId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
   sparkTrack(trackId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
+  unsparkTrack(trackId: number, userId: string): Promise<void>;
   sparkProduct(productId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
   sparkProject(projectId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
   sparkService(serviceId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
@@ -3405,14 +3406,42 @@ export class DatabaseStorage implements IStorage {
     }
     if (recipientId === userId) return { alreadySparked: false, rateLimited: false, selfSpark: true };
     const [existing] = await db.select().from(trackSparks).where(and(eq(trackSparks.trackId, trackId), eq(trackSparks.userId, userId))).limit(1);
-    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
+    if (existing && !existing.revokedAt) return { alreadySparked: true, rateLimited: false, selfSpark: false };
+    if (existing && existing.revokedAt) {
+      // Re-spark a previously revoked spark: bypass the daily cap because the original
+      // insert's createdAt still occupies a daily-limit slot, do not re-credit recipient,
+      // and do not count again toward the daily limit.
+      await db.update(trackSparks)
+        .set({ revokedAt: null })
+        .where(and(eq(trackSparks.trackId, trackId), eq(trackSparks.userId, userId)));
+      await db.update(musicTracks)
+        .set({ sparkCount: sql`${musicTracks.sparkCount} + 1` })
+        .where(eq(musicTracks.id, trackId));
+      return { alreadySparked: false, rateLimited: false, selfSpark: false };
+    }
     const dailyCount = await this.getUserDailySparksGiven(userId);
     if (dailyCount >= 10) return { alreadySparked: false, rateLimited: true, selfSpark: false };
     await db.insert(trackSparks).values({ trackId, userId });
+    await db.update(musicTracks)
+      .set({ sparkCount: sql`${musicTracks.sparkCount} + 1` })
+      .where(eq(musicTracks.id, trackId));
     if (recipientId) {
       await this.creditSparks(recipientId, 1, "social_reward", `Spark received on music track #${trackId}`, { metadata: { trackId, fromUserId: userId } });
     }
     return { alreadySparked: false, rateLimited: false, selfSpark: false };
+  }
+
+  async unsparkTrack(trackId: number, userId: string): Promise<void> {
+    const [existing] = await db.select().from(trackSparks)
+      .where(and(eq(trackSparks.trackId, trackId), eq(trackSparks.userId, userId)))
+      .limit(1);
+    if (!existing || existing.revokedAt) return;
+    await db.update(trackSparks)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(trackSparks.trackId, trackId), eq(trackSparks.userId, userId)));
+    await db.update(musicTracks)
+      .set({ sparkCount: sql`GREATEST(${musicTracks.sparkCount} - 1, 0)` })
+      .where(eq(musicTracks.id, trackId));
   }
 
   async sparkProduct(productId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }> {
@@ -3453,10 +3482,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTrackSparkInfo(trackId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }> {
-    const [scRow] = await db.select({ count: countFn() }).from(trackSparks).where(eq(trackSparks.trackId, trackId));
+    const [scRow] = await db.select({ count: countFn() }).from(trackSparks).where(and(eq(trackSparks.trackId, trackId), isNull(trackSparks.revokedAt)));
     let isSparkedByMe = false;
     if (userId) {
-      const [sm] = await db.select().from(trackSparks).where(and(eq(trackSparks.trackId, trackId), eq(trackSparks.userId, userId))).limit(1);
+      const [sm] = await db.select().from(trackSparks).where(and(eq(trackSparks.trackId, trackId), eq(trackSparks.userId, userId), isNull(trackSparks.revokedAt))).limit(1);
       isSparkedByMe = !!sm;
     }
     return { sparkCount: scRow?.count ?? 0, isSparkedByMe };
@@ -3495,7 +3524,7 @@ export class DatabaseStorage implements IStorage {
   async getTrackSparkCounts(trackIds: number[]): Promise<Map<number, number>> {
     const map = new Map<number, number>();
     if (trackIds.length === 0) return map;
-    const rows = await db.select({ trackId: trackSparks.trackId, count: sql<number>`COUNT(*)::int` }).from(trackSparks).where(inArray(trackSparks.trackId, trackIds)).groupBy(trackSparks.trackId);
+    const rows = await db.select({ trackId: trackSparks.trackId, count: sql<number>`COUNT(*)::int` }).from(trackSparks).where(and(inArray(trackSparks.trackId, trackIds), isNull(trackSparks.revokedAt))).groupBy(trackSparks.trackId);
     for (const r of rows) map.set(r.trackId, r.count);
     return map;
   }
@@ -3503,7 +3532,7 @@ export class DatabaseStorage implements IStorage {
   async getTrackSparkedByUser(trackIds: number[], userId: string): Promise<Set<number>> {
     const set = new Set<number>();
     if (trackIds.length === 0) return set;
-    const rows = await db.select({ trackId: trackSparks.trackId }).from(trackSparks).where(and(inArray(trackSparks.trackId, trackIds), eq(trackSparks.userId, userId)));
+    const rows = await db.select({ trackId: trackSparks.trackId }).from(trackSparks).where(and(inArray(trackSparks.trackId, trackIds), eq(trackSparks.userId, userId), isNull(trackSparks.revokedAt)));
     for (const r of rows) set.add(r.trackId);
     return set;
   }
@@ -3597,7 +3626,7 @@ export class DatabaseStorage implements IStorage {
     const [postTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(postSparks);
     const [articleTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(articleSparks);
     const [galleryTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(gallerySparks);
-    const [trackTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(trackSparks);
+    const [trackTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(trackSparks).where(isNull(trackSparks.revokedAt));
     const [productTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(productSparks);
     const [projectTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(projectSparks);
     const [serviceTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(serviceSparks);
@@ -3637,6 +3666,7 @@ export class DatabaseStorage implements IStorage {
       .select({ id: musicTracks.id, title: musicTracks.title, sparkCount: sql<number>`COUNT(*)::int` })
       .from(trackSparks)
       .innerJoin(musicTracks, eq(musicTracks.id, trackSparks.trackId))
+      .where(isNull(trackSparks.revokedAt))
       .groupBy(musicTracks.id, musicTracks.title)
       .orderBy(sql`COUNT(*) DESC`)
       .limit(10);
@@ -3774,7 +3804,7 @@ export class DatabaseStorage implements IStorage {
       .select({ id: musicTracks.id, title: musicTracks.title, sparksReceived: sql<number>`cast(count(*) as integer)` })
       .from(trackSparks)
       .innerJoin(musicTracks, eq(musicTracks.id, trackSparks.trackId))
-      .where(cutoff ? gte(trackSparks.createdAt, cutoff) : undefined)
+      .where(and(isNull(trackSparks.revokedAt), cutoff ? gte(trackSparks.createdAt, cutoff) : undefined))
       .groupBy(musicTracks.id, musicTracks.title)
       .orderBy(sql`count(*) desc`)
       .limit(10);
@@ -3891,7 +3921,7 @@ export class DatabaseStorage implements IStorage {
       .from(trackSparks)
       .innerJoin(musicTracks, eq(musicTracks.id, trackSparks.trackId))
       .innerJoin(users, eq(users.linkedArtistId, musicTracks.artistId))
-      .where(cutoff ? gte(trackSparks.createdAt, cutoff) : undefined)
+      .where(and(isNull(trackSparks.revokedAt), cutoff ? gte(trackSparks.createdAt, cutoff) : undefined))
       .groupBy(users.id);
     for (const row of trackCreatorRows) {
       if (!row.userId) continue;

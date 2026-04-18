@@ -809,6 +809,7 @@ export const trackSparks = pgTable("track_sparks", {
   trackId: integer("track_id").notNull().references((): AnyPgColumn => musicTracks.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  revokedAt: timestamp("revoked_at"),
 }, (t) => [uniqueIndex("track_sparks_track_user_idx").on(t.trackId, t.userId)]);
 
 export const productSparks = pgTable("product_sparks", {
@@ -1134,11 +1135,12 @@ export const musicTracks = pgTable("music_tracks", {
   type: text("type").notNull().default("track"),
   status: text("status").notNull().default("published"),
   streamCount: integer("stream_count").notNull().default(0),
+  sparkCount: integer("spark_count").notNull().default(0),
   displayOrder: integer("display_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertMusicTrackSchema = createInsertSchema(musicTracks).omit({ id: true, createdAt: true, streamCount: true });
+export const insertMusicTrackSchema = createInsertSchema(musicTracks).omit({ id: true, createdAt: true, streamCount: true, sparkCount: true });
 export type MusicTrack = typeof musicTracks.$inferSelect;
 export type InsertMusicTrack = z.infer<typeof insertMusicTrackSchema>;
 

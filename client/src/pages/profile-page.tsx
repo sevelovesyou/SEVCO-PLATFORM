@@ -6,6 +6,8 @@ import { useParams, useLocation, useSearch, Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { useMusicPlayer } from "@/contexts/music-player-context";
 import type { MusicTrack, Album } from "@shared/schema";
+import { SparkButton } from "@/components/spark-button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageHead } from "@/components/page-head";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -142,6 +144,8 @@ type PublicUser = {
   profileShowFollowers?: boolean | null;
   linkedArtistId?: number | null;
 };
+
+type ProfileTrack = MusicTrack & { sparkCount?: number; sparkedByCurrentUser?: boolean };
 
 type PostAuthor = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
 type OriginalPostInfo = { id: number; content: string; imageUrl: string | null; author: PostAuthor };
@@ -1133,10 +1137,11 @@ function ProfileMusicTab({ username, isOwnProfile, accentColor, bgColor, tracks,
   isOwnProfile: boolean;
   accentColor?: string;
   bgColor?: string;
-  tracks: MusicTrack[];
+  tracks: ProfileTrack[];
   albums: Album[];
   isLoading: boolean;
 }) {
+  const { user } = useAuth();
   const { currentTrack, isPlaying, playTrack, pause, resume } = useMusicPlayer();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [editingTrack, setEditingTrack] = useState<MusicTrack | null>(null);
@@ -1148,7 +1153,7 @@ function ProfileMusicTab({ username, isOwnProfile, accentColor, bgColor, tracks,
   const songs = tracks.filter((t) => t.type !== "instrumental");
   const beats = tracks.filter((t) => t.type === "instrumental");
 
-  const renderRow = (track: MusicTrack, list: MusicTrack[], i: number) => {
+  const renderRow = (track: ProfileTrack, list: ProfileTrack[], i: number) => {
     const isCurrent = currentTrack?.id === track.id;
     const onRowPlay = () => {
       if (isCurrent) {
@@ -1224,10 +1229,28 @@ function ProfileMusicTab({ username, isOwnProfile, accentColor, bgColor, tracks,
             {track.genre}
           </Badge>
         )}
-        <span className="text-xs shrink-0 tabular-nums hidden sm:flex items-center gap-1" style={{ color: mutedColor }} data-testid={`text-track-streams-${track.id}`}>
-          <BarChart2 className="h-3 w-3" />
-          {formatStreamCount(track.streamCount ?? 0)}
-        </span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-xs shrink-0 tabular-nums hidden sm:flex items-center gap-1 cursor-help" style={{ color: mutedColor }} data-testid={`text-track-streams-${track.id}`}>
+                <BarChart2 className="h-3 w-3" />
+                {formatStreamCount(track.streamCount ?? 0)}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              Streams — total times this track has been played
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <SparkButton
+          entityType="track"
+          entityId={track.id}
+          sparkCount={track.sparkCount ?? 0}
+          sparkedByCurrentUser={track.sparkedByCurrentUser ?? false}
+          isOwner={!!user && user.username === username}
+          size="sm"
+          className="shrink-0"
+        />
         <span className="text-xs shrink-0 tabular-nums" style={{ color: mutedColor }} data-testid={`text-track-duration-${track.id}`}>
           {formatDuration(track.duration)}
         </span>
@@ -1247,7 +1270,7 @@ function ProfileMusicTab({ username, isOwnProfile, accentColor, bgColor, tracks,
     );
   };
 
-  const renderSection = (label: string, icon: React.ReactNode, list: MusicTrack[], emptyText: string, testId: string) => (
+  const renderSection = (label: string, icon: React.ReactNode, list: ProfileTrack[], emptyText: string, testId: string) => (
     <div className="flex-1 min-w-0" data-testid={testId}>
       <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2" style={{ color: mutedColor }}>
         {icon}
@@ -1435,7 +1458,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
 
   const { currentTrack, isPlaying, playTrack, pause, resume } = useMusicPlayer();
 
-  const { data: musicData, isLoading: musicLoading } = useQuery<{ tracks: MusicTrack[]; albums: Album[] }>({
+  const { data: musicData, isLoading: musicLoading } = useQuery<{ tracks: ProfileTrack[]; albums: Album[] }>({
     queryKey: ["/api/profile", profile.username, "music"],
     queryFn: async () => {
       const res = await fetch(`/api/profile/${profile.username}/music`);

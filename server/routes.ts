@@ -3555,7 +3555,15 @@ export async function registerRoutes(
         return true;
       });
       const albums = user.linkedArtistId ? await storage.getAlbumsByArtist(user.linkedArtistId) : [];
-      res.json({ tracks, albums });
+      const ids = tracks.map((t) => t.id);
+      const counts = await storage.getTrackSparkCounts(ids);
+      const mySet = req.isAuthenticated() ? await storage.getTrackSparkedByUser(ids, (req.user as any).id) : new Set<number>();
+      const enriched = tracks.map((t) => ({
+        ...t,
+        sparkCount: counts.get(t.id) ?? 0,
+        sparkedByCurrentUser: mySet.has(t.id),
+      }));
+      res.json({ tracks: enriched, albums });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -4543,6 +4551,16 @@ export async function registerRoutes(
   }
 
   app.post("/api/music/tracks/:id/spark", requireAuth, makeSparkHandler((id, uid) => storage.sparkTrack(id, uid)));
+  app.delete("/api/music/tracks/:id/spark", requireAuth, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      await storage.unsparkTrack(id, req.user.id);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
   app.post("/api/store/products/:id/spark", requireAuth, makeSparkHandler((id, uid) => storage.sparkProduct(id, uid)));
   app.post("/api/projects/:id/spark", requireAuth, makeSparkHandler((id, uid) => storage.sparkProject(id, uid)));
   app.post("/api/services/:id/spark", requireAuth, makeSparkHandler((id, uid) => storage.sparkService(id, uid)));

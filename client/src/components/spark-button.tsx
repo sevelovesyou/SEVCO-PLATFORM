@@ -20,8 +20,16 @@ const ENDPOINTS: Record<SparkEntityType, (id: number) => string> = {
   service: (id) => `/api/services/${id}/spark`,
 };
 
+// Entity types that support unsparking (toggle off)
+const SUPPORTS_UNSPARK: Record<SparkEntityType, boolean> = {
+  track: true,
+  product: false,
+  project: false,
+  service: false,
+};
+
 const INVALIDATE_KEYS: Record<SparkEntityType, string[]> = {
-  track: ["/api/music/tracks"],
+  track: ["/api/music/tracks", "/api/profile"],
   product: ["/api/store/products"],
   project: ["/api/projects"],
   service: ["/api/services"],
@@ -56,13 +64,17 @@ export function SparkButton({
   });
   const dailyLimitReached = (dailyQuota?.remaining ?? 1) === 0;
 
+  const canUnspark = SUPPORTS_UNSPARK[entityType];
+
   const mutation = useMutation({
-    mutationFn: () => apiRequest("POST", ENDPOINTS[entityType](entityId)),
+    mutationFn: (action: "spark" | "unspark") =>
+      apiRequest(action === "spark" ? "POST" : "DELETE", ENDPOINTS[entityType](entityId)),
     onSuccess: () => {
       INVALIDATE_KEYS[entityType].forEach((key) =>
         queryClient.invalidateQueries({ queryKey: [key] })
       );
       queryClient.invalidateQueries({ queryKey: ["/api/sparks/daily-quota"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sparks/balance"] });
     },
     onError: (err: any) => {
       const msg = err?.message ?? "";
@@ -85,11 +97,15 @@ export function SparkButton({
     event.preventDefault();
     if (!user) return;
     if (sparkedByCurrentUser) {
-      setTooltipOpen(true);
-      setTimeout(() => setTooltipOpen(false), 2000);
+      if (canUnspark) {
+        mutation.mutate("unspark");
+      } else {
+        setTooltipOpen(true);
+        setTimeout(() => setTooltipOpen(false), 2000);
+      }
       return;
     }
-    mutation.mutate();
+    mutation.mutate("spark");
   };
 
   const disabled = dailyLimitReached && !sparkedByCurrentUser;
@@ -122,7 +138,7 @@ export function SparkButton({
           {!user
             ? "Log in to spark"
             : sparkedByCurrentUser
-            ? "Already sparked!"
+            ? canUnspark ? "Click to unspark" : "Already sparked!"
             : disabled
             ? "Daily spark limit reached (10/day)"
             : `Spark this ${entityType}`}

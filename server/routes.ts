@@ -2883,30 +2883,22 @@ export async function registerRoutes(
 
   app.get("/api/platform-history", async (req, res) => {
     try {
-      const cat = await storage.getCategoryBySlug("sevco-platform");
-      if (!cat) return res.json([]);
-      const articles = await storage.getArticlesByCategory(cat.id);
+      // Task #517 — /platform reads from the same source as /changelog
+      // (the changelog table) so the two pages cannot drift. Where a row has
+      // a wikiSlug pointing at a real wiki article, the entry deep-links;
+      // otherwise it renders without a link.
       const limitParam = req.query.limit ? parseInt(req.query.limit as string) : null;
+      const rows = await storage.getChangelog();
 
-      const detectCategory = (title: string): string => {
-        const t = title.toLowerCase();
-        if (t.includes("fix") || t.includes("patch") || t.includes("hotfix") || t.includes("bug")) return "fix";
-        if (t.includes("improv") || t.includes("update") || t.includes("optim") || t.includes("refactor")) return "improvement";
-        return "feature";
-      };
-
-      let results = articles
-        .filter((a) => a.status === "published")
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .map((a) => ({
-          id: a.id,
-          title: a.title,
-          description: a.summary ?? "",
-          version: (a.infoboxData as any)?.Version ?? null,
-          category: detectCategory(a.title),
-          slug: a.slug,
-          createdAt: a.createdAt,
-        }));
+      let results = rows.map((r) => ({
+        id: r.id,
+        title: r.title,
+        description: r.description,
+        version: r.version ?? null,
+        category: r.category,
+        slug: r.wikiSlug ?? null,
+        createdAt: r.createdAt,
+      }));
 
       if (limitParam && !isNaN(limitParam) && limitParam > 0) {
         results = results.slice(0, limitParam);

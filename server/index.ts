@@ -653,6 +653,43 @@ async function runStartupMigrations() {
     salt VARCHAR(64) NOT NULL
   );`);
 
+  // Task #517 — Backfill missing platform wiki articles for changelog rows
+  // whose wiki_slug points at platform-task-* but the article was never
+  // persisted (auto-updater used to silently swallow wiki POST failures).
+  // Idempotent: skips rows whose article already exists.
+  try {
+    const platformCat = await storage.getCategoryBySlug("sevco-platform");
+    if (platformCat) {
+      const orphans = await pool.query(
+        `SELECT c.id, c.title, c.description, c.version, c.wiki_slug, c.created_at
+           FROM changelog c
+           LEFT JOIN articles a ON a.slug = c.wiki_slug
+          WHERE c.wiki_slug LIKE 'platform-task-%'
+            AND a.id IS NULL`
+      );
+      if (orphans.rows.length > 0) {
+        let peter = await storage.getUserByUsername("Peter");
+        for (const row of orphans.rows) {
+          const versionLine = row.version ? `_Version: ${row.version}_\n\n` : "";
+          const content = `# ${row.title}\n\n${versionLine}${row.description}\n`;
+          await storage.createArticle({
+            title: row.title,
+            slug: row.wiki_slug,
+            content,
+            summary: row.description,
+            categoryId: platformCat.id,
+            status: "published",
+            tags: ["platform-history", "engineering", "backfilled"],
+            authorId: peter?.id ?? null,
+          });
+        }
+        console.log(`[startup] Task #517 backfill — created ${orphans.rows.length} missing platform wiki article(s)`);
+      }
+    }
+  } catch (err: any) {
+    console.warn("[startup] Task #517 platform-wiki backfill skipped:", err?.message ?? err);
+  }
+
   console.log("[startup] migrations applied");
 }
 

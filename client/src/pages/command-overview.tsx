@@ -1184,7 +1184,7 @@ interface PlatformHistoryEntry {
   description: string;
   version: string | null;
   category: string;
-  slug: string;
+  slug: string | null;
   createdAt: string;
 }
 

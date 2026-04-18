@@ -302,7 +302,7 @@ export default function Landing() {
     description: string;
     version: string | null;
     category: string;
-    slug: string;
+    slug: string | null;
     createdAt: string;
   }
 

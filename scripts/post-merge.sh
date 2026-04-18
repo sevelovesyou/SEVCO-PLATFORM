@@ -10,7 +10,10 @@ if [ -n "$LATEST_TASK" ]; then
   echo "Creating wiki article from task plan: $LATEST_TASK"
   node scripts/create-wiki-article.js "$LATEST_TASK" || true
   echo "Appending to update log and changelog: $LATEST_TASK"
-  node scripts/append-to-update-log.js "$LATEST_TASK" || true
+  # Task #517 — Do NOT swallow this exit code. If the wiki article POST
+  # fails the script exits non-zero; surfacing that failure here is what
+  # keeps /platform and /changelog from drifting silently.
+  node scripts/append-to-update-log.js "$LATEST_TASK"
 else
   echo "No task plan files found."
 fi

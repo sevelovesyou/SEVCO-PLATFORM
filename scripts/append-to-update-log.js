@@ -368,6 +368,9 @@ async function computePlatformTaskNum(taskFilename) {
     console.warn(`[update-log] Could not pre-check slug collision: ${err.message}`);
   }
 
+  // Task #517 — Hard-fail on wiki POST failure so /platform and /changelog
+  // cannot drift. The changelog entry below is only written if the wiki
+  // article POST succeeds, keeping the two sources in lockstep.
   try {
     const wikiResult = await postWikiArticle({
       title: platformTitle,
@@ -382,10 +385,14 @@ async function computePlatformTaskNum(taskFilename) {
       platformWikiSlug = platformSlug;
       console.log(`[update-log] Platform wiki article ${action}: "${platformTitle}" (${platformSlug})`);
     } else {
-      console.warn(`[update-log] Platform wiki article API returned ${wikiResult.status}: ${JSON.stringify(wikiResult.data)}`);
+      console.error(`[update-log] ABORT: Platform wiki article API returned ${wikiResult.status}: ${JSON.stringify(wikiResult.data)}. ` +
+        `Refusing to write changelog entry — fix the wiki side and re-run, otherwise /platform and /changelog will drift.`);
+      process.exit(1);
     }
   } catch (err) {
-    console.warn(`[update-log] Could not post platform wiki article: ${err.message}`);
+    console.error(`[update-log] ABORT: Could not post platform wiki article: ${err.message}. ` +
+      `Refusing to write changelog entry — fix the wiki side and re-run, otherwise /platform and /changelog will drift.`);
+    process.exit(1);
   }
 
   // ── 4. Create/update changelog entry with wikiSlug cross-link ──

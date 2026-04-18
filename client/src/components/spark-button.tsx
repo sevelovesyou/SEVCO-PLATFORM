@@ -112,7 +112,7 @@ export function SparkButton({
     onError: (err: any) => {
       const msg = err?.message ?? "";
       if (err?.status === 429 || msg.includes("429")) {
-        toast({ title: "Daily limit reached", description: "You can give 10 sparks per day." });
+        toast({ title: "Daily limit reached", description: "You can give 100 sparks per day." });
       } else if (err?.status === 403 || msg.includes("403")) {
         toast({ title: "Cannot spark your own content", variant: "destructive" });
       } else if (err?.status === 409 || msg.includes("409")) {
@@ -240,7 +240,7 @@ export function SparkButton({
             : sparkedByCurrentUser
             ? canUnspark ? "Click to unspark" : "Already sparked!"
             : disabled
-            ? "Daily spark limit reached (10/day)"
+            ? "Daily spark limit reached (100/day)"
             : `Spark this ${entityType}`}
         </TooltipContent>
       </Tooltip>

@@ -4541,7 +4541,7 @@ export async function registerRoutes(
       if (isNaN(postId)) return res.status(400).json({ message: "Invalid id" });
       const result = await storage.sparkPost(postId, req.user.id);
       if (result.selfSpark) return res.status(403).json({ message: "Cannot spark your own content" });
-      if (result.rateLimited) return res.status(429).json({ message: "Daily spark limit reached (10 per day)" });
+      if (result.rateLimited) return res.status(429).json({ message: "Daily spark limit reached (100 per day)" });
       if (result.alreadySparked) return res.status(409).json({ message: "Already sparked" });
       res.status(204).end();
     } catch (err: any) {
@@ -4555,7 +4555,7 @@ export async function registerRoutes(
       if (!article) return res.status(404).json({ message: "Article not found" });
       const result = await storage.sparkArticle(article.id, req.user.id);
       if (result.selfSpark) return res.status(403).json({ message: "Cannot spark your own content" });
-      if (result.rateLimited) return res.status(429).json({ message: "Daily spark limit reached (10 per day)" });
+      if (result.rateLimited) return res.status(429).json({ message: "Daily spark limit reached (100 per day)" });
       if (result.alreadySparked) return res.status(409).json({ message: "Already sparked" });
       res.status(204).end();
     } catch (err: any) {
@@ -4569,7 +4569,7 @@ export async function registerRoutes(
       if (isNaN(imageId)) return res.status(400).json({ message: "Invalid id" });
       const result = await storage.sparkGalleryImage(imageId, req.user.id);
       if (result.selfSpark) return res.status(403).json({ message: "Cannot spark your own content" });
-      if (result.rateLimited) return res.status(429).json({ message: "Daily spark limit reached (10 per day)" });
+      if (result.rateLimited) return res.status(429).json({ message: "Daily spark limit reached (100 per day)" });
       if (result.alreadySparked) return res.status(409).json({ message: "Already sparked" });
       res.status(204).end();
     } catch (err: any) {
@@ -4584,7 +4584,7 @@ export async function registerRoutes(
         if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
         const result = await fn(id, req.user.id);
         if (result.selfSpark) return res.status(403).json({ message: "Cannot spark your own content" });
-        if (result.rateLimited) return res.status(429).json({ message: "Daily spark limit reached (10 per day)" });
+        if (result.rateLimited) return res.status(429).json({ message: "Daily spark limit reached (100 per day)" });
         if (result.alreadySparked) return res.status(409).json({ message: "Already sparked" });
         res.status(204).end();
       } catch (err: any) {
@@ -9114,7 +9114,7 @@ export async function registerRoutes(
     try {
       const userId = (req.user as any)?.id as string;
       const given = await storage.getUserDailySparksGiven(userId);
-      const limit = 10;
+      const limit = 100;
       res.json({ given, limit, remaining: Math.max(0, limit - given) });
     } catch (err: any) {
       res.status(500).json({ message: err.message });

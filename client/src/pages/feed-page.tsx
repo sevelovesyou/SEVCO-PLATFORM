@@ -381,7 +381,7 @@ function SocialPostCard({
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/posts"] }),
     onError: (err: any) => {
       if (err?.message?.includes("429") || err?.status === 429) {
-        toast({ title: "Daily limit reached", description: "You can give 10 sparks per day." });
+        toast({ title: "Daily limit reached", description: "You can give 100 sparks per day." });
       } else if (err?.message?.includes("403") || err?.status === 403) {
         toast({ title: "Cannot spark your own content", variant: "destructive" });
       }
@@ -522,7 +522,7 @@ function SocialPostCard({
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  {isSparkedByMe ? "Already sparked!" : dailyLimitReached ? "Daily spark limit reached (10/day)" : "Spark this post"}
+                  {isSparkedByMe ? "Already sparked!" : dailyLimitReached ? "Daily spark limit reached (100/day)" : "Spark this post"}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

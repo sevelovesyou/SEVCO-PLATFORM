@@ -3393,7 +3393,7 @@ export class DatabaseStorage implements IStorage {
     const [existing] = await db.select().from(postSparks).where(and(eq(postSparks.postId, postId), eq(postSparks.userId, userId))).limit(1);
     if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
     const dailyCount = await this.getUserDailySparksGiven(userId);
-    if (dailyCount >= 10) return { alreadySparked: false, rateLimited: true, selfSpark: false };
+    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false };
     await db.insert(postSparks).values({ postId, userId });
     if (post?.authorId) {
       await this.creditSparks(post.authorId, 1, "social_reward", `Spark received on post #${postId}`, { metadata: { postId, fromUserId: userId } });
@@ -3407,7 +3407,7 @@ export class DatabaseStorage implements IStorage {
     const [existing] = await db.select().from(articleSparks).where(and(eq(articleSparks.articleId, articleId), eq(articleSparks.userId, userId))).limit(1);
     if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
     const dailyCount = await this.getUserDailySparksGiven(userId);
-    if (dailyCount >= 10) return { alreadySparked: false, rateLimited: true, selfSpark: false };
+    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false };
     await db.insert(articleSparks).values({ articleId, userId });
     if (article?.authorId) {
       await this.creditSparks(article.authorId, 1, "social_reward", `Spark received on article #${articleId}`, { metadata: { articleId, fromUserId: userId } });
@@ -3443,7 +3443,7 @@ export class DatabaseStorage implements IStorage {
     const [existing] = await db.select().from(gallerySparks).where(and(eq(gallerySparks.imageId, imageId), eq(gallerySparks.userId, userId))).limit(1);
     if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
     const dailyCount = await this.getUserDailySparksGiven(userId);
-    if (dailyCount >= 10) return { alreadySparked: false, rateLimited: true, selfSpark: false };
+    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false };
     await db.insert(gallerySparks).values({ imageId, userId });
     if (image?.uploadedBy) {
       await this.creditSparks(image.uploadedBy, 1, "social_reward", `Spark received on gallery image #${imageId}`, { metadata: { imageId, fromUserId: userId } });
@@ -3474,7 +3474,7 @@ export class DatabaseStorage implements IStorage {
       return { alreadySparked: false, rateLimited: false, selfSpark: false };
     }
     const dailyCount = await this.getUserDailySparksGiven(userId);
-    if (dailyCount >= 10) return { alreadySparked: false, rateLimited: true, selfSpark: false };
+    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false };
     await db.insert(trackSparks).values({ trackId, userId });
     await db.update(musicTracks)
       .set({ sparkCount: sql`${musicTracks.sparkCount} + 1` })
@@ -3502,7 +3502,7 @@ export class DatabaseStorage implements IStorage {
     const [existing] = await db.select().from(productSparks).where(and(eq(productSparks.productId, productId), eq(productSparks.userId, userId))).limit(1);
     if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
     const dailyCount = await this.getUserDailySparksGiven(userId);
-    if (dailyCount >= 10) return { alreadySparked: false, rateLimited: true, selfSpark: false };
+    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false };
     await db.insert(productSparks).values({ productId, userId });
     return { alreadySparked: false, rateLimited: false, selfSpark: false };
   }
@@ -3513,7 +3513,7 @@ export class DatabaseStorage implements IStorage {
     const [existing] = await db.select().from(projectSparks).where(and(eq(projectSparks.projectId, projectId), eq(projectSparks.userId, userId))).limit(1);
     if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
     const dailyCount = await this.getUserDailySparksGiven(userId);
-    if (dailyCount >= 10) return { alreadySparked: false, rateLimited: true, selfSpark: false };
+    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false };
     await db.insert(projectSparks).values({ projectId, userId });
     if (project?.leadUserId) {
       await this.creditSparks(project.leadUserId, 1, "social_reward", `Spark received on project #${projectId}`, { metadata: { projectId, fromUserId: userId } });
@@ -3527,7 +3527,7 @@ export class DatabaseStorage implements IStorage {
     const [existing] = await db.select().from(serviceSparks).where(and(eq(serviceSparks.serviceId, serviceId), eq(serviceSparks.userId, userId))).limit(1);
     if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
     const dailyCount = await this.getUserDailySparksGiven(userId);
-    if (dailyCount >= 10) return { alreadySparked: false, rateLimited: true, selfSpark: false };
+    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false };
     await db.insert(serviceSparks).values({ serviceId, userId });
     if (service?.leadUserId) {
       await this.creditSparks(service.leadUserId, 1, "social_reward", `Spark received on service #${serviceId}`, { metadata: { serviceId, fromUserId: userId } });

@@ -28841,3 +28841,40 @@ Two small but impactful fixes in the Command Center:
 
 ---
 
+## Task — analytics-create-missing-pageviews-tables
+> Merged: 2026-04-18
+
+# Fix Analytics dashboard — create missing pageviews tables
+
+  ## What & Why
+  The Command Center "Traffic" dashboard at /command/traffic shows "Error loading summary" with a Postgres error referencing visitor_hash / session_hash on a non-existent pageviews table. Root cause: the schema for the new first-party analytics (Tasks #416/#417) defines `pageviews` and `analytics_salts` in shared/schema.ts and even ships a migrations/0003_add_internal_analytics_tables.sql, but the live database has neither table. The startup "migrations applied" log line in server/index.ts is misleading — that block hand-rolls a few CREATE TABLE statements but never picks up the SQL files in /migrations and never runs drizzle's migrator. So the analytics tables silently never exist in production.
+
+  ## Done looks like
+  - /command/traffic loads with no error banner: summary cards (users / sessions / pageviews / bounce rate), the sessions-over-time chart, top pages, sources, countries, devices, and the realtime active-users number all render.
+  - The pageviews table exists with the exact columns/indexes from migrations/0003_add_internal_analytics_tables.sql, and analytics_salts exists with day + salt.
+  - Loading any non-admin page on the local dev or production app produces a row in pageviews within ~1 s (verified by SELECT count(*) before/after).
+  - The local "Start application" workflow comes back up cleanly (port 5000 free).
+
+  ## Out of scope
+  - Wiring drizzle-kit's real migration runner into startup. That's a separate hardening task — for now we just fold the missing CREATE TABLE statements into the existing hand-rolled startup block so deploys self-heal.
+  - Backfilling historical pageviews. The dashboard will simply read 0 for the period before the table existed.
+  - Any UI changes to /command/traffic.
+
+  ## Steps
+  1. **Restart the dead local dev workflow** — Resolve the port-5000 EADDRINUSE so we can verify changes locally before deploy.
+  2. **Fold the analytics CREATE TABLE statements into startup migrations** — In server/index.ts (the same hand-rolled migrations block ending around line 587 with `console.log("[startup] migrations applied")`), append `CREATE TABLE IF NOT EXISTS pageviews (...)` and `CREATE TABLE IF NOT EXISTS analytics_salts (...)` plus the four supporting indexes, copied verbatim from migrations/0003_add_internal_analytics_tables.sql so the columns / types / index names match the Drizzle schema in shared/schema.ts:1398-1418. Use `IF NOT EXISTS` everywhere so re-running is a no-op.
+  3. **Apply the new tables to the dev database immediately** — After the edit, restart Start application so the startup block runs and creates the tables locally. (As a belt-and-suspenders, also run `npm run db:push --force` so any future schema drift between shared/schema.ts and the DB is caught.)
+  4. **Verify locally** — Open /command/traffic in the local preview and confirm the error banner is gone. Hit a couple of pages to generate pageviews, refresh /command/traffic, and confirm at least one row appears in the totals card and the top-pages list.
+  5. **Deploy and verify on sev.cx** — Publish, then load /command/traffic on sev.cx and confirm it renders without errors. Also visit a public page once to seed a pageview row, then refresh and confirm the count increments.
+
+  ## Relevant files
+  - `server/index.ts:586-587` — the hand-rolled "migrations applied" block; add the two CREATE TABLE statements + indexes here
+  - `migrations/0003_add_internal_analytics_tables.sql` — copy the SQL verbatim from this file
+  - `shared/schema.ts:1398-1418` — pageviews + analytics_salts Drizzle definitions; column names / types must match what we CREATE
+  - `server/internalAnalytics.ts` — the queries that were failing; no changes needed, but useful to re-read once the tables exist
+  - `client/src/pages/command-traffic.tsx` — the dashboard page; confirms the wiring after the fix
+  - `client/src/lib/analytics-tracker.ts` — sends the pageview events; useful for the verification step
+
+
+---
+

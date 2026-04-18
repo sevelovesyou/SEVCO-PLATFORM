@@ -50,6 +50,7 @@ import { isUsernameReserved } from "./usernameUtils";
 import { db } from "./db";
 import { sql, eq, and, desc } from "drizzle-orm";
 import { posts, revisions, galleryImages, articles as articlesSchema, categories as categoriesSchema } from "@shared/schema";
+import { ONBOARDING_TASKS } from "@shared/onboarding";
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive"];
 const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
@@ -4415,7 +4416,30 @@ export async function registerRoutes(
       const hasFollow = followingCount > 0;
       const socialLinks = user.socialLinks as Record<string, string | null> | null;
       const hasSocialLink = !!(socialLinks && Object.values(socialLinks).some((v) => v && v.trim().length > 0));
-      res.json({ hasAvatar, hasBio, hasPost, hasFollow, hasSocialLink });
+      const [hasSparkedPost, hasSparkedArticle, hasSparkedTrack] = await Promise.all([
+        storage.hasUserSparkedAnyPost(userId),
+        storage.hasUserSparkedAnyArticle(userId),
+        storage.hasUserSparkedAnyTrack(userId),
+      ]);
+
+      const booleans: Record<string, boolean> = {
+        hasAvatar, hasBio, hasPost, hasFollow, hasSocialLink,
+        hasSparkedPost, hasSparkedArticle, hasSparkedTrack,
+      };
+
+      const bonusesGrantedThisRequest: string[] = [];
+      for (const task of ONBOARDING_TASKS) {
+        if (booleans[task.key]) {
+          try {
+            const granted = await storage.creditOnboardingBonus(userId, task.key, task.label, task.bonusSparks);
+            if (granted) bonusesGrantedThisRequest.push(task.key);
+          } catch (err) {
+            console.error(`[onboarding-bonus] failed for user=${userId} task=${task.key}`, err);
+          }
+        }
+      }
+
+      res.json({ ...booleans, bonusesGrantedThisRequest });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

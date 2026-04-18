@@ -472,6 +472,10 @@ export interface IStorage {
 
   getUserSparksBalance(userId: string): Promise<number>;
   creditSparks(userId: string, amount: number, type: string, description: string, opts?: { stripeSessionId?: string; metadata?: object }): Promise<void>;
+  hasUserSparkedAnyPost(userId: string): Promise<boolean>;
+  hasUserSparkedAnyArticle(userId: string): Promise<boolean>;
+  hasUserSparkedAnyTrack(userId: string): Promise<boolean>;
+  creditOnboardingBonus(userId: string, taskKey: string, label: string, amount: number): Promise<boolean>;
   debitSparks(userId: string, amount: number, type: string, description: string, opts?: { metadata?: object; allowOverdraft?: boolean }): Promise<void>;
   getUserSparkTransactions(userId: string, limit?: number, offset?: number): Promise<SparkTransaction[]>;
   getAllSparkTransactions(filters?: { userId?: string; type?: string; dateFrom?: Date; dateTo?: Date }, limit?: number, offset?: number): Promise<{ transactions: Array<SparkTransaction & { username: string; displayName: string | null }>; total: number }>;
@@ -3141,6 +3145,46 @@ export class DatabaseStorage implements IStorage {
     await db.transaction(async (tx) => {
       await this.applyCreditInTx(tx, userId, amount, type, description, opts);
     });
+  }
+
+  async hasUserSparkedAnyPost(userId: string): Promise<boolean> {
+    const [row] = await db.select({ id: postSparks.postId }).from(postSparks).where(eq(postSparks.userId, userId)).limit(1);
+    return !!row;
+  }
+
+  async hasUserSparkedAnyArticle(userId: string): Promise<boolean> {
+    const [row] = await db.select({ id: articleSparks.articleId }).from(articleSparks).where(eq(articleSparks.userId, userId)).limit(1);
+    return !!row;
+  }
+
+  async hasUserSparkedAnyTrack(userId: string): Promise<boolean> {
+    const [row] = await db
+      .select({ id: trackSparks.trackId })
+      .from(trackSparks)
+      .where(and(eq(trackSparks.userId, userId), isNull(trackSparks.revokedAt)))
+      .limit(1);
+    return !!row;
+  }
+
+  async creditOnboardingBonus(userId: string, taskKey: string, label: string, amount: number): Promise<boolean> {
+    try {
+      await db.transaction(async (tx) => {
+        await this.applyCreditInTx(
+          tx,
+          userId,
+          amount,
+          "onboarding_bonus",
+          `Onboarding bonus: ${label}`,
+          { metadata: { taskKey } },
+        );
+      });
+      return true;
+    } catch (err: any) {
+      const isUniqueViolation =
+        err?.code === "23505" || err?.message?.includes("spark_txn_onboarding_task_idx");
+      if (isUniqueViolation) return false;
+      throw err;
+    }
   }
 
   async debitSparks(userId: string, amount: number, type: string, description: string, opts?: { metadata?: object; allowOverdraft?: boolean }): Promise<void> {

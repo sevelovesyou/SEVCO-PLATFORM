@@ -351,6 +351,7 @@ async function runStartupMigrations() {
   );`);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS spark_txn_stripe_session_idx ON spark_transactions (stripe_session_id) WHERE stripe_session_id IS NOT NULL;`);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS spark_txn_free_allocation_month_idx ON spark_transactions (user_id, date_trunc('month', created_at)) WHERE type = 'free_allocation';`);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS spark_txn_onboarding_task_idx ON spark_transactions (user_id, (metadata->>'taskKey')) WHERE type = 'onboarding_bonus';`);
   // Task #236 — Live Markets
   await pool.query(`CREATE TABLE IF NOT EXISTS market_data (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,

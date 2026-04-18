@@ -1,5 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { queryClient } from "@/lib/queryClient";
 import {
   Sidebar,
   SidebarContent,
@@ -24,6 +26,7 @@ import {
   Users,
   Link as LinkIcon,
   Compass,
+  Zap,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -37,6 +40,10 @@ type OnboardingProgress = {
   hasPost: boolean;
   hasFollow: boolean;
   hasSocialLink: boolean;
+  hasSparkedPost: boolean;
+  hasSparkedArticle: boolean;
+  hasSparkedTrack: boolean;
+  bonusesGrantedThisRequest?: string[];
 };
 
 type ProfileData = {
@@ -68,6 +75,18 @@ export function SocialSidebar() {
     enabled: !!user,
   });
 
+  const lastBonusKeyRef = useRef<string>("");
+  useEffect(() => {
+    const granted = onboarding?.bonusesGrantedThisRequest;
+    if (granted && granted.length > 0) {
+      const sig = granted.join(",");
+      if (sig !== lastBonusKeyRef.current) {
+        lastBonusKeyRef.current = sig;
+        queryClient.invalidateQueries({ queryKey: ["/api/sparks/balance"] });
+      }
+    }
+  }, [onboarding?.bonusesGrantedThisRequest]);
+
   const navItems = [
     { title: "Feed", url: "/feed", icon: Rss },
     { title: "Discover", url: "/discover", icon: Compass },
@@ -81,6 +100,9 @@ export function SocialSidebar() {
     { key: "hasPost", label: "Make your first post", icon: MessageSquare, done: onboarding?.hasPost ?? false },
     { key: "hasFollow", label: "Follow someone", icon: Users, done: onboarding?.hasFollow ?? false },
     { key: "hasSocialLink", label: "Connect a social link", icon: LinkIcon, done: onboarding?.hasSocialLink ?? false },
+    { key: "hasSparkedPost", label: "Spark a Post", icon: Zap, done: onboarding?.hasSparkedPost ?? false },
+    { key: "hasSparkedArticle", label: "Spark an Article", icon: Zap, done: onboarding?.hasSparkedArticle ?? false },
+    { key: "hasSparkedTrack", label: "Spark a Song", icon: Zap, done: onboarding?.hasSparkedTrack ?? false },
   ];
 
   function isActive(url: string) {
@@ -187,7 +209,13 @@ export function SocialSidebar() {
                       <div className={`h-4 w-4 rounded-full flex items-center justify-center shrink-0 ${task.done ? "bg-green-500/20 text-green-600" : "bg-muted"}`}>
                         {task.done ? <Check className="h-2.5 w-2.5" /> : <task.icon className="h-2.5 w-2.5 text-muted-foreground" />}
                       </div>
-                      <span>{task.label}</span>
+                      <span className="flex-1 min-w-0 truncate">{task.label}</span>
+                      <span
+                        className={`shrink-0 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${task.done ? "bg-muted text-muted-foreground" : "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400"}`}
+                        data-testid={`onboarding-bonus-${task.key}`}
+                      >
+                        +25 ⚡
+                      </span>
                     </div>
                   ))}
                 </div>

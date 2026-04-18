@@ -95,6 +95,7 @@ const TRANSACTION_TYPE_STYLES: Record<string, string> = {
   freeball_sphere_unlock: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
   social_reward: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
   freeball_item_purchase: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
+  onboarding_bonus: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
 };
 
 const TRANSACTION_TYPE_LABELS: Record<string, string> = {
@@ -107,12 +108,14 @@ const TRANSACTION_TYPE_LABELS: Record<string, string> = {
   freeball_sphere_unlock: "Freeball Unlock",
   social_reward: "Social Reward",
   freeball_item_purchase: "Freeball Item",
+  onboarding_bonus: "Onboarding bonus",
 };
 
 const ALL_TYPES = [
   "purchase", "free_allocation", "admin_credit", "admin_debit",
   "usage", "refund", "social_reward",
   "freeball_sphere_unlock", "freeball_item_purchase",
+  "onboarding_bonus",
 ];
 
 function formatTimestamp(ts: string) {

@@ -1221,7 +1221,11 @@ export const sparkTransactions = pgTable("spark_transactions", {
   stripeSessionId: text("stripe_session_id"),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (t) => [
+  uniqueIndex("spark_txn_onboarding_task_idx")
+    .on(t.userId, sql`(metadata->>'taskKey')`)
+    .where(sql`type = 'onboarding_bonus'`),
+]);
 
 export const sparkPacks = pgTable("spark_packs", {
   id: serial("id").primaryKey(),

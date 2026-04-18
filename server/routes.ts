@@ -2480,10 +2480,13 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/store/products", async (_req, res) => {
+  app.get("/api/store/products", async (req, res) => {
     try {
       const all = await storage.getProducts();
-      res.json(all);
+      const ids = all.map((p) => p.id);
+      const counts = await storage.getProductSparkCounts(ids);
+      const mySet = req.isAuthenticated() ? await storage.getProductSparkedByUser(ids, (req.user as any).id) : new Set<number>();
+      res.json(all.map((p) => ({ ...p, sparkCount: counts.get(p.id) ?? 0, sparkedByCurrentUser: mySet.has(p.id) })));
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -2497,7 +2500,8 @@ export async function registerRoutes(
     try {
       const product = await storage.getProductBySlug(req.params.slug);
       if (!product) return res.status(404).json({ message: "Product not found" });
-      res.json(product);
+      const info = await storage.getProductSparkInfo(product.id, req.isAuthenticated() ? (req.user as any).id : undefined);
+      res.json({ ...product, sparkCount: info.sparkCount, sparkedByCurrentUser: info.isSparkedByMe });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -2747,12 +2751,15 @@ export async function registerRoutes(
     try {
       const all = await storage.getProjects();
       const isStaff = req.isAuthenticated() && ["admin", "executive", "staff"].includes((req.user as any)?.role ?? "");
-      const projects = isStaff
+      const projectsList = isStaff
         ? all
         : all.map(({ budget, financialStatus, isPublicBudget, ...rest }) =>
             isPublicBudget ? { ...rest, budget, financialStatus, isPublicBudget } : rest
           );
-      res.json(projects);
+      const ids = all.map((p) => p.id);
+      const counts = await storage.getProjectSparkCounts(ids);
+      const mySet = req.isAuthenticated() ? await storage.getProjectSparkedByUser(ids, (req.user as any).id) : new Set<number>();
+      res.json(projectsList.map((p: any) => ({ ...p, sparkCount: counts.get(p.id) ?? 0, sparkedByCurrentUser: mySet.has(p.id) })));
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -2766,12 +2773,13 @@ export async function registerRoutes(
     try {
       const project = await storage.getProjectBySlug(req.params.slug);
       if (!project) return res.status(404).json({ message: "Project not found" });
+      const info = await storage.getProjectSparkInfo(project.id, req.isAuthenticated() ? (req.user as any).id : undefined);
       const isStaff = req.isAuthenticated() && ["admin", "executive", "staff"].includes((req.user as any)?.role ?? "");
       if (!isStaff && !project.isPublicBudget) {
         const { budget, financialStatus, isPublicBudget, ...rest } = project;
-        return res.json(rest);
+        return res.json({ ...rest, sparkCount: info.sparkCount, sparkedByCurrentUser: info.isSparkedByMe });
       }
-      res.json(project);
+      res.json({ ...project, sparkCount: info.sparkCount, sparkedByCurrentUser: info.isSparkedByMe });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -3228,7 +3236,10 @@ export async function registerRoutes(
       const showAll = req.query.all === "true" && req.isAuthenticated() &&
         ["admin", "executive", "staff"].includes((req.user as any)?.role ?? "");
       const result = showAll ? all : all.filter((s) => s.status === "active");
-      res.json(result);
+      const ids = result.map((s) => s.id);
+      const counts = await storage.getServiceSparkCounts(ids);
+      const mySet = req.isAuthenticated() ? await storage.getServiceSparkedByUser(ids, (req.user as any).id) : new Set<number>();
+      res.json(result.map((s) => ({ ...s, sparkCount: counts.get(s.id) ?? 0, sparkedByCurrentUser: mySet.has(s.id) })));
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -3238,7 +3249,8 @@ export async function registerRoutes(
     try {
       const service = await storage.getServiceBySlug(req.params.slug);
       if (!service) return res.status(404).json({ message: "Service not found" });
-      res.json(service);
+      const info = await storage.getServiceSparkInfo(service.id, req.isAuthenticated() ? (req.user as any).id : undefined);
+      res.json({ ...service, sparkCount: info.sparkCount, sparkedByCurrentUser: info.isSparkedByMe });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -3775,7 +3787,10 @@ export async function registerRoutes(
         artistId: artistId !== undefined && !isNaN(artistId) ? artistId : undefined,
         albumName,
       });
-      res.json(tracks);
+      const ids = tracks.map((t) => t.id);
+      const counts = await storage.getTrackSparkCounts(ids);
+      const mySet = req.isAuthenticated() ? await storage.getTrackSparkedByUser(ids, (req.user as any).id) : new Set<number>();
+      res.json(tracks.map((t) => ({ ...t, sparkCount: counts.get(t.id) ?? 0, sparkedByCurrentUser: mySet.has(t.id) })));
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -3786,7 +3801,8 @@ export async function registerRoutes(
       const id = parseInt(req.params.id);
       const track = await storage.getMusicTrackById(id);
       if (!track) return res.status(404).json({ message: "Track not found" });
-      res.json(track);
+      const info = await storage.getTrackSparkInfo(id, req.isAuthenticated() ? (req.user as any).id : undefined);
+      res.json({ ...track, sparkCount: info.sparkCount, sparkedByCurrentUser: info.isSparkedByMe });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -4433,6 +4449,27 @@ export async function registerRoutes(
     }
   });
 
+  function makeSparkHandler(fn: (id: number, userId: string) => Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>) {
+    return async (req: any, res: any) => {
+      try {
+        const id = parseInt(req.params.id);
+        if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+        const result = await fn(id, req.user.id);
+        if (result.selfSpark) return res.status(403).json({ message: "Cannot spark your own content" });
+        if (result.rateLimited) return res.status(429).json({ message: "Daily spark limit reached (10 per day)" });
+        if (result.alreadySparked) return res.status(409).json({ message: "Already sparked" });
+        res.status(204).end();
+      } catch (err: any) {
+        res.status(500).json({ message: err.message });
+      }
+    };
+  }
+
+  app.post("/api/music/tracks/:id/spark", requireAuth, makeSparkHandler((id, uid) => storage.sparkTrack(id, uid)));
+  app.post("/api/store/products/:id/spark", requireAuth, makeSparkHandler((id, uid) => storage.sparkProduct(id, uid)));
+  app.post("/api/projects/:id/spark", requireAuth, makeSparkHandler((id, uid) => storage.sparkProject(id, uid)));
+  app.post("/api/services/:id/spark", requireAuth, makeSparkHandler((id, uid) => storage.sparkService(id, uid)));
+
   // Discover / user search routes
   app.get("/api/users/top", async (req: any, res) => {
     try {
@@ -4451,6 +4488,16 @@ export async function registerRoutes(
       const currentUserId = req.user?.id;
       const results = await storage.searchUsers(q, currentUserId);
       res.json(results);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/users/by-id/:id", async (req, res) => {
+    try {
+      const u = await storage.getUser(req.params.id);
+      if (!u) return res.status(404).json({ message: "Not found" });
+      res.json({ id: u.id, username: u.username, displayName: u.displayName, avatarUrl: u.avatarUrl });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

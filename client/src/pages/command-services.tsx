@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useDeferredValue } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,6 +49,7 @@ const formSchema = z.object({
     (val) => !val || val === "" || val.startsWith("/") || val.startsWith("http://") || val.startsWith("https://"),
     { message: "Must be an internal path (/path) or full URL (https://...)" }
   ).optional(),
+  leadUserId: z.string().optional().nullable(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -100,6 +101,7 @@ function ServiceForm({
       status: (initialData?.status as FormValues["status"]) ?? "active",
       featured: initialData?.featured ?? false,
       linkUrl: initialData?.linkUrl ?? "",
+      leadUserId: (initialData as any)?.leadUserId ?? null,
     },
   });
 
@@ -253,6 +255,19 @@ function ServiceForm({
                 data-testid="textarea-service-description"
               />
             </FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
+
+        <FormField control={form.control} name="leadUserId" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Lead User (for Sparks credit)</FormLabel>
+            <FormControl>
+              <LeadUserPicker value={field.value ?? null} onChange={field.onChange} testId="picker-service-lead-user" />
+            </FormControl>
+            <FormDescription className="text-xs">
+              Sparks given to this service will be credited to this user.
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )} />
@@ -869,6 +884,79 @@ export default function CommandServices() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+interface LeadUserPickerProps {
+  value: string | null;
+  onChange: (val: string | null) => void;
+  testId?: string;
+}
+
+function LeadUserPicker({ value, onChange, testId }: LeadUserPickerProps) {
+  const [search, setSearch] = useState("");
+  const debounced = useDeferredValue(search);
+
+  const { data: selectedUser } = useQuery<{ id: string; username: string; displayName: string | null } | null>({
+    queryKey: ["/api/users/by-id", value],
+    enabled: !!value,
+    queryFn: async () => {
+      if (!value) return null;
+      const res = await fetch(`/api/users/by-id/${value}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+  });
+
+  const { data: results = [] } = useQuery<Array<{ id: string; username: string; displayName: string | null }>>({
+    queryKey: ["/api/users/search", debounced],
+    enabled: debounced.trim().length >= 2,
+    queryFn: async () => {
+      const res = await fetch(`/api/users/search?q=${encodeURIComponent(debounced)}`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  if (value && selectedUser) {
+    return (
+      <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50" data-testid={testId}>
+        <span className="text-sm flex-1">
+          {selectedUser.displayName ?? selectedUser.username}
+          <span className="text-muted-foreground text-xs ml-1.5">@{selectedUser.username}</span>
+        </span>
+        <Button type="button" variant="ghost" size="sm" onClick={() => onChange(null)} data-testid={`${testId}-clear`}>
+          Clear
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2" data-testid={testId}>
+      <Input
+        placeholder="Search by username or display name…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        data-testid={`${testId}-input`}
+      />
+      {results.length > 0 && (
+        <div className="border rounded-md max-h-48 overflow-y-auto divide-y">
+          {results.map((u) => (
+            <button
+              key={u.id}
+              type="button"
+              className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
+              onClick={() => { onChange(u.id); setSearch(""); }}
+              data-testid={`${testId}-option-${u.id}`}
+            >
+              {u.displayName ?? u.username}
+              <span className="text-muted-foreground text-xs ml-1.5">@{u.username}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

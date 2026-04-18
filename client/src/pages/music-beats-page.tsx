@@ -7,6 +7,10 @@ import { Play, Headphones, Drum, Music2, Download } from "lucide-react";
 import type { MusicTrack } from "@shared/schema";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { useMusicPlayer } from "@/contexts/music-player-context";
+import { useAuth } from "@/hooks/use-auth";
+import { SparkButton } from "@/components/spark-button";
+
+type BeatTrack = MusicTrack & { sparkCount?: number; sparkedByCurrentUser?: boolean };
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return "";
@@ -21,8 +25,9 @@ function formatStreamCount(count: number): string {
   return String(count);
 }
 
-function BeatCard({ track, allTracks }: { track: MusicTrack; allTracks: MusicTrack[] }) {
+function BeatCard({ track, allTracks }: { track: BeatTrack; allTracks: BeatTrack[] }) {
   const { playTrack } = useMusicPlayer();
+  const { user } = useAuth();
 
   function handlePlay() {
     const queue = allTracks.filter((t) => t.id !== track.id);
@@ -73,7 +78,14 @@ function BeatCard({ track, allTracks }: { track: MusicTrack; allTracks: MusicTra
             <Headphones className="h-3 w-3" />
             <span data-testid={`text-beat-streams-${track.id}`}>{formatStreamCount(track.streamCount)}</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <SparkButton
+              entityType="track"
+              entityId={track.id}
+              sparkCount={track.sparkCount ?? 0}
+              sparkedByCurrentUser={track.sparkedByCurrentUser ?? false}
+              isOwner={!!user?.linkedArtistId && user.linkedArtistId === track.artistId}
+            />
             {track.duration && (
               <span className="text-[11px] text-muted-foreground" data-testid={`text-beat-duration-${track.id}`}>
                 {formatDuration(track.duration)}

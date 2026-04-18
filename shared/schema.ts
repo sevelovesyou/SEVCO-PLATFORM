@@ -241,6 +241,7 @@ export const projects = pgTable("projects", {
   category: text("category"),
   websiteUrl: text("website_url"),
   teamLead: text("team_lead"),
+  leadUserId: varchar("lead_user_id").references(() => users.id, { onDelete: "set null" }),
   relatedWikiSlugs: text("related_wiki_slugs").array(),
   featured: boolean("featured").default(false),
   heroImageUrl: text("hero_image_url"),
@@ -271,6 +272,7 @@ export const services = pgTable("services", {
   status: text("status").notNull().default("active"),
   featured: boolean("featured").default(false),
   linkUrl: text("link_url"),
+  leadUserId: varchar("lead_user_id").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -802,6 +804,30 @@ export const gallerySparks = pgTable("gallery_sparks", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [uniqueIndex("gallery_sparks_image_user_idx").on(t.imageId, t.userId)]);
+
+export const trackSparks = pgTable("track_sparks", {
+  trackId: integer("track_id").notNull().references((): AnyPgColumn => musicTracks.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("track_sparks_track_user_idx").on(t.trackId, t.userId)]);
+
+export const productSparks = pgTable("product_sparks", {
+  productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("product_sparks_product_user_idx").on(t.productId, t.userId)]);
+
+export const projectSparks = pgTable("project_sparks", {
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("project_sparks_project_user_idx").on(t.projectId, t.userId)]);
+
+export const serviceSparks = pgTable("service_sparks", {
+  serviceId: integer("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("service_sparks_service_user_idx").on(t.serviceId, t.userId)]);
 
 export const spotifyArtists = pgTable("spotify_artists", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),

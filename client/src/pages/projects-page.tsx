@@ -11,6 +11,10 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermission } from "@/hooks/use-permission";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
 import type { Project } from "@shared/schema";
+import { SparkButton } from "@/components/spark-button";
+import { useAuth } from "@/hooks/use-auth";
+
+type ProjectWithSpark = Project & { sparkCount?: number; sparkedByCurrentUser?: boolean };
 
 const CAN_MANAGE_PROJECTS = ["admin", "executive", "staff"];
 
@@ -70,7 +74,8 @@ function resolveLucideIcon(name: string | null | undefined): React.ElementType |
   return null;
 }
 
-function ProjectCard({ project }: { project: Project }) {
+function ProjectCard({ project }: { project: ProjectWithSpark }) {
+  const { user } = useAuth();
   const MenuIcon = resolveLucideIcon(project.menuIcon) ?? Folder;
   const href = project.linkUrl || `/projects/${project.slug}`;
   const isExternal = href.startsWith("http");
@@ -105,9 +110,18 @@ function ProjectCard({ project }: { project: Project }) {
         </div>
         <div className="flex items-center justify-between pt-1">
           <TypeBadge type={project.type} />
-          {project.websiteUrl && (
-            <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-          )}
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <SparkButton
+              entityType="project"
+              entityId={project.id}
+              sparkCount={project.sparkCount ?? 0}
+              sparkedByCurrentUser={project.sparkedByCurrentUser ?? false}
+              isOwner={!!user?.id && user.id === project.leadUserId}
+            />
+            {project.websiteUrl && (
+              <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+            )}
+          </div>
         </div>
       </div>
   );
@@ -152,7 +166,7 @@ export default function ProjectsPage() {
   const canManage = role && CAN_MANAGE_PROJECTS.includes(role);
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const { data: allProjects = [], isLoading } = useQuery<Project[]>({
+  const { data: allProjects = [], isLoading } = useQuery<ProjectWithSpark[]>({
     queryKey: ["/api/projects"],
   });
 

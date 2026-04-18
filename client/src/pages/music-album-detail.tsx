@@ -9,10 +9,12 @@ import { Disc, Users, ChevronLeft, Music, Play, BarChart2 } from "lucide-react";
 import type { Artist, Album, MusicTrack, Playlist } from "@shared/schema";
 import { useSpotifyPlayer } from "@/hooks/use-spotify-player";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
+import { useAuth } from "@/hooks/use-auth";
+import { SparkButton } from "@/components/spark-button";
 
 type AlbumDetail = Album & { artist: Artist };
 type ArtistWithLinked = Artist & { linkedUsername: string | null };
-type TrackWithMeta = MusicTrack & { artist: { id: number; name: string } | null };
+type TrackWithMeta = MusicTrack & { artist: { id: number; name: string } | null; sparkCount?: number; sparkedByCurrentUser?: boolean };
 
 function formatStreamCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -45,6 +47,7 @@ export default function MusicAlbumDetail() {
   const [, params] = useRoute("/music/albums/:slug");
   const slug = params?.slug;
   const { play } = useSpotifyPlayer();
+  const { user } = useAuth();
 
   const { data: album, isLoading, isError } = useQuery<AlbumDetail>({
     queryKey: ["/api/music/albums", slug],
@@ -219,6 +222,15 @@ export default function MusicAlbumDetail() {
                   <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
                     {formatDuration(track.duration)}
                   </span>
+                  <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+                    <SparkButton
+                      entityType="track"
+                      entityId={track.id}
+                      sparkCount={track.sparkCount ?? 0}
+                      sparkedByCurrentUser={track.sparkedByCurrentUser ?? false}
+                      isOwner={!!user?.linkedArtistId && user.linkedArtistId === track.artistId}
+                    />
+                  </div>
                   {track.fileUrl && (
                     <Button
                       variant="ghost"

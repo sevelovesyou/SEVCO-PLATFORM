@@ -60,7 +60,7 @@ import {
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
   posts, postReplies, userFollows,
   noteCollaborators, noteAttachments, platformSettings, brandAssets, shaderPresets, resources, galleryImages, spotifyArtists,
-  postSparks, articleSparks, gallerySparks,
+  postSparks, articleSparks, gallerySparks, trackSparks, productSparks, projectSparks, serviceSparks,
   contactSubmissions,
   staffOrgNodes,
   chatChannels, chatMessages,
@@ -487,8 +487,24 @@ export interface IStorage {
   sparkPost(postId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
   sparkArticle(articleId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
   sparkGalleryImage(imageId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
+  sparkTrack(trackId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
+  sparkProduct(productId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
+  sparkProject(projectId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
+  sparkService(serviceId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
   getArticleSparkInfo(articleId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }>;
   getGallerySparkInfo(imageId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }>;
+  getTrackSparkInfo(trackId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }>;
+  getProductSparkInfo(productId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }>;
+  getProjectSparkInfo(projectId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }>;
+  getServiceSparkInfo(serviceId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }>;
+  getTrackSparkCounts(trackIds: number[]): Promise<Map<number, number>>;
+  getTrackSparkedByUser(trackIds: number[], userId: string): Promise<Set<number>>;
+  getProductSparkCounts(productIds: number[]): Promise<Map<number, number>>;
+  getProductSparkedByUser(productIds: number[], userId: string): Promise<Set<number>>;
+  getProjectSparkCounts(projectIds: number[]): Promise<Map<number, number>>;
+  getProjectSparkedByUser(projectIds: number[], userId: string): Promise<Set<number>>;
+  getServiceSparkCounts(serviceIds: number[]): Promise<Map<number, number>>;
+  getServiceSparkedByUser(serviceIds: number[], userId: string): Promise<Set<number>>;
   getTopSparkedPostsByUser(userId: string, limit?: number): Promise<Array<{ id: number; content: string; imageUrl: string | null; createdAt: Date; sparkCount: number }>>;
   getSocialSparkStats(): Promise<{
     totalIssued: number;
@@ -496,6 +512,10 @@ export interface IStorage {
     totalPostSparksGiven: number;
     totalArticleSparksGiven: number;
     totalGallerySparksGiven: number;
+    totalTrackSparksGiven: number;
+    totalProductSparksGiven: number;
+    totalProjectSparksGiven: number;
+    totalServiceSparksGiven: number;
     topRewardedCreatorThisMonth: { username: string; displayName: string | null; sparksReceived: number } | null;
     topItems: Array<{ type: string; title: string; sparkCount: number; id: number | string; slug?: string; authorUsername?: string; uploaderUsername?: string }>;
   }>;
@@ -503,7 +523,7 @@ export interface IStorage {
   getSparksLeaderboard(period: "month" | "all"): Promise<{
     topCreators: { userId: string; username: string; displayName: string | null; avatarUrl: string | null; sparksReceived: number }[];
     topPosts: { id: number; content: string; authorUsername: string; authorDisplayName: string | null; sparksReceived: number }[];
-    topContent: { id: number; title: string; contentType: "article" | "gallery"; sparksReceived: number }[];
+    topContent: { id: number; title: string; contentType: "article" | "gallery" | "track" | "product" | "project" | "service"; slug?: string | null; sparksReceived: number }[];
   }>;
 
   getWikiSources(): Promise<WikiSource[]>;
@@ -3231,7 +3251,25 @@ export class DatabaseStorage implements IStorage {
       .select({ count: countFn() })
       .from(gallerySparks)
       .where(and(eq(gallerySparks.userId, userId), gte(gallerySparks.createdAt, today)));
-    return (postCount[0]?.count ?? 0) + (articleCount[0]?.count ?? 0) + (galleryCount[0]?.count ?? 0);
+    const trackCount = await db
+      .select({ count: countFn() })
+      .from(trackSparks)
+      .where(and(eq(trackSparks.userId, userId), gte(trackSparks.createdAt, today)));
+    const productCount = await db
+      .select({ count: countFn() })
+      .from(productSparks)
+      .where(and(eq(productSparks.userId, userId), gte(productSparks.createdAt, today)));
+    const projectCount = await db
+      .select({ count: countFn() })
+      .from(projectSparks)
+      .where(and(eq(projectSparks.userId, userId), gte(projectSparks.createdAt, today)));
+    const serviceCount = await db
+      .select({ count: countFn() })
+      .from(serviceSparks)
+      .where(and(eq(serviceSparks.userId, userId), gte(serviceSparks.createdAt, today)));
+    return (postCount[0]?.count ?? 0) + (articleCount[0]?.count ?? 0) + (galleryCount[0]?.count ?? 0)
+      + (trackCount[0]?.count ?? 0) + (productCount[0]?.count ?? 0)
+      + (projectCount[0]?.count ?? 0) + (serviceCount[0]?.count ?? 0);
   }
 
   async sparkPost(postId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }> {
@@ -3298,6 +3336,166 @@ export class DatabaseStorage implements IStorage {
     return { alreadySparked: false, rateLimited: false, selfSpark: false };
   }
 
+  async sparkTrack(trackId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }> {
+    const [track] = await db.select({ artistId: musicTracks.artistId }).from(musicTracks).where(eq(musicTracks.id, trackId)).limit(1);
+    let recipientId: string | null = null;
+    if (track?.artistId != null) {
+      const [linked] = await db.select({ id: users.id }).from(users).where(eq(users.linkedArtistId, track.artistId)).limit(1);
+      if (linked) recipientId = linked.id;
+    }
+    if (recipientId === userId) return { alreadySparked: false, rateLimited: false, selfSpark: true };
+    const [existing] = await db.select().from(trackSparks).where(and(eq(trackSparks.trackId, trackId), eq(trackSparks.userId, userId))).limit(1);
+    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
+    const dailyCount = await this.getUserDailySparksGiven(userId);
+    if (dailyCount >= 10) return { alreadySparked: false, rateLimited: true, selfSpark: false };
+    await db.insert(trackSparks).values({ trackId, userId });
+    if (recipientId) {
+      await this.creditSparks(recipientId, 1, "social_reward", `Spark received on music track #${trackId}`, { metadata: { trackId, fromUserId: userId } });
+    }
+    return { alreadySparked: false, rateLimited: false, selfSpark: false };
+  }
+
+  async sparkProduct(productId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }> {
+    const [existing] = await db.select().from(productSparks).where(and(eq(productSparks.productId, productId), eq(productSparks.userId, userId))).limit(1);
+    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
+    const dailyCount = await this.getUserDailySparksGiven(userId);
+    if (dailyCount >= 10) return { alreadySparked: false, rateLimited: true, selfSpark: false };
+    await db.insert(productSparks).values({ productId, userId });
+    return { alreadySparked: false, rateLimited: false, selfSpark: false };
+  }
+
+  async sparkProject(projectId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }> {
+    const [project] = await db.select({ leadUserId: projects.leadUserId }).from(projects).where(eq(projects.id, projectId)).limit(1);
+    if (project?.leadUserId === userId) return { alreadySparked: false, rateLimited: false, selfSpark: true };
+    const [existing] = await db.select().from(projectSparks).where(and(eq(projectSparks.projectId, projectId), eq(projectSparks.userId, userId))).limit(1);
+    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
+    const dailyCount = await this.getUserDailySparksGiven(userId);
+    if (dailyCount >= 10) return { alreadySparked: false, rateLimited: true, selfSpark: false };
+    await db.insert(projectSparks).values({ projectId, userId });
+    if (project?.leadUserId) {
+      await this.creditSparks(project.leadUserId, 1, "social_reward", `Spark received on project #${projectId}`, { metadata: { projectId, fromUserId: userId } });
+    }
+    return { alreadySparked: false, rateLimited: false, selfSpark: false };
+  }
+
+  async sparkService(serviceId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }> {
+    const [service] = await db.select({ leadUserId: services.leadUserId }).from(services).where(eq(services.id, serviceId)).limit(1);
+    if (service?.leadUserId === userId) return { alreadySparked: false, rateLimited: false, selfSpark: true };
+    const [existing] = await db.select().from(serviceSparks).where(and(eq(serviceSparks.serviceId, serviceId), eq(serviceSparks.userId, userId))).limit(1);
+    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
+    const dailyCount = await this.getUserDailySparksGiven(userId);
+    if (dailyCount >= 10) return { alreadySparked: false, rateLimited: true, selfSpark: false };
+    await db.insert(serviceSparks).values({ serviceId, userId });
+    if (service?.leadUserId) {
+      await this.creditSparks(service.leadUserId, 1, "social_reward", `Spark received on service #${serviceId}`, { metadata: { serviceId, fromUserId: userId } });
+    }
+    return { alreadySparked: false, rateLimited: false, selfSpark: false };
+  }
+
+  async getTrackSparkInfo(trackId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }> {
+    const [scRow] = await db.select({ count: countFn() }).from(trackSparks).where(eq(trackSparks.trackId, trackId));
+    let isSparkedByMe = false;
+    if (userId) {
+      const [sm] = await db.select().from(trackSparks).where(and(eq(trackSparks.trackId, trackId), eq(trackSparks.userId, userId))).limit(1);
+      isSparkedByMe = !!sm;
+    }
+    return { sparkCount: scRow?.count ?? 0, isSparkedByMe };
+  }
+
+  async getProductSparkInfo(productId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }> {
+    const [scRow] = await db.select({ count: countFn() }).from(productSparks).where(eq(productSparks.productId, productId));
+    let isSparkedByMe = false;
+    if (userId) {
+      const [sm] = await db.select().from(productSparks).where(and(eq(productSparks.productId, productId), eq(productSparks.userId, userId))).limit(1);
+      isSparkedByMe = !!sm;
+    }
+    return { sparkCount: scRow?.count ?? 0, isSparkedByMe };
+  }
+
+  async getProjectSparkInfo(projectId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }> {
+    const [scRow] = await db.select({ count: countFn() }).from(projectSparks).where(eq(projectSparks.projectId, projectId));
+    let isSparkedByMe = false;
+    if (userId) {
+      const [sm] = await db.select().from(projectSparks).where(and(eq(projectSparks.projectId, projectId), eq(projectSparks.userId, userId))).limit(1);
+      isSparkedByMe = !!sm;
+    }
+    return { sparkCount: scRow?.count ?? 0, isSparkedByMe };
+  }
+
+  async getServiceSparkInfo(serviceId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }> {
+    const [scRow] = await db.select({ count: countFn() }).from(serviceSparks).where(eq(serviceSparks.serviceId, serviceId));
+    let isSparkedByMe = false;
+    if (userId) {
+      const [sm] = await db.select().from(serviceSparks).where(and(eq(serviceSparks.serviceId, serviceId), eq(serviceSparks.userId, userId))).limit(1);
+      isSparkedByMe = !!sm;
+    }
+    return { sparkCount: scRow?.count ?? 0, isSparkedByMe };
+  }
+
+  async getTrackSparkCounts(trackIds: number[]): Promise<Map<number, number>> {
+    const map = new Map<number, number>();
+    if (trackIds.length === 0) return map;
+    const rows = await db.select({ trackId: trackSparks.trackId, count: sql<number>`COUNT(*)::int` }).from(trackSparks).where(inArray(trackSparks.trackId, trackIds)).groupBy(trackSparks.trackId);
+    for (const r of rows) map.set(r.trackId, r.count);
+    return map;
+  }
+
+  async getTrackSparkedByUser(trackIds: number[], userId: string): Promise<Set<number>> {
+    const set = new Set<number>();
+    if (trackIds.length === 0) return set;
+    const rows = await db.select({ trackId: trackSparks.trackId }).from(trackSparks).where(and(inArray(trackSparks.trackId, trackIds), eq(trackSparks.userId, userId)));
+    for (const r of rows) set.add(r.trackId);
+    return set;
+  }
+
+  async getProductSparkCounts(productIds: number[]): Promise<Map<number, number>> {
+    const map = new Map<number, number>();
+    if (productIds.length === 0) return map;
+    const rows = await db.select({ productId: productSparks.productId, count: sql<number>`COUNT(*)::int` }).from(productSparks).where(inArray(productSparks.productId, productIds)).groupBy(productSparks.productId);
+    for (const r of rows) map.set(r.productId, r.count);
+    return map;
+  }
+
+  async getProductSparkedByUser(productIds: number[], userId: string): Promise<Set<number>> {
+    const set = new Set<number>();
+    if (productIds.length === 0) return set;
+    const rows = await db.select({ productId: productSparks.productId }).from(productSparks).where(and(inArray(productSparks.productId, productIds), eq(productSparks.userId, userId)));
+    for (const r of rows) set.add(r.productId);
+    return set;
+  }
+
+  async getProjectSparkCounts(projectIds: number[]): Promise<Map<number, number>> {
+    const map = new Map<number, number>();
+    if (projectIds.length === 0) return map;
+    const rows = await db.select({ projectId: projectSparks.projectId, count: sql<number>`COUNT(*)::int` }).from(projectSparks).where(inArray(projectSparks.projectId, projectIds)).groupBy(projectSparks.projectId);
+    for (const r of rows) map.set(r.projectId, r.count);
+    return map;
+  }
+
+  async getProjectSparkedByUser(projectIds: number[], userId: string): Promise<Set<number>> {
+    const set = new Set<number>();
+    if (projectIds.length === 0) return set;
+    const rows = await db.select({ projectId: projectSparks.projectId }).from(projectSparks).where(and(inArray(projectSparks.projectId, projectIds), eq(projectSparks.userId, userId)));
+    for (const r of rows) set.add(r.projectId);
+    return set;
+  }
+
+  async getServiceSparkCounts(serviceIds: number[]): Promise<Map<number, number>> {
+    const map = new Map<number, number>();
+    if (serviceIds.length === 0) return map;
+    const rows = await db.select({ serviceId: serviceSparks.serviceId, count: sql<number>`COUNT(*)::int` }).from(serviceSparks).where(inArray(serviceSparks.serviceId, serviceIds)).groupBy(serviceSparks.serviceId);
+    for (const r of rows) map.set(r.serviceId, r.count);
+    return map;
+  }
+
+  async getServiceSparkedByUser(serviceIds: number[], userId: string): Promise<Set<number>> {
+    const set = new Set<number>();
+    if (serviceIds.length === 0) return set;
+    const rows = await db.select({ serviceId: serviceSparks.serviceId }).from(serviceSparks).where(and(inArray(serviceSparks.serviceId, serviceIds), eq(serviceSparks.userId, userId)));
+    for (const r of rows) set.add(r.serviceId);
+    return set;
+  }
+
   async getTopSparkedPostsByUser(userId: string, limit = 3): Promise<Array<{ id: number; content: string; imageUrl: string | null; createdAt: Date; sparkCount: number }>> {
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
@@ -3339,6 +3537,10 @@ export class DatabaseStorage implements IStorage {
     const [postTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(postSparks);
     const [articleTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(articleSparks);
     const [galleryTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(gallerySparks);
+    const [trackTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(trackSparks);
+    const [productTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(productSparks);
+    const [projectTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(projectSparks);
+    const [serviceTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(serviceSparks);
     const topPosts = await db
       .select({
         id: posts.id,
@@ -3371,10 +3573,42 @@ export class DatabaseStorage implements IStorage {
       .groupBy(galleryImages.id, galleryImages.title)
       .orderBy(sql`COUNT(*) DESC`)
       .limit(10);
+    const topTracks = await db
+      .select({ id: musicTracks.id, title: musicTracks.title, sparkCount: sql<number>`COUNT(*)::int` })
+      .from(trackSparks)
+      .innerJoin(musicTracks, eq(musicTracks.id, trackSparks.trackId))
+      .groupBy(musicTracks.id, musicTracks.title)
+      .orderBy(sql`COUNT(*) DESC`)
+      .limit(10);
+    const topProducts = await db
+      .select({ id: products.id, title: products.name, slug: products.slug, sparkCount: sql<number>`COUNT(*)::int` })
+      .from(productSparks)
+      .innerJoin(products, eq(products.id, productSparks.productId))
+      .groupBy(products.id, products.name, products.slug)
+      .orderBy(sql`COUNT(*) DESC`)
+      .limit(10);
+    const topProjectsRows = await db
+      .select({ id: projects.id, title: projects.name, slug: projects.slug, sparkCount: sql<number>`COUNT(*)::int` })
+      .from(projectSparks)
+      .innerJoin(projects, eq(projects.id, projectSparks.projectId))
+      .groupBy(projects.id, projects.name, projects.slug)
+      .orderBy(sql`COUNT(*) DESC`)
+      .limit(10);
+    const topServices = await db
+      .select({ id: services.id, title: services.name, slug: services.slug, sparkCount: sql<number>`COUNT(*)::int` })
+      .from(serviceSparks)
+      .innerJoin(services, eq(services.id, serviceSparks.serviceId))
+      .groupBy(services.id, services.name, services.slug)
+      .orderBy(sql`COUNT(*) DESC`)
+      .limit(10);
     const combined = [
       ...topPosts.map((p) => ({ type: "post", title: p.title, sparkCount: p.sparkCount, id: p.id, authorUsername: p.authorUsername })),
       ...topArticles.map((a) => ({ type: "article", title: a.title, sparkCount: a.sparkCount, id: a.id, slug: a.slug })),
       ...topGallery.map((g) => ({ type: "gallery", title: g.title, sparkCount: g.sparkCount, id: g.id, uploaderUsername: g.uploaderUsername ?? undefined })),
+      ...topTracks.map((t) => ({ type: "track", title: t.title, sparkCount: t.sparkCount, id: t.id })),
+      ...topProducts.map((p) => ({ type: "product", title: p.title, sparkCount: p.sparkCount, id: p.id, slug: p.slug })),
+      ...topProjectsRows.map((p) => ({ type: "project", title: p.title, sparkCount: p.sparkCount, id: p.id, slug: p.slug })),
+      ...topServices.map((s) => ({ type: "service", title: s.title, sparkCount: s.sparkCount, id: s.id, slug: s.slug })),
     ].sort((a, b) => b.sparkCount - a.sparkCount).slice(0, 10);
     // Top rewarded creator this calendar month
     const startOfMonth = new Date();
@@ -3402,6 +3636,10 @@ export class DatabaseStorage implements IStorage {
       totalPostSparksGiven: postTotalRow?.total ?? 0,
       totalArticleSparksGiven: articleTotalRow?.total ?? 0,
       totalGallerySparksGiven: galleryTotalRow?.total ?? 0,
+      totalTrackSparksGiven: trackTotalRow?.total ?? 0,
+      totalProductSparksGiven: productTotalRow?.total ?? 0,
+      totalProjectSparksGiven: projectTotalRow?.total ?? 0,
+      totalServiceSparksGiven: serviceTotalRow?.total ?? 0,
       topRewardedCreatorThisMonth: topCreator,
       topItems: combined,
     };
@@ -3472,9 +3710,46 @@ export class DatabaseStorage implements IStorage {
       .orderBy(sql`count(*) desc`)
       .limit(10);
 
-    const topContent: { id: number; title: string; contentType: "article" | "gallery"; sparksReceived: number }[] = [
+    const topTrackRowsLb = await db
+      .select({ id: musicTracks.id, title: musicTracks.title, sparksReceived: sql<number>`cast(count(*) as integer)` })
+      .from(trackSparks)
+      .innerJoin(musicTracks, eq(musicTracks.id, trackSparks.trackId))
+      .where(cutoff ? gte(trackSparks.createdAt, cutoff) : undefined)
+      .groupBy(musicTracks.id, musicTracks.title)
+      .orderBy(sql`count(*) desc`)
+      .limit(10);
+    const topProductRowsLb = await db
+      .select({ id: products.id, title: products.name, slug: products.slug, sparksReceived: sql<number>`cast(count(*) as integer)` })
+      .from(productSparks)
+      .innerJoin(products, eq(products.id, productSparks.productId))
+      .where(cutoff ? gte(productSparks.createdAt, cutoff) : undefined)
+      .groupBy(products.id, products.name, products.slug)
+      .orderBy(sql`count(*) desc`)
+      .limit(10);
+    const topProjectRowsLb = await db
+      .select({ id: projects.id, title: projects.name, slug: projects.slug, sparksReceived: sql<number>`cast(count(*) as integer)` })
+      .from(projectSparks)
+      .innerJoin(projects, eq(projects.id, projectSparks.projectId))
+      .where(cutoff ? gte(projectSparks.createdAt, cutoff) : undefined)
+      .groupBy(projects.id, projects.name, projects.slug)
+      .orderBy(sql`count(*) desc`)
+      .limit(10);
+    const topServiceRowsLb = await db
+      .select({ id: services.id, title: services.name, slug: services.slug, sparksReceived: sql<number>`cast(count(*) as integer)` })
+      .from(serviceSparks)
+      .innerJoin(services, eq(services.id, serviceSparks.serviceId))
+      .where(cutoff ? gte(serviceSparks.createdAt, cutoff) : undefined)
+      .groupBy(services.id, services.name, services.slug)
+      .orderBy(sql`count(*) desc`)
+      .limit(10);
+
+    const topContent: { id: number; title: string; contentType: "article" | "gallery" | "track" | "product" | "project" | "service"; slug?: string | null; sparksReceived: number }[] = [
       ...topArticleRows.map((a) => ({ id: a.id, title: a.title, contentType: "article" as const, sparksReceived: a.sparksReceived })),
       ...topGalleryRows.map((g) => ({ id: g.id, title: g.title, contentType: "gallery" as const, sparksReceived: g.sparksReceived })),
+      ...topTrackRowsLb.map((t) => ({ id: t.id, title: t.title, contentType: "track" as const, sparksReceived: t.sparksReceived })),
+      ...topProductRowsLb.map((p) => ({ id: p.id, title: p.title, slug: p.slug, contentType: "product" as const, sparksReceived: p.sparksReceived })),
+      ...topProjectRowsLb.map((p) => ({ id: p.id, title: p.title, slug: p.slug, contentType: "project" as const, sparksReceived: p.sparksReceived })),
+      ...topServiceRowsLb.map((s) => ({ id: s.id, title: s.title, slug: s.slug, contentType: "service" as const, sparksReceived: s.sparksReceived })),
     ]
       .sort((a, b) => b.sparksReceived - a.sparksReceived)
       .slice(0, 10);
@@ -3548,6 +3823,43 @@ export class DatabaseStorage implements IStorage {
         if (!userId) continue;
         creatorTotals.set(userId, (creatorTotals.get(userId) ?? 0) + r.sparksReceived);
       }
+    }
+
+    // Track sparks → user via musicTracks.artistId → users.linkedArtistId
+    const trackCreatorRows = await db
+      .select({ userId: users.id, sparksReceived: sql<number>`cast(count(*) as integer)` })
+      .from(trackSparks)
+      .innerJoin(musicTracks, eq(musicTracks.id, trackSparks.trackId))
+      .innerJoin(users, eq(users.linkedArtistId, musicTracks.artistId))
+      .where(cutoff ? gte(trackSparks.createdAt, cutoff) : undefined)
+      .groupBy(users.id);
+    for (const row of trackCreatorRows) {
+      if (!row.userId) continue;
+      creatorTotals.set(row.userId, (creatorTotals.get(row.userId) ?? 0) + row.sparksReceived);
+    }
+
+    // Project sparks → projects.leadUserId
+    const projectCreatorRows = await db
+      .select({ userId: projects.leadUserId, sparksReceived: sql<number>`cast(count(*) as integer)` })
+      .from(projectSparks)
+      .innerJoin(projects, eq(projects.id, projectSparks.projectId))
+      .where(cutoff ? gte(projectSparks.createdAt, cutoff) : undefined)
+      .groupBy(projects.leadUserId);
+    for (const row of projectCreatorRows) {
+      if (!row.userId) continue;
+      creatorTotals.set(row.userId, (creatorTotals.get(row.userId) ?? 0) + row.sparksReceived);
+    }
+
+    // Service sparks → services.leadUserId
+    const serviceCreatorRows = await db
+      .select({ userId: services.leadUserId, sparksReceived: sql<number>`cast(count(*) as integer)` })
+      .from(serviceSparks)
+      .innerJoin(services, eq(services.id, serviceSparks.serviceId))
+      .where(cutoff ? gte(serviceSparks.createdAt, cutoff) : undefined)
+      .groupBy(services.leadUserId);
+    for (const row of serviceCreatorRows) {
+      if (!row.userId) continue;
+      creatorTotals.set(row.userId, (creatorTotals.get(row.userId) ?? 0) + row.sparksReceived);
     }
 
     let topCreators: { userId: string; username: string; displayName: string | null; avatarUrl: string | null; sparksReceived: number }[] = [];

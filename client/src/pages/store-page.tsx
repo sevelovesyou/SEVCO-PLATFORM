@@ -15,6 +15,9 @@ import { usePermission } from "@/hooks/use-permission";
 import { useCart } from "@/hooks/use-cart";
 import type { Product } from "@shared/schema";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
+import { SparkButton } from "@/components/spark-button";
+
+type ProductWithSpark = Product & { sparkCount?: number; sparkedByCurrentUser?: boolean };
 
 const CAN_MANAGE_STORE_PRODUCTS = ["admin", "executive"];
 
@@ -197,7 +200,7 @@ function VariantIndicator({ product }: { product: Product }) {
   );
 }
 
-function ProductCard({ product, onAddToCart, accentHsl }: { product: Product; onAddToCart: () => void; accentHsl?: string }) {
+function ProductCard({ product, onAddToCart, accentHsl }: { product: ProductWithSpark; onAddToCart: () => void; accentHsl?: string }) {
   const soldOut = product.stockStatus === "sold_out";
   const accentColor = accentHsl ? `hsl(${accentHsl})` : undefined;
   return (
@@ -230,6 +233,14 @@ function ProductCard({ product, onAddToCart, accentHsl }: { product: Product; on
           )}
         </p>
         <VariantIndicator product={product} />
+        <div className="mt-1">
+          <SparkButton
+            entityType="product"
+            entityId={product.id}
+            sparkCount={product.sparkCount ?? 0}
+            sparkedByCurrentUser={product.sparkedByCurrentUser ?? false}
+          />
+        </div>
       </div>
     </div>
   );

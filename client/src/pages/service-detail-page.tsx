@@ -8,6 +8,10 @@ import * as LucideIcons from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Service } from "@shared/schema";
+import { SparkButton } from "@/components/spark-button";
+import { useAuth } from "@/hooks/use-auth";
+
+type ServiceDetailData = Service & { sparkCount?: number; sparkedByCurrentUser?: boolean };
 
 function getLucideIcon(name: string | null | undefined): React.ElementType {
   if (!name) return Briefcase;
@@ -46,8 +50,9 @@ function ServiceIcon({ iconName, className }: { iconName: string | null | undefi
 
 export default function ServiceDetailPage() {
   const { slug } = useParams<{ slug: string }>();
+  const { user } = useAuth();
 
-  const { data: service, isLoading, isError } = useQuery<Service>({
+  const { data: service, isLoading, isError } = useQuery<ServiceDetailData>({
     queryKey: ["/api/services", slug],
     queryFn: async () => {
       const res = await fetch(`/api/services/${slug}`);
@@ -138,9 +143,19 @@ export default function ServiceDetailPage() {
                     {service.category}
                   </span>
                 </div>
-                <h1 className="text-3xl font-black tracking-tight mb-2" data-testid="text-service-name">
-                  {service.name}
-                </h1>
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <h1 className="text-3xl font-black tracking-tight" data-testid="text-service-name">
+                    {service.name}
+                  </h1>
+                  <SparkButton
+                    entityType="service"
+                    entityId={service.id}
+                    sparkCount={service.sparkCount ?? 0}
+                    sparkedByCurrentUser={service.sparkedByCurrentUser ?? false}
+                    isOwner={!!user?.id && user.id === service.leadUserId}
+                    size="md"
+                  />
+                </div>
                 {service.tagline && (
                   <p className="text-muted-foreground text-lg" data-testid="text-service-tagline">
                     {service.tagline}

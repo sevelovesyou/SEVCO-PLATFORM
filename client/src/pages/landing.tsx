@@ -4,6 +4,7 @@ import { StaggerGrid } from "@/components/stagger-grid";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { SparkButton } from "@/components/spark-button";
 import { useToast } from "@/hooks/use-toast";
 import { PageHead } from "@/components/page-head";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -1221,6 +1222,15 @@ export default function Landing() {
                               </div>
                               <h3 className="text-sm font-semibold text-foreground mb-1">{project.name}</h3>
                               <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{project.description || project.type}</p>
+                              <div className="mt-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                                <SparkButton
+                                  entityType="project"
+                                  entityId={project.id}
+                                  sparkCount={(project as any).sparkCount ?? 0}
+                                  sparkedByCurrentUser={(project as any).sparkedByCurrentUser ?? false}
+                                  isOwner={!!user?.id && user.id === (project as any).leadUserId}
+                                />
+                              </div>
                             </div>
                           </Link>
                         );

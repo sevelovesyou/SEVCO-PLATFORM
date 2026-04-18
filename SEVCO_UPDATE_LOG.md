@@ -29219,3 +29219,62 @@ Every artist on SEVCO already has (or can have) a SEVCO user profile — `users.
 
 ---
 
+## Task — task-468
+> Merged: 2026-04-18
+
+---
+title: Add Sparks to Songs/Beats, Products, Projects, and Services (with creator credit)
+---
+# Add Sparks to Songs/Beats, Products, Projects, and Services (with author/lead credit)
+
+## What & Why
+Sparks today only work on posts, articles, and gallery images. The user wants Sparks (and visible spark counts) on every meaningful piece of content on the platform: music tracks (songs and beats), store products, projects, and services. Each spark should credit a real user — the artist behind a track, the project lead, the service lead — so the leaderboard and per-user totals reflect actual creators.
+
+## Done looks like
+- Every music track (songs and beats) shows a Spark button and a spark count wherever it appears (music browse pages, album/artist details, profile music section, embedded players where space allows). Sparking a track credits the user linked to that track's artist (`users.linkedArtistId === musicTracks.artistId`); if no user is linked, the spark is recorded but no credit goes out (same fallback we use for gallery).
+- Every store product shows a Spark button + count on the product card and product detail page. Products have no author, so sparks are recorded without crediting a recipient (gallery-style).
+- Every project shows a Spark button + count on the project card (home Ventures grid, `/projects` listing, admin table is fine to leave) and detail page. Sparking a project credits the project's lead user.
+- Every service shows a Spark button + count on the services listing, category page, and service detail page. Sparking a service credits the service's lead user.
+- New per-type spark tables follow the existing pattern (`post_sparks`, `article_sparks`, `gallery_sparks`): `track_sparks`, `product_sparks`, `project_sparks`, `service_sparks`, each with `(entity_id, user_id, created_at)` and a unique constraint on `(entity_id, user_id)` so a user can only spark each item once.
+- Spark cost + balance behavior matches existing sparking: 1 Spark per click, deducted from the sender's balance, credited to the recipient's balance (where applicable), respects the daily quota helper, and emits a notification to the recipient.
+- The Sparks Leaderboard ("Top Creators" and "Top Content") includes these new types — top creator credit aggregates across all sparkable types, and "Top Content" (or a renamed/expanded section) surfaces top-sparked tracks, products, projects, and services alongside articles and gallery items.
+- The admin Sparks dashboard's per-type totals (Post Sparks, Article Sparks, Gallery Sparks) gains rows for Track Sparks, Product Sparks, Project Sparks, Service Sparks, plus their top items grids.
+
+## Out of scope
+- Building a new "spark balance per entity type" cap or any new economy rules.
+- Migrating historical sparks from any other table.
+- Building Albums-level sparking (sparks live at the track level only for now).
+- Redesigning the leaderboard or admin Sparks page beyond adding new rows / sections.
+- Doing the schema change to projects/services lead user (see "New columns required" below) as a separate PR — do it in the same PR.
+
+## New columns required
+- `projects.leadUserId varchar references users(id) on delete set null` — the user who receives Sparks on this project. The existing `teamLead` text field stays as a free-form name. Edit Project form gets a user picker for "Project Lead (sparks recipient)".
+- `services.leadUserId varchar references users(id) on delete set null` — same idea for services. Edit Service form gets a user picker for "Service Lead (sparks recipient)".
+- Tracks already link to artists via `musicTracks.artistId`, and users link to artists via `users.linkedArtistId`, so no new column is needed for tracks — credit resolves through that join.
+- Products have no owner column and don't need one; sparks on products go uncredited.
+
+## Steps
+1. **Schema** (`shared/schema.ts`): add the four new spark tables (`trackSparks`, `productSparks`, `projectSparks`, `serviceSparks`) following the existing `postSparks` pattern with unique indexes. Add `leadUserId` to `projects` and `services`. Run `npm run db:push --force`.
+2. **Storage** (`server/storage.ts`): add `sparkTrack`, `sparkProduct`, `sparkProject`, `sparkService` plus matching `getXSparkCount(id, userId?)` and `hasXSparked(id, userId)` helpers. Each follows the daily-quota-check + balance-debit + recipient-credit + notification pattern already used by `sparkPost`/`sparkArticle`. Resolve the recipient: track → user where `linkedArtistId === artistId`; project → `projects.leadUserId`; service → `services.leadUserId`; product → none.
+3. **Routes** (`server/routes.ts`): add `POST /api/music/tracks/:id/spark`, `POST /api/products/:id/spark`, `POST /api/projects/:id/spark`, `POST /api/services/:id/spark` (all `requireAuth`), each returning the new spark count. Make sure list/detail endpoints include `sparkCount` and `sparkedByCurrentUser` for each entity (mirror what posts/articles already do).
+4. **Leaderboard** (`server/storage.ts` `getSparksLeaderboard`): extend the per-type counts to include the four new tables. Top Creators aggregate now sums across post + article + track + project + service sparks (skip product since uncredited). Top Content section (or a renamed broader section) merges top tracks, products, projects, and services with the existing articles+gallery list.
+5. **Admin dashboard** (`server/storage.ts` overview helper + `client/src/pages/command-sparks.tsx`): add Track/Product/Project/Service spark totals and top-items grids alongside the existing ones.
+6. **Frontend Spark button**: extract a reusable `<SparkButton entityType entityId initialCount initialSparked />` component in `client/src/components/` modeled on the existing post/article spark UI. Wire it into:
+   - Music: track row in `music-page.tsx`, `music-album-detail.tsx`, `music-artist-detail.tsx`, `music-beats-page.tsx`, profile music tab (per the parallel artists→profiles task).
+   - Store: product card and `product-detail` (find the right files under `client/src/pages/store-*` and components).
+   - Projects: home Ventures grid in `landing.tsx` (`projectsShowstopper` case), `projects-page.tsx` card, `project-detail.tsx` header.
+   - Services: `services-listing.tsx` cards, `service-category-page.tsx` cards, `service-detail-page.tsx` header.
+7. **Admin forms**: add a User picker for Project Lead in `command-projects.tsx` / `project-form.tsx`, and Service Lead in `command-services.tsx`. Reuse any existing user-search component if available.
+8. **QA** (logged in with sparks balance): spark a track, product, project, and service; confirm count increments, repeat-spark is blocked, recipient (where applicable) gets a notification and balance bump, leaderboard reflects new totals after refresh.
+
+## Relevant files
+- `shared/schema.ts` (existing spark tables ~L800-815; projects ~L234, services ~L263, musicTracks ~L1109)
+- `server/storage.ts` (existing `sparkPost` / `sparkArticle` / `sparkImage` ~L3260-3320, `getSparksLeaderboard` rewritten in Task #465)
+- `server/routes.ts` (existing spark endpoints ~L4369-4400)
+- `client/src/pages/music-*.tsx`, `client/src/pages/store-*` (or product card components), `client/src/pages/projects-page.tsx`, `client/src/pages/project-detail.tsx`, `client/src/pages/landing.tsx` (`projectsShowstopper`), `client/src/pages/services-listing.tsx`, `client/src/pages/service-category-page.tsx`, `client/src/pages/service-detail-page.tsx`
+- `client/src/pages/command-sparks.tsx` (admin dashboard)
+- `client/src/pages/command-projects.tsx`, `client/src/pages/project-form.tsx`, `client/src/pages/command-services.tsx` (lead user picker)
+
+
+---
+

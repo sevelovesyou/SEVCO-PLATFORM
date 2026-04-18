@@ -17,6 +17,10 @@ import { usePermission } from "@/hooks/use-permission";
 import { AttachNotePanel } from "@/components/attach-note-panel";
 import { StaffNotes } from "@/components/staff-notes";
 import type { Project } from "@shared/schema";
+import { SparkButton } from "@/components/spark-button";
+import { useAuth } from "@/hooks/use-auth";
+
+type ProjectDetailData = Project & { sparkCount?: number; sparkedByCurrentUser?: boolean };
 
 function formatCurrency(v: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
@@ -192,10 +196,11 @@ function parseMarkdown(text: string): string[] {
 export default function ProjectDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { role } = usePermission();
+  const { user } = useAuth();
   const [, navigate] = useLocation();
   const canManage = role && CAN_MANAGE_PROJECTS.includes(role);
 
-  const { data: project, isLoading, isError } = useQuery<Project>({
+  const { data: project, isLoading, isError } = useQuery<ProjectDetailData>({
     queryKey: ["/api/projects", slug],
     queryFn: async () => {
       const res = await fetch(`/api/projects/${slug}`);
@@ -358,12 +363,22 @@ export default function ProjectDetail() {
                   )}
                 </div>
 
-                <h1
-                  className="text-3xl md:text-4xl font-black tracking-tight"
-                  data-testid="text-project-name"
-                >
-                  {project.name}
-                </h1>
+                <div className="flex items-start justify-between gap-3">
+                  <h1
+                    className="text-3xl md:text-4xl font-black tracking-tight"
+                    data-testid="text-project-name"
+                  >
+                    {project.name}
+                  </h1>
+                  <SparkButton
+                    entityType="project"
+                    entityId={project.id}
+                    sparkCount={project.sparkCount ?? 0}
+                    sparkedByCurrentUser={project.sparkedByCurrentUser ?? false}
+                    isOwner={!!user?.id && user.id === project.leadUserId}
+                    size="md"
+                  />
+                </div>
 
                 {project.description && (
                   <p className="text-muted-foreground mt-2 text-base leading-relaxed max-w-2xl" data-testid="text-project-description">

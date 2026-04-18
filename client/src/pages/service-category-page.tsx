@@ -19,6 +19,10 @@ import {
 } from "@/components/ui/accordion";
 import type { Service } from "@shared/schema";
 import { SERVICE_CATEGORY_MAP } from "@/lib/service-categories";
+import { SparkButton } from "@/components/spark-button";
+import { useAuth } from "@/hooks/use-auth";
+
+type ServiceWithSpark = Service & { sparkCount?: number; sparkedByCurrentUser?: boolean };
 
 const ICON_MAP: Record<string, React.ElementType> = {
   Code2, Sparkles, Megaphone, HeadphonesIcon, Server, Shield,
@@ -390,13 +394,14 @@ function SocialProofStrip({ platformSettings }: { platformSettings?: Record<stri
 }
 
 export default function ServiceCategoryPage() {
+  const { user } = useAuth();
   const [location] = useLocation();
   const slug = location.split("/").filter(Boolean).pop() ?? "";
   const pageCfg = CATEGORY_PAGE_CONFIG[slug as CategorySlug];
   const meta = SERVICE_CATEGORY_MAP[slug];
   const config = pageCfg && meta ? { ...meta, ...pageCfg, slug: slug as CategorySlug } : null;
 
-  const { data: allServices, isLoading } = useQuery<Service[]>({
+  const { data: allServices, isLoading } = useQuery<ServiceWithSpark[]>({
     queryKey: ["/api/services"],
   });
 
@@ -554,8 +559,19 @@ export default function ServiceCategoryPage() {
                     {service.tagline && (
                       <p className="text-xs text-muted-foreground line-clamp-2">{service.tagline}</p>
                     )}
-                    <div className={`mt-3 flex items-center gap-1 text-xs font-medium ${config.accentText} opacity-0 group-hover:opacity-100 transition-opacity`}>
-                      Learn more <ChevronRight className="h-3 w-3" />
+                    <div className="flex items-center justify-between mt-3">
+                      <div className={`flex items-center gap-1 text-xs font-medium ${config.accentText} opacity-0 group-hover:opacity-100 transition-opacity`}>
+                        Learn more <ChevronRight className="h-3 w-3" />
+                      </div>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <SparkButton
+                          entityType="service"
+                          entityId={service.id}
+                          sparkCount={service.sparkCount ?? 0}
+                          sparkedByCurrentUser={service.sparkedByCurrentUser ?? false}
+                          isOwner={!!user?.id && user.id === service.leadUserId}
+                        />
+                      </div>
                     </div>
                   </div>
                 );

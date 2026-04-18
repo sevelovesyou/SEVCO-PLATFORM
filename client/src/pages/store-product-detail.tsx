@@ -11,6 +11,9 @@ import { useCart } from "@/hooks/use-cart";
 import type { Product } from "@shared/schema";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { cn } from "@/lib/utils";
+import { SparkButton } from "@/components/spark-button";
+
+type ProductDetail = Product & { sparkCount?: number; sparkedByCurrentUser?: boolean };
 
 export default function StoreProductDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -18,7 +21,7 @@ export default function StoreProductDetail() {
   const [activePhoto, setActivePhoto] = useState(0);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
 
-  const { data: product, isLoading, isError } = useQuery<Product>({
+  const { data: product, isLoading, isError } = useQuery<ProductDetail>({
     queryKey: ["/api/store/products", slug],
     queryFn: async () => {
       const res = await fetch(`/api/store/products/${slug}`);
@@ -200,12 +203,21 @@ export default function StoreProductDetail() {
                   }
                 </Badge>
               </div>
-              <h1
-                className="text-3xl font-black tracking-tight"
-                data-testid="text-product-name"
-              >
-                {product.name}
-              </h1>
+              <div className="flex items-start justify-between gap-3">
+                <h1
+                  className="text-3xl font-black tracking-tight"
+                  data-testid="text-product-name"
+                >
+                  {product.name}
+                </h1>
+                <SparkButton
+                  entityType="product"
+                  entityId={product.id}
+                  sparkCount={product.sparkCount ?? 0}
+                  sparkedByCurrentUser={product.sparkedByCurrentUser ?? false}
+                  size="md"
+                />
+              </div>
             </div>
 
             <div

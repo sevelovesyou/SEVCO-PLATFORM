@@ -9,7 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Service } from "@shared/schema";
+import { SparkButton } from "@/components/spark-button";
+import { useAuth } from "@/hooks/use-auth";
+
 import { SERVICE_CATEGORIES } from "@/lib/service-categories";
+
+type ServiceWithSpark = Service & { sparkCount?: number; sparkedByCurrentUser?: boolean };
 
 const CATEGORY_BORDER_COLORS: Record<string, string> = {
   Technology:     "border-l-blue-500",
@@ -49,7 +54,8 @@ const CATEGORY_ORDER = ["Technology", "Creative", "Marketing", "Business", "Medi
 
 
 export default function ServicesListingPage() {
-  const { data: services, isLoading } = useQuery<Service[]>({
+  const { user } = useAuth();
+  const { data: services, isLoading } = useQuery<ServiceWithSpark[]>({
     queryKey: ["/api/services"],
   });
 
@@ -59,7 +65,7 @@ export default function ServicesListingPage() {
 
   const servicesAccentHsl = platformSettings["services.accentColor"];
 
-  const grouped = CATEGORY_ORDER.reduce<Record<string, Service[]>>((acc, cat) => {
+  const grouped = CATEGORY_ORDER.reduce<Record<string, ServiceWithSpark[]>>((acc, cat) => {
     const items = (services ?? []).filter((s) => s.category === cat);
     if (items.length > 0) acc[cat] = items;
     return acc;
@@ -202,6 +208,15 @@ export default function ServicesListingPage() {
                           {service.tagline && (
                             <p className="text-sm text-muted-foreground line-clamp-2">{service.tagline}</p>
                           )}
+                          <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                            <SparkButton
+                              entityType="service"
+                              entityId={service.id}
+                              sparkCount={service.sparkCount ?? 0}
+                              sparkedByCurrentUser={service.sparkedByCurrentUser ?? false}
+                              isOwner={!!user?.id && user.id === service.leadUserId}
+                            />
+                          </div>
                         </div>
                         <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
                       </div>
@@ -255,6 +270,15 @@ export default function ServicesListingPage() {
                       {service.tagline && (
                         <p className="text-xs text-muted-foreground line-clamp-2">{service.tagline}</p>
                       )}
+                      <div className="mt-1" onClick={(e) => e.stopPropagation()}>
+                        <SparkButton
+                          entityType="service"
+                          entityId={service.id}
+                          sparkCount={service.sparkCount ?? 0}
+                          sparkedByCurrentUser={service.sparkedByCurrentUser ?? false}
+                          isOwner={!!user?.id && user.id === service.leadUserId}
+                        />
+                      </div>
                     </div>
                   );
                   return isExternal ? (

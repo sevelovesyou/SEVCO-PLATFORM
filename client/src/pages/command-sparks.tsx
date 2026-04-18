@@ -1126,6 +1126,10 @@ interface SocialSparkStats {
   totalPostSparksGiven: number;
   totalArticleSparksGiven: number;
   totalGallerySparksGiven: number;
+  totalTrackSparksGiven: number;
+  totalProductSparksGiven: number;
+  totalProjectSparksGiven: number;
+  totalServiceSparksGiven: number;
   totalSocialRewardsIssued: number;
   uniqueAuthorsRewarded: number;
   topRewardedCreatorThisMonth: { username: string; displayName: string | null; sparksReceived: number } | null;
@@ -1141,41 +1145,27 @@ function CreatorRewardPoolTab() {
     refetchInterval: 60_000,
   });
 
-  const totalGiven = (stats?.totalPostSparksGiven ?? 0) + (stats?.totalArticleSparksGiven ?? 0) + (stats?.totalGallerySparksGiven ?? 0);
+  const totalGiven =
+    (stats?.totalPostSparksGiven ?? 0) +
+    (stats?.totalArticleSparksGiven ?? 0) +
+    (stats?.totalGallerySparksGiven ?? 0) +
+    (stats?.totalTrackSparksGiven ?? 0) +
+    (stats?.totalProductSparksGiven ?? 0) +
+    (stats?.totalProjectSparksGiven ?? 0) +
+    (stats?.totalServiceSparksGiven ?? 0);
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <StatCard
-          label="Total Social Sparks"
-          value={totalGiven.toLocaleString()}
-          icon={() => <span className="text-lg">⚡</span>}
-          loading={isLoading}
-        />
-        <StatCard
-          label="Post Sparks"
-          value={(stats?.totalPostSparksGiven ?? 0).toLocaleString()}
-          icon={Users}
-          loading={isLoading}
-        />
-        <StatCard
-          label="Article Sparks"
-          value={(stats?.totalArticleSparksGiven ?? 0).toLocaleString()}
-          icon={Package}
-          loading={isLoading}
-        />
-        <StatCard
-          label="Gallery Sparks"
-          value={(stats?.totalGallerySparksGiven ?? 0).toLocaleString()}
-          icon={() => <span className="text-lg">🖼️</span>}
-          loading={isLoading}
-        />
-        <StatCard
-          label="Creators Rewarded"
-          value={(stats?.uniqueAuthorsRewarded ?? 0).toLocaleString()}
-          icon={() => <span className="text-lg">🏆</span>}
-          loading={isLoading}
-        />
+        <StatCard label="Total Social Sparks" value={totalGiven.toLocaleString()} icon={() => <span className="text-lg">⚡</span>} loading={isLoading} />
+        <StatCard label="Post Sparks" value={(stats?.totalPostSparksGiven ?? 0).toLocaleString()} icon={Users} loading={isLoading} />
+        <StatCard label="Article Sparks" value={(stats?.totalArticleSparksGiven ?? 0).toLocaleString()} icon={Package} loading={isLoading} />
+        <StatCard label="Gallery Sparks" value={(stats?.totalGallerySparksGiven ?? 0).toLocaleString()} icon={() => <span className="text-lg">🖼️</span>} loading={isLoading} />
+        <StatCard label="Track Sparks" value={(stats?.totalTrackSparksGiven ?? 0).toLocaleString()} icon={() => <span className="text-lg">🎵</span>} loading={isLoading} />
+        <StatCard label="Product Sparks" value={(stats?.totalProductSparksGiven ?? 0).toLocaleString()} icon={() => <span className="text-lg">🛒</span>} loading={isLoading} />
+        <StatCard label="Project Sparks" value={(stats?.totalProjectSparksGiven ?? 0).toLocaleString()} icon={() => <span className="text-lg">📦</span>} loading={isLoading} />
+        <StatCard label="Service Sparks" value={(stats?.totalServiceSparksGiven ?? 0).toLocaleString()} icon={() => <span className="text-lg">🛠️</span>} loading={isLoading} />
+        <StatCard label="Creators Rewarded" value={(stats?.uniqueAuthorsRewarded ?? 0).toLocaleString()} icon={() => <span className="text-lg">🏆</span>} loading={isLoading} />
       </div>
 
       <Card>
@@ -1231,10 +1221,21 @@ function CreatorRewardPoolTab() {
                       <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wide ${
                         item.type === "post" ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" :
                         item.type === "article" ? "bg-purple-500/10 text-purple-600 dark:text-purple-400" :
-                        "bg-green-500/10 text-green-600 dark:text-green-400"
+                        item.type === "gallery" ? "bg-green-500/10 text-green-600 dark:text-green-400" :
+                        item.type === "track" ? "bg-pink-500/10 text-pink-600 dark:text-pink-400" :
+                        item.type === "product" ? "bg-red-500/10 text-red-600 dark:text-red-400" :
+                        item.type === "project" ? "bg-orange-500/10 text-orange-600 dark:text-orange-400" :
+                        item.type === "service" ? "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400" :
+                        "bg-muted text-muted-foreground"
                       }`}>{item.type}</span>
                       {item.type === "article" && item.slug ? (
                         <a href={`/wiki/${item.slug}`} className="text-xs hover:underline text-primary truncate">{item.title}</a>
+                      ) : item.type === "product" && item.slug ? (
+                        <a href={`/store/${item.slug}`} className="text-xs hover:underline text-primary truncate">{item.title}</a>
+                      ) : item.type === "project" && item.slug ? (
+                        <a href={`/projects/${item.slug}`} className="text-xs hover:underline text-primary truncate">{item.title}</a>
+                      ) : item.type === "service" && item.slug ? (
+                        <a href={`/services/${item.slug}`} className="text-xs hover:underline text-primary truncate">{item.title}</a>
                       ) : (
                         <span className="text-xs truncate">{item.title}</span>
                       )}

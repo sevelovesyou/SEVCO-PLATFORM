@@ -359,30 +359,8 @@ export default function Landing() {
   const btn2Label = settings["hero.button2.label"] || DEFAULT_BTN2_LABEL;
   const btn2Url = settings["hero.button2.url"] || DEFAULT_BTN2_URL;
 
-  // Layout version gate. Defaults to v2 (the modernized layout). Either an
-  // admin setting (landing.layout) or a `?layout=v1` URL override flips the
-  // page back to the pre-redesign behavior in a single switch — this is the
-  // rollback gate for Task #450 so we can revert without a code deploy.
-  const useV2Layout = useMemo(() => {
-    if (typeof window !== "undefined") {
-      const override = new URLSearchParams(window.location.search).get("layout");
-      if (override === "v1") return false;
-      if (override === "v2") return true;
-    }
-    return (settings["landing.layout"] || "v2") !== "v1";
-  }, [settings]);
-
-  // Modernized hero controls (added Task #450). All effectively disabled in v1.
-  const heroMotionEnabled = useV2Layout && settings["hero.motion.enabled"] !== "false";
-  const heroMotionIntensity =
-    (settings["hero.motion.intensity"] as "subtle" | "standard" | "rich" | undefined) || "standard";
-  const heroPrimarySlot: "button1" | "button2" = useV2Layout
-    ? ((settings["hero.cta.primarySlot"] as "button1" | "button2" | undefined) || "button1")
-    : "button1";
-  const heroScrollCueVisible = useV2Layout && settings["hero.scrollCue.visible"] !== "false";
-
-  // Mid-page CTA band (rendered between platformGrid and the next section). v2 only.
-  const showMidCta = useV2Layout && settings["section.midCta.visible"] !== "false";
+  // Mid-page CTA band (rendered between platformGrid and the next section).
+  const showMidCta = settings["section.midCta.visible"] !== "false";
   const midCtaLabel = settings["section.midCta.label"] || "Free to join — start your SEVCO";
   const midCtaUrl = settings["section.midCta.url"] || (user ? "/dashboard" : "/auth");
 
@@ -739,8 +717,8 @@ export default function Landing() {
           case "bulletin":
             if (!showBulletin || !pinnedPost) return null;
             return (
-              <section key="bulletin" className="max-w-6xl mx-auto px-6 py-8">
-                <div className="rounded-xl border bg-muted/30 border-border/60 p-5 flex flex-col sm:flex-row sm:items-start gap-4" data-testid="section-bulletin">
+              <section key="bulletin" className="max-w-6xl mx-auto px-6 pt-10 pb-2">
+                <div className="rounded-xl border border-border bg-card/60 p-5 flex flex-col sm:flex-row sm:items-start gap-4" data-testid="section-bulletin">
                   <div className="flex items-center gap-2 shrink-0 sm:pt-0.5">
                     <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center">
                       <Pin className="h-3.5 w-3.5 text-primary" />
@@ -887,29 +865,28 @@ export default function Landing() {
           case "whatsNew":
             if (!showWhatsNew || (!changelogLoading && changelogEntries.length === 0)) return null;
             return (
-              <section key="whatsNew" className="bg-[#07070f] py-14 sm:py-16" data-testid="section-platform-updates">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6">
-                  <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-3">
-                      <h2 className="text-xl font-bold text-white" data-testid="text-platform-updates-heading">Platform Updates</h2>
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/10 px-2.5 py-0.5 text-[11px] font-medium text-green-400">
-                        <span className="relative flex h-1.5 w-1.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+              <section key="whatsNew" className="border-t border-border bg-muted/20 py-20 md:py-24" data-testid="section-platform-updates">
+                <div className="max-w-6xl mx-auto px-6">
+                  <div className="flex items-end justify-between mb-10">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+                        <LucideIcons.Sparkles className="h-3 w-3" /> Platform updates
+                        <span className="inline-flex items-center gap-1 rounded-full border border-green-500/30 bg-green-500/10 px-1.5 py-0.5 text-[9px] font-medium text-green-500 ml-1">
+                          <span className="h-1 w-1 rounded-full bg-green-500" /> Live
                         </span>
-                        Live
-                      </span>
+                      </p>
+                      <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground" data-testid="text-platform-updates-heading">What's new</h2>
                     </div>
                     <Link href="/platform" data-testid="link-view-all-updates">
-                      <span className="text-sm text-white/40 hover:text-white/70 transition-colors cursor-pointer">
-                        View all {changelogEntries.length > 0 ? changelogEntries.length : ""} updates →
+                      <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                        View all →
                       </span>
                     </Link>
                   </div>
                   {changelogLoading ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-5">
+                        <div key={i} className="bg-card border border-border rounded-xl p-5">
                           <div className="flex items-center gap-2 mb-3">
                             <Skeleton className="h-5 w-20 rounded-full" />
                             <Skeleton className="h-5 w-14 rounded-full" />
@@ -922,7 +899,7 @@ export default function Landing() {
                       ))}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {changelogEntries.slice(0, 3).map((entry) => {
                         const meta = CHANGELOG_CATEGORY_META[entry.category];
                         const CategoryIcon = meta.icon;
@@ -936,7 +913,7 @@ export default function Landing() {
                         return (
                           <div
                             key={entry.id}
-                            className="h-full flex flex-col bg-white/[0.04] border border-white/[0.07] rounded-2xl p-5 hover:bg-white/[0.06] hover:border-white/[0.12] hover:-translate-y-0.5 hover:shadow-xl transition-all duration-200"
+                            className="h-full flex flex-col bg-card border border-border rounded-xl p-5 hover:bg-accent/40 transition-colors"
                             data-testid={`card-whats-new-${entry.id}`}
                           >
                             <div className="flex items-center gap-2 mb-3 flex-wrap">
@@ -945,18 +922,18 @@ export default function Landing() {
                                 {meta.label}
                               </span>
                               {entry.version && (
-                                <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-mono text-white/50">
+                                <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-mono text-muted-foreground">
                                   v{entry.version}
                                 </span>
                               )}
-                              <span className="ml-auto text-[11px] text-white/30 whitespace-nowrap">{relativeDate}</span>
+                              <span className="ml-auto text-[11px] text-muted-foreground whitespace-nowrap">{relativeDate}</span>
                             </div>
-                            <p className="text-sm font-semibold text-white leading-snug mb-2">{entry.title}</p>
-                            <p className="text-xs text-white/50 line-clamp-2 mb-3">{entry.description}</p>
+                            <p className="text-sm font-semibold text-foreground leading-snug mb-2">{entry.title}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{entry.description}</p>
                             <div className="mt-auto pt-2">
                               {entry.slug && (
                                 <Link href={articleUrl({ slug: entry.slug })}>
-                                  <span className="text-xs text-white/40 hover:text-white/70 transition-colors cursor-pointer">Read more →</span>
+                                  <span className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">Read more →</span>
                                 </Link>
                               )}
                             </div>
@@ -971,7 +948,6 @@ export default function Landing() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="border-white/10 text-white/60 hover:text-white hover:border-white/20 bg-transparent"
                           data-testid="button-view-all-platform"
                         >
                           View all {changelogEntries.length > 0 ? changelogEntries.length : ""} platform updates →
@@ -1023,7 +999,7 @@ export default function Landing() {
                       return (
                         <div
                           key={post.id}
-                          className="rounded-xl border bg-white/[0.02] border-border/60 p-4 hover:bg-white/[0.04] transition-colors"
+                          className="rounded-xl border border-border bg-card p-4 hover:bg-accent/40 transition-colors"
                           data-testid={`card-feed-post-${post.id}`}
                         >
                           <div className="flex items-center gap-3 mb-3">
@@ -1066,45 +1042,31 @@ export default function Landing() {
               <section
                 key="storePreview"
                 ref={storeRef.ref}
-                className="relative overflow-hidden bg-[#0d0407] text-white"
+                className="border-t border-border bg-background"
                 data-testid="section-store-showstopper"
               >
-                <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-                  <div className="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full bg-red-900/30 blur-[130px] motion-safe:animate-[pulse_9s_ease-in-out_infinite]" />
-                  <div className="absolute -bottom-32 right-0 w-[500px] h-[500px] rounded-full bg-red-800/20 blur-[120px] motion-safe:animate-[pulse_11s_ease-in-out_infinite_3s]" />
-                </div>
-                <div className={`relative z-10 max-w-6xl mx-auto px-6 py-20 md:py-28 transition-all duration-700 ${storeRef.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                <div className={`max-w-6xl mx-auto px-6 py-20 md:py-24 transition-opacity duration-500 ${storeRef.isVisible ? "opacity-100" : "opacity-0"}`}>
+                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
                     <div>
-                      <Badge className="mb-4 bg-red-600/20 text-red-300 border-red-500/20 text-xs font-semibold uppercase tracking-wider">
-                        SEVCO Store
-                      </Badge>
-                      <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+                        <ShoppingBag className="h-3 w-3" /> SEVCO Store
+                      </p>
+                      <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground mb-2">
                         Shop the latest drops.
                       </h2>
-                      <p className="text-white/50 text-sm leading-relaxed max-w-md">
-                        Exclusive SEVCO merchandise — apparel, accessories, and limited-edition items from the universe.
+                      <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
+                        Apparel, accessories, and limited-edition items from the SEVCO universe.
                       </p>
                     </div>
-                    <div className="flex gap-3 shrink-0">
+                    <div className="flex gap-2 shrink-0">
                       <Link href="/store">
-                        <Button
-                          size="sm"
-                          className="bg-red-600 hover:bg-red-500 text-white font-semibold gap-2"
-                          data-testid="button-store-shop-now"
-                        >
-                          <ShoppingBag className="h-3.5 w-3.5" />
-                          Shop Now
+                        <Button size="sm" className="bg-red-600 hover:bg-red-500 text-white font-medium gap-1.5" data-testid="button-store-shop-now">
+                          Shop now
                         </Button>
                       </Link>
                       <Link href="/wiki/store-shopping-guide">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-white/60 hover:text-white hover:bg-white/10 border border-white/10 gap-1"
-                          data-testid="button-store-learn-more"
-                        >
-                          Learn More <ArrowRight className="h-3 w-3" />
+                        <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground gap-1" data-testid="button-store-learn-more">
+                          Learn more <ArrowRight className="h-3 w-3" />
                         </Button>
                       </Link>
                     </div>
@@ -1112,15 +1074,13 @@ export default function Landing() {
                   {prodLoading ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {Array.from({ length: 4 }).map((_, i) => (
-                        <Skeleton key={i} className="aspect-square w-full rounded-xl bg-white/5" />
+                        <Skeleton key={i} className="aspect-square w-full rounded-xl" />
                       ))}
                     </div>
                   ) : featuredProducts.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-center">
-                      <div className="h-16 w-16 rounded-2xl bg-red-600/10 flex items-center justify-center mb-4">
-                        <ShoppingBag className="h-8 w-8 text-red-400/50" />
-                      </div>
-                      <p className="text-sm text-white/30">Products coming soon.</p>
+                      <ShoppingBag className="h-8 w-8 text-muted-foreground/40 mb-3" />
+                      <p className="text-sm text-muted-foreground">Products coming soon.</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1139,72 +1099,56 @@ export default function Landing() {
               <section
                 key="servicesShowstopper"
                 ref={servicesRef.ref}
-                className="relative overflow-hidden bg-[#040810] text-white"
+                className="border-t border-border bg-muted/20"
                 data-testid="section-services-showstopper"
               >
-                <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-                  <div className="absolute -top-40 right-0 w-[700px] h-[700px] rounded-full bg-blue-900/25 blur-[140px] motion-safe:animate-[pulse_10s_ease-in-out_infinite]" />
-                  <div className="absolute bottom-0 -left-32 w-[500px] h-[500px] rounded-full bg-indigo-900/20 blur-[120px] motion-safe:animate-[pulse_8s_ease-in-out_infinite_2s]" />
-                </div>
-                <div className={`relative z-10 max-w-6xl mx-auto px-6 py-20 md:py-28 transition-all duration-700 ${servicesRef.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-                  <div className="grid lg:grid-cols-2 gap-14 items-center">
+                <div className={`max-w-6xl mx-auto px-6 py-20 md:py-24 transition-opacity duration-500 ${servicesRef.isVisible ? "opacity-100" : "opacity-0"}`}>
+                  <div className="grid lg:grid-cols-2 gap-12 items-start">
                     <div>
-                      <Badge className="mb-4 bg-blue-600/20 text-blue-300 border-blue-500/20 text-xs font-semibold uppercase tracking-wider">
-                        SEVCO Services
-                      </Badge>
-                      <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-4 leading-tight">
-                        World-class work,<br />
-                        <span style={{ color: "#3b82f6" }}>built for creators.</span>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+                        <Briefcase className="h-3 w-3" /> SEVCO Services
+                      </p>
+                      <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground mb-3 leading-tight">
+                        World-class work, built for creators.
                       </h2>
-                      <p className="text-white/50 text-sm leading-relaxed mb-6 max-w-md">
+                      <p className="text-muted-foreground text-sm leading-relaxed mb-6 max-w-md">
                         Engineering, design, marketing, and media — SEVCO partners with brands and creators to build the things that matter.
                       </p>
                       <ul className="space-y-2 mb-8">
                         {["Full-Stack Engineering", "Brand & UI Design", "Marketing & Growth", "Media Production"].map((item) => (
-                          <li key={item} className="flex items-center gap-2 text-sm text-white/60">
-                            <CheckCircle className="h-4 w-4 text-blue-400 shrink-0" />
+                          <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <CheckCircle className="h-4 w-4 text-blue-500 shrink-0" />
                             {item}
                           </li>
                         ))}
                       </ul>
-                      <div className="flex gap-3">
+                      <div className="flex gap-2">
                         <Link href="/services">
-                          <Button
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-500 text-white font-semibold gap-2"
-                            data-testid="button-services-cta"
-                          >
-                            <Briefcase className="h-3.5 w-3.5" />
+                          <Button size="sm" className="bg-red-600 hover:bg-red-500 text-white font-medium gap-1.5" data-testid="button-services-cta">
                             Work with us
                           </Button>
                         </Link>
                         <Link href="/wiki/services-guide">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-white/60 hover:text-white hover:bg-white/10 border border-white/10 gap-1"
-                            data-testid="button-services-learn-more"
-                          >
-                            Learn More <ArrowRight className="h-3 w-3" />
+                          <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground gap-1" data-testid="button-services-learn-more">
+                            Learn more <ArrowRight className="h-3 w-3" />
                           </Button>
                         </Link>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      {SERVICE_ICONS.map(({ icon: Icon, label, color }, i) => (
+                    <div className="grid grid-cols-3 gap-3">
+                      {SERVICE_ICONS.map(({ icon: Icon, label, color }) => (
                         <div
                           key={label}
-                          className="rounded-2xl border border-white/[0.08] p-5 flex flex-col items-center gap-3 hover:border-blue-500/30 hover:shadow-[0_0_20px_0_rgba(59,130,246,0.12)] transition-all duration-300 group"
-                          style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(12px)", animationDelay: `${i * 0.1}s` }}
+                          className="rounded-xl border border-border bg-card p-4 flex flex-col items-center gap-2.5 hover:bg-accent/40 transition-colors"
                           data-testid={`card-service-icon-${label.toLowerCase()}`}
                         >
                           <div
-                            className="h-12 w-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
-                            style={{ backgroundColor: `${color}20` }}
+                            className="h-10 w-10 rounded-lg flex items-center justify-center"
+                            style={{ backgroundColor: `${color}1f` }}
                           >
-                            <Icon className="h-6 w-6" style={{ color }} />
+                            <Icon className="h-5 w-5" style={{ color }} />
                           </div>
-                          <p className="text-xs font-semibold text-white/60 group-hover:text-white/80 transition-colors">{label}</p>
+                          <p className="text-[11px] font-medium text-muted-foreground text-center">{label}</p>
                         </div>
                       ))}
                     </div>
@@ -1219,46 +1163,31 @@ export default function Landing() {
               <section
                 key="projectsShowstopper"
                 ref={projectsRef.ref}
-                className="relative overflow-hidden bg-[#040c06] text-white"
+                className="border-t border-border bg-background"
                 data-testid="section-projects-showstopper"
               >
-                <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-                  <div className="absolute -top-40 left-0 w-[700px] h-[700px] rounded-full bg-green-900/20 blur-[140px] motion-safe:animate-[pulse_11s_ease-in-out_infinite]" />
-                  <div className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full bg-emerald-900/15 blur-[120px] motion-safe:animate-[pulse_9s_ease-in-out_infinite_3s]" />
-                </div>
-                <div className={`relative z-10 max-w-6xl mx-auto px-6 py-20 md:py-28 transition-all duration-700 ${projectsRef.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                <div className={`max-w-6xl mx-auto px-6 py-20 md:py-24 transition-opacity duration-500 ${projectsRef.isVisible ? "opacity-100" : "opacity-0"}`}>
+                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
                     <div>
-                      <Badge className="mb-4 bg-green-600/20 text-green-300 border-green-500/20 text-xs font-semibold uppercase tracking-wider">
-                        SEVCO Ventures
-                      </Badge>
-                      <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
-                        Building the future,<br />
-                        <span style={{ color: "#22c55e" }}>one venture at a time.</span>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+                        <Folder className="h-3 w-3" /> SEVCO Ventures
+                      </p>
+                      <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground mb-2">
+                        Building the future, one venture at a time.
                       </h2>
-                      <p className="text-white/50 text-sm leading-relaxed max-w-md">
+                      <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
                         A portfolio of companies, initiatives, and bold ideas — incubated and operated by the SEVCO team.
                       </p>
                     </div>
-                    <div className="flex gap-3 shrink-0">
+                    <div className="flex gap-2 shrink-0">
                       <Link href="/projects">
-                        <Button
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-500 text-white font-semibold gap-2"
-                          data-testid="button-projects-explore"
-                        >
-                          <TrendingUp className="h-3.5 w-3.5" />
-                          Explore Ventures
+                        <Button size="sm" className="bg-red-600 hover:bg-red-500 text-white font-medium gap-1.5" data-testid="button-projects-explore">
+                          Explore ventures
                         </Button>
                       </Link>
                       <Link href="/wiki/projects-ventures-guide">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-white/60 hover:text-white hover:bg-white/10 border border-white/10 gap-1"
-                          data-testid="button-projects-learn-more"
-                        >
-                          Learn More <ArrowRight className="h-3 w-3" />
+                        <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground gap-1" data-testid="button-projects-learn-more">
+                          Learn more <ArrowRight className="h-3 w-3" />
                         </Button>
                       </Link>
                     </div>
@@ -1266,15 +1195,13 @@ export default function Landing() {
                   {projectsLoading ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {Array.from({ length: 6 }).map((_, i) => (
-                        <Skeleton key={i} className="h-32 rounded-xl bg-white/5" />
+                        <Skeleton key={i} className="h-32 rounded-xl" />
                       ))}
                     </div>
                   ) : featuredProjects.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-center">
-                      <div className="h-16 w-16 rounded-2xl bg-green-600/10 flex items-center justify-center mb-4">
-                        <Folder className="h-8 w-8 text-green-400/50" />
-                      </div>
-                      <p className="text-sm text-white/30">Ventures coming soon.</p>
+                      <Folder className="h-8 w-8 text-muted-foreground/40 mb-3" />
+                      <p className="text-sm text-muted-foreground">Ventures coming soon.</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1284,12 +1211,11 @@ export default function Landing() {
                         return (
                           <Link key={project.id} href={`/projects/${project.slug}`}>
                             <div
-                              className="group rounded-xl border border-white/[0.08] p-5 hover:border-green-500/30 hover:shadow-[0_0_24px_0_rgba(34,197,94,0.1)] transition-all duration-300 cursor-pointer h-full"
-                              style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(12px)" }}
+                              className="group rounded-xl border border-border bg-card p-5 hover:bg-accent/40 transition-colors cursor-pointer h-full"
                               data-testid={`card-project-${project.id}`}
                             >
                               <div className="flex items-start justify-between gap-2 mb-3">
-                                <div className="h-9 w-9 rounded-lg bg-green-600/15 flex items-center justify-center shrink-0 overflow-hidden">
+                                <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
                                   {project.appIcon ? (
                                     <img
                                       src={resolveImageUrl(project.appIcon)}
@@ -1297,16 +1223,16 @@ export default function Landing() {
                                       className="h-9 w-9 rounded-lg object-cover"
                                     />
                                   ) : (
-                                    <Folder className="h-4.5 w-4.5 text-green-400" style={{ height: "1.125rem", width: "1.125rem" }} />
+                                    <Folder className="h-4 w-4 text-muted-foreground" />
                                   )}
                                 </div>
-                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyle.bg} ${statusStyle.text}`}>
+                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium ${statusStyle.bg} ${statusStyle.text}`}>
                                   <span className={`h-1.5 w-1.5 rounded-full ${statusStyle.dot}`} />
                                   {project.status || "Active"}
                                 </span>
                               </div>
-                              <h3 className="text-sm font-bold text-white mb-1 group-hover:text-green-300 transition-colors">{project.name}</h3>
-                              <p className="text-xs text-white/40 line-clamp-2 leading-relaxed">{project.description || project.type}</p>
+                              <h3 className="text-sm font-semibold text-foreground mb-1">{project.name}</h3>
+                              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{project.description || project.type}</p>
                             </div>
                           </Link>
                         );
@@ -1323,83 +1249,47 @@ export default function Landing() {
               <section
                 key="recordsSpotlight"
                 ref={recordsRef.ref}
-                className="relative overflow-hidden bg-gradient-to-br from-blue-950 via-[#040815] to-blue-950"
+                className="border-t border-border bg-muted/20"
                 data-testid="section-records-spotlight"
               >
-                <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-                  <div className="absolute -bottom-16 -left-20 w-[400px] h-[400px] rounded-full bg-blue-600/15 blur-[100px] motion-safe:animate-[pulse_9s_ease-in-out_infinite]" />
-                  <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-indigo-500/10 blur-[80px] motion-safe:animate-[pulse_11s_ease-in-out_infinite_3s]" />
-                </div>
-                <div className={`relative max-w-6xl mx-auto px-6 py-14 md:py-20 flex flex-col md:flex-row md:items-center gap-8 transition-all duration-700 ${recordsRef.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Badge className="bg-blue-600/30 text-blue-200 border-blue-400/30 text-xs font-semibold uppercase tracking-wider">
-                        SEVCO RECORDS
-                      </Badge>
-                      <Badge className="bg-yellow-500/15 text-yellow-300 border-yellow-400/20 text-xs font-semibold">
-                        ✦ Spotlight
-                      </Badge>
-                    </div>
-                    <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 tracking-tight">
-                      Independent music, built for artists.
-                    </h2>
-                    <p className="text-blue-200/70 text-sm leading-relaxed max-w-lg mb-5">
-                      SEVCO RECORDS is our label — discovering and developing artists across every genre, with distribution, promotion, and creative support from day one.
-                    </p>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-600/10 border border-green-500/20">
-                        <SiSpotify className="h-3.5 w-3.5 text-green-400" />
-                        <span className="text-[11px] font-semibold text-green-300">Spotify</span>
+                <div className={`max-w-6xl mx-auto px-6 py-20 md:py-24 transition-opacity duration-500 ${recordsRef.isVisible ? "opacity-100" : "opacity-0"}`}>
+                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div className="max-w-xl">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+                        <Music className="h-3 w-3" /> SEVCO Records
+                      </p>
+                      <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground mb-2">
+                        Independent music, built for artists.
+                      </h2>
+                      <p className="text-muted-foreground text-sm leading-relaxed mb-5">
+                        Our label discovers and develops artists across every genre, with distribution, promotion, and creative support from day one.
+                      </p>
+                      <div className="flex items-center gap-2 mb-6">
+                        <a href="https://open.spotify.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs text-muted-foreground hover:text-foreground transition-colors">
+                          <SiSpotify className="h-3 w-3 text-green-500" /> Spotify
+                        </a>
+                        <a href="https://music.apple.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs text-muted-foreground hover:text-foreground transition-colors">
+                          <SiApplemusic className="h-3 w-3 text-pink-500" /> Apple Music
+                        </a>
                       </div>
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-                        <SiApplemusic className="h-3.5 w-3.5 text-pink-400" />
-                        <span className="text-[11px] font-semibold text-white/60">Apple Music</span>
+                      <div className="flex gap-2 flex-wrap">
+                        <Link href="/music">
+                          <Button size="sm" className="bg-red-600 hover:bg-red-500 text-white font-medium gap-1.5" data-testid="button-records-explore">
+                            Explore Records
+                          </Button>
+                        </Link>
+                        <Link href="/music/artists">
+                          <Button size="sm" variant="outline" className="font-medium" data-testid="button-records-artists">
+                            Browse artists
+                          </Button>
+                        </Link>
+                        <Link href="/wiki/records-music-guide">
+                          <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground gap-1" data-testid="button-records-learn-more">
+                            Learn more <ArrowRight className="h-3 w-3" />
+                          </Button>
+                        </Link>
                       </div>
                     </div>
-                    <div className="flex gap-3">
-                      <Link href="/music">
-                        <Button
-                          size="sm"
-                          className="bg-blue-600 hover:bg-blue-500 text-white font-semibold gap-2"
-                          data-testid="button-records-explore"
-                        >
-                          <Music className="h-3.5 w-3.5" />
-                          Explore RECORDS
-                        </Button>
-                      </Link>
-                      <Link href="/music/artists">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-blue-400/40 text-blue-200 hover:bg-blue-800/50 gap-2"
-                          data-testid="button-records-artists"
-                        >
-                          Browse Artists
-                        </Button>
-                      </Link>
-                      <Link href="/wiki/records-music-guide">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-white/50 hover:text-white hover:bg-white/10 gap-1"
-                          data-testid="button-records-learn-more"
-                        >
-                          Learn More <ArrowRight className="h-3 w-3" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                  <div className="hidden md:flex items-end justify-center gap-1.5 h-36 shrink-0 pr-4">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <div
-                        key={i}
-                        className="w-4 rounded-t-sm bg-gradient-to-t from-blue-600 to-blue-300"
-                        style={{
-                          animation: `equalizer${i} ${0.6 + i * 0.1}s ease-in-out infinite alternate`,
-                          height: `${[10, 24, 16, 20, 14][i - 1]}px`,
-                        }}
-                      />
-                    ))}
                   </div>
                 </div>
               </section>
@@ -1411,22 +1301,22 @@ export default function Landing() {
               <section
                 key="signupCta"
                 ref={signupCtaRef.ref}
-                className="relative overflow-hidden bg-[#0a0a12] text-white border-t border-white/[0.04]"
+                className="border-t border-border bg-background"
                 data-testid="section-signup-cta"
               >
-                <div className={`relative z-10 max-w-5xl mx-auto px-6 py-24 md:py-32 transition-all duration-700 ${signupCtaRef.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
-                  <div className="grid lg:grid-cols-[1.1fr_1fr] gap-16 items-center">
+                <div className={`max-w-5xl mx-auto px-6 py-24 md:py-28 transition-opacity duration-500 ${signupCtaRef.isVisible ? "opacity-100" : "opacity-0"}`}>
+                  <div className="grid lg:grid-cols-[1.1fr_1fr] gap-12 items-center">
                     <div>
-                      <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4 leading-[1.1] text-white">
+                      <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-3 leading-tight text-foreground">
                         One account. Everything unlocked.
                       </h2>
-                      <p className="text-white/55 text-base leading-relaxed mb-8 max-w-md">
+                      <p className="text-muted-foreground text-sm leading-relaxed mb-6 max-w-md">
                         Store, music, wiki, news, projects — one free SEVCO account, instant access.
                       </p>
                       <Link href="/auth">
                         <Button
                           size="lg"
-                          className="bg-red-600 hover:bg-red-500 text-white font-medium gap-2 shadow-md shadow-red-900/20"
+                          className="bg-red-600 hover:bg-red-500 text-white font-medium gap-2"
                           data-testid="button-signup-cta-create-account"
                           onClick={() => trackCtaClick("closer")}
                         >
@@ -1435,7 +1325,7 @@ export default function Landing() {
                         </Button>
                       </Link>
                     </div>
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-2 gap-2">
                       {[
                         { icon: Music, label: "SEVCO RECORDS", color: "#60a5fa" },
                         { icon: ShoppingBag, label: "Store", color: "#f87171" },
@@ -1446,11 +1336,11 @@ export default function Landing() {
                       ].map(({ icon: Icon, label, color }) => (
                         <div
                           key={label}
-                          className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-3 flex items-center gap-2.5"
+                          className="rounded-lg border border-border bg-card px-3 py-2.5 flex items-center gap-2.5"
                           data-testid={`card-signup-feature-${label.toLowerCase().replace(/\s+/g, "-")}`}
                         >
                           <Icon className="h-4 w-4 shrink-0" style={{ color }} />
-                          <p className="text-xs font-medium text-white/85 truncate">{label}</p>
+                          <p className="text-xs font-medium text-foreground truncate">{label}</p>
                         </div>
                       ))}
                     </div>
@@ -1462,16 +1352,18 @@ export default function Landing() {
           case "wikiLatest":
             if (!showWikiLatest) return null;
             return (
-              <section key="wikiLatest" className="overflow-hidden bg-muted/40 border-y border-border/60" data-testid="section-wiki-latest">
-                <div className="max-w-6xl mx-auto px-6 py-16 md:py-20">
-                  <div className="flex items-end justify-between mb-8">
+              <section key="wikiLatest" className="border-t border-border bg-muted/20" data-testid="section-wiki-latest">
+                <div className="max-w-6xl mx-auto px-6 py-20 md:py-24">
+                  <div className="flex items-end justify-between mb-10">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">SEVCO Wiki</p>
-                      <h2 className="text-2xl md:text-3xl font-bold tracking-tight" data-testid="text-from-the-wiki-heading">From the Wiki</h2>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+                        <BookOpen className="h-3 w-3" /> SEVCO Wiki
+                      </p>
+                      <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground" data-testid="text-from-the-wiki-heading">From the Wiki</h2>
                     </div>
                     <Link href="/wiki">
-                      <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" data-testid="link-explore-wiki">
-                        Explore the Wiki → 
+                      <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground" data-testid="link-explore-wiki">
+                        Explore the Wiki <ArrowRight className="h-3 w-3" />
                       </Button>
                     </Link>
                   </div>
@@ -1491,13 +1383,13 @@ export default function Landing() {
                       {recentArticles.map((article) => (
                         <Link key={article.id} href={articleUrl(article)}>
                           <div
-                            className="group flex flex-col gap-2 p-4 rounded-xl border bg-background border-border/60 hover:bg-muted/60 hover:border-primary/30 transition-all duration-200 cursor-pointer min-h-[130px]"
+                            className="group flex flex-col gap-2 p-4 rounded-xl border border-border bg-card hover:bg-accent/40 transition-colors cursor-pointer min-h-[130px]"
                             data-testid={`card-wiki-article-${article.id}`}
                           >
                             <div className="flex items-center gap-2">
-                              <BookOpen className="h-3.5 w-3.5 text-primary shrink-0" />
+                              <BookOpen className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                               {article.tags && article.tags.length > 0 && (
-                                <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-full truncate max-w-[100px]">{article.tags[0]}</span>
+                                <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full truncate max-w-[100px]">{article.tags[0]}</span>
                               )}
                             </div>
                             <p className="text-sm font-semibold text-foreground line-clamp-2 leading-snug">{article.title}</p>
@@ -1518,57 +1410,28 @@ export default function Landing() {
           case "communityCta":
             if (!showCommunityCta) return null;
             return (
-              <section key="communityCta" className="relative overflow-hidden bg-gradient-to-br from-blue-900/60 via-background to-blue-900/30 border-t border-white/5 px-6 py-20 md:py-28 text-center">
-                <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-                  <div className="absolute top-0 left-1/4 w-[400px] h-[400px] rounded-full bg-indigo-600/10 blur-[100px] motion-safe:animate-[pulse_10s_ease-in-out_infinite]" />
-                  <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] rounded-full bg-blue-700/10 blur-[80px] motion-safe:animate-[pulse_8s_ease-in-out_infinite_3s]" />
-                </div>
-                <div className="relative z-10 max-w-xl mx-auto">
-                  <div className="flex items-center justify-center gap-3 mb-4">
-                    <div
-                      className="h-10 w-10 rounded-xl flex items-center justify-center"
-                      style={{ background: "rgba(99,102,241,0.15)", backdropFilter: "blur(8px)" }}
-                    >
-                      <SiDiscord className="h-5 w-5 text-indigo-400" />
-                    </div>
-                    <Badge className="bg-indigo-500/15 text-indigo-400 border-indigo-500/20 text-xs font-semibold">
-                      Community
-                    </Badge>
-                  </div>
-                  <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
-                    <span className="bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 bg-clip-text text-transparent">
-                      Join the SEVCO community.
-                    </span>
+              <section key="communityCta" className="border-t border-border bg-background px-6 py-20 md:py-24 text-center" data-testid="section-community-cta">
+                <div className="max-w-xl mx-auto">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3 flex items-center justify-center gap-1.5">
+                    <SiDiscord className="h-3 w-3" /> Community
+                  </p>
+                  <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground mb-3">
+                    Join the SEVCO community.
                   </h2>
-                  <p className="text-muted-foreground text-sm leading-relaxed mb-8">
+                  <p className="text-muted-foreground text-sm leading-relaxed mb-7">
                     Connect with the team and community on Discord. Get updates, share feedback, and be part of what's next.
                   </p>
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <a
-                      href={DISCORD_INVITE}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => trackCtaClick("discord")}
-                    >
-                      <Button
-                        size="lg"
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold gap-2"
-                        data-testid="button-join-discord"
-                      >
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+                    <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer" onClick={() => trackCtaClick("discord")}>
+                      <Button size="lg" className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium gap-2" data-testid="button-join-discord">
                         <SiDiscord className="h-4 w-4" />
                         Join Discord
                       </Button>
                     </a>
                     {!user && (
                       <Link href="/auth">
-                        <Button
-                          size="lg"
-                          variant="ghost"
-                          className="text-white/70 hover:text-white hover:bg-white/10 border border-white/10 font-semibold gap-2"
-                          data-testid="button-community-sign-up"
-                        >
-                          <Star className="h-4 w-4" />
-                          Create Account
+                        <Button size="lg" variant="ghost" className="text-muted-foreground hover:text-foreground font-medium" data-testid="button-community-sign-up">
+                          Create account
                         </Button>
                       </Link>
                     )}
@@ -1580,40 +1443,21 @@ export default function Landing() {
           case "sparks":
             if (!showSparks) return null;
             return (
-              <section key="sparks" className="relative overflow-hidden bg-gradient-to-br from-amber-900/60 via-background to-yellow-900/30 border-t border-white/5 px-6 py-20 md:py-28 text-center">
-                <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-                  <div className="absolute top-0 left-1/3 w-[400px] h-[400px] rounded-full bg-amber-500/10 blur-[100px] motion-safe:animate-[pulse_10s_ease-in-out_infinite]" />
-                  <div className="absolute bottom-0 right-1/3 w-[300px] h-[300px] rounded-full bg-yellow-600/10 blur-[80px] motion-safe:animate-[pulse_8s_ease-in-out_infinite_3s]" />
-                </div>
-                <div className="relative z-10 max-w-xl mx-auto">
-                  <div className="flex items-center justify-center gap-3 mb-4">
-                    <div
-                      className="h-10 w-10 rounded-xl flex items-center justify-center"
-                      style={{ background: "rgba(245,158,11,0.15)", backdropFilter: "blur(8px)" }}
-                    >
-                      <span className="text-xl">⚡️</span>
-                    </div>
-                    <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/20 text-xs font-semibold">
-                      Creative Currency
-                    </Badge>
-                  </div>
-                  <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
-                    <span className="bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 bg-clip-text text-transparent">
-                      ⚡️ Sparks — SEVCO's creative currency
-                    </span>
+              <section key="sparks" className="border-t border-border bg-muted/20 px-6 py-20 md:py-24 text-center" data-testid="section-sparks">
+                <div className="max-w-xl mx-auto">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3 flex items-center justify-center gap-1.5">
+                    <span className="text-amber-500">⚡</span> Creative Currency
+                  </p>
+                  <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground mb-3">
+                    Sparks — SEVCO's creative currency
                   </h2>
-                  <p className="text-muted-foreground text-sm leading-relaxed mb-8">
+                  <p className="text-muted-foreground text-sm leading-relaxed mb-7">
                     Sparks power your creative journey on SEVCO. Use them to unlock AI tools, access premium music features, and fuel creative boosts across the platform.
                   </p>
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
                     <Link href="/sparks">
-                      <Button
-                        size="lg"
-                        className="bg-[#0037ff] hover:bg-[#0037ff]/90 text-white font-semibold gap-2"
-                        data-testid="button-get-sparks"
-                      >
-                        <span>⚡️</span>
-                        Get Sparks →
+                      <Button size="lg" className="bg-red-600 hover:bg-red-500 text-white font-medium gap-2" data-testid="button-get-sparks">
+                        <span>⚡</span> Get Sparks <ArrowRight className="h-4 w-4" />
                       </Button>
                     </Link>
                   </div>

@@ -98,16 +98,10 @@ export default function CommandDisplay() {
   const [btn2Url, setBtn2Url] = useState("");
   const [btn2Icon, setBtn2Icon] = useState("");
   const [btn2Color, setBtn2Color] = useState("");
-  // Hero motion + CTA-slot controls (added for Home Page modernization).
-  const [heroMotionEnabled, setHeroMotionEnabled] = useState(true);
-  const [heroMotionIntensity, setHeroMotionIntensity] = useState<"subtle" | "standard" | "rich">("standard");
-  const [heroPrimarySlot, setHeroPrimarySlot] = useState<"button1" | "button2">("button1");
-  const [heroScrollCueVisible, setHeroScrollCueVisible] = useState(true);
   // Mid-page CTA band (logged-out only).
   const [midCtaVisible, setMidCtaVisible] = useState(true);
   const [midCtaLabel, setMidCtaLabel] = useState("");
   const [midCtaUrl, setMidCtaUrl] = useState("");
-  const [landingLayout, setLandingLayout] = useState<"v1" | "v2">("v2");
   const [sectionVisibility, setSectionVisibility] = useState<Record<string, boolean>>({});
   const [faviconUrl, setFaviconUrl] = useState("");
   const [ogImageUrl, setOgImageUrl] = useState("");
@@ -158,19 +152,10 @@ export default function CommandDisplay() {
     setBtn2Url(settings["hero.button2.url"] ?? "");
     setBtn2Icon(settings["hero.button2.icon"] ?? "");
     setBtn2Color(settings["hero.button2.color"] ?? "");
-    // Motion + slot + scroll cue (defaults match landing.tsx fallbacks).
-    setHeroMotionEnabled(settings["hero.motion.enabled"] ? toBool(settings["hero.motion.enabled"]) : true);
-    const intensity = (settings["hero.motion.intensity"] ?? "standard") as "subtle" | "standard" | "rich";
-    setHeroMotionIntensity(intensity === "subtle" || intensity === "rich" ? intensity : "standard");
-    const slot = (settings["hero.cta.primarySlot"] ?? "button1") as "button1" | "button2";
-    setHeroPrimarySlot(slot === "button2" ? "button2" : "button1");
-    setHeroScrollCueVisible(settings["hero.scrollCue.visible"] ? toBool(settings["hero.scrollCue.visible"]) : true);
     // Mid-CTA band fields.
     setMidCtaVisible(settings["section.midCta.visible"] ? toBool(settings["section.midCta.visible"]) : true);
     setMidCtaLabel(settings["section.midCta.label"] ?? "Join SEVCO — built by creators, for creators.");
     setMidCtaUrl(settings["section.midCta.url"] ?? "/auth");
-    const layout = settings["landing.layout"];
-    setLandingLayout(layout === "v1" ? "v1" : "v2");
     setFaviconUrl(settings["platform.faviconUrl"] ?? "");
     setOgImageUrl(settings["platform.ogImageUrl"] ?? "");
     setGlobalDescription(settings["platform.description"] ?? "");
@@ -245,14 +230,9 @@ export default function CommandDisplay() {
       "hero.button2.url": btn2Url,
       "hero.button2.icon": btn2Icon,
       "hero.button2.color": btn2Color,
-      "hero.motion.enabled": String(heroMotionEnabled),
-      "hero.motion.intensity": heroMotionIntensity,
-      "hero.cta.primarySlot": heroPrimarySlot,
-      "hero.scrollCue.visible": String(heroScrollCueVisible),
       "section.midCta.visible": String(midCtaVisible),
       "section.midCta.label": midCtaLabel,
       "section.midCta.url": midCtaUrl,
-      "landing.layout": landingLayout,
     });
   }
 
@@ -756,92 +736,6 @@ export default function CommandDisplay() {
               <Button variant="ghost" size="sm" onClick={() => setBtn2Color("")} className="text-xs h-6 px-2">
                 Reset
               </Button>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Landing page layout version (rollback gate) */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold flex items-center gap-1.5">
-              <Layers className="h-3.5 w-3.5" />
-              Landing page layout
-            </Label>
-            <Select value={landingLayout} onValueChange={(v) => setLandingLayout(v as "v1" | "v2")}>
-              <SelectTrigger data-testid="select-landing-layout">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="v2">V2 — Modernized (default)</SelectItem>
-                <SelectItem value="v1">V1 — Original (rollback)</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              One-flip rollback for the modernized home page. V1 disables motion, the mid-page CTA band, and the hero-weight closer styling. Visitors can also force a version with <code className="font-mono text-[10px]">?layout=v1</code> or <code className="font-mono text-[10px]">?layout=v2</code> in the URL.
-            </p>
-          </div>
-
-          <Separator />
-
-          {/* Motion + CTA-slot controls */}
-          <div className="space-y-4">
-            <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <Zap className="h-3.5 w-3.5" />
-              Motion & CTA Hierarchy
-            </p>
-
-            <div className="flex items-center justify-between py-1">
-              <div>
-                <Label htmlFor="hero-motion-enabled" className="text-sm">Hero motion enabled</Label>
-                <p className="text-xs text-muted-foreground">Animated headline reveal, parallax preview, and scroll cue. Always disabled for users with reduce-motion.</p>
-              </div>
-              <Switch
-                id="hero-motion-enabled"
-                checked={heroMotionEnabled}
-                onCheckedChange={setHeroMotionEnabled}
-                data-testid="switch-hero-motion-enabled"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Motion intensity</Label>
-                <Select value={heroMotionIntensity} onValueChange={(v) => setHeroMotionIntensity(v as "subtle" | "standard" | "rich")}>
-                  <SelectTrigger data-testid="select-hero-motion-intensity">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="subtle">Subtle</SelectItem>
-                    <SelectItem value="standard">Standard</SelectItem>
-                    <SelectItem value="rich">Rich</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Primary CTA slot</Label>
-                <Select value={heroPrimarySlot} onValueChange={(v) => setHeroPrimarySlot(v as "button1" | "button2")}>
-                  <SelectTrigger data-testid="select-hero-primary-slot">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="button1">Button 1 is primary</SelectItem>
-                    <SelectItem value="button2">Button 2 is primary</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between py-1">
-              <div>
-                <Label htmlFor="hero-scroll-cue" className="text-sm">Show scroll cue</Label>
-                <p className="text-xs text-muted-foreground">Animated arrow at the bottom of the hero inviting visitors to scroll.</p>
-              </div>
-              <Switch
-                id="hero-scroll-cue"
-                checked={heroScrollCueVisible}
-                onCheckedChange={setHeroScrollCueVisible}
-                data-testid="switch-hero-scroll-cue"
-              />
             </div>
           </div>
 

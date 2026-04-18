@@ -847,6 +847,20 @@ async function initStripe() {
   }
 
   const port = parseInt(process.env.PORT || "5000", 10);
+  // Surface EADDRINUSE clearly so the workflow log shows an actionable
+  // message instead of a raw stack trace + zombie process. Exit non-zero
+  // so the workflow runner can restart cleanly.
+  httpServer.on("error", (err: NodeJS.ErrnoException) => {
+    if (err && err.code === "EADDRINUSE") {
+      log(
+        `port ${port} is already in use (EADDRINUSE). An orphan tsx/node process is likely still bound. Restart the workflow or kill the stale process.`,
+        "startup",
+      );
+      process.exit(1);
+    }
+    log(`http server error: ${err?.message ?? String(err)}`, "startup");
+    process.exit(1);
+  });
   httpServer.listen(
     {
       port,

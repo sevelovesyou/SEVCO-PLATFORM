@@ -2805,7 +2805,9 @@ class FreeballErrorBoundary extends Component<{ children: ReactNode }, FreeballE
   private copyError = () => {
     const { error, info } = this.state;
     if (!error) return;
-    const text = `${error.message}\n\n${error.stack ?? ""}\n\nComponent stack:${info}`;
+    const message = (error && error.message) ? String(error.message) : "Unknown error";
+    const stack = (error && error.stack) ? String(error.stack) : "";
+    const text = `${message}\n\n${stack}\n\nComponent stack: ${info}`;
     try { navigator.clipboard?.writeText(text); } catch { /* noop */ }
   };
   render() {

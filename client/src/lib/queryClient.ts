@@ -31,13 +31,34 @@ export async function apiRequest(
   return res;
 }
 
+// Defensively parse a JSON response body. If the server (or an upstream
+// proxy / SPA fallback) returns HTML instead of JSON, the native
+// `res.json()` throws `SyntaxError: Invalid or unexpected token` with no
+// context — we replace it with a clear Error that names the URL and a
+// short snippet of the body so the cause is visible in deploy logs.
+async function parseJsonOrThrow(res: Response, url: string): Promise<unknown> {
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    const snippet = text.slice(0, 120).replace(/\s+/g, " ");
+    const ctype = res.headers.get("content-type") || "unknown";
+    const original = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `Expected JSON from ${url} (status=${res.status}, content-type=${ctype}) but got: ${snippet} — ${original}`,
+    );
+  }
+}
+
 type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
+    const url = queryKey.join("/") as string;
+    const res = await fetch(url, {
       credentials: "include",
     });
 
@@ -46,7 +67,7 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
-    return await res.json();
+    return (await parseJsonOrThrow(res, url)) as never;
   };
 
 export const queryClient = new QueryClient({

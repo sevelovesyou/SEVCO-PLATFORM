@@ -348,6 +348,10 @@ const clientErrorSchema = z.object({
   url: z.string().max(8192).optional().default(""),
   userAgent: z.string().max(8192).optional().default(""),
   buildHash: z.string().max(256).nullable().optional(),
+  source: z.string().max(8192).optional().default(""),
+  line: z.number().int().nonnegative().optional().default(0),
+  col: z.number().int().nonnegative().optional().default(0),
+  kind: z.enum(["error", "unhandledrejection", "react"]).optional().default("react"),
 });
 
 router.post("/client-error", async (req, res) => {
@@ -388,15 +392,23 @@ router.post("/client-error", async (req, res) => {
       url: trunc(parsed.data.url),
       userAgent: trunc(parsed.data.userAgent),
       buildHash: parsed.data.buildHash ?? null,
+      source: trunc(parsed.data.source),
+      line: parsed.data.line,
+      col: parsed.data.col,
+      kind: parsed.data.kind,
     };
 
     // One-line summary so it surfaces clearly in deploy logs, followed by
-    // the full payload as structured JSON for grepping.
-    const summary = `[freeball-client-error] ${payload.message.split("\n")[0].slice(0, 200)} | url=${payload.url}`;
+    // the full payload as structured JSON for grepping. Include source:line:col
+    // when present so a SyntaxError parse location is greppable in deploy logs.
+    const loc = payload.source
+      ? ` at ${payload.source}:${payload.line}:${payload.col}`
+      : "";
+    const summary = `[client-error] [${payload.kind}] ${payload.message.split("\n")[0].slice(0, 200)}${loc} | url=${payload.url}`;
     // eslint-disable-next-line no-console
     console.error(summary);
     // eslint-disable-next-line no-console
-    console.error("[freeball-client-error] payload:", JSON.stringify(payload));
+    console.error("[client-error] payload:", JSON.stringify(payload));
 
     res.json({ ok: true });
   } catch (err) {

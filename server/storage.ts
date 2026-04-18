@@ -1924,6 +1924,26 @@ export class DatabaseStorage implements IStorage {
         ilike(albums.title, pattern)
       ).orderBy(albums.title).limit(limit);
 
+    const trackRows = await db
+      .select({
+        id: musicTracks.id,
+        title: musicTracks.title,
+        artistName: musicTracks.artistName,
+        type: musicTracks.type,
+        status: musicTracks.status,
+        artistSlug: artists.slug,
+        ownerUsername: users.username,
+      })
+      .from(musicTracks)
+      .leftJoin(artists, eq(musicTracks.artistId, artists.id))
+      .leftJoin(users, eq(musicTracks.userId, users.id))
+      .where(
+        and(
+          isStaff ? undefined : eq(musicTracks.status, "published"),
+          or(ilike(musicTracks.title, pattern), ilike(musicTracks.artistName, pattern), ilike(musicTracks.albumName, pattern))
+        )
+      ).orderBy(desc(musicTracks.createdAt)).limit(limit);
+
     const jobRows = await db
       .select({ id: jobs.id, title: jobs.title, slug: jobs.slug, department: jobs.department, type: jobs.type, status: jobs.status })
       .from(jobs).where(
@@ -1977,6 +1997,17 @@ export class DatabaseStorage implements IStorage {
         description: null,
         href: `/music/albums/${a.slug}`,
         meta: "Album",
+      })),
+      ...trackRows.map((t) => ({
+        id: t.id + 200000,
+        title: t.title,
+        description: t.artistName,
+        href: t.artistSlug
+          ? `/music/artists/${t.artistSlug}`
+          : t.ownerUsername
+            ? `/profile/${t.ownerUsername}`
+            : "/music",
+        meta: t.type === "instrumental" ? "Instrumental" : "Track",
       })),
     ].slice(0, limit);
 

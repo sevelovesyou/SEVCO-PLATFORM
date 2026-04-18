@@ -21,7 +21,8 @@ import {
   Link2, Download, Images,
 } from "lucide-react";
 import { SiDiscord, SiSpotify, SiApplemusic } from "react-icons/si";
-import type { Article, Product, FeedPost, Project, ChangelogCategory } from "@shared/schema";
+import type { Article, Product, FeedPost, Project, ChangelogCategory, MusicTrack } from "@shared/schema";
+import { useMusicPlayer } from "@/contexts/music-player-context";
 import { articleUrl } from "@/lib/wiki-urls";
 import { DEFAULT_SECTION_ORDER } from "@shared/section-order";
 import { motion } from "framer-motion";
@@ -422,6 +423,35 @@ export default function Landing() {
   const servicesRef = useIntersectionObserver();
   const projectsRef = useIntersectionObserver();
   const recordsRef = useIntersectionObserver();
+
+  type SpotlightTrack = MusicTrack & {
+    user?: { id: string; username: string; displayName: string | null; avatarUrl: string | null } | null;
+  };
+  const { data: featuredTracks = [] } = useQuery<SpotlightTrack[]>({
+    queryKey: ["/api/music/tracks", "track"],
+    queryFn: () => fetch("/api/music/tracks?type=track").then((r) => r.json()),
+    enabled: showRecordsSpotlight,
+  });
+  const { playTrack } = useMusicPlayer();
+  const spotlightTracks = useMemo<SpotlightTrack[]>(() => {
+    const published = featuredTracks.filter((t) => t.status === "published");
+    const staff = published.filter((t) => t.artistId != null);
+    const community = published.filter((t) => t.userId != null && t.artistId == null);
+    const mix: SpotlightTrack[] = [];
+    let i = 0, j = 0;
+    while (mix.length < 4 && (i < staff.length || j < community.length)) {
+      if (i < staff.length) mix.push(staff[i++]);
+      if (mix.length < 4 && j < community.length) mix.push(community[j++]);
+    }
+    if (mix.length < 4) {
+      for (const t of published) {
+        if (mix.length >= 4) break;
+        if (!mix.find((m) => m.id === t.id)) mix.push(t);
+      }
+    }
+    return mix;
+  }, [featuredTracks]);
+
   const featurePillsRef = useIntersectionObserver();
   const signupCtaRef = useIntersectionObserver();
 
@@ -1251,7 +1281,7 @@ export default function Landing() {
                 data-testid="section-records-spotlight"
               >
                 <div className={`max-w-6xl mx-auto px-6 py-20 md:py-24 transition-opacity duration-500 ${recordsRef.isVisible ? "opacity-100" : "opacity-0"}`}>
-                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-10">
                     <div className="max-w-xl">
                       <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
                         <Music className="h-3 w-3" /> SEVCO Records
@@ -1288,6 +1318,73 @@ export default function Landing() {
                         </Link>
                       </div>
                     </div>
+                    {spotlightTracks.length > 0 && (
+                      <div className="w-full md:max-w-sm" data-testid="records-spotlight-tracks">
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+                          Now on SEVCO
+                        </p>
+                        <div className="space-y-1.5">
+                          {spotlightTracks.map((track) => {
+                            const uploaderUsername = track.user?.username;
+                            const profileHref = track.artistId == null && uploaderUsername
+                              ? `/profile/${uploaderUsername}`
+                              : null;
+                            return (
+                              <div
+                                key={track.id}
+                                className="group flex items-center gap-3 p-2.5 rounded-lg border border-border bg-card hover:bg-muted/40 transition-colors"
+                                data-testid={`spotlight-track-${track.id}`}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => playTrack(track, spotlightTracks.filter((t) => t.id !== track.id))}
+                                  className="relative shrink-0 w-10 h-10 rounded-md overflow-hidden bg-primary/10 flex items-center justify-center"
+                                  aria-label={`Play ${track.title}`}
+                                  data-testid={`button-spotlight-play-${track.id}`}
+                                >
+                                  {track.coverImageUrl ? (
+                                    <img src={resolveImageUrl(track.coverImageUrl)} alt={track.title} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <Music className="h-4 w-4 text-primary/60" />
+                                  )}
+                                  <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <ArrowRight className="h-3.5 w-3.5 text-white -rotate-90" />
+                                  </span>
+                                </button>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate" data-testid={`text-spotlight-title-${track.id}`}>{track.title}</p>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {profileHref ? (
+                                      <Link href={profileHref} className="hover:text-foreground hover:underline" data-testid={`link-spotlight-uploader-${track.id}`}>
+                                        {track.artistName}
+                                      </Link>
+                                    ) : (
+                                      track.artistName
+                                    )}
+                                  </p>
+                                </div>
+                                <Badge
+                                  variant="outline"
+                                  className="text-[9px] px-1.5 py-0 h-4 shrink-0 uppercase tracking-wider"
+                                  data-testid={`badge-spotlight-source-${track.id}`}
+                                >
+                                  {track.artistId != null ? "Artist" : "Community"}
+                                </Badge>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <Link href="/music/listen">
+                          <button
+                            type="button"
+                            className="mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                            data-testid="link-spotlight-all-tracks"
+                          >
+                            Browse all tracks <ArrowRight className="h-3 w-3" />
+                          </button>
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 </div>
               </section>

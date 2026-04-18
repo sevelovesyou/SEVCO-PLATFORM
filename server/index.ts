@@ -366,6 +366,38 @@ async function runStartupMigrations() {
   await pool.query(`DROP TABLE IF EXISTS content_sparks;`);
   await pool.query(`DROP TYPE IF EXISTS content_spark_content_type;`);
 
+  // Task #468 / #476 — Sparks for tracks, products, projects, services + lead user FKs.
+  // These ran in dev via raw SQL but never landed in production, which left
+  // /api/projects, /api/services, /api/store/products, /api/music/tracks, and
+  // /api/sparks/leaderboard returning 500 ("column lead_user_id does not exist" /
+  // "relation track_sparks does not exist"). Idempotent so safe to re-run.
+  await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS lead_user_id varchar REFERENCES users(id) ON DELETE SET NULL;`);
+  await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS lead_user_id varchar REFERENCES users(id) ON DELETE SET NULL;`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS track_sparks (
+    track_id integer NOT NULL REFERENCES music_tracks(id) ON DELETE CASCADE,
+    user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at timestamp NOT NULL DEFAULT NOW(),
+    CONSTRAINT track_sparks_track_user_unique UNIQUE (track_id, user_id)
+  );`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS product_sparks (
+    product_id integer NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at timestamp NOT NULL DEFAULT NOW(),
+    CONSTRAINT product_sparks_product_user_unique UNIQUE (product_id, user_id)
+  );`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS project_sparks (
+    project_id integer NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at timestamp NOT NULL DEFAULT NOW(),
+    CONSTRAINT project_sparks_project_user_unique UNIQUE (project_id, user_id)
+  );`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS service_sparks (
+    service_id integer NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+    user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at timestamp NOT NULL DEFAULT NOW(),
+    CONSTRAINT service_sparks_service_user_unique UNIQUE (service_id, user_id)
+  );`);
+
   // Task #280 — Delete old auto-generated task articles from production
   // Only delete if >= 10 such articles exist (production guard, safe after dev cleanup)
   const oldTaskCount = await pool.query(`

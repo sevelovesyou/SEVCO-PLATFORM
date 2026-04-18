@@ -29856,3 +29856,41 @@ Across the platform, the Spark button is hidden when the viewer is the content's
 
 ---
 
+## Task — gallery-spark-icon-only
+> Merged: 2026-04-18
+
+# Gallery Hover Overlay: Use Shared SparkButton, Icon Only (No Redundant Count)
+
+## What & Why
+The gallery card's hover-overlay action row still renders the Sparks count twice — once as the always-visible bottom-left badge, and again next to the bespoke gallery spark button (which itself displays "icon + count"). For owners there's also a separate non-interactive "owner spark chip" that shows the count yet again. The user wants the hover row to be **icon-only** for the Spark button, with the bottom-left badge remaining the single source of truth for the count, and the redundant owner chip removed.
+
+## Done looks like
+- Gallery card hover-overlay action row: Spark button shows just the ⚡ icon (no number next to it). Tooltip, daily-limit handling, owner-disabled state, chime, and burst animation all preserved by switching to the shared `SparkButton` component (which now handles owners the same way as everywhere else).
+- The non-interactive "owner spark chip" (lines 336-340) is removed; owners see the same disabled SparkButton in the same position as everyone else.
+- The always-on bottom-left ⚡ count badge remains as the single Sparks count surface for the card.
+- Lightbox layout, download button, copy-link button, open-full-size button, members-only badge, and all other gallery behavior unchanged.
+
+## Out of scope
+- Reworking the gallery layout, masonry, or filters.
+- Changing the lightbox spark UI.
+
+## Steps
+1. **Replace the bespoke gallery spark button with the shared `SparkButton` component** in `client/src/pages/gallery-page.tsx`. Pass:
+   - `entityType="gallery"`, `entityId={image.id}`
+   - `count={image.sparkCount ?? 0}`, `sparkedByCurrentUser={!!image.isSparkedByMe}`
+   - `isOwner={user?.id === image.uploadedBy}`
+   - `size="sm"`, `className="..."` to match the other action-row icon buttons (rounded square, muted bg/border, hover state).
+   - Hide the count by passing a wrapper that hides the trailing number — easiest path: use SparkButton as-is but apply a CSS rule (e.g. `[&_.tabular-nums]:hidden`) on its className so only the icon shows. (SparkButton renders the count in a span with `tabular-nums`.)
+
+2. **Remove the bespoke local `sparkMutation`, `handleSpark`, `sparkTooltips` state, and quota query usage** in `gallery-page.tsx` that were powering the inline button — `SparkButton` brings its own. Keep the bottom-left badge's count display intact.
+
+3. **Remove the owner spark chip block** (lines ~336-340 with `data-testid={`chip-gallery-spark-owner-${image.id}`}`). Owners now see the same disabled `SparkButton` as everyone else.
+
+4. **Visual sweep.** Restart the dev server. Confirm: hover over a card → the action row shows Spark icon only (no number), Download, Copy Link, Open Full Size; bottom-left of the image still shows ⚡ + count. Hover over your own image → Spark button visible but disabled with the standard "You can't spark your own content" tooltip; no extra owner chip. Spark someone else's image → chime + burst still fire and the bottom-left count tweens up.
+
+## Relevant files
+- `client/src/pages/gallery-page.tsx`
+
+
+---
+

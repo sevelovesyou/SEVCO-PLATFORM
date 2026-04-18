@@ -29413,3 +29413,50 @@ The previous "merge artists into profiles" pass left music behind: tracks still 
 
 ---
 
+## Task — profile-music-prominent-tabs
+> Merged: 2026-04-18
+
+# Spotify-Style Music On Profiles
+
+## What & Why
+Music is a core function of a SEVCO profile, but it currently renders as a small section at the very bottom of the page — and on profiles with a background image it can collapse into the corner with no titles or cover art (see the user's screenshot: small "Song / Rock" and "Beat / Hip-Hop" chips floating with no album art). A profile owner's music should feel like a Spotify artist page: an immediate play affordance up top, a dedicated Music tab with full-size track and beat sections, and visual prominence equal to the bio and identity card.
+
+## Done looks like
+- The profile hero card shows a large Play button when the user has at least one track. Pressing it queues that user's tracks into the global music player and starts playback. If they have no tracks it shows nothing (no empty button).
+- A persistent tab bar appears under the hero on every profile (replacing the current single-scroll layout). Tabs include at minimum: **Overview** (current bio + featured items + posts), **Music** (visible only when the user has tracks or beats, or it is the user's own profile), and the existing sections (sparks/posts/etc.) folded sensibly into Overview.
+- The Music tab presents two clearly labeled sections — **Songs** and **Beats** — using the existing track `type` field. Each section is a Spotify-style track list: square cover art, title, optional album, genre tag, duration, spark count, and a per-row play button. Empty sections render a friendly "No songs yet" / "No beats yet" message instead of disappearing silently.
+- Track rows hover to highlight, the currently playing track is visually marked, and clicking play on any row queues the rest of that section after it.
+- The Upload Track button on the user's own profile lives inside the Music tab header (not floating at the page bottom), and the Pencil edit affordance from #481 stays on each owned row.
+- On mobile, the tab bar scrolls horizontally; the Songs/Beats lists stack vertically with comfortable touch targets; album art remains visible.
+- No music ever overlaps the background image artwork the way it does in the screenshot.
+
+## Out of scope
+- Album CRUD from the user-facing UI (still admin-only).
+- Likes/reposts of tracks (sparks already cover engagement).
+- Playlists owned by users.
+- Audio waveform previews or scrubbing UI changes — keep using the existing global floating player.
+- Reordering tracks (already covered by drafted task #484).
+
+## Steps
+1. **Profile hero play button** — When viewing any profile whose track list is non-empty, render a prominent Play button inside the hero/identity card that queues the user's tracks into the global music player and starts playback of their first one. Accent it with the profile's accent color.
+
+2. **Profile tab bar** — Introduce a tab navigation under the hero card. Always include Overview; conditionally include Music (when the user has any tracks, or when viewing your own profile); preserve the existing posts/spark/featured surfaces inside Overview. Tabs should remember their selection in the URL (e.g. `?tab=music`) so links can deep-link.
+
+3. **Music tab — Songs and Beats sections** — Build two side-by-side (desktop) / stacked (mobile) sections inside the Music tab, filtered by the track `type` field. Each section is a Spotify-style row list with cover art, title, metadata, spark count, and play button. Songs and beats both come from the existing `/api/profile/:username/music` endpoint — no backend changes needed unless that endpoint is missing the `type` field, in which case extend it.
+
+4. **Now-playing + queue integration** — Hook each row's play button into the existing music player context: clicking a row plays that track and queues the remaining rows in that section. Mark the currently playing row visually (color + animated equalizer icon) using the player's current-track state.
+
+5. **Move Upload + Edit into the Music tab** — Relocate the Upload Track CTA and the per-row Pencil edit button from their current position into the Music tab header / row hover area so the controls live with the content they affect. Keep the existing dialog component and the account-page management — only the placement on the profile page changes.
+
+6. **Visual containment fix** — Ensure the music section sits inside the same max-width / padded container as the rest of the profile content so it can never collapse into the corner over the background image. Verify on a profile with a heavy background image (the user's own) at desktop and mobile widths.
+
+## Relevant files
+- `client/src/pages/profile-page.tsx:1131-1370,1374-2006`
+- `client/src/contexts/music-player-context.tsx`
+- `client/src/components/ui/tabs.tsx`
+- `server/routes.ts` (the `/api/profile/:username/music` endpoint added in #480)
+- `client/src/pages/account-page.tsx` (verify upload/edit dialog continues to work in its existing location)
+
+
+---
+

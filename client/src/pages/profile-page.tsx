@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ImageLightbox } from "@/components/image-lightbox";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { articleUrl } from "@/lib/wiki-urls";
-import { useParams, Link } from "wouter";
+import { useParams, useLocation, useSearch, Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { useMusicPlayer } from "@/contexts/music-player-context";
 import type { MusicTrack, Album } from "@shared/schema";
@@ -1128,50 +1128,247 @@ function UploadTrackDialog({ open, onClose, username, editing }: { open: boolean
   );
 }
 
-function UserMusicSection({ username, isOwnProfile, accentColor, bgColor }: { username: string; isOwnProfile: boolean; accentColor?: string; bgColor?: string }) {
-  const { playTrack } = useMusicPlayer();
+function ProfileMusicTab({ username, isOwnProfile, accentColor, bgColor, tracks, albums, isLoading }: {
+  username: string;
+  isOwnProfile: boolean;
+  accentColor?: string;
+  bgColor?: string;
+  tracks: MusicTrack[];
+  albums: Album[];
+  isLoading: boolean;
+}) {
+  const { currentTrack, isPlaying, playTrack, pause, resume } = useMusicPlayer();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [editingTrack, setEditingTrack] = useState<MusicTrack | null>(null);
-
-  const { data, isLoading } = useQuery<{ tracks: MusicTrack[]; albums: Album[] }>({
-    queryKey: ["/api/profile", username, "music"],
-    queryFn: async () => {
-      const res = await fetch(`/api/profile/${username}/music`);
-      if (!res.ok) return { tracks: [], albums: [] };
-      return res.json();
-    },
-  });
-
-  const albums = data?.albums ?? [];
-  const tracks = data?.tracks ?? [];
-  const albumsLoading = isLoading;
-  const tracksLoading = isLoading;
 
   const borderColor = accentColor ? `${accentColor}33` : "var(--border)";
   const cardBg = bgColor ? `${bgColor}88` : "var(--card)";
   const mutedColor = accentColor ? `${accentColor}99` : "var(--muted-foreground)";
 
-  const hasContent = albums.length > 0 || tracks.length > 0;
+  const songs = tracks.filter((t) => t.type !== "instrumental");
+  const beats = tracks.filter((t) => t.type === "instrumental");
 
-  if (!isLoading && !hasContent && !isOwnProfile) return null;
+  const renderRow = (track: MusicTrack, list: MusicTrack[], i: number) => {
+    const isCurrent = currentTrack?.id === track.id;
+    const onRowPlay = () => {
+      if (isCurrent) {
+        if (isPlaying) pause(); else resume();
+      } else {
+        playTrack(track, list.slice(i + 1));
+      }
+    };
+    return (
+      <li
+        key={track.id}
+        className={`flex items-center gap-3 px-3 sm:px-4 py-2.5 transition-colors group ${isCurrent ? "" : "hover:bg-muted/40"}`}
+        style={isCurrent ? { background: accentColor ? `${accentColor}1f` : "hsl(var(--muted))" } : {}}
+        data-testid={`track-profile-${track.id}`}
+      >
+        <div className="w-5 shrink-0 flex items-center justify-center">
+          {isCurrent ? (
+            <span
+              className="inline-flex items-end gap-[2px] h-3"
+              aria-label="Now playing"
+              data-testid={`equalizer-track-${track.id}`}
+            >
+              <span className="w-[2px] bg-current animate-pulse" style={{ color: accentColor || "hsl(var(--primary))", height: "60%", animationDelay: "0ms" }} />
+              <span className="w-[2px] bg-current animate-pulse" style={{ color: accentColor || "hsl(var(--primary))", height: "100%", animationDelay: "120ms" }} />
+              <span className="w-[2px] bg-current animate-pulse" style={{ color: accentColor || "hsl(var(--primary))", height: "75%", animationDelay: "240ms" }} />
+            </span>
+          ) : (
+            <>
+              <span className="text-xs tabular-nums group-hover:hidden" style={{ color: mutedColor }}>{i + 1}</span>
+              {track.fileUrl && (
+                <button
+                  type="button"
+                  className="hidden group-hover:inline-flex items-center justify-center"
+                  aria-label={`Play ${track.title}`}
+                  data-testid={`button-play-track-profile-${track.id}`}
+                  onClick={onRowPlay}
+                  style={{ color: accentColor || "hsl(var(--foreground))" }}
+                >
+                  <Play className="h-3.5 w-3.5 fill-current" />
+                </button>
+              )}
+            </>
+          )}
+        </div>
+        {track.coverImageUrl ? (
+          <img
+            src={resolveImageUrl(track.coverImageUrl)}
+            alt={track.title}
+            className="h-10 w-10 rounded object-cover shrink-0"
+          />
+        ) : (
+          <div
+            className="h-10 w-10 rounded flex items-center justify-center shrink-0"
+            style={{ background: accentColor ? `${accentColor}22` : "var(--muted)" }}
+          >
+            <Music className="h-4 w-4" style={{ color: accentColor || "var(--muted-foreground)" }} />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate" style={{ color: isCurrent ? (accentColor || "hsl(var(--primary))") : (accentColor || "var(--foreground)") }} data-testid={`text-track-title-${track.id}`}>
+            {track.title}
+          </p>
+          <p className="text-xs truncate" style={{ color: mutedColor }}>
+            {track.albumName || (track.type === "instrumental" ? "Beat" : "Song")}
+          </p>
+        </div>
+        {track.genre && (
+          <Badge
+            variant="secondary"
+            className="text-[10px] px-1.5 shrink-0 hidden md:inline-flex"
+            data-testid={`badge-track-genre-${track.id}`}
+          >
+            {track.genre}
+          </Badge>
+        )}
+        <span className="text-xs shrink-0 tabular-nums hidden sm:flex items-center gap-1" style={{ color: mutedColor }} data-testid={`text-track-streams-${track.id}`}>
+          <BarChart2 className="h-3 w-3" />
+          {formatStreamCount(track.streamCount ?? 0)}
+        </span>
+        <span className="text-xs shrink-0 tabular-nums" style={{ color: mutedColor }} data-testid={`text-track-duration-${track.id}`}>
+          {formatDuration(track.duration)}
+        </span>
+        {isOwnProfile && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            aria-label={`Edit ${track.title}`}
+            data-testid={`button-edit-track-profile-${track.id}`}
+            onClick={() => { setEditingTrack(track); setUploadOpen(true); }}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </li>
+    );
+  };
+
+  const renderSection = (label: string, icon: React.ReactNode, list: MusicTrack[], emptyText: string, testId: string) => (
+    <div className="flex-1 min-w-0" data-testid={testId}>
+      <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2" style={{ color: mutedColor }}>
+        {icon}
+        {label}
+        <span className="opacity-60">· {list.length}</span>
+      </h3>
+      {isLoading ? (
+        <div className="space-y-1">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : list.length === 0 ? (
+        <div
+          className="rounded-xl border px-5 py-6 text-center"
+          style={{ background: cardBg, borderColor }}
+          data-testid={`${testId}-empty`}
+        >
+          <p className="text-sm" style={{ color: mutedColor }}>{emptyText}</p>
+        </div>
+      ) : (
+        <div
+          className="rounded-xl border overflow-hidden"
+          style={{ background: cardBg, borderColor }}
+        >
+          <ol className="divide-y" style={{ borderColor }}>
+            {list.map((track, i) => renderRow(track, list, i))}
+          </ol>
+        </div>
+      )}
+    </div>
+  );
 
   return (
-    <div className="mt-5 space-y-5" data-testid="section-artist-music">
-      {isOwnProfile && (
+    <div className="space-y-6" data-testid="tab-content-music">
+      {(isOwnProfile || tracks.length > 0) && (
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2" style={{ color: mutedColor }}>
             <Music className="h-3.5 w-3.5" />
             Music
           </h2>
-          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setEditingTrack(null); setUploadOpen(true); }} data-testid="button-upload-track">
-            <Music className="h-3.5 w-3.5" /> Upload Track
-          </Button>
+          {isOwnProfile && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-xs"
+              onClick={() => { setEditingTrack(null); setUploadOpen(true); }}
+              data-testid="button-upload-track"
+              style={accentColor ? { borderColor: `${accentColor}66`, color: accentColor } : {}}
+            >
+              <Music className="h-3.5 w-3.5" /> Upload Track
+            </Button>
+          )}
         </div>
       )}
 
-      {!isLoading && !hasContent && isOwnProfile && (
-        <div className="rounded-xl border px-5 py-6 text-center" style={{ background: cardBg, borderColor }}>
-          <p className="text-sm" style={{ color: mutedColor }} data-testid="empty-music">No music yet — upload your first track.</p>
+      <div className="flex flex-col lg:flex-row gap-6">
+        {renderSection(
+          "Songs",
+          <Music className="h-3.5 w-3.5" />,
+          songs,
+          isOwnProfile ? "No songs yet — upload your first." : "No songs yet.",
+          "section-profile-songs",
+        )}
+        {renderSection(
+          "Beats",
+          <Disc className="h-3.5 w-3.5" />,
+          beats,
+          isOwnProfile ? "No beats yet — upload your first." : "No beats yet.",
+          "section-profile-beats",
+        )}
+      </div>
+
+      {(isLoading || albums.length > 0) && (
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2" style={{ color: mutedColor }}>
+            <Disc className="h-3.5 w-3.5" />
+            Discography
+          </h3>
+          {isLoading ? (
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-32 w-28 rounded-xl flex-shrink-0" />
+              ))}
+            </div>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {albums.map((album) => (
+                <Link key={album.id} href={`/music/albums/${album.slug}`}>
+                  <div
+                    className="flex-shrink-0 w-28 rounded-xl border overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                    style={{ background: cardBg, borderColor }}
+                    data-testid={`card-profile-album-${album.id}`}
+                  >
+                    {(album as any).coverImageUrl ? (
+                      <img
+                        src={resolveImageUrl((album as any).coverImageUrl)}
+                        alt={album.title}
+                        className="w-full h-28 object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="w-full h-28 flex items-center justify-center"
+                        style={{ background: accentColor ? `${accentColor}22` : "var(--muted)" }}
+                      >
+                        <Disc className="h-8 w-8" style={{ color: accentColor || "var(--muted-foreground)", opacity: 0.5 }} />
+                      </div>
+                    )}
+                    <div className="p-2">
+                      <p className="text-xs font-medium truncate" style={{ color: accentColor || "var(--foreground)" }}>
+                        {album.title}
+                      </p>
+                      {album.releaseYear && (
+                        <p className="text-[10px]" style={{ color: mutedColor }}>{album.releaseYear}</p>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -1181,181 +1378,6 @@ function UserMusicSection({ username, isOwnProfile, accentColor, bgColor }: { us
         username={username}
         editing={editingTrack}
       />
-
-      {(albumsLoading || albums.length > 0) && (
-      <div>
-        <h2
-          className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2"
-          style={{ color: mutedColor }}
-        >
-          <Disc className="h-3.5 w-3.5" />
-          Discography
-        </h2>
-        {albumsLoading ? (
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-32 w-28 rounded-xl flex-shrink-0" />
-            ))}
-          </div>
-        ) : (
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {albums.map((album) => (
-              <Link key={album.id} href={`/music/albums/${album.slug}`}>
-                <div
-                  className="flex-shrink-0 w-28 rounded-xl border overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-                  style={{ background: cardBg, borderColor }}
-                  data-testid={`card-profile-album-${album.id}`}
-                >
-                  {(album as any).coverImageUrl ? (
-                    <img
-                      src={resolveImageUrl((album as any).coverImageUrl)}
-                      alt={album.title}
-                      className="w-full h-28 object-cover"
-                    />
-                  ) : (
-                    <div
-                      className="w-full h-28 flex items-center justify-center"
-                      style={{ background: accentColor ? `${accentColor}22` : "var(--muted)" }}
-                    >
-                      <Disc className="h-8 w-8" style={{ color: accentColor || "var(--muted-foreground)", opacity: 0.5 }} />
-                    </div>
-                  )}
-                  <div className="p-2">
-                    <p className="text-xs font-medium truncate" style={{ color: accentColor || "var(--foreground)" }}>
-                      {album.title}
-                    </p>
-                    {album.releaseYear && (
-                      <p className="text-[10px]" style={{ color: mutedColor }}>{album.releaseYear}</p>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-      )}
-
-      {(tracksLoading || tracks.length > 0) && (
-      <div>
-        <h2
-          className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2"
-          style={{ color: mutedColor }}
-        >
-          <Music className="h-3.5 w-3.5" />
-          Tracks
-        </h2>
-        {tracksLoading ? (
-          <div className="space-y-1">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full rounded-lg" />
-            ))}
-          </div>
-        ) : tracks.length === 0 ? (
-          <div
-            className="rounded-xl border px-5 py-6 text-center"
-            style={{ background: cardBg, borderColor }}
-          >
-            <p className="text-sm" style={{ color: mutedColor }}>No tracks released yet.</p>
-          </div>
-        ) : (
-          <div
-            className="rounded-xl border overflow-hidden"
-            style={{ background: cardBg, borderColor }}
-          >
-            <ol className="divide-y" style={{ borderColor }}>
-              {tracks.map((track, i) => (
-                <li
-                  key={track.id}
-                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/40 transition-colors group"
-                  data-testid={`track-profile-${track.id}`}
-                >
-                  <span className="text-xs w-5 text-right shrink-0 tabular-nums" style={{ color: mutedColor }}>
-                    {i + 1}
-                  </span>
-                  {track.coverImageUrl ? (
-                    <img
-                      src={resolveImageUrl(track.coverImageUrl)}
-                      alt={track.title}
-                      className="h-8 w-8 rounded object-cover shrink-0"
-                    />
-                  ) : (
-                    <div
-                      className="h-8 w-8 rounded flex items-center justify-center shrink-0"
-                      style={{ background: accentColor ? `${accentColor}22` : "var(--muted)" }}
-                    >
-                      <Music className="h-3.5 w-3.5" style={{ color: accentColor || "var(--muted-foreground)" }} />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ color: accentColor || "var(--foreground)" }}>
-                      {track.title}
-                    </p>
-                    <p className="text-xs flex items-center gap-1" style={{ color: mutedColor }}>
-                      <BarChart2 className="h-3 w-3" />
-                      {formatStreamCount(track.streamCount ?? 0)} streams
-                    </p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] px-1.5 shrink-0"
-                    data-testid={`badge-track-type-${track.id}`}
-                  >
-                    {track.type === "instrumental" ? "Beat" : "Song"}
-                  </Badge>
-                  {track.genre && (
-                    <Badge
-                      variant="secondary"
-                      className="text-[10px] px-1.5 shrink-0 hidden sm:inline-flex"
-                      data-testid={`badge-track-genre-${track.id}`}
-                    >
-                      {track.genre}
-                    </Badge>
-                  )}
-                  <span className="text-xs shrink-0 tabular-nums" style={{ color: mutedColor }}>
-                    {formatDuration(track.duration)}
-                  </span>
-                  <button
-                    type="button"
-                    className="h-7 px-1.5 shrink-0 inline-flex items-center gap-0.5 text-xs rounded text-muted-foreground hover:text-amber-500 transition-colors disabled:opacity-50"
-                    aria-label={`Spark ${track.title}`}
-                    data-testid={`button-spark-track-profile-${track.id}`}
-                    disabled
-                    title="Sparking tracks coming soon"
-                  >
-                    <Zap className="h-3.5 w-3.5" />
-                  </button>
-                  {track.fileUrl && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                      aria-label={`Play ${track.title}`}
-                      data-testid={`button-play-track-profile-${track.id}`}
-                      onClick={() => playTrack(track, tracks.filter((_, idx) => idx > i))}
-                    >
-                      <Play className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                  {isOwnProfile && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                      aria-label={`Edit ${track.title}`}
-                      data-testid={`button-edit-track-profile-${track.id}`}
-                      onClick={() => { setEditingTrack(track); setUploadOpen(true); }}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
-      </div>
-      )}
     </div>
   );
 }
@@ -1390,11 +1412,62 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
       : "linear-gradient(135deg, hsl(var(--primary)/0.3), hsl(var(--primary)/0.1))";
   const { toast } = useToast();
   const qc = useQueryClient();
+  const [currentPath, navigate] = useLocation();
+  const search = useSearch();
+  const tabFromUrl = (() => {
+    const sp = new URLSearchParams(search);
+    const t = sp.get("tab");
+    return t === "music" ? "music" : "overview";
+  })();
+  const setActiveProfileTab = (tab: "overview" | "music") => {
+    const sp = new URLSearchParams(search);
+    if (tab === "overview") sp.delete("tab"); else sp.set("tab", tab);
+    const qs = sp.toString();
+    navigate(`${currentPath}${qs ? `?${qs}` : ""}`, { replace: true });
+  };
+  // gating happens after showMusicTab is computed below
+  let activeProfileTab: "overview" | "music" = tabFromUrl;
   const [followersOpen, setFollowersOpen] = useState(false);
   const [followingOpen, setFollowingOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"posts" | "articles">("posts");
   const [deletePostId, setDeletePostId] = useState<number | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+  const { currentTrack, isPlaying, playTrack, pause, resume } = useMusicPlayer();
+
+  const { data: musicData, isLoading: musicLoading } = useQuery<{ tracks: MusicTrack[]; albums: Album[] }>({
+    queryKey: ["/api/profile", profile.username, "music"],
+    queryFn: async () => {
+      const res = await fetch(`/api/profile/${profile.username}/music`);
+      if (!res.ok) return { tracks: [], albums: [] };
+      return res.json();
+    },
+  });
+  const profileTracks = musicData?.tracks ?? [];
+  const profileAlbums = musicData?.albums ?? [];
+  const hasTracks = profileTracks.length > 0;
+  const showMusicTab = hasTracks || isOwnProfile;
+  if (activeProfileTab === "music" && !showMusicTab && !musicLoading) {
+    activeProfileTab = "overview";
+  }
+  useEffect(() => {
+    if (tabFromUrl === "music" && !showMusicTab && !musicLoading) {
+      const sp = new URLSearchParams(search);
+      sp.delete("tab");
+      const qs = sp.toString();
+      navigate(`${currentPath}${qs ? `?${qs}` : ""}`, { replace: true });
+    }
+  }, [tabFromUrl, showMusicTab, musicLoading, search, currentPath, navigate]);
+  const heroTrack = profileTracks[0];
+  const isHeroPlaying = !!currentTrack && !!heroTrack && currentTrack.id === heroTrack.id && isPlaying;
+  const onHeroPlay = () => {
+    if (!heroTrack) return;
+    if (currentTrack?.id === heroTrack.id) {
+      if (isPlaying) pause(); else resume();
+    } else {
+      playTrack(heroTrack, profileTracks.slice(1));
+    }
+  };
 
   const { data: recentArticles } = useQuery<ArticleSnippet[]>({
     queryKey: ["/api/profile", profile.username, "articles"],
@@ -1708,8 +1781,30 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
               />
             )}
 
-            {socials.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3" data-testid="social-links">
+            {(socials.length > 0 || hasTracks) && (
+              <div className="flex flex-wrap items-center gap-3 mt-3" data-testid="social-links">
+                {hasTracks && (
+                  <button
+                    type="button"
+                    onClick={onHeroPlay}
+                    aria-label={isHeroPlaying ? "Pause music" : "Play music"}
+                    className="inline-flex items-center justify-center h-12 w-12 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95"
+                    style={{
+                      background: accentColor || "hsl(var(--primary))",
+                      color: "#fff",
+                    }}
+                    data-testid="button-hero-play"
+                  >
+                    {isHeroPlaying ? (
+                      <span className="flex items-end gap-[3px] h-4">
+                        <span className="w-[3px] h-full bg-white rounded-sm" />
+                        <span className="w-[3px] h-full bg-white rounded-sm" />
+                      </span>
+                    ) : (
+                      <Play className="h-5 w-5 fill-current ml-0.5" />
+                    )}
+                  </button>
+                )}
                 {socials.map((s) => (
                   <SocialBadge key={s.label} href={s.href} icon={s.icon} label={s.label} accentColor={accentColor || "hsl(var(--primary))"} />
                 ))}
@@ -1730,7 +1825,45 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
           {profile.emailVerified && <span className="ml-3 opacity-60">· Verified</span>}
         </div>
 
-        {/* Tabs */}
+        {/* Top-level profile tab bar (Overview / Music) */}
+        <div
+          className="mt-5 flex gap-1 border-b overflow-x-auto"
+          style={{ borderColor: accentColor ? `${accentColor}22` : "var(--border)" }}
+          data-testid="profile-tab-bar"
+        >
+          {([
+            { id: "overview" as const, label: "Overview" },
+            ...(showMusicTab ? [{ id: "music" as const, label: "Music" }] : []),
+          ]).map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveProfileTab(tab.id)}
+              className={`px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors ${activeProfileTab === tab.id ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              style={activeProfileTab === tab.id && accentColor ? { borderColor: accentColor, color: accentColor } : {}}
+              data-testid={`tab-profile-top-${tab.id}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {activeProfileTab === "music" && (
+          <div className="mt-5">
+            <ProfileMusicTab
+              username={profile.username}
+              isOwnProfile={isOwnProfile}
+              accentColor={accentColor}
+              bgColor={bgColor}
+              tracks={profileTracks}
+              albums={profileAlbums}
+              isLoading={musicLoading}
+            />
+          </div>
+        )}
+
+        {activeProfileTab === "overview" && (
+        <>
+        {/* Sub-tabs inside Overview */}
         <div className="mt-5 flex border-b" style={{ borderColor: accentColor ? `${accentColor}22` : "var(--border)" }}>
           {[
             { id: "posts" as const, label: "Posts" },
@@ -1821,9 +1954,8 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
             )}
           </div>
         )}
-      </div>
 
-      {/* Top Sparked Posts */}
+      {/* Top Sparked Posts (Overview only) */}
       {topSparkedPosts && topSparkedPosts.length > 0 && (
         <div className="mt-6">
           <div
@@ -1861,13 +1993,9 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
           </div>
         </div>
       )}
-
-      <UserMusicSection
-        username={profile.username}
-        isOwnProfile={isOwnProfile}
-        accentColor={accentColor}
-        bgColor={bgColor}
-      />
+        </>
+        )}
+      </div>
 
       <FollowListDialog username={profile.username} type="followers" open={followersOpen} onClose={() => setFollowersOpen(false)} />
       <FollowListDialog username={profile.username} type="following" open={followingOpen} onClose={() => setFollowingOpen(false)} />

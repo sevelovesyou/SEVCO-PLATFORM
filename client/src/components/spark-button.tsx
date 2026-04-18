@@ -46,6 +46,7 @@ interface SparkButtonProps {
   sparkCount: number;
   sparkedByCurrentUser: boolean;
   isOwner?: boolean;
+  /** @deprecated No-op. Owner state now always shows the button (disabled). */
   showCountWhenOwner?: boolean;
   size?: "sm" | "md";
   className?: string;
@@ -119,25 +120,10 @@ export function SparkButton({
     },
   });
 
-  if (isOwner) {
-    if (!showCountWhenOwner) return null;
-    const sizing =
-      size === "md" ? "h-9 px-2.5 text-sm gap-1.5" : "h-7 px-1.5 text-xs gap-1";
-    const iconSize = size === "md" ? "h-4 w-4" : "h-3 w-3";
-    return (
-      <span
-        className={`flex items-center text-muted-foreground ${sizing} ${className}`}
-        data-testid={`text-${entityType}-spark-count-${entityId}`}
-      >
-        <Zap className={iconSize} />
-        <span className="tabular-nums">{displayCount}</span>
-      </span>
-    );
-  }
-
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     event.preventDefault();
+    if (isOwner) return;
     if (!user) return;
     if (sparkedByCurrentUser) {
       if (canUnspark) {
@@ -165,14 +151,16 @@ export function SparkButton({
           <button
             type="button"
             className={`flex items-center transition-colors rounded ${sizing} ${
-              sparkedByCurrentUser
+              isOwner
+                ? "text-muted-foreground opacity-60 cursor-not-allowed"
+                : sparkedByCurrentUser
                 ? "text-amber-500"
                 : disabled
                 ? "text-muted-foreground opacity-40 cursor-not-allowed"
                 : "text-muted-foreground hover:text-amber-500"
-            } ${!user ? "opacity-50 cursor-default" : ""} ${className}`}
+            } ${!user && !isOwner ? "opacity-50 cursor-default" : ""} ${className}`}
             onClick={handleClick}
-            disabled={disabled || mutation.isPending}
+            disabled={isOwner || disabled || mutation.isPending}
             data-testid={`button-${entityType}-spark-${entityId}`}
           >
             <span className={`relative inline-flex items-center justify-center ${iconBoxSize}`}>
@@ -242,7 +230,9 @@ export function SparkButton({
           </button>
         </TooltipTrigger>
         <TooltipContent side="top">
-          {!user
+          {isOwner
+            ? "You can't spark your own content"
+            : !user
             ? "Log in to spark"
             : sparkedByCurrentUser
             ? canUnspark ? "Click to unspark" : "Already sparked!"

@@ -329,31 +329,37 @@ export default function GalleryPage() {
                     </Badge>
                   </div>
                   <div className="flex gap-1.5 items-center">
-                    {!isOwner && (
-                      <TooltipProvider>
-                        <Tooltip open={sparkTooltips[image.id] ?? false}>
-                          <TooltipTrigger asChild>
-                            <button
-                              className={`flex items-center gap-1 text-xs transition-colors h-7 px-2 rounded bg-black/40 ${
-                                image.isSparkedByMe
-                                  ? "text-amber-400"
-                                  : dailyLimitReached && !image.isSparkedByMe
-                                  ? "text-white/50 cursor-not-allowed"
-                                  : "text-white hover:text-amber-400"
-                              } ${!user ? "opacity-50 cursor-default" : ""}`}
-                              onClick={(e) => { e.stopPropagation(); handleSpark(image); }}
-                              disabled={dailyLimitReached && !image.isSparkedByMe}
-                              data-testid={`button-gallery-spark-${image.id}`}
-                            >
-                              <Zap className={`h-3 w-3 ${image.isSparkedByMe ? "fill-amber-400" : ""}`} />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top">
-                            {image.isSparkedByMe ? "Already sparked!" : dailyLimitReached ? "Daily spark limit reached (10/day)" : "Spark this image"}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
+                    <TooltipProvider>
+                      <Tooltip open={sparkTooltips[image.id] ?? false}>
+                        <TooltipTrigger asChild>
+                          <button
+                            className={`flex items-center gap-1 text-xs transition-colors h-7 px-2 rounded bg-black/40 ${
+                              isOwner
+                                ? "text-white/50 opacity-60 cursor-not-allowed"
+                                : image.isSparkedByMe
+                                ? "text-amber-400"
+                                : dailyLimitReached && !image.isSparkedByMe
+                                ? "text-white/50 cursor-not-allowed"
+                                : "text-white hover:text-amber-400"
+                            } ${!user && !isOwner ? "opacity-50 cursor-default" : ""}`}
+                            onClick={(e) => { e.stopPropagation(); if (!isOwner) handleSpark(image); }}
+                            disabled={isOwner || (dailyLimitReached && !image.isSparkedByMe)}
+                            data-testid={`button-gallery-spark-${image.id}`}
+                          >
+                            <Zap className={`h-3 w-3 ${image.isSparkedByMe && !isOwner ? "fill-amber-400" : ""}`} />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          {isOwner
+                            ? "You can't spark your own content"
+                            : image.isSparkedByMe
+                            ? "Already sparked!"
+                            : dailyLimitReached
+                            ? "Daily spark limit reached (10/day)"
+                            : "Spark this image"}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     <Button
                       size="sm"
                       variant="secondary"

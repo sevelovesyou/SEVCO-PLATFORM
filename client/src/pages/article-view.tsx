@@ -412,14 +412,13 @@ export default function ArticleView() {
                 by {article.author.username}
               </span>
             )}
-            {user?.id !== article.authorId && (
-              <SparkButton
-                entityType="article"
-                entityId={article.slug}
-                sparkCount={article.sparkCount ?? 0}
-                sparkedByCurrentUser={!!article.isSparkedByMe}
-              />
-            )}
+            <SparkButton
+              entityType="article"
+              entityId={article.slug}
+              sparkCount={article.sparkCount ?? 0}
+              sparkedByCurrentUser={!!article.isSparkedByMe}
+              isOwner={user?.id === article.authorId}
+            />
           </div>
         </div>
         <div className="flex items-center gap-2">

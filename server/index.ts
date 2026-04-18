@@ -15,6 +15,7 @@ import { fetchAllMarketData } from "./market-data";
 import { startNewsAggregator } from "./news-aggregator";
 import { sevcoSitesMiddleware } from "./sites-middleware";
 import { runFileMigrations } from "./fileMigrator";
+import { applySchemaFromCode } from "./schemaSync";
 
 const SPARK_PACK_DEFS = [
   { name: "Starter", sparks: 1000,   price: 800,   sortOrder: 0 },
@@ -93,6 +94,21 @@ async function runStartupMigrations() {
   // legacy hand-rolled block. Tracked in __file_migrations so each file
   // runs exactly once per database.
   await runFileMigrations();
+
+  // Task #477 — Auto-sync the live DB to whatever `shared/schema.ts` declares.
+  // This is what makes new tables / new columns reach production automatically
+  // without anyone hand-mirroring them in the block below. Idempotent and
+  // additive only — type changes / drops still need an explicit migration SQL
+  // file in /migrations.
+  await applySchemaFromCode(pool);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Legacy hand-rolled DDL kept for reference — these are now redundant with
+  // applySchemaFromCode() above (which derives equivalent IF NOT EXISTS DDL
+  // straight from shared/schema.ts), BUT they also include data fix-ups
+  // (UPDATEs, DELETEs, type drops, schema-only-once cleanups) that the
+  // synthesizer doesn't touch. Leave them in place; they are all idempotent.
+  // ─────────────────────────────────────────────────────────────────────────
 
   // Task #322 — Fix missing repost_of column in posts table
   await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS repost_of integer REFERENCES posts(id) ON DELETE CASCADE;`);

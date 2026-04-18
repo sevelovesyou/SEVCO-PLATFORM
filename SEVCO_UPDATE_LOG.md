@@ -29019,3 +29019,46 @@ The Section Visibility panel inside Command Center → Platform Settings is out 
 
 ---
 
+## Task — shader-and-section-cleanup
+> Merged: 2026-04-18
+
+# Consolidate Shader Studio into Platform Settings + add missing Section Visibility toggles
+
+## What & Why
+Two Command Center cleanups in one pass on the Platform Settings page:
+
+1. **Shader UI is split.** The full Shader Studio lives at its own sidebar tab (`/command/shaders`), while a smaller, non-working legacy shader settings panel still renders inside the Hero card on Platform Settings. Admins expect one place to manage shaders.
+2. **Section Visibility is incomplete.** Even after the recent fix, there is no toggle for the Hero, the Colored Icon Pill Menu, or the Wallpaper of the Day in the Section Visibility panel — Hero has no `section.hero.visible` setting at all on the landing page, and Icon Pills / Wallpaper are listed but their labels and presence should be reconfirmed against the live home page.
+
+## Done looks like
+- Platform Settings page contains the full Shader Studio experience (the page-shader assignments table plus the shader authoring/preview controls) inline, in its own dedicated card.
+- The standalone `/command/shaders` route and its sidebar nav entry are gone (or the route redirects into Platform Settings) — no dead links.
+- The non-working legacy shader settings panel previously embedded in the Hero card is removed.
+- Section Visibility panel includes toggle rows for **Hero**, **Colored Icon Pill Menu**, and **Wallpaper of the Day**, plus any other sections the home page renders that are still missing from the panel. Each has an accurate, current label and short description.
+- Toggling Hero off actually hides the hero on the public landing page (a new `section.hero.visible` setting must be added and respected by `landing.tsx`).
+- Saving the Section Visibility panel persists all toggles in one click, including the new ones.
+- Command Center sidebar no longer shows a separate Shader Studio entry.
+
+## Out of scope
+- Redesigning the Shader Studio itself.
+- Building new shader presets or changing shader rendering.
+- Reworking the home page hero design.
+
+## Steps
+1. Move the full Shader Studio UI (the contents of the standalone shader studio page) into a new card on Platform Settings, beneath the existing Section Visibility / Brand Assets cards. Remove the duplicated/legacy shader settings panel from the Hero card.
+2. Remove the Shader Studio entry from the Command Center sidebar and either delete the `/command/shaders` route or have it redirect into Platform Settings. Clean up any now-unused imports/files.
+3. Add a Hero visibility toggle: introduce `section.hero.visible` (default true), add the row to the Section Visibility panel (in the fixed-position group, since the hero always sits at the top), and gate the hero render in `landing.tsx` on it.
+4. Confirm the Section Visibility panel shows rows for Icon Pills and Wallpaper of the Day with the user's preferred labels ("Colored Icon Pill Menu", "Wallpaper of the Day"). Audit the landing page once more to make sure every visible top-level section has a corresponding toggle.
+5. Quick visual QA: open Platform Settings, confirm Shader Studio works inline, toggle Hero / Icon Pills / Wallpaper off and on, and verify the home page reflects each change.
+
+## Relevant files
+- `client/src/pages/command-display.tsx` (Section Visibility list ~L25-50, Hero card ~L800-848 with embedded `ShaderSettingsPanel`)
+- `client/src/pages/command-shader-studio.tsx` (full Shader Studio page to be inlined)
+- `client/src/components/command-sidebar.tsx` (~L213-219 sidebar entry to remove)
+- `client/src/App.tsx` (~L74, L384-388 route to remove or redirect)
+- `client/src/pages/landing.tsx` (hero render block + visibility flag wiring around L388-417)
+- `shared/section-order.ts` (no change expected — hero/icon-pills/wallpaper are fixed-position, not in the orderable list)
+
+
+---
+

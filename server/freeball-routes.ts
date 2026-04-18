@@ -334,4 +334,75 @@ router.get("/presence", requireAuth, async (req, res) => {
   res.json(active);
 });
 
+// In-memory rate limiter for the client-error reporting endpoint.
+// 10 requests / minute / IP. We intentionally do NOT persist anything.
+const clientErrorRate: Record<string, { count: number; windowStart: number }> = {};
+const CLIENT_ERROR_LIMIT = 10;
+const CLIENT_ERROR_WINDOW_MS = 60_000;
+const CLIENT_ERROR_MAX_BYTES = 8 * 1024;
+
+const clientErrorSchema = z.object({
+  message: z.string().max(8192).optional().default(""),
+  stack: z.string().max(8192).optional().default(""),
+  componentStack: z.string().max(8192).optional().default(""),
+  url: z.string().max(8192).optional().default(""),
+  userAgent: z.string().max(8192).optional().default(""),
+  buildHash: z.string().max(256).nullable().optional(),
+});
+
+router.post("/client-error", async (req, res) => {
+  try {
+    // Reject oversized payloads up front (header check is cheap; we also
+    // re-check the parsed body length below in case the header is missing).
+    const lenHeader = req.headers["content-length"];
+    if (typeof lenHeader === "string" && Number(lenHeader) > CLIENT_ERROR_MAX_BYTES) {
+      return res.status(413).json({ ok: false, message: "payload too large" });
+    }
+
+    const ip = (req.ip || req.socket.remoteAddress || "unknown").toString();
+    const now = Date.now();
+    const bucket = clientErrorRate[ip];
+    if (!bucket || now - bucket.windowStart > CLIENT_ERROR_WINDOW_MS) {
+      clientErrorRate[ip] = { count: 1, windowStart: now };
+    } else {
+      bucket.count += 1;
+      if (bucket.count > CLIENT_ERROR_LIMIT) {
+        return res.status(429).json({ ok: false, message: "rate limited" });
+      }
+    }
+
+    const rawBody = req.body;
+    const bodyBytes = Buffer.byteLength(JSON.stringify(rawBody ?? {}), "utf8");
+    if (bodyBytes > CLIENT_ERROR_MAX_BYTES) {
+      return res.status(413).json({ ok: false, message: "payload too large" });
+    }
+
+    const parsed = clientErrorSchema.safeParse(rawBody);
+    if (!parsed.success) return res.status(400).json({ ok: false, message: parsed.error.message });
+
+    const trunc = (s: string) => s.slice(0, 4096);
+    const payload = {
+      message: trunc(parsed.data.message),
+      stack: trunc(parsed.data.stack),
+      componentStack: trunc(parsed.data.componentStack),
+      url: trunc(parsed.data.url),
+      userAgent: trunc(parsed.data.userAgent),
+      buildHash: parsed.data.buildHash ?? null,
+    };
+
+    // One-line summary so it surfaces clearly in deploy logs, followed by
+    // the full payload as structured JSON for grepping.
+    const summary = `[freeball-client-error] ${payload.message.split("\n")[0].slice(0, 200)} | url=${payload.url}`;
+    // eslint-disable-next-line no-console
+    console.error(summary);
+    // eslint-disable-next-line no-console
+    console.error("[freeball-client-error] payload:", JSON.stringify(payload));
+
+    res.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    res.status(500).json({ ok: false, message: msg });
+  }
+});
+
 export { router as freeballRouter };

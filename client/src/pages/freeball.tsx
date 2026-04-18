@@ -1558,6 +1558,7 @@ function Scene({ planets, activePlanetIndex, progress, savedBuilds, otherPlayers
   const nearestVoxelIndices = useMemo(() => {
     const activeIdx = system.voxelDefs.findIndex((d) => d.planet.id === activePlanet?.id);
     if (activeIdx < 0) return [];
+    if (!system.voxelDefs[activeIdx]) return [];
     const activeDefPos = system.voxelDefs[activeIdx].position;
     return system.voxelDefs
       .map((d, i) => ({ i, dist: i === activeIdx ? Infinity : activeDefPos.distanceTo(d.position) }))
@@ -2666,11 +2667,28 @@ function planetKind(type: string): CelestialKind {
   }
 }
 
+function safeTriple(v: unknown, fallback: [number, number, number]): [number, number, number] {
+  if (!Array.isArray(v) || v.length < 3) return fallback;
+  const n = (x: unknown, f: number) => (typeof x === "number" && Number.isFinite(x) ? x : f);
+  return [n(v[0], fallback[0]), n(v[1], fallback[1]), n(v[2], fallback[2])];
+}
+
 function FreeballNavHud({ system }: { system: SolarSystem }) {
   const { sphereHud, discoveredPlanetIds, activeWaypointId, setActiveWaypointId, isMapOpen, setIsMapOpen, inVehicle } = useGameStore();
-  const spherePos = useMemo(() => new THREE.Vector3(...sphereHud.pos), [sphereHud.pos]);
-  const forward = useMemo(() => new THREE.Vector3(...sphereHud.forward).normalize(), [sphereHud.forward]);
-  const up = useMemo(() => new THREE.Vector3(...sphereHud.up).normalize(), [sphereHud.up]);
+  const spherePos = useMemo(() => {
+    const t = safeTriple(sphereHud?.pos, [0, 0, 0]);
+    return new THREE.Vector3(t[0], t[1], t[2]);
+  }, [sphereHud?.pos]);
+  const forward = useMemo(() => {
+    const t = safeTriple(sphereHud?.forward, [0, 0, -1]);
+    const v = new THREE.Vector3(t[0], t[1], t[2]);
+    return v.lengthSq() > 0 ? v.normalize() : new THREE.Vector3(0, 0, -1);
+  }, [sphereHud?.forward]);
+  const up = useMemo(() => {
+    const t = safeTriple(sphereHud?.up, [0, 1, 0]);
+    const v = new THREE.Vector3(t[0], t[1], t[2]);
+    return v.lengthSq() > 0 ? v.normalize() : new THREE.Vector3(0, 1, 0);
+  }, [sphereHud?.up]);
   const known = useMemo(() => new Set(discoveredPlanetIds), [discoveredPlanetIds]);
 
   const bodies = useMemo<CompassBody[]>(() => {
@@ -2747,11 +2765,42 @@ class FreeballErrorBoundary extends Component<{ children: ReactNode }, FreeballE
     // Always log the real error so it's visible in DevTools instead of being eaten.
     console.error("[Freeball] crash:", error, stack);
     this.setState({ error, info: stack });
+    // Fire-and-forget report so the crash lands in deploy logs even when
+    // details are hidden from the visible panel. Wrapped in try/catch so
+    // the boundary itself can never throw while reporting.
+    try {
+      const truncate = (s: string | undefined | null, n: number) => (s ?? "").slice(0, n);
+      const stackLines = (error.stack ?? "").split("\n").slice(0, 20).join("\n");
+      const buildHash = typeof document !== "undefined"
+        ? document.querySelector('meta[name="build-hash"]')?.getAttribute("content") ?? null
+        : null;
+      const payload = {
+        message: truncate(error.message, 4096),
+        stack: truncate(stackLines, 4096),
+        componentStack: truncate(stack, 4096),
+        url: typeof window !== "undefined" ? truncate(window.location.href, 4096) : "",
+        userAgent: typeof navigator !== "undefined" ? truncate(navigator.userAgent, 4096) : "",
+        buildHash,
+      };
+      void fetch("/api/freeball/client-error", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+        keepalive: true,
+      }).catch(() => { /* swallow */ });
+    } catch { /* never let reporting break the boundary */ }
   }
   private isDevHost(): boolean {
     if (typeof window === "undefined") return false;
     const h = window.location.hostname;
-    return h === "localhost" || h === "127.0.0.1" || h.endsWith(".replit.dev") || h.endsWith(".repl.co");
+    if (h === "localhost" || h === "127.0.0.1" || h.endsWith(".replit.dev") || h.endsWith(".repl.co")) return true;
+    // Opt-in: ?debug=1 surfaces the full error panel on any host so we can
+    // inspect production crashes without exposing details to every visitor.
+    try {
+      return new URLSearchParams(window.location.search).get("debug") === "1";
+    } catch {
+      return false;
+    }
   }
   private copyError = () => {
     const { error, info } = this.state;

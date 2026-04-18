@@ -29175,3 +29175,47 @@ The cleanest, lowest-risk fix is to make the leaderboard read from the same lega
 
 ---
 
+## Task — merge-artist-pages-into-profiles
+> Merged: 2026-04-18
+
+# Merge Artist pages into Profiles and add a Music section to the Profile
+
+## What & Why
+Every artist on SEVCO already has (or can have) a SEVCO user profile — `users.linkedArtistId` ties the two together. Maintaining a separate `/music/artists/<slug>` page on top of the regular `/u/<username>` (or equivalent) profile creates two competing surfaces for the same person, splits the audience, and makes Sparks/follows/social activity confusing. Collapse them: the user's Profile becomes the single canonical page for that artist, with a new Music section that surfaces all their songs, albums, and beats.
+
+## Done looks like
+- Profile pages (`client/src/pages/profile-page.tsx`) gain a Music section/tab that lists, for users with a linked artist, all of that artist's tracks (songs and beats) and albums, with cover art, play affordance, and (per the parallel sparks-everything task) a Spark button + count.
+- Empty state when the user has a linked artist but no published tracks: a small "No music yet" line. No Music section is rendered for users without a `linkedArtistId`.
+- The standalone `/music/artists` listing page is replaced with a grid of artist *profiles* — clicking an artist navigates to that user's profile, not to a separate artist page.
+- The standalone `/music/artists/<slug>` detail route is removed and 301-redirected to the corresponding user profile when a linked user exists. If no user is linked yet, the route should redirect to `/music/artists` (the new artist-profiles listing) with a brief toast/message rather than 404.
+- Existing internal links to `/music/artists/<slug>` (album pages, music browse, search results, recommendations) are updated to point at the user profile instead.
+- The artists admin (`command-music.tsx` artist editor) keeps an "Artist → User" link picker so admins can connect any unlinked artist record to a SEVCO user.
+- No data is deleted — `artists` table and existing `linkedArtistId` references stay; this is a UI consolidation, not a data migration.
+
+## Out of scope
+- Building the actual Spark button (that lives in the parallel "Spark Songs/Beats/..." task). This task only needs to leave the right slot in the Music section for it; if the other task ships first, wire it in here.
+- Reworking the music submission flow.
+- Designing a new artist hero/banner — reuse the existing profile header.
+- Cleaning up the `artists` table schema or removing the `wikiArticleSlug` field.
+
+## Steps
+1. **Music section on Profile** (`client/src/pages/profile-page.tsx`): add a new section (or tab, matching the page's existing tab pattern) that, when `user.linkedArtistId` is set, fetches `/api/music/tracks?artistId=...` and `/api/music/albums?artistId=...` (add the query support to those endpoints if missing) and renders a simple grid of tracks (cover, title, type chip for song vs beat, duration, play button) and a row of albums. Include a placeholder slot for the Spark button per item.
+2. **Artists listing** (`client/src/pages/music-artists-page.tsx`): change the data source so each card represents the *user* whose `linkedArtistId` matches; show avatar, display name, and a snippet of genre/track count; link each card to `/u/<username>` (or whatever the profile route is). For artists with no linked user, hide them from the public listing (they remain visible/editable in the admin).
+3. **Retire artist detail route** (`client/src/App.tsx` + `client/src/pages/music-artist-detail.tsx`): remove the route registration, delete the page (or have it redirect). Add a server or client redirect from `/music/artists/:slug` → `/u/<username>` when a linked user exists, otherwise → `/music/artists`.
+4. **Update internal links**: search for `/music/artists/` link usages across the client (search results, album pages, music browse, embeds) and rewrite them to the profile URL when the artist has a linked user.
+5. **Admin link picker** (`client/src/pages/command-music.tsx` artist edit form): ensure there's a user picker bound to `users.linkedArtistId` so admins can hook artists up to users. If it already exists, leave it alone.
+6. **QA**: visit a profile for a user whose artist has tracks → Music section appears with their songs, beats, and albums. Visit a profile without `linkedArtistId` → no Music section. Hit `/music/artists/<slug>` → redirected to the linked user's profile. The artists listing shows profile cards.
+
+## Relevant files
+- `client/src/pages/profile-page.tsx`
+- `client/src/pages/music-artists-page.tsx`
+- `client/src/pages/music-artist-detail.tsx` (delete or redirect)
+- `client/src/pages/music-artist-form.tsx`, `client/src/pages/command-music.tsx` (admin link picker — verify it exists / add if missing)
+- `client/src/pages/music-album-detail.tsx`, `client/src/pages/music-page.tsx`, `client/src/pages/music-beats-page.tsx`, `client/src/pages/search.tsx` (rewrite outgoing artist links)
+- `client/src/App.tsx` (route registrations / redirect)
+- `server/routes.ts` (ensure `/api/music/tracks` and `/api/music/albums` accept `artistId` filter)
+- `shared/schema.ts` (`users.linkedArtistId` ~L38, `artists` ~L155, `musicTracks` ~L1109 — reference only, no changes expected)
+
+
+---
+

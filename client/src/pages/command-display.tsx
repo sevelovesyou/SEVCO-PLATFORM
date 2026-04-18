@@ -14,21 +14,40 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Image, Type, Eye, EyeOff, Globe, Link2, Package, Pencil, Trash2, Plus, Palette, RotateCcw, AlignLeft, Layers, Zap, Star } from "lucide-react";
+import { Save, Image, Type, Eye, EyeOff, Globe, Link2, Package, Pencil, Trash2, Plus, Palette, RotateCcw, AlignLeft, Layers, Zap, Star, ArrowUp, ArrowDown } from "lucide-react";
 import { ShaderSettingsPanel } from "@/components/shader-settings-panel";
 import { Slider } from "@/components/ui/slider";
 import { FileUploadWithFallback } from "@/components/file-upload";
 import type { BrandAsset, InsertBrandAsset } from "@shared/schema";
 import { hexToHsl, hslToHex } from "@/lib/colorUtils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { DEFAULT_SECTION_ORDER } from "@shared/section-order";
 
-const SECTION_KEYS = [
-  { key: "section.platformGrid.visible", label: "Platform Grid", description: "The six platform section cards (Wiki, Store, Music, etc.)" },
-  { key: "section.recordsSpotlight.visible", label: "RECORDS Spotlight", description: "The SEVCO RECORDS promotional section with purple gradient background" },
-  { key: "section.storePreview.visible", label: "Store Preview", description: "\"Shop the latest\" — featured products grid" },
-  { key: "section.wikiLatest.visible", label: "Wiki Latest", description: "\"Latest knowledge\" — recent wiki articles" },
-  { key: "section.communityCta.visible", label: "Community CTA", description: "Discord join section at the bottom" },
+type SectionMeta = { id: string; key: string; label: string; description: string };
+
+const ORDERABLE_SECTIONS: SectionMeta[] = [
+  { id: "bulletin", key: "section.bulletin.visible", label: "Bulletin", description: "Pinned post banner shown near the top of the page." },
+  { id: "platformGrid", key: "section.platformGrid.visible", label: "Platform Grid", description: "Cards linking to each platform area (Wiki, Store, Music, etc.)." },
+  { id: "midCta", key: "section.midCta.visible", label: "Mid-page CTA", description: "Inline call-to-action band shown to logged-out visitors." },
+  { id: "whatsNew", key: "section.whatsNew.visible", label: "What's New", description: "Latest platform updates pulled from the changelog." },
+  { id: "feed", key: "section.feed.visible", label: "SEVCO Feed", description: "Recent posts from the team feed." },
+  { id: "news", key: "section.news.visible", label: "News & Markets", description: "News headlines and market data widgets." },
+  { id: "recordsSpotlight", key: "section.recordsSpotlight.visible", label: "RECORDS Spotlight", description: "SEVCO Records label promo with streaming links." },
+  { id: "storePreview", key: "section.storePreview.visible", label: "Store Preview", description: "Featured products grid from the store." },
+  { id: "servicesShowstopper", key: "section.servicesShowstopper.visible", label: "Services Showstopper", description: "SEVCO Services pitch with the capabilities checklist." },
+  { id: "projectsShowstopper", key: "section.projectsShowstopper.visible", label: "Ventures Showstopper", description: "Featured ventures from the projects portfolio." },
+  { id: "wikiLatest", key: "section.wikiLatest.visible", label: "Wiki Latest", description: "Recent articles from the Wiki." },
+  { id: "sparks", key: "section.sparks.visible", label: "Sparks", description: "Promo for Sparks, the platform's creative currency." },
+  { id: "communityCta", key: "section.communityCta.visible", label: "Community CTA", description: "Join-the-Discord call-to-action." },
+  { id: "signupCta", key: "section.signupCta.visible", label: "Sign-up CTA", description: "Account creation pitch shown to logged-out visitors." },
 ];
+
+const FIXED_SECTIONS: SectionMeta[] = [
+  { id: "iconPills", key: "section.iconPills.visible", label: "Icon Pills", description: "Feature pill row directly beneath the hero. Position is fixed." },
+  { id: "wallpaper", key: "section.wallpaper.visible", label: "Wallpaper of the Day", description: "Full-bleed daily wallpaper banner. Position is fixed." },
+];
+
+const ALL_SECTIONS: SectionMeta[] = [...ORDERABLE_SECTIONS, ...FIXED_SECTIONS];
 
 const ASSET_TYPES = [
   { value: "logo", label: "Logo" },
@@ -99,10 +118,10 @@ export default function CommandDisplay() {
   const [btn2Icon, setBtn2Icon] = useState("");
   const [btn2Color, setBtn2Color] = useState("");
   // Mid-page CTA band (logged-out only).
-  const [midCtaVisible, setMidCtaVisible] = useState(true);
   const [midCtaLabel, setMidCtaLabel] = useState("");
   const [midCtaUrl, setMidCtaUrl] = useState("");
   const [sectionVisibility, setSectionVisibility] = useState<Record<string, boolean>>({});
+  const [sectionOrder, setSectionOrder] = useState<string[]>(DEFAULT_SECTION_ORDER);
   const [faviconUrl, setFaviconUrl] = useState("");
   const [ogImageUrl, setOgImageUrl] = useState("");
   const [globalDescription, setGlobalDescription] = useState("");
@@ -153,7 +172,6 @@ export default function CommandDisplay() {
     setBtn2Icon(settings["hero.button2.icon"] ?? "");
     setBtn2Color(settings["hero.button2.color"] ?? "");
     // Mid-CTA band fields.
-    setMidCtaVisible(settings["section.midCta.visible"] ? toBool(settings["section.midCta.visible"]) : true);
     setMidCtaLabel(settings["section.midCta.label"] ?? "Join SEVCO — built by creators, for creators.");
     setMidCtaUrl(settings["section.midCta.url"] ?? "/auth");
     setFaviconUrl(settings["platform.faviconUrl"] ?? "");
@@ -161,10 +179,25 @@ export default function CommandDisplay() {
     setGlobalDescription(settings["platform.description"] ?? "");
     setPlatformLogoUrl(settings["platform.logoUrl"] ?? "");
     const vis: Record<string, boolean> = {};
-    for (const s of SECTION_KEYS) {
+    for (const s of ALL_SECTIONS) {
       vis[s.key] = toBool(settings[s.key]);
     }
     setSectionVisibility(vis);
+    const orderableIds = ORDERABLE_SECTIONS.map((s) => s.id);
+    let nextOrder: string[] = orderableIds;
+    if (settings["section.order"]) {
+      try {
+        const parsed = JSON.parse(settings["section.order"]);
+        if (Array.isArray(parsed)) {
+          const deduped = Array.from(new Set(parsed.filter((k: unknown): k is string => typeof k === "string")));
+          nextOrder = [
+            ...deduped.filter((k) => orderableIds.includes(k)),
+            ...orderableIds.filter((k) => !deduped.includes(k)),
+          ];
+        }
+      } catch {}
+    }
+    setSectionOrder(nextOrder);
     setLightPrimary(settings["color.light.primary"] || DEFAULT_COLORS.lightPrimary);
     setLightBackground(settings["color.light.background"] || DEFAULT_COLORS.lightBackground);
     setLightForeground(settings["color.light.foreground"] || DEFAULT_COLORS.lightForeground);
@@ -230,7 +263,6 @@ export default function CommandDisplay() {
       "hero.button2.url": btn2Url,
       "hero.button2.icon": btn2Icon,
       "hero.button2.color": btn2Color,
-      "section.midCta.visible": String(midCtaVisible),
       "section.midCta.label": midCtaLabel,
       "section.midCta.url": midCtaUrl,
     });
@@ -238,10 +270,23 @@ export default function CommandDisplay() {
 
   function saveSections() {
     const entries: Record<string, string> = {};
-    for (const [k, v] of Object.entries(sectionVisibility)) {
-      entries[k] = String(v);
+    for (const s of ALL_SECTIONS) {
+      entries[s.key] = String(sectionVisibility[s.key] !== false);
     }
+    entries["section.order"] = JSON.stringify(sectionOrder);
     mutation.mutate(entries);
+  }
+
+  function moveSection(id: string, direction: -1 | 1) {
+    setSectionOrder((prev) => {
+      const idx = prev.indexOf(id);
+      if (idx === -1) return prev;
+      const target = idx + direction;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return next;
+    });
   }
 
   function saveAssets() {
@@ -755,8 +800,10 @@ export default function CommandDisplay() {
               <Label htmlFor="midcta-visible" className="text-sm">Visible</Label>
               <Switch
                 id="midcta-visible"
-                checked={midCtaVisible}
-                onCheckedChange={setMidCtaVisible}
+                checked={sectionVisibility["section.midCta.visible"] !== false}
+                onCheckedChange={(checked) =>
+                  setSectionVisibility((prev) => ({ ...prev, "section.midCta.visible": checked }))
+                }
                 data-testid="switch-midcta-visible"
               />
             </div>
@@ -808,32 +855,112 @@ export default function CommandDisplay() {
             Section Visibility
           </CardTitle>
           <CardDescription>
-            Toggle which sections appear on the public landing page. Disabled sections are hidden completely.
+            Toggle which sections appear on the public landing page and reorder them. Disabled sections are hidden completely. Saving applies both visibility and order in one click.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {SECTION_KEYS.map((section) => (
-            <div key={section.key} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-              <div>
-                <p className="text-sm font-medium text-foreground">{section.label}</p>
-                <p className="text-xs text-muted-foreground">{section.description}</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {sectionVisibility[section.key] !== false ? (
-                  <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                ) : (
-                  <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
-                )}
-                <Switch
-                  checked={sectionVisibility[section.key] !== false}
-                  onCheckedChange={(checked) =>
-                    setSectionVisibility((prev) => ({ ...prev, [section.key]: checked }))
-                  }
-                  data-testid={`switch-section-${section.key}`}
-                />
-              </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Fixed-position sections</p>
+            <p className="text-xs text-muted-foreground mb-2">These render in fixed slots beneath the hero and cannot be reordered.</p>
+            <div className="space-y-1">
+              {FIXED_SECTIONS.map((section) => {
+                const isOn = sectionVisibility[section.key] !== false;
+                return (
+                  <div
+                    key={section.id}
+                    className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0"
+                    data-testid={`row-section-${section.id}`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{section.label}</p>
+                      <p className="text-xs text-muted-foreground">{section.description}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {isOn ? (
+                        <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                      ) : (
+                        <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                      )}
+                      <Switch
+                        checked={isOn}
+                        onCheckedChange={(checked) =>
+                          setSectionVisibility((prev) => ({ ...prev, [section.key]: checked }))
+                        }
+                        data-testid={`switch-section-${section.key}`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          ))}
+          </div>
+
+          <div className="pt-4 border-t border-border/50">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Reorderable sections</p>
+            <div className="space-y-1">
+            {sectionOrder.map((id, idx) => {
+              const section = ORDERABLE_SECTIONS.find((s) => s.id === id);
+              if (!section) return null;
+              const isOn = sectionVisibility[section.key] !== false;
+              return (
+                <div
+                  key={section.id}
+                  className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0"
+                  data-testid={`row-section-${section.id}`}
+                >
+                  <div className="flex flex-col gap-0.5 shrink-0">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5"
+                      disabled={idx === 0}
+                      onClick={() => moveSection(section.id, -1)}
+                      data-testid={`button-section-up-${section.id}`}
+                      aria-label={`Move ${section.label} up`}
+                    >
+                      <ArrowUp className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5"
+                      disabled={idx === sectionOrder.length - 1}
+                      onClick={() => moveSection(section.id, 1)}
+                      data-testid={`button-section-down-${section.id}`}
+                      aria-label={`Move ${section.label} down`}
+                    >
+                      <ArrowDown className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <span className="text-[10px] font-mono text-muted-foreground w-6 shrink-0 text-right">
+                    {idx + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{section.label}</p>
+                    <p className="text-xs text-muted-foreground">{section.description}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isOn ? (
+                      <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                    ) : (
+                      <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    <Switch
+                      checked={isOn}
+                      onCheckedChange={(checked) =>
+                        setSectionVisibility((prev) => ({ ...prev, [section.key]: checked }))
+                      }
+                      data-testid={`switch-section-${section.key}`}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+            </div>
+          </div>
+
           <div className="flex justify-end pt-2">
             <Button
               onClick={saveSections}
@@ -842,7 +969,7 @@ export default function CommandDisplay() {
               data-testid="button-save-sections"
             >
               <Save className="h-3.5 w-3.5" />
-              Save Visibility
+              Save Visibility & Order
             </Button>
           </div>
         </CardContent>

@@ -29097,3 +29097,37 @@ Reference (attached screenshot): the red primary button shown is the desired lab
 
 ---
 
+## Task — project-icons-honor-menu-icon
+> Merged: 2026-04-18
+
+# Honor each project's `menuIcon` on the home page Ventures grid (and detail page)
+
+## What & Why
+Projects already have a `menuIcon` field (a Lucide icon name like "Circle") that admins set in the Edit Project form, with a live preview. The public `/projects` listing and the Command Center admin table both honor it via a dynamic Lucide resolver. But the **Ventures Showstopper** section on the home page hardcodes a `<Folder />` icon when a project has no uploaded `appIcon` — it never even looks at `menuIcon`. That's why Freeball (set to "Circle") shows as a folder on the home page Ventures grid even though it shows correctly in the admin table and on `/projects`.
+
+The project detail page (`/projects/<slug>`) has the same blind spot — it falls back through `appIcon` → `logoUrl` → `CategoryIcon` but never consults `menuIcon`.
+
+## Done looks like
+- On the home page Ventures Showstopper grid, when a project has no `appIcon`, the project's `menuIcon` Lucide icon renders. Freeball shows the Circle icon there.
+- On the project detail page header, when there's no `appIcon` and no `logoUrl`, the project's `menuIcon` renders before falling back to the category icon. Freeball's detail page shows the Circle icon.
+- Final fallback (no `appIcon`, no `menuIcon`, no other source) stays sensible — `Folder` on the home grid, the existing `CategoryIcon` on the detail page.
+- Any valid Lucide PascalCase name set on a project renders correctly in both places.
+
+## Out of scope
+- Changing the Edit Project form or the icon picker UX.
+- Modifying the Command Center projects table or `/projects` listing (already correct).
+- Backfilling project records or changing any saved `menuIcon`.
+
+## Steps
+1. In `client/src/pages/landing.tsx` (`projectsShowstopper` case ~L1195-1227), reuse the existing `getLucideIcon` helper to resolve `project.menuIcon` and render that icon (falling back to `Folder`) when `project.appIcon` is absent.
+2. In `client/src/pages/project-detail.tsx` (~L297-315), insert a `menuIcon`-driven render between the `logoUrl` branch and the `CategoryIcon` fallback, using the same dynamic Lucide resolver pattern (the `resolveLucideIcon` already used in `client/src/pages/projects-page.tsx` ~L63-71 is a good reference — copy or extract it as needed).
+3. Quick visual QA: confirm Freeball shows the Circle icon on the home page Ventures grid and on `/projects/freeball`, and that another project without `menuIcon` still falls back gracefully.
+
+## Relevant files
+- `client/src/pages/landing.tsx` (`projectsShowstopper` case ~L1147-1228; `getLucideIcon` ~L35)
+- `client/src/pages/project-detail.tsx` (~L297-320)
+- `client/src/pages/projects-page.tsx` (reference: `resolveLucideIcon` ~L63-71)
+
+
+---
+

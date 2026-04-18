@@ -12,7 +12,7 @@ import {
   CAN_DELETE_ARTICLE,
   CAN_ACCESS_ARCHIVE,
 } from "./middleware/permissions";
-import type { Role, InsertJob, InsertArticle, InsertCategory, Email, NewsItem } from "@shared/schema";
+import type { Role, InsertJob, InsertArticle, InsertCategory, Email, NewsItem, InsertMusicTrack } from "@shared/schema";
 import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertStoreCategorySchema, insertCategorySchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema, updateUserTaskSchema, updateStaffTaskSchema, insertUserTaskSchema, insertStaffTaskSchema, insertDomainSchema, insertMusicTrackSchema, adminCreateUserSchema } from "@shared/schema";
 import { InsufficientSparksError } from "./storage";
 import { fetchNewsArticles, generateGrokSummaryForTweet } from "./news";
@@ -2362,7 +2362,13 @@ export async function registerRoutes(
           { username: u.username, displayName: u.displayName, avatarUrl: u.avatarUrl },
         ]),
       );
-      const result = all.map((a) => {
+      const linkedUserIds = new Set(users.map((u) => u.id));
+      type ArtistRow = (typeof all)[number] & {
+        linkedUsername: string | null;
+        linkedDisplayName: string | null;
+        linkedAvatarUrl: string | null;
+      };
+      const result: ArtistRow[] = all.map((a) => {
         const linked = linkedMap.get(a.id);
         return {
           ...a,
@@ -2371,6 +2377,25 @@ export async function registerRoutes(
           linkedAvatarUrl: linked?.avatarUrl ?? null,
         };
       });
+      // Task #480 — Include users who have uploaded tracks but no linked artist
+      const trackOwners = await storage.getUsersWithOwnedTracks();
+      let synthIdx = 1;
+      for (const u of trackOwners) {
+        if (linkedUserIds.has(u.id)) continue;
+        result.push({
+          id: -synthIdx,
+          name: u.displayName || u.username,
+          slug: u.username,
+          bio: u.bio ?? null,
+          genres: [],
+          wikiArticleSlug: null,
+          createdAt: new Date(),
+          linkedUsername: u.username,
+          linkedDisplayName: u.displayName,
+          linkedAvatarUrl: u.avatarUrl ?? null,
+        });
+        synthIdx += 1;
+      }
       res.json(result);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -3513,6 +3538,29 @@ export async function registerRoutes(
     }
   });
 
+  // Task #480 — User profile music: tracks owned directly by the user + albums via linked artist
+  app.get("/api/profile/:username/music", async (req, res) => {
+    try {
+      const user = await storage.getUserByUsername(req.params.username);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const ownTracks = await storage.getMusicTracks({ userId: user.id, publishedOnly: true });
+      const linkedTracks = user.linkedArtistId
+        ? await storage.getMusicTracks({ artistId: user.linkedArtistId, publishedOnly: true })
+        : [];
+      // Merge & dedupe by id (in case backfill linked them through both)
+      const seen = new Set<number>();
+      const tracks = [...ownTracks, ...linkedTracks].filter((t) => {
+        if (seen.has(t.id)) return false;
+        seen.add(t.id);
+        return true;
+      });
+      const albums = user.linkedArtistId ? await storage.getAlbumsByArtist(user.linkedArtistId) : [];
+      res.json({ tracks, albums });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/profile/:username/articles", async (req, res) => {
     try {
       const arts = await storage.getArticlesByAuthor(req.params.username);
@@ -3781,11 +3829,14 @@ export async function registerRoutes(
       const artistId = typeof artistIdRaw === "string" && artistIdRaw ? parseInt(artistIdRaw) : undefined;
       const albumNameRaw = req.query.album_name;
       const albumName = typeof albumNameRaw === "string" && albumNameRaw ? albumNameRaw : undefined;
+      const userIdRaw = req.query.userId ?? req.query.user_id;
+      const userId = typeof userIdRaw === "string" && userIdRaw ? userIdRaw : undefined;
       const tracks = await storage.getMusicTracks({
         type: typeParam,
         publishedOnly,
         artistId: artistId !== undefined && !isNaN(artistId) ? artistId : undefined,
         albumName,
+        userId,
       });
       const ids = tracks.map((t) => t.id);
       const counts = await storage.getTrackSparkCounts(ids);
@@ -3808,40 +3859,66 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/music/tracks", requireAuth, requireRole(...CAN_MANAGE_TRACKS), async (req, res) => {
+  app.post("/api/music/tracks", requireAuth, async (req, res) => {
     try {
+      const reqUser = req.user!;
+      const isManager = CAN_MANAGE_TRACKS.includes(reqUser.role as Role);
       const parsed = insertMusicTrackSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
-      const track = await storage.createMusicTrack(parsed.data);
+      const data: InsertMusicTrack = { ...parsed.data };
+      if (!isManager) {
+        // Non-staff can only upload their own tracks
+        data.userId = reqUser.id;
+        data.artistId = null;
+        if (!data.artistName) data.artistName = reqUser.displayName || reqUser.username;
+      }
+      const track = await storage.createMusicTrack(data);
       res.status(201).json(track);
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to create track";
+      res.status(500).json({ message });
     }
   });
 
-  app.patch("/api/music/tracks/:id", requireAuth, requireRole(...CAN_MANAGE_TRACKS), async (req, res) => {
+  app.patch("/api/music/tracks/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const existing = await storage.getMusicTrackById(id);
       if (!existing) return res.status(404).json({ message: "Track not found" });
+      const reqUser = req.user!;
+      const isManager = CAN_MANAGE_TRACKS.includes(reqUser.role as Role);
+      const isOwner = !!existing.userId && existing.userId === reqUser.id;
+      if (!isManager && !isOwner) return res.status(403).json({ message: "Forbidden" });
       const parsed = insertMusicTrackSchema.partial().safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
-      const track = await storage.updateMusicTrack(id, parsed.data);
+      const data: Partial<InsertMusicTrack> = { ...parsed.data };
+      if (!isManager) {
+        // Owners cannot reassign ownership or claim an artist
+        delete data.userId;
+        delete data.artistId;
+      }
+      const track = await storage.updateMusicTrack(id, data);
       res.json(track);
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update track";
+      res.status(500).json({ message });
     }
   });
 
-  app.delete("/api/music/tracks/:id", requireAuth, requireRole(...CAN_DELETE_TRACKS), async (req, res) => {
+  app.delete("/api/music/tracks/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const existing = await storage.getMusicTrackById(id);
       if (!existing) return res.status(404).json({ message: "Track not found" });
+      const reqUser = req.user!;
+      const canDelete = CAN_DELETE_TRACKS.includes(reqUser.role as Role);
+      const isOwner = !!existing.userId && existing.userId === reqUser.id;
+      if (!canDelete && !isOwner) return res.status(403).json({ message: "Forbidden" });
       await storage.deleteMusicTrack(id);
       res.json({ success: true });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete track";
+      res.status(500).json({ message });
     }
   });
 

@@ -960,56 +960,182 @@ function formatDuration(seconds: number | null | undefined): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function ArtistMusicSection({ artistId, accentColor, bgColor }: { artistId: number; accentColor?: string; bgColor?: string }) {
+type UploadTrackType = "track" | "instrumental";
+function isUploadTrackType(v: string): v is UploadTrackType {
+  return v === "track" || v === "instrumental";
+}
+
+function UploadTrackDialog({ open, onClose, username }: { open: boolean; onClose: () => void; username: string }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [title, setTitle] = useState("");
+  const [type, setType] = useState<UploadTrackType>("track");
+  const [genre, setGenre] = useState("");
+  const [albumName, setAlbumName] = useState("");
+  const [fileUrl, setFileUrl] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [duration, setDuration] = useState<string>("");
+
+  const createMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/music/tracks", {
+      title,
+      type,
+      genre: genre || null,
+      albumName: albumName || null,
+      fileUrl,
+      coverImageUrl: coverImageUrl || null,
+      duration: duration ? Number(duration) : null,
+      status: "published",
+      displayOrder: 0,
+      artistName: "",
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/profile", username, "music"] });
+      qc.invalidateQueries({ queryKey: ["/api/music/tracks"] });
+      qc.invalidateQueries({ queryKey: ["/api/music/artists"] });
+      toast({ title: "Track uploaded" });
+      setTitle(""); setGenre(""); setAlbumName(""); setFileUrl(""); setCoverImageUrl(""); setDuration("");
+      onClose();
+    },
+    onError: (err: unknown) => toast({
+      title: "Upload failed",
+      description: err instanceof Error ? err.message : "Please try again.",
+      variant: "destructive",
+    }),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Upload Track</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label>Title</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Track title" data-testid="input-upload-track-title" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Type</Label>
+              <Select value={type} onValueChange={(v) => isUploadTrackType(v) && setType(v)}>
+                <SelectTrigger data-testid="select-upload-track-type"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="track">Song</SelectItem>
+                  <SelectItem value="instrumental">Beat</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Genre (optional)</Label>
+              <Input value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="Hip-Hop, R&B…" data-testid="input-upload-track-genre" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Album (optional)</Label>
+            <Input value={albumName} onChange={(e) => setAlbumName(e.target.value)} placeholder="Album name" data-testid="input-upload-track-album" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Audio File</Label>
+            <FileUploadWithFallback
+              bucket="tracks"
+              path={`users/${Date.now()}.{ext}`}
+              accept="audio/mpeg,audio/wav,audio/*"
+              maxSizeMb={200}
+              isPrivate={false}
+              urlValue={fileUrl}
+              onUrlChange={(u) => setFileUrl(u)}
+              urlPlaceholder="https://... (mp3/wav URL)"
+              urlTestId="input-upload-track-url"
+              label="Upload Audio"
+              currentUrl={fileUrl || null}
+              onUpload={(u) => setFileUrl(u)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Cover Image (optional)</Label>
+            <FileUploadWithFallback
+              bucket="gallery"
+              path={`tracks/covers/${Date.now()}.{ext}`}
+              accept="image/jpeg,image/png,image/webp,image/*"
+              maxSizeMb={10}
+              currentUrl={coverImageUrl || null}
+              onUpload={(u) => setCoverImageUrl(u)}
+              urlValue={coverImageUrl}
+              onUrlChange={(u) => setCoverImageUrl(u)}
+              urlPlaceholder="https://..."
+              urlTestId="input-upload-track-cover"
+              label="Upload Cover"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Duration in seconds (optional)</Label>
+            <Input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="213" data-testid="input-upload-track-duration" />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={onClose} data-testid="button-upload-track-cancel">Cancel</Button>
+            <Button
+              onClick={() => createMutation.mutate()}
+              disabled={!title || !fileUrl || createMutation.isPending}
+              data-testid="button-upload-track-submit"
+            >
+              {createMutation.isPending ? "Uploading…" : "Upload"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function UserMusicSection({ username, isOwnProfile, accentColor, bgColor }: { username: string; isOwnProfile: boolean; accentColor?: string; bgColor?: string }) {
   const { playTrack } = useMusicPlayer();
+  const [uploadOpen, setUploadOpen] = useState(false);
 
-  const { data: albums = [], isLoading: albumsLoading } = useQuery<Album[]>({
-    queryKey: ["/api/music/albums", { artistId }],
+  const { data, isLoading } = useQuery<{ tracks: MusicTrack[]; albums: Album[] }>({
+    queryKey: ["/api/profile", username, "music"],
     queryFn: async () => {
-      const res = await fetch(`/api/music/albums?artistId=${artistId}`);
-      if (!res.ok) return [];
+      const res = await fetch(`/api/profile/${username}/music`);
+      if (!res.ok) return { tracks: [], albums: [] };
       return res.json();
     },
   });
 
-  const { data: tracks = [], isLoading: tracksLoading } = useQuery<MusicTrack[]>({
-    queryKey: ["/api/music/tracks", { artistId }],
-    queryFn: async () => {
-      const res = await fetch(`/api/music/tracks?artistId=${artistId}`);
-      if (!res.ok) return [];
-      return res.json();
-    },
-  });
+  const albums = data?.albums ?? [];
+  const tracks = data?.tracks ?? [];
+  const albumsLoading = isLoading;
+  const tracksLoading = isLoading;
 
   const borderColor = accentColor ? `${accentColor}33` : "var(--border)";
   const cardBg = bgColor ? `${bgColor}88` : "var(--card)";
   const mutedColor = accentColor ? `${accentColor}99` : "var(--muted-foreground)";
 
-  const isLoading = albumsLoading || tracksLoading;
   const hasContent = albums.length > 0 || tracks.length > 0;
 
-  if (!isLoading && !hasContent) {
-    return (
-      <div className="mt-5" data-testid="section-artist-music">
-        <h2
-          className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2"
-          style={{ color: mutedColor }}
-        >
-          <Music className="h-3.5 w-3.5" />
-          Music
-        </h2>
-        <div
-          className="rounded-xl border px-5 py-6 text-center"
-          style={{ background: cardBg, borderColor }}
-        >
-          <p className="text-sm" style={{ color: mutedColor }} data-testid="empty-music">No music yet.</p>
-        </div>
-      </div>
-    );
-  }
+  if (!isLoading && !hasContent && !isOwnProfile) return null;
 
   return (
     <div className="mt-5 space-y-5" data-testid="section-artist-music">
+      {isOwnProfile && (
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2" style={{ color: mutedColor }}>
+            <Music className="h-3.5 w-3.5" />
+            Music
+          </h2>
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setUploadOpen(true)} data-testid="button-upload-track">
+            <Music className="h-3.5 w-3.5" /> Upload Track
+          </Button>
+        </div>
+      )}
+
+      {!isLoading && !hasContent && isOwnProfile && (
+        <div className="rounded-xl border px-5 py-6 text-center" style={{ background: cardBg, borderColor }}>
+          <p className="text-sm" style={{ color: mutedColor }} data-testid="empty-music">No music yet — upload your first track.</p>
+        </div>
+      )}
+
+      <UploadTrackDialog open={uploadOpen} onClose={() => setUploadOpen(false)} username={username} />
+
       {(albumsLoading || albums.length > 0) && (
       <div>
         <h2
@@ -1678,13 +1804,12 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
         </div>
       )}
 
-      {profile.linkedArtistId && (
-        <ArtistMusicSection
-          artistId={profile.linkedArtistId}
-          accentColor={accentColor}
-          bgColor={bgColor}
-        />
-      )}
+      <UserMusicSection
+        username={profile.username}
+        isOwnProfile={isOwnProfile}
+        accentColor={accentColor}
+        bgColor={bgColor}
+      />
 
       <FollowListDialog username={profile.username} type="followers" open={followersOpen} onClose={() => setFollowersOpen(false)} />
       <FollowListDialog username={profile.username} type="following" open={followingOpen} onClose={() => setFollowingOpen(false)} />

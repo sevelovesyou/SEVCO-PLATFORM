@@ -263,6 +263,11 @@ async function runStartupMigrations() {
   await pool.query(`ALTER TABLE music_tracks ADD COLUMN IF NOT EXISTS genre text;`);
   // Task #205 — Link user account to artist profile
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS linked_artist_id integer REFERENCES artists(id) ON DELETE SET NULL;`);
+  // Task #480 — Music lives on profiles: associate tracks with users directly
+  await pool.query(`ALTER TABLE music_tracks ADD COLUMN IF NOT EXISTS user_id varchar REFERENCES users(id) ON DELETE SET NULL;`);
+  await pool.query(`UPDATE music_tracks t SET user_id = u.id
+    FROM users u WHERE t.user_id IS NULL AND u.linked_artist_id IS NOT NULL AND u.linked_artist_id = t.artist_id;`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS music_tracks_user_id_idx ON music_tracks (user_id);`);
   // Task #211 — System mailboxes
   await pool.query(`CREATE TABLE IF NOT EXISTS system_mailboxes (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,

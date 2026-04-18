@@ -17,12 +17,15 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { User, Loader2, ExternalLink, Music, ArrowRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { FileUploadWithFallback } from "@/components/file-upload";
+import { User, Loader2, ExternalLink, Music, ArrowRight, Trash2, Upload, Pencil } from "lucide-react";
 import { SiX } from "react-icons/si";
 import { Link } from "wouter";
 import { useSounds } from "@/hooks/use-sounds";
 import { useVoice, formatKey } from "@/contexts/voice-context";
-import type { Artist } from "@shared/schema";
+import type { Artist, MusicTrack } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 
 interface SparkTransaction {
@@ -41,6 +44,306 @@ const TRANSACTION_ICONS: Record<string, string> = {
   usage: "⚡️",
   refund: "🔄",
 };
+
+type TrackType = "track" | "instrumental";
+
+function isTrackType(v: string): v is TrackType {
+  return v === "track" || v === "instrumental";
+}
+
+function errorMessage(err: unknown, fallback: string): string {
+  return err instanceof Error ? err.message : fallback;
+}
+
+interface TrackFormState {
+  title: string;
+  type: TrackType;
+  genre: string;
+  albumName: string;
+  fileUrl: string;
+  coverImageUrl: string;
+  duration: string;
+}
+
+const EMPTY_TRACK_FORM: TrackFormState = {
+  title: "",
+  type: "track",
+  genre: "",
+  albumName: "",
+  fileUrl: "",
+  coverImageUrl: "",
+  duration: "",
+};
+
+function trackToForm(t: MusicTrack): TrackFormState {
+  return {
+    title: t.title,
+    type: isTrackType(t.type) ? t.type : "track",
+    genre: t.genre ?? "",
+    albumName: t.albumName ?? "",
+    fileUrl: t.fileUrl ?? "",
+    coverImageUrl: t.coverImageUrl ?? "",
+    duration: t.duration != null ? String(t.duration) : "",
+  };
+}
+
+function TrackFormDialog({
+  open,
+  onClose,
+  editing,
+  onInvalidate,
+}: {
+  open: boolean;
+  onClose: () => void;
+  editing: MusicTrack | null;
+  onInvalidate: () => void;
+}) {
+  const { toast } = useToast();
+  const [form, setForm] = useState<TrackFormState>(EMPTY_TRACK_FORM);
+
+  useEffect(() => {
+    if (open) setForm(editing ? trackToForm(editing) : EMPTY_TRACK_FORM);
+  }, [open, editing]);
+
+  const setField = <K extends keyof TrackFormState>(key: K, value: TrackFormState[K]) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const buildPayload = () => ({
+    title: form.title,
+    type: form.type,
+    genre: form.genre || null,
+    albumName: form.albumName || null,
+    fileUrl: form.fileUrl,
+    coverImageUrl: form.coverImageUrl || null,
+    duration: form.duration ? Number(form.duration) : null,
+    status: "published" as const,
+    displayOrder: 0,
+    artistName: "",
+  });
+
+  const createMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/music/tracks", buildPayload()),
+    onSuccess: () => {
+      onInvalidate();
+      toast({ title: "Track uploaded" });
+      onClose();
+    },
+    onError: (err: unknown) =>
+      toast({ title: "Upload failed", description: errorMessage(err, "Please try again."), variant: "destructive" }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: () => apiRequest("PATCH", `/api/music/tracks/${editing!.id}`, buildPayload()),
+    onSuccess: () => {
+      onInvalidate();
+      toast({ title: "Track updated" });
+      onClose();
+    },
+    onError: (err: unknown) =>
+      toast({ title: "Update failed", description: errorMessage(err, "Please try again."), variant: "destructive" }),
+  });
+
+  const isEdit = !!editing;
+  const submitting = createMutation.isPending || updateMutation.isPending;
+  const submit = () => (isEdit ? updateMutation.mutate() : createMutation.mutate());
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Edit Track" : "Upload Track"}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label>Title</Label>
+            <Input
+              value={form.title}
+              onChange={(e) => setField("title", e.target.value)}
+              placeholder="Track title"
+              data-testid="input-account-track-title"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Type</Label>
+              <Select
+                value={form.type}
+                onValueChange={(v) => isTrackType(v) && setField("type", v)}
+              >
+                <SelectTrigger data-testid="select-account-track-type"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="track">Song</SelectItem>
+                  <SelectItem value="instrumental">Beat</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Genre (optional)</Label>
+              <Input
+                value={form.genre}
+                onChange={(e) => setField("genre", e.target.value)}
+                placeholder="Hip-Hop"
+                data-testid="input-account-track-genre"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Album (optional)</Label>
+            <Input
+              value={form.albumName}
+              onChange={(e) => setField("albumName", e.target.value)}
+              data-testid="input-account-track-album"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Audio File</Label>
+            <FileUploadWithFallback
+              bucket="tracks"
+              path={`users/${Date.now()}.{ext}`}
+              accept="audio/mpeg,audio/wav,audio/*"
+              maxSizeMb={200}
+              isPrivate={false}
+              currentUrl={form.fileUrl || null}
+              onUpload={(u) => setField("fileUrl", u)}
+              urlValue={form.fileUrl}
+              onUrlChange={(u) => setField("fileUrl", u)}
+              urlPlaceholder="https://... mp3/wav URL"
+              urlTestId="input-account-track-url"
+              label="Upload Audio"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Cover (optional)</Label>
+            <FileUploadWithFallback
+              bucket="gallery"
+              path={`tracks/covers/${Date.now()}.{ext}`}
+              accept="image/jpeg,image/png,image/webp,image/*"
+              maxSizeMb={10}
+              currentUrl={form.coverImageUrl || null}
+              onUpload={(u) => setField("coverImageUrl", u)}
+              urlValue={form.coverImageUrl}
+              onUrlChange={(u) => setField("coverImageUrl", u)}
+              urlPlaceholder="https://..."
+              urlTestId="input-account-track-cover"
+              label="Upload Cover"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Duration (seconds, optional)</Label>
+            <Input
+              type="number"
+              value={form.duration}
+              onChange={(e) => setField("duration", e.target.value)}
+              placeholder="213"
+              data-testid="input-account-track-duration"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={onClose} data-testid="button-account-cancel-upload">Cancel</Button>
+            <Button
+              onClick={submit}
+              disabled={!form.title || !form.fileUrl || submitting}
+              data-testid="button-account-submit-upload"
+            >
+              {submitting ? (isEdit ? "Saving…" : "Uploading…") : (isEdit ? "Save" : "Upload")}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function MyMusicCard({ userId }: { userId: string }) {
+  const { toast } = useToast();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingTrack, setEditingTrack] = useState<MusicTrack | null>(null);
+
+  const { data: tracks = [], isLoading } = useQuery<MusicTrack[]>({
+    queryKey: ["/api/music/tracks", { userId }],
+    queryFn: async () => {
+      const res = await fetch(`/api/music/tracks?userId=${userId}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/music/tracks"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/music/artists"] });
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/music/tracks/${id}`),
+    onSuccess: () => { invalidate(); toast({ title: "Track deleted" }); },
+    onError: (err: unknown) =>
+      toast({ title: "Delete failed", description: errorMessage(err, "Please try again."), variant: "destructive" }),
+  });
+
+  const openCreate = () => { setEditingTrack(null); setDialogOpen(true); };
+  const openEdit = (t: MusicTrack) => { setEditingTrack(t); setDialogOpen(true); };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-base flex items-center gap-2"><Music className="h-4 w-4" /> Your Music</CardTitle>
+          <CardDescription>Tracks you've uploaded show on your profile and the public Listen page.</CardDescription>
+        </div>
+        <Button size="sm" onClick={openCreate} data-testid="button-account-upload-track">
+          <Upload className="h-3.5 w-3.5 mr-1.5" /> Upload
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {isLoading ? (
+          <Skeleton className="h-12 w-full" />
+        ) : tracks.length === 0 ? (
+          <p className="text-sm text-muted-foreground" data-testid="text-no-tracks">No tracks uploaded yet.</p>
+        ) : (
+          <ul className="divide-y border rounded-md">
+            {tracks.map((t) => (
+              <li key={t.id} className="flex items-center gap-3 px-3 py-2" data-testid={`row-account-track-${t.id}`}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{t.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t.type === "instrumental" ? "Beat" : "Song"}{t.genre ? ` · ${t.genre}` : ""}{t.albumName ? ` · ${t.albumName}` : ""}
+                  </p>
+                </div>
+                <Badge variant={t.status === "published" ? "default" : "outline"} className="text-[10px]">{t.status}</Badge>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => openEdit(t)}
+                  data-testid={`button-edit-track-${t.id}`}
+                  aria-label="Edit track"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => { if (confirm(`Delete "${t.title}"?`)) deleteMutation.mutate(t.id); }}
+                  disabled={deleteMutation.isPending}
+                  data-testid={`button-delete-track-${t.id}`}
+                  aria-label="Delete track"
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+
+      <TrackFormDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        editing={editingTrack}
+        onInvalidate={invalidate}
+      />
+    </Card>
+  );
+}
 
 function VoicePrefsCard() {
   const { prefs, updatePrefs, micMuted, toggleMute, outputVolume, setOutputVolume } = useVoice();
@@ -601,6 +904,8 @@ export default function AccountPage() {
           </CardContent>
         </Card>
       )}
+
+      {user && <MyMusicCard userId={user.id} />}
 
       <VoicePrefsCard />
 

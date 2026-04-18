@@ -26,8 +26,10 @@ export default function MusicArtistsPage() {
     queryKey: ["/api/music/artists"],
   });
 
-  const visibleArtists = (artistsList ?? []).filter((a) => canManage || a.linkedUsername);
-  const unlinkedCount = (artistsList ?? []).length - visibleArtists.length;
+  // Task #480 — every artist (legacy or user-owned) is publicly browsable.
+  // User-owned/linked artists open the user's profile; legacy artists open
+  // the artist detail page.
+  const visibleArtists = artistsList ?? [];
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-6 flex flex-col gap-6">
@@ -101,9 +103,12 @@ export default function MusicArtistsPage() {
               const displayName = artist.linkedDisplayName || artist.name;
               const avatarUrl = artist.linkedAvatarUrl;
               const isLinked = !!artist.linkedUsername;
+              const linkHref = isLinked
+                ? `/profile/${artist.linkedUsername}`
+                : `/music/artists/${artist.slug}`;
               const cardInner = (
                 <Card
-                  className={`p-4 overflow-visible group ${isLinked ? "hover-elevate active-elevate-2 cursor-pointer" : "opacity-90"}`}
+                  className="p-4 overflow-visible group hover-elevate active-elevate-2 cursor-pointer"
                   data-testid={`card-artist-${artist.id}`}
                 >
                   <div className="flex items-start gap-3">
@@ -151,20 +156,13 @@ export default function MusicArtistsPage() {
                   </div>
                 </Card>
               );
-              return isLinked ? (
-                <Link key={artist.id} href={`/profile/${artist.linkedUsername}`}>
+              return (
+                <Link key={artist.id} href={linkHref}>
                   {cardInner}
                 </Link>
-              ) : (
-                <div key={artist.id}>{cardInner}</div>
               );
             })}
           </div>
-          {canManage && unlinkedCount > 0 && (
-            <p className="text-xs text-muted-foreground text-center" data-testid="text-unlinked-hidden">
-              {unlinkedCount} unlinked artist{unlinkedCount !== 1 ? "s" : ""} hidden from the public roster.
-            </p>
-          )}
         </>
       )}
     </div>

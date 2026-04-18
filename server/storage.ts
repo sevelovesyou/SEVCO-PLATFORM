@@ -446,9 +446,10 @@ export interface IStorage {
   markAllNotificationsRead(userId: string): Promise<void>;
   getUsersByRole(roles: Role[]): Promise<User[]>;
 
-  getMusicTracks(filter?: { type?: string; publishedOnly?: boolean; artistId?: number; albumName?: string }): Promise<(MusicTrack & { artist: { id: number; name: string } | null })[]>;
+  getMusicTracks(filter?: { type?: string; publishedOnly?: boolean; artistId?: number; albumName?: string; userId?: string }): Promise<(MusicTrack & { artist: { id: number; name: string } | null; user: { id: string; username: string; displayName: string | null; avatarUrl: string | null } | null })[]>;
   getMusicTrackById(id: number): Promise<MusicTrack | undefined>;
-  getMusicTrack(id: number): Promise<(MusicTrack & { artist: { id: number; name: string } | null }) | undefined>;
+  getMusicTrack(id: number): Promise<(MusicTrack & { artist: { id: number; name: string } | null; user: { id: string; username: string; displayName: string | null; avatarUrl: string | null } | null }) | undefined>;
+  getUsersWithOwnedTracks(): Promise<User[]>;
   createMusicTrack(data: InsertMusicTrack): Promise<MusicTrack>;
   updateMusicTrack(id: number, data: Partial<InsertMusicTrack>): Promise<MusicTrack>;
   deleteMusicTrack(id: number): Promise<void>;
@@ -2831,13 +2832,14 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(users).where(inArray(users.role, roles));
   }
 
-  async getMusicTracks(filter?: { type?: string; publishedOnly?: boolean; artistId?: number; albumName?: string }): Promise<(MusicTrack & { artist: { id: number; name: string } | null })[]> {
+  async getMusicTracks(filter?: { type?: string; publishedOnly?: boolean; artistId?: number; albumName?: string; userId?: string }): Promise<(MusicTrack & { artist: { id: number; name: string } | null; user: { id: string; username: string; displayName: string | null; avatarUrl: string | null } | null })[]> {
     const rows = await db
       .select({
         id: musicTracks.id,
         title: musicTracks.title,
         artistId: musicTracks.artistId,
         artistName: musicTracks.artistName,
+        userId: musicTracks.userId,
         albumName: musicTracks.albumName,
         genre: musicTracks.genre,
         type: musicTracks.type,
@@ -2849,15 +2851,20 @@ export class DatabaseStorage implements IStorage {
         displayOrder: musicTracks.displayOrder,
         createdAt: musicTracks.createdAt,
         linkedArtistName: artists.name,
+        ownerUsername: users.username,
+        ownerDisplayName: users.displayName,
+        ownerAvatarUrl: users.avatarUrl,
       })
       .from(musicTracks)
       .leftJoin(artists, eq(musicTracks.artistId, artists.id))
+      .leftJoin(users, eq(musicTracks.userId, users.id))
       .where(
         and(
           filter?.type ? eq(musicTracks.type, filter.type) : undefined,
           filter?.publishedOnly ? eq(musicTracks.status, "published") : undefined,
           filter?.artistId !== undefined ? eq(musicTracks.artistId, filter.artistId) : undefined,
           filter?.albumName !== undefined ? eq(musicTracks.albumName, filter.albumName) : undefined,
+          filter?.userId !== undefined ? eq(musicTracks.userId, filter.userId) : undefined,
         )
       )
       .orderBy(asc(musicTracks.displayOrder), asc(musicTracks.createdAt));
@@ -2867,6 +2874,7 @@ export class DatabaseStorage implements IStorage {
       title: r.title,
       artistId: r.artistId,
       artistName: r.artistName,
+      userId: r.userId,
       albumName: r.albumName,
       genre: r.genre,
       type: r.type,
@@ -2878,6 +2886,9 @@ export class DatabaseStorage implements IStorage {
       displayOrder: r.displayOrder,
       createdAt: r.createdAt,
       artist: r.artistId != null ? { id: r.artistId, name: r.linkedArtistName ?? r.artistName } : null,
+      user: r.userId != null && r.ownerUsername != null
+        ? { id: r.userId, username: r.ownerUsername, displayName: r.ownerDisplayName, avatarUrl: r.ownerAvatarUrl }
+        : null,
     }));
   }
 
@@ -2886,13 +2897,23 @@ export class DatabaseStorage implements IStorage {
     return track;
   }
 
-  async getMusicTrack(id: number): Promise<(MusicTrack & { artist: { id: number; name: string } | null }) | undefined> {
+  async getUsersWithOwnedTracks(): Promise<User[]> {
+    const rows = await db
+      .selectDistinct({ user: users })
+      .from(users)
+      .innerJoin(musicTracks, eq(musicTracks.userId, users.id))
+      .where(eq(musicTracks.status, "published"));
+    return rows.map((r) => r.user);
+  }
+
+  async getMusicTrack(id: number): Promise<(MusicTrack & { artist: { id: number; name: string } | null; user: { id: string; username: string; displayName: string | null; avatarUrl: string | null } | null }) | undefined> {
     const [row] = await db
       .select({
         id: musicTracks.id,
         title: musicTracks.title,
         artistId: musicTracks.artistId,
         artistName: musicTracks.artistName,
+        userId: musicTracks.userId,
         albumName: musicTracks.albumName,
         genre: musicTracks.genre,
         type: musicTracks.type,
@@ -2904,9 +2925,13 @@ export class DatabaseStorage implements IStorage {
         displayOrder: musicTracks.displayOrder,
         createdAt: musicTracks.createdAt,
         linkedArtistName: artists.name,
+        ownerUsername: users.username,
+        ownerDisplayName: users.displayName,
+        ownerAvatarUrl: users.avatarUrl,
       })
       .from(musicTracks)
       .leftJoin(artists, eq(musicTracks.artistId, artists.id))
+      .leftJoin(users, eq(musicTracks.userId, users.id))
       .where(eq(musicTracks.id, id));
 
     if (!row) return undefined;
@@ -2916,6 +2941,7 @@ export class DatabaseStorage implements IStorage {
       title: row.title,
       artistId: row.artistId,
       artistName: row.artistName,
+      userId: row.userId,
       albumName: row.albumName,
       genre: row.genre,
       type: row.type,
@@ -2927,6 +2953,9 @@ export class DatabaseStorage implements IStorage {
       displayOrder: row.displayOrder,
       createdAt: row.createdAt,
       artist: row.artistId != null ? { id: row.artistId, name: row.linkedArtistName ?? row.artistName } : null,
+      user: row.userId != null && row.ownerUsername != null
+        ? { id: row.userId, username: row.ownerUsername, displayName: row.ownerDisplayName, avatarUrl: row.ownerAvatarUrl }
+        : null,
     };
   }
 

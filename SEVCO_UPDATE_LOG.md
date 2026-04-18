@@ -28878,3 +28878,109 @@ Two small but impactful fixes in the Command Center:
 
 ---
 
+## Task — home-page-relayout-for-signup
+> Merged: 2026-04-18
+
+# Modernize the Home page — keep all content, add hierarchy & motion
+
+  ## What & Why
+  The marketing home page (`client/src/pages/landing.tsx`, ~1700 lines, route `/`) currently stacks ~12 sections that all share the same visual rhythm: a centered `h2`, a short paragraph, and a 3-column card grid (Platform Grid, What's New, SEVCO Feed, three feature sections, Wiki Latest, Sparks). Because every section looks equally important, nothing is — the eye glazes over, the page feels flat, and the only sign-up CTA lives in the hero. The user wants a modernization, not a content cull: every section that exists today must still be reachable from `/`, and the redesign must feel native to the rest of the platform (same dark palette, same typography, same Tailwind tokens, same Framer Motion idioms already in use elsewhere — `framer-motion` is already a dependency and already imported in landing.tsx).
+
+  ## Done looks like
+  - Every section that currently lives on the home page is still present on the home page after the redesign — no content has been moved off-route. (Comparison checklist in step 1 below.)
+  - The hero is visibly modernized: animated entrance, motion that responds to scroll, a single dominant CTA paired with a clear secondary, and a preview surface that feels alive (not a static screenshot). Animation respects `prefers-reduced-motion`.
+  - A clear visual hierarchy is established with at most three "levels" of section weight, signaled by background treatment, width, and padding — not by font size alone. No two adjacent sections share the same template; the eye should always know "this is a new kind of thing."
+  - Sign-up CTAs appear in at least three slots distributed down the page (hero, mid-page proof moment, end-of-page closer) without feeling repetitive — each tuned to where the visitor is in their decision.
+  - The redesigned page passes a side-by-side review against `sites-landing.tsx` and `freeball-landing.tsx` for visual coherence — same color tokens, same border / blur / radius idioms, same heading scale.
+  - Lighthouse scores on `/` are no worse than today (specifically: LCP, CLS, and total JS payload). Logged-in "Your Workspace" rail still renders for authenticated users.
+
+  ## Out of scope
+  - New marketing copy. Reuse current headlines and body. Touch up only where a section's role changes.
+  - New illustrations or new product screenshots. Compose with existing imagery and existing data.
+  - Pricing pages, onboarding flow, auth screens. Sign-up CTAs link into the existing flow unchanged.
+  - A separate mobile-native rework. We design responsive desktop-first and verify mobile, but a dedicated mobile redesign is its own task.
+
+  ## Section inventory (everything that must survive)
+  From a read of `landing.tsx` lines 438-1700, the home today contains:
+  1. **Hero** (line 438) — headline, subhead, two CTAs, frosted-glass preview card with tilt
+  2. **Your Workspace snapshot** (682) — logged-in only
+  3. **Wallpaper** (781) — full-bleed visual
+  4. **Bulletin** (835) — admin-style notice band
+  5. **Platform Grid** (880) — "Everything SEVCO, in one place"
+  6. **Platform Updates / What's New** (951)
+  7. **SEVCO Feed** (1050) — "Latest from the team"
+  8. **Feature section A** (1127)
+  9. **Feature section B** (1200)
+  10. **Feature section C** (1280)
+  11. **Feature section D** (1384)
+  12. **Join SEVCO** (1472)
+  13. **Wiki Latest** (1540)
+  14. **Community / Discord CTA** (1596)
+  15. **Sparks** (1653)
+
+  All 15 stay. The task is to give them shape, rhythm, and motion — not to remove them.
+
+  ---
+
+  ## Design analysis
+
+  ### HMW
+  **How might we modernize the home page so every section feels distinct and intentional, the hero earns its first impression with motion, and a logged-out visitor sees three natural moments to sign up — without losing a single piece of content that's there today?**
+
+  ### Three section "weights" to use as the hierarchy spine
+  Pick a weight for every section and stick to it. Adjacent sections must differ in weight.
+
+  | Weight | Purpose | Visual treatment | Example sections |
+  |---|---|---|---|
+  | **Hero / closer** (1-2 per page) | Decision moments — CTA front and center | Full-bleed background, gradient or motion canvas, large heading, primary button | Hero, Join SEVCO, Discord CTA |
+  | **Showcase** (3-5 per page) | Story beats — proof, breadth, depth | Wide content area on a distinct dark/light alternating band, headline + visual element + supporting cards, subtle entrance animation on scroll | Platform Grid, the four Feature sections, Wallpaper |
+  | **Feed** (3-5 per page) | "This place is alive" rails | Compressed vertical space, horizontal scroll or tight grid, smaller headings, no full-width background change | Workspace, Bulletin, Platform Updates, SEVCO Feed, Wiki Latest, Sparks |
+
+  A reading of the current page shows ~10 of 15 sections are styled as "Showcase" — that's the monoculture. The fix is to demote the rails to the lighter "Feed" treatment so the eye can tell them apart from the four Feature beats and so the page breathes.
+
+  ### Hero modernization spec
+  - Keep the existing frosted-glass preview card and gradient. Replace the static word-by-word reveal (line 524-ish) with a Framer Motion timeline: headline rises and fades in, subhead follows, CTAs scale-in last, preview card tilts into place — all gated by `useReducedMotion()`.
+  - Add a slow ambient motion layer behind the hero — animated gradient mesh or a low-opacity particle field — kept under 60 fps and pausable when the tab loses focus. Existing platform examples to match: any motion already used in `freeball-landing.tsx` or the existing dot-grid texture at line 484.
+  - Add a parallax on the preview card driven by `useScroll` + `useTransform` (already imported).
+  - Primary CTA becomes visually dominant (bigger, single accent color from the existing palette); secondary becomes ghost/outline. Today both buttons read at the same weight.
+  - Add a small "scroll for more" affordance with a gentle bounce at the bottom of the hero — motion cues the visitor that the page continues, not just a screenful.
+
+  ### CTA distribution
+  Three sign-up slots, each with its own emotional context, *added without removing the existing CTAs in Join SEVCO / Discord*:
+  - **Hero CTA** — aspirational. *"Start your SEVCO."*
+  - **Mid-page CTA** — embedded inside or directly after the Platform Grid as a thin inline band: "Like what you see? Free to join." Reduces scroll-depth-to-CTA from ~1500 px to ~700 px without adding a new section.
+  - **Closer CTA** — the existing Join SEVCO section, restyled as a Hero-weight closer (large background, motion, strong button) so it actually feels like a closing argument instead of yet another mid-page band.
+
+  ### Cohesion with the rest of the platform
+  - All colors come from existing CSS variables in `client/src/index.css` and existing Tailwind tokens. No new accent colors introduced.
+  - Section background bands alternate between `bg-background`, `bg-[#07070f]` (already used at lines 682 and 951), and a subtle `bg-muted/40` (used at line 1540) — so we're recombining tokens already on the page, not inventing.
+  - Card chrome — border radius, border opacity, blur intensity — matches `sites-landing.tsx` and `freeball-landing.tsx`. Reference those two files when restyling cards.
+  - All animation uses `framer-motion` (already a dependency, line 85 of `package.json`); no new motion library.
+
+  ---
+
+  ## Steps
+  1. **Lock the section inventory** — write a quick checklist mapping each of the 15 current sections to its new weight (hero / showcase / feed) and its new neighbors. Include a "before / after" diff so we can prove at the end that nothing was dropped.
+  2. **Extract section components** — `landing.tsx` is 1700 lines; the redesign will balloon it. Break each section into a component under `client/src/pages/landing/sections/` so `landing.tsx` becomes a thin orchestrator. Keep file boundaries small.
+  3. **Modernize the hero** — implement the Framer Motion entrance timeline, ambient background motion, parallax preview card, scroll-cue affordance, dominant primary CTA. Gate every motion with `useReducedMotion`.
+  4. **Re-style the four Feature sections (A-D)** — keep their content; differentiate them visually using the three-weight system so they don't read as the same template four times. Consider asymmetric layouts (image-left/right alternation, occasional full-bleed visual).
+  5. **Demote the rails to Feed weight** — Workspace, Bulletin, Platform Updates, SEVCO Feed, Wiki Latest, Sparks all get the lighter compressed treatment. Use horizontal scroll where it makes sense (Updates, Feed, Wiki, Sparks) so the page is shorter and the rails read as live content not as nav grids.
+  6. **Add the mid-page inline CTA** — thin band immediately after Platform Grid, single sentence + button, no new section heading.
+  7. **Restyle Join SEVCO as a Hero-weight closer** — full-bleed background, motion entrance, dominant button.
+  8. **Cohesion pass** — open `sites-landing.tsx` and `freeball-landing.tsx` side-by-side; reconcile any token, border, blur, or heading-scale drift.
+  9. **Wire CTA-click events into the existing analytics tracker** — extend `client/src/lib/analytics-tracker.ts` so each CTA fires an event tagged with its slot (`hero`, `mid`, `closer`, `discord`). The pageviews tables we just shipped will then let `/command/traffic` answer "did this work?" in a week.
+  10. **Verify** — checklist all 15 sections still present; logged-out and logged-in flows; mobile breakpoints; `prefers-reduced-motion` honored; Lighthouse ≥ today's numbers; cross-check visual coherence with `sites-landing.tsx` and `freeball-landing.tsx`.
+
+  ## Relevant files
+  - `client/src/pages/landing.tsx` — the page being redesigned (1700 lines)
+  - `client/src/App.tsx:245` — route mounting it at `/`
+  - `client/src/pages/sites-landing.tsx`, `client/src/pages/freeball-landing.tsx` — visual-language references the redesign must feel cohesive with
+  - `client/src/index.css` — color tokens / CSS variables to reuse (no new colors)
+  - `client/src/lib/analytics-tracker.ts` — extend to fire CTA-click events with slot tags
+  - `server/internalAnalytics.ts` + `/command/traffic` — measurement surface that will tell us whether the redesign worked
+  - `shared/schema.ts:1398-1418` — pageviews table backing CTA-click analytics
+  - `package.json:85` — `framer-motion` already installed; no new deps required
+
+
+---
+

@@ -24,6 +24,8 @@ import { SiDiscord, SiSpotify, SiApplemusic } from "react-icons/si";
 import type { Article, Product, FeedPost, Project, ChangelogCategory } from "@shared/schema";
 import { articleUrl } from "@/lib/wiki-urls";
 import { DEFAULT_SECTION_ORDER } from "@shared/section-order";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { trackCtaClick } from "@/lib/analytics-tracker";
 import { HomeNewsAndMarkets } from "@/components/home-news-markets";
 import { UserSnapshotPanel } from "@/components/user-snapshot-panel";
 import { formatDistanceToNow } from "date-fns";
@@ -358,6 +360,19 @@ export default function Landing() {
   const btn2Label = settings["hero.button2.label"] || DEFAULT_BTN2_LABEL;
   const btn2Url = settings["hero.button2.url"] || DEFAULT_BTN2_URL;
 
+  // Modernized hero controls (added Task #450)
+  const heroMotionEnabled = settings["hero.motion.enabled"] !== "false";
+  const heroMotionIntensity =
+    (settings["hero.motion.intensity"] as "subtle" | "standard" | "rich" | undefined) || "standard";
+  const heroPrimarySlot =
+    (settings["hero.cta.primarySlot"] as "button1" | "button2" | undefined) || "button1";
+  const heroScrollCueVisible = settings["hero.scrollCue.visible"] !== "false";
+
+  // Mid-page CTA band (rendered between platformGrid and the next section)
+  const showMidCta = settings["section.midCta.visible"] !== "false";
+  const midCtaLabel = settings["section.midCta.label"] || "Free to join — start your SEVCO";
+  const midCtaUrl = settings["section.midCta.url"] || (user ? "/dashboard" : "/auth");
+
   let whySevcoPills = DEFAULT_WHY_SEVCO_PILLS;
   if (settings["home.iconPills"]) {
     try {
@@ -501,17 +516,67 @@ export default function Landing() {
             willChange: "opacity, transform",
           }}
         >
+          {(() => {
+            // Resolve which CTA is dominant. Default = button1 = primary.
+            const button1IsPrimary = heroPrimarySlot !== "button2";
+            const intensityMul =
+              heroMotionIntensity === "rich" ? 1.3
+              : heroMotionIntensity === "subtle" ? 0.55
+              : 1;
+            // motionOn = master switch: respects user setting + OS reduced-motion.
+            const motionOn = heroMotionEnabled && !prefersReducedMotion;
+            const wordRiseY = 24 * intensityMul;
+            const wordStagger = 0.07;
+
+            const renderHeadlineWord = (word: string, i: number, isAccented: boolean) => (
+              <motion.span
+                key={i}
+                className="inline-block mr-[0.25em]"
+                initial={motionOn ? { opacity: 0, y: wordRiseY } : false}
+                animate={motionOn ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+                transition={motionOn ? { delay: i * wordStagger, duration: 0.55, ease: [0.22, 1, 0.36, 1] } : { duration: 0 }}
+                style={isAccented ? {
+                  background: "linear-gradient(135deg, #ff3333 0%, #cc0000 50%, #ff6666 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                } : {
+                  color: "rgba(255,255,255,0.92)",
+                }}
+              >
+                {word}
+              </motion.span>
+            );
+
+            const headlineWords = heroHeadline
+              ? heroHeadline.split(" ").map((word, i) => {
+                  const isAccented = word.startsWith("*") && word.endsWith("*") && word.length > 2;
+                  return renderHeadlineWord(isAccented ? word.slice(1, -1) : word, i, isAccented);
+                })
+              : ["A", "Creative", "Platform"].map((word, i) => renderHeadlineWord(word, i, i === 0));
+
+            // Trailing-stagger delays so subhead + CTAs come in after the headline.
+            const subheadDelay = motionOn ? Math.max(0.15, headlineWords.length * wordStagger) : 0;
+            const ctaDelay = motionOn ? subheadDelay + 0.18 : 0;
+            const previewDelay = motionOn ? subheadDelay + 0.32 : 0;
+
+            return (
           <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
             {/* Left — headline + CTAs */}
             <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left gap-6">
-              <div className="overflow-visible p-1 shrink-0">
+              <motion.div
+                className="overflow-visible p-1 shrink-0"
+                initial={motionOn ? { opacity: 0, scale: 0.85 } : false}
+                animate={motionOn ? { opacity: 1, scale: 1 } : { opacity: 1, scale: 1 }}
+                transition={motionOn ? { duration: 0.7, ease: [0.22, 1, 0.36, 1] } : { duration: 0 }}
+              >
                 <img
                   src={resolveImageUrl(settings["hero.logoUrl"] || settings["platform.logoUrl"]) || planetIconWhite}
                   alt="SEVCO"
                   className="h-20 w-20 md:h-24 md:w-24 object-contain"
                   data-testid="img-planet-hero"
                 />
-              </div>
+              </motion.div>
 
               <div>
                 <h1
@@ -521,95 +586,94 @@ export default function Landing() {
                     textShadow: "0 0 40px rgba(190,0,7,0.35), 0 2px 24px rgba(0,0,0,0.6)",
                   }}
                 >
-                  {/* Word-by-word staggered reveal animation */}
-                  {heroHeadline
-                    ? heroHeadline.split(" ").map((word, i) => {
-                        const isAccented = word.startsWith("*") && word.endsWith("*") && word.length > 2;
-                        const displayWord = isAccented ? word.slice(1, -1) : word;
-                        return (
-                          <span
-                            key={i}
-                            className="inline-block mr-[0.25em]"
-                            style={{
-                              opacity: 0,
-                              animation: `wordReveal 0.5s ease forwards`,
-                              animationDelay: `${i * 0.08}s`,
-                              ...(isAccented ? {
-                                background: "linear-gradient(135deg, #ff3333 0%, #cc0000 50%, #ff6666 100%)",
-                                WebkitBackgroundClip: "text",
-                                WebkitTextFillColor: "transparent",
-                                backgroundClip: "text",
-                              } : {
-                                color: "rgba(255,255,255,0.92)",
-                              }),
-                            }}
-                          >
-                            {displayWord}
-                          </span>
-                        );
-                      })
-                    : ["A", "Creative", "Platform"].map((word, i) => {
-                        const isRedWord = i === 0;
-                        return (
-                          <span
-                            key={i}
-                            className="inline-block mr-[0.25em]"
-                            style={{
-                              opacity: 0,
-                              animation: `wordReveal 0.5s ease forwards`,
-                              animationDelay: `${i * 0.08}s`,
-                              ...(isRedWord ? {
-                                background: "linear-gradient(135deg, #ff3333 0%, #cc0000 50%, #ff6666 100%)",
-                                WebkitBackgroundClip: "text",
-                                WebkitTextFillColor: "transparent",
-                                backgroundClip: "text",
-                              } : {
-                                color: "rgba(255,255,255,0.92)",
-                              }),
-                            }}
-                          >
-                            {word}
-                          </span>
-                        );
-                      })}
+                  {headlineWords}
                 </h1>
-                <p className="text-white/80 text-base md:text-lg max-w-lg leading-relaxed">
+                <motion.p
+                  className="text-white/80 text-base md:text-lg max-w-lg leading-relaxed"
+                  initial={motionOn ? { opacity: 0, y: 12 } : false}
+                  animate={motionOn ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+                  transition={motionOn ? { delay: subheadDelay, duration: 0.55, ease: "easeOut" } : { duration: 0 }}
+                >
                   {heroText}
-                </p>
+                </motion.p>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-3">
-                {/* Button 1 — always shown, defaults to Sign Up / Go to Platform for logged-in users */}
+              <motion.div
+                className="flex flex-col sm:flex-row items-center gap-3"
+                initial={motionOn ? { opacity: 0, y: 16 } : false}
+                animate={motionOn ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+                transition={motionOn ? { delay: ctaDelay, duration: 0.5, ease: "easeOut" } : { duration: 0 }}
+              >
+                {/* Button 1 */}
                 <Link href={btn1Url}>
                   <Button
                     size="lg"
-                    variant="destructive"
-                    className={btn1Color ? "hover:opacity-90 text-white font-semibold gap-2 px-7 shadow-lg shadow-red-900/30" : "font-semibold gap-2 px-7 shadow-lg shadow-red-900/30 bg-red-600 hover:bg-red-500 text-white border-0"}
-                    style={btn1Color ? { backgroundColor: btn1Color, borderColor: btn1Color, color: "#fff" } : undefined}
+                    variant={button1IsPrimary ? "destructive" : "outline"}
+                    className={
+                      button1IsPrimary
+                        ? (btn1Color
+                            ? "hover:opacity-90 text-white font-semibold gap-2 px-8 py-6 text-base shadow-xl shadow-red-900/40 ring-1 ring-white/10"
+                            : "font-semibold gap-2 px-8 py-6 text-base shadow-xl shadow-red-900/40 bg-red-600 hover:bg-red-500 text-white border-0 ring-1 ring-white/10")
+                        : "text-white/80 hover:text-white hover:bg-white/10 border border-white/20 font-semibold gap-2 px-6"
+                    }
+                    style={
+                      button1IsPrimary && btn1Color
+                        ? { backgroundColor: btn1Color, borderColor: btn1Color, color: "#fff" }
+                        : (!button1IsPrimary && btn1Color
+                            ? { backgroundColor: btn1Color, borderColor: btn1Color, color: "#fff" }
+                            : undefined)
+                    }
                     data-testid="button-hero-primary"
+                    onClick={button1IsPrimary ? () => trackCtaClick("hero") : undefined}
                   >
                     <Btn1Icon className="h-4 w-4" />
                     {btn1Label}
                   </Button>
                 </Link>
-                {/* Button 2 — always shown */}
+                {/* Button 2 */}
                 <Link href={btn2Url}>
                   <Button
                     size="lg"
-                    variant="outline"
-                    className="text-white/70 hover:text-white hover:bg-white/10 border border-white/20 font-semibold gap-2 px-6"
+                    variant={button1IsPrimary ? "outline" : "destructive"}
+                    className={
+                      button1IsPrimary
+                        ? "text-white/70 hover:text-white hover:bg-white/10 border border-white/20 font-semibold gap-2 px-6"
+                        : (btn2Color
+                            ? "hover:opacity-90 text-white font-semibold gap-2 px-8 py-6 text-base shadow-xl shadow-red-900/40 ring-1 ring-white/10"
+                            : "font-semibold gap-2 px-8 py-6 text-base shadow-xl shadow-red-900/40 bg-red-600 hover:bg-red-500 text-white border-0 ring-1 ring-white/10")
+                    }
                     style={btn2Color ? { backgroundColor: btn2Color, borderColor: btn2Color, color: "#fff" } : undefined}
                     data-testid="button-hero-secondary"
+                    onClick={!button1IsPrimary ? () => trackCtaClick("hero") : undefined}
                   >
                     <Btn2Icon className="h-4 w-4" />
                     {btn2Label}
                   </Button>
                 </Link>
-              </div>
+              </motion.div>
+
+              {/* Trust microcopy under CTAs — reduces signup anxiety without adding a new section */}
+              {!user && (
+                <motion.p
+                  className="text-[11px] uppercase tracking-widest text-white/40"
+                  initial={motionOn ? { opacity: 0 } : false}
+                  animate={motionOn ? { opacity: 1 } : { opacity: 1 }}
+                  transition={motionOn ? { delay: ctaDelay + 0.25, duration: 0.6 } : { duration: 0 }}
+                  data-testid="text-hero-trust-microcopy"
+                >
+                  Free to join · No credit card · 1-click sign up
+                </motion.p>
+              )}
             </div>
 
-            {/* Right — floating frosted-glass preview card */}
-            <div className="hidden lg:flex flex-col gap-3 shrink-0 w-72">
+            {/* Right — floating frosted-glass preview cards (with subtle scroll parallax) */}
+            <motion.div
+              className="hidden lg:flex flex-col gap-3 shrink-0 w-72"
+              initial={motionOn ? { opacity: 0, x: 30 } : false}
+              animate={motionOn ? { opacity: 1, x: 0 } : { opacity: 1, x: 0 }}
+              transition={motionOn ? { delay: previewDelay, duration: 0.7, ease: [0.22, 1, 0.36, 1] } : { duration: 0 }}
+              style={motionOn ? { transform: `translateY(${heroScrollY * -0.08 * intensityMul}px)` } : undefined}
+            >
               {/* Tilted frosted card */}
               <div
                 className="rounded-2xl border border-white/10 p-5 motion-safe:animate-[float_6s_ease-in-out_infinite]"
@@ -669,9 +733,29 @@ export default function Landing() {
                   <p className="text-[11px] text-white/50">Streaming now</p>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
+            );
+          })()}
         </div>
+
+        {/* Scroll cue — gentle bounce inviting the visitor to keep going. */}
+        {heroScrollCueVisible && heroMotionEnabled && !prefersReducedMotion && heroScrollY < 60 && (
+          <motion.div
+            className="absolute bottom-6 left-0 right-0 z-10 flex flex-col items-center gap-1 pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, y: [0, 6, 0] }}
+            transition={{
+              opacity: { delay: 1.2, duration: 0.8 },
+              y: { delay: 1.2, duration: 1.8, repeat: Infinity, ease: "easeInOut" },
+            }}
+            aria-hidden="true"
+            data-testid="hero-scroll-cue"
+          >
+            <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">Scroll</span>
+            <ChevronRight className="h-3.5 w-3.5 text-white/40 rotate-90" />
+          </motion.div>
+        )}
 
         {/* Bottom fade to next section */}
         <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[#07070f] to-transparent pointer-events-none" />
@@ -944,6 +1028,50 @@ export default function Landing() {
                 </StaggerGrid>
               </section>
             );
+
+          case "midCta": {
+            // Thin inline CTA band — appears for logged-out visitors only,
+            // immediately after the Platform Grid so the next "ask" lands
+            // before the visitor has scrolled past the breadth-pitch.
+            if (!showMidCta || user) return null;
+            return (
+              <section
+                key="midCta"
+                className="relative overflow-hidden border-y border-white/[0.06] bg-gradient-to-r from-red-950/40 via-[#0a0a14] to-indigo-950/40"
+                data-testid="section-mid-cta"
+              >
+                <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+                  <div className="absolute -top-10 left-1/3 w-[300px] h-[300px] rounded-full bg-red-700/10 blur-[80px] motion-safe:animate-[pulse_10s_ease-in-out_infinite]" />
+                </div>
+                <div className="relative z-10 max-w-5xl mx-auto px-6 py-7 md:py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 text-center sm:text-left">
+                    <div className="hidden sm:flex h-9 w-9 rounded-xl bg-red-600/20 items-center justify-center shrink-0">
+                      <Star className="h-4 w-4 text-red-300" />
+                    </div>
+                    <div>
+                      <p className="text-sm md:text-base font-semibold text-white" data-testid="text-mid-cta-label">
+                        {midCtaLabel}
+                      </p>
+                      <p className="text-[11px] text-white/40 mt-0.5">
+                        Free to join · No credit card · Takes 30 seconds
+                      </p>
+                    </div>
+                  </div>
+                  <Link href={midCtaUrl}>
+                    <Button
+                      size="default"
+                      className="bg-red-600 hover:bg-red-500 text-white font-semibold gap-2 shrink-0 shadow-lg shadow-red-900/30"
+                      data-testid="button-mid-cta"
+                      onClick={() => trackCtaClick("mid")}
+                    >
+                      Sign Up Free
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </section>
+            );
+          }
 
           case "whatsNew":
             if (!showWhatsNew || (!changelogLoading && changelogEntries.length === 0)) return null;
@@ -1492,16 +1620,22 @@ export default function Landing() {
                       <p className="text-white/50 text-sm leading-relaxed mb-6">
                         Create a free SEVCO account and get instant access to the full platform — store, music, wiki, news, projects, and more.
                       </p>
-                      <Link href="/auth">
-                        <Button
-                          size="lg"
-                          className="bg-red-600 hover:bg-red-500 text-white font-semibold gap-2 shadow-lg shadow-red-900/30"
-                          data-testid="button-signup-cta-create-account"
-                        >
-                          <Star className="h-4 w-4" />
-                          Create Free Account
-                        </Button>
-                      </Link>
+                      <div className="flex flex-col items-start gap-2">
+                        <Link href="/auth">
+                          <Button
+                            size="lg"
+                            className="bg-red-600 hover:bg-red-500 text-white font-semibold gap-2 shadow-xl shadow-red-900/40 px-8 py-6 text-base ring-1 ring-white/10"
+                            data-testid="button-signup-cta-create-account"
+                            onClick={() => trackCtaClick("closer")}
+                          >
+                            <Star className="h-4 w-4" />
+                            Create Free Account
+                          </Button>
+                        </Link>
+                        <p className="text-[10px] uppercase tracking-widest text-white/40">
+                          Free · No credit card · 30 seconds
+                        </p>
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       {[
@@ -1619,7 +1753,12 @@ export default function Landing() {
                     Connect with the team and community on Discord. Get updates, share feedback, and be part of what's next.
                   </p>
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer">
+                    <a
+                      href={DISCORD_INVITE}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => trackCtaClick("discord")}
+                    >
                       <Button
                         size="lg"
                         className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold gap-2"

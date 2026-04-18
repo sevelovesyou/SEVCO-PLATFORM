@@ -43,6 +43,20 @@ function send(path: string) {
   }
 }
 
+/**
+ * Fire a virtual pageview for a CTA click so we can measure conversion per
+ * slot in /command/traffic without adding new endpoints. The path namespace
+ * `/cta/<slot>` is intentionally distinct from real routes so it shows up
+ * as its own row in Top Pages.
+ *
+ * Slots in use on the home page: "hero", "mid", "closer", "discord".
+ */
+export function trackCtaClick(slot: string): void {
+  if (typeof window === "undefined") return;
+  const safe = slot.replace(/[^a-z0-9_-]/gi, "").slice(0, 32) || "unknown";
+  send(`/cta/${safe}`);
+}
+
 export function useAnalyticsTracker(): void {
   const [location] = useLocation();
   const lastSent = useRef<string | null>(null);

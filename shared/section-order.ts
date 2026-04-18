@@ -1,6 +1,7 @@
 export const DEFAULT_SECTION_ORDER: string[] = [
   "bulletin",
   "platformGrid",
+  "midCta",
   "whatsNew",
   "feed",
   "news",

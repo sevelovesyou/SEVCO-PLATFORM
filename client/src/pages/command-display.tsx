@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Image, Type, Eye, EyeOff, Globe, Link2, Package, Pencil, Trash2, Plus, Palette, RotateCcw, AlignLeft, Layers } from "lucide-react";
+import { Save, Image, Type, Eye, EyeOff, Globe, Link2, Package, Pencil, Trash2, Plus, Palette, RotateCcw, AlignLeft, Layers, Zap, Star } from "lucide-react";
 import { ShaderSettingsPanel } from "@/components/shader-settings-panel";
 import { Slider } from "@/components/ui/slider";
 import { FileUploadWithFallback } from "@/components/file-upload";
@@ -98,6 +98,15 @@ export default function CommandDisplay() {
   const [btn2Url, setBtn2Url] = useState("");
   const [btn2Icon, setBtn2Icon] = useState("");
   const [btn2Color, setBtn2Color] = useState("");
+  // Hero motion + CTA-slot controls (added for Home Page modernization).
+  const [heroMotionEnabled, setHeroMotionEnabled] = useState(true);
+  const [heroMotionIntensity, setHeroMotionIntensity] = useState<"subtle" | "standard" | "rich">("standard");
+  const [heroPrimarySlot, setHeroPrimarySlot] = useState<"button1" | "button2">("button1");
+  const [heroScrollCueVisible, setHeroScrollCueVisible] = useState(true);
+  // Mid-page CTA band (logged-out only).
+  const [midCtaVisible, setMidCtaVisible] = useState(true);
+  const [midCtaLabel, setMidCtaLabel] = useState("");
+  const [midCtaUrl, setMidCtaUrl] = useState("");
   const [sectionVisibility, setSectionVisibility] = useState<Record<string, boolean>>({});
   const [faviconUrl, setFaviconUrl] = useState("");
   const [ogImageUrl, setOgImageUrl] = useState("");
@@ -148,6 +157,17 @@ export default function CommandDisplay() {
     setBtn2Url(settings["hero.button2.url"] ?? "");
     setBtn2Icon(settings["hero.button2.icon"] ?? "");
     setBtn2Color(settings["hero.button2.color"] ?? "");
+    // Motion + slot + scroll cue (defaults match landing.tsx fallbacks).
+    setHeroMotionEnabled(settings["hero.motion.enabled"] ? toBool(settings["hero.motion.enabled"]) : true);
+    const intensity = (settings["hero.motion.intensity"] ?? "standard") as "subtle" | "standard" | "rich";
+    setHeroMotionIntensity(intensity === "subtle" || intensity === "rich" ? intensity : "standard");
+    const slot = (settings["hero.cta.primarySlot"] ?? "button1") as "button1" | "button2";
+    setHeroPrimarySlot(slot === "button2" ? "button2" : "button1");
+    setHeroScrollCueVisible(settings["hero.scrollCue.visible"] ? toBool(settings["hero.scrollCue.visible"]) : true);
+    // Mid-CTA band fields.
+    setMidCtaVisible(settings["section.midCta.visible"] ? toBool(settings["section.midCta.visible"]) : true);
+    setMidCtaLabel(settings["section.midCta.label"] ?? "Join SEVCO — built by creators, for creators.");
+    setMidCtaUrl(settings["section.midCta.url"] ?? "/auth");
     setFaviconUrl(settings["platform.faviconUrl"] ?? "");
     setOgImageUrl(settings["platform.ogImageUrl"] ?? "");
     setGlobalDescription(settings["platform.description"] ?? "");
@@ -222,6 +242,13 @@ export default function CommandDisplay() {
       "hero.button2.url": btn2Url,
       "hero.button2.icon": btn2Icon,
       "hero.button2.color": btn2Color,
+      "hero.motion.enabled": String(heroMotionEnabled),
+      "hero.motion.intensity": heroMotionIntensity,
+      "hero.cta.primarySlot": heroPrimarySlot,
+      "hero.scrollCue.visible": String(heroScrollCueVisible),
+      "section.midCta.visible": String(midCtaVisible),
+      "section.midCta.label": midCtaLabel,
+      "section.midCta.url": midCtaUrl,
     });
   }
 
@@ -725,6 +752,113 @@ export default function CommandDisplay() {
               <Button variant="ghost" size="sm" onClick={() => setBtn2Color("")} className="text-xs h-6 px-2">
                 Reset
               </Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Motion + CTA-slot controls */}
+          <div className="space-y-4">
+            <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Zap className="h-3.5 w-3.5" />
+              Motion & CTA Hierarchy
+            </p>
+
+            <div className="flex items-center justify-between py-1">
+              <div>
+                <Label htmlFor="hero-motion-enabled" className="text-sm">Hero motion enabled</Label>
+                <p className="text-xs text-muted-foreground">Animated headline reveal, parallax preview, and scroll cue. Always disabled for users with reduce-motion.</p>
+              </div>
+              <Switch
+                id="hero-motion-enabled"
+                checked={heroMotionEnabled}
+                onCheckedChange={setHeroMotionEnabled}
+                data-testid="switch-hero-motion-enabled"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Motion intensity</Label>
+                <Select value={heroMotionIntensity} onValueChange={(v) => setHeroMotionIntensity(v as "subtle" | "standard" | "rich")}>
+                  <SelectTrigger data-testid="select-hero-motion-intensity">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="subtle">Subtle</SelectItem>
+                    <SelectItem value="standard">Standard</SelectItem>
+                    <SelectItem value="rich">Rich</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Primary CTA slot</Label>
+                <Select value={heroPrimarySlot} onValueChange={(v) => setHeroPrimarySlot(v as "button1" | "button2")}>
+                  <SelectTrigger data-testid="select-hero-primary-slot">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="button1">Button 1 is primary</SelectItem>
+                    <SelectItem value="button2">Button 2 is primary</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between py-1">
+              <div>
+                <Label htmlFor="hero-scroll-cue" className="text-sm">Show scroll cue</Label>
+                <p className="text-xs text-muted-foreground">Animated arrow at the bottom of the hero inviting visitors to scroll.</p>
+              </div>
+              <Switch
+                id="hero-scroll-cue"
+                checked={heroScrollCueVisible}
+                onCheckedChange={setHeroScrollCueVisible}
+                data-testid="switch-hero-scroll-cue"
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Mid-page CTA band */}
+          <div className="space-y-4">
+            <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Star className="h-3.5 w-3.5" />
+              Mid-Page Sign-Up Band
+            </p>
+            <p className="text-xs text-muted-foreground -mt-2">
+              A thin call-to-action between the Platform Grid and What's New. Shown to logged-out visitors only.
+            </p>
+
+            <div className="flex items-center justify-between py-1">
+              <Label htmlFor="midcta-visible" className="text-sm">Visible</Label>
+              <Switch
+                id="midcta-visible"
+                checked={midCtaVisible}
+                onCheckedChange={setMidCtaVisible}
+                data-testid="switch-midcta-visible"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="midcta-label" className="text-xs">Label</Label>
+              <Input
+                id="midcta-label"
+                placeholder="Join SEVCO — built by creators, for creators."
+                value={midCtaLabel}
+                onChange={(e) => setMidCtaLabel(e.target.value)}
+                data-testid="input-midcta-label"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="midcta-url" className="text-xs">Button URL</Label>
+              <Input
+                id="midcta-url"
+                placeholder="/auth"
+                value={midCtaUrl}
+                onChange={(e) => setMidCtaUrl(e.target.value)}
+                data-testid="input-midcta-url"
+              />
             </div>
           </div>
 

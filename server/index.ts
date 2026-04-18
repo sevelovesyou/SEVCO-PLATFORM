@@ -14,6 +14,7 @@ import { pool } from "./db";
 import { fetchAllMarketData } from "./market-data";
 import { startNewsAggregator } from "./news-aggregator";
 import { sevcoSitesMiddleware } from "./sites-middleware";
+import { runFileMigrations } from "./fileMigrator";
 
 const SPARK_PACK_DEFS = [
   { name: "Starter", sparks: 1000,   price: 800,   sortOrder: 0 },
@@ -88,6 +89,11 @@ async function seedSparkPacks() {
 }
 
 async function runStartupMigrations() {
+  // Task #449 — Apply any /migrations/*.sql files automatically before the
+  // legacy hand-rolled block. Tracked in __file_migrations so each file
+  // runs exactly once per database.
+  await runFileMigrations();
+
   // Task #322 — Fix missing repost_of column in posts table
   await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS repost_of integer REFERENCES posts(id) ON DELETE CASCADE;`);
   // Task #283 — Fix missing link_url column in services table
@@ -714,7 +720,14 @@ async function initStripe() {
 }
 
 (async () => {
-  await runStartupMigrations().catch((err) => console.error("Startup migration error:", err));
+  // Fail-fast on schema migration errors — running the app against a partial
+  // schema is exactly the kind of silent breakage Task #449 set out to prevent.
+  try {
+    await runStartupMigrations();
+  } catch (err) {
+    console.error("Startup migration error — aborting boot:", err);
+    process.exit(1);
+  }
   await initStripe().catch((err) => console.error("Stripe init error:", err));
   await seedDatabase().catch((err) => console.error("Seed error:", err));
   await promoteFounderToAdmin().catch((err) => console.error("Promotion error:", err));

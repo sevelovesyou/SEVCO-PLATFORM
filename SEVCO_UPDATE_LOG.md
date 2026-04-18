@@ -28984,3 +28984,38 @@ Two small but impactful fixes in the Command Center:
 
 ---
 
+## Task — section-visibility-fix
+> Merged: 2026-04-18
+
+# Fix Section Visibility panel in Platform Settings
+
+## What & Why
+The Section Visibility panel inside Command Center → Platform Settings is out of sync with the live home page. It only lists 5 sections out of the 14+ that the landing page actually renders, and there is no way to reorder sections, even though the landing page already supports a saved order. Admins can't hide most sections (Bulletin, What's New, Feed, News, Services, Projects, Sign-up CTA, Sparks, Mid-page CTA, Icon Pills, Wallpaper) and can't change the order at all.
+
+## Done looks like
+- The Section Visibility list in Command Center → Platform Settings shows every section the home page can render, in the same order they currently appear on the page.
+- Each section has an accurate, current label and a short, current description (no references to old visual treatments like "purple gradient background").
+- Admins can reorder sections (up/down arrows or drag) and the saved order takes effect on the home page immediately after saving.
+- Admins can toggle visibility for every section that the landing page gates on a `section.<key>.visible` setting.
+- Saving persists both the visibility toggles and the new order in one click.
+- Hidden sections disappear from the home page; reordered sections render in the new order.
+
+## Out of scope
+- Adding new home-page sections that don't already exist in the codebase.
+- Changing the visual design of any landing-page section.
+- Per-section content editing beyond the existing visibility/order controls.
+
+## Steps
+1. Replace the hard-coded 5-entry section list in the Platform Settings panel with a list derived from the canonical default order, covering every section the landing page reads a visibility flag for, with accurate labels and short descriptions.
+2. Add a reorder affordance (up/down arrow buttons are enough; drag is fine if simple) next to each row, driven by the same state used for visibility, and persist the resulting order to the existing `section.order` JSON setting.
+3. Update the Save action so a single click writes both the visibility flags and the new order, and confirm the order persists across reloads.
+4. Quick visual QA: confirm hidden sections vanish from the home page, reordered sections appear in the new sequence, and old controls (Mid-page CTA, hero, etc.) still work.
+
+## Relevant files
+- `client/src/pages/command-display.tsx:25-31,105-110,239-260,803-849`
+- `client/src/pages/landing.tsx:364-417,699-1450`
+- `shared/section-order.ts`
+
+
+---
+

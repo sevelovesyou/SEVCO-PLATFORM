@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHead } from "@/components/page-head";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -15,7 +15,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link } from "wouter";
 import { articleUrl } from "@/lib/wiki-urls";
-import { Copy, ImageOff, ExternalLink, X, Zap } from "lucide-react";
+import { Copy, ImageOff, ExternalLink, X, Zap, Download } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import type { GalleryImage } from "@shared/schema";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
@@ -54,12 +54,53 @@ type GalleryImageWithSpark = GalleryImage & {
   uploaderName?: string | null;
 };
 
+function slugifyTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "image";
+}
+
+function extFromUrl(url: string): string {
+  try {
+    const path = new URL(url, window.location.origin).pathname;
+    const m = path.match(/\.([a-zA-Z0-9]{2,5})$/);
+    return m ? m[1].toLowerCase() : "jpg";
+  } catch {
+    return "jpg";
+  }
+}
+
 export default function GalleryPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("all");
   const [lightboxImage, setLightboxImage] = useState<GalleryImageWithSpark | null>(null);
   const [sparkTooltips, setSparkTooltips] = useState<Record<number, boolean>>({});
+  const [revealedCardId, setRevealedCardId] = useState<number | null>(null);
+  const [isTouch, setIsTouch] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mql = window.matchMedia("(hover: none)");
+    const update = () => setIsTouch(mql.matches);
+    update();
+    mql.addEventListener?.("change", update);
+    return () => mql.removeEventListener?.("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (!isTouch || revealedCardId === null) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && target.closest(`[data-gallery-card-id="${revealedCardId}"]`)) return;
+      setRevealedCardId(null);
+    };
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [isTouch, revealedCardId]);
 
   const queryKey = activeTab === "all"
     ? ["/api/gallery"]
@@ -123,8 +164,32 @@ export default function GalleryPage() {
     }
   }
 
+  async function downloadImage(imageUrl: string, title: string) {
+    const resolved = resolveImageUrl(imageUrl);
+    const filename = `${slugifyTitle(title)}.${extFromUrl(resolved)}`;
+    try {
+      const res = await fetch(resolved, { credentials: "omit" });
+      if (!res.ok) throw new Error("fetch failed");
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch {
+      window.open(resolved, "_blank", "noopener,noreferrer");
+      toast({
+        title: "Opening in a new tab",
+        description: "Right-click → Save image to download.",
+      });
+    }
+  }
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="w-full px-4 md:px-6 py-6">
       <PageHead
         slug="gallery"
         title="Brand Gallery — SEVCO"
@@ -156,12 +221,10 @@ export default function GalleryPage() {
 
       {/* Loading — masonry-style skeleton */}
       {isLoading && (
-        <div className="columns-2 sm:columns-3 md:columns-4 gap-4 space-y-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="break-inside-avoid mb-4 space-y-2">
+        <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-4 md:gap-5 space-y-4">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={i} className="break-inside-avoid mb-4">
               <Skeleton className={`${SKELETON_HEIGHTS[i % SKELETON_HEIGHTS.length]} w-full rounded-xl`} />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-7 w-full" />
             </div>
           ))}
         </div>
@@ -185,117 +248,163 @@ export default function GalleryPage() {
 
       {/* Masonry image grid */}
       {!isLoading && images && images.length > 0 && (
-        <div className="columns-2 sm:columns-3 md:columns-4 gap-4 space-y-4" data-testid="gallery-grid">
-          {images.map((image) => (
-            <div
-              key={image.id}
-              className="break-inside-avoid mb-4 group rounded-xl border bg-card overflow-hidden hover:shadow-md transition-shadow"
-              data-testid={`card-gallery-${image.id}`}
-            >
-              <button
-                className="w-full relative"
-                onClick={() => setLightboxImage(image)}
-                data-testid={`button-expand-image-${image.id}`}
+        <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-4 md:gap-5 space-y-4" data-testid="gallery-grid">
+          {images.map((image) => {
+            const isOwner = user?.id === image.uploadedBy;
+            const isRevealed = isTouch && revealedCardId === image.id;
+            return (
+              <div
+                key={image.id}
+                data-gallery-card-id={image.id}
+                className="break-inside-avoid mb-4 block group relative rounded-xl border bg-card overflow-hidden hover:shadow-md transition-shadow"
+                data-testid={`card-gallery-${image.id}`}
               >
-                <img
-                  src={resolveImageUrl(image.imageUrl)}
-                  alt={image.altText || image.title}
-                  className="w-full rounded-t-xl group-hover:opacity-90 transition-opacity"
-                  loading="lazy"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = "none";
-                    const fallback = (e.target as HTMLImageElement).nextElementSibling;
-                    if (fallback) fallback.classList.remove("hidden");
+                <button
+                  className="w-full block relative"
+                  onClick={() => {
+                    if (isTouch && revealedCardId !== image.id) {
+                      setRevealedCardId(image.id);
+                      return;
+                    }
+                    setLightboxImage(image);
                   }}
-                />
-                <div className="hidden absolute inset-0 flex items-center justify-center bg-muted rounded-t-xl" style={{ minHeight: "8rem" }}>
-                  <ImageOff className="h-8 w-8 text-muted-foreground/40" />
-                </div>
+                  data-testid={`button-expand-image-${image.id}`}
+                >
+                  <img
+                    src={resolveImageUrl(image.imageUrl)}
+                    alt={image.altText || image.title}
+                    className="w-full block rounded-xl"
+                    loading="lazy"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                      const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                      if (fallback) fallback.classList.remove("hidden");
+                    }}
+                  />
+                  <div className="hidden absolute inset-0 flex items-center justify-center bg-muted rounded-xl" style={{ minHeight: "8rem" }}>
+                    <ImageOff className="h-8 w-8 text-muted-foreground/40" />
+                  </div>
+                </button>
+
                 {!image.isPublic && (
-                  <div className="absolute top-1.5 right-1.5">
+                  <div className="absolute top-2 right-2 z-10 pointer-events-none">
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">Members only</Badge>
                   </div>
                 )}
-                {(image.sparkCount ?? 0) > 0 && (
-                  <div
-                    className="absolute bottom-1.5 left-1.5 flex items-center gap-0.5 bg-black/60 text-amber-400 rounded-md px-1.5 py-0.5 text-[10px] font-semibold backdrop-blur-sm"
-                    data-testid={`badge-gallery-spark-overlay-${image.id}`}
-                  >
-                    <Zap className="h-2.5 w-2.5 fill-amber-400" />
-                    <span>{image.sparkCount}</span>
-                  </div>
-                )}
-              </button>
-              <div className="p-3 flex flex-col gap-2">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-xs font-semibold leading-tight line-clamp-2" data-testid={`text-gallery-title-${image.id}`}>
-                    {image.title}
-                  </p>
-                  <Badge
-                    variant="outline"
-                    className={`text-[10px] px-1.5 py-0.5 shrink-0 ${CATEGORY_COLORS[image.category] ?? CATEGORY_COLORS.other}`}
-                    data-testid={`badge-gallery-category-${image.id}`}
-                  >
-                    {CATEGORY_LABELS[image.category] ?? image.category}
-                  </Badge>
+
+                {/* Always-visible spark count overlay */}
+                <div
+                  className="absolute bottom-2 left-2 z-10 flex items-center gap-1 bg-black/60 text-amber-400 rounded-md px-2 py-0.5 text-xs font-semibold backdrop-blur-sm pointer-events-none"
+                  data-testid={`badge-gallery-spark-overlay-${image.id}`}
+                >
+                  <Zap className="h-3 w-3 fill-amber-400" />
+                  <span>{image.sparkCount ?? 0}</span>
                 </div>
-                {image.uploaderName && (
-                  <p className="text-[10px] text-muted-foreground" data-testid={`text-gallery-uploader-${image.id}`}>
-                    by @{image.uploaderName}
-                  </p>
-                )}
-                <div className="flex gap-1.5 items-center">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 h-7 text-xs gap-1"
-                    onClick={() => copyLink(resolveImageUrl(image.imageUrl), image.title)}
-                    data-testid={`button-copy-link-${image.id}`}
-                  >
-                    <Copy className="h-3 w-3" />
-                    Copy Link
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 w-7 p-0 shrink-0"
-                    asChild
-                    data-testid={`button-open-image-${image.id}`}
-                  >
-                    <a href={resolveImageUrl(image.imageUrl)} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </Button>
-                  {user?.id !== image.uploadedBy && (
-                  <TooltipProvider>
-                    <Tooltip open={sparkTooltips[image.id] ?? false}>
-                      <TooltipTrigger asChild>
-                        <button
-                          className={`flex items-center gap-1 text-xs transition-colors h-7 px-1.5 rounded ${
-                            image.isSparkedByMe
-                              ? "text-amber-500"
-                              : dailyLimitReached && !image.isSparkedByMe
-                              ? "text-muted-foreground opacity-40 cursor-not-allowed"
-                              : "text-muted-foreground hover:text-amber-500"
-                          } ${!user ? "opacity-50 cursor-default" : ""}`}
-                          onClick={() => handleSpark(image)}
-                          disabled={dailyLimitReached && !image.isSparkedByMe}
-                          data-testid={`button-gallery-spark-${image.id}`}
-                        >
-                          <Zap className={`h-3 w-3 ${image.isSparkedByMe ? "fill-amber-500" : ""}`} />
-                          <span>{image.sparkCount ?? 0}</span>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">
-                        {image.isSparkedByMe ? "Already sparked!" : dailyLimitReached ? "Daily spark limit reached (10/day)" : "Spark this image"}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  )}
+
+                {/* Hover/focus reveal overlay with metadata + actions */}
+                <div
+                  className={`absolute inset-x-0 bottom-0 z-20 flex flex-col gap-2 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-16 transition-opacity duration-200 motion-reduce:transition-none ${
+                    isRevealed
+                      ? "opacity-100 pointer-events-auto"
+                      : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold leading-tight line-clamp-2 text-white" data-testid={`text-gallery-title-${image.id}`}>
+                        {image.title}
+                      </p>
+                      {image.uploaderName && (
+                        <p className="text-[10px] text-white/80 mt-0.5" data-testid={`text-gallery-uploader-${image.id}`}>
+                          by @{image.uploaderName}
+                        </p>
+                      )}
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] px-1.5 py-0.5 shrink-0 ${CATEGORY_COLORS[image.category] ?? CATEGORY_COLORS.other}`}
+                      data-testid={`badge-gallery-category-${image.id}`}
+                    >
+                      {CATEGORY_LABELS[image.category] ?? image.category}
+                    </Badge>
+                  </div>
+                  <div className="flex gap-1.5 items-center">
+                    {isOwner ? (
+                      <div
+                        className="flex items-center gap-1 text-xs text-amber-400 h-7 px-2 rounded bg-black/40"
+                        data-testid={`chip-gallery-spark-owner-${image.id}`}
+                      >
+                        <Zap className="h-3 w-3 fill-amber-400" />
+                        <span>{image.sparkCount ?? 0}</span>
+                      </div>
+                    ) : (
+                      <TooltipProvider>
+                        <Tooltip open={sparkTooltips[image.id] ?? false}>
+                          <TooltipTrigger asChild>
+                            <button
+                              className={`flex items-center gap-1 text-xs transition-colors h-7 px-2 rounded bg-black/40 ${
+                                image.isSparkedByMe
+                                  ? "text-amber-400"
+                                  : dailyLimitReached && !image.isSparkedByMe
+                                  ? "text-white/50 cursor-not-allowed"
+                                  : "text-white hover:text-amber-400"
+                              } ${!user ? "opacity-50 cursor-default" : ""}`}
+                              onClick={(e) => { e.stopPropagation(); handleSpark(image); }}
+                              disabled={dailyLimitReached && !image.isSparkedByMe}
+                              data-testid={`button-gallery-spark-${image.id}`}
+                            >
+                              <Zap className={`h-3 w-3 ${image.isSparkedByMe ? "fill-amber-400" : ""}`} />
+                              <span>{image.sparkCount ?? 0}</span>
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            {image.isSparkedByMe ? "Already sparked!" : dailyLimitReached ? "Daily spark limit reached (10/day)" : "Spark this image"}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-7 w-7 p-0 shrink-0"
+                      onClick={(e) => { e.stopPropagation(); downloadImage(image.imageUrl, image.title); }}
+                      data-testid={`button-download-image-${image.id}`}
+                      title="Download"
+                    >
+                      <Download className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-7 w-7 p-0 shrink-0"
+                      onClick={(e) => { e.stopPropagation(); copyLink(resolveImageUrl(image.imageUrl), image.title); }}
+                      data-testid={`button-copy-link-${image.id}`}
+                      title="Copy Link"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-7 w-7 p-0 shrink-0"
+                      asChild
+                      data-testid={`button-open-image-${image.id}`}
+                    >
+                      <a
+                        href={resolveImageUrl(image.imageUrl)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        title="Open Full Size"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -329,6 +438,16 @@ export default function GalleryPage() {
                   </Badge>
                 </div>
                 <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 gap-1.5"
+                    onClick={() => downloadImage(lightboxImage.imageUrl, lightboxImage.title)}
+                    data-testid="lightbox-button-download"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Download
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"

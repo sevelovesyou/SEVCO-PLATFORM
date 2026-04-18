@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Zap, Trophy, ArrowLeft, User, FileText, Images } from "lucide-react";
+import { Trophy, ArrowLeft, User, FileText, Images } from "lucide-react";
+import { SparkIcon } from "@/components/spark-icon";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -109,7 +110,7 @@ function CreatorCard({ creator, rank }: { creator: LeaderboardData["topCreators"
         <p className="text-xs text-muted-foreground truncate">@{creator.username}</p>
       </div>
       <div className="flex items-center gap-1 text-yellow-500 font-bold text-sm shrink-0">
-        <Zap className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+        <SparkIcon size="md" decorative />
         <AnimatedCount value={creator.sparksReceived} />
       </div>
     </div>
@@ -134,7 +135,7 @@ function PostCard({ post, rank }: { post: LeaderboardData["topPosts"][0]; rank: 
           </p>
         </div>
         <div className="flex items-center gap-1 text-yellow-500 font-bold text-sm shrink-0">
-          <Zap className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+          <SparkIcon size="md" decorative />
           <AnimatedCount value={post.sparksReceived} />
         </div>
       </div>
@@ -172,7 +173,7 @@ function ContentCard({ item, rank }: { item: LeaderboardData["topContent"][0]; r
           </Badge>
         </div>
         <div className="flex items-center gap-1 text-yellow-500 font-bold text-sm shrink-0">
-          <Zap className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+          <SparkIcon size="md" decorative />
           <AnimatedCount value={item.sparksReceived} />
         </div>
       </div>
@@ -274,7 +275,7 @@ export default function SparksLeaderboard() {
 
       <section>
         <div className="flex items-center gap-2 mb-3">
-          <Zap className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+          <SparkIcon size="lg" decorative />
           <h2 className="text-base font-bold">Top Posts</h2>
           <span className="text-xs text-muted-foreground">most sparked</span>
         </div>

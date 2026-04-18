@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, Palette, Music, Bot, Sparkles, Eye, Trophy } from "lucide-react";
+import { SparkIcon } from "@/components/spark-icon";
 
 const SPARK_USES = [
   { icon: Palette, label: "AI Art Generation", description: "Generate images, album art, and visual concepts on demand." },
@@ -45,7 +46,7 @@ export default function SparksPage() {
     <div className="max-w-2xl mx-auto p-4 md:p-6 space-y-6" data-testid="sparks-page">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xl">⚡️</span>
+          <SparkIcon size="xl" decorative />
           <h1 className="text-xl font-bold">Sparks</h1>
         </div>
         <Link href="/sparks/leaderboard">
@@ -59,7 +60,7 @@ export default function SparksPage() {
       <Card data-testid="card-sparks-balance">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            ⚡️
+            <SparkIcon size="md" decorative />
             Your Balance
           </CardTitle>
           <CardDescription>
@@ -76,7 +77,7 @@ export default function SparksPage() {
                   className="text-5xl font-black text-yellow-400 leading-none"
                   data-testid="text-sparks-balance"
                 >
-                  ⚡️ {(balanceData?.balance ?? 0).toLocaleString()}
+                  <SparkIcon size="xl" decorative /> {(balanceData?.balance ?? 0).toLocaleString()}
                 </p>
               )}
               <p className="text-xs text-muted-foreground mt-1">Your Sparks balance</p>
@@ -86,7 +87,7 @@ export default function SparksPage() {
                 className="bg-yellow-400 text-yellow-900 hover:bg-yellow-300 font-bold gap-2 shrink-0"
                 data-testid="button-buy-more-sparks"
               >
-                ⚡️
+                <SparkIcon size="md" decorative />
                 Buy More Sparks
               </Button>
             </Link>

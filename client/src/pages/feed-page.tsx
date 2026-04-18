@@ -517,7 +517,7 @@ function SocialPostCard({
                     disabled={sparkMutation.isPending || (dailyLimitReached && !isSparkedByMe)}
                     data-testid={`button-spark-${post.id}`}
                   >
-                    <Zap className={`h-4 w-4 ${isSparkedByMe ? "fill-amber-500 text-amber-500" : ""}`} />
+                    <SparkIcon size="md" decorative />
                     <span data-testid={`text-spark-count-${post.id}`}>{sparkCount}</span>
                   </button>
                 </TooltipTrigger>

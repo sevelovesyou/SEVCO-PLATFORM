@@ -1999,7 +1999,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
               className="px-5 py-3 border-b flex items-center gap-2"
               style={{ borderColor: accentColor ? `${accentColor}22` : "var(--border)" }}
             >
-              <Zap className="h-3.5 w-3.5 text-amber-500" />
+              <SparkIcon size="md" decorative />
               <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: accentColor ? `${accentColor}99` : "var(--muted-foreground)" }}>
                 Top Posts
               </span>
@@ -2008,7 +2008,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
               {topSparkedPosts.map((post) => (
                 <div key={post.id} className="px-5 py-3 flex items-start gap-3" data-testid={`top-sparked-post-${post.id}`}>
                   <div className="flex items-center gap-1 text-amber-500 shrink-0 mt-0.5">
-                    <Zap className="h-3.5 w-3.5 fill-amber-500" />
+                    <SparkIcon size="md" decorative />
                     <span className="text-xs font-semibold">{post.sparkCount ?? 0}</span>
                   </div>
                   <div className="flex-1 min-w-0">

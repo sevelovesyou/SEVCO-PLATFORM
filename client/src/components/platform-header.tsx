@@ -102,6 +102,7 @@ import { SERVICE_CATEGORIES } from "@/lib/service-categories";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { ChatSheet } from "@/components/chat-sheet";
 import { SevcoLogo } from "@/components/sevco-logo";
+import { SparkIcon } from "@/components/spark-icon";
 import { useSounds } from "@/hooks/use-sounds";
 import { useMusicPlayer } from "@/contexts/music-player-context";
 import { Volume2, VolumeX, Bell } from "lucide-react";
@@ -839,7 +840,7 @@ function NavSparksBalance() {
           className="flex items-center gap-0.5 text-sm font-bold text-yellow-400 hover:text-yellow-300 transition-colors px-2 py-1 rounded-md hover:bg-yellow-400/10"
           data-testid="nav-sparks-balance"
         >
-          ⚡️ {balanceDisplay}
+          <SparkIcon size="md" decorative /> {balanceDisplay}
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -860,7 +861,7 @@ function NavSparksBalance() {
       >
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Sparks Balance</p>
         <div className="flex items-center gap-1.5">
-          <span className="text-xl">⚡️</span>
+          <SparkIcon size="xl" decorative />
           <span className="text-2xl font-bold">{isLoading ? "…" : (data?.balance ?? 0).toLocaleString()}</span>
         </div>
         <div className="border-t border-border pt-2 space-y-2">

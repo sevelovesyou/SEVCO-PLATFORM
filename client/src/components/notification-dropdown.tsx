@@ -4,7 +4,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { Mail, MessageCircle, CheckSquare, AlertCircle, CheckCheck, Zap, Pin } from "lucide-react";
+import { Mail, MessageCircle, CheckSquare, AlertCircle, CheckCheck, Pin } from "lucide-react";
+import { SparkIcon } from "@/components/spark-icon";
 import type { Notification } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { useUnreadAnnouncements, type Announcement } from "@/hooks/use-unread-announcements";
@@ -26,7 +27,7 @@ function timeAgo(date: Date | string): string {
 
 function TypeIcon({ type }: { type: string }) {
   const cls = "h-4 w-4 shrink-0 mt-0.5";
-  if (type === "spark") return <Zap className={`${cls} text-yellow-400 fill-yellow-400`} />;
+  if (type === "spark") return <span className={`${cls} flex items-center justify-center`}><SparkIcon size="md" decorative /></span>;
   if (type === "email") return <Mail className={`${cls} text-blue-500`} />;
   if (type === "chat_dm" || type === "chat_channel") return <MessageCircle className={`${cls} text-green-500`} />;
   if (type === "task") return <CheckSquare className={`${cls} text-violet-500`} />;

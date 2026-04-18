@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { FileUploadWithFallback } from "@/components/file-upload";
 import { User, Loader2, ExternalLink, Music, ArrowRight, Trash2, Upload, Pencil } from "lucide-react";
+import { SparkIcon } from "@/components/spark-icon";
 import { SiX } from "react-icons/si";
 import { Link } from "wouter";
 import { useSounds } from "@/hooks/use-sounds";
@@ -460,7 +461,7 @@ function SparksSection() {
     <Card data-testid="card-sparks">
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
-          ⚡️
+          <SparkIcon size="md" decorative />
           Sparks
         </CardTitle>
         <CardDescription>Your creative currency balance and recent activity.</CardDescription>
@@ -473,7 +474,7 @@ function SparksSection() {
               <Skeleton className="h-12 w-24" />
             ) : (
               <p className="text-5xl font-black text-yellow-400 dark:text-yellow-400 leading-none" data-testid="text-sparks-balance">
-                ⚡️ {(balanceData?.balance ?? 0).toLocaleString()}
+                <SparkIcon size="xl" decorative /> {(balanceData?.balance ?? 0).toLocaleString()}
               </p>
             )}
             <p className="text-xs text-muted-foreground mt-1">Your Sparks balance</p>

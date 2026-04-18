@@ -15,7 +15,8 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link } from "wouter";
 import { articleUrl } from "@/lib/wiki-urls";
-import { Copy, ImageOff, ExternalLink, X, Zap, Download } from "lucide-react";
+import { Copy, ImageOff, ExternalLink, X, Download } from "lucide-react";
+import { SparkIcon } from "@/components/spark-icon";
 import { EmptyState } from "@/components/empty-state";
 import type { GalleryImage } from "@shared/schema";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
@@ -297,7 +298,7 @@ export default function GalleryPage() {
                   className="absolute bottom-2 left-2 z-10 flex items-center gap-1 bg-black/60 text-amber-400 rounded-md px-2 py-0.5 text-xs font-semibold backdrop-blur-sm pointer-events-none"
                   data-testid={`badge-gallery-spark-overlay-${image.id}`}
                 >
-                  <Zap className="h-3 w-3 fill-amber-400" />
+                  <SparkIcon size="sm" decorative />
                   <span>{image.sparkCount ?? 0}</span>
                 </div>
 
@@ -329,37 +330,40 @@ export default function GalleryPage() {
                     </Badge>
                   </div>
                   <div className="flex gap-1.5 items-center">
-                    <TooltipProvider>
-                      <Tooltip open={sparkTooltips[image.id] ?? false}>
-                        <TooltipTrigger asChild>
-                          <button
-                            className={`flex items-center gap-1 text-xs transition-colors h-7 px-2 rounded bg-black/40 ${
-                              isOwner
-                                ? "text-white/50 opacity-60 cursor-not-allowed"
-                                : image.isSparkedByMe
-                                ? "text-amber-400"
-                                : dailyLimitReached && !image.isSparkedByMe
-                                ? "text-white/50 cursor-not-allowed"
-                                : "text-white hover:text-amber-400"
-                            } ${!user && !isOwner ? "opacity-50 cursor-default" : ""}`}
-                            onClick={(e) => { e.stopPropagation(); if (!isOwner) handleSpark(image); }}
-                            disabled={isOwner || (dailyLimitReached && !image.isSparkedByMe)}
-                            data-testid={`button-gallery-spark-${image.id}`}
-                          >
-                            <Zap className={`h-3 w-3 ${image.isSparkedByMe && !isOwner ? "fill-amber-400" : ""}`} />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          {isOwner
-                            ? "You can't spark your own content"
-                            : image.isSparkedByMe
-                            ? "Already sparked!"
-                            : dailyLimitReached
-                            ? "Daily spark limit reached (10/day)"
-                            : "Spark this image"}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    {isOwner ? (
+                      <div
+                        className="flex items-center gap-1 text-xs text-amber-400 h-7 px-2 rounded bg-black/40"
+                        data-testid={`chip-gallery-spark-owner-${image.id}`}
+                      >
+                        <SparkIcon size="sm" decorative />
+                        <span>{image.sparkCount ?? 0}</span>
+                      </div>
+                    ) : (
+                      <TooltipProvider>
+                        <Tooltip open={sparkTooltips[image.id] ?? false}>
+                          <TooltipTrigger asChild>
+                            <button
+                              className={`flex items-center gap-1 text-xs transition-colors h-7 px-2 rounded bg-black/40 ${
+                                image.isSparkedByMe
+                                  ? "text-amber-400"
+                                  : dailyLimitReached && !image.isSparkedByMe
+                                  ? "text-white/50 cursor-not-allowed"
+                                  : "text-white hover:text-amber-400"
+                              } ${!user ? "opacity-50 cursor-default" : ""}`}
+                              onClick={(e) => { e.stopPropagation(); handleSpark(image); }}
+                              disabled={dailyLimitReached && !image.isSparkedByMe}
+                              data-testid={`button-gallery-spark-${image.id}`}
+                            >
+                              <SparkIcon size="sm" decorative />
+                              <span>{image.sparkCount ?? 0}</span>
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            {image.isSparkedByMe ? "Already sparked!" : dailyLimitReached ? "Daily spark limit reached (10/day)" : "Spark this image"}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                     <Button
                       size="sm"
                       variant="secondary"

@@ -5,6 +5,7 @@ import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { SparkButton } from "@/components/spark-button";
+import { SparkIcon } from "@/components/spark-icon";
 import { useToast } from "@/hooks/use-toast";
 import { PageHead } from "@/components/page-head";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -1541,7 +1542,7 @@ export default function Landing() {
               <section key="sparks" className="border-t border-border bg-muted/20 px-6 py-20 md:py-24 text-center" data-testid="section-sparks">
                 <div className="max-w-xl mx-auto">
                   <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3 flex items-center justify-center gap-1.5">
-                    <span className="text-amber-500">⚡</span> Creative Currency
+                    <SparkIcon size="sm" decorative /> Creative Currency
                   </p>
                   <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground mb-3">
                     Sparks — SEVCO's creative currency
@@ -1552,7 +1553,7 @@ export default function Landing() {
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
                     <Link href="/sparks">
                       <Button size="lg" className="bg-red-600 hover:bg-red-500 text-white font-medium gap-2" data-testid="button-get-sparks">
-                        <span>⚡</span> Get Sparks <ArrowRight className="h-4 w-4" />
+                        <SparkIcon size="md" decorative /> Get Sparks <ArrowRight className="h-4 w-4" />
                       </Button>
                     </Link>
                   </div>

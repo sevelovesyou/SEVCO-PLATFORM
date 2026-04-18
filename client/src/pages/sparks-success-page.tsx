@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SparkIcon } from "@/components/spark-icon";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface SparksSuccessData {
@@ -62,8 +63,8 @@ export default function SparksSuccessPage() {
       {status === "success" && (
         <div className="flex flex-col items-center gap-6 text-center max-w-md">
           <div className="h-24 w-24 rounded-full bg-yellow-400/10 flex items-center justify-center">
-            <span className="text-5xl animate-bounce" data-testid="icon-success" aria-hidden="true">
-              ⚡️
+            <span className="text-5xl animate-bounce inline-block" data-testid="icon-success">
+              <SparkIcon size="xl" className="text-5xl" decorative />
             </span>
           </div>
           <div>
@@ -75,12 +76,12 @@ export default function SparksSuccessPage() {
             </h1>
             {sparksAwarded !== null && (
               <p className="text-lg font-semibold text-yellow-400 dark:text-yellow-400" data-testid="text-sparks-awarded">
-                ⚡️ {sparksAwarded.toLocaleString()} Sparks credited
+                <SparkIcon size="md" decorative /> {sparksAwarded.toLocaleString()} Sparks credited
               </p>
             )}
             {newBalance !== null && (
               <p className="text-sm text-muted-foreground mt-1" data-testid="text-new-balance">
-                New balance: ⚡️ {newBalance.toLocaleString()}
+                New balance: <SparkIcon size="sm" decorative /> {newBalance.toLocaleString()}
               </p>
             )}
             <p className="text-sm text-muted-foreground mt-2">
@@ -103,7 +104,7 @@ export default function SparksSuccessPage() {
                 className="gap-2"
                 data-testid="button-buy-more"
               >
-                ⚡️
+                <SparkIcon size="md" decorative />
                 Buy more Sparks
               </Button>
             </Link>
@@ -114,7 +115,7 @@ export default function SparksSuccessPage() {
       {status === "error" && (
         <div className="flex flex-col items-center gap-6 text-center max-w-md">
           <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center">
-            <span className="text-4xl opacity-40">⚡️</span>
+            <SparkIcon size="xl" className="text-4xl opacity-40" decorative />
           </div>
           <div>
             <h1 className="text-2xl font-bold mb-2" data-testid="text-error-title">

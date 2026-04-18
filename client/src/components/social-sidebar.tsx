@@ -26,8 +26,8 @@ import {
   Users,
   Link as LinkIcon,
   Compass,
-  Zap,
 } from "lucide-react";
+import { SparkIcon } from "@/components/spark-icon";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
@@ -100,9 +100,9 @@ export function SocialSidebar() {
     { key: "hasPost", label: "Make your first post", icon: MessageSquare, done: onboarding?.hasPost ?? false },
     { key: "hasFollow", label: "Follow someone", icon: Users, done: onboarding?.hasFollow ?? false },
     { key: "hasSocialLink", label: "Connect a social link", icon: LinkIcon, done: onboarding?.hasSocialLink ?? false },
-    { key: "hasSparkedPost", label: "Spark a Post", icon: Zap, done: onboarding?.hasSparkedPost ?? false },
-    { key: "hasSparkedArticle", label: "Spark an Article", icon: Zap, done: onboarding?.hasSparkedArticle ?? false },
-    { key: "hasSparkedTrack", label: "Spark a Song", icon: Zap, done: onboarding?.hasSparkedTrack ?? false },
+    { key: "hasSparkedPost", label: "Spark a Post", icon: "spark" as const, done: onboarding?.hasSparkedPost ?? false },
+    { key: "hasSparkedArticle", label: "Spark an Article", icon: "spark" as const, done: onboarding?.hasSparkedArticle ?? false },
+    { key: "hasSparkedTrack", label: "Spark a Song", icon: "spark" as const, done: onboarding?.hasSparkedTrack ?? false },
   ];
 
   function isActive(url: string) {
@@ -157,7 +157,8 @@ export function SocialSidebar() {
                       </span>
                     </div>
                     <div className="flex items-center gap-1 text-xs text-yellow-400 font-semibold mt-1" data-testid="text-social-sidebar-sparks">
-                      <span>⚡️ {sparksData?.balance ?? "…"} Sparks</span>
+                      <SparkIcon size="sm" />
+                      <span>{sparksData?.balance ?? "…"} Sparks</span>
                     </div>
                   </div>
                 </div>
@@ -207,14 +208,20 @@ export function SocialSidebar() {
                       data-testid={`onboarding-task-${task.key}`}
                     >
                       <div className={`h-4 w-4 rounded-full flex items-center justify-center shrink-0 ${task.done ? "bg-green-500/20 text-green-600" : "bg-muted"}`}>
-                        {task.done ? <Check className="h-2.5 w-2.5" /> : <task.icon className="h-2.5 w-2.5 text-muted-foreground" />}
+                        {task.done ? (
+                          <Check className="h-2.5 w-2.5" />
+                        ) : task.icon === "spark" ? (
+                          <SparkIcon size="xs" decorative />
+                        ) : (
+                          <task.icon className="h-2.5 w-2.5 text-muted-foreground" />
+                        )}
                       </div>
                       <span className="flex-1 min-w-0 truncate">{task.label}</span>
                       <span
                         className={`shrink-0 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${task.done ? "bg-muted text-muted-foreground" : "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400"}`}
                         data-testid={`onboarding-bonus-${task.key}`}
                       >
-                        +25 ⚡
+                        +25 <SparkIcon size="xs" decorative />
                       </span>
                     </div>
                   ))}

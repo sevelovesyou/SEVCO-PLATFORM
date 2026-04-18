@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SparkIcon } from "@/components/spark-icon";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -260,7 +261,7 @@ function TransactionTable({
                   tx.amount >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                 }`}
               >
-                ⚡️ {formatAmount(tx.amount)}
+                <SparkIcon size="sm" decorative /> {formatAmount(tx.amount)}
               </TableCell>
               {showMeta && tx.metadata && (
                 <TableCell>
@@ -315,7 +316,7 @@ function OverviewTab() {
         <StatCard
           label="Total Sparks Issued"
           value={(stats?.totalIssued ?? 0).toLocaleString()}
-          icon={() => <span className="text-lg">⚡️</span>}
+          icon={() => <SparkIcon size="lg" decorative />}
           loading={statsLoading}
         />
         <StatCard
@@ -335,7 +336,7 @@ function OverviewTab() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            ⚡️
+            <SparkIcon size="md" decorative />
             Recent Transactions
             <span className="text-xs font-normal text-muted-foreground ml-auto">Auto-refreshes every 30s</span>
           </CardTitle>
@@ -524,7 +525,7 @@ function SparkControlsTab() {
                 </div>
                 {userBalance != null && (
                   <div className="text-sm font-mono font-semibold text-muted-foreground">
-                    ⚡️ {userBalance.balance.toLocaleString()}
+                    <SparkIcon size="sm" decorative /> {userBalance.balance.toLocaleString()}
                   </div>
                 )}
               </div>
@@ -606,7 +607,7 @@ function SparkControlsTab() {
                 disabled={adjustMutation.isPending || !selectedUser}
                 data-testid="button-submit-adjustment"
               >
-                <span className="mr-2">⚡️</span>
+                <span className="mr-2"><SparkIcon size="md" decorative /></span>
                 {adjustMutation.isPending ? "Submitting…" : "Apply Adjustment"}
               </Button>
             </form>
@@ -929,7 +930,7 @@ function PackCatalogTab() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead className="text-right">⚡️ Sparks</TableHead>
+                    <TableHead className="text-right"><SparkIcon size="sm" decorative /> Sparks</TableHead>
                     <TableHead className="text-right">Price</TableHead>
                     <TableHead>Stripe IDs</TableHead>
                     <TableHead className="text-center">Sort</TableHead>
@@ -1160,7 +1161,7 @@ function CreatorRewardPoolTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <StatCard label="Total Social Sparks" value={totalGiven.toLocaleString()} icon={() => <span className="text-lg">⚡</span>} loading={isLoading} />
+        <StatCard label="Total Social Sparks" value={totalGiven.toLocaleString()} icon={() => <SparkIcon size="lg" decorative />} loading={isLoading} />
         <StatCard label="Post Sparks" value={(stats?.totalPostSparksGiven ?? 0).toLocaleString()} icon={Users} loading={isLoading} />
         <StatCard label="Article Sparks" value={(stats?.totalArticleSparksGiven ?? 0).toLocaleString()} icon={Package} loading={isLoading} />
         <StatCard label="Gallery Sparks" value={(stats?.totalGallerySparksGiven ?? 0).toLocaleString()} icon={() => <span className="text-lg">🖼️</span>} loading={isLoading} />
@@ -1189,7 +1190,7 @@ function CreatorRewardPoolTab() {
                   <span className="text-muted-foreground font-normal ml-1.5 text-xs">@{stats.topRewardedCreatorThisMonth.username}</span>
                 </p>
                 <p className="text-xs text-amber-500 flex items-center gap-1 mt-0.5">
-                  <span>⚡</span>
+                  <SparkIcon size="sm" decorative />
                   <span>{stats.topRewardedCreatorThisMonth.sparksReceived} sparks received this month</span>
                 </p>
               </div>
@@ -1203,7 +1204,7 @@ function CreatorRewardPoolTab() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <span>⚡</span> Top 10 Sparked Content (All Types)
+            <SparkIcon size="sm" decorative /> Top 10 Sparked Content (All Types)
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -1218,7 +1219,7 @@ function CreatorRewardPoolTab() {
               {stats.topItems.map((item, idx) => (
                 <div key={`${item.type}-${item.id}`} className="px-4 py-2.5 flex items-start gap-3" data-testid={`row-top-item-${item.type}-${item.id}`}>
                   <span className="text-muted-foreground text-xs font-mono w-5 shrink-0 mt-0.5">#{idx + 1}</span>
-                  <span className="text-amber-500 font-semibold text-xs shrink-0 mt-0.5">⚡ {item.sparkCount}</span>
+                  <span className="text-amber-500 font-semibold text-xs shrink-0 mt-0.5"><SparkIcon size="sm" decorative /> {item.sparkCount}</span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wide ${
@@ -1261,7 +1262,7 @@ function CreatorRewardPoolTab() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <span>⚡</span> Top Sparked Posts
+              <SparkIcon size="sm" decorative /> Top Sparked Posts
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -1275,7 +1276,7 @@ function CreatorRewardPoolTab() {
               <div className="divide-y">
                 {stats.topSparkedPosts.map((p) => (
                   <div key={p.postId} className="px-4 py-2.5 flex items-start gap-2" data-testid={`row-top-post-${p.postId}`}>
-                    <span className="text-amber-500 font-semibold text-xs shrink-0 mt-0.5">⚡ {p.sparkCount}</span>
+                    <span className="text-amber-500 font-semibold text-xs shrink-0 mt-0.5"><SparkIcon size="sm" decorative /> {p.sparkCount}</span>
                     <div className="min-w-0">
                       <p className="text-xs font-medium text-muted-foreground">@{p.authorUsername}</p>
                       <p className="text-xs truncate">{p.contentPreview}</p>
@@ -1290,7 +1291,7 @@ function CreatorRewardPoolTab() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <span>⚡</span> Top Sparked Articles
+              <SparkIcon size="sm" decorative /> Top Sparked Articles
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -1304,7 +1305,7 @@ function CreatorRewardPoolTab() {
               <div className="divide-y">
                 {stats.topSparkedArticles.map((a) => (
                   <div key={a.articleId} className="px-4 py-2.5 flex items-center gap-2" data-testid={`row-top-article-${a.articleId}`}>
-                    <span className="text-amber-500 font-semibold text-xs shrink-0">⚡ {a.sparkCount}</span>
+                    <span className="text-amber-500 font-semibold text-xs shrink-0"><SparkIcon size="sm" decorative /> {a.sparkCount}</span>
                     <a href={`/wiki/${a.slug}`} className="text-xs hover:underline truncate text-primary">{a.title}</a>
                   </div>
                 ))}
@@ -1316,7 +1317,7 @@ function CreatorRewardPoolTab() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <span>⚡</span> Top Sparked Gallery
+              <SparkIcon size="sm" decorative /> Top Sparked Gallery
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -1330,7 +1331,7 @@ function CreatorRewardPoolTab() {
               <div className="divide-y">
                 {stats.topSparkedImages.map((img) => (
                   <div key={img.imageId} className="px-4 py-2.5 flex items-center gap-2" data-testid={`row-top-image-${img.imageId}`}>
-                    <span className="text-amber-500 font-semibold text-xs shrink-0">⚡ {img.sparkCount}</span>
+                    <span className="text-amber-500 font-semibold text-xs shrink-0"><SparkIcon size="sm" decorative /> {img.sparkCount}</span>
                     <div className="min-w-0">
                       <p className="text-xs truncate">{img.title}</p>
                       {img.uploaderUsername && (
@@ -1360,7 +1361,7 @@ export default function CommandSparksPage() {
 
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          ⚡️
+          <SparkIcon size="xl" decorative />
           Sparks
         </h1>
         <p className="text-sm text-muted-foreground mt-1">

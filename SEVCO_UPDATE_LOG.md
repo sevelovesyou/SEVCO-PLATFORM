@@ -138,8 +138,9 @@
 - **#126** — Wikify Tool Page — Bulk wiki article generator (`wikify-tool-page.md`)
 - **#127** — Tools Marketing Page + Navigation Updates (`tools-marketing-page.md`)
 - **#128** — SEVCO Platform Updates Page — Changelog Overhaul + Update Log + Auto-Update System (`compile-update-log.md`)
-- **#129** — Email Pagination & Advanced Filters (`task-173.md`)
-- **#130** — Email Threaded Conversation View (`task-174.md`)
+- **#129** — news-rss-aggregator (`news-rss-aggregator.md`)
+- **#130** — Email Pagination & Advanced Filters (`task-173.md`)
+- **#131** — Email Threaded Conversation View (`task-174.md`)
 - **#131** — task 133 (`task-133.md`)
 - **#132** — task 134 (`task-134.md`)
 - **#133** — task 135 (`task-135.md`)
@@ -29755,8 +29756,12 @@ Today the Gallery is constrained to a `max-w-6xl` container with side gutters, t
 
 ---
 
-## Task — spark-icon-unify-emoji
+## Task — task-509
 > Merged: 2026-04-18
+
+---
+title: Use the ⚡ emoji for Sparks everywhere (keep chime + animation)
+---
 
 # Use the ⚡ Emoji Everywhere for Sparks
 

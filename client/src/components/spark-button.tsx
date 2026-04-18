@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Zap } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { SparkIcon } from "@/components/spark-icon";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -120,6 +120,21 @@ export function SparkButton({
     },
   });
 
+  if (isOwner) {
+    if (!showCountWhenOwner) return null;
+    const sizing =
+      size === "md" ? "h-9 px-2.5 text-sm gap-1.5" : "h-7 px-1.5 text-xs gap-1";
+    const iconEmojiSize = size === "md" ? "md" : "sm";
+    return (
+      <span
+        className={`flex items-center text-muted-foreground ${sizing} ${className}`}
+        data-testid={`text-${entityType}-spark-count-${entityId}`}
+      >
+        <SparkIcon size={iconEmojiSize} decorative />
+        <span className="tabular-nums">{displayCount}</span>
+      </span>
+    );
+  }
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     event.preventDefault();
@@ -140,7 +155,7 @@ export function SparkButton({
   const disabled = dailyLimitReached && !sparkedByCurrentUser;
   const sizing =
     size === "md" ? "h-9 px-2.5 text-sm gap-1.5" : "h-7 px-1.5 text-xs gap-1";
-  const iconSize = size === "md" ? "h-4 w-4" : "h-3 w-3";
+  const iconEmojiSize = size === "md" ? "md" : "sm";
   const iconBoxSize = size === "md" ? "h-4 w-4" : "h-3 w-3";
   const burstActive = burstId > 0 && !reducedMotionRef.current;
 
@@ -171,7 +186,7 @@ export function SparkButton({
                 transition={{ duration: 0.4, ease: "easeOut" }}
                 className="inline-flex"
               >
-                <Zap className={`${iconSize} ${sparkedByCurrentUser ? "fill-amber-500" : ""}`} />
+                <SparkIcon size={iconEmojiSize} decorative />
               </motion.span>
               <AnimatePresence>
                 {burstActive && (

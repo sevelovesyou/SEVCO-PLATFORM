@@ -25,6 +25,7 @@ import {
 import type { Article, Category } from "@shared/schema";
 import { articleUrl } from "@/lib/wiki-urls";
 import { SparkButton } from "@/components/spark-button";
+import { SparkIcon } from "@/components/spark-icon";
 import { useAuth } from "@/hooks/use-auth";
 
 type ArticleWithSparks = Article & {
@@ -240,7 +241,7 @@ export default function Home() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-base">⚡️</span>
+              <SparkIcon size="lg" decorative />
               <span className="text-sm font-bold text-yellow-500 uppercase tracking-wider">Sparks</span>
             </div>
             <p className="text-base font-semibold leading-snug">
@@ -269,7 +270,7 @@ export default function Home() {
                 className="bg-[#0037ff] text-white hover:bg-[#0037ff]/90 font-bold gap-2"
                 data-testid="button-sparks-cta"
               >
-                ⚡️
+                <SparkIcon size="md" decorative />
                 Get Sparks
               </Button>
             </Link>

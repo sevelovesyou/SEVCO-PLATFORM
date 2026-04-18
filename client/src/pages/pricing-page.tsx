@@ -13,6 +13,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { SparkIcon } from "@/components/spark-icon";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2,
@@ -100,7 +101,7 @@ function SparkPackCard({ pack, isLoggedIn, highlighted }: { pack: SparkPack; isL
             } font-black text-yellow-400 whitespace-nowrap`}
             data-testid={`text-pack-sparks-${pack.id}`}
           >
-            ⚡️ {pack.sparks.toLocaleString()}
+            <SparkIcon size="xl" decorative /> {pack.sparks.toLocaleString()}
           </span>
           <p className="text-xs text-muted-foreground -mt-2" data-testid={`text-per-spark-${pack.id}`}>
             {(() => {
@@ -258,7 +259,7 @@ export default function PricingPage() {
         />
         <div className="relative max-w-4xl mx-auto px-6 py-24 text-center space-y-6">
           <div className="inline-flex items-center gap-2 text-yellow-400 text-5xl font-black tracking-tight mb-2">
-            ⚡️ Sparks
+            <SparkIcon size="xl" className="text-5xl" decorative /> Sparks
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-white/90 leading-tight" data-testid="text-pricing-title">
             Creative power, on demand.
@@ -273,7 +274,7 @@ export default function PricingPage() {
                 className="inline-flex items-center gap-2 bg-yellow-400/15 border border-yellow-400/40 rounded-full px-5 py-2 text-sm font-semibold text-yellow-300"
                 data-testid="chip-balance"
               >
-                ⚡️ {balance.toLocaleString()} — Your balance
+                <SparkIcon size="md" decorative /> {balance.toLocaleString()} — Your balance
               </div>
             )}
             <Button
@@ -308,7 +309,7 @@ export default function PricingPage() {
             </>
           ) : !packs || packs.length === 0 ? (
             <div className="col-span-full text-center py-12 text-muted-foreground" data-testid="text-no-packs">
-              <span className="text-4xl block text-center mb-3 opacity-30">⚡️</span>
+              <SparkIcon size="xl" className="text-4xl block text-center mb-3 opacity-30" decorative />
               <p className="font-medium">Spark packs coming soon</p>
               <p className="text-sm mt-1">Check back later for purchasing options.</p>
             </div>
@@ -361,7 +362,7 @@ export default function PricingPage() {
         <div className="overflow-hidden rounded-xl border border-border">
           <div className="grid grid-cols-2 bg-muted/50">
             <div className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-yellow-500 flex items-center gap-1.5">
-              ⚡️ Sparks
+              <SparkIcon size="sm" decorative /> Sparks
             </div>
             <div className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground border-l border-border">
               vs. Subscriptions
@@ -413,7 +414,7 @@ export default function PricingPage() {
         <div className="max-w-2xl mx-auto px-4 py-20 text-center space-y-5">
           <h2 className="text-3xl font-black tracking-tight">Ready to start?</h2>
           <p className="text-white/60 text-lg">
-            ⚡️ Buy your first Sparks pack and unlock the full SEVCO experience.
+            <SparkIcon size="lg" decorative /> Buy your first Sparks pack and unlock the full SEVCO experience.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             {user ? (

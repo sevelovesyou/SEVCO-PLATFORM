@@ -1,4 +1,5 @@
 import { Component, useEffect, useRef, useState, useCallback, useMemo, type ReactNode } from "react";
+import { SparkIcon } from "@/components/spark-icon";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -2311,7 +2312,7 @@ function HUD({ planet, sparksBalance, progress }: { planet: Planet | null; spark
 
       <div className="absolute top-3 right-3 flex flex-col items-end gap-1" data-testid="freeball-info">
         {planet && <div className="bg-black/60 text-white text-xs px-2 py-1 rounded font-mono" data-testid="text-active-body">{planet.name} · {bodyDisplayKind(planet.type)}</div>}
-        <div className="bg-black/60 text-yellow-400 text-xs px-2 py-1 rounded font-mono">⚡ {sparksBalance}</div>
+        <div className="bg-black/60 text-yellow-400 text-xs px-2 py-1 rounded font-mono"><SparkIcon size="sm" decorative /> {sparksBalance}</div>
         {inVehicle && (
           <>
             <div className="bg-black/60 text-cyan-300 text-xs px-2 py-1 rounded font-mono" data-testid="freeball-speed">Speed: {speed} m/s</div>
@@ -2479,7 +2480,7 @@ function SparksStoreTab({ sparksBalance }: { sparksBalance: number }) {
     <div data-testid="freeball-sparks-store">
       <div className="flex items-center justify-between mb-3">
         <span className="text-yellow-400 text-sm font-semibold">Your balance</span>
-        <span className="text-yellow-300 text-sm font-mono" data-testid="sparks-store-balance">⚡ {sparksBalance.toLocaleString()}</span>
+        <span className="text-yellow-300 text-sm font-mono" data-testid="sparks-store-balance"><SparkIcon size="md" decorative /> {sparksBalance.toLocaleString()}</span>
       </div>
       {checkoutError && (
         <div className="text-red-400 text-xs text-center py-2 mb-2 bg-red-950/30 rounded" data-testid="sparks-store-checkout-error">{checkoutError}</div>
@@ -2507,7 +2508,7 @@ function SparksStoreTab({ sparksBalance }: { sparksBalance: number }) {
             >
               <div>
                 <div className="text-white text-xs font-semibold">{pack.name}</div>
-                <div className="text-yellow-400 text-xs">⚡ {pack.sparks.toLocaleString()}</div>
+                <div className="text-yellow-400 text-xs"><SparkIcon size="sm" decorative /> {pack.sparks.toLocaleString()}</div>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-white text-xs font-bold" data-testid={`sparks-store-price-${pack.id}`}>${(pack.price / 100).toFixed(2)}</span>
@@ -2563,7 +2564,7 @@ function PauseMenu({ onResume, onSave, onExit, onScreenshot, planets, progress, 
             className={`flex-1 text-xs py-1.5 rounded-md font-semibold transition-colors ${activeTab === "sparks" ? "bg-yellow-600 text-white" : "text-gray-400 hover:text-white"}`}
             onClick={() => setActiveTab("sparks")}
           >
-            Buy Sparks ⚡
+            Buy Sparks <SparkIcon size="sm" decorative />
           </button>
         </div>
 
@@ -2583,7 +2584,7 @@ function PauseMenu({ onResume, onSave, onExit, onScreenshot, planets, progress, 
 
             {!progress?.unlockedSphere && (
               <div className="border border-blue-900 rounded-lg p-3 mb-4 bg-blue-950/40">
-                <h3 className="text-blue-300 text-sm font-semibold mb-2">⚡ SEVCO SPHERE</h3>
+                <h3 className="text-blue-300 text-sm font-semibold mb-2"><SparkIcon size="sm" decorative /> SEVCO SPHERE</h3>
                 <p className="text-gray-400 text-xs mb-3">
                   {canCraftSphere ? "You have enough Crystals to craft it!" : `Collect ${CRYSTAL_CRAFT_AMOUNT} Crystals or spend ${SPHERE_SPARKS_COST} Sparks to unlock the SPHERE and travel between planets.`}
                 </p>

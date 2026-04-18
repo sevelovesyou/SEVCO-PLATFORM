@@ -21,7 +21,7 @@ import {
   type PlatformSocialLink, type InsertPlatformSocialLink,
   type Note, type InsertNote, type NoteCollaborator, type NoteAttachment,
   type FeedPost, type InsertFeedPost,
-  type Post, type InsertPost, type PostLike, type PostReply, type InsertPostReply, type UserFollow,
+  type Post, type InsertPost, type PostReply, type InsertPostReply, type UserFollow,
   type PlatformSetting,
   type BrandAsset, type InsertBrandAsset,
   type ShaderPreset, type InsertShaderPreset,
@@ -58,7 +58,7 @@ import {
   users, categories, articles, revisions, citations, crosslinks, wikiLinkStubs,
   artists, albums, products, projects, changelog, orders, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
-  posts, postLikes, postReplies, userFollows,
+  posts, postReplies, userFollows,
   noteCollaborators, noteAttachments, platformSettings, brandAssets, shaderPresets, resources, galleryImages, spotifyArtists,
   postSparks, articleSparks, gallerySparks,
   contactSubmissions,
@@ -284,9 +284,6 @@ export interface IStorage {
   repostPost(originalPostId: number, userId: string): Promise<Post>;
   unrepostPost(originalPostId: number, userId: string): Promise<void>;
   hasReposted(originalPostId: number, userId: string): Promise<boolean>;
-
-  likePost(postId: number, userId: string): Promise<void>;
-  unlikePost(postId: number, userId: string): Promise<void>;
 
   getReplies(postId: number): Promise<ReplyWithAuthor[]>;
   createReply(data: InsertPostReply & { postId: number; authorId: string }): Promise<PostReply>;
@@ -541,7 +538,7 @@ export type SearchAllResult = {
 };
 
 export type PostAuthor = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
-export type PostWithMeta = Post & { author: PostAuthor; likeCount: number; replyCount: number; likedByCurrentUser: boolean; repostedByCurrentUser?: boolean; sparkCount: number; isSparkedByMe: boolean; originalPost?: { id: number; content: string; imageUrl: string | null; author: PostAuthor } | null };
+export type PostWithMeta = Post & { author: PostAuthor; replyCount: number; repostedByCurrentUser?: boolean; sparkCount: number; isSparkedByMe: boolean; originalPost?: { id: number; content: string; imageUrl: string | null; author: PostAuthor } | null };
 export type ReplyWithAuthor = PostReply & { author: PostAuthor };
 export type FollowUser = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
 export type DiscoverUser = { id: string; username: string; displayName: string | null; avatarUrl: string | null; followerCount: number; isFollowing: boolean };
@@ -1616,11 +1613,7 @@ export class DatabaseStorage implements IStorage {
           displayName: users.displayName,
           avatarUrl: users.avatarUrl,
         },
-        likeCount: sql<number>`(SELECT COUNT(*) FROM post_likes WHERE post_id = ${posts.id})::int`,
         replyCount: sql<number>`(SELECT COUNT(*) FROM post_replies WHERE post_id = ${posts.id})::int`,
-        likedByCurrentUser: currentUserId
-          ? sql<boolean>`EXISTS(SELECT 1 FROM post_likes WHERE post_id = ${posts.id} AND user_id = ${currentUserId})`
-          : sql<boolean>`false`,
         repostedByCurrentUser: currentUserId
           ? sql<boolean>`EXISTS(SELECT 1 FROM posts p2 WHERE p2.repost_of = COALESCE(${posts.repostOf}, ${posts.id}) AND p2.author_id = ${currentUserId})`
           : sql<boolean>`false`,
@@ -1644,9 +1637,7 @@ export class DatabaseStorage implements IStorage {
     return rows.map((r) => ({
       ...r.post,
       author: r.author,
-      likeCount: r.likeCount,
       replyCount: r.replyCount,
-      likedByCurrentUser: r.likedByCurrentUser,
       repostedByCurrentUser: r.repostedByCurrentUser,
       sparkCount: r.sparkCount,
       isSparkedByMe: r.isSparkedByMe,
@@ -1695,14 +1686,6 @@ export class DatabaseStorage implements IStorage {
 
   async deletePost(id: number, authorId: string): Promise<void> {
     await db.delete(posts).where(and(eq(posts.id, id), eq(posts.authorId, authorId)));
-  }
-
-  async likePost(postId: number, userId: string): Promise<void> {
-    await db.insert(postLikes).values({ postId, userId }).onConflictDoNothing();
-  }
-
-  async unlikePost(postId: number, userId: string): Promise<void> {
-    await db.delete(postLikes).where(and(eq(postLikes.postId, postId), eq(postLikes.userId, userId)));
   }
 
   async getReplies(postId: number): Promise<ReplyWithAuthor[]> {

@@ -52,7 +52,6 @@ import {
   AlertCircle,
   UserCircle2,
   Check,
-  Heart,
   MessageCircle,
   MoreVertical,
   Trash2,
@@ -148,7 +147,7 @@ type PostAuthor = { id: string; username: string; displayName: string | null; av
 type OriginalPostInfo = { id: number; content: string; imageUrl: string | null; author: PostAuthor };
 type PostWithMeta = {
   id: number; authorId: string; content: string; imageUrl: string | null; createdAt: string; repostOf?: number | null;
-  author: PostAuthor; likeCount: number; replyCount: number; likedByCurrentUser: boolean; repostedByCurrentUser?: boolean;
+  author: PostAuthor; replyCount: number; repostedByCurrentUser?: boolean;
   sparkCount?: number; isSparkedByMe?: boolean;
   originalPost?: OriginalPostInfo | null;
 };
@@ -729,20 +728,6 @@ function PostCard({ post, currentUserId, canDelete, onDelete, onImageClick }: {
   const { toast } = useToast();
   const [repliesOpen, setRepliesOpen] = useState(false);
 
-  const likeMutation = useMutation({
-    mutationFn: () =>
-      post.likedByCurrentUser
-        ? apiRequest("DELETE", `/api/posts/${post.id}/like`)
-        : apiRequest("POST", `/api/posts/${post.id}/like`),
-    onSuccess: () => {
-      import("@/lib/queryClient").then(({ queryClient }) => {
-        queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
-        queryClient.invalidateQueries({ queryKey: [`/api/users`] });
-      });
-    },
-    onError: () => toast({ title: "Failed to update like", variant: "destructive" }),
-  });
-
   const isRepost = !!post.repostOf;
   const originalPostId = post.repostOf ?? post.id;
   const authorName = post.author.displayName || post.author.username;
@@ -804,15 +789,6 @@ function PostCard({ post, currentUserId, canDelete, onDelete, onImageClick }: {
             </div>
           )}
           <div className="flex items-center gap-4">
-            <button
-              className={`flex items-center gap-1.5 text-xs transition-colors ${post.likedByCurrentUser ? "text-rose-500" : "text-muted-foreground hover:text-rose-500"} ${!currentUserId ? "opacity-50 cursor-default" : "cursor-pointer"}`}
-              onClick={() => currentUserId && likeMutation.mutate()}
-              disabled={!currentUserId || likeMutation.isPending}
-              data-testid={`button-profile-like-${post.id}`}
-            >
-              <Heart className={`h-3.5 w-3.5 ${post.likedByCurrentUser ? "fill-current" : ""}`} />
-              <span>{post.likeCount}</span>
-            </button>
             <button
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               onClick={() => setRepliesOpen((v) => !v)}

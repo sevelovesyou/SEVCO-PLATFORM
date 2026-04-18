@@ -479,11 +479,6 @@ export const posts = pgTable("posts", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const postLikes = pgTable("post_likes", {
-  postId: integer("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-}, (t) => [uniqueIndex("post_likes_post_user_idx").on(t.postId, t.userId)]);
-
 export const postReplies = pgTable("post_replies", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   postId: integer("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
@@ -499,15 +494,9 @@ export const userFollows = pgTable("user_follows", {
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
   author: one(users, { fields: [posts.authorId], references: [users.id] }),
-  likes: many(postLikes),
   replies: many(postReplies),
   originalPost: one(posts, { fields: [posts.repostOf], references: [posts.id], relationName: "reposts" }),
   reposts: many(posts, { relationName: "reposts" }),
-}));
-
-export const postLikesRelations = relations(postLikes, ({ one }) => ({
-  post: one(posts, { fields: [postLikes.postId], references: [posts.id] }),
-  user: one(users, { fields: [postLikes.userId], references: [users.id] }),
 }));
 
 export const postRepliesRelations = relations(postReplies, ({ one }) => ({
@@ -525,7 +514,6 @@ export const insertPostReplySchema = createInsertSchema(postReplies).omit({ id: 
 
 export type Post = typeof posts.$inferSelect;
 export type InsertPost = z.infer<typeof insertPostSchema>;
-export type PostLike = typeof postLikes.$inferSelect;
 export type PostReply = typeof postReplies.$inferSelect;
 export type InsertPostReply = z.infer<typeof insertPostReplySchema>;
 export type UserFollow = typeof userFollows.$inferSelect;

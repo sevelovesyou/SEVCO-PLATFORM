@@ -4294,28 +4294,6 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/posts/:id/like", requireAuth, async (req: any, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
-      await storage.likePost(id, req.user.id);
-      res.status(204).end();
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  app.delete("/api/posts/:id/like", requireAuth, async (req: any, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
-      await storage.unlikePost(id, req.user.id);
-      res.status(204).end();
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
   app.get("/api/posts/:id/replies", async (req, res) => {
     try {
       const id = parseInt(req.params.id);

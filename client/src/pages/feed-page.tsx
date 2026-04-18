@@ -65,7 +65,6 @@ import {
   Plus,
   ChevronDown,
   ChevronUp,
-  Heart,
   MessageCircle,
   Send,
   Lock,
@@ -89,7 +88,7 @@ type PostAuthor = { id: string; username: string; displayName: string | null; av
 type OriginalPostInfo = { id: number; content: string; imageUrl: string | null; author: PostAuthor };
 type PostWithMeta = {
   id: number; authorId: string; content: string; imageUrl: string | null; createdAt: string; repostOf?: number | null;
-  author: PostAuthor; likeCount: number; replyCount: number; likedByCurrentUser: boolean; repostedByCurrentUser?: boolean;
+  author: PostAuthor; replyCount: number; repostedByCurrentUser?: boolean;
   sparkCount: number; isSparkedByMe: boolean;
   originalPost?: OriginalPostInfo | null;
 };
@@ -365,15 +364,6 @@ function SocialPostCard({
   const isSparkedByMe = post.isSparkedByMe ?? false;
   const hasGlow = sparkCount >= 5;
 
-  const likeMutation = useMutation({
-    mutationFn: () =>
-      post.likedByCurrentUser
-        ? apiRequest("DELETE", `/api/posts/${post.id}/like`)
-        : apiRequest("POST", `/api/posts/${post.id}/like`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/posts"] }),
-    onError: () => toast({ title: "Failed to update like", variant: "destructive" }),
-  });
-
   const repostMutation = useMutation({
     mutationFn: () =>
       post.repostedByCurrentUser
@@ -488,20 +478,6 @@ function SocialPostCard({
           )}
 
           <div className="flex items-center gap-4 mt-2">
-            <button
-              className={`flex items-center gap-1.5 text-xs transition-colors ${
-                post.likedByCurrentUser
-                  ? "text-rose-500"
-                  : "text-muted-foreground hover:text-rose-500"
-              } ${!currentUserId ? "opacity-50 cursor-default" : "cursor-pointer"}`}
-              onClick={() => currentUserId && likeMutation.mutate()}
-              disabled={!currentUserId || likeMutation.isPending}
-              data-testid={`button-like-${post.id}`}
-            >
-              <Heart className={`h-4 w-4 ${post.likedByCurrentUser ? "fill-current" : ""}`} />
-              <span data-testid={`text-like-count-${post.id}`}>{post.likeCount}</span>
-            </button>
-
             <button
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               onClick={() => setRepliesOpen((v) => !v)}

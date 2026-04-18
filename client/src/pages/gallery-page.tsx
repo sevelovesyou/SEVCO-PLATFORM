@@ -14,7 +14,7 @@ import {
 import { Link } from "wouter";
 import { articleUrl } from "@/lib/wiki-urls";
 import { Copy, ImageOff, ExternalLink, X, Download } from "lucide-react";
-import { SparkIcon } from "@/components/spark-icon";
+import { SparkButton } from "@/components/spark-button";
 import { EmptyState } from "@/components/empty-state";
 import type { GalleryImage } from "@shared/schema";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
@@ -257,24 +257,31 @@ export default function GalleryPage() {
                   </div>
                 )}
 
-                {/* Always-visible spark count overlay */}
+                {/* Always-visible Spark button (clickable, sits above hover overlay) */}
                 <div
-                  className="absolute bottom-2 left-2 z-10 flex items-center gap-1 bg-black/60 text-amber-400 rounded-md px-2 py-0.5 text-xs font-semibold backdrop-blur-sm pointer-events-none"
+                  className="absolute bottom-2 left-2 z-30"
                   data-testid={`badge-gallery-spark-overlay-${image.id}`}
                 >
-                  <SparkIcon size="sm" decorative />
-                  <span>{image.sparkCount ?? 0}</span>
+                  <SparkButton
+                    entityType="gallery"
+                    entityId={image.id}
+                    sparkCount={image.sparkCount ?? 0}
+                    sparkedByCurrentUser={!!image.isSparkedByMe}
+                    isOwner={user?.id === image.uploadedBy}
+                    size="sm"
+                    className="!bg-black/60 !text-amber-400 hover:!text-amber-300 backdrop-blur-sm rounded-md !px-2 !py-0.5 !h-auto"
+                  />
                 </div>
 
                 {/* Hover/focus reveal overlay with metadata + actions */}
                 <div
-                  className={`absolute inset-x-0 bottom-0 z-20 flex flex-col gap-2 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-16 transition-opacity duration-200 motion-reduce:transition-none ${
+                  className={`absolute inset-x-0 bottom-0 z-20 flex flex-col gap-2 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-16 transition-opacity duration-200 motion-reduce:transition-none pointer-events-none ${
                     isRevealed
-                      ? "opacity-100 pointer-events-auto"
-                      : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+                      ? "opacity-100"
+                      : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start justify-between gap-2 pointer-events-auto">
                     <div className="min-w-0">
                       <p className="text-xs font-semibold leading-tight line-clamp-2 text-white" data-testid={`text-gallery-title-${image.id}`}>
                         {image.title}
@@ -293,31 +300,31 @@ export default function GalleryPage() {
                       {CATEGORY_LABELS[image.category] ?? image.category}
                     </Badge>
                   </div>
-                  <div className="flex gap-1.5 items-center">
+                  <div className="flex gap-1.5 items-center justify-end pointer-events-auto">
                     <Button
                       size="icon"
                       variant="secondary"
-                      className="h-7 w-7 p-0 shrink-0"
+                      className="h-8 w-8 p-0 shrink-0"
                       onClick={(e) => { e.stopPropagation(); downloadImage(image.imageUrl, image.title); }}
                       data-testid={`button-download-image-${image.id}`}
                       title="Download"
                     >
-                      <Download className="h-3 w-3" />
+                      <Download className="h-3.5 w-3.5" />
                     </Button>
                     <Button
-                      size="sm"
+                      size="icon"
                       variant="secondary"
-                      className="h-7 w-7 p-0 shrink-0"
+                      className="h-8 w-8 p-0 shrink-0"
                       onClick={(e) => { e.stopPropagation(); copyLink(resolveImageUrl(image.imageUrl), image.title); }}
                       data-testid={`button-copy-link-${image.id}`}
                       title="Copy Link"
                     >
-                      <Copy className="h-3 w-3" />
+                      <Copy className="h-3.5 w-3.5" />
                     </Button>
                     <Button
-                      size="sm"
+                      size="icon"
                       variant="secondary"
-                      className="h-7 w-7 p-0 shrink-0"
+                      className="h-8 w-8 p-0 shrink-0"
                       asChild
                       data-testid={`button-open-image-${image.id}`}
                     >
@@ -328,7 +335,7 @@ export default function GalleryPage() {
                         onClick={(e) => e.stopPropagation()}
                         title="Open Full Size"
                       >
-                        <ExternalLink className="h-3 w-3" />
+                        <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                     </Button>
                   </div>

@@ -29634,3 +29634,69 @@ On profile pages, the background image is rendered as `absolute inset-0` inside 
 
 ---
 
+## Task — onboarding-spark-tasks-and-rewards
+> Merged: 2026-04-18
+
+# Onboarding Spark Tasks + 25 Spark Bonuses + Staff Visibility
+
+## What & Why
+The onboarding checklist currently shows 5 tasks (avatar, bio, first post, first follow, social link), is recomputed on the fly from various tables, and pays out nothing — there's no incentive to actually complete it. We want to (a) extend the checklist with three Sparks-economy tasks ("Spark a Post", "Spark an Article", "Spark a Song"), (b) automatically credit the user 25 Sparks the first time they complete each onboarding task, and (c) log every bonus in the Command Center transaction log so staff can see when users complete onboarding milestones in real time.
+
+## Done looks like
+- The onboarding checklist in the Social sidebar shows 8 tasks total: the original 5 plus "Spark a Post", "Spark an Article", "Spark a Song".
+- The first time a user completes any onboarding task — old or new — they automatically receive 25 Sparks. Subsequent completions of the same task never re-credit (idempotent), even across logouts/re-logins or repeated polling.
+- Each automatic credit produces a row in `spark_transactions` with `type = "onboarding_bonus"`, `amount = 25`, `description = "Onboarding bonus: <task label>"`, and `metadata = { taskKey: "<key>" }`.
+- Existing users who have **already** completed some of the onboarding tasks before this feature shipped should also be granted the bonus on first detection (so long-time users aren't locked out — "first time we observe completion" rule, not "first time the user did the action").
+- The Command Center → Sparks → Transactions view shows these new entries inline with the rest of the transaction log; staff can filter by `type = onboarding_bonus` to see who's been finishing onboarding.
+- The user's Spark balance increments visibly. The sidebar's Sparks balance and the onboarding card both refresh after a bonus is credited.
+- A small visual cue on the sidebar onboarding card lets the user know there's a 25-Spark reward attached to each task (e.g. a "+25 ⚡" pill next to each task label).
+- The credit happens server-side. The existing daily-spark-limit, anti-self-spark, and other Sparks rules are all unaffected.
+
+## Out of scope
+- Adding a celebratory toast/animation on the client when a bonus lands (a nice next pass — keep it server-only for now).
+- Letting staff manually trigger or revoke onboarding bonuses.
+- Backfilling bonuses retroactively as a batch job — credit on first detection only, no admin script.
+- Making onboarding tasks completable in any new way (e.g. we are not adding a "Spark something" CTA on the dashboard — the user discovers spark surfaces organically).
+
+## Steps
+1. **Pick the eight task definitions and put them in one shared place.** Define an `ONBOARDING_TASKS` constant somewhere shared (e.g. a new `shared/onboarding.ts`) with `{ key, label, bonusSparks: 25 }` objects:
+   - `hasAvatar` — Add a profile photo
+   - `hasBio` — Write a bio
+   - `hasPost` — Make your first post
+   - `hasFollow` — Follow someone
+   - `hasSocialLink` — Connect a social link
+   - `hasSparkedPost` — Spark a Post
+   - `hasSparkedArticle` — Spark an Article
+   - `hasSparkedTrack` — Spark a Song
+   This single source feeds both the API response and the sidebar UI.
+
+2. **Add the three "has sparked" detectors in storage.** In `server/storage.ts`, add three helpers that return a boolean for whether the user has at least one row in `post_sparks` / `article_sparks` / `track_sparks` (filter `revokedAt IS NULL` for tracks, since track sparks are soft-deletable). Reuse the existing entity-spark tables — no new tables.
+
+3. **Extend `/api/me/onboarding` to compute all 8 booleans.** In `server/routes.ts` (~line 4405), add the three new boolean checks alongside the existing five and include them in the JSON response (`hasSparkedPost`, `hasSparkedArticle`, `hasSparkedTrack`).
+
+4. **Add server-side reward logic.** In the same handler (or in a small helper called from it), after computing the 8 booleans:
+   - For each task whose boolean is `true`, attempt to credit 25 Sparks via `storage.creditSparks(userId, 25, "onboarding_bonus", "Onboarding bonus: <label>", { metadata: { taskKey } })`.
+   - **Idempotency:** wrap the credit in a check that no prior `spark_transactions` row exists for `(userId, type = "onboarding_bonus", metadata->>'taskKey' = key)`. Implement either as a pre-check inside the credit call or, preferably, as a unique partial index on `spark_transactions` analogous to the existing `spark_txn_free_allocation_month_idx` (e.g. `spark_txn_onboarding_task_idx` over `(user_id, (metadata->>'taskKey'))` `WHERE type = 'onboarding_bonus'`). On a unique-violation, swallow and continue. The index path is more robust against concurrent polls and matches the established pattern in this codebase.
+   - Return the booleans plus a `bonusesGrantedThisRequest: string[]` array so the client can react if needed (and to make manual debugging obvious in the network tab).
+
+5. **Schema-sync the new index.** Add the partial unique index to `shared/schema.ts` on `sparkTransactions`. Confirm `npm run db:push` is the standard sync flow here (and that the existing `spark_txn_free_allocation_month_idx` was authored the same way) so the new index applies cleanly to dev and prod.
+
+6. **Refresh sidebar wiring.** In `client/src/components/social-sidebar.tsx`, update the `OnboardingProgress` type to include the three new booleans, render the three new tasks in the `onboardingTasks` array using the same icon vocabulary already in use (Zap from lucide for all three Spark tasks), and show a small "+25 ⚡" pill next to each task label so users can see the reward attached. After the onboarding query refetches, also invalidate `["/api/sparks/balance"]` so the sidebar's balance updates as bonuses are credited.
+
+7. **Make sure staff can filter the new type.** In the Command Center → Sparks → Transactions admin UI (whichever page renders `/api/sparks/admin/transactions`), confirm that `type = "onboarding_bonus"` shows up naturally in the list (it should — `getAllSparkTransactions` doesn't restrict types). Add `"onboarding_bonus"` to whatever type-filter dropdown exists alongside `purchase`, `social_reward`, `free_allocation`, etc., labeled "Onboarding bonus".
+
+8. **Light visual treatment in the admin row** — when a transaction's type is `onboarding_bonus`, render a small badge ("Onboarding") or a Zap-with-asterisk so it's distinguishable at a glance from regular spark earnings.
+
+9. **Verify.** Restart the server and walk through each task with a fresh test account: complete each, hit the sidebar (which polls `/api/me/onboarding`), and confirm a single 25-Spark credit lands per task. Try completing the same task twice — confirm no duplicate credit. Hit the Command Center transactions log and confirm each onboarding bonus appears with the right description. Test an existing user who already had `hasAvatar = true` before the deploy and confirm they get the bonus on first poll.
+
+## Relevant files
+- `shared/schema.ts` (add unique partial index on `sparkTransactions`)
+- `shared/onboarding.ts` (new — single source of truth for task list)
+- `server/routes.ts` (`/api/me/onboarding` ~line 4405)
+- `server/storage.ts` (new `hasUserSpark*` helpers; existing `creditSparks` ~line 3140)
+- `client/src/components/social-sidebar.tsx` (~line 78)
+- The Command Center Sparks transactions admin page (locate via grep for `/api/sparks/admin/transactions`)
+
+
+---
+

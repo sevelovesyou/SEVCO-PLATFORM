@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ImageLightbox } from "@/components/image-lightbox";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { articleUrl } from "@/lib/wiki-urls";
@@ -965,7 +965,7 @@ function isUploadTrackType(v: string): v is UploadTrackType {
   return v === "track" || v === "instrumental";
 }
 
-function UploadTrackDialog({ open, onClose, username }: { open: boolean; onClose: () => void; username: string }) {
+function UploadTrackDialog({ open, onClose, username, editing }: { open: boolean; onClose: () => void; username: string; editing?: MusicTrack | null }) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [title, setTitle] = useState("");
@@ -976,25 +976,48 @@ function UploadTrackDialog({ open, onClose, username }: { open: boolean; onClose
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const [duration, setDuration] = useState<string>("");
 
+  const isEdit = !!editing;
+
+  useEffect(() => {
+    if (!open) return;
+    if (editing) {
+      setTitle(editing.title);
+      setType(isUploadTrackType(editing.type) ? editing.type : "track");
+      setGenre(editing.genre ?? "");
+      setAlbumName(editing.albumName ?? "");
+      setFileUrl(editing.fileUrl ?? "");
+      setCoverImageUrl(editing.coverImageUrl ?? "");
+      setDuration(editing.duration != null ? String(editing.duration) : "");
+    } else {
+      setTitle(""); setType("track"); setGenre(""); setAlbumName("");
+      setFileUrl(""); setCoverImageUrl(""); setDuration("");
+    }
+  }, [open, editing]);
+
+  const buildPayload = () => ({
+    title,
+    type,
+    genre: genre || null,
+    albumName: albumName || null,
+    fileUrl,
+    coverImageUrl: coverImageUrl || null,
+    duration: duration ? Number(duration) : null,
+    status: "published" as const,
+    displayOrder: 0,
+    artistName: "",
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["/api/profile", username, "music"] });
+    qc.invalidateQueries({ queryKey: ["/api/music/tracks"] });
+    qc.invalidateQueries({ queryKey: ["/api/music/artists"] });
+  };
+
   const createMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/music/tracks", {
-      title,
-      type,
-      genre: genre || null,
-      albumName: albumName || null,
-      fileUrl,
-      coverImageUrl: coverImageUrl || null,
-      duration: duration ? Number(duration) : null,
-      status: "published",
-      displayOrder: 0,
-      artistName: "",
-    }),
+    mutationFn: () => apiRequest("POST", "/api/music/tracks", buildPayload()),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["/api/profile", username, "music"] });
-      qc.invalidateQueries({ queryKey: ["/api/music/tracks"] });
-      qc.invalidateQueries({ queryKey: ["/api/music/artists"] });
+      invalidate();
       toast({ title: "Track uploaded" });
-      setTitle(""); setGenre(""); setAlbumName(""); setFileUrl(""); setCoverImageUrl(""); setDuration("");
       onClose();
     },
     onError: (err: unknown) => toast({
@@ -1004,11 +1027,28 @@ function UploadTrackDialog({ open, onClose, username }: { open: boolean; onClose
     }),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: () => apiRequest("PATCH", `/api/music/tracks/${editing!.id}`, buildPayload()),
+    onSuccess: () => {
+      invalidate();
+      toast({ title: "Track updated" });
+      onClose();
+    },
+    onError: (err: unknown) => toast({
+      title: "Update failed",
+      description: err instanceof Error ? err.message : "Please try again.",
+      variant: "destructive",
+    }),
+  });
+
+  const submitting = createMutation.isPending || updateMutation.isPending;
+  const submit = () => (isEdit ? updateMutation.mutate() : createMutation.mutate());
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Upload Track</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit Track" : "Upload Track"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1.5">
@@ -1075,11 +1115,11 @@ function UploadTrackDialog({ open, onClose, username }: { open: boolean; onClose
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={onClose} data-testid="button-upload-track-cancel">Cancel</Button>
             <Button
-              onClick={() => createMutation.mutate()}
-              disabled={!title || !fileUrl || createMutation.isPending}
+              onClick={submit}
+              disabled={!title || !fileUrl || submitting}
               data-testid="button-upload-track-submit"
             >
-              {createMutation.isPending ? "Uploading…" : "Upload"}
+              {submitting ? (isEdit ? "Saving…" : "Uploading…") : (isEdit ? "Save" : "Upload")}
             </Button>
           </div>
         </div>
@@ -1091,6 +1131,7 @@ function UploadTrackDialog({ open, onClose, username }: { open: boolean; onClose
 function UserMusicSection({ username, isOwnProfile, accentColor, bgColor }: { username: string; isOwnProfile: boolean; accentColor?: string; bgColor?: string }) {
   const { playTrack } = useMusicPlayer();
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [editingTrack, setEditingTrack] = useState<MusicTrack | null>(null);
 
   const { data, isLoading } = useQuery<{ tracks: MusicTrack[]; albums: Album[] }>({
     queryKey: ["/api/profile", username, "music"],
@@ -1122,7 +1163,7 @@ function UserMusicSection({ username, isOwnProfile, accentColor, bgColor }: { us
             <Music className="h-3.5 w-3.5" />
             Music
           </h2>
-          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setUploadOpen(true)} data-testid="button-upload-track">
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setEditingTrack(null); setUploadOpen(true); }} data-testid="button-upload-track">
             <Music className="h-3.5 w-3.5" /> Upload Track
           </Button>
         </div>
@@ -1134,7 +1175,12 @@ function UserMusicSection({ username, isOwnProfile, accentColor, bgColor }: { us
         </div>
       )}
 
-      <UploadTrackDialog open={uploadOpen} onClose={() => setUploadOpen(false)} username={username} />
+      <UploadTrackDialog
+        open={uploadOpen}
+        onClose={() => { setUploadOpen(false); setEditingTrack(null); }}
+        username={username}
+        editing={editingTrack}
+      />
 
       {(albumsLoading || albums.length > 0) && (
       <div>
@@ -1289,6 +1335,18 @@ function UserMusicSection({ username, isOwnProfile, accentColor, bgColor }: { us
                       onClick={() => playTrack(track, tracks.filter((_, idx) => idx > i))}
                     >
                       <Play className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  {isOwnProfile && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label={`Edit ${track.title}`}
+                      data-testid={`button-edit-track-profile-${track.id}`}
+                      onClick={() => { setEditingTrack(track); setUploadOpen(true); }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
                     </Button>
                   )}
                 </li>

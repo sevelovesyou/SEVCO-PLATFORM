@@ -271,6 +271,7 @@ function MyMusicCard({ userId }: { userId: string }) {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/music/tracks"] });
     queryClient.invalidateQueries({ queryKey: ["/api/music/artists"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
   };
 
   const deleteMutation = useMutation({

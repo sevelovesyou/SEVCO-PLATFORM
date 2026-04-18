@@ -29511,3 +29511,32 @@ Sparking content is the platform's primary engagement signal, but the current Sp
 
 ---
 
+## Task — spark-button-stop-click-bubble
+> Merged: 2026-04-18
+
+# Spark Without Navigating
+
+## What & Why
+Most cards on the platform (services, products, projects, music, etc.) are wrapped in a link, and the Spark button sits inside that link. Clicking Spark currently triggers the parent card's navigation as well, so the user is yanked to the entity's detail page instead of just sparking it from the card. People should be able to spark anything from any card without leaving the page.
+
+## Done looks like
+- Clicking Spark on any card-embedded button (services Featured grid, services category grids, products, projects, tracks, etc.) sparks the item and the user stays on the same page — no navigation happens.
+- Clicking the body of the same card still navigates to the entity's detail page as it does today.
+- Clicking Spark on a list page where the card is not a link continues to work unchanged.
+- Hover behavior, animation, sound, count update, and tooltips on the Spark button are all unchanged.
+
+## Out of scope
+- Visual or animation changes to the Spark button itself (covered by other in-flight work).
+- Removing the per-card `onClick={(e) => e.stopPropagation()}` wrappers that already exist at some call sites — the centralized fix makes them redundant but they can stay as defense in depth.
+
+## Steps
+1. **Stop the click inside SparkButton** — In the SparkButton click handler, call `event.stopPropagation()` and `event.preventDefault()` first thing on every click (whether the result is a successful spark, a "you already sparked" tooltip, a daily-limit toast, an unauthenticated no-op, or an owner no-op). This single change prevents the wrapping `<Link>` or `<a>` from navigating regardless of how SparkButton is used elsewhere.
+
+2. **Quick smoke test on every surface** — On the Services Featured grid, the Services category grids, the Products grid, the Projects list, and any track row on a profile, click Spark and confirm the URL does not change and the count increments inline.
+
+## Relevant files
+- `client/src/components/spark-button.tsx`
+
+
+---
+

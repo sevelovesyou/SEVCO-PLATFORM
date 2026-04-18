@@ -29062,3 +29062,38 @@ Two Command Center cleanups in one pass on the Platform Settings page:
 
 ---
 
+## Task — signup-cta-labels
+> Merged: 2026-04-18
+
+# Make every Sign-Up CTA on the landing page say "Sign Up"
+
+## What & Why
+Two of the landing page's sign-up CTAs are showing "All Projects" instead of "Sign Up", because their button label is wired to the Hero's primary-button setting (`btn1Label`) — and that hero button is currently set to "All Projects". The closer card ("One account. Everything unlocked.") and the thin mid-page CTA band ("Free to join — start your SEVCO") are sign-up moments, not navigation to the projects index, so they should say **Sign Up** regardless of what the hero button is labeled.
+
+The Community CTA also has a sibling "Create account" button next to "Join Discord" — it should match the same wording for consistency across all sign-up CTAs.
+
+Reference (attached screenshot): the red primary button shown is the desired label — "Sign Up" — and that's what every sign-up CTA on the page should display.
+
+## Done looks like
+- Closer "One account. Everything unlocked." button reads **Sign Up**, links to `/auth`, keeps the red primary styling and arrow icon.
+- Mid-page CTA band button reads **Sign Up**, still links to the configured `section.midCta.url` (default `/auth`), keeps its current outline styling.
+- Community CTA secondary button reads **Sign Up** (currently "Create account"), still links to `/auth`.
+- None of these three button labels read from the hero's `btn1Label` setting anymore — changing the hero CTA does not change them.
+- Hero primary button itself is untouched — admins can still set it to whatever they want via Platform Settings.
+
+## Out of scope
+- Redesigning any of these sections.
+- Changing destinations, icons, or styling beyond the label swap.
+- Adding new admin settings for these labels (they should just be hardcoded "Sign Up").
+
+## Steps
+1. In `client/src/pages/landing.tsx`, replace `{btn1Label}` with the literal string `Sign Up` inside the `signupCta` closer button (~L1310) and the `midCta` band button (~L843).
+2. In the same file, change the Community CTA secondary button text from `Create account` to `Sign Up` (~L1421).
+3. Quick visual QA on the home page logged out: confirm all three buttons read "Sign Up", still navigate to `/auth`, and that changing the hero CTA label in Platform Settings no longer affects them.
+
+## Relevant files
+- `client/src/pages/landing.tsx` (~L820-848 midCta, ~L1285-1336 signupCta, ~L1418-1424 community CTA secondary)
+
+
+---
+

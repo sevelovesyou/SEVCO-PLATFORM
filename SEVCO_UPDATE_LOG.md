@@ -29278,3 +29278,44 @@ Sparks today only work on posts, articles, and gallery images. The user wants Sp
 
 ---
 
+## Task — sync-spark-tables-and-lead-columns
+> Merged: 2026-04-18
+
+# Recover projects/services/music listings and the Sparks leaderboard
+
+## What & Why
+After Task #468 shipped, the Projects, Services, Music, and Sparks Leaderboard pages all look empty. The data isn't gone — `projects` (7 rows), `services` (18), `products` (7) are intact in the database. The problem is that Task #468 declared four new spark tables (`track_sparks`, `product_sparks`, `project_sparks`, `service_sparks`) and two new columns (`projects.lead_user_id`, `services.lead_user_id`) in the schema and started selecting from them in every list/detail query, but those tables and columns never actually landed in the live database. So every list endpoint that joins to them throws, and the frontend renders an empty list (looking like a wipe). The leaderboard reads the same missing tables, so it shows nothing.
+
+## Done looks like
+- `/api/projects`, `/api/services`, `/api/store/products`, `/api/music/tracks` (list + detail) all return 200 with their existing rows, including `sparkCount: 0` and `sparkedByCurrentUser: false`.
+- `/api/sparks/leaderboard` returns 200 with the existing post/article/gallery sparks reflected, plus the four new content types ready to accumulate.
+- `track_sparks`, `product_sparks`, `project_sparks`, `service_sparks` exist in Postgres with the same shape as `post_sparks` (id, entity_id FK, user_id FK, created_at, unique (entity, user)).
+- `projects.lead_user_id` and `services.lead_user_id` exist as nullable `varchar` FKs to `users.id` with `ON DELETE SET NULL`, and the existing `team_lead` text column on projects is untouched.
+- The Projects page, Services page, Store, and Music browse all render their items again. Sparking a project/service/product/track works end to end.
+- `replit.md` notes the recovery and that schema and DB are back in sync.
+
+## Out of scope
+- Restoring music tracks/artists/albums data — they were already 0 rows before Task #468 and no recent task deleted them. If the user expects music data to be present, that's a separate seeding task.
+- Any further Sparks features.
+
+## Steps
+1. Confirm the gap with `\d projects`, `\d services`, and `\dt *_sparks` against the live DB — should show no `lead_user_id` and no new spark tables.
+2. Add the missing tables and columns. Prefer `npm run db:push --force`; if drizzle-kit prompts on the unrelated `ai_message_feedback` rename, run the equivalent `CREATE TABLE` / `ALTER TABLE` SQL by hand (mirroring the shape already declared in `shared/schema.ts` for the four new spark tables and the two `lead_user_id` columns).
+3. Restart the workflow and hit each endpoint once to confirm 200 + non-empty payloads:
+   - `GET /api/projects`
+   - `GET /api/services`
+   - `GET /api/store/products`
+   - `GET /api/music/tracks`
+   - `GET /api/sparks/leaderboard`
+4. Spot-check the UI: Projects page, Services page, Store, Sparks Leaderboard all render real items. Spark a project once and confirm the count increments and the leaderboard updates.
+5. Update `replit.md` with a short note: the four spark tables and the two `lead_user_id` columns must be present for the listings and leaderboard to render; if a future schema sync drops them, re-run db push.
+
+## Relevant files
+- `shared/schema.ts` (the four new spark tables + `projects.leadUserId` / `services.leadUserId` were added in Task #468 — they're the source of truth)
+- `server/storage.ts` (list query joins, leaderboard aggregation)
+- `server/routes.ts` (list endpoints + new spark endpoints)
+- `replit.md`
+
+
+---
+

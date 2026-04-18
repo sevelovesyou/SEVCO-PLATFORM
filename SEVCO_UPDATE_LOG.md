@@ -29755,3 +29755,52 @@ Today the Gallery is constrained to a `max-w-6xl` container with side gutters, t
 
 ---
 
+## Task — spark-icon-unify-emoji
+> Merged: 2026-04-18
+
+# Use the ⚡ Emoji Everywhere for Sparks
+
+## What & Why
+The Sparks icon has drifted again — different surfaces use different visuals (sometimes a filled amber Lucide `Zap`, sometimes an outlined one, sometimes alongside the word "Sparks", sometimes `Sparkles`). The shared SparkButton itself draws the Lucide `Zap` icon, which is what most cards inherit. The user wants every Sparks affordance — buttons, count badges, balance pills, leaderboards, transaction logs, sidebar Sparks pill, gallery overlay, etc. — to use the **⚡ emoji** as the single, unmistakable Sparks glyph. The chime, blue burst animation, count tween, daily-limit messaging, and click behavior of the existing SparkButton must all be preserved exactly. Non-Sparks uses of the Lucide `Zap` icon (e.g. "fast", "AI", or anything unrelated to the Sparks economy) must NOT be changed — only Sparks-related surfaces.
+
+## Done looks like
+- A single small shared component (e.g. `client/src/components/spark-icon.tsx`) renders the ⚡ emoji at consistent sizes (`xs`, `sm`, `md`, `lg`) with `role="img"` + `aria-label="spark"`. Sizing is done via `font-size`/Tailwind text classes so the emoji scales crisply. Color is inherited so it can sit on dark and light backgrounds (the emoji's intrinsic color is preserved — no override).
+- The shared SparkButton (`client/src/components/spark-button.tsx`) renders the SparkIcon emoji instead of the Lucide `Zap`. The blue burst overlay, the icon "pop" scale animation, the chime, the count tween, the daily-limit/already-sparked tooltips, and the prefers-reduced-motion handling all continue to work exactly as before. The icon-pop animation now scales the emoji span (the same target wrapper, just with an emoji inside).
+- Every other Sparks-context icon across the app — including but not limited to the Sparks balance pill in the social sidebar, the Sparks balance in the platform header / account / pricing pages, transaction logs in Command Center, the Sparks leaderboard, the gallery card spark-count overlay, the profile "Top Posts" mini-list spark counters, the news/feed spark counts, sparks-success-page, sparks-page, sparks-leaderboard, freeball spark indicators, onboarding "+25 ⚡" pill, and any other place that visually represents "Sparks" — uses SparkIcon emoji with consistent sizing relative to surrounding text.
+- Existing layout/spacing on every surface remains visually balanced after the swap (emoji glyphs render at slightly different optical weights than Lucide icons, so a small per-surface size adjustment may be needed to avoid the icon looking too small or too big).
+- Non-Sparks uses of the Lucide `Zap` icon are left alone. Those surfaces include (audit during the task; do not assume) shader/AI energy indicators, "lightning fast" marketing copy on landing/hosting/sites pages, command center settings indicators, the news AI sidebar, and similar — anywhere `Zap` is not semantically representing the Sparks currency.
+- Aria/accessibility labels on Sparks buttons and counts read naturally with a screen reader (e.g. "Spark this post · 4 sparks") — the `aria-label` on the emoji should not double-narrate.
+- Test ids on existing Sparks elements are preserved (e.g. `button-post-spark`, `text-article-spark-count`, `badge-gallery-spark-overlay-{id}`, etc.) so any in-flight automation continues to find them.
+
+## Out of scope
+- Changing the Sparks brand color, copy, or daily-limit values.
+- Replacing every Lucide icon on the platform — only Sparks-context glyphs change.
+- Custom-drawing a brand SVG; the emoji is the chosen unified glyph.
+- Editing platform docs / wiki articles to change descriptive prose.
+
+## Steps
+1. **Build the shared SparkIcon.** Create `client/src/components/spark-icon.tsx` exporting a `<SparkIcon size?: "xs" | "sm" | "md" | "lg" | "xl" className?: string />` component that renders `<span role="img" aria-label="spark" className="<size + className>">⚡</span>`. Map sizes to Tailwind text classes (e.g. xs → text-[11px], sm → text-xs, md → text-sm, lg → text-base, xl → text-xl). Include `aria-hidden` variant for decorative use beside text that already says "Sparks".
+
+2. **Swap the icon inside SparkButton.** In `client/src/components/spark-button.tsx`, replace both `<Zap />` renders (idle and sparked) with `<SparkIcon size={...} />` chosen from the existing `iconSize` prop. The existing icon-pop scale animation, blue burst overlay, count tween, click handler, `event.stopPropagation()`/`preventDefault()`, daily-limit and already-sparked branches, owner-disabled handling, mutation success/error paths, sound playback (`playSparkSound`), and `prefers-reduced-motion` fallback all stay untouched. Keep the Zap import removed if it's now unused.
+
+3. **Audit and replace Sparks-context icon usages across the app.** Go file-by-file through every file currently importing `Zap` (and the small number using `Sparkles` for Sparks). For each occurrence, decide whether it represents the Sparks currency or something else:
+   - **If it represents Sparks** (a balance, a count next to a number from `sparkCount`, a transaction-log row in Command Center, a "Spark" CTA, a leaderboard rank icon, the onboarding "+25" pill, the gallery bottom-left badge, the profile Top Posts spark counter, the social sidebar Sparks pill, the platform header balance, freeball spark spends, sparks-success/sparks-page/sparks-leaderboard headers): replace with `<SparkIcon />` at a size that matches surrounding text. Preserve all data-testids, click handlers, and color treatment of the surrounding container (the emoji renders in its native amber/yellow regardless of theme).
+   - **If it represents something else** (speed, AI, energy meter on shader/AI pages, marketing "lightning fast" lines, command settings indicators, news editorial flairs, etc.): leave the Lucide `Zap` in place.
+   The audit list includes (roughly, by counts): `gallery-page.tsx`, `command-sparks.tsx`, `home.tsx`, `profile-page.tsx`, `account-page.tsx`, `landing.tsx`, `news-editorial.tsx`, `service-category-page.tsx`, `social-sidebar.tsx`, `projects-page.tsx`, `changelog-page.tsx`, `sparks-success-page.tsx`, `news-page.tsx`, `feed-page.tsx`, `command-settings.tsx`, `command-display.tsx`, `command-sidebar.tsx`, `command-news.tsx`, `freeball.tsx`, `platform-header.tsx`, `about-page.tsx`, `freeball-landing.tsx`, `notification-dropdown.tsx`, `pricing-page.tsx`, `hosting-page.tsx`, `sites-landing.tsx`, `sparks-page.tsx`, `sparks-leaderboard.tsx`, `platform-page.tsx`, `shader-settings-panel.tsx`, plus the sparks emoji pill in `social-sidebar.tsx` (already uses ⚡ — verify and unify on SparkIcon). For each file, classify each instance and only swap the Sparks-context ones.
+
+4. **Special-case the gallery card.** `client/src/pages/gallery-page.tsx` uses `Zap` in (a) the bottom-left always-on count badge — replace with SparkIcon, and (b) the hover-overlay Spark button — that one is already handled when SparkButton is updated, but the gallery currently has its own inline button (since it predates SparkButton in some places). Audit and replace whichever Zap icons remain inline on the gallery card surface.
+
+5. **Special-case the social sidebar onboarding "+25 ⚡" pill.** It already shows the emoji; just confirm it routes through SparkIcon for consistency.
+
+6. **Notification dropdown / news / freeball etc.** Where a notification or news card shows "X received N sparks", swap the Zap for SparkIcon. Where a card uses Zap for a non-Sparks meaning (e.g. a freeball "energy/speed" badge), leave it.
+
+7. **Visual sweep.** Restart the dev server and walk: feed cards (post spark), profile (top posts spark counters, music tab spark on tracks), gallery (bottom-left count + hover overlay), services / store / projects card spark counters, article view + wiki list spark counters, news cards, freeball Spark spends, sparks balance in social sidebar + platform header + account page + pricing page, sparks leaderboard, sparks-success-page after a purchase, Command Center → Sparks transaction log, the onboarding checklist's "+25" pill. Confirm the ⚡ emoji is used everywhere a Spark is depicted, sizes feel right, click behavior + chime + burst + count tween still fire on every SparkButton instance, and no non-Sparks icons changed.
+
+## Relevant files
+- `client/src/components/spark-icon.tsx` (new)
+- `client/src/components/spark-button.tsx` (icon swap, animation/chime untouched)
+- All files listed in step 3 (per-file audit + selective swap)
+
+
+---
+

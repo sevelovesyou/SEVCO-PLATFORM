@@ -21,6 +21,19 @@ import { readFileSync, existsSync } from "fs";
 import { resolve as pathResolve, dirname as pathDirname } from "path";
 import { fileURLToPath } from "url";
 
+// Task #528 — Boot state machine. The HTTP listener is opened BEFORE the
+// heavy startup work (schema-sync, migrations, snapshot apply, Stripe init,
+// seeds) runs, so the autoscale port-open deadline is never missed. While
+// boot is in progress, /api/* requests (other than /healthz and
+// /api/platform-health) are short-circuited with a 503 { booting: true }
+// response so clients can retry instead of seeing 500s from half-initialized
+// handlers. Static assets and the SPA shell are never gated.
+let bootState: "booting" | "ready" | "failed" = "booting";
+let bootError: string | null = null;
+export function getBootState() {
+  return { state: bootState, error: bootError };
+}
+
 const SPARK_PACK_DEFS = [
   { name: "Starter", sparks: 1000,   price: 800,   sortOrder: 0 },
   { name: "Boost",   sparks: 5000,   price: 3600,  sortOrder: 1 },
@@ -144,6 +157,18 @@ async function applyChangelogSnapshot() {
     return;
   }
   console.log(`[snapshot] reading snapshot from ${snapshotPath}`);
+  // Task #528 — Ensure the unique index needed by the batched ON CONFLICT
+  // upsert exists. The legacy schema only had a non-unique index on
+  // changelog.wiki_slug, which broke ON CONFLICT (wiki_slug). This call is
+  // idempotent and cheap on a healthy DB.
+  try {
+    await pool.query(
+      `CREATE UNIQUE INDEX IF NOT EXISTS changelog_wiki_slug_unique
+         ON changelog (wiki_slug) WHERE wiki_slug IS NOT NULL`,
+    );
+  } catch (err: any) {
+    console.warn(`[snapshot] could not ensure changelog.wiki_slug unique index: ${err?.message ?? err}`);
+  }
   let payload: any;
   try {
     payload = JSON.parse(readFileSync(snapshotPath, "utf8"));
@@ -168,89 +193,110 @@ async function applyChangelogSnapshot() {
   let articlesInserted  = 0;
   let articlesUpdated   = 0;
 
+  // Task #528 — Normalize entries up front and split into two batches:
+  // changelog rows (always) and article rows (only when content + category
+  // are available). Then upsert each batch via INSERT ... ON CONFLICT in
+  // chunks so the whole snapshot apply finishes in well under a second
+  // instead of issuing 2N round-trips for N entries (~12s for 424 entries).
+  type CL = { title: string; description: string; category: string; version: string | null; wikiSlug: string; createdAt: string };
+  type AR = { title: string; slug: string; content: string; summary: string; tags: string[] };
+  const clRows: CL[] = [];
+  const arRows: AR[] = [];
   for (const e of entries) {
     if (!e?.wikiSlug || typeof e.wikiSlug !== "string" || !e.wikiSlug.startsWith("platform-task-")) continue;
     const title       = String(e.title ?? "").trim();
     const description = String(e.description ?? "").trim();
-    const category    = (e.category ?? "improvement");
+    if (!title || !description) continue;
+    const category    = String(e.category ?? "improvement");
     const version     = e.version ?? null;
     const wikiSlug    = e.wikiSlug;
-    const createdAt   = e.createdAt ? new Date(e.createdAt) : new Date();
-    if (!title || !description) continue;
+    const createdAt   = (e.createdAt ? new Date(e.createdAt) : new Date()).toISOString();
+    clRows.push({ title, description, category, version, wikiSlug, createdAt });
 
-    // ── changelog upsert (keyed by wiki_slug) ──
-    try {
-      const existing = await pool.query(
-        `SELECT id, title, description, category, version FROM changelog WHERE wiki_slug = $1 LIMIT 1`,
-        [wikiSlug],
-      );
-      if ((existing.rowCount ?? 0) === 0) {
-        await pool.query(
-          `INSERT INTO changelog (title, description, category, version, wiki_slug, created_at)
-             VALUES ($1, $2, $3, $4, $5, $6)`,
-          [title, description, category, version, wikiSlug, createdAt.toISOString()],
-        );
-        changelogInserted++;
-      } else {
-        const row = existing.rows[0];
-        const differs =
-          row.title       !== title       ||
-          row.description !== description ||
-          row.category    !== category    ||
-          (row.version ?? null) !== (version ?? null);
-        if (differs) {
-          await pool.query(
-            `UPDATE changelog SET title = $1, description = $2, category = $3, version = $4 WHERE id = $5`,
-            [title, description, category, version, row.id],
-          );
-          changelogUpdated++;
-        }
-      }
-    } catch (err: any) {
-      console.warn(`[snapshot] changelog upsert failed for ${wikiSlug}: ${err?.message ?? err}`);
-    }
-
-    // ── article upsert (keyed by slug) ── only when we have content + category
     if (!platformCat) continue;
     const articleContent = typeof e.articleContent === "string" ? e.articleContent : null;
+    if (!articleContent) continue;
     const articleSummary = typeof e.articleSummary === "string" ? e.articleSummary : description;
     const articleTags    = Array.isArray(e.articleTags) ? e.articleTags : ["platform-history", "engineering"];
-    if (!articleContent) continue;
+    arRows.push({ title, slug: wikiSlug, content: articleContent, summary: articleSummary, tags: articleTags });
+  }
 
+  const chunk = <T,>(arr: T[], n: number): T[][] => {
+    const out: T[][] = [];
+    for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
+    return out;
+  };
+
+  // ── changelog batched upsert (keyed by wiki_slug) ──
+  // RETURNING (xmax = 0) lets us count inserts vs updates in one round-trip.
+  // The DO UPDATE WHERE clause skips no-op writes so updated_at stays stable.
+  for (const batch of chunk(clRows, 100)) {
+    if (batch.length === 0) continue;
+    const params: any[] = [];
+    const tuples: string[] = [];
+    for (const r of batch) {
+      const i = params.length;
+      tuples.push(`($${i+1}, $${i+2}, $${i+3}, $${i+4}, $${i+5}, $${i+6})`);
+      params.push(r.title, r.description, r.category, r.version, r.wikiSlug, r.createdAt);
+    }
     try {
-      const existing = await pool.query(
-        `SELECT id, title, content, summary FROM articles WHERE slug = $1 LIMIT 1`,
-        [wikiSlug],
+      const res = await pool.query(
+        `INSERT INTO changelog (title, description, category, version, wiki_slug, created_at)
+           VALUES ${tuples.join(", ")}
+         ON CONFLICT (wiki_slug) WHERE wiki_slug IS NOT NULL DO UPDATE SET
+           title       = EXCLUDED.title,
+           description = EXCLUDED.description,
+           category    = EXCLUDED.category,
+           version     = EXCLUDED.version
+         WHERE changelog.title       IS DISTINCT FROM EXCLUDED.title
+            OR changelog.description IS DISTINCT FROM EXCLUDED.description
+            OR changelog.category    IS DISTINCT FROM EXCLUDED.category
+            OR changelog.version     IS DISTINCT FROM EXCLUDED.version
+         RETURNING (xmax = 0) AS inserted`,
+        params,
       );
-      if ((existing.rowCount ?? 0) === 0) {
-        const insert: InsertArticle = {
-          title,
-          slug: wikiSlug,
-          content: articleContent,
-          summary: articleSummary,
-          categoryId: platformCat.id,
-          status: "published",
-          tags: articleTags,
-          authorId: peter?.id ?? null,
-        };
-        await storage.createArticle(insert);
-        articlesInserted++;
-      } else {
-        const row = existing.rows[0];
-        const differs =
-          row.title   !== title          ||
-          row.content !== articleContent ||
-          (row.summary ?? null) !== (articleSummary ?? null);
-        if (differs) {
-          await pool.query(
-            `UPDATE articles SET title = $1, content = $2, summary = $3, updated_at = NOW() WHERE id = $4`,
-            [title, articleContent, articleSummary, row.id],
-          );
-          articlesUpdated++;
-        }
+      for (const row of res.rows) {
+        if (row.inserted) changelogInserted++; else changelogUpdated++;
       }
     } catch (err: any) {
-      console.warn(`[snapshot] article upsert failed for ${wikiSlug}: ${err?.message ?? err}`);
+      console.warn(`[snapshot] changelog batch upsert failed (size ${batch.length}): ${err?.message ?? err}`);
+    }
+  }
+
+  // ── articles batched upsert (keyed by slug) ──
+  if (platformCat) {
+    const status = "published";
+    const authorId = peter?.id ?? null;
+    for (const batch of chunk(arRows, 100)) {
+      if (batch.length === 0) continue;
+      const params: any[] = [];
+      const tuples: string[] = [];
+      for (const r of batch) {
+        const i = params.length;
+        tuples.push(`($${i+1}, $${i+2}, $${i+3}, $${i+4}, $${i+5}, $${i+6}, $${i+7}, $${i+8})`);
+        params.push(r.title, r.slug, r.content, r.summary, platformCat.id, status, r.tags, authorId);
+      }
+      try {
+        const res = await pool.query(
+          `INSERT INTO articles (title, slug, content, summary, category_id, status, tags, author_id)
+             VALUES ${tuples.join(", ")}
+           ON CONFLICT (slug) DO UPDATE SET
+             title      = EXCLUDED.title,
+             content    = EXCLUDED.content,
+             summary    = EXCLUDED.summary,
+             updated_at = NOW()
+           WHERE articles.title   IS DISTINCT FROM EXCLUDED.title
+              OR articles.content IS DISTINCT FROM EXCLUDED.content
+              OR articles.summary IS DISTINCT FROM EXCLUDED.summary
+           RETURNING (xmax = 0) AS inserted`,
+          params,
+        );
+        for (const row of res.rows) {
+          if (row.inserted) articlesInserted++; else articlesUpdated++;
+        }
+      } catch (err: any) {
+        console.warn(`[snapshot] articles batch upsert failed (size ${batch.length}): ${err?.message ?? err}`);
+      }
     }
   }
 
@@ -1130,6 +1176,36 @@ declare module "http" {
   }
 }
 
+// Task #528 — Always-200 liveness endpoint that NEVER touches the DB.
+// Mounted at module scope so the deploy probe (and any external uptime
+// monitor) succeeds the moment the listener is bound, regardless of how
+// long the background startup takes.
+app.get("/healthz", (_req, res) => {
+  res.json({ ok: true, bootState, ...(bootError ? { bootError } : {}) });
+});
+
+// Task #528 — Boot-state gate, mounted at module scope so it sits BEFORE
+// every /api/* handler — including the early /api/stripe/webhook route
+// below and everything later registered inside registerRoutes(). While
+// booting, /api/* requests are short-circuited with a 503 { booting: true }
+// JSON response so clients can retry instead of seeing 500s. Exemptions:
+//   • /healthz (mounted above, never reaches here)
+//   • /api/platform-health — operators inspect boot progress here, and the
+//     handler itself returns boot status without requiring a healthy DB.
+//   • /api/stripe/webhook — Stripe needs a quick 2xx; a 503 would cause
+//     unnecessary retries and could mark the endpoint unhealthy upstream.
+// Static assets and the SPA shell are NEVER gated.
+app.use((req, res, next) => {
+  if (bootState !== "booting") return next();
+  if (!req.path.startsWith("/api/")) return next();
+  if (req.path === "/api/platform-health") return next();
+  if (req.path === "/api/stripe/webhook") return next();
+  return res.status(503).json({
+    booting: true,
+    message: "Server is finishing startup, retry in a moment",
+  });
+});
+
 app.post(
   '/api/stripe/webhook',
   express.raw({ type: 'application/json' }),
@@ -1225,21 +1301,37 @@ async function initStripe() {
   }
 }
 
-(async () => {
-  // Fail-fast on schema migration errors — running the app against a partial
-  // schema is exactly the kind of silent breakage Task #449 set out to prevent.
+// Task #528 — All heavy startup work moved here so we can fire-and-forget
+// it AFTER httpServer.listen() binds the port. Each step is wrapped in
+// .catch() so a background failure can never crash the now-listening
+// process; bootState is flipped to "failed" instead and surfaced through
+// /api/platform-health. The legacy "fail fast and exit" behavior on
+// migration error is replaced with "log loudly + flag bootState=failed"
+// so the container stays up and Promote doesn't fight the autoscaler.
+async function runBackgroundStartup() {
+  // Schema sync / legacy DDL is the single biggest cold-start cost (~30s in
+  // prod). It must still run on every boot so drift is corrected, but it no
+  // longer blocks the port-open deadline.
   try {
     await runStartupMigrations();
-  } catch (err) {
-    console.error("Startup migration error — aborting boot:", err);
-    process.exit(1);
+  } catch (err: any) {
+    bootError = `runStartupMigrations: ${err?.message ?? err}`;
+    console.error("[startup] migration error (non-fatal — server stays up):", err);
   }
-  await initStripe().catch((err) => console.error("Stripe init error:", err));
-  await seedDatabase().catch((err) => console.error("Seed error:", err));
+  // Track every background-step failure into bootError so /api/platform-health
+  // surfaces real boot health. Each step is still wrapped so a single failure
+  // never crashes the now-listening process.
+  const trackErr = (label: string) => (err: any) => {
+    const msg = `${label}: ${err?.message ?? err}`;
+    bootError = bootError ? `${bootError}; ${msg}` : msg;
+    console.error(`[startup] ${msg}`);
+  };
+  await initStripe().catch(trackErr("Stripe init"));
+  await seedDatabase().catch(trackErr("seedDatabase"));
   // Task #525 — Apply the committed changelog snapshot after seedDatabase()
   // creates the 'sevco-platform' category. This is what makes prod self-sync
   // its changelog/wiki tables to match the preview on every deploy.
-  await applyChangelogSnapshot().catch((err) => console.error("Changelog snapshot apply error:", err));
+  await applyChangelogSnapshot().catch(trackErr("applyChangelogSnapshot"));
   // Task #526 — Run the sync assertion AFTER the snapshot has had its
   // chance to insert/update. Warn-and-continue (no throw) so a stale prod
   // DB cannot crash the Promote stage like it did under Task #525.
@@ -1355,8 +1447,6 @@ async function initStripe() {
   })();
 
   startNewsAggregator();
-  setupAuth(app);
-  await registerRoutes(httpServer, app);
 
   async function refreshMarketData() {
     try {
@@ -1370,9 +1460,33 @@ async function initStripe() {
       console.error("[market] Background refresh error:", err?.message ?? err);
     }
   }
-
   refreshMarketData().catch(() => {});
   setInterval(() => refreshMarketData().catch(() => {}), 7 * 60 * 1000);
+
+  if (bootError) {
+    bootState = "failed";
+    log(`boot complete with errors — ${bootError}`, "startup");
+  } else {
+    bootState = "ready";
+    log("boot complete", "startup");
+  }
+}
+
+(async () => {
+  // Task #528 — LISTEN FIRST. The autoscale "port-open" deadline is ~60s
+  // and the previous order ran ~75s of synchronous startup work BEFORE
+  // calling listen(), causing every Promote attempt to fail. We now bind
+  // setupAuth + registerRoutes (which only DEFINE handlers, they do not
+  // require migrations to have completed yet) and listen() up front, then
+  // fire-and-forget runBackgroundStartup() to do the schema-sync, seeds,
+  // snapshot apply, etc. While bootState !== "ready" the bootGate
+  // middleware below 503s API calls so they retry instead of hitting
+  // half-initialized handlers.
+
+  // /healthz and the boot-state gate are mounted at module scope above so
+  // they sit before /api/stripe/webhook and any other early-mounted route.
+  setupAuth(app);
+  await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -1417,6 +1531,15 @@ async function initStripe() {
     },
     () => {
       log(`serving on port ${port}`);
+      // Kick off the heavy background startup AFTER the port is bound.
+      // Any unhandled throw here would still flip bootState to "failed"
+      // via the outer .catch() — the process must NOT crash now that the
+      // listener is up.
+      runBackgroundStartup().catch((err) => {
+        bootState = "failed";
+        bootError = `runBackgroundStartup: ${err?.message ?? err}`;
+        console.error("[startup] background startup crashed:", err);
+      });
     },
   );
 })();

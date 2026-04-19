@@ -2616,6 +2616,25 @@ export async function registerRoutes(
   // immediately instead of silently. Returns the row counts on each side
   // and the list of changelog wiki_slugs that have no matching article.
   app.get("/api/platform-health", requireAuth, requireRole("admin", "executive", "staff"), async (_req, res) => {
+    // Task #528 — Return boot status FIRST so operators can hit this endpoint
+    // during the warm-up window without seeing a 500 if the schema isn't
+    // ready yet. Once boot is complete, fall through to the full health view.
+    try {
+      const { getBootState: _gbs } = await import("./index");
+      const _boot = _gbs();
+      if (_boot.state !== "ready") {
+        return res.status(_boot.state === "failed" ? 503 : 200).json({
+          bootState: _boot.state,
+          bootError: _boot.error,
+          message:
+            _boot.state === "booting"
+              ? "Server is finishing startup; full health view will be available shortly."
+              : "Server reached ready/failed state with errors — see bootError.",
+        });
+      }
+    } catch {
+      // If we can't even import for boot state, fall through to the full handler.
+    }
     try {
       const [{ count: changelogRows }] = (
         await db.execute(
@@ -2650,8 +2669,9 @@ export async function registerRoutes(
       // Task #526 — Surface the boot-time sync assertion result so the
       // admin dashboard can show whether the soft assertion passed or
       // detected drift on the most recent boot.
-      const { getLastSyncAssertionResult } = await import("./index");
+      const { getLastSyncAssertionResult, getBootState } = await import("./index");
       const bootAssertion = getLastSyncAssertionResult();
+      const boot = getBootState();
       res.json({
         changelogRows,
         platformArticles,
@@ -2661,6 +2681,8 @@ export async function registerRoutes(
         orphanCount: orphans.length,
         orphanSlugs: orphans.map((r) => r.slug),
         bootAssertion,
+        bootState: boot.state,
+        bootError: boot.error,
       });
     } catch (err: any) {
       res.status(500).json({ message: err.message });

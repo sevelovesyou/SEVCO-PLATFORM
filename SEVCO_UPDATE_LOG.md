@@ -30036,3 +30036,70 @@ Where we are:
 
 ---
 
+## Task — clean-task-history-one-source
+> Merged: 2026-04-19
+
+# Clean Task History — One Source, Prod = Dev, #1–#498 in Order
+
+## What & Why
+The user wants `/platform`, `/command/changelog`, and `/wiki/engineering/sevco-platform` to all show every Replit task from `#1` through the current latest (`#498` today, growing on every merge), in clean numerical order, sourced from one database, with **no duplicates** and **range placeholders for skipped numbers**.
+
+What's wrong right now (verified against the dev DB):
+- The published site (sevco.us) reads from a **different/older database** than the Replit preview. Production's top entry is Task #190 from Mar 29; everything since lives only in the dev DB.
+- The dev DB has **441 changelog rows for tasks #1–#498**, including duplicates for some task refs (e.g. #492+#493 same iteration, #496+#497 same task) and **80 missing task numbers**.
+- The dev DB has only **4** `platform-task-*` wiki articles (`#495`–`#498`) despite previous "backfill" claims in #517 and #519. **412** rows have no matching article. The "in sync" badge in the user's screenshot is reading a stale cached state from the older production DB.
+
+## User-confirmed decisions
+- **Database**: point production at the same Postgres as the Replit preview. Both environments will read/write the same data. (User accepted that test edits in dev will show up live on sevco.us.)
+- **Gaps**: collapse consecutive missing task numbers into one range placeholder (e.g. `Task #88-97`), then the next real entry resumes at the next available number (`Task #98`).
+- **Duplicates / re-merges**: one and only one changelog row + one wiki article per task ref. If the same task ref merges again, **update** the existing row and article instead of inserting a new one.
+
+## Done looks like
+- Reloading sevco.us shows the same data as the Replit preview (no separate prod DB anymore).
+- `/platform`, `/command/changelog`, and `/wiki/engineering/sevco-platform` each list **every** task ref `#1` through `#498` in numerical order, with **no duplicates** and **no naked gaps** (gaps appear as `#X-Y` range placeholders).
+- Every entry deep-links to a real `/wiki/platform-task-NNN` (or `/wiki/platform-task-X-Y` for ranges) page that opens without 404.
+- The `/api/platform-health` badge on `/command/changelog` reads true: `changelogRows == platformArticles` and `missing = 0`.
+- Going forward, re-merging the same task ref does **not** create a new row — it updates the existing changelog entry and wiki article in place. New, never-seen task refs add exactly one row + one article.
+
+## Out of scope
+- Redesigning any of the three pages.
+- Touching the version-number scheme.
+- Migrating away from the current `changelog` table or `articles` table structure.
+- Backfilling any task content beyond what's available in the existing changelog rows + plan files (range placeholders are intentionally minimal).
+
+## Steps
+
+1. **Unify the database.** Remove the production-only `DATABASE_URL` override from deployment secrets so the published app inherits the same Postgres instance as the Replit preview. Verify by hitting sevco.us and confirming it now returns the same `/api/changelog` payload as the preview. Document the change in `replit.md` so it's not undone accidentally.
+
+2. **Dedupe the changelog by task ref.** For each task number parsed from titles matching `^Task #(\d+)`, keep the most-recent row (by `created_at`) and delete the others. Cascade-delete any orphaned `platform-task-*` articles whose slug no longer matches a remaining changelog row. Run idempotently and log before/after row counts.
+
+3. **Insert range placeholders for skipped task numbers.** After dedupe, scan task numbers `1..max(taskNum)` and for every consecutive gap (e.g. `89..97` missing), insert a single placeholder row titled `Task #89-97 — (no logged content)` with `wiki_slug = platform-task-089-097`, version derived from the surrounding entries, and a short description explaining the range was unlogged. Idempotent — re-runs do not duplicate placeholders.
+
+4. **Real backfill of every missing wiki article (including the new range placeholders).** For every changelog row with `wiki_slug LIKE 'platform-task-%'` that has no matching `articles` row, create a published article in the `sevco-platform` category (id 12) using the changelog row's title, description, and version as content. After it runs, assert `count(platform-task-* articles) == count(changelog rows with platform-task-* slug)`; fail loudly on startup if the assertion breaks.
+
+5. **Make the post-merge updater upsert, not insert.** In `scripts/append-to-update-log.js`, before posting the changelog entry and the wiki article, look up the row by task ref / slug. If it exists, PATCH/update it instead of POSTing a new one. This applies to both the `/api/internal/changelog-entry` and `/api/internal/wiki-article` calls. Result: re-merging the same task ref refreshes the row in place rather than creating duplicates.
+
+6. **End-to-end verification.** After steps 1–5, walk through:
+   - `/platform` shows `#1` → latest in order, range placeholders rendered as a single muted row, no dupes.
+   - `/command/changelog` shows the same set; the health badge reads "in sync".
+   - `/wiki/engineering/sevco-platform` lists every `platform-task-*` article (real + range placeholders), each opens.
+   - Trigger one synthetic merge to confirm a brand-new task ref creates exactly one row + one article and a re-merged ref updates in place.
+
+## Relevant files
+- `.replit`
+- `server/db.ts`
+- `server/index.ts`
+- `server/routes.ts:2736-2772`
+- `server/routes.ts:2884-2912`
+- `server/routes.ts:3380-3456`
+- `server/storage.ts`
+- `scripts/post-merge.sh`
+- `scripts/append-to-update-log.js`
+- `client/src/pages/platform-page.tsx`
+- `client/src/pages/command-changelog.tsx`
+- `client/src/pages/changelog-page.tsx`
+- `replit.md`
+
+
+---
+

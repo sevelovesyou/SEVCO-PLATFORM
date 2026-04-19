@@ -30197,3 +30197,48 @@ Right now the production endpoint does return `[]` cleanly, so most users never 
 
 ---
 
+## Task — profile-tab-cleanup
+> Merged: 2026-04-19
+
+# Clean up the profile tabs and Music tab issues
+
+## What & Why
+A handful of related issues on the user profile page (`/profile/:username`):
+
+1. **Platform footer is missing on profiles.** Other pages on the site show the full SEVCO footer (Records / Projects / SEVCO Records columns, etc.). On the profile page, the footer either isn't rendering or is being pushed off-screen by a tall wrapper, leaving just a small SEVCO logo at the bottom of an otherwise empty area.
+2. **The "Overview" tab is redundant** — it duplicates content visible elsewhere on the page. It should be removed and the tab bar should default to "Posts" so visitors land on the most useful view immediately.
+3. **The Articles and Music tabs blend into the user's profile background image**, while the Posts tab does not. On Posts, each post card has a strong solid card background that stays readable over a starfield (or any custom) profile background. On Articles and Music, the section containers use the user's chosen background color at low opacity, so on profiles with a busy background image the content becomes hard to read. These two tabs should use the same standardized, opaque card background as Posts.
+4. **Music tab shows the Spark button twice on every track**, and the Edit (pencil) button gets pushed off the right edge of the row because of the extra width. The duplicate Spark needs to be removed, which also makes room for the Edit button.
+
+## Done looks like
+- Visiting any profile (including `/profile/seve`) shows the full platform footer at the bottom of the page, just like every other page on the site.
+- The profile tab bar shows only **Posts**, **Articles**, and **Music** (Music only when the user has music). Posts is the default selected tab when the page first loads or when navigating to a profile fresh.
+- On Articles and Music tabs, content sits on the same opaque card background that Posts uses — fully readable even when the profile has a busy background image (e.g., the starfield in the screenshot).
+- On the Music tab, each track row shows exactly one Spark button. On the owner's own profile, the Edit (pencil) button is fully visible (no longer cut off the right edge) and remains hover-only on desktop.
+- No regression to the look of the Posts tab, the profile header, the social-link badges, or the Discography row.
+
+## Out of scope
+- Reworking what content lives on each tab beyond the explicit changes above (e.g., don't move the "Top Posts" section to a new home unless that's the natural consequence of removing Overview — see Step 2 note).
+- Changing the global PlatformFooter component itself.
+- Any backend or schema changes.
+- Touching the Spark button component itself; just remove the duplicate render in the music row.
+
+## Steps
+1. **Restore the platform footer on profiles.** Find why the global footer isn't visible on `/profile/:username` (likely a `min-h-screen` or full-height wrapper inside the profile view pushing the footer below the viewport, or an overflow/clip rule on a parent). Adjust the profile view's outer container so the existing global footer renders normally at the bottom of the page on every profile, just like it does on `/feed`, `/wiki`, etc.
+
+2. **Remove the Overview tab and default to Posts.** Drop the Overview entry from the unified tab list. Change the initial tab state so a fresh profile load lands on **Posts**. The "Top Sparked Posts" panel that today renders only inside Overview should be folded into the Posts tab (appearing below the user's own posts) so that content isn't lost.
+
+3. **Standardize the Articles and Music tab backgrounds.** Replace the `${bgColor}88` low-opacity card backgrounds used inside the Articles tab container and inside the Music tab's section containers (Songs / Beats / Discography / empty states) with the same opaque card background style that the Posts tab's `PostCard` uses. The user's accent color should still be honored for borders and text accents — only the *fill* of these card containers should become opaque so content is readable over a busy profile background image.
+
+4. **Fix the Music row: remove the duplicate Spark, restore the Edit button.** In the per-track row inside the Music tab, there are currently two consecutive `SparkButton` renders. Remove one of them (keep the version that matches the existing pattern used elsewhere on the row), so each track shows exactly one Spark control. Verify on the owner's own profile that the pencil/Edit button at the end of the row is no longer cut off and still appears on row hover.
+
+5. **Manually verify** on `/profile/seve` (and one non-music profile) that: the footer is visible at the bottom; the tab bar has 3 tabs and lands on Posts; switching to Articles and Music shows opaque, readable cards over the starfield background; each Music row has one Spark and the Edit button is fully visible on hover for the owner.
+
+## Relevant files
+- `client/src/pages/profile-page.tsx:1135-1414,1840-2036,2040-2166`
+- `client/src/components/platform-footer.tsx`
+- `client/src/App.tsx:842-870`
+
+
+---
+

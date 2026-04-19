@@ -30162,3 +30162,38 @@ Two real problems are causing the current mess, and both have to be fixed in thi
 
 ---
 
+## Task — fix-platform-header-crash
+> Merged: 2026-04-19
+
+# Stop the page header from crashing every page
+
+## What & Why
+You opened `/feed` and saw the global "Something went wrong" screen. The page itself is fine — what's actually broken is the persistent SEVCO header that renders on every page (home, feed, wiki, command, etc.). One of its hooks (`useUnreadAnnouncements`, used by the bell/notification UI in the header) calls `new Set(dismissed)` on whatever the `/api/announcements/dismissals` endpoint returns. Its custom fetcher does not check `response.ok` before calling `.json()`, so any non-array response — a `503 { booting: true }` body during a deploy warm-up window, a `401 { message: "..." }` envelope, or a server error envelope — gets passed straight to `new Set(...)`, which throws `"object is not iterable"`, which the page-level ErrorBoundary catches and turns into the full-page error screen. The same defect exists on the announcements query right above it (typed as an array, but with no defensive check before `.filter(...)`).
+
+Right now the production endpoint does return `[]` cleanly, so most users never see this. But your browser still has a cached response from this morning's deploy window stored in React Query, which is why your `/feed` keeps failing for you specifically. More importantly, the next deploy (or any transient network blip) will trigger the exact same full-page crash for everyone.
+
+## Done looks like
+- Visiting `/feed` (and every other page) loads the SEVCO header normally — no "Something went wrong" screen.
+- A reload after a fresh deploy never shows the error screen, even during the brief warm-up window.
+- If either announcements endpoint returns a non-array (a booting 503 body, an auth-error envelope, anything malformed), the header silently treats it as "no announcements / nothing dismissed" and renders normally instead of crashing the page.
+- No change to the look or behavior of the header when the endpoints return their normal arrays.
+
+## Out of scope
+- Re-architecting the announcements feature.
+- Wiring a global "still warming up" UI for every booting-503 response (that was the broader cancelled idea — this task does the minimum needed to stop the crash).
+- Touching the `/feed` page itself; nothing on that page is broken.
+
+## Steps
+1. **Make the dismissals fetch defensive** — Have its fetcher check `response.ok` before parsing, and normalize the parsed result so it is always an array before it reaches `new Set(...)`.
+2. **Apply the same defense to the announcements query** — Normalize its result to always be an array before any `.filter` / `.sort` / spread, so a malformed cached response can't crash the header either.
+3. **Manually verify** — Reload `/feed` (the case from the screenshot) and `/` with the existing browser session and confirm the header renders with no error screen. Then simulate a malformed cached response by setting the dismissals query data to `{ booting: true }` in the browser console and confirm the header still renders cleanly.
+
+## Relevant files
+- `client/src/hooks/use-unread-announcements.ts`
+- `client/src/components/platform-header.tsx`
+- `client/src/lib/queryClient.ts:55-71`
+- `client/src/App.tsx:11,24,844,875,905`
+
+
+---
+

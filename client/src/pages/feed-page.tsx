@@ -359,7 +359,12 @@ function SocialPostCard({
   const canDelete = isOwner || isAdmin;
   const authorName = post.author.displayName || post.author.username;
   const isRepost = !!post.repostOf;
+  const missingOriginal = isRepost && !post.originalPost;
   const originalPostId = post.repostOf ?? post.id;
+  const displayAuthor = isRepost && post.originalPost ? post.originalPost.author : post.author;
+  const displayAuthorName = displayAuthor.displayName || displayAuthor.username;
+  const displayContent = isRepost && post.originalPost ? post.originalPost.content : post.content;
+  const displayImageUrl = isRepost ? post.originalPost?.imageUrl ?? null : post.imageUrl;
   const sparkCount = post.sparkCount ?? 0;
   const isSparkedByMe = post.isSparkedByMe ?? false;
   const hasGlow = sparkCount >= 5;
@@ -411,30 +416,38 @@ function SocialPostCard({
         </div>
       )}
       <div className="flex gap-3">
-        <AuthorHoverCard username={isRepost && post.originalPost ? post.originalPost.author.username : post.author.username} currentUserId={currentUserId} currentUsername={currentUsername}>
-          <Link href={`/profile/${isRepost && post.originalPost ? post.originalPost.author.username : post.author.username}`}>
-            <span className="cursor-pointer">
-              <AvatarIcon user={isRepost && post.originalPost ? post.originalPost.author : post.author} size="md" />
-            </span>
-          </Link>
-        </AuthorHoverCard>
+        {missingOriginal ? (
+          <Avatar className="h-9 w-9 shrink-0 opacity-50">
+            <AvatarFallback className="text-xs bg-muted text-muted-foreground">?</AvatarFallback>
+          </Avatar>
+        ) : (
+          <AuthorHoverCard username={displayAuthor.username} currentUserId={currentUserId} currentUsername={currentUsername}>
+            <Link href={`/profile/${displayAuthor.username}`}>
+              <span className="cursor-pointer">
+                <AvatarIcon user={displayAuthor} size="md" />
+              </span>
+            </Link>
+          </AuthorHoverCard>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="flex items-center flex-wrap gap-1.5">
-              {(() => {
-                const displayAuthor = isRepost && post.originalPost ? post.originalPost.author : post.author;
-                const displayName = displayAuthor.displayName || displayAuthor.username;
-                return (
-                  <AuthorHoverCard username={displayAuthor.username} currentUserId={currentUserId} currentUsername={currentUsername}>
-                    <Link href={`/profile/${displayAuthor.username}`}>
-                      <span className="text-sm font-semibold hover:underline cursor-pointer" data-testid={`text-post-author-${post.id}`}>
-                        {displayName}
-                      </span>
-                    </Link>
-                  </AuthorHoverCard>
-                );
-              })()}
-              <span className="text-xs text-muted-foreground">@{isRepost && post.originalPost ? post.originalPost.author.username : post.author.username}</span>
+              {missingOriginal ? (
+                <span className="text-sm font-semibold text-muted-foreground" data-testid={`text-post-author-${post.id}`}>
+                  Deleted post
+                </span>
+              ) : (
+                <AuthorHoverCard username={displayAuthor.username} currentUserId={currentUserId} currentUsername={currentUsername}>
+                  <Link href={`/profile/${displayAuthor.username}`}>
+                    <span className="text-sm font-semibold hover:underline cursor-pointer" data-testid={`text-post-author-${post.id}`}>
+                      {displayAuthorName}
+                    </span>
+                  </Link>
+                </AuthorHoverCard>
+              )}
+              {!missingOriginal && (
+                <span className="text-xs text-muted-foreground">@{displayAuthor.username}</span>
+              )}
               <span className="text-xs text-muted-foreground">·</span>
               <span className="text-xs text-muted-foreground">{formatRelativeTime(post.createdAt)}</span>
             </div>
@@ -459,17 +472,23 @@ function SocialPostCard({
             )}
           </div>
 
-          <p className="text-sm leading-relaxed whitespace-pre-wrap mb-2" data-testid={`text-post-content-${post.id}`}>
-            {isRepost && post.originalPost ? post.originalPost.content : post.content}
-          </p>
+          {missingOriginal ? (
+            <p className="text-sm italic text-muted-foreground mb-2" data-testid={`text-post-content-${post.id}`}>
+              Original post is no longer available.
+            </p>
+          ) : (
+            <p className="text-sm leading-relaxed whitespace-pre-wrap mb-2" data-testid={`text-post-content-${post.id}`}>
+              {displayContent}
+            </p>
+          )}
 
-          {(isRepost ? post.originalPost?.imageUrl : post.imageUrl) && (
+          {!missingOriginal && displayImageUrl && (
             <div
               className="mt-2 mb-3 rounded-xl overflow-hidden border cursor-pointer"
-              onClick={() => onImageClick?.(resolveImageUrl((isRepost ? post.originalPost?.imageUrl : post.imageUrl) as string))}
+              onClick={() => onImageClick?.(resolveImageUrl(displayImageUrl as string))}
             >
               <img
-                src={resolveImageUrl((isRepost ? post.originalPost?.imageUrl : post.imageUrl) as string)}
+                src={resolveImageUrl(displayImageUrl as string)}
                 alt="Post image"
                 className="w-full max-h-72 object-cover hover:opacity-90 transition-opacity"
                 data-testid={`img-post-${post.id}`}
@@ -487,7 +506,7 @@ function SocialPostCard({
               <span data-testid={`text-reply-count-${post.id}`}>{post.replyCount}</span>
             </button>
 
-            {currentUserId && (!isOwner || isRepost) && (
+            {currentUserId && !missingOriginal && (!isOwner || isRepost) && (
               <button
                 className={`flex items-center gap-1.5 text-xs transition-colors ${
                   post.repostedByCurrentUser

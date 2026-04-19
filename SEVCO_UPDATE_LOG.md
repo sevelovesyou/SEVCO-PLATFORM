@@ -30103,3 +30103,62 @@ What's wrong right now (verified against the dev DB):
 
 ---
 
+## Task — changelog-static-snapshot
+> Merged: 2026-04-19
+
+# Changelog That Mirrors the Replit Task Panel — Real Refs, Auto-Synced on Deploy
+
+## What & Why
+The user wants one thing: the changelog and `/platform` and `/wiki/engineering/sevco-platform` on the **live site** (sevco.us) should match what they see in their Replit project tasks panel — same task refs, same titles, in the same order. Latest done in the panel right now is `#522`. The published changelog should show `#522` at the top, not the wrong number.
+
+Two real problems are causing the current mess, and both have to be fixed in this task:
+
+**Problem 1 — wrong numbering system.** `scripts/append-to-update-log.js` computes its own "platform task number" by counting entries in `shared/platform-task-files.json` (currently at 499). That number has nothing to do with the real Replit project task ref. Result: when project task `#522` merges, the changelog row gets stamped `Task #499 — ...`. The two numbering systems have drifted, which is the root cause of the duplicates, gaps, and confusion across `/changelog`, `/platform`, and the wiki category page.
+
+**Problem 2 — production reads a different database.** sevco.us has its own `DATABASE_URL` set in Replit Deployments (verified by hitting `https://sevco.us/api/changelog` directly: it returns 214 rows ending at `Task #190` from Mar 29, while the preview DB has 444+ rows ending at the latest merge). The user has refused to copy/paste secrets. So we sync data via the repo: every merge dumps a JSON snapshot, every deploy reads it on startup and upserts into whatever DB it's connected to.
+
+## Done looks like
+- The user does nothing — no secret edits, no manual sync, no clicking around in Deployments.
+- After this task merges and the auto-deploy completes, **sevco.us shows the same task refs as the Replit project task panel.** Today that means `#522` at the top, then `#519`, `#517`, `#516`, `#515`, `#514`, `#513`, `#510`, `#509` and so on, exactly matching what the user sees in their panel.
+- Each changelog entry's title format is `Task #<real ref> — <real title>` (e.g. `Task #522 — Clean task history: prod=dev DB, dedupe, range placeholders, full backfill, upsert on re-merge`). The wiki article slug for that entry is `platform-task-522`. No homegrown counter anywhere.
+- Skipped task refs (e.g. `#511`, `#512`, `#518`, `#520`, `#521`, `#523`, `#524` — the cancelled ones) appear as muted range placeholders (`Task #511-512 — (cancelled)` etc.) rather than as missing rows or fabricated ones.
+- Going forward: every merge regenerates the snapshot, every auto-deploy ships it, production self-syncs on startup. The "in sync" badge reads true on both the preview and the live site within a minute or two of each merge, with no further user action.
+
+## Out of scope
+- Touching deployment secrets, the production `DATABASE_URL`, or any Replit Deployments configuration.
+- Restructuring the `changelog` or `articles` tables.
+- Redesigning any of the three pages.
+- Renumbering or rewriting historical entries that already use the old script-counter system — they get **rewritten in place** to use the real task ref via the snapshot upsert. After this task, every visible row uses the real ref.
+
+## Steps
+
+1. **Replace the homegrown task-number counter with the real Replit project task ref.** In `scripts/append-to-update-log.js`, remove the `computePlatformTaskNum` logic that reads `shared/platform-task-files.json`. Instead, look up the real task ref via the project task system (the merge already knows which task ref triggered it; pass it in via the sidecar pointer added in #519, or query `listProjectTasks` and match by plan-file path / title). Use that real ref to build the changelog title (`Task #<ref> — <title>`), the wiki slug (`platform-task-<ref>`), and the update-log filename. Delete `shared/platform-task-files.json` and the duplicate list once nothing imports it.
+
+2. **One-time renumber of the existing changelog rows.** Build a mapping from each existing `platform-task-NNN` row to the real Replit task ref it actually represents (by matching titles in the `changelog` table against project task titles via `searchProjectTasks` or `listProjectTasks`). Update every changelog row's title and `wiki_slug` in place to use the real ref, and rename matching wiki article slugs the same way. Idempotent — re-runs on already-renumbered rows are no-ops. Log every rename for review.
+
+3. **Range-collapse cancelled / never-existed task refs.** After the renumber, scan task refs `1..<latest real ref>` in the project task list. For each consecutive run of refs that have no merged content (cancelled, or never created), insert a single muted placeholder row titled `Task #X-Y — (cancelled)` or `Task #X-Y — (no content)` with slug `platform-task-X-Y`. Idempotent.
+
+4. **Generate a JSON snapshot on every merge.** As the last step in `scripts/post-merge.sh`, dump every `platform-task-*` row from the preview DB into `data/changelog-snapshot.json`, including the matching wiki article content. The file is committed as part of the merge so the next deploy ships it.
+
+5. **Auto-sync on production startup.** Add a startup migration in `server/index.ts` that reads `data/changelog-snapshot.json` and upserts every entry into the `changelog` and `articles` tables (keyed by slug). Idempotent — runs in every environment, so production self-heals on every deploy and matches the snapshot exactly.
+
+6. **End-to-end verify on the live site.** After this merges and the auto-deploy completes, hit `https://sevco.us/api/changelog` directly and confirm the row count and latest task ref match what's in the user's project task panel. Open sevco.us `/platform`, `/changelog`, and `/wiki/engineering/sevco-platform` in a hard-refreshed tab and confirm `#522` (or whatever the latest merged ref is at that moment) sits at the top, with all earlier refs in clean numerical order and cancelled refs collapsed into ranges.
+
+## Relevant files
+- `scripts/post-merge.sh`
+- `scripts/append-to-update-log.js`
+- `scripts/create-wiki-article.js`
+- `shared/platform-task-files.json`
+- `server/index.ts`
+- `server/storage.ts`
+- `server/routes.ts:2736-2772`
+- `server/routes.ts:2884-2912`
+- `server/routes.ts:3380-3456`
+- `client/src/pages/platform-page.tsx`
+- `client/src/pages/command-changelog.tsx`
+- `client/src/pages/changelog-page.tsx`
+- `replit.md`
+
+
+---
+

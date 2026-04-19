@@ -653,6 +653,163 @@ async function runStartupMigrations() {
     salt VARCHAR(64) NOT NULL
   );`);
 
+  // Task #522 — Step A: Idempotent historical dedupe of the platform task
+  // changelog. For any duplicate "Task #N — ..." rows that share the same
+  // task number (or the same wiki_slug), keep the newest by created_at and
+  // delete the rest. Then delete orphan platform-task-* articles whose
+  // slug no longer matches any changelog row. This compensates for older
+  // post-merge runs that inserted instead of upserted.
+  try {
+    // Dedupe by exact wiki_slug match (canonical key for platform tasks)
+    const dupeBySlug = await pool.query(
+      `DELETE FROM changelog WHERE id IN (
+         SELECT id FROM (
+           SELECT id, ROW_NUMBER() OVER (
+             PARTITION BY wiki_slug ORDER BY created_at DESC, id DESC
+           ) AS rn
+           FROM changelog
+           WHERE wiki_slug LIKE 'platform-task-%'
+         ) t WHERE t.rn > 1
+       )`,
+    );
+    // Dedupe by task number parsed from title (covers rows that pre-date wiki_slug)
+    const allTaskRows = await pool.query<{ id: number; title: string; created_at: string; wiki_slug: string | null }>(
+      `SELECT id, title, created_at, wiki_slug FROM changelog WHERE title ~ '^Task #[0-9]+'`,
+    );
+    const SINGLE_TASK_RE_DD = /^Task #(\d+)(?:[^\d-]|$)/;
+    const byNum = new Map<number, Array<{ id: number; created_at: Date }>>();
+    for (const r of allTaskRows.rows) {
+      const m = r.title.match(SINGLE_TASK_RE_DD);
+      if (!m) continue;
+      const n = parseInt(m[1], 10);
+      const arr = byNum.get(n) ?? [];
+      arr.push({ id: r.id, created_at: new Date(r.created_at) });
+      byNum.set(n, arr);
+    }
+    const dupeIds: number[] = [];
+    for (const arr of byNum.values()) {
+      if (arr.length <= 1) continue;
+      arr.sort((a, b) => b.created_at.getTime() - a.created_at.getTime() || b.id - a.id);
+      for (let i = 1; i < arr.length; i++) dupeIds.push(arr[i].id);
+    }
+    let dupeByNum = 0;
+    if (dupeIds.length > 0) {
+      const r = await pool.query(`DELETE FROM changelog WHERE id = ANY($1::int[])`, [dupeIds]);
+      dupeByNum = r.rowCount ?? 0;
+    }
+    // Drop orphan platform-task-* articles (article exists but no matching changelog row)
+    const orphanArticles = await pool.query(
+      `DELETE FROM articles WHERE slug LIKE 'platform-task-%'
+         AND slug NOT IN (SELECT wiki_slug FROM changelog WHERE wiki_slug LIKE 'platform-task-%')`,
+    );
+    const totalRemoved = (dupeBySlug.rowCount ?? 0) + dupeByNum + (orphanArticles.rowCount ?? 0);
+    if (totalRemoved > 0) {
+      console.log(
+        `[startup] Dedupe — removed ${dupeBySlug.rowCount ?? 0} slug-dupe changelog row(s), ` +
+        `${dupeByNum} number-dupe changelog row(s), ${orphanArticles.rowCount ?? 0} orphan article(s)`,
+      );
+    }
+  } catch (err: any) {
+    console.warn("[startup] Platform-task dedupe skipped:", err?.message ?? err);
+  }
+
+  // Task #522 — Step B: Insert range placeholders for skipped platform task
+  // numbers. For every consecutive gap (e.g. tasks #88..#97 missing) we
+  // insert a single muted "Task #N-M — (no logged content)" changelog row
+  // with a matching platform-task-NNN-MMM slug. Idempotent: existing slugs
+  // are skipped. Version is derived from the surrounding real entries so
+  // /platform's version timeline stays continuous. Runs BEFORE the article
+  // backfill below so the backfill picks up the new placeholder rows in
+  // the same boot.
+  try {
+    const { rows: parsedRows } = await pool.query<{ title: string; created_at: string; version: string | null }>(
+      `SELECT title, created_at, version FROM changelog WHERE title ~ '^Task #[0-9]+'`
+    );
+    const existingNums = new Map<number, Date>();
+    const versionByNum = new Map<number, string | null>();
+    const SINGLE_TASK_RE = /^Task #(\d+)(?:[^\d-]|$)/;
+    for (const r of parsedRows) {
+      const m = r.title.match(SINGLE_TASK_RE);
+      if (!m) continue; // skip range placeholders like "Task #88-97 — ..."
+      const n = parseInt(m[1], 10);
+      existingNums.set(n, new Date(r.created_at));
+      versionByNum.set(n, r.version);
+    }
+    const sortedNums = Array.from(existingNums.keys()).sort((a, b) => a - b);
+    const maxTaskNum = sortedNums.length ? sortedNums[sortedNums.length - 1] : 0;
+    if (maxTaskNum > 0) {
+      const present = new Set(sortedNums);
+      const gaps: Array<{ start: number; end: number }> = [];
+      let gapStart: number | null = null;
+      for (let n = 1; n <= maxTaskNum; n++) {
+        if (present.has(n)) {
+          if (gapStart !== null) {
+            gaps.push({ start: gapStart, end: n - 1 });
+            gapStart = null;
+          }
+        } else if (gapStart === null) {
+          gapStart = n;
+        }
+      }
+      if (gapStart !== null) gaps.push({ start: gapStart, end: maxTaskNum - 1 });
+
+      let placeholdersCreated = 0;
+      for (const gap of gaps) {
+        const slug = `platform-task-${String(gap.start).padStart(3, "0")}-${String(gap.end).padStart(3, "0")}`;
+        // Derive version from the surrounding real entries so the
+        // /platform version timeline doesn't show a NULL gap.
+        const beforeVersion = versionByNum.get(gap.start - 1) ?? null;
+        const afterVersion = versionByNum.get(gap.end + 1) ?? null;
+        const gapVersion = beforeVersion ?? afterVersion ?? null;
+        const existsCheck = await pool.query(
+          `SELECT 1 FROM changelog WHERE wiki_slug = $1 LIMIT 1`,
+          [slug],
+        );
+        if ((existsCheck.rowCount ?? 0) > 0) {
+          // Backfill version on existing placeholder rows that were
+          // inserted before this version-derivation logic existed.
+          if (gapVersion) {
+            await pool.query(
+              `UPDATE changelog SET version = $1
+                 WHERE wiki_slug = $2 AND (version IS NULL OR version = '')`,
+              [gapVersion, slug],
+            );
+          }
+          continue;
+        }
+        // Pick a createdAt that slots between the surrounding real entries
+        // so the timeline ordering stays sensible.
+        const before = existingNums.get(gap.start - 1);
+        const after = existingNums.get(gap.end + 1);
+        let createdAt: Date;
+        if (before && after) {
+          createdAt = new Date((before.getTime() + after.getTime()) / 2);
+        } else if (before) {
+          createdAt = new Date(before.getTime() + 1000);
+        } else if (after) {
+          createdAt = new Date(after.getTime() - 1000);
+        } else {
+          createdAt = new Date();
+        }
+        const title = `Task #${gap.start}-${gap.end} — (no logged content)`;
+        const description =
+          `Tasks #${gap.start} through #${gap.end} merged before the platform changelog was wired up, ` +
+          `or their plan files were never persisted. This placeholder keeps the task ordering intact.`;
+        await pool.query(
+          `INSERT INTO changelog (title, description, category, version, wiki_slug, created_at)
+             VALUES ($1, $2, 'other', $3, $4, $5)`,
+          [title, description, gapVersion, slug, createdAt.toISOString()],
+        );
+        placeholdersCreated++;
+      }
+      if (placeholdersCreated > 0) {
+        console.log(`[startup] Inserted ${placeholdersCreated} range placeholder(s) for task gaps`);
+      }
+    }
+  } catch (err: any) {
+    console.warn("[startup] Range-placeholder insertion skipped:", err?.message ?? err);
+  }
+
   // Task #519 (replaces #517) — Backfill missing platform wiki articles for
   // every changelog row whose wiki_slug points at platform-task-* but the
   // matching article was never persisted. Idempotent (LEFT JOIN guard) and
@@ -725,9 +882,44 @@ async function runStartupMigrations() {
         `changelog rows: ${beforeChangelog}→${afterChangelog}, ` +
         `articles: ${beforeArticles}→${afterArticles}, still missing: ${stillMissing}`,
       );
+
     }
   } catch (err: any) {
     console.warn("[startup] Platform-wiki backfill skipped:", err?.message ?? err);
+  }
+
+  // Task #522 — Hard sync assertion. Run OUTSIDE the backfill try/catch
+  // so it actually fails startup if /platform, /command/changelog, and
+  // /wiki/engineering/sevco-platform have drifted. Every changelog row
+  // with a platform-task-* slug must have a matching article and vice
+  // versa. If counts differ we fail loudly so the next deploy catches
+  // it instead of shipping a silently-broken page.
+  {
+    const finalCounts = await pool.query(
+      `SELECT
+         (SELECT COUNT(*)::int FROM changelog WHERE wiki_slug LIKE 'platform-task-%') AS changelog_rows,
+         (SELECT COUNT(*)::int FROM articles  WHERE slug      LIKE 'platform-task-%') AS article_rows`
+    );
+    const cl = finalCounts.rows[0]?.changelog_rows ?? 0;
+    const ar = finalCounts.rows[0]?.article_rows  ?? 0;
+    if (cl !== ar) {
+      const detail = await pool.query(
+        `SELECT c.wiki_slug AS slug, 'missing-article' AS reason FROM changelog c
+           LEFT JOIN articles a ON a.slug = c.wiki_slug
+          WHERE c.wiki_slug LIKE 'platform-task-%' AND a.id IS NULL
+         UNION ALL
+         SELECT a.slug, 'orphan-article' AS reason FROM articles a
+           LEFT JOIN changelog c ON c.wiki_slug = a.slug
+          WHERE a.slug LIKE 'platform-task-%' AND c.id IS NULL
+          LIMIT 10`
+      );
+      const sample = detail.rows.map((r) => `${r.slug}(${r.reason})`).join(", ");
+      throw new Error(
+        `[startup] Platform-wiki sync assertion FAILED — changelog rows: ${cl}, article rows: ${ar}. ` +
+        `Sample drift: ${sample}. Refusing to start.`,
+      );
+    }
+    console.log(`[startup] Platform-wiki sync assertion OK — ${cl} changelog rows ↔ ${ar} articles`);
   }
 
   console.log("[startup] migrations applied");

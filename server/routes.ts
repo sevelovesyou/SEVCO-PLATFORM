@@ -3202,14 +3202,22 @@ export async function registerRoutes(
       const validCategories = ["feature", "fix", "improvement", "other"];
       const safeCategory = validCategories.includes(category) ? category : "other";
 
+      // Task #522 — Real upsert keyed by wikiSlug (stable per task ref) or
+      // by exact title as a fallback. Re-merging the same task ref must
+      // refresh the existing row in place, never insert a duplicate.
       const existing = await storage.getChangelog();
-      const existingEntry = existing.find((e) => e.title === title);
+      const existingEntry =
+        (wikiSlug && existing.find((e) => e.wikiSlug === wikiSlug)) ||
+        existing.find((e) => e.title === title);
       if (existingEntry) {
-        if (wikiSlug && !existingEntry.wikiSlug) {
-          const updated = await storage.updateChangelogEntry(existingEntry.id, { wikiSlug });
-          return res.json({ action: "linked", entry: updated });
-        }
-        return res.json({ action: "skipped", message: "Entry with this title already exists" });
+        const updated = await storage.updateChangelogEntry(existingEntry.id, {
+          title,
+          description: description.slice(0, 500),
+          category: safeCategory,
+          version,
+          wikiSlug: wikiSlug || existingEntry.wikiSlug || null,
+        });
+        return res.json({ action: "updated", entry: updated });
       }
 
       const entry = await storage.createChangelogEntry({

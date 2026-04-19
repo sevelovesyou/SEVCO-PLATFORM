@@ -653,41 +653,81 @@ async function runStartupMigrations() {
     salt VARCHAR(64) NOT NULL
   );`);
 
-  // Task #517 — Backfill missing platform wiki articles for changelog rows
-  // whose wiki_slug points at platform-task-* but the article was never
-  // persisted (auto-updater used to silently swallow wiki POST failures).
-  // Idempotent: skips rows whose article already exists.
+  // Task #519 (replaces #517) — Backfill missing platform wiki articles for
+  // every changelog row whose wiki_slug points at platform-task-* but the
+  // matching article was never persisted. Idempotent (LEFT JOIN guard) and
+  // verified to actually run + log the result on every startup so we can
+  // see it worked. This is what makes /wiki/engineering/sevco-platform line
+  // up with /platform and /command/changelog after every merge.
   try {
     const platformCat = await storage.getCategoryBySlug("sevco-platform");
-    if (platformCat) {
+    if (!platformCat) {
+      console.warn("[startup] Platform-wiki backfill skipped: 'sevco-platform' category does not exist yet");
+    } else {
+      const before = await pool.query(
+        `SELECT
+           (SELECT COUNT(*)::int FROM changelog WHERE wiki_slug LIKE 'platform-task-%') AS changelog_rows,
+           (SELECT COUNT(*)::int FROM articles WHERE slug LIKE 'platform-task-%')      AS article_rows`
+      );
+      const beforeChangelog = before.rows[0]?.changelog_rows ?? 0;
+      const beforeArticles  = before.rows[0]?.article_rows  ?? 0;
+
       const orphans = await pool.query(
-        `SELECT c.id, c.title, c.description, c.version, c.wiki_slug, c.created_at
+        `SELECT c.id, c.title, c.description, c.version, c.wiki_slug
            FROM changelog c
            LEFT JOIN articles a ON a.slug = c.wiki_slug
           WHERE c.wiki_slug LIKE 'platform-task-%'
-            AND a.id IS NULL`
+            AND a.id IS NULL
+          ORDER BY c.id`
       );
+
+      let created = 0;
       if (orphans.rows.length > 0) {
-        let peter = await storage.getUserByUsername("Peter");
+        const peter = await storage.getUserByUsername("Peter");
         for (const row of orphans.rows) {
-          const versionLine = row.version ? `_Version: ${row.version}_\n\n` : "";
-          const content = `# ${row.title}\n\n${versionLine}${row.description}\n`;
-          await storage.createArticle({
-            title: row.title,
-            slug: row.wiki_slug,
-            content,
-            summary: row.description,
-            categoryId: platformCat.id,
-            status: "published",
-            tags: ["platform-history", "engineering", "backfilled"],
-            authorId: peter?.id ?? null,
-          });
+          try {
+            const versionLine = row.version ? `_Version: ${row.version}_\n\n` : "";
+            const content =
+              `# ${row.title}\n\n${versionLine}${row.description ?? ""}\n\n` +
+              `---\n\n_This article was auto-backfilled from the changelog by the post-merge → /platform pipeline (Task #519). ` +
+              `If a richer version of this task plan exists in the platform task corpus, it will replace this one on the next merge of that task._\n`;
+            await storage.createArticle({
+              title: row.title,
+              slug: row.wiki_slug,
+              content,
+              summary: row.description ?? null,
+              categoryId: platformCat.id,
+              status: "published",
+              tags: ["platform-history", "engineering", "backfilled"],
+              authorId: peter?.id ?? null,
+            });
+            created++;
+          } catch (rowErr: any) {
+            // Race-safe: a parallel insert (or unique-constraint hit on slug)
+            // shouldn't kill the whole backfill — log and keep going.
+            console.warn(
+              `[startup] Backfill could not create article for ${row.wiki_slug}: ${rowErr?.message ?? rowErr}`,
+            );
+          }
         }
-        console.log(`[startup] Task #517 backfill — created ${orphans.rows.length} missing platform wiki article(s)`);
       }
+
+      const after = await pool.query(
+        `SELECT
+           (SELECT COUNT(*)::int FROM changelog WHERE wiki_slug LIKE 'platform-task-%') AS changelog_rows,
+           (SELECT COUNT(*)::int FROM articles WHERE slug LIKE 'platform-task-%')      AS article_rows`
+      );
+      const afterChangelog = after.rows[0]?.changelog_rows ?? 0;
+      const afterArticles  = after.rows[0]?.article_rows  ?? 0;
+      const stillMissing = Math.max(0, afterChangelog - afterArticles);
+      console.log(
+        `[startup] Platform-wiki backfill complete — created ${created}, ` +
+        `changelog rows: ${beforeChangelog}→${afterChangelog}, ` +
+        `articles: ${beforeArticles}→${afterArticles}, still missing: ${stillMissing}`,
+      );
     }
   } catch (err: any) {
-    console.warn("[startup] Task #517 platform-wiki backfill skipped:", err?.message ?? err);
+    console.warn("[startup] Platform-wiki backfill skipped:", err?.message ?? err);
   }
 
   console.log("[startup] migrations applied");

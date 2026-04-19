@@ -76,6 +76,19 @@ export default function CommandChangelog() {
     enabled: canAccess,
   });
 
+  // Task #519 — Surface the post-merge → /platform pipeline health on the
+  // changelog page so any drift between the changelog table and the
+  // platform-task wiki articles is caught immediately.
+  const { data: health } = useQuery<{
+    changelogRows: number;
+    platformArticles: number;
+    missingCount: number;
+    missingSlugs: string[];
+  }>({
+    queryKey: ["/api/platform-health"],
+    enabled: canAccess,
+  });
+
   const latestVersion = entries?.[0]?.version ?? null;
   const suggestedVersion = suggestNextVersion(latestVersion);
 
@@ -148,6 +161,24 @@ export default function CommandChangelog() {
           {latestVersion && (
             <span className="text-[10px] font-mono bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
               v{latestVersion}
+            </span>
+          )}
+          {health && (
+            <span
+              className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+                health.missingCount === 0
+                  ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20"
+                  : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
+              }`}
+              title={
+                health.missingCount === 0
+                  ? "Every changelog row has a matching /platform wiki article."
+                  : `Missing platform-task wiki articles: ${health.missingSlugs.slice(0, 5).join(", ")}${health.missingSlugs.length > 5 ? "…" : ""}`
+              }
+              data-testid="status-platform-health"
+            >
+              {health.changelogRows} changelog / {health.platformArticles} articles
+              {health.missingCount > 0 ? ` — ${health.missingCount} missing` : " — in sync"}
             </span>
           )}
         </div>

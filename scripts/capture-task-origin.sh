@@ -14,8 +14,17 @@ if [ ! -f "$PLAN_FILE" ]; then
   exit 1
 fi
 
+# Task #519 — Always write the sidecar pointer FIRST, even if the Origin /
+# Request section is already present. The pointer is what post-merge.sh
+# uses to know exactly which plan file goes with the next merge instead
+# of guessing with `ls -t`. scripts/post-merge.sh deletes this file after
+# it processes the merge.
+mkdir -p .local
+echo "$PLAN_FILE" > .local/.last-merged-task-plan
+echo "Wrote sidecar pointer .local/.last-merged-task-plan -> $PLAN_FILE"
+
 if grep -q "^## Origin / Request" "$PLAN_FILE" 2>/dev/null; then
-  echo "Origin / Request section already present in $PLAN_FILE, skipping."
+  echo "Origin / Request section already present in $PLAN_FILE, skipping append."
   exit 0
 fi
 

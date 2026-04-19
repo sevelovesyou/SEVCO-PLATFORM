@@ -20,18 +20,33 @@ export function useUnreadAnnouncements() {
   const { user } = useAuth();
   const { visitorKey } = useVoice();
 
-  const { data: announcements = [], refetch } = useQuery<Announcement[]>({
+  const { data: announcementsRaw, refetch } = useQuery<unknown>({
     queryKey: ["/api/announcements"],
     refetchInterval: 60_000,
   });
+  const announcements: Announcement[] = Array.isArray(announcementsRaw)
+    ? (announcementsRaw as Announcement[])
+    : [];
 
-  const { data: dismissed = [], refetch: refetchDismissed } = useQuery<number[]>({
+  const { data: dismissedRaw, refetch: refetchDismissed } = useQuery<unknown>({
     queryKey: ["/api/announcements/dismissals", user?.id || visitorKey],
-    queryFn: () =>
-      fetch(`/api/announcements/dismissals?visitorKey=${encodeURIComponent(visitorKey)}`, {
-        credentials: "include",
-      }).then((r) => r.json()),
+    queryFn: async () => {
+      try {
+        const r = await fetch(
+          `/api/announcements/dismissals?visitorKey=${encodeURIComponent(visitorKey)}`,
+          { credentials: "include" },
+        );
+        if (!r.ok) return [];
+        const parsed = await r.json();
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    },
   });
+  const dismissed: number[] = Array.isArray(dismissedRaw)
+    ? (dismissedRaw as number[])
+    : [];
 
   useEffect(() => {
     const onNew = () => refetch();

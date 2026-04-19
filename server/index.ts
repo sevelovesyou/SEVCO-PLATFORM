@@ -16,6 +16,9 @@ import { startNewsAggregator } from "./news-aggregator";
 import { sevcoSitesMiddleware } from "./sites-middleware";
 import { runFileMigrations } from "./fileMigrator";
 import { applySchemaFromCode } from "./schemaSync";
+import type { InsertArticle } from "@shared/schema";
+import { readFileSync, existsSync } from "fs";
+import { resolve as pathResolve } from "path";
 
 const SPARK_PACK_DEFS = [
   { name: "Starter", sparks: 1000,   price: 800,   sortOrder: 0 },
@@ -87,6 +90,138 @@ async function seedSparkPacks() {
   } catch (err: any) {
     console.warn("[sparks] Pack seed skipped:", err?.message ?? err);
   }
+}
+
+// Task #525 — On every boot, read data/changelog-snapshot.json and upsert
+// every entry into the local DB. The snapshot is regenerated on every
+// merge by scripts/dump-changelog-snapshot.js (called from post-merge.sh)
+// and committed as part of the merge, so each deploy ships the latest
+// preview-DB state. Production then self-syncs its own DB on startup —
+// this is what keeps sevco.us aligned with the Replit preview without
+// touching deployment secrets. Idempotent: rows that match exactly are
+// skipped; rows that differ are updated; missing rows are inserted.
+async function applyChangelogSnapshot() {
+  const snapshotPath = pathResolve(process.cwd(), "data", "changelog-snapshot.json");
+  if (!existsSync(snapshotPath)) {
+    console.log("[snapshot] data/changelog-snapshot.json not found — skipping snapshot apply");
+    return;
+  }
+  let payload: any;
+  try {
+    payload = JSON.parse(readFileSync(snapshotPath, "utf8"));
+  } catch (err: any) {
+    console.warn(`[snapshot] could not parse snapshot: ${err?.message ?? err} — skipping`);
+    return;
+  }
+  const entries: any[] = Array.isArray(payload?.entries) ? payload.entries : [];
+  if (entries.length === 0) {
+    console.log("[snapshot] snapshot is empty — nothing to apply");
+    return;
+  }
+
+  const platformCat = await storage.getCategoryBySlug("sevco-platform");
+  if (!platformCat) {
+    console.warn("[snapshot] 'sevco-platform' category missing — only changelog rows will be applied; articles will be backfilled on the next boot once the category exists");
+  }
+  const peter = await storage.getUserByUsername("Peter").catch(() => null);
+
+  let changelogInserted = 0;
+  let changelogUpdated  = 0;
+  let articlesInserted  = 0;
+  let articlesUpdated   = 0;
+
+  for (const e of entries) {
+    if (!e?.wikiSlug || typeof e.wikiSlug !== "string" || !e.wikiSlug.startsWith("platform-task-")) continue;
+    const title       = String(e.title ?? "").trim();
+    const description = String(e.description ?? "").trim();
+    const category    = (e.category ?? "improvement");
+    const version     = e.version ?? null;
+    const wikiSlug    = e.wikiSlug;
+    const createdAt   = e.createdAt ? new Date(e.createdAt) : new Date();
+    if (!title || !description) continue;
+
+    // ── changelog upsert (keyed by wiki_slug) ──
+    try {
+      const existing = await pool.query(
+        `SELECT id, title, description, category, version FROM changelog WHERE wiki_slug = $1 LIMIT 1`,
+        [wikiSlug],
+      );
+      if ((existing.rowCount ?? 0) === 0) {
+        await pool.query(
+          `INSERT INTO changelog (title, description, category, version, wiki_slug, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+          [title, description, category, version, wikiSlug, createdAt.toISOString()],
+        );
+        changelogInserted++;
+      } else {
+        const row = existing.rows[0];
+        const differs =
+          row.title       !== title       ||
+          row.description !== description ||
+          row.category    !== category    ||
+          (row.version ?? null) !== (version ?? null);
+        if (differs) {
+          await pool.query(
+            `UPDATE changelog SET title = $1, description = $2, category = $3, version = $4 WHERE id = $5`,
+            [title, description, category, version, row.id],
+          );
+          changelogUpdated++;
+        }
+      }
+    } catch (err: any) {
+      console.warn(`[snapshot] changelog upsert failed for ${wikiSlug}: ${err?.message ?? err}`);
+    }
+
+    // ── article upsert (keyed by slug) ── only when we have content + category
+    if (!platformCat) continue;
+    const articleContent = typeof e.articleContent === "string" ? e.articleContent : null;
+    const articleSummary = typeof e.articleSummary === "string" ? e.articleSummary : description;
+    const articleTags    = Array.isArray(e.articleTags) ? e.articleTags : ["platform-history", "engineering"];
+    if (!articleContent) continue;
+
+    try {
+      const existing = await pool.query(
+        `SELECT id, title, content, summary FROM articles WHERE slug = $1 LIMIT 1`,
+        [wikiSlug],
+      );
+      if ((existing.rowCount ?? 0) === 0) {
+        const insert: InsertArticle = {
+          title,
+          slug: wikiSlug,
+          content: articleContent,
+          summary: articleSummary,
+          categoryId: platformCat.id,
+          status: "published",
+          tags: articleTags,
+          authorId: peter?.id ?? null,
+        };
+        await storage.createArticle(insert);
+        articlesInserted++;
+      } else {
+        const row = existing.rows[0];
+        const differs =
+          row.title   !== title          ||
+          row.content !== articleContent ||
+          (row.summary ?? null) !== (articleSummary ?? null);
+        if (differs) {
+          await pool.query(
+            `UPDATE articles SET title = $1, content = $2, summary = $3, updated_at = NOW() WHERE id = $4`,
+            [title, articleContent, articleSummary, row.id],
+          );
+          articlesUpdated++;
+        }
+      }
+    } catch (err: any) {
+      console.warn(`[snapshot] article upsert failed for ${wikiSlug}: ${err?.message ?? err}`);
+    }
+  }
+
+  console.log(
+    `[snapshot] Applied changelog snapshot — ${entries.length} entries; ` +
+    `changelog: +${changelogInserted}/~${changelogUpdated}, ` +
+    `articles: +${articlesInserted}/~${articlesUpdated}` +
+    (payload.generatedAt ? ` (snapshot generated ${payload.generatedAt})` : ""),
+  );
 }
 
 async function runStartupMigrations() {
@@ -1041,6 +1176,10 @@ async function initStripe() {
   }
   await initStripe().catch((err) => console.error("Stripe init error:", err));
   await seedDatabase().catch((err) => console.error("Seed error:", err));
+  // Task #525 — Apply the committed changelog snapshot after seedDatabase()
+  // creates the 'sevco-platform' category. This is what makes prod self-sync
+  // its changelog/wiki tables to match the preview on every deploy.
+  await applyChangelogSnapshot().catch((err) => console.error("Changelog snapshot apply error:", err));
   await promoteFounderToAdmin().catch((err) => console.error("Promotion error:", err));
   await markExistingUsersVerified().catch((err) => console.error("Email verify migration error:", err));
   await seedProjects().catch((err) => console.error("Project seed error:", err));

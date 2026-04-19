@@ -59,15 +59,18 @@ After changing OG image or description in Command Center, X's cached card must b
 
 Alternatively, append a one-time query string (e.g. `?v=2`) to the URL you share in the tweet to bypass X's cache for that specific share.
 
-## Platform Changelog / Wiki Sync (Task #522)
+## Platform Changelog / Wiki Sync (Tasks #522, #525)
 
-`/platform`, `/command/changelog`, and `/wiki/engineering/sevco-platform` all read from a single source: the `changelog` table joined with the `articles` table on `wiki_slug = slug`. Three guarantees are enforced at startup in `runStartupMigrations` (`server/index.ts`):
+`/platform`, `/command/changelog`, and `/wiki/engineering/sevco-platform` all read from a single source: the `changelog` table joined with the `articles` table on `wiki_slug = slug`. Guarantees enforced at startup in `runStartupMigrations` + `applyChangelogSnapshot` (`server/index.ts`):
 
-1. **Single database for prod and dev.** There must be no production-only `DATABASE_URL` override in deployment secrets — both environments share the same Postgres so the published site mirrors the Replit preview. Adding a prod-only `DATABASE_URL` will silently re-introduce drift.
-2. **Range placeholders for skipped task numbers.** Any consecutive gap in `Task #N` numbering is auto-filled with one muted `Task #N-M — (no logged content)` row + matching `platform-task-NNN-MMM` article. Idempotent; re-runs do not duplicate.
-3. **Hard sync assertion.** After backfilling missing articles, startup throws if any `platform-task-*` changelog row still lacks an article. This is intentional — a failing boot is preferred over silently shipping a broken `/platform`.
+1. **Range placeholders for skipped task numbers.** Any consecutive gap in `Task #N` numbering is auto-filled with one muted `Task #N-M — (no logged content)` row + matching `platform-task-NNN-MMM` article. Idempotent; re-runs do not duplicate.
+2. **Hard sync assertion.** After backfilling missing articles, startup throws if any `platform-task-*` changelog row still lacks an article. This is intentional — a failing boot is preferred over silently shipping a broken `/platform`.
+3. **Snapshot-based prod auto-sync (Task #525).** Production deployment uses its own database (separate from the Replit preview). To keep sevco.us aligned without ever touching deployment secrets, the changelog data is shipped **inside the repo** as a versioned snapshot at `data/changelog-snapshot.json`. Pipeline:
+    - On every merge, `scripts/post-merge.sh` calls `scripts/dump-changelog-snapshot.js` after the changelog/wiki upsert. The script queries the preview DB (already deduped + range-placeholder'd by the existing startup migrations) and dumps every `platform-task-*` changelog row + its matching wiki article content into `data/changelog-snapshot.json`. The file is committed as part of the merge.
+    - On every boot in every environment, `applyChangelogSnapshot()` reads the snapshot and upserts every entry into the local `changelog` and `articles` tables (keyed by `wikiSlug` / `slug`). Idempotent: identical rows are skipped, changed rows updated, missing rows inserted. Runs after `seedDatabase()` so the `sevco-platform` category exists.
+    - **Result:** every merge → next deploy → production self-syncs in ~1-2 min, no per-environment configuration. Do not bypass this pipeline by hand-editing the snapshot — it gets regenerated on the next merge.
 
-Re-merging the same task ref **updates** the existing changelog row + wiki article in place. The internal endpoints (`/api/internal/changelog-entry`, `/api/internal/wiki-article`) are upserts keyed by `wikiSlug` / `slug`. The post-merge pipeline (`scripts/post-merge.sh` → `scripts/append-to-update-log.js`) calls these endpoints for every merge.
+Re-merging the same task ref **updates** the existing changelog row + wiki article in place. The internal endpoints (`/api/internal/changelog-entry`, `/api/internal/wiki-article`) are upserts keyed by `wikiSlug` / `slug`. The post-merge pipeline (`scripts/post-merge.sh` → `scripts/append-to-update-log.js` → `scripts/dump-changelog-snapshot.js`) handles everything for every merge.
 
 ## External Dependencies
 - **Database**: PostgreSQL

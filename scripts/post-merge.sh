@@ -58,6 +58,19 @@ if [ -n "$LATEST_TASK" ]; then
   # fails the script exits non-zero; surfacing that failure here is what
   # keeps /platform and /changelog from drifting silently.
   node scripts/append-to-update-log.js "$LATEST_TASK"
+
+  # Task #525 — After the changelog/wiki upsert completes, dump every
+  # platform-task-* changelog row + its matching wiki article content to
+  # data/changelog-snapshot.json. The file is committed as part of the
+  # merge so the next deploy ships it; production then reads it at boot
+  # and self-syncs its own DB. This is what keeps sevco.us aligned with
+  # the Replit preview without ever touching deployment secrets.
+  echo "Dumping changelog snapshot to data/changelog-snapshot.json"
+  # Task #525 — Hard-fail if the snapshot dump errors. The whole point of
+  # the snapshot pipeline is that prod self-syncs to whatever is committed
+  # in this file; silently shipping a stale snapshot is the failure mode
+  # this task exists to eliminate.
+  node scripts/dump-changelog-snapshot.js
 else
   echo "No task plan files found."
 fi

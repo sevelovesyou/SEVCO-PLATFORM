@@ -29978,3 +29978,61 @@ The fix has two parts: make `/platform` read from the same source of truth as `/
 
 ---
 
+## Task — post-merge-reliability-and-backfill
+> Merged: 2026-04-19
+
+# Reliable Post-Merge → /platform Pipeline + Full Backfill
+
+## What & Why
+The user's goal: **every Replit task (#1 through #517 today, and every future merge) should automatically appear on `/platform`, `/command/changelog`, AND `/wiki/engineering/sevco-platform`, all sharing one source of truth that updates on merge.**
+
+Where we are:
+- `/platform` and `/command/changelog` already share a source — they both render from the `changelog` DB table (440 rows, covering Tasks #1–#497). These two are aligned.
+- `/wiki/engineering/sevco-platform` (the wiki category page for `sevco-platform`) is the broken one. Only **3** `platform-task-*` wiki articles exist in the category (#495, #496, #497). Task #517 claimed to backfill 413 articles but the migration did not actually create them, so deep links from `/platform` "Read more" 404 for nearly every historical task.
+- The post-merge pipeline is also fragile in two ways the user wants fixed:
+  1. `scripts/post-merge.sh` uses `ls -t .local/tasks/*.md | head -1` to guess which plan file goes with the merge. If two tasks merge close together or any file in `.local/tasks/` is touched out of order, the wrong title/content gets associated with the merge. Replit's `[postMerge]` hook in `.replit` does not pass the merged plan-file path, so the script has to infer it.
+  2. The canonical task list `PLATFORM_ORDERED_FILES` is duplicated between `server/routes.ts:1245` and `scripts/append-to-update-log.js:240`. When they drift, slug computation drifts and tasks get the wrong number or collide.
+
+## Done looks like
+- Visiting `/platform`, `/command/changelog`, and `/wiki/engineering/sevco-platform` each shows entries for **every** Replit task #1 through #517 (and #518 once this ships). The same set in each place, in the same order.
+- Clicking "Read more" on any `/platform` row from any historical task lands on a real `/wiki/platform-task-NNN` page, not a 404.
+- The next time a task merges, post-merge writes to all three surfaces using the **actual plan file for that task**, not a guess. If two tasks merge back-to-back, each gets its own correct entry.
+- `PLATFORM_ORDERED_FILES` lives in exactly one place; the server and the script both import it, so they cannot drift.
+- A simple admin-visible health number ("X changelog rows / Y platform articles — N missing") exists somewhere reachable (e.g. on `/command/changelog` header) so future drift is caught immediately instead of silently.
+
+## Out of scope
+- Redesigning the `/platform`, `/changelog`, or wiki category page UI.
+- Changing how `create-wiki-article.js` (the feature-mapping appender) works.
+- Touching the version-number scheme or the changelog admin form.
+- Migrating the changelog table structure.
+
+## Steps
+
+1. **Single source of truth for the task list.** Move `PLATFORM_ORDERED_FILES` (and the appendix list) into one shared module that both the server and the post-merge script can import — for example a plain `.json` file under `scripts/` or a `shared/` module — and have `server/routes.ts` and `scripts/append-to-update-log.js` both read from it. Delete the duplicate. Verify task-number computation is unchanged for every existing entry.
+
+2. **Pass the actual merged plan file to post-merge.** Since Replit's `[postMerge]` hook does not pass arguments, write a sidecar pointer file (e.g. `.local/.last-merged-task-plan`) at task-completion time — the natural place is alongside the existing `.local/.commit_message` write that already happens before merge, or via the existing `scripts/capture-task-origin.sh` pattern. Update `scripts/post-merge.sh` to prefer the sidecar pointer and fall back to the current `ls -t` only when the pointer is missing or stale (older than the most recent plan-file mtime). Delete the sidecar after successful processing so a stale pointer can never be reused.
+
+3. **Backfill every missing platform-task wiki article — for real this time.** Replace the broken Task #517 startup migration with one that is actually verified to run and complete. For every row in the `changelog` table whose `wiki_slug` matches `platform-task-%` and has no corresponding `articles` row, create a published article in the `sevco-platform` category (id 12). The article should use the changelog row's `title`, `description`, and `version` as content, plus a one-line note that the article was auto-backfilled from the changelog. Make the migration idempotent (LEFT JOIN guard). After it runs, confirm article-count-in-category-12 ≈ changelog-row-count-with-platform-task-slug, and log the result on startup so we can see it worked.
+
+4. **Health surface so this never regresses silently.** Add a small `/api/platform-health` endpoint that returns `{ changelogRows, platformArticles, missingSlugs: [...] }` and surface the numbers in the `/command/changelog` page header (admin-only). If `missingSlugs` is non-empty after a merge, the gap is visible immediately.
+
+5. **End-to-end verification.** After the migration runs and the pipeline change is deployed, walk through the three pages and confirm: `/platform` shows tasks #1–#517; `/command/changelog` shows tasks #1–#517; `/wiki/engineering/sevco-platform` lists every `platform-task-*` article and each one opens. Then trigger a synthetic test merge (or watch the next real merge) and confirm the new task lands on all three surfaces with the correct title and slug.
+
+## Relevant files
+- `server/routes.ts:1245-1480`
+- `server/routes.ts:2884-2912`
+- `server/routes.ts:3380-3456`
+- `server/index.ts`
+- `server/storage.ts`
+- `scripts/post-merge.sh`
+- `scripts/append-to-update-log.js`
+- `scripts/create-wiki-article.js`
+- `scripts/capture-task-origin.sh`
+- `.replit`
+- `client/src/pages/platform-page.tsx`
+- `client/src/pages/command-changelog.tsx`
+- `client/src/pages/changelog-page.tsx`
+
+
+---
+

@@ -259,7 +259,33 @@ async function applyChangelogSnapshot() {
         if (row.inserted) changelogInserted++; else changelogUpdated++;
       }
     } catch (err: any) {
-      console.warn(`[snapshot] changelog batch upsert failed (size ${batch.length}): ${err?.message ?? err}`);
+      // Task #528 — Per-row fallback so a single bad row in the batch
+      // doesn't drop up to 99 valid rows along with it.
+      console.warn(`[snapshot] changelog batch upsert failed (size ${batch.length}): ${err?.message ?? err} — retrying per-row`);
+      for (const r of batch) {
+        try {
+          const res = await pool.query(
+            `INSERT INTO changelog (title, description, category, version, wiki_slug, created_at)
+               VALUES ($1, $2, $3, $4, $5, $6)
+             ON CONFLICT (wiki_slug) WHERE wiki_slug IS NOT NULL DO UPDATE SET
+               title       = EXCLUDED.title,
+               description = EXCLUDED.description,
+               category    = EXCLUDED.category,
+               version     = EXCLUDED.version
+             WHERE changelog.title       IS DISTINCT FROM EXCLUDED.title
+                OR changelog.description IS DISTINCT FROM EXCLUDED.description
+                OR changelog.category    IS DISTINCT FROM EXCLUDED.category
+                OR changelog.version     IS DISTINCT FROM EXCLUDED.version
+             RETURNING (xmax = 0) AS inserted`,
+            [r.title, r.description, r.category, r.version, r.wikiSlug, r.createdAt],
+          );
+          for (const row of res.rows) {
+            if (row.inserted) changelogInserted++; else changelogUpdated++;
+          }
+        } catch (rowErr: any) {
+          console.warn(`[snapshot] changelog row skipped (wiki_slug=${r.wikiSlug}): ${rowErr?.message ?? rowErr}`);
+        }
+      }
     }
   }
 
@@ -295,7 +321,31 @@ async function applyChangelogSnapshot() {
           if (row.inserted) articlesInserted++; else articlesUpdated++;
         }
       } catch (err: any) {
-        console.warn(`[snapshot] articles batch upsert failed (size ${batch.length}): ${err?.message ?? err}`);
+        // Task #528 — Per-row fallback so a single bad row doesn't drop the batch.
+        console.warn(`[snapshot] articles batch upsert failed (size ${batch.length}): ${err?.message ?? err} — retrying per-row`);
+        for (const r of batch) {
+          try {
+            const res = await pool.query(
+              `INSERT INTO articles (title, slug, content, summary, category_id, status, tags, author_id)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+               ON CONFLICT (slug) DO UPDATE SET
+                 title      = EXCLUDED.title,
+                 content    = EXCLUDED.content,
+                 summary    = EXCLUDED.summary,
+                 updated_at = NOW()
+               WHERE articles.title   IS DISTINCT FROM EXCLUDED.title
+                  OR articles.content IS DISTINCT FROM EXCLUDED.content
+                  OR articles.summary IS DISTINCT FROM EXCLUDED.summary
+               RETURNING (xmax = 0) AS inserted`,
+              [r.title, r.slug, r.content, r.summary, platformCat.id, status, r.tags, authorId],
+            );
+            for (const row of res.rows) {
+              if (row.inserted) articlesInserted++; else articlesUpdated++;
+            }
+          } catch (rowErr: any) {
+            console.warn(`[snapshot] articles row skipped (slug=${r.slug}): ${rowErr?.message ?? rowErr}`);
+          }
+        }
       }
     }
   }
@@ -1335,23 +1385,29 @@ async function runBackgroundStartup() {
   // Task #526 — Run the sync assertion AFTER the snapshot has had its
   // chance to insert/update. Warn-and-continue (no throw) so a stale prod
   // DB cannot crash the Promote stage like it did under Task #525.
-  await assertPlatformWikiSync().catch((err) => console.warn("Sync assertion error:", err?.message ?? err));
-  await promoteFounderToAdmin().catch((err) => console.error("Promotion error:", err));
-  await markExistingUsersVerified().catch((err) => console.error("Email verify migration error:", err));
-  await seedProjects().catch((err) => console.error("Project seed error:", err));
-  await seedServices().catch((err) => console.error("Service seed error:", err));
-  await seedInfrastructureServices().catch((err) => console.error("Infrastructure services seed error:", err));
-  await migrateServiceCategories().catch((err) => console.error("Service category migration error:", err));
-  await seedPlaylists().catch((err) => console.error("Playlist seed error:", err));
-  await seedStoreProducts().catch((err) => console.error("Store products seed error:", err));
-  await seedFeatureArticles().catch((err) => console.error("Feature articles seed error:", err));
-  await storage.seedSocialLinksIfEmpty().catch((err) => console.error("Social links seed error:", err));
-  await storage.migrateSocialLinksShowOnListen().catch((err) => console.error("Social links listen migration error:", err));
-  await checkEmailCredentials().catch((err) => console.warn("[email] Startup credential check failed:", err?.message ?? err));
-  logEmptyBodyEmails().catch((err) => console.warn("[email] Backfill check error:", err?.message ?? err));
+  // Task #528 — Every background step routed through trackErr so any
+  // failure is reflected in bootError and the final bootState. Sync
+  // assertion and email/credential checks are warnings (not failures)
+  // because they're advisory and shouldn't flip the app to "failed".
+  const warnOnly = (label: string) => (err: any) =>
+    console.warn(`[startup] ${label}: ${err?.message ?? err}`);
+  await assertPlatformWikiSync().catch(warnOnly("assertPlatformWikiSync"));
+  await promoteFounderToAdmin().catch(trackErr("promoteFounderToAdmin"));
+  await markExistingUsersVerified().catch(trackErr("markExistingUsersVerified"));
+  await seedProjects().catch(trackErr("seedProjects"));
+  await seedServices().catch(trackErr("seedServices"));
+  await seedInfrastructureServices().catch(trackErr("seedInfrastructureServices"));
+  await migrateServiceCategories().catch(trackErr("migrateServiceCategories"));
+  await seedPlaylists().catch(trackErr("seedPlaylists"));
+  await seedStoreProducts().catch(trackErr("seedStoreProducts"));
+  await seedFeatureArticles().catch(trackErr("seedFeatureArticles"));
+  await storage.seedSocialLinksIfEmpty().catch(trackErr("seedSocialLinksIfEmpty"));
+  await storage.migrateSocialLinksShowOnListen().catch(trackErr("migrateSocialLinksShowOnListen"));
+  await checkEmailCredentials().catch(warnOnly("checkEmailCredentials"));
+  logEmptyBodyEmails().catch(warnOnly("logEmptyBodyEmails"));
   // seedFeatureArticles() handles SEVCO Platform wiki articles (25 feature-area articles in category ID 12)
   // Seed official Spark Packs
-  await seedSparkPacks().catch((err: any) => console.warn("[sparks] Pack seed warning:", err?.message ?? err));
+  await seedSparkPacks().catch(trackErr("seedSparkPacks"));
 
   // Seed default Shader Studio presets (idempotent)
   await (async () => {

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useMusicPlayer } from "@/contexts/music-player-context";
 import type { MusicTrack, Album } from "@shared/schema";
 import { SparkButton } from "@/components/spark-button";
+import { SparkIcon } from "@/components/spark-icon";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageHead } from "@/components/page-head";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -1147,7 +1148,7 @@ function ProfileMusicTab({ username, isOwnProfile, accentColor, bgColor, tracks,
   const [editingTrack, setEditingTrack] = useState<MusicTrack | null>(null);
 
   const borderColor = accentColor ? `${accentColor}33` : "var(--border)";
-  const cardBg = bgColor ? `${bgColor}88` : "var(--card)";
+  const cardBg = "hsl(var(--card))";
   const mutedColor = accentColor ? `${accentColor}99` : "var(--muted-foreground)";
 
   const songs = tracks.filter((t) => t.type !== "instrumental");
@@ -1242,27 +1243,18 @@ function ProfileMusicTab({ username, isOwnProfile, accentColor, bgColor, tracks,
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        <SparkButton
-          entityType="track"
-          entityId={track.id}
-          sparkCount={track.sparkCount ?? 0}
-          sparkedByCurrentUser={track.sparkedByCurrentUser ?? false}
-          isOwner={!!user && user.username === username}
-          size="sm"
-          className="shrink-0"
-        />
-        <span className="text-xs shrink-0 tabular-nums" style={{ color: mutedColor }} data-testid={`text-track-duration-${track.id}`}>
-          {formatDuration(track.duration)}
-        </span>
         <span className="shrink-0" onClick={(e) => e.stopPropagation()}>
           <SparkButton
             entityType="track"
             entityId={track.id}
-            sparkCount={(track as any).sparkCount ?? 0}
-            sparkedByCurrentUser={(track as any).sparkedByCurrentUser ?? false}
+            sparkCount={track.sparkCount ?? 0}
+            sparkedByCurrentUser={track.sparkedByCurrentUser ?? false}
             isOwner={isOwnProfile}
             size="sm"
           />
+        </span>
+        <span className="text-xs shrink-0 tabular-nums" style={{ color: mutedColor }} data-testid={`text-track-duration-${track.id}`}>
+          {formatDuration(track.duration)}
         </span>
         {isOwnProfile && (
           <Button
@@ -1450,19 +1442,20 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
   const tabFromUrl = (() => {
     const sp = new URLSearchParams(search);
     const t = sp.get("tab");
-    return t === "music" ? "music" : "overview";
+    if (t === "music") return "music";
+    if (t === "articles") return "articles";
+    return "posts";
   })();
-  const setActiveProfileTab = (tab: "overview" | "music") => {
+  const setActiveProfileTab = (tab: "posts" | "articles" | "music") => {
     const sp = new URLSearchParams(search);
-    if (tab === "overview") sp.delete("tab"); else sp.set("tab", tab);
+    if (tab === "posts") sp.delete("tab"); else sp.set("tab", tab);
     const qs = sp.toString();
     navigate(`${currentPath}${qs ? `?${qs}` : ""}`, { replace: true });
   };
   // gating happens after showMusicTab is computed below
-  let activeProfileTab: "overview" | "music" = tabFromUrl;
+  let activeProfileTab: "posts" | "articles" | "music" = tabFromUrl;
   const [followersOpen, setFollowersOpen] = useState(false);
   const [followingOpen, setFollowingOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"posts" | "articles">("posts");
   const [deletePostId, setDeletePostId] = useState<number | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
@@ -1481,7 +1474,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
   const hasTracks = profileTracks.length > 0;
   const showMusicTab = hasTracks || isOwnProfile;
   if (activeProfileTab === "music" && !showMusicTab && !musicLoading) {
-    activeProfileTab = "overview";
+    activeProfileTab = "posts";
   }
   useEffect(() => {
     if (tabFromUrl === "music" && !showMusicTab && !musicLoading) {
@@ -1566,9 +1559,9 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
   const isWide = layout === "wide";
 
   return (
-    <div className="min-h-screen relative" style={bgColor ? { backgroundColor: bgColor } : {}}>
+    <div className="relative w-full overflow-hidden" style={bgColor ? { backgroundColor: bgColor } : {}}>
       {bgImage && (
-        <div className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${resolveImageUrl(bgImage)})`, opacity: bgOpacity, transform: "translateZ(0)", zIndex: 0 }} />
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${resolveImageUrl(bgImage)})`, opacity: bgOpacity, transform: "translateZ(0)", zIndex: 0 }} />
       )}
       {profileFont === "handwritten" && (
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap" />
@@ -1846,44 +1839,29 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
           </div>
         </div>
 
-        {/* Unified profile tab bar (Overview / Posts / Articles / Music) */}
+        {/* Unified profile tab bar (Posts / Articles / Music) */}
         {(() => {
-          const unifiedTabs: Array<{ id: "overview" | "posts" | "articles" | "music"; label: string }> = [
-            { id: "overview", label: "Overview" },
+          const unifiedTabs: Array<{ id: "posts" | "articles" | "music"; label: string }> = [
             { id: "posts", label: "Posts" },
             { id: "articles", label: "Articles" },
             ...(showMusicTab ? [{ id: "music" as const, label: "Music" }] : []),
           ];
-          const isTabActive = (id: "overview" | "posts" | "articles" | "music") => {
-            if (id === "music") return activeProfileTab === "music";
-            if (id === "overview") return activeProfileTab === "overview";
-            return activeProfileTab === "overview" && activeTab === id;
-          };
           return (
             <div
               className="mt-5 rounded-xl border overflow-hidden"
               style={{
-                background: bgColor ? `${bgColor}88` : "var(--card)",
+                background: "hsl(var(--card))",
                 borderColor: accentColor ? `${accentColor}33` : "var(--border)",
               }}
               data-testid="profile-tab-bar"
             >
               <div className="flex gap-1 overflow-x-auto px-2">
                 {unifiedTabs.map((tab) => {
-                  const isActive = isTabActive(tab.id);
+                  const isActive = activeProfileTab === tab.id;
                   return (
                     <button
                       key={tab.id}
-                      onClick={() => {
-                        if (tab.id === "music") {
-                          setActiveProfileTab("music");
-                        } else if (tab.id === "overview") {
-                          setActiveProfileTab("overview");
-                        } else {
-                          setActiveProfileTab("overview");
-                          setActiveTab(tab.id);
-                        }
-                      }}
+                      onClick={() => setActiveProfileTab(tab.id)}
                       className={`px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors ${isActive ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
                       style={isActive && accentColor ? { borderColor: accentColor, color: accentColor } : {}}
                       data-testid={`tab-profile-${tab.id}`}
@@ -1911,44 +1889,83 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
           </div>
         )}
 
-        {activeProfileTab === "overview" && (
-        <>
         {/* Posts tab */}
-        {activeTab === "posts" && (
-          <div className="mt-4 space-y-3 min-h-[40vh]">
-            {postsLoading ? (
-              Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)
-            ) : (userPosts ?? []).length === 0 ? (
-              <div
-                className="rounded-xl border px-5 py-8 text-center"
-                style={{ background: bgColor ? `${bgColor}88` : "var(--card)", borderColor: accentColor ? `${accentColor}33` : "var(--border)" }}
-              >
-                <p className="text-sm" style={{ color: accentColor ? `${accentColor}88` : "var(--muted-foreground)" }}>
-                  No posts yet.
-                </p>
+        {activeProfileTab === "posts" && (
+          <>
+            <div className="mt-4 space-y-3 min-h-[40vh]">
+              {postsLoading ? (
+                Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)
+              ) : (userPosts ?? []).length === 0 ? (
+                <div
+                  className="rounded-xl border px-5 py-8 text-center"
+                  style={{ background: "hsl(var(--card))", borderColor: accentColor ? `${accentColor}33` : "var(--border)" }}
+                >
+                  <p className="text-sm" style={{ color: accentColor ? `${accentColor}88` : "var(--muted-foreground)" }}>
+                    No posts yet.
+                  </p>
+                </div>
+              ) : (
+                (userPosts ?? []).map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    currentUserId={currentUserId}
+                    canDelete={isOwnProfile}
+                    onDelete={(id) => deletePostMutation.mutate(id)}
+                    onImageClick={setLightboxUrl}
+                  />
+                ))
+              )}
+            </div>
+
+            {/* Top Sparked Posts — folded into Posts tab */}
+            {topSparkedPosts && topSparkedPosts.length > 0 && (
+              <div className="mt-6">
+                <div
+                  className="rounded-xl border overflow-hidden"
+                  style={{ background: "hsl(var(--card))", borderColor: accentColor ? `${accentColor}33` : "var(--border)" }}
+                  data-testid="section-top-sparked-posts"
+                >
+                  <div
+                    className="px-5 py-3 border-b flex items-center gap-2"
+                    style={{ borderColor: accentColor ? `${accentColor}22` : "var(--border)" }}
+                  >
+                    <SparkIcon size="md" decorative />
+                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: accentColor ? `${accentColor}99` : "var(--muted-foreground)" }}>
+                      Top Posts
+                    </span>
+                  </div>
+                  <div className="divide-y" style={{ borderColor: accentColor ? `${accentColor}11` : "var(--border)" }}>
+                    {topSparkedPosts.map((post) => (
+                      <div key={post.id} className="px-5 py-3 flex items-start gap-3" data-testid={`top-sparked-post-${post.id}`}>
+                        <div className="flex items-center gap-1 text-amber-500 shrink-0 mt-0.5">
+                          <SparkIcon size="md" decorative />
+                          <span className="text-xs font-semibold">{post.sparkCount ?? 0}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm line-clamp-2" style={{ color: accentColor || "var(--foreground)" }}>
+                            {post.repostOf && post.originalPost ? post.originalPost.content : post.content}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5" data-testid={`top-sparked-post-time-${post.id}`}>
+                            {formatRelativeTime(post.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            ) : (
-              (userPosts ?? []).map((post) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  currentUserId={currentUserId}
-                  canDelete={isOwnProfile}
-                  onDelete={(id) => deletePostMutation.mutate(id)}
-                  onImageClick={setLightboxUrl}
-                />
-              ))
             )}
-          </div>
+          </>
         )}
 
         {/* Articles tab */}
-        {activeTab === "articles" && (
+        {activeProfileTab === "articles" && (
           <div className="mt-4 min-h-[40vh]">
             {recentArticles && recentArticles.length > 0 ? (
               <div
                 className="rounded-xl border overflow-hidden"
-                style={{ background: bgColor ? `${bgColor}88` : "var(--card)", borderColor: accentColor ? `${accentColor}33` : "var(--border)" }}
+                style={{ background: "hsl(var(--card))", borderColor: accentColor ? `${accentColor}33` : "var(--border)" }}
               >
                 <div
                   className="px-5 py-3 border-b text-xs font-semibold uppercase tracking-wider"
@@ -1977,7 +1994,7 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
             ) : (
               <div
                 className="rounded-xl border px-5 py-8 text-center"
-                style={{ background: bgColor ? `${bgColor}88` : "var(--card)", borderColor: accentColor ? `${accentColor}33` : "var(--border)" }}
+                style={{ background: "hsl(var(--card))", borderColor: accentColor ? `${accentColor}33` : "var(--border)" }}
               >
                 <p className="text-sm" style={{ color: accentColor ? `${accentColor}88` : "var(--muted-foreground)" }}>
                   No articles yet.
@@ -1985,47 +2002,6 @@ function ProfileView({ profile, isOwnProfile, onEdit, currentUserId }: {
               </div>
             )}
           </div>
-        )}
-
-      {/* Top Sparked Posts (Overview only) */}
-      {topSparkedPosts && topSparkedPosts.length > 0 && (
-        <div className="mt-6">
-          <div
-            className="rounded-xl border overflow-hidden"
-            style={{ background: bgColor ? `${bgColor}88` : "var(--card)", borderColor: accentColor ? `${accentColor}33` : "var(--border)" }}
-            data-testid="section-top-sparked-posts"
-          >
-            <div
-              className="px-5 py-3 border-b flex items-center gap-2"
-              style={{ borderColor: accentColor ? `${accentColor}22` : "var(--border)" }}
-            >
-              <SparkIcon size="md" decorative />
-              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: accentColor ? `${accentColor}99` : "var(--muted-foreground)" }}>
-                Top Posts
-              </span>
-            </div>
-            <div className="divide-y" style={{ borderColor: accentColor ? `${accentColor}11` : "var(--border)" }}>
-              {topSparkedPosts.map((post) => (
-                <div key={post.id} className="px-5 py-3 flex items-start gap-3" data-testid={`top-sparked-post-${post.id}`}>
-                  <div className="flex items-center gap-1 text-amber-500 shrink-0 mt-0.5">
-                    <SparkIcon size="md" decorative />
-                    <span className="text-xs font-semibold">{post.sparkCount ?? 0}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm line-clamp-2" style={{ color: accentColor || "var(--foreground)" }}>
-                      {post.repostOf && post.originalPost ? post.originalPost.content : post.content}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5" data-testid={`top-sparked-post-time-${post.id}`}>
-                      {formatRelativeTime(post.createdAt)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-        </>
         )}
       </div>
 

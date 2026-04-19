@@ -18,7 +18,8 @@ import { runFileMigrations } from "./fileMigrator";
 import { applySchemaFromCode } from "./schemaSync";
 import type { InsertArticle } from "@shared/schema";
 import { readFileSync, existsSync } from "fs";
-import { resolve as pathResolve } from "path";
+import { resolve as pathResolve, dirname as pathDirname } from "path";
+import { fileURLToPath } from "url";
 
 const SPARK_PACK_DEFS = [
   { name: "Starter", sparks: 1000,   price: 800,   sortOrder: 0 },
@@ -111,9 +112,29 @@ async function applyChangelogSnapshot() {
   // dev cwd is repo root (data/), prod cwd is repo root with `node
   // dist/index.cjs` (dist/data/), and if cwd ever becomes dist/ itself,
   // the leading data/ candidate still resolves.
+  // Also try a path relative to this module's compiled location so we are
+  // robust to the runtime cwd being something other than the repo root or
+  // dist/. In the prod CJS bundle this file lives at dist/index.cjs, so
+  // the snapshot sits next to it under dist/data/. In dev (tsx) this
+  // file is server/index.ts, so ../data resolves to repo-root/data.
+  let moduleRelativeCandidate: string | null = null;
+  try {
+    // import.meta.url works in tsx ESM; in the esbuild CJS bundle it is
+    // rewritten away, so wrap in try/catch and fall back silently.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const metaUrl = (typeof import.meta !== "undefined" ? (import.meta as any).url : undefined);
+    if (metaUrl) {
+      const here = fileURLToPath(metaUrl);
+      moduleRelativeCandidate = pathResolve(pathDirname(here), "..", "data", "changelog-snapshot.json");
+    }
+  } catch {}
+  if (!moduleRelativeCandidate && typeof __dirname !== "undefined") {
+    moduleRelativeCandidate = pathResolve(__dirname, "..", "data", "changelog-snapshot.json");
+  }
   const candidates = [
     pathResolve(process.cwd(), "data", "changelog-snapshot.json"),
     pathResolve(process.cwd(), "dist", "data", "changelog-snapshot.json"),
+    ...(moduleRelativeCandidate ? [moduleRelativeCandidate] : []),
   ];
   const snapshotPath = candidates.find((p) => existsSync(p));
   if (!snapshotPath) {

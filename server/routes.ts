@@ -3,18 +3,11 @@ import { createServer, type Server } from "http";
 import { readFileSync, existsSync, statSync, readdirSync, unlinkSync } from "fs";
 import path from "path";
 
-// Task #519 — Resolve from process.cwd() so this works in BOTH the dev
-// tsx runtime (ESM) AND the bundled production build (CJS via esbuild
-// `format: "cjs"`). Using `import.meta.url` here would throw at runtime
-// inside the CJS bundle because `import.meta` is empty there.
-const PLATFORM_TASK_FILES_PATH = path.resolve(
-  process.cwd(),
-  "shared",
-  "platform-task-files.json",
-);
-const platformTaskFiles = JSON.parse(
-  readFileSync(PLATFORM_TASK_FILES_PATH, "utf8"),
-) as { ordered: string[]; appendix: string[] };
+// Task #526 — shared/platform-task-files.json was the single source of
+// truth for the legacy hand-mapped 191-task list (Task #519). It is gone
+// now: data/changelog-snapshot.json is the new authoritative source, the
+// snapshot is regenerated on every merge, applied at boot, and uses the
+// real Replit project-task ref. No more hand-maintained ordering.
 import { z } from "zod";
 import { storage } from "./storage";
 import {
@@ -1256,125 +1249,14 @@ async function seedTaskChangelogEntries() {
   }
 }
 
-// Task #519 — single source of truth: shared/platform-task-files.json
-// Both this file and scripts/append-to-update-log.js read from there so the
-// task-number mapping cannot drift. Do NOT redeclare these arrays inline.
-const PLATFORM_ORDERED_FILES = platformTaskFiles.ordered;
-const PLATFORM_APPENDIX_FILES = platformTaskFiles.appendix;
-const ALL_PLATFORM_FILES_191 = [...PLATFORM_ORDERED_FILES, ...PLATFORM_APPENDIX_FILES];
-
-function taskNumToVersion(taskNum: number): string {
-  if (taskNum <= 29)  return `0.${taskNum}.0`;
-  if (taskNum <= 100) return `1.${taskNum - 29}.0`;
-  if (taskNum <= 160) return `2.${taskNum - 100}.0`;
-  return `3.${taskNum - 160}.0`;
-}
-
-function detectPlatformCategory(text: string): "feature" | "fix" | "improvement" | "other" {
-  const lower = text.toLowerCase();
-  if (/\bfix\b|\bbug\b|\bcrash\b|\berror\b/.test(lower)) return "fix";
-  if (/\bnew\b|\badd(ed)?\b|\bcreate\b|\bbuild|\bredesign\b|\boverhaul\b/.test(lower)) return "feature";
-  if (/\bimprov|\benhance|\bupdat|\bpolish|\brefine\b/.test(lower)) return "improvement";
-  return "other";
-}
-
-function extractPlatformTitle(content: string, fallback: string): string {
-  const fm = content.match(/^---[\s\S]*?title:\s*(.+?)[\s\S]*?---/m);
-  if (fm) return fm[1].trim().replace(/^['"]|['"]$/g, "");
-  for (const line of content.split("\n")) {
-    const m = line.match(/^#\s+(.+)/);
-    if (m) return m[1].trim();
-  }
-  return fallback;
-}
-
-function extractPlatformSummary(content: string): string {
-  const whyMatch = content.match(/##\s+What\s*&\s*Why\s*\n+([\s\S]*?)(?:\n##|\n---|\z)/);
-  if (whyMatch) {
-    const lines = whyMatch[1].split("\n").map((l) => l.trim()).filter(Boolean);
-    if (lines.length > 0) return lines[0].replace(/^[-*]\s*/, "").slice(0, 300);
-  }
-  const lines = content.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#") && !l.startsWith("---") && !l.startsWith(">"));
-  return (lines[0] || "").slice(0, 300);
-}
-
+// Task #526 — Legacy seeder retired. Platform task changelog rows + wiki
+// articles are now seeded by applyChangelogSnapshot() in server/index.ts,
+// which reads data/changelog-snapshot.json (regenerated on every merge by
+// scripts/dump-changelog-snapshot.js). The function is kept as a no-op
+// because it is still called from registerRoutes — remove the call site
+// and this stub once the call has been deleted.
 async function seedAllTasksToChangelog() {
-  try {
-    const TASKS_DIR = ".local/tasks";
-    const ALL_PLATFORM_FILES = ALL_PLATFORM_FILES_191;
-
-    // Startup guard: skip if 191+ Task # changelog entries already exist.
-    // Wiki articles are no longer created here — the wiki uses feature-area articles instead.
-    const existingAll = await storage.getChangelog();
-    const platformTaskEntries = existingAll.filter(
-      (e) => e.title.startsWith("Task #")
-    );
-    if (platformTaskEntries.length >= 191) {
-      console.log(
-        `[seedAllTasksToChangelog] Skipped — ${platformTaskEntries.length} task changelog entries already exist`
-      );
-      return;
-    }
-    // Log what's missing to aid debugging when seeder needs to run
-    const linkedNums = new Set(platformTaskEntries.map((e) => {
-      const m = e.title.match(/^Task #(\d+)/); return m ? parseInt(m[1]) : null;
-    }).filter(Boolean));
-    const missing = Array.from({ length: 191 }, (_, i) => i + 1).filter((n) => !linkedNums.has(n));
-    if (missing.length > 0) {
-      console.log(`[seedAllTasksToChangelog] Missing ${missing.length} changelog entries: tasks #${missing.slice(0, 10).join(", ")}${missing.length > 10 ? "..." : ""}`);
-    }
-    const existing = existingAll;
-
-    let platformCat = await storage.getCategoryBySlug("sevco-platform");
-    if (!platformCat) {
-      platformCat = await storage.createCategory({
-        name: "SEVCO Platform",
-        slug: "sevco-platform",
-        description: "Complete SEVCO Platform development history — every task plan, every feature, every fix, in chronological order.",
-        icon: "layers",
-      });
-    }
-
-    const existingTitles = new Set(existing.map((e) => e.title));
-
-    for (let idx = 0; idx < ALL_PLATFORM_FILES.length; idx++) {
-      try {
-        const filename = ALL_PLATFORM_FILES[idx];
-        const taskNum = idx + 1;
-        const filePath = `${TASKS_DIR}/${filename}`;
-
-        if (!existsSync(filePath)) continue;
-
-        const content = readFileSync(filePath, "utf8");
-        const title = extractPlatformTitle(content, filename.replace(".md", "").replace(/-/g, " "));
-        const fullTitle = `Task #${taskNum} — ${title}`;
-        const summary = extractPlatformSummary(content);
-        const category = detectPlatformCategory(content);
-        const version = taskNumToVersion(taskNum);
-        const wikiSlug = `platform-task-${String(taskNum).padStart(3, "0")}`;
-
-        const mtime = statSync(filePath).mtime;
-
-        let changelogEntry = existing.find((e) => e.title === fullTitle);
-        if (!changelogEntry && !existingTitles.has(fullTitle)) {
-          changelogEntry = await storage.createChangelogEntryWithDate(
-            { title: fullTitle, description: summary.slice(0, 500) || `Platform task #${taskNum}`, category, version, wikiSlug: null },
-            mtime,
-          );
-          existingTitles.add(fullTitle);
-        }
-
-        // Wiki article creation removed — SEVCO Platform now uses 25 feature-area articles.
-        // Changelog entries only (no per-task wiki articles).
-      } catch (err: any) {
-        console.warn(`[seedAllTasksToChangelog] Error processing task #${idx + 1}: ${err.message}`);
-      }
-    }
-
-    console.log(`[seedAllTasksToChangelog] Done — processed ${ALL_PLATFORM_FILES.length} tasks (${PLATFORM_ORDERED_FILES.length} ordered + ${PLATFORM_APPENDIX_FILES.length} appendix)`);
-  } catch (err: any) {
-    console.warn(`[seedAllTasksToChangelog] Fatal error: ${err.message}`);
-  }
+  return;
 }
 
 async function seedWikiCategories() {
@@ -2755,12 +2637,30 @@ export async function registerRoutes(
                ORDER BY c.id`,
         )
       ).rows as Array<{ slug: string; title: string }>;
+      const orphans = (
+        await db.execute(
+          sql`SELECT a.slug, a.title
+                FROM articles a
+                LEFT JOIN changelog c ON c.wiki_slug = a.slug
+               WHERE a.slug LIKE 'platform-task-%'
+                 AND c.id IS NULL
+               ORDER BY a.slug`,
+        )
+      ).rows as Array<{ slug: string; title: string }>;
+      // Task #526 — Surface the boot-time sync assertion result so the
+      // admin dashboard can show whether the soft assertion passed or
+      // detected drift on the most recent boot.
+      const { getLastSyncAssertionResult } = await import("./index");
+      const bootAssertion = getLastSyncAssertionResult();
       res.json({
         changelogRows,
         platformArticles,
         missingCount: missing.length,
         missingSlugs: missing.map((r) => r.slug),
         missingTitles: missing,
+        orphanCount: orphans.length,
+        orphanSlugs: orphans.map((r) => r.slug),
+        bootAssertion,
       });
     } catch (err: any) {
       res.status(500).json({ message: err.message });

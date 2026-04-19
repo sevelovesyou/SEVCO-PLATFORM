@@ -54,10 +54,38 @@ if [ -n "$LATEST_TASK" ]; then
   echo "Creating wiki article from task plan: $LATEST_TASK"
   node scripts/create-wiki-article.js "$LATEST_TASK" || true
   echo "Appending to update log and changelog: $LATEST_TASK"
+  # Task #526 — Resolve the canonical Replit task ref. Order matters:
+  #   1. If LATEST_TASK itself is named task-NNN.md, use NNN — this is the
+  #      ONLY truly-merged-plan-derived signal; it can never be off.
+  #   2. Otherwise parse the first "# Task #N" line from the plan content.
+  #   3. Only as a last resort, fall back to the highest .local/tasks/task-NNN.md
+  #      on disk (which is wrong for backports / out-of-order merges, hence last).
+  # We pass the result as argv[3] to append-to-update-log.js, which has the
+  # same fallback chain in JS as a defense-in-depth.
+  PLAN_BASENAME=$(basename "$LATEST_TASK")
+  TASK_REF=$(echo "$PLAN_BASENAME" | sed -nE 's/^task-([0-9]+)\.md$/\1/p')
+  if [ -z "$TASK_REF" ]; then
+    TASK_REF=$(grep -m1 -oE '^#[[:space:]]*Task[[:space:]]*#[0-9]+' "$LATEST_TASK" 2>/dev/null \
+      | grep -oE '[0-9]+' | head -1)
+  fi
+  if [ -z "$TASK_REF" ]; then
+    TASK_REF=$(ls .local/tasks/task-*.md 2>/dev/null \
+      | sed -E 's@.*/task-([0-9]+)\.md$@\1@' \
+      | grep -E '^[0-9]+$' \
+      | sort -n | tail -1)
+    if [ -n "$TASK_REF" ]; then
+      echo "[post-merge] WARNING: plan file '$PLAN_BASENAME' has no task ref in name or '# Task #N' header — falling back to highest .local/tasks/task-${TASK_REF}.md. This may be wrong for backports."
+    fi
+  else
+    echo "[post-merge] Resolved task ref #${TASK_REF} from plan file '$PLAN_BASENAME'"
+  fi
+  if [ -z "$TASK_REF" ]; then
+    echo "[post-merge] No task ref could be determined — letting append-to-update-log.js fall back to its own resolver"
+  fi
   # Task #517 — Do NOT swallow this exit code. If the wiki article POST
   # fails the script exits non-zero; surfacing that failure here is what
   # keeps /platform and /changelog from drifting silently.
-  node scripts/append-to-update-log.js "$LATEST_TASK"
+  node scripts/append-to-update-log.js "$LATEST_TASK" "$TASK_REF"
 
   # Task #525 — After the changelog/wiki upsert completes, dump every
   # platform-task-* changelog row + its matching wiki article content to

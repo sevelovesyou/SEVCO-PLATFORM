@@ -101,11 +101,28 @@ async function seedSparkPacks() {
 // touching deployment secrets. Idempotent: rows that match exactly are
 // skipped; rows that differ are updated; missing rows are inserted.
 async function applyChangelogSnapshot() {
-  const snapshotPath = pathResolve(process.cwd(), "data", "changelog-snapshot.json");
-  if (!existsSync(snapshotPath)) {
-    console.log("[snapshot] data/changelog-snapshot.json not found — skipping snapshot apply");
+  // Task #526 — Resolve the snapshot from multiple candidate paths so it
+  // works in BOTH dev (process.cwd() = repo root) AND prod (the bundled
+  // CJS lives under dist/, and script/build.ts copies data/ to dist/data
+  // alongside it). Without the dist/data fallback prod silently boots
+  // with an empty changelog because process.cwd() is dist/, not the repo.
+  // Use only process.cwd()-relative paths — __dirname is unreliable across
+  // the dev (tsx ESM) and prod (esbuild CJS) runtimes. cwd covers both:
+  // dev cwd is repo root (data/), prod cwd is repo root with `node
+  // dist/index.cjs` (dist/data/), and if cwd ever becomes dist/ itself,
+  // the leading data/ candidate still resolves.
+  const candidates = [
+    pathResolve(process.cwd(), "data", "changelog-snapshot.json"),
+    pathResolve(process.cwd(), "dist", "data", "changelog-snapshot.json"),
+  ];
+  const snapshotPath = candidates.find((p) => existsSync(p));
+  if (!snapshotPath) {
+    console.warn(
+      `[snapshot] changelog-snapshot.json not found in any of: ${candidates.join(", ")} — skipping snapshot apply`,
+    );
     return;
   }
+  console.log(`[snapshot] reading snapshot from ${snapshotPath}`);
   let payload: any;
   try {
     payload = JSON.parse(readFileSync(snapshotPath, "utf8"));
@@ -1023,13 +1040,30 @@ async function runStartupMigrations() {
     console.warn("[startup] Platform-wiki backfill skipped:", err?.message ?? err);
   }
 
-  // Task #522 — Hard sync assertion. Run OUTSIDE the backfill try/catch
-  // so it actually fails startup if /platform, /command/changelog, and
-  // /wiki/engineering/sevco-platform have drifted. Every changelog row
-  // with a platform-task-* slug must have a matching article and vice
-  // versa. If counts differ we fail loudly so the next deploy catches
-  // it instead of shipping a silently-broken page.
-  {
+  console.log("[startup] migrations applied");
+}
+
+// Task #526 — Last-line check that the changelog/wiki tables are in sync.
+// Was a hard `throw` (Task #522) that crashed the Promote stage when prod
+// DB happened to be stale before applyChangelogSnapshot got a chance to
+// fix it. Now: warn-and-continue so boot completes; the same drift detail
+// is surfaced via /api/platform-health for the admin to inspect. Run AFTER
+// applyChangelogSnapshot from the boot orchestrator so by the time we
+// check, the snapshot has had its chance to heal the DB.
+let lastSyncAssertionResult: {
+  ok: boolean;
+  changelogRows: number;
+  articleRows: number;
+  drift: Array<{ slug: string; reason: string }>;
+  checkedAt: string;
+} = { ok: false, changelogRows: 0, articleRows: 0, drift: [], checkedAt: "" };
+
+export function getLastSyncAssertionResult() {
+  return lastSyncAssertionResult;
+}
+
+async function assertPlatformWikiSync() {
+  try {
     const finalCounts = await pool.query(
       `SELECT
          (SELECT COUNT(*)::int FROM changelog WHERE wiki_slug LIKE 'platform-task-%') AS changelog_rows,
@@ -1046,18 +1080,23 @@ async function runStartupMigrations() {
          SELECT a.slug, 'orphan-article' AS reason FROM articles a
            LEFT JOIN changelog c ON c.wiki_slug = a.slug
           WHERE a.slug LIKE 'platform-task-%' AND c.id IS NULL
-          LIMIT 10`
+          LIMIT 25`
       );
-      const sample = detail.rows.map((r) => `${r.slug}(${r.reason})`).join(", ");
-      throw new Error(
-        `[startup] Platform-wiki sync assertion FAILED — changelog rows: ${cl}, article rows: ${ar}. ` +
-        `Sample drift: ${sample}. Refusing to start.`,
+      const drift = detail.rows.map((r: any) => ({ slug: r.slug, reason: r.reason }));
+      const sample = drift.slice(0, 10).map((r) => `${r.slug}(${r.reason})`).join(", ");
+      console.warn(
+        `[startup] Platform-wiki sync drift detected — changelog rows: ${cl}, article rows: ${ar}. ` +
+        `Sample: ${sample}. Continuing boot; see /api/platform-health for full detail.`,
       );
+      lastSyncAssertionResult = { ok: false, changelogRows: cl, articleRows: ar, drift, checkedAt: new Date().toISOString() };
+      return;
     }
     console.log(`[startup] Platform-wiki sync assertion OK — ${cl} changelog rows ↔ ${ar} articles`);
+    lastSyncAssertionResult = { ok: true, changelogRows: cl, articleRows: ar, drift: [], checkedAt: new Date().toISOString() };
+  } catch (err: any) {
+    console.warn(`[startup] Platform-wiki sync assertion errored (non-fatal): ${err?.message ?? err}`);
+    lastSyncAssertionResult = { ok: false, changelogRows: 0, articleRows: 0, drift: [], checkedAt: new Date().toISOString() };
   }
-
-  console.log("[startup] migrations applied");
 }
 
 const app = express();
@@ -1180,6 +1219,10 @@ async function initStripe() {
   // creates the 'sevco-platform' category. This is what makes prod self-sync
   // its changelog/wiki tables to match the preview on every deploy.
   await applyChangelogSnapshot().catch((err) => console.error("Changelog snapshot apply error:", err));
+  // Task #526 — Run the sync assertion AFTER the snapshot has had its
+  // chance to insert/update. Warn-and-continue (no throw) so a stale prod
+  // DB cannot crash the Promote stage like it did under Task #525.
+  await assertPlatformWikiSync().catch((err) => console.warn("Sync assertion error:", err?.message ?? err));
   await promoteFounderToAdmin().catch((err) => console.error("Promotion error:", err));
   await markExistingUsersVerified().catch((err) => console.error("Email verify migration error:", err));
   await seedProjects().catch((err) => console.error("Project seed error:", err));

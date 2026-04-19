@@ -15,13 +15,12 @@ import { basename, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { request } from "http";
 
-// Task #519 — single source of truth for the platform task list.
-// shared/platform-task-files.json is also imported by server/routes.ts so
-// the two sides cannot drift on task-number computation.
+// Task #526 — The legacy hand-mapped 191-task list is gone. The canonical
+// task ref is derived from the Replit-managed task-NNN.md file (Replit's
+// project_tasks system writes one of these per task). See
+// resolveTaskRefFromPlanFile() below.
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PLATFORM_TASK_FILES = JSON.parse(
-  readFileSync(resolve(__dirname, "..", "shared", "platform-task-files.json"), "utf8"),
-);
+const TASKS_DIR = resolve(__dirname, "..", ".local", "tasks");
 
 const planFilePath = process.argv[2];
 const taskRef = process.argv[3] || null;
@@ -245,79 +244,95 @@ function postWikiArticle(payload) {
   });
 }
 
-// Task #519 — single source of truth (shared/platform-task-files.json).
-// server/routes.ts reads the same file. Do NOT redeclare inline.
-const PLATFORM_ORDERED_FILES = PLATFORM_TASK_FILES.ordered;
-
-// Parse task number directly from filename patterns like task-192.md or t192-something.md
+// Task #526 — Resolve the canonical Replit task ref. Order:
+//   1. CLI argv[3]  — explicit override (post-merge.sh can pass it).
+//   2. Plan filename matches `task-NNN.md` → use NNN.
+//   3. Plan content first line `# Task #NNN —` → use NNN.
+//   4. Highest `task-NNN.md` file under .local/tasks/ — Replit's task
+//      system writes one for the active task, so the newest such file is
+//      the just-merged ref. This is the path most user-named plan files
+//      take in practice.
+//   5. Hard-fail. We will NOT silently invent a number — the whole point
+//      of Task #526 is that the changelog mirrors the real task panel.
 function parseTaskNumFromFilename(filename) {
-  // task-NNN.md
   const m1 = filename.match(/^task-(\d+)\.md$/);
   if (m1) return parseInt(m1[1], 10);
-  // tNNN-something.md (3+ digits after 't')
   const m2 = filename.match(/^t(\d{3,})-/);
   if (m2) return parseInt(m2[1], 10);
   return null;
 }
 
-// Fetch max platform task number from the changelog API
-function fetchMaxPlatformTaskNum() {
-  return new Promise((resolve) => {
-    const opts = {
-      hostname: "localhost",
-      port: 5000,
-      path: "/api/changelog",
-      method: "GET",
-    };
-    const req = request(opts, (res) => {
-      let body = "";
-      res.on("data", (c) => { body += c; });
-      res.on("end", () => {
-        try {
-          const entries = JSON.parse(body);
-          let max = 191; // floor: we know 191 tasks exist
-          for (const e of entries) {
-            const m = e.title && e.title.match(/^Task #(\d+)/);
-            if (m) {
-              const n = parseInt(m[1], 10);
-              if (n > max) max = n;
-            }
-          }
-          resolve(max);
-        } catch {
-          resolve(191);
-        }
-      });
-    });
-    req.on("error", () => resolve(191));
-    req.end();
-  });
+function parseTaskNumFromTitleLine(text) {
+  for (const line of text.split("\n").slice(0, 30)) {
+    const m = line.match(/^#\s*Task\s*#(\d+)\b/i);
+    if (m) return parseInt(m[1], 10);
+  }
+  return null;
 }
 
-// Compute canonical task number for the given task filename — monotonic, collision-safe
-async function computePlatformTaskNum(taskFilename) {
-  // 1. Check ordered list first
-  const orderedIdx = PLATFORM_ORDERED_FILES.indexOf(taskFilename);
-  if (orderedIdx !== -1) return orderedIdx + 1;
+function highestReplitTaskFile() {
+  if (!existsSync(TASKS_DIR)) return null;
+  let best = null;
+  for (const name of readdirSync(TASKS_DIR)) {
+    const m = name.match(/^task-(\d+)\.md$/);
+    if (!m) continue;
+    const n = parseInt(m[1], 10);
+    if (best === null || n > best) best = n;
+  }
+  return best;
+}
 
-  // 2. Try to parse task number directly from the filename (e.g. task-192.md → 192)
-  const parsed = parseTaskNumFromFilename(taskFilename);
-  if (parsed !== null) return parsed;
-
-  // 3. Fetch max existing platform task number from the API and return max + 1
-  const maxNum = await fetchMaxPlatformTaskNum();
-  return maxNum + 1;
+function resolveTaskRef(taskFilename, planContent, cliRef) {
+  // Plan-derived signals (filename, then title line) win over the CLI ref
+  // because they are tied to the actual merged plan file. The CLI ref
+  // comes from post-merge.sh which has the same chain — but if a caller
+  // ever passes a stale or wrong CLI value, we want the plan to override
+  // it rather than silently mislabel the changelog. If CLI disagrees with
+  // a plan-derived ref we log a clear warning so the divergence is visible.
+  const fromName = parseTaskNumFromFilename(taskFilename);
+  if (fromName !== null) {
+    if (cliRef && String(cliRef).match(/(\d+)/)?.[1] !== String(fromName)) {
+      console.warn(
+        `[update-log] WARNING: CLI ref "${cliRef}" disagrees with plan filename ref #${fromName}; using filename.`,
+      );
+    }
+    return fromName;
+  }
+  const fromTitle = parseTaskNumFromTitleLine(planContent);
+  if (fromTitle !== null) {
+    if (cliRef && String(cliRef).match(/(\d+)/)?.[1] !== String(fromTitle)) {
+      console.warn(
+        `[update-log] WARNING: CLI ref "${cliRef}" disagrees with plan title ref #${fromTitle}; using title.`,
+      );
+    }
+    return fromTitle;
+  }
+  if (cliRef) {
+    const m = String(cliRef).match(/(\d+)/);
+    if (m) return parseInt(m[1], 10);
+  }
+  const fromReplit = highestReplitTaskFile();
+  if (fromReplit !== null) return fromReplit;
+  return null;
 }
 
 (async () => {
   // ── 3. Create platform wiki article first, get wikiSlug ──
   let platformWikiSlug = null;
   const taskFilename = basename(planFilePath);
-  const taskNum = await computePlatformTaskNum(taskFilename);
+  const taskNum = resolveTaskRef(taskFilename, raw, taskRef);
+  if (taskNum === null) {
+    console.error(
+      `[update-log] ABORT: Could not determine the Replit task ref for plan file "${planFilePath}". ` +
+      `Tried CLI argv[3] ("${taskRef ?? ""}"), filename pattern (task-NNN.md), the plan title's leading "Task #N", ` +
+      `and the highest .local/tasks/task-NNN.md file. Refusing to invent a number — fix one of these inputs and re-run.`
+    );
+    process.exit(1);
+  }
   const platformSlug = `platform-task-${String(taskNum).padStart(3, "0")}`;
   const platformTitle = `Task #${taskNum} — ${title}`;
 
-  console.log(`[update-log] Computed task number: ${taskNum} → slug: ${platformSlug}`);
+  console.log(`[update-log] Resolved task ref: #${taskNum} → slug: ${platformSlug}`);
 
   // Guard: check if this slug already belongs to a different task — abort on collision
   try {

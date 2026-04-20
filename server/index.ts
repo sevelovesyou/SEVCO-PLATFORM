@@ -1,3 +1,8 @@
+// Force IPv4 to avoid ENETUNREACH errors in environments that don't support IPv6
+// This MUST be set before any network imports
+import dns from "dns";
+dns.setDefaultResultOrder("ipv4first");
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";

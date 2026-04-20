@@ -3,9 +3,6 @@ import pg from "pg";
 import dns from "dns";
 import * as schema from "@shared/schema";
 
-// Force IPv4 to avoid ENETUNREACH errors in environments that don't support IPv6
-dns.setDefaultResultOrder("ipv4first");
-
 const { Pool } = pg;
 
 if (!process.env.DATABASE_URL) {
@@ -14,5 +11,21 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Parse the connection URL to extract individual components
+const dbUrl = new URL(process.env.DATABASE_URL);
+
+// Create pool with explicit host config and IPv4-only lookup
+export const pool = new Pool({
+  user: dbUrl.username,
+  password: decodeURIComponent(dbUrl.password),
+  host: dbUrl.hostname,
+  port: parseInt(dbUrl.port || "5432", 10),
+  database: dbUrl.pathname.slice(1), // remove leading /
+  ssl: dbUrl.searchParams.get("sslmode") !== "disable" ? { rejectUnauthorized: false } : false,
+  // Force IPv4 resolution to avoid ENETUNREACH errors in IPv6-incompatible environments
+  lookup: (hostname, options, callback) => {
+    dns.lookup(hostname, { ...options, family: 4 }, callback);
+  }
+});
+
 export const db = drizzle(pool, { schema });

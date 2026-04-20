@@ -1,6 +1,10 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
+import dns from "dns";
 import * as schema from "@shared/schema";
+
+// Force IPv4 to avoid ENETUNREACH errors in environments that don't support IPv6
+dns.setDefaultResultOrder("ipv4first");
 
 const { Pool } = pg;
 

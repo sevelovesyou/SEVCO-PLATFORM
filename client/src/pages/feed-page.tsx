@@ -79,6 +79,7 @@ import { insertFeedPostSchema, insertPostSchema } from "@shared/schema";
 import type { FeedPost, FeedPostType } from "@shared/schema";
 import { Link } from "wouter";
 import { WikifyDialog } from "@/components/wikify-dialog";
+import { SparkIcon } from "@/components/spark-icon";
 
 type FeedPostWithAuthor = FeedPost & {
   author: { username: string; displayName: string | null; avatarUrl: string | null } | null;

@@ -282,7 +282,9 @@ export default function Landing() {
     queryKey: ["/api/feed?pinned=true&limit=1"],
     queryFn: async () => {
       const res = await fetch("/api/feed?pinned=true&limit=1");
-      return res.json();
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
   });
 
@@ -290,7 +292,9 @@ export default function Landing() {
     queryKey: ["/api/feed?pinned=false&limit=6"],
     queryFn: async () => {
       const res = await fetch("/api/feed?pinned=false&limit=6");
-      return res.json();
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
   });
 
@@ -320,7 +324,9 @@ export default function Landing() {
     queryKey: ["/api/gallery?category=wallpaper&limit=20"],
     queryFn: async () => {
       const res = await fetch("/api/gallery?category=wallpaper&limit=20");
-      return res.json();
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
   });
 
@@ -428,7 +434,12 @@ export default function Landing() {
   };
   const { data: featuredTracks = [] } = useQuery<SpotlightTrack[]>({
     queryKey: ["/api/music/tracks", "track"],
-    queryFn: () => fetch("/api/music/tracks?type=track").then((r) => r.json()),
+    queryFn: async () => {
+      const r = await fetch("/api/music/tracks?type=track");
+      if (!r.ok) return [];
+      const data = await r.json();
+      return Array.isArray(data) ? data : [];
+    },
     enabled: showRecordsSpotlight,
   });
   const { playTrack } = useMusicPlayer();
@@ -1033,7 +1044,7 @@ export default function Landing() {
                             )}
                           </div>
                           <p className="text-sm text-foreground/80 leading-relaxed line-clamp-4">
-                            {post.content.length > 280 ? post.content.slice(0, 280) + "…" : post.content}
+                            {(post.content?.length ?? 0) > 280 ? post.content!.slice(0, 280) + "…" : post.content ?? ""}
                           </p>
                           {post.mediaUrl && (
                             <div className="mt-3 rounded-lg overflow-hidden">

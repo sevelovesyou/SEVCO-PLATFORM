@@ -1,0 +1,48 @@
+Message: SparkIcon is not defined
+
+Stack:
+ReferenceError: SparkIcon is not defined
+    at UE1 (https://sev.cx/assets/index-Bo5T-JV7.js:4677:97603)
+    at Ch (https://sev.cx/assets/index-Bo5T-JV7.js:6:17939)
+    at Ck1 (https://sev.cx/assets/index-Bo5T-JV7.js:8:45621)
+    at wk1 (https://sev.cx/assets/index-Bo5T-JV7.js:8:41121)
+    at oa0 (https://sev.cx/assets/index-Bo5T-JV7.js:8:41045)
+    at cE (https://sev.cx/assets/index-Bo5T-JV7.js:8:40895)
+    at fa1 (https://sev.cx/assets/index-Bo5T-JV7.js:8:37101)
+    at xk1 (https://sev.cx/assets/index-Bo5T-JV7.js:8:37920)
+    at rs (https://sev.cx/assets/index-Bo5T-JV7.js:6:3278)
+    at https://sev.cx/assets/index-Bo5T-JV7.js:8:35383
+
+Component Stack:
+    at UE1 (https://sev.cx/assets/index-Bo5T-JV7.js:4677:92424)
+    at div
+    at div
+    at PZe (https://sev.cx/assets/index-Bo5T-JV7.js:4677:101769)
+    at W0 (https://sev.cx/assets/index-Bo5T-JV7.js:8:63623)
+    at Ya0 (https://sev.cx/assets/index-Bo5T-JV7.js:8:64433)
+    at Nl1
+    at div
+    at s (https://sev.cx/assets/index-Bo5T-JV7.js:96:99776)
+    at jge (https://sev.cx/assets/index-Bo5T-JV7.js:104:1961)
+    at div
+    at main
+    at div
+    at div
+    at div
+    at d (https://sev.cx/assets/index-Bo5T-JV7.js:8:101509)
+    at pH1 (https://sev.cx/assets/index-Bo5T-JV7.js:8:686063)
+    at J70 (https://sev.cx/assets/index-Bo5T-JV7.js:52:2994)
+    at Lm2 (https://sev.cx/assets/index-Bo5T-JV7.js:5424:639)
+    at d (https://sev.cx/assets/index-Bo5T-JV7.js:8:101509)
+    at pH1 (https://sev.cx/assets/index-Bo5T-JV7.js:8:686063)
+    at Wp0 (https://sev.cx/assets/index-Bo5T-JV7.js:92:3101)
+    at rf0 (https://sev.cx/assets/index-Bo5T-JV7.js:92:34471)
+    at qp0 (https://sev.cx/assets/index-Bo5T-JV7.js:92:1648)
+    at cf0 (https://sev.cx/assets/index-Bo5T-JV7.js:92:44827)
+    at Wue (https://sev.cx/assets/index-Bo5T-JV7.js:92:5032899)
+    at v80 (https://sev.cx/assets/index-Bo5T-JV7.js:54:11427)
+    at n80 (https://sev.cx/assets/index-Bo5T-JV7.js:52:11166)
+    at g50 (https://sev.cx/assets/index-Bo5T-JV7.js:8:95880)
+    at Os0 (https://sev.cx/assets/index-Bo5T-JV7.js:8:693861)
+    at the (https://sev.cx/assets/index-Bo5T-JV7.js:92:5043380)
+    at Im2

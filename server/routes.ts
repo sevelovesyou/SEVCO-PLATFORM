@@ -20,7 +20,7 @@ import {
   CAN_ACCESS_ARCHIVE,
 } from "./middleware/permissions";
 import type { Role, InsertJob, InsertArticle, InsertCategory, Email, NewsItem, InsertMusicTrack } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertProductSchema, insertStoreCategorySchema, insertCategorySchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema, updateUserTaskSchema, updateStaffTaskSchema, insertUserTaskSchema, insertStaffTaskSchema, insertDomainSchema, insertMusicTrackSchema, adminCreateUserSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertCategorySchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema, updateUserTaskSchema, updateStaffTaskSchema, insertUserTaskSchema, insertStaffTaskSchema, insertDomainSchema, insertMusicTrackSchema, adminCreateUserSchema } from "@shared/schema";
 import { InsufficientSparksError } from "./storage";
 import { fetchNewsArticles, generateGrokSummaryForTweet } from "./news";
 import { getAggregatorStatus, forceRefresh as forceAggregatorRefresh } from "./news-aggregator";
@@ -60,9 +60,7 @@ import { posts, revisions, galleryImages, articles as articlesSchema, categories
 import { ONBOARDING_TASKS } from "@shared/onboarding";
 
 const CAN_MANAGE_MUSIC: Role[] = ["admin", "executive"];
-const CAN_MANAGE_STORE: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_JOBS: Role[] = ["admin", "executive"];
-const CAN_MANAGE_STORE_PRODUCTS: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_PROJECTS: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_CHANGELOG: Role[] = ["admin", "executive", "staff"];
 const CAN_MANAGE_WIKI_SUBCATEGORIES: Role[] = ["admin", "executive", "staff"];
@@ -2183,311 +2181,10 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/store/categories", async (_req, res) => {
-    try {
-      const cats = await storage.getStoreCategories();
-      res.json(cats);
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  app.post("/api/store/categories", requireAuth, requireRole(...CAN_MANAGE_STORE_PRODUCTS), async (req, res) => {
-    try {
-      const data = insertStoreCategorySchema.parse(req.body);
-      const cat = await storage.createStoreCategory(data);
-      res.json(cat);
-    } catch (err: any) {
-      res.status(400).json({ message: err.message });
-    }
-  });
-
-  app.patch("/api/store/categories/:id", requireAuth, requireRole(...CAN_MANAGE_STORE_PRODUCTS), async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ message: "Invalid category id" });
-      const data = insertStoreCategorySchema.partial().parse(req.body);
-      const cat = await storage.updateStoreCategory(id, data);
-      if (!cat) return res.status(404).json({ message: "Category not found" });
-      res.json(cat);
-    } catch (err: any) {
-      res.status(400).json({ message: err.message });
-    }
-  });
-
-  app.delete("/api/store/categories/:id", requireAuth, requireRole(...CAN_MANAGE_STORE_PRODUCTS), async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ message: "Invalid category id" });
-      await storage.deleteStoreCategory(id);
-      res.json({ success: true });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  app.get("/api/store/products", async (req, res) => {
-    try {
-      const all = await storage.getProducts();
-      const ids = all.map((p) => p.id);
-      const counts = await storage.getProductSparkCounts(ids);
-      const mySet = req.isAuthenticated() ? await storage.getProductSparkedByUser(ids, (req.user as any).id) : new Set<number>();
-      res.json(all.map((p) => ({ ...p, sparkCount: counts.get(p.id) ?? 0, sparkedByCurrentUser: mySet.has(p.id) })));
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  app.get("/api/store/products/new", (_req, res) => {
-    res.status(400).json({ message: "Use POST to create a product" });
-  });
-
-  app.get("/api/store/products/:slug", async (req, res) => {
-    try {
-      const product = await storage.getProductBySlug(req.params.slug);
-      if (!product) return res.status(404).json({ message: "Product not found" });
-      const info = await storage.getProductSparkInfo(product.id, req.isAuthenticated() ? (req.user as any).id : undefined);
-      res.json({ ...product, sparkCount: info.sparkCount, sparkedByCurrentUser: info.isSparkedByMe });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  app.post("/api/store/products", requireAuth, requireRole(...CAN_MANAGE_STORE_PRODUCTS), async (req, res) => {
-    try {
-      const body = { ...req.body };
-      if (Array.isArray(body.imageUrls) && body.imageUrls.length > 0 && !body.imageUrl) {
-        body.imageUrl = body.imageUrls[0];
-      }
-      if (Array.isArray(body.imageUrls) && body.imageUrls.length > 5) {
-        return res.status(400).json({ message: "imageUrls must have at most 5 items" });
-      }
-      const data = insertProductSchema.parse(body);
-      const product = await storage.createProduct(data);
-
-      try {
-        const stripe = await getUncachableStripeClient();
-        const stripeProduct = await stripe.products.create({
-          name: product.name,
-          description: product.description || undefined,
-          images: product.imageUrl ? [product.imageUrl] : undefined,
-          metadata: {
-            internalId: String(product.id),
-            category: product.categoryName,
-            slug: product.slug,
-          },
-        });
-        const stripePrice = await stripe.prices.create({
-          product: stripeProduct.id,
-          unit_amount: Math.round(product.price * 100),
-          currency: 'usd',
-        });
-        const updated = await storage.updateProduct(product.id, {
-          stripeProductId: stripeProduct.id,
-          stripePriceId: stripePrice.id,
-        });
-        res.json(updated);
-      } catch (stripeErr: any) {
-        console.error('Stripe sync error for product:', stripeErr.message);
-        res.json(product);
-      }
-    } catch (err: any) {
-      res.status(400).json({ message: err.message });
-    }
-  });
-
-  const patchProductSchema = z.object({
-    stockStatus: z.string().optional(),
-    imageUrl: z.string().nullable().optional(),
-    imageUrls: z.array(z.string()).max(5).nullable().optional(),
-    name: z.string().min(1).max(200).optional(),
-    slug: z.string().min(1).max(200).optional(),
-    description: z.string().nullable().optional(),
-    price: z.number().positive().optional(),
-    categoryName: z.string().min(1).max(100).optional(),
-    variants: z.array(z.object({
-      id: z.string(),
-      name: z.string(),
-      type: z.enum(["text", "color"]),
-      required: z.boolean(),
-      options: z.array(z.object({ label: z.string(), value: z.string() })),
-    })).optional(),
-  });
-
-  app.patch("/api/store/products/:id", requireAuth, requireRole(...CAN_MANAGE_STORE_PRODUCTS), async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ message: "Invalid product id" });
-      const parsed = patchProductSchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message ?? "Invalid input" });
-      const { imageUrls, ...rest } = parsed.data;
-      const updateData: Partial<typeof parsed.data> & { imageUrl?: string | null } = { ...rest };
-      if (imageUrls !== undefined) {
-        updateData.imageUrls = imageUrls;
-        updateData.imageUrl = Array.isArray(imageUrls) && imageUrls.length > 0 ? imageUrls[0] : null;
-      }
-      if (Object.keys(updateData).length === 0) return res.status(400).json({ message: "No valid fields to update" });
-      const product = await storage.updateProduct(id, updateData);
-      res.json(product);
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
   app.get("/api/stripe/publishable-key", async (_req, res) => {
     try {
       const key = await getStripePublishableKey();
       res.json({ publishableKey: key });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  app.delete("/api/store/products/:id", requireAuth, requireRole(...CAN_MANAGE_STORE_PRODUCTS), async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ message: "Invalid product id" });
-      await storage.deleteProduct(id);
-      res.json({ ok: true });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  app.get("/api/store/stats", requireAuth, requireRole(...CAN_MANAGE_STORE), async (_req, res) => {
-    try {
-      const stats = await storage.getStoreStats();
-      res.json(stats);
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  app.post("/api/checkout", requireAuth, async (req, res) => {
-    try {
-      const { items } = req.body as {
-        items: Array<{ productId: number; name: string; price: number; quantity: number; stripePriceId: string | null; selectedVariants?: Record<string, string>; variantSelections?: Array<{ groupName: string; optionLabel: string }>; cartKey?: string; slug?: string; imageUrl?: string | null }>;
-      };
-
-      if (!items || !Array.isArray(items) || items.length === 0) {
-        return res.status(400).json({ message: "Cart is empty" });
-      }
-
-      const lineItems: any[] = [];
-      for (const item of items) {
-        if (item.stripePriceId) {
-          lineItems.push({ price: item.stripePriceId, quantity: item.quantity });
-        } else {
-          lineItems.push({
-            price_data: {
-              currency: 'usd',
-              product_data: { name: item.name },
-              unit_amount: Math.round(item.price * 100),
-            },
-            quantity: item.quantity,
-          });
-        }
-      }
-
-      const host = req.get('host');
-      const proto = req.headers['x-forwarded-proto'] || req.protocol;
-      const baseUrl = `${proto}://${host}`;
-
-      const stripe = await getUncachableStripeClient();
-
-      const cartSnapshot = JSON.stringify(items);
-      const metadata: Record<string, string> = {
-        userId: (req.user as any)?.id || '',
-      };
-      if (cartSnapshot.length <= 4000) {
-        metadata.cart_snapshot = cartSnapshot;
-      }
-
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: lineItems,
-        mode: 'payment',
-        success_url: `${baseUrl}/store/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${baseUrl}/store/cancel`,
-        metadata,
-      });
-
-      res.json({ url: session.url });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  app.get("/api/checkout/session/:sessionId", requireAuth, async (req, res) => {
-    try {
-      const { sessionId } = req.params;
-      const stripe = await getUncachableStripeClient();
-      const session = await stripe.checkout.sessions.retrieve(sessionId, {
-        expand: ['line_items'],
-      });
-
-      if (session.payment_status !== 'paid') {
-        return res.json({ paid: false, session });
-      }
-
-      const existing = await storage.getOrderBySessionId(sessionId);
-      if (existing) {
-        return res.json({ paid: true, order: existing });
-      }
-
-      let orderItems: any[];
-      if (session.metadata?.cart_snapshot) {
-        try {
-          orderItems = JSON.parse(session.metadata.cart_snapshot);
-        } catch {
-          orderItems = (session.line_items?.data || []).map((li: any) => ({
-            description: li.description,
-            quantity: li.quantity,
-            amount_total: li.amount_total,
-          }));
-        }
-      } else {
-        orderItems = (session.line_items?.data || []).map((li: any) => ({
-          description: li.description,
-          quantity: li.quantity,
-          amount_total: li.amount_total,
-        }));
-      }
-
-      const order = await storage.createOrder({
-        userId: (req.user as any)?.id || null,
-        stripeSessionId: sessionId,
-        stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
-        total: session.amount_total || 0,
-        status: 'paid',
-        items: orderItems,
-      });
-
-      res.json({ paid: true, order });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  app.get("/api/orders", requireAuth, requireRole("admin", "executive", "staff"), async (_req, res) => {
-    try {
-      const allOrders = await storage.getOrders();
-      res.json(allOrders);
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  app.patch("/api/orders/:id/status", requireAuth, requireRole("admin", "executive", "staff"), async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ message: "Invalid order id" });
-      const { status } = req.body;
-      if (!status || typeof status !== "string") return res.status(400).json({ message: "status required" });
-      const validStatuses = ["pending", "processing", "fulfilled", "shipped", "cancelled"];
-      if (!validStatuses.includes(status)) return res.status(400).json({ message: "Invalid status" });
-      const order = await storage.updateOrderStatus(id, status);
-      res.json(order);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -4383,7 +4080,6 @@ export async function registerRoutes(
       res.status(500).json({ message: err.message });
     }
   });
-  app.post("/api/store/products/:id/spark", requireAuth, makeSparkHandler((id, uid) => storage.sparkProduct(id, uid)));
   app.post("/api/projects/:id/spark", requireAuth, makeSparkHandler((id, uid) => storage.sparkProject(id, uid)));
   app.post("/api/services/:id/spark", requireAuth, makeSparkHandler((id, uid) => storage.sparkService(id, uid)));
 

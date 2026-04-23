@@ -158,7 +158,7 @@ export function PlatformFooter() {
     {
       heading: "Commerce",
       links: [
-        { label: "Store",    path: "/store" },
+        { label: "Store",    path: "https://shop.sevco.us", external: true },
         { label: "Services", path: "/services" },
         { label: "Hosting",  path: "/domains" },
         { label: "Pricing",  path: "/pricing" },

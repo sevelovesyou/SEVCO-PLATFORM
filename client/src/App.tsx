@@ -12,10 +12,8 @@ import { PlatformHeader } from "@/components/platform-header";
 import { PlatformFooter } from "@/components/platform-footer";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/protected-route";
-import { CartProvider } from "@/hooks/use-cart";
 import { SpotifyPlayerProvider, useSpotifyPlayer } from "@/hooks/use-spotify-player";
 import { SpotifyPlayerBar } from "@/components/spotify-player-bar";
-import { CartDrawer } from "@/components/cart-drawer";
 import { lazy, Suspense, useEffect, useRef } from "react";
 import { hexToHsl } from "@/lib/colorUtils";
 import { derivedDarkSurfacesAsCssVars, derivedLightSurfacesAsCssVars, DEFAULT_DARK_VALUES, DEFAULT_LIGHT_VALUES } from "@/lib/derive-dark-surfaces";
@@ -53,11 +51,6 @@ const MusicArtistDetail = lazy(() => import("@/pages/music-artist-detail"));
 const MusicAlbumDetail = lazy(() => import("@/pages/music-album-detail"));
 const MusicArtistForm = lazy(() => import("@/pages/music-artist-form"));
 const MusicAlbumForm = lazy(() => import("@/pages/music-album-form"));
-const StorePage = lazy(() => import("@/pages/store-page"));
-const StoreProductDetail = lazy(() => import("@/pages/store-product-detail"));
-const StoreProductForm = lazy(() => import("@/pages/store-product-form"));
-const StoreSuccessPage = lazy(() => import("@/pages/store-success-page"));
-const StoreCancelPage = lazy(() => import("@/pages/store-cancel-page"));
 const ProjectsPage = lazy(() => import("@/pages/projects-page"));
 const ProjectDetail = lazy(() => import("@/pages/project-detail"));
 const ProjectCreatePage = lazy(() => import("@/pages/project-form").then(m => ({ default: m.ProjectCreatePage })));
@@ -80,7 +73,6 @@ const SparksLeaderboard = lazy(() => import("@/pages/sparks-leaderboard"));
 const CommandOverview = lazy(() => import("@/pages/command-overview"));
 const CommandUsers = lazy(() => import("@/pages/command-users"));
 const CommandChangelog = lazy(() => import("@/pages/command-changelog"));
-const CommandStore = lazy(() => import("@/pages/command-store"));
 const CommandServices = lazy(() => import("@/pages/command-services"));
 const CommandJobs = lazy(() => import("@/pages/command-jobs"));
 const CommandMusic = lazy(() => import("@/pages/command-music"));
@@ -276,8 +268,6 @@ function Router() {
       <Route path="/sites" component={() => <ProtectedRoute><SitesPage /></ProtectedRoute>} />
       <Route path="/sites/:slug/edit" component={() => <ProtectedRoute><SitesBuilderPage /></ProtectedRoute>} />
       <Route path="/canvas" component={() => <ProtectedRoute><CanvasPage /></ProtectedRoute>} />
-      <Route path="/store" component={StorePage} />
-      <Route path="/store/products/:slug" component={StoreProductDetail} />
       <Route path="/services" component={ServicesListingPage} />
       <Route path="/services/creative" component={ServiceCategoryPage} />
       <Route path="/services/technology" component={ServiceCategoryPage} />
@@ -315,10 +305,6 @@ function Router() {
       <Route path="/profile" component={ProfilePage} />
       <Route path="/edit/:slug" component={() => <ProtectedRoute><ArticleEditor /></ProtectedRoute>} />
       <Route path="/account" component={() => <ProtectedRoute><AccountPage /></ProtectedRoute>} />
-      <Route path="/store/success" component={() => <ProtectedRoute><StoreSuccessPage /></ProtectedRoute>} />
-      <Route path="/store/cancel" component={() => <ProtectedRoute><StoreCancelPage /></ProtectedRoute>} />
-      <Route path="/store/products/new" component={() => <ProtectedRoute><StoreProductForm /></ProtectedRoute>} />
-      <Route path="/store/products/:slug/edit" component={() => <ProtectedRoute><StoreProductForm /></ProtectedRoute>} />
       <Route path="/projects/:slug/edit" component={() => <ProtectedRoute><ProjectEditPage /></ProtectedRoute>} />
 
       <Route path="/dashboard" component={() => <Redirect to="/command" />} />
@@ -326,13 +312,6 @@ function Router() {
         <ProtectedRoute>
           <CommandPageLayout>
             <CommandOverview />
-          </CommandPageLayout>
-        </ProtectedRoute>
-      )} />
-      <Route path="/command/store" component={() => (
-        <ProtectedRoute>
-          <CommandPageLayout title="Store Management" subtitle="Manage your product catalog">
-            <CommandStore />
           </CommandPageLayout>
         </ProtectedRoute>
       )} />
@@ -626,18 +605,16 @@ function PlatformColorInjector() {
     }
 
     const homeCardAccent = toHsl(settings["home.cardAccentColor"] ?? "");
-    const storeAccent = toHsl(settings["store.accentColor"] ?? "");
     const servicesAccent = toHsl(settings["services.accentColor"] ?? "");
     const musicAccent = toHsl(settings["music.accentColor"] ?? "");
     const wikiTagColor = toHsl(settings["wiki.tagColor"] ?? "");
 
     if (homeCardAccent) lightRules.push(`  --home-card-accent: ${homeCardAccent};`);
-    if (storeAccent) lightRules.push(`  --store-accent: ${storeAccent};`);
     if (servicesAccent) lightRules.push(`  --services-accent: ${servicesAccent};`);
     if (musicAccent) lightRules.push(`  --music-accent: ${musicAccent};`);
     if (wikiTagColor) lightRules.push(`  --wiki-tag-color: ${wikiTagColor};`);
 
-    const PAGE_SCOPES = ["landing", "store", "services", "projects", "music", "news"] as const;
+    const PAGE_SCOPES = ["landing", "services", "projects", "music", "news"] as const;
     const pageScopeRules: string[] = [];
     for (const p of PAGE_SCOPES) {
       const pb = toHsl(settings[`color.${p}.primaryBtn`] ?? "");
@@ -702,7 +679,6 @@ function PlatformColorInjector() {
     }
 
     if (homeCardAccent) darkRules.push(`  --home-card-accent: ${homeCardAccent};`);
-    if (storeAccent) darkRules.push(`  --store-accent: ${storeAccent};`);
     if (servicesAccent) darkRules.push(`  --services-accent: ${servicesAccent};`);
     if (musicAccent) darkRules.push(`  --music-accent: ${musicAccent};`);
     if (wikiTagColor) darkRules.push(`  --wiki-tag-color: ${wikiTagColor};`)
@@ -878,7 +854,6 @@ function AppShell() {
         </div>
       </div>
       <SpotifyPlayerBar />
-      <CartDrawer />
     </SidebarProvider>
   );
 }
@@ -889,29 +864,27 @@ function App() {
       <ThemeProvider defaultTheme="dark">
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <CartProvider>
-              <SpotifyPlayerProvider>
-                <LensProvider>
-                  <FloatingChatProvider>
-                    <MusicPlayerProvider>
-                      <VoiceProvider>
-                        <TooltipProvider>
-                          <DynamicHead />
-                          <PlatformColorInjector />
-                          <AnnouncementBanner />
-                          <AppShell />
-                          <FloatingChatWindows />
-                          <FloatingBrowser />
-                          <FloatingMusicPlayer />
-                          <VoiceFloatingIndicator />
-                          <Toaster />
-                        </TooltipProvider>
-                      </VoiceProvider>
-                    </MusicPlayerProvider>
-                  </FloatingChatProvider>
-                </LensProvider>
-              </SpotifyPlayerProvider>
-            </CartProvider>
+            <SpotifyPlayerProvider>
+              <LensProvider>
+                <FloatingChatProvider>
+                  <MusicPlayerProvider>
+                    <VoiceProvider>
+                      <TooltipProvider>
+                        <DynamicHead />
+                        <PlatformColorInjector />
+                        <AnnouncementBanner />
+                        <AppShell />
+                        <FloatingChatWindows />
+                        <FloatingBrowser />
+                        <FloatingMusicPlayer />
+                        <VoiceFloatingIndicator />
+                        <Toaster />
+                      </TooltipProvider>
+                    </VoiceProvider>
+                  </MusicPlayerProvider>
+                </FloatingChatProvider>
+              </LensProvider>
+            </SpotifyPlayerProvider>
           </AuthProvider>
         </QueryClientProvider>
       </ThemeProvider>

@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  BookOpen, ShoppingBag, Music, Folder, Briefcase,
+  BookOpen, Music, Folder, Briefcase,
   ArrowRight, Users, Star, ChevronRight, Pin,
   Zap, Globe, Layers, CheckCircle, Code2,
   Palette, BarChart3, Megaphone, Camera, Building2,
@@ -48,15 +48,6 @@ const PLATFORM_SECTIONS = [
     accent: "from-blue-500/20 to-blue-600/5 border-blue-500/20",
     iconColor: "text-blue-500",
     iconBg: "bg-blue-500/10",
-  },
-  {
-    label: "Store",
-    description: "Merchandise, exclusive drops, and products from the SEVCO universe.",
-    path: "/store",
-    icon: ShoppingBag,
-    accent: "from-red-700/20 to-red-800/5 border-red-700/20",
-    iconColor: "text-red-700",
-    iconBg: "bg-red-700/10",
   },
   {
     label: "Music",
@@ -98,7 +89,6 @@ const PLATFORM_SECTIONS = [
 
 const DEFAULT_WHY_SEVCO_PILLS = [
   { icon: "Music", label: "Music", href: "/music", color: "#BE0000" },
-  { icon: "ShoppingBag", label: "Store", href: "/store", color: "#BE0000" },
   { icon: "Folder", label: "Projects", href: "/projects", color: "#BE0000" },
   { icon: "Users", label: "Community", href: "/contact", color: "#BE0000" },
   { icon: "Zap", label: "Fast", href: "/", color: "#BE0000" },
@@ -112,7 +102,7 @@ const DEFAULT_HERO_TEXT = "By SEVCO, The Inspiration Company";
 const DEFAULT_BTN1_LABEL = "Explore the Wiki";
 const DEFAULT_BTN1_URL = "/wiki";
 const DEFAULT_BTN2_LABEL = "Shop the Store";
-const DEFAULT_BTN2_URL = "/store";
+const DEFAULT_BTN2_URL = "https://shop.sevco.us";
 
 function toBool(val: string | undefined): boolean {
   return val !== "false";
@@ -347,12 +337,11 @@ export default function Landing() {
   }
 
   const Btn1Icon = getLucideIcon(btn1IconName) || BookOpen;
-  const Btn2Icon = getLucideIcon(btn2IconName) || ShoppingBag;
+  const Btn2Icon = getLucideIcon(btn2IconName) || ArrowRight;
 
   const showPlatformGrid = toBool(settings["section.platformGrid.visible"]);
   const showWhatsNew = toBool(settings["section.whatsNew.visible"]);
   const showRecordsSpotlight = toBool(settings["section.recordsSpotlight.visible"]);
-  const showStorePreview = toBool(settings["section.storePreview.visible"]);
   const showServicesShowstopper = toBool(settings["section.servicesShowstopper.visible"]);
   const showProjectsShowstopper = toBool(settings["section.projectsShowstopper.visible"]);
   const showSignupCta = toBool(settings["section.signupCta.visible"]);
@@ -381,7 +370,6 @@ export default function Landing() {
     return DEFAULT_SECTION_ORDER;
   })();
 
-  const storeRef = useIntersectionObserver();
   const servicesRef = useIntersectionObserver();
   const projectsRef = useIntersectionObserver();
   const recordsRef = useIntersectionObserver();
@@ -1021,40 +1009,6 @@ export default function Landing() {
               <HomeNewsAndMarkets key="news" showNewsSection={showNewsSection} />
             );
 
-          case "storePreview":
-            if (!showStorePreview) return null;
-            return (
-              <section
-                key="storePreview"
-                ref={storeRef.ref}
-                className="border-t border-border bg-background"
-                data-testid="section-store-showstopper"
-              >
-                <div className={`max-w-6xl mx-auto px-6 py-20 md:py-24 transition-opacity duration-500 ${storeRef.isVisible ? "opacity-100" : "opacity-0"}`}>
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
-                        <ShoppingBag className="h-3 w-3" /> SEVCO Shop
-                      </p>
-                      <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground mb-2">
-                        Shop the latest drops.
-                      </h2>
-                      <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
-                        Apparel, accessories, and limited-edition items from the SEVCO universe — now on Shopify.
-                      </p>
-                    </div>
-                    <a href="https://shop.sevco.us" target="_blank" rel="noopener noreferrer" className="shrink-0">
-                      <Button size="lg" className="bg-red-600 hover:bg-red-500 text-white font-medium gap-2" data-testid="button-store-shop-now">
-                        <ShoppingBag className="h-4 w-4" />
-                        Shop on Shopify
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                    </a>
-                  </div>
-                </div>
-              </section>
-            );
-
           case "servicesShowstopper":
             if (!showServicesShowstopper) return null;
             return (
@@ -1367,7 +1321,7 @@ export default function Landing() {
                     <div className="grid grid-cols-2 gap-2">
                       {[
                         { icon: Music, label: "SEVCO RECORDS", color: "#60a5fa" },
-                        { icon: ShoppingBag, label: "Store", color: "#f87171" },
+                        { icon: Globe, label: "Merch", color: "#f87171" },
                         { icon: Folder, label: "Ventures", color: "#4ade80" },
                         { icon: Newspaper, label: "News", color: "#facc15" },
                         { icon: Users, label: "Community", color: "#a78bfa" },

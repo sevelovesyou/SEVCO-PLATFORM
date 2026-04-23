@@ -30,12 +30,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip as RechartsTooltip,
-} from "recharts";
-import {
   FileText,
   Clock,
   Shield,
@@ -45,127 +39,16 @@ import {
   XCircle,
   BookOpen,
   Music,
-  ShoppingBag,
   Folder,
   ArrowRight,
   LayoutDashboard,
   Link as LinkIcon,
   ScrollText,
   Plus,
-  BarChart2,
 } from "lucide-react";
-import type { Role, Changelog, ChangelogCategory, Order } from "@shared/schema";
+import type { Role, Changelog, ChangelogCategory } from "@shared/schema";
 import { insertChangelogSchema } from "@shared/schema";
 import { z } from "zod";
-
-interface StoreStats {
-  totalProducts: number;
-  inStock: number;
-  outOfStock: number;
-  catalogValue: number;
-  avgPrice: number;
-  byStockStatus: Array<{ status: string; count: number }>;
-}
-
-const STOCK_COLORS: Record<string, string> = {
-  available: "hsl(var(--chart-2))",
-  sold_out: "hsl(var(--destructive))",
-};
-
-function StoreStatsPreview() {
-  const { data: stats, isLoading } = useQuery<StoreStats>({
-    queryKey: ["/api/store/stats"],
-  });
-
-  const donutData = stats?.byStockStatus.map((s) => ({
-    name: s.status === "available" ? "In Stock" : "Sold Out",
-    value: s.count,
-    originalStatus: s.status,
-  })) ?? [];
-
-  return (
-    <Link href="/store/stats">
-      <Card
-        className="p-4 hover-elevate active-elevate-2 cursor-pointer overflow-visible group"
-        data-testid="card-store-stats-preview"
-      >
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-md bg-red-700/10 flex items-center justify-center shrink-0">
-              <BarChart2 className="h-3.5 w-3.5 text-red-700 dark:text-red-500" />
-            </div>
-            <span className="text-sm font-semibold">Store Analytics</span>
-          </div>
-          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:translate-x-0.5 transition-transform shrink-0" />
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-2">
-            {isLoading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i}>
-                  <Skeleton className="h-3 w-16 mb-1" />
-                  <Skeleton className="h-5 w-10" />
-                </div>
-              ))
-            ) : (
-              <>
-                <div data-testid="preview-total-products">
-                  <p className="text-xs text-muted-foreground">Total Products</p>
-                  <p className="text-lg font-bold">{stats?.totalProducts ?? 0}</p>
-                </div>
-                <div data-testid="preview-in-stock">
-                  <p className="text-xs text-muted-foreground">In Stock</p>
-                  <p className="text-lg font-bold text-green-600 dark:text-green-400">{stats?.inStock ?? 0}</p>
-                </div>
-                <div data-testid="preview-out-of-stock">
-                  <p className="text-xs text-muted-foreground">Sold Out</p>
-                  <p className="text-lg font-bold text-red-600 dark:text-red-400">{stats?.outOfStock ?? 0}</p>
-                </div>
-                <div data-testid="preview-catalog-value">
-                  <p className="text-xs text-muted-foreground">Catalog Value</p>
-                  <p className="text-lg font-bold text-blue-700 dark:text-blue-400">
-                    ${(stats?.catalogValue ?? 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-          {!isLoading && donutData.length > 0 && (
-            <div className="shrink-0">
-              <PieChart width={80} height={80}>
-                <Pie
-                  data={donutData}
-                  cx={35}
-                  cy={35}
-                  innerRadius={22}
-                  outerRadius={36}
-                  paddingAngle={2}
-                  dataKey="value"
-                >
-                  {donutData.map((entry) => (
-                    <Cell
-                      key={entry.originalStatus}
-                      fill={STOCK_COLORS[entry.originalStatus] ?? "hsl(var(--chart-1))"}
-                    />
-                  ))}
-                </Pie>
-                <RechartsTooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "6px",
-                    fontSize: "11px",
-                    color: "hsl(var(--foreground))",
-                  }}
-                />
-              </PieChart>
-            </div>
-          )}
-        </div>
-      </Card>
-    </Link>
-  );
-}
 
 const ROLES: Role[] = ["admin", "executive", "staff", "partner", "client", "user"];
 
@@ -418,13 +301,6 @@ function AdminView({ data, userId }: { data: DashboardData; userId: string }) {
 
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-          Store Analytics
-        </h2>
-        <StoreStatsPreview />
-      </div>
-
-      <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
           My Recent Contributions
         </h2>
         <ContributionsList items={data.myContributions} isLoading={false} />
@@ -449,12 +325,6 @@ function ExecutiveView({ data }: { data: DashboardData }) {
       </div>
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-          Store Analytics
-        </h2>
-        <StoreStatsPreview />
-      </div>
-      <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
           My Recent Contributions
         </h2>
         <ContributionsList items={data.myContributions} isLoading={false} />
@@ -475,12 +345,6 @@ function StaffView({ data }: { data: DashboardData }) {
           <StatCard label="Pending Reviews" value={data.stats.pendingReviews} icon={Shield} testId="stat-pending" color="text-yellow-600 dark:text-yellow-400" />
           <StatCard label="Total Revisions" value={data.stats.totalRevisions} icon={Clock} testId="stat-revisions" />
         </div>
-      </div>
-      <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-          Store Analytics
-        </h2>
-        <StoreStatsPreview />
       </div>
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
@@ -691,7 +555,6 @@ function ChangelogSection() {
 const CLIENT_LINKS = [
   { label: "Wiki", desc: "Browse articles and resources", path: "/wiki", icon: BookOpen, color: "text-primary", bg: "bg-primary/10" },
   { label: "Music", desc: "SEVCO RECORDS releases", path: "/music", icon: Music, color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-600/10" },
-  { label: "Store", desc: "Merchandise and products", path: "/store", icon: ShoppingBag, color: "text-red-700 dark:text-red-500", bg: "bg-red-700/10" },
   { label: "Projects", desc: "SEVCO Ventures", path: "/projects", icon: Folder, color: "text-green-600 dark:text-green-400", bg: "bg-green-500/10" },
 ];
 
@@ -731,78 +594,6 @@ function ClientView({ user }: { user: { username: string; displayName?: string |
           ))}
         </div>
       </div>
-    </div>
-  );
-}
-
-function OrdersSection() {
-  const { data: orders, isLoading } = useQuery<Order[]>({
-    queryKey: ["/api/orders"],
-  });
-
-  return (
-    <div>
-      <div className="flex items-center gap-2 mb-3">
-        <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Store Orders
-        </h2>
-      </div>
-
-      {isLoading ? (
-        <div className="flex flex-col gap-2">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="p-3 overflow-visible">
-              <Skeleton className="h-4 w-3/4 mb-1" />
-              <Skeleton className="h-3 w-1/2" />
-            </Card>
-          ))}
-        </div>
-      ) : !orders || orders.length === 0 ? (
-        <Card className="p-4 overflow-visible">
-          <p className="text-sm text-muted-foreground text-center py-2" data-testid="text-no-orders">No orders yet.</p>
-        </Card>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {orders.map((order) => (
-            <Card
-              key={order.id}
-              className="p-3 overflow-visible"
-              data-testid={`card-order-${order.id}`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium" data-testid={`text-order-id-${order.id}`}>
-                    Order #{order.id}
-                  </p>
-                  <p className="text-xs text-muted-foreground" data-testid={`text-order-date-${order.id}`}>
-                    {new Date(order.createdAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span
-                    className={`text-xs font-semibold px-2 py-0.5 rounded-full border capitalize ${
-                      order.status === "paid"
-                        ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20"
-                        : "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20"
-                    }`}
-                    data-testid={`text-order-status-${order.id}`}
-                  >
-                    {order.status}
-                  </span>
-                  <span className="text-sm font-bold" data-testid={`text-order-total-${order.id}`}>
-                    ${((order.total ?? 0) / 100).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -862,9 +653,6 @@ export default function DashboardPage() {
           {role === "executive" && <ExecutiveView data={data} />}
           {(role === "staff" || role === "partner") && <StaffView data={data} />}
           {isClientOrUser && <ClientView user={{ username: user?.username ?? "", displayName: user?.displayName }} />}
-          {(role === "admin" || role === "executive") && (
-            <OrdersSection />
-          )}
           {(role === "admin" || role === "executive" || role === "staff") && (
             <ChangelogSection />
           )}

@@ -422,7 +422,7 @@ export const updateProfileSchema = z.object({
   bannerUrl: optionalUrl,
   profileBgOpacity: z.number().int().min(0).max(100).optional().nullable(),
   profileStatus: z.string().max(60).optional().nullable(),
-  profileFeaturedType: z.enum(["project", "product", "wiki", "post", "playlist"]).optional().nullable(),
+  profileFeaturedType: z.enum(["project", "wiki", "post", "playlist"]).optional().nullable(),
   profileFeaturedId: z.string().optional().nullable(),
   profileLayout: z.enum(["default", "compact", "wide"]).optional().nullable(),
   profileFont: z.enum(["default", "serif", "mono", "handwritten"]).optional().nullable(),

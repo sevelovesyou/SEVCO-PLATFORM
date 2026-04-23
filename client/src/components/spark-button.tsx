@@ -13,11 +13,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export type SparkEntityType = "track" | "product" | "project" | "service" | "article" | "gallery";
+export type SparkEntityType = "track" | "project" | "service" | "article" | "gallery";
 
 const ENDPOINTS: Record<SparkEntityType, (id: number | string) => string> = {
   track: (id) => `/api/music/tracks/${id}/spark`,
-  product: (id) => `/api/store/products/${id}/spark`,
   project: (id) => `/api/projects/${id}/spark`,
   service: (id) => `/api/services/${id}/spark`,
   article: (id) => `/api/articles/${id}/spark`,
@@ -27,7 +26,6 @@ const ENDPOINTS: Record<SparkEntityType, (id: number | string) => string> = {
 // Entity types that support unsparking (toggle off)
 const SUPPORTS_UNSPARK: Record<SparkEntityType, boolean> = {
   track: true,
-  product: false,
   project: false,
   service: false,
   article: false,
@@ -36,7 +34,6 @@ const SUPPORTS_UNSPARK: Record<SparkEntityType, boolean> = {
 
 const INVALIDATE_KEYS: Record<SparkEntityType, string[]> = {
   track: ["/api/music/tracks", "/api/profile"],
-  product: ["/api/store/products"],
   project: ["/api/projects"],
   service: ["/api/services"],
   article: ["/api/articles", "/api/search"],

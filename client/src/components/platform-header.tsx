@@ -4,7 +4,6 @@ import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { usePermission } from "@/hooks/use-permission";
-import { useCart } from "@/hooks/use-cart";
 import { useQuery } from "@tanstack/react-query";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -46,7 +45,6 @@ import {
   Home,
   BookOpen,
   Music,
-  ShoppingBag,
   Briefcase,
   Folder,
   LayoutDashboard,
@@ -858,7 +856,6 @@ function NavSparksBalance() {
 export function PlatformHeader() {
   const { user, logout } = useAuth();
   const { role, canCreateArticle: canWikify } = usePermission();
-  const { openCart, itemCount } = useCart();
   const { toast } = useToast();
   const { openLens } = useLens();
   const [location, navigate] = useLocation();
@@ -1229,30 +1226,9 @@ export function PlatformHeader() {
             onHideNav={toggleNavHidden}
           />
 
-          {/* Cart button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative h-8 w-8"
-                onClick={openCart}
-                data-testid="button-open-cart"
-                aria-label="Open cart"
-              >
-                <ShoppingBag className="h-4 w-4" aria-hidden="true" />
-                {itemCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-red-700 text-white text-[10px] font-bold flex items-center justify-center" data-testid="cart-badge">
-                    {itemCount > 9 ? "9+" : itemCount}
-                  </span>
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Cart{itemCount > 0 ? ` (${itemCount})` : ""}</TooltipContent>
-          </Tooltip>
           </TooltipProvider>
 
-          {/* Sparks balance — logged-in only, after cart */}
+          {/* Sparks balance — logged-in only */}
           {user && <NavSparksBalance />}
 
           {/* Mobile/tablet hamburger */}

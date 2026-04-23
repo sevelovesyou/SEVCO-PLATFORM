@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard,
-  ShoppingBag,
   Users,
   ScrollText,
   Briefcase,
@@ -61,7 +60,6 @@ export function CommandSidebar() {
   ];
 
   const contentItems: NavItem[] = [
-    ...(isAdmin || isExec ? [{ title: "Store", url: "/command/store", icon: ShoppingBag }] : []),
     ...(isAdmin || isExec ? [{ title: "Music", url: "/command/music", icon: Music }] : []),
     ...(isAdmin || isExec || isStaff ? [{ title: "Wiki", url: "/command/wiki", icon: BookOpen }] : []),
     ...(isAdmin || isExec || isStaff ? [{ title: "Projects", url: "/command/projects", icon: Folder }] : []),

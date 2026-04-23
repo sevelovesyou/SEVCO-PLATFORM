@@ -33,7 +33,6 @@ const ORDERABLE_SECTIONS: SectionMeta[] = [
   { id: "feed", key: "section.feed.visible", label: "SEVCO Feed", description: "Recent posts from the team feed." },
   { id: "news", key: "section.news.visible", label: "News & Markets", description: "News headlines and market data widgets." },
   { id: "recordsSpotlight", key: "section.recordsSpotlight.visible", label: "RECORDS Spotlight", description: "SEVCO Records label promo with streaming links." },
-  { id: "storePreview", key: "section.storePreview.visible", label: "Store Preview", description: "Featured products grid from the store." },
   { id: "servicesShowstopper", key: "section.servicesShowstopper.visible", label: "Services Showstopper", description: "SEVCO Services pitch with the capabilities checklist." },
   { id: "projectsShowstopper", key: "section.projectsShowstopper.visible", label: "Ventures Showstopper", description: "Featured ventures from the projects portfolio." },
   { id: "wikiLatest", key: "section.wikiLatest.visible", label: "Wiki Latest", description: "Recent articles from the Wiki." },

@@ -30470,9 +30470,18 @@ queryFn: async () => {
 
 ---
 
+<<<<<<< HEAD
 ## Task — remove-inhouse-store
 > Merged: 2026-04-23
 
+=======
+## Task — task-547
+> Merged: 2026-04-23
+
+---
+title: Remove all in-house store functionality, pages, and routes
+---
+>>>>>>> 6059f54 (Post-merge setup completed successfully)
 # Task #547 — Remove all in-house store functionality
 
 ## Summary

@@ -90,7 +90,7 @@ type SocialLinks = {
   website?: string | null;
 };
 
-type FeaturedType = "project" | "product" | "wiki" | "post" | "playlist";
+type FeaturedType = "project" | "wiki" | "post" | "playlist";
 type LayoutType = "default" | "compact" | "wide";
 type FontType = "default" | "serif" | "mono" | "handwritten";
 
@@ -280,7 +280,6 @@ function FeaturedItemSelector({ type, value, onChange, username }: {
 
   const apiEndpoints: Record<FeaturedType, string> = {
     project: "/api/projects",
-    product: "/api/store/products",
     wiki: "/api/articles/recent",
     post: `/api/users/${username}/posts`,
     playlist: "/api/music/playlists",
@@ -680,7 +679,6 @@ function ProfileEditPanel({
             <SelectContent>
               <SelectItem value="none">None</SelectItem>
               <SelectItem value="project">Project</SelectItem>
-              <SelectItem value="product">Product</SelectItem>
               <SelectItem value="wiki">Wiki Article</SelectItem>
               <SelectItem value="post">Post</SelectItem>
               <SelectItem value="playlist">Playlist</SelectItem>
@@ -835,7 +833,6 @@ type FeaturedItemMeta = {
 function useFeaturedItemMeta(type: string, itemId: string): { data?: FeaturedItemMeta; isLoading: boolean } {
   const apiPathMap: Record<string, string> = {
     project: `/api/projects/${itemId}`,
-    product: `/api/store/products/${itemId}`,
     wiki: `/api/articles/${itemId}`,
     post: `/api/posts/${itemId}`,
     playlist: `/api/music/playlists`,
@@ -843,7 +840,6 @@ function useFeaturedItemMeta(type: string, itemId: string): { data?: FeaturedIte
 
   const hrefMap: Record<string, string> = {
     project: `/projects/${itemId}`,
-    product: `/store/${itemId}`,
     wiki: `/wiki/${itemId}`,
     post: `/`,
     playlist: `/music/playlists`,
@@ -898,7 +894,6 @@ function FeaturedItemCard({ type, itemId, accentColor, bgColor }: {
 
   const labelMap: Record<string, string> = {
     project: "Project",
-    product: "Product",
     wiki: "Wiki Article",
     post: "Post",
     playlist: "Playlist",

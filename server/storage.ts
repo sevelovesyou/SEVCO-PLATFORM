@@ -8,11 +8,8 @@ import {
   type Artist, type InsertArtist,
   type Album, type InsertAlbum,
   type MusicTrack, type InsertMusicTrack,
-  type Product, type InsertProduct,
-  type StoreCategory, type InsertStoreCategory,
   type Project, type InsertProject,
   type Changelog, type InsertChangelog,
-  type Order, type InsertOrder,
   type Service, type InsertService,
   type Job, type InsertJob,
   type JobApplication, type InsertJobApplication,
@@ -56,11 +53,11 @@ import {
   type SparkPack, type InsertSparkPack,
   type WikiLinkStub,
   users, categories, articles, revisions, citations, crosslinks, wikiLinkStubs,
-  artists, albums, products, projects, changelog, orders, services,
+  artists, albums, projects, changelog, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
   posts, postReplies, userFollows,
   noteCollaborators, noteAttachments, platformSettings, brandAssets, shaderPresets, resources, galleryImages, spotifyArtists,
-  postSparks, articleSparks, gallerySparks, trackSparks, productSparks, projectSparks, serviceSparks,
+  postSparks, articleSparks, gallerySparks, trackSparks, projectSparks, serviceSparks,
   contactSubmissions,
   staffOrgNodes,
   chatChannels, chatMessages,
@@ -79,7 +76,6 @@ import {
   musicTracks,
   systemMailboxes,
   systemMailboxEmails,
-  storeCategories,
   marketData,
   newsItems,
   sparkTransactions,
@@ -181,25 +177,6 @@ export interface IStorage {
   getAlbumBySlug(slug: string): Promise<(Album & { artist: Artist }) | undefined>;
   createAlbum(album: InsertAlbum): Promise<Album>;
 
-  getProducts(): Promise<Product[]>;
-  getProductBySlug(slug: string): Promise<Product | undefined>;
-  getProductById(id: number): Promise<Product | undefined>;
-  getProductsByCategory(categoryName: string): Promise<Product[]>;
-  createProduct(product: InsertProduct): Promise<Product>;
-  updateProductStockStatus(id: number, stockStatus: string): Promise<Product>;
-  deleteProduct(id: number): Promise<void>;
-  updateProduct(id: number, data: Partial<InsertProduct & { stripeProductId: string; stripePriceId: string }>): Promise<Product>;
-
-  getStoreCategories(): Promise<StoreCategory[]>;
-  createStoreCategory(data: InsertStoreCategory): Promise<StoreCategory>;
-  updateStoreCategory(id: number, data: Partial<InsertStoreCategory>): Promise<StoreCategory | undefined>;
-  deleteStoreCategory(id: number): Promise<void>;
-
-  getOrders(): Promise<Order[]>;
-  getOrderBySessionId(sessionId: string): Promise<Order | undefined>;
-  createOrder(order: InsertOrder): Promise<Order>;
-  updateOrderStatus(id: number, status: string, paymentIntentId?: string): Promise<Order>;
-
   getProjects(): Promise<Project[]>;
   getProjectById(id: number): Promise<Project | undefined>;
   getProjectBySlug(slug: string): Promise<Project | undefined>;
@@ -240,16 +217,6 @@ export interface IStorage {
   updateMusicSubmissionStatus(id: number, status: string): Promise<MusicSubmission>;
   updateMusicSubmissionTrackFile(id: number, trackFileUrl: string): Promise<MusicSubmission>;
 
-  getStoreStats(): Promise<{
-    totalProducts: number;
-    inStock: number;
-    outOfStock: number;
-    catalogValue: number;
-    avgPrice: number;
-    byCategory: Array<{ name: string; count: number; value: number }>;
-    byStockStatus: Array<{ status: string; count: number }>;
-    byPriceRange: Array<{ range: string; count: number }>;
-  }>;
 
   getSocialLinks(): Promise<PlatformSocialLink[]>;
   createSocialLink(data: InsertPlatformSocialLink): Promise<PlatformSocialLink>;
@@ -494,19 +461,15 @@ export interface IStorage {
   sparkGalleryImage(imageId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
   sparkTrack(trackId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
   unsparkTrack(trackId: number, userId: string): Promise<void>;
-  sparkProduct(productId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
   sparkProject(projectId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
   sparkService(serviceId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
   getArticleSparkInfo(articleId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }>;
   getGallerySparkInfo(imageId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }>;
   getTrackSparkInfo(trackId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }>;
-  getProductSparkInfo(productId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }>;
   getProjectSparkInfo(projectId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }>;
   getServiceSparkInfo(serviceId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }>;
   getTrackSparkCounts(trackIds: number[]): Promise<Map<number, number>>;
   getTrackSparkedByUser(trackIds: number[], userId: string): Promise<Set<number>>;
-  getProductSparkCounts(productIds: number[]): Promise<Map<number, number>>;
-  getProductSparkedByUser(productIds: number[], userId: string): Promise<Set<number>>;
   getArticleSparkCounts(articleIds: number[]): Promise<Map<number, number>>;
   getArticleSparkedByUser(articleIds: number[], userId: string): Promise<Set<number>>;
   getProjectSparkCounts(projectIds: number[]): Promise<Map<number, number>>;
@@ -1091,82 +1054,6 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async getProducts(): Promise<Product[]> {
-    return db.select().from(products).orderBy(products.categoryName, products.name);
-  }
-
-  async getProductBySlug(slug: string): Promise<Product | undefined> {
-    const [product] = await db.select().from(products).where(eq(products.slug, slug));
-    return product || undefined;
-  }
-
-  async getProductById(id: number): Promise<Product | undefined> {
-    const [product] = await db.select().from(products).where(eq(products.id, id));
-    return product || undefined;
-  }
-
-  async getProductsByCategory(categoryName: string): Promise<Product[]> {
-    return db.select().from(products).where(eq(products.categoryName, categoryName)).orderBy(products.name);
-  }
-
-  async createProduct(product: InsertProduct): Promise<Product> {
-    const [created] = await db.insert(products).values(product).returning();
-    return created;
-  }
-
-  async updateProductStockStatus(id: number, stockStatus: string): Promise<Product> {
-    const [updated] = await db.update(products).set({ stockStatus }).where(eq(products.id, id)).returning();
-    return updated;
-  }
-
-  async deleteProduct(id: number): Promise<void> {
-    await db.delete(products).where(eq(products.id, id));
-  }
-
-  async updateProduct(id: number, data: Partial<any>): Promise<Product> {
-    const [updated] = await db.update(products).set(data).where(eq(products.id, id)).returning();
-    return updated;
-  }
-
-  async getStoreCategories(): Promise<StoreCategory[]> {
-    return db.select().from(storeCategories).orderBy(asc(storeCategories.displayOrder), asc(storeCategories.name));
-  }
-
-  async createStoreCategory(data: InsertStoreCategory): Promise<StoreCategory> {
-    const [created] = await db.insert(storeCategories).values(data).returning();
-    return created;
-  }
-
-  async updateStoreCategory(id: number, data: Partial<InsertStoreCategory>): Promise<StoreCategory | undefined> {
-    const [updated] = await db.update(storeCategories).set(data).where(eq(storeCategories.id, id)).returning();
-    return updated || undefined;
-  }
-
-  async deleteStoreCategory(id: number): Promise<void> {
-    await db.delete(storeCategories).where(eq(storeCategories.id, id));
-  }
-
-  async getOrders(): Promise<Order[]> {
-    return db.select().from(orders).orderBy(desc(orders.createdAt));
-  }
-
-  async getOrderBySessionId(sessionId: string): Promise<Order | undefined> {
-    const [order] = await db.select().from(orders).where(eq(orders.stripeSessionId, sessionId));
-    return order || undefined;
-  }
-
-  async createOrder(order: InsertOrder): Promise<Order> {
-    const [created] = await db.insert(orders).values(order).returning();
-    return created;
-  }
-
-  async updateOrderStatus(id: number, status: string, paymentIntentId?: string): Promise<Order> {
-    const updateData: any = { status };
-    if (paymentIntentId) updateData.stripePaymentIntentId = paymentIntentId;
-    const [updated] = await db.update(orders).set(updateData).where(eq(orders.id, id)).returning();
-    return updated;
-  }
-
   async getProjects(): Promise<Project[]> {
     return db.select().from(projects).orderBy(projects.displayOrder, projects.name);
   }
@@ -1255,56 +1142,6 @@ export class DatabaseStorage implements IStorage {
 
   async deleteService(id: number): Promise<void> {
     await db.delete(services).where(eq(services.id, id));
-  }
-
-  async getStoreStats(): Promise<{
-    totalProducts: number;
-    inStock: number;
-    outOfStock: number;
-    catalogValue: number;
-    avgPrice: number;
-    byCategory: Array<{ name: string; count: number; value: number }>;
-    byStockStatus: Array<{ status: string; count: number }>;
-    byPriceRange: Array<{ range: string; count: number }>;
-  }> {
-    const all = await db.select().from(products);
-
-    const totalProducts = all.length;
-    const inStock = all.filter((p) => p.stockStatus === "available").length;
-    const outOfStock = all.filter((p) => p.stockStatus !== "available").length;
-    const catalogValue = all.reduce((sum, p) => sum + (p.price ?? 0), 0);
-    const avgPrice = totalProducts > 0 ? catalogValue / totalProducts : 0;
-
-    const categoryMap: Record<string, { count: number; value: number }> = {};
-    for (const p of all) {
-      const cat = p.categoryName || "Uncategorized";
-      if (!categoryMap[cat]) categoryMap[cat] = { count: 0, value: 0 };
-      categoryMap[cat].count++;
-      categoryMap[cat].value += p.price ?? 0;
-    }
-    const byCategory = Object.entries(categoryMap)
-      .map(([name, v]) => ({ name, count: v.count, value: Math.round(v.value * 100) / 100 }))
-      .sort((a, b) => b.count - a.count);
-
-    const statusMap: Record<string, number> = {};
-    for (const p of all) {
-      const s = p.stockStatus || "available";
-      statusMap[s] = (statusMap[s] || 0) + 1;
-    }
-    const byStockStatus = Object.entries(statusMap).map(([status, count]) => ({ status, count }));
-
-    const rangeLabels = ["<$25", "$25–$50", "$50–$100", "$100+"];
-    const rangeCounts = [0, 0, 0, 0];
-    for (const p of all) {
-      const price = p.price ?? 0;
-      if (price < 25) rangeCounts[0]++;
-      else if (price < 50) rangeCounts[1]++;
-      else if (price < 100) rangeCounts[2]++;
-      else rangeCounts[3]++;
-    }
-    const byPriceRange = rangeLabels.map((range, i) => ({ range, count: rangeCounts[i] }));
-
-    return { totalProducts, inStock, outOfStock, catalogValue: Math.round(catalogValue * 100) / 100, avgPrice: Math.round(avgPrice * 100) / 100, byCategory, byStockStatus, byPriceRange };
   }
 
   async getJobs(includeAll = false): Promise<Job[]> {
@@ -3498,15 +3335,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(musicTracks.id, trackId));
   }
 
-  async sparkProduct(productId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }> {
-    const [existing] = await db.select().from(productSparks).where(and(eq(productSparks.productId, productId), eq(productSparks.userId, userId))).limit(1);
-    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
-    const dailyCount = await this.getUserDailySparksGiven(userId);
-    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false };
-    await db.insert(productSparks).values({ productId, userId });
-    return { alreadySparked: false, rateLimited: false, selfSpark: false };
-  }
-
   async sparkProject(projectId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }> {
     const [project] = await db.select({ leadUserId: projects.leadUserId }).from(projects).where(eq(projects.id, projectId)).limit(1);
     if (project?.leadUserId === userId) return { alreadySparked: false, rateLimited: false, selfSpark: true };
@@ -3545,16 +3373,6 @@ export class DatabaseStorage implements IStorage {
     return { sparkCount: scRow?.count ?? 0, isSparkedByMe };
   }
 
-  async getProductSparkInfo(productId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }> {
-    const [scRow] = await db.select({ count: countFn() }).from(productSparks).where(eq(productSparks.productId, productId));
-    let isSparkedByMe = false;
-    if (userId) {
-      const [sm] = await db.select().from(productSparks).where(and(eq(productSparks.productId, productId), eq(productSparks.userId, userId))).limit(1);
-      isSparkedByMe = !!sm;
-    }
-    return { sparkCount: scRow?.count ?? 0, isSparkedByMe };
-  }
-
   async getProjectSparkInfo(projectId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }> {
     const [scRow] = await db.select({ count: countFn() }).from(projectSparks).where(eq(projectSparks.projectId, projectId));
     let isSparkedByMe = false;
@@ -3588,22 +3406,6 @@ export class DatabaseStorage implements IStorage {
     if (trackIds.length === 0) return set;
     const rows = await db.select({ trackId: trackSparks.trackId }).from(trackSparks).where(and(inArray(trackSparks.trackId, trackIds), eq(trackSparks.userId, userId), isNull(trackSparks.revokedAt)));
     for (const r of rows) set.add(r.trackId);
-    return set;
-  }
-
-  async getProductSparkCounts(productIds: number[]): Promise<Map<number, number>> {
-    const map = new Map<number, number>();
-    if (productIds.length === 0) return map;
-    const rows = await db.select({ productId: productSparks.productId, count: sql<number>`COUNT(*)::int` }).from(productSparks).where(inArray(productSparks.productId, productIds)).groupBy(productSparks.productId);
-    for (const r of rows) map.set(r.productId, r.count);
-    return map;
-  }
-
-  async getProductSparkedByUser(productIds: number[], userId: string): Promise<Set<number>> {
-    const set = new Set<number>();
-    if (productIds.length === 0) return set;
-    const rows = await db.select({ productId: productSparks.productId }).from(productSparks).where(and(inArray(productSparks.productId, productIds), eq(productSparks.userId, userId)));
-    for (const r of rows) set.add(r.productId);
     return set;
   }
 

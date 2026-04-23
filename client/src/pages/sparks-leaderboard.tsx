@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Trophy, ArrowLeft, User, FileText, Images, Music, ShoppingBag, FolderKanban, Wrench, Sparkles, type LucideIcon } from "lucide-react";
+import { Trophy, ArrowLeft, User, FileText, Images, Music, FolderKanban, Wrench, Sparkles, type LucideIcon } from "lucide-react";
 import { SparkIcon } from "@/components/spark-icon";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,7 +27,7 @@ type LeaderboardData = {
   topContent: {
     id: number;
     title: string;
-    contentType: "article" | "gallery" | "track" | "product" | "project" | "service";
+    contentType: "article" | "gallery" | "track" | "project" | "service";
     slug?: string | null;
     sparksReceived: number;
   }[];
@@ -58,12 +58,6 @@ const CONTENT_TYPE_META: Record<LeaderboardData["topContent"][0]["contentType"],
     icon: Music,
     badgeClass: "bg-red-400/10 text-red-500",
     href: ({ id }) => `/music/listen#track-${id}`,
-  },
-  product: {
-    label: "Product",
-    icon: ShoppingBag,
-    badgeClass: "bg-green-400/10 text-green-500",
-    href: ({ id, slug }) => (slug ? `/store/products/${slug}` : `/store`),
   },
   project: {
     label: "Project",

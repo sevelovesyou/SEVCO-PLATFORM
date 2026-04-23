@@ -47,13 +47,12 @@ import {
 // Section Keys
 // ─────────────────────────────────────────────────────────
 const SECTION_KEYS = [
-  { key: "section.platformGrid.visible", label: "Platform Grid", description: "The six platform section cards (Wiki, Store, Music, etc.)" },
+  { key: "section.platformGrid.visible", label: "Platform Grid", description: "The platform section cards (Wiki, Music, Projects, etc.)" },
   { key: "section.midCta.visible", label: "Mid-page CTA", description: "Thin sign-up call-to-action band shown to logged-out visitors between Platform Grid and What's New" },
   { key: "section.whatsNew.visible", label: "What's New", description: "Platform Updates changelog cards — latest 3 entries with live badge" },
   { key: "section.feed.visible", label: "SEVCO Feed", description: "Latest community and official posts from the SEVCO team" },
   { key: "section.news.visible", label: "News — Top Stories", description: "Curated news bento grid and category swimlanes" },
   { key: "section.recordsSpotlight.visible", label: "RECORDS Spotlight", description: "The SEVCO RECORDS promotional section with purple gradient background" },
-  { key: "section.storePreview.visible", label: "Store Feature", description: "Glassmorphic Store showstopper section — featured products with brand red aurora" },
   { key: "section.servicesShowstopper.visible", label: "Services Feature", description: "Services split-layout showstopper with animated service icons and brand blue aurora" },
   { key: "section.projectsShowstopper.visible", label: "Projects Feature", description: "Projects/Ventures bento-grid showstopper with brand green aurora and status badges" },
   { key: "section.signupCta.visible", label: "Sign-Up CTA", description: "Glassmorphic conversion panel with feature checklist — hidden automatically for logged-in users" },
@@ -408,7 +407,6 @@ const LUCIDE_ICON_OPTIONS = [
 
 const DEFAULT_ICON_PILLS = [
   { icon: "Music", label: "Music", href: "/music", color: "#BE0000" },
-  { icon: "ShoppingBag", label: "Store", href: "/store", color: "#BE0000" },
   { icon: "Folder", label: "Projects", href: "/projects", color: "#BE0000" },
   { icon: "Users", label: "Community", href: "/contact", color: "#BE0000" },
   { icon: "Zap", label: "Fast", href: "/", color: "#BE0000" },
@@ -425,7 +423,6 @@ type PlatformSection = { label: string; description: string; path: string; iconN
 
 const DEFAULT_PLATFORM_SECTIONS: PlatformSection[] = [
   { label: "Wiki", description: "The internal knowledge base — docs, guides, and company knowledge all in one place.", path: "/wiki", iconName: "BookOpen" },
-  { label: "Store", description: "Merchandise, exclusive drops, and products from the SEVCO universe.", path: "/store", iconName: "ShoppingBag" },
   { label: "Music", description: "SEVCO RECORDS — releases, artists, and a catalog built for independent creators.", path: "/music", iconName: "Music" },
   { label: "Projects", description: "SEVCO Ventures — active companies, initiatives, and what's next.", path: "/projects", iconName: "Folder" },
   { label: "Services", description: "Engineering, design, marketing, and more — what we build for partners.", path: "/services", iconName: "Briefcase" },
@@ -461,7 +458,7 @@ const DEFAULT_SITEMAP: SitemapColumn[] = [
   {
     heading: "Commerce",
     links: [
-      { label: "Store", path: "/store" },
+      { label: "Store", path: "https://shop.sevco.us", external: true },
       { label: "Services", path: "/services" },
       { label: "Hosting", path: "/domains" },
       { label: "Jobs", path: "/jobs" },
@@ -1084,7 +1081,7 @@ function LivePreviewPanel({ light, dark }: { light: PreviewColors; dark: Preview
 // SEO / Optimization
 // ─────────────────────────────────────────────────────────
 const SEO_PAGES = [
-  "home", "wiki", "music", "store", "projects", "contact", "profile",
+  "home", "wiki", "music", "projects", "contact", "profile",
   "jobs", "services", "feed", "notes", "gallery", "hosting", "minecraft",
   "news", "messages", "about", "finance", "ai", "tools",
 ] as const;
@@ -1257,13 +1254,12 @@ export default function CommandSettings() {
   // ── Page button colors ──
   const PAGE_LABELS: Record<string, string> = {
     landing: "Home",
-    store: "Store",
     services: "Services",
     projects: "Projects",
     music: "Music",
     news: "News",
   };
-  const PAGE_KEYS = ["landing", "store", "services", "projects", "music", "news"] as const;
+  const PAGE_KEYS = ["landing", "services", "projects", "music", "news"] as const;
   type PageKey = typeof PAGE_KEYS[number];
   type PageBtnColors = { primaryBtn: string; primaryBtnText: string; secondaryBtn: string; secondaryBtnText: string };
   const [pageBtnColors, setPageBtnColors] = useState<Record<PageKey, PageBtnColors>>(() => {
@@ -1276,7 +1272,6 @@ export default function CommandSettings() {
 
   // ── Per-section color state ──
   const [homeCardAccentColor, setHomeCardAccentColor] = useState("");
-  const [storeAccentColor, setStoreAccentColor] = useState("");
   const [servicesAccentColor, setServicesAccentColor] = useState("");
   const [musicAccentColor, setMusicAccentColor] = useState("");
   const [wikiTagColor, setWikiTagColor] = useState("");
@@ -1440,12 +1435,6 @@ export default function CommandSettings() {
         secondaryBtn: settings["color.landing.secondaryBtn"] || "",
         secondaryBtnText: settings["color.landing.secondaryBtnText"] || "",
       },
-      store: {
-        primaryBtn: settings["color.store.primaryBtn"] || "",
-        primaryBtnText: settings["color.store.primaryBtnText"] || "",
-        secondaryBtn: settings["color.store.secondaryBtn"] || "",
-        secondaryBtnText: settings["color.store.secondaryBtnText"] || "",
-      },
       services: {
         primaryBtn: settings["color.services.primaryBtn"] || "",
         primaryBtnText: settings["color.services.primaryBtnText"] || "",
@@ -1473,7 +1462,6 @@ export default function CommandSettings() {
     });
 
     setHomeCardAccentColor(settings["home.cardAccentColor"] || "");
-    setStoreAccentColor(settings["store.accentColor"] || "");
     setServicesAccentColor(settings["services.accentColor"] || "");
     setMusicAccentColor(settings["music.accentColor"] || "");
     setWikiTagColor(settings["wiki.tagColor"] || "");
@@ -1727,7 +1715,6 @@ export default function CommandSettings() {
   function savePerSectionColors() {
     mutation.mutate({
       "home.cardAccentColor": homeCardAccentColor,
-      "store.accentColor": storeAccentColor,
       "services.accentColor": servicesAccentColor,
       "music.accentColor": musicAccentColor,
       "wiki.tagColor": wikiTagColor,
@@ -2273,7 +2260,7 @@ export default function CommandSettings() {
               </Card>
 
               {/* Section Visibility */}
-              <Card data-search-label="section visibility platform grid records spotlight store preview wiki community" className={cardVisible("section visibility platform grid records spotlight store preview wiki community") ? "" : "hidden"}>
+              <Card data-search-label="section visibility platform grid records spotlight wiki community" className={cardVisible("section visibility platform grid records spotlight wiki community") ? "" : "hidden"}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Eye className="h-4 w-4" />
@@ -2570,14 +2557,14 @@ export default function CommandSettings() {
                       </AccordionContent>
                     </AccordionItem>
 
-                    <AccordionItem value="page-accents" className="border rounded-lg px-4" data-testid="accordion-page-accents" data-search-label="page accents per section accent colors home store services music wiki tag page button color overrides">
+                    <AccordionItem value="page-accents" className="border rounded-lg px-4" data-testid="accordion-page-accents" data-search-label="page accents per section accent colors home services music wiki tag page button color overrides">
                       <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
                         {highlight("Page Accents")}
                       </AccordionTrigger>
                       <AccordionContent className="pb-4 space-y-4">
                         <p className="text-xs text-muted-foreground">Per-page accent colors and per-page button color overrides. Leave any field empty to inherit global theme colors.</p>
                         <Accordion type="multiple" defaultValue={["group-page-accents-section", "group-page-btns"]} className="space-y-2">
-                          <AccordionItem value="group-page-accents-section" className="border rounded-lg px-4" data-search-label="per section accent home store services music wiki tag colors">
+                          <AccordionItem value="group-page-accents-section" className="border rounded-lg px-4" data-search-label="per section accent home services music wiki tag colors">
                             <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
                               {highlight("Per-Section Accent Colors")}
                             </AccordionTrigger>
@@ -2585,7 +2572,6 @@ export default function CommandSettings() {
                               <p className="text-xs text-muted-foreground">Optional accent colors for individual platform sections. Leave empty to use global brand colors.</p>
                               <div className="space-y-3">
                                 <ColorPickerRow label="Home Page Cards" hsl={homeCardAccentColor} onChange={setHomeCardAccentColor} testIdBase="home-card-accent-pa" showSwatches hint="--home-card-accent" />
-                                <ColorPickerRow label="Store Page" hsl={storeAccentColor} onChange={setStoreAccentColor} testIdBase="store-accent-pa" showSwatches hint="--store-accent" />
                                 <ColorPickerRow label="Services Page" hsl={servicesAccentColor} onChange={setServicesAccentColor} testIdBase="services-accent-pa" showSwatches hint="--services-accent" />
                                 <ColorPickerRow label="Music Page (RECORDS section)" hsl={musicAccentColor} onChange={setMusicAccentColor} testIdBase="music-accent-pa" showSwatches hint="--music-accent" />
                                 <ColorPickerRow label="Wiki Tags / Highlights" hsl={wikiTagColor} onChange={setWikiTagColor} testIdBase="wiki-tag-pa" showSwatches hint="--wiki-tag-color" />
@@ -2599,7 +2585,7 @@ export default function CommandSettings() {
                             </AccordionContent>
                           </AccordionItem>
 
-                          <AccordionItem value="group-page-btns" className="border rounded-lg px-4" data-search-label="page button color overrides landing store services projects music news primary secondary">
+                          <AccordionItem value="group-page-btns" className="border rounded-lg px-4" data-search-label="page button color overrides landing services projects music news primary secondary">
                             <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">
                               {highlight("Page Button Color Overrides")}
                             </AccordionTrigger>
@@ -3274,7 +3260,7 @@ export default function CommandSettings() {
             <AccordionTrigger className="text-sm font-semibold py-3 hover:no-underline">Advanced Settings</AccordionTrigger>
             <AccordionContent className="pb-4 space-y-6">
               {/* Platform Section Cards */}
-              <Card data-search-label="platform section cards wiki store music projects services community description icon path" className={cardVisible("platform section cards wiki store music projects services community description icon path") ? "" : "hidden"}>
+              <Card data-search-label="platform section cards wiki music projects services community description icon path" className={cardVisible("platform section cards wiki music projects services community description icon path") ? "" : "hidden"}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>

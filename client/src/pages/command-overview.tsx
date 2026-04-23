@@ -9,9 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import {
-  PieChart,
-  Pie,
-  Cell,
   Tooltip as RechartsTooltip,
   LineChart,
   Line,
@@ -27,12 +24,10 @@ import {
   XCircle,
   BookOpen,
   Music,
-  ShoppingBag,
   Folder,
   ArrowRight,
   LayoutDashboard,
   Link as LinkIcon,
-  BarChart2,
   BarChart3,
   Server,
   CheckCircle2,
@@ -87,11 +82,6 @@ const SUBMISSION_STATUS_COLORS: Record<string, string> = {
   rejected: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
 };
 
-const STOCK_COLORS: Record<string, string> = {
-  available: "hsl(var(--chart-2))",
-  sold_out: "hsl(var(--destructive))",
-};
-
 interface DashboardContribution {
   id: number;
   articleId: number;
@@ -117,14 +107,6 @@ interface DashboardData {
   myContributions?: DashboardContribution[];
 }
 
-interface StoreStats {
-  totalProducts: number;
-  inStock: number;
-  outOfStock: number;
-  catalogValue: number;
-  avgPrice: number;
-  byStockStatus: Array<{ status: string; count: number }>;
-}
 
 interface AnalyticsSummary {
   sessions: number;
@@ -276,104 +258,6 @@ function VpsStatusCard() {
             </div>
           </div>
         )}
-      </Card>
-    </Link>
-  );
-}
-
-function StoreStatsPreview() {
-  const { data: stats, isLoading } = useQuery<StoreStats>({
-    queryKey: ["/api/store/stats"],
-  });
-
-  const donutData = stats?.byStockStatus.map((s) => ({
-    name: s.status === "available" ? "In Stock" : "Sold Out",
-    value: s.count,
-    originalStatus: s.status,
-  })) ?? [];
-
-  return (
-    <Link href="/command/store">
-      <Card
-        className="p-4 hover-elevate active-elevate-2 cursor-pointer overflow-visible group"
-        data-testid="card-store-stats-preview"
-      >
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-md bg-red-700/10 flex items-center justify-center shrink-0">
-              <BarChart2 className="h-3.5 w-3.5 text-red-700 dark:text-red-500" />
-            </div>
-            <span className="text-sm font-semibold">Store Analytics</span>
-          </div>
-          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:translate-x-0.5 transition-transform shrink-0" />
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-2">
-            {isLoading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i}>
-                  <Skeleton className="h-3 w-16 mb-1" />
-                  <Skeleton className="h-5 w-10" />
-                </div>
-              ))
-            ) : (
-              <>
-                <div data-testid="preview-total-products">
-                  <p className="text-xs text-muted-foreground">Total Products</p>
-                  <p className="text-lg font-bold">{stats?.totalProducts ?? 0}</p>
-                </div>
-                <div data-testid="preview-in-stock">
-                  <p className="text-xs text-muted-foreground">In Stock</p>
-                  <p className="text-lg font-bold text-green-600 dark:text-green-400">{stats?.inStock ?? 0}</p>
-                </div>
-                <div data-testid="preview-out-of-stock">
-                  <p className="text-xs text-muted-foreground">Sold Out</p>
-                  <p className="text-lg font-bold text-red-600 dark:text-red-400">{stats?.outOfStock ?? 0}</p>
-                </div>
-                <div data-testid="preview-catalog-value">
-                  <p className="text-xs text-muted-foreground">Catalog Value</p>
-                  <p className="text-lg font-bold text-blue-700 dark:text-blue-400">
-                    ${(stats?.catalogValue ?? 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-          {!isLoading && donutData.length > 0 && (
-            <div className="shrink-0">
-              <PieChart width={80} height={80}>
-                <Pie
-                  data={donutData}
-                  cx={35}
-                  cy={35}
-                  innerRadius={22}
-                  outerRadius={36}
-                  paddingAngle={2}
-                  dataKey="value"
-                  isAnimationActive={true}
-                  animationDuration={800}
-                  animationEasing="ease-out"
-                >
-                  {donutData.map((entry) => (
-                    <Cell
-                      key={entry.originalStatus}
-                      fill={STOCK_COLORS[entry.originalStatus] ?? "hsl(var(--chart-1))"}
-                    />
-                  ))}
-                </Pie>
-                <RechartsTooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "6px",
-                    fontSize: "11px",
-                    color: "hsl(var(--foreground))",
-                  }}
-                />
-              </PieChart>
-            </div>
-          )}
-        </div>
       </Card>
     </Link>
   );
@@ -1038,7 +922,6 @@ function AdminOverview({ data, summary, summaryLoading, userId, latestPlatformEn
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <WidgetErrorBoundary label="Store Stats"><StoreStatsPreview /></WidgetErrorBoundary>
         <WidgetErrorBoundary label="VPS Status"><VpsStatusCard /></WidgetErrorBoundary>
       </div>
 
@@ -1078,10 +961,6 @@ function ExecutiveOverview({ data, summary, summaryLoading, userId, latestPlatfo
           <StatCard label="Feed Posts" value={summary?.counts.feedPosts} icon={MessageCircle} testId="stat-feed-posts" trend={{ direction: "up", percentage: 6 }} sparklineData={[5, 7, 6, 8, 10, 9, 12]} />
         </div>
       </div>
-      <div>
-        <WidgetErrorBoundary label="Store Stats"><StoreStatsPreview /></WidgetErrorBoundary>
-      </div>
-
       <div className="grid md:grid-cols-2 gap-6">
         <RecentApplicantsCard applicants={summary?.recentApplicants} isLoading={summaryLoading} />
         <RecentSubmissionsCard submissions={summary?.recentSubmissions} isLoading={summaryLoading} />
@@ -1115,10 +994,6 @@ function StaffOverview({ data, summary, summaryLoading, latestPlatformEntry, onR
           <StatCard label="Total Revisions" value={data.stats.totalRevisions} icon={Clock} testId="stat-revisions" trend={{ direction: "up", percentage: 8 }} sparklineData={[10, 12, 9, 14, 13, 15, 18]} />
         </div>
       </div>
-      <div>
-        <WidgetErrorBoundary label="Store Stats"><StoreStatsPreview /></WidgetErrorBoundary>
-      </div>
-
       <LatestChangelogCard entry={latestPlatformEntry ?? summary?.latestChangelog} isLoading={summaryLoading} onRefresh={onRefreshSummary} />
 
       <div>
@@ -1134,7 +1009,6 @@ function StaffOverview({ data, summary, summaryLoading, latestPlatformEntry, onR
 const CLIENT_LINKS = [
   { label: "Wiki",     desc: "Browse articles and resources",  path: "/wiki",     icon: BookOpen,   color: "text-primary",                               bg: "bg-primary/10" },
   { label: "Music",    desc: "SEVCO RECORDS releases",          path: "/music",    icon: Music,      color: "text-blue-700 dark:text-blue-400",       bg: "bg-blue-600/10" },
-  { label: "Store",    desc: "Merchandise and products",        path: "/store",    icon: ShoppingBag, color: "text-red-700 dark:text-red-500",      bg: "bg-red-700/10" },
   { label: "Projects", desc: "SEVCO Ventures",                  path: "/projects", icon: Folder,     color: "text-green-600 dark:text-green-400",         bg: "bg-green-500/10" },
 ];
 

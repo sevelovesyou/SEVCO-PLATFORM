@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Search, X, BookOpen, Folder, ShoppingBag, Music, Users, Briefcase, Globe, ArrowRight } from "lucide-react";
+import { Search, X, BookOpen, Folder, Music, Users, Briefcase, Globe, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,6 @@ type SearchResultItem = {
 type SearchResults = {
   wiki: SearchResultItem[];
   projects: SearchResultItem[];
-  store: SearchResultItem[];
   music: SearchResultItem[];
   jobs: SearchResultItem[];
   services: SearchResultItem[];
@@ -27,7 +26,6 @@ type SearchResults = {
 const SECTION_CONFIG = [
   { key: "wiki" as const,     label: "Wiki",     icon: BookOpen,    color: "text-blue-500" },
   { key: "projects" as const, label: "Projects", icon: Folder,      color: "text-blue-600" },
-  { key: "store" as const,    label: "Store",    icon: ShoppingBag, color: "text-red-600" },
   { key: "music" as const,    label: "Music",    icon: Music,       color: "text-pink-500" },
   { key: "jobs" as const,     label: "Jobs",     icon: Users,       color: "text-green-500" },
   { key: "services" as const, label: "Services", icon: Briefcase,   color: "text-yellow-500" },
@@ -81,7 +79,7 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
     queryKey: ["/api/search", debouncedQuery],
     queryFn: async () => {
       if (!debouncedQuery || debouncedQuery.length < 2) {
-        return { wiki: [], projects: [], store: [], music: [], jobs: [], services: [], total: 0 };
+        return { wiki: [], projects: [], music: [], jobs: [], services: [], total: 0 };
       }
       const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}&limit=4`, { credentials: "include" });
       if (!res.ok) throw new Error("Search failed");

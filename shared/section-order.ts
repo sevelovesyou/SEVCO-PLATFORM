@@ -6,7 +6,6 @@ export const DEFAULT_SECTION_ORDER: string[] = [
   "feed",
   "news",
   "recordsSpotlight",
-  "storePreview",
   "servicesShowstopper",
   "projectsShowstopper",
   "wikiLatest",

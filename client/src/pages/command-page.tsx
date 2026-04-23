@@ -97,7 +97,6 @@ export function CommandPageLayout({ children, title, subtitle }: CommandPageProp
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] }),
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/summary"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/store/stats"] }),
       queryClient.invalidateQueries({ queryKey: ["/api/hostinger/vps"] }),
       queryClient.invalidateQueries({ queryKey: ["/api/resources"] }),
       queryClient.invalidateQueries({ queryKey: ["/api/notes"] }),

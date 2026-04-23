@@ -1227,15 +1227,12 @@ function CreatorRewardPoolTab() {
                         item.type === "article" ? "bg-purple-500/10 text-purple-600 dark:text-purple-400" :
                         item.type === "gallery" ? "bg-green-500/10 text-green-600 dark:text-green-400" :
                         item.type === "track" ? "bg-pink-500/10 text-pink-600 dark:text-pink-400" :
-                        item.type === "product" ? "bg-red-500/10 text-red-600 dark:text-red-400" :
                         item.type === "project" ? "bg-orange-500/10 text-orange-600 dark:text-orange-400" :
                         item.type === "service" ? "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400" :
                         "bg-muted text-muted-foreground"
                       }`}>{item.type}</span>
                       {item.type === "article" && item.slug ? (
                         <a href={`/wiki/${item.slug}`} className="text-xs hover:underline text-primary truncate">{item.title}</a>
-                      ) : item.type === "product" && item.slug ? (
-                        <a href={`/store/${item.slug}`} className="text-xs hover:underline text-primary truncate">{item.title}</a>
                       ) : item.type === "project" && item.slug ? (
                         <a href={`/projects/${item.slug}`} className="text-xs hover:underline text-primary truncate">{item.title}</a>
                       ) : item.type === "service" && item.slug ? (

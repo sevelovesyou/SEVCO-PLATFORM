@@ -337,15 +337,16 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
   const { canCreateArticle } = usePermission();
 
   const items = [
-    { label: "Home",         href: "/",          icon: Home,                    desc: "Go to landing page",             show: true },
-    { label: "About",        href: "/about",      icon: BookOpen,               desc: "Learn about SEVCO",              show: true },
-    { label: "Wiki",         href: "/wiki",       icon: BookOpen,               desc: "Internal knowledge base",        show: true },
-    { label: "What's New",   href: "/platform",   icon: Rocket,     desc: "Platform updates & changelog",   show: true },
-    { label: "Pricing",      href: "/pricing",    icon: Zap,        desc: "Buy ⚡️ Sparks packs",           show: true },
-    { label: "Contact",      href: "/contact",    icon: Mail,                   desc: "Get in touch",                   show: true },
-    { label: "Jobs",         href: "/jobs",       icon: Users,                  desc: "Open positions",                 show: true },
-    { label: "News",         href: "/news",       icon: Newspaper,  desc: "Latest news & trends",           show: true },
-    { label: "Account",      href: "/account",    icon: User,                   desc: "Manage your profile",            show: true },
+    { label: "Home",         href: "/",                        icon: Home,         desc: "Go to landing page",            show: true },
+    { label: "About",        href: "/about",                   icon: BookOpen,     desc: "Learn about SEVCO",             show: true },
+    { label: "Shop",         href: "https://shop.sevco.us",    icon: ShoppingBag,  desc: "Shop SEVCO merchandise",        show: true, external: true },
+    { label: "Wiki",         href: "/wiki",                    icon: BookOpen,     desc: "Internal knowledge base",       show: true },
+    { label: "What's New",   href: "/platform",                icon: Rocket,       desc: "Platform updates & changelog",  show: true },
+    { label: "Pricing",      href: "/pricing",                 icon: Zap,          desc: "Buy ⚡️ Sparks packs",          show: true },
+    { label: "Contact",      href: "/contact",                 icon: Mail,         desc: "Get in touch",                  show: true },
+    { label: "Jobs",         href: "/jobs",                    icon: Users,        desc: "Open positions",                show: true },
+    { label: "News",         href: "/news",                    icon: Newspaper,    desc: "Latest news & trends",          show: true },
+    { label: "Account",      href: "/account",                 icon: User,         desc: "Manage your profile",           show: true },
   ].filter((item) => item.show);
 
   return (
@@ -360,8 +361,8 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
       {open && (
         <DropdownPanel triggerRef={ref} className="w-64">
           <div className="p-2">
-            {items.map((item) => (
-              <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
+            {items.map((item) => {
+              const inner = (
                 <div
                   className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
                   data-testid={`dropdown-home-${item.label.toLowerCase()}`}
@@ -372,8 +373,13 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
                     <p className="text-[11px] text-muted-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]/80">{item.desc}</p>
                   </div>
                 </div>
-              </Link>
-            ))}
+              );
+              return (item as any).external ? (
+                <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}>{inner}</a>
+              ) : (
+                <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>{inner}</Link>
+              );
+            })}
           </div>
         </DropdownPanel>
       )}
@@ -381,26 +387,6 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
   );
 }
 
-function ShopNavLink() {
-  return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="gap-1 h-8 text-xs font-medium text-muted-foreground hover:text-foreground"
-      asChild
-    >
-      <a
-        href="https://shop.sevco.us"
-        target="_blank"
-        rel="noopener noreferrer"
-        data-testid="nav-shop"
-      >
-        <ShoppingBag className="h-3.5 w-3.5" />
-        Shop
-      </a>
-    </Button>
-  );
-}
 
 function ServicesDropdown({ isActive, platformSettings }: { isActive: boolean; platformSettings?: Record<string, string> }) {
   const { open, setOpen, ref } = useDropdown();
@@ -1109,28 +1095,9 @@ export function PlatformHeader() {
         {/* Desktop nav */}
         <nav className="hidden lg:flex items-center gap-0.5 flex-1" aria-label="Main navigation" data-testid="nav-app-switcher" style={isDark ? { filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.5))" } : undefined}>
           <HomeDropdown isActive={activeApp === "/"} />
-          <ShopNavLink />
           <ServicesDropdown isActive={activeApp === "/services"} platformSettings={platformSettings} />
           <MusicDropdown isActive={activeApp === "/music"} />
           <ProjectsDropdown isActive={activeApp === "/projects"} />
-
-          {user && (
-            <Link href="/freeball">
-              <Button
-                variant={activeApp === "/freeball" ? "secondary" : "ghost"}
-                size="sm"
-                className={`gap-1.5 h-8 text-xs font-medium ${
-                  activeApp === "/freeball"
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                data-testid="nav-freeball"
-              >
-                <Globe className="h-3.5 w-3.5" />
-                Freeball
-              </Button>
-            </Link>
-          )}
 
           {canAccessCMD && (
             <Link href="/command">
@@ -1362,20 +1329,19 @@ export function PlatformHeader() {
                     </div>
                   </Link>
                 ))}
+                <a
+                  href="https://shop.sevco.us"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                  data-testid="mobile-nav-shop"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Shop
+                </a>
               </div>
             </CollapsibleContent>
           </Collapsible>
-
-          <a
-            href="https://shop.sevco.us"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors"
-            data-testid="mobile-nav-shop"
-          >
-            <ShoppingBag className="h-3.5 w-3.5 shrink-0" />
-            Shop
-          </a>
 
           <Collapsible open={mobileSection === "services"} onOpenChange={(o) => setMobileSection(o ? "services" : null)}>
             <CollapsibleTrigger asChild>
@@ -1447,7 +1413,6 @@ export function PlatformHeader() {
             <CollapsibleContent>
               <div className="pl-4 space-y-0.5 py-1">
                 {[
-                  { label: "Freeball", href: "/freeball",       testId: "mobile-nav-tools-freeball", requiredRoles: ["user","client","partner","staff","executive","admin"] },
                   { label: "Notes",   href: "/notes",          testId: "mobile-nav-tools-notes",   requiredRoles: ["user","client","partner","staff","executive","admin"] },
                   { label: "Tasks",   href: "/tools/tasks",   testId: "mobile-nav-tools-tasks",   requiredRoles: ["user","client","partner","staff","executive","admin"] },
                   { label: "Domains", href: "/tools/domains", testId: "mobile-nav-tools-domains", requiredRoles: ["user","client","partner","staff","executive","admin"] },

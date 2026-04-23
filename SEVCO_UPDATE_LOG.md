@@ -30356,3 +30356,36 @@ The cleanest fix that respects the project rule of not editing `package.json` is
 
 ---
 
+## Task — task-540
+> Merged: 2026-04-23
+
+---
+title: Fix /feed crash: SparkIcon is not defined
+---
+# Fix /feed crash: SparkIcon is not defined
+
+## What & Why
+Visiting `/feed` on the live site (sev.cx) throws:
+
+```
+ReferenceError: SparkIcon is not defined
+```
+
+The `SocialPostCard` component in `client/src/pages/feed-page.tsx` renders `<SparkIcon size="md" decorative />` at line 539, but the `SparkIcon` component is never imported at the top of the file. The component exists at `@/components/spark-icon` — it just needs one import line added. This was introduced when the Task #535 orphaned-repost hardening added a SparkIcon render to the spark-button section without including the import.
+
+## Done looks like
+- `https://sev.cx/feed` loads and shows posts for signed-in users with no red error screen.
+- The spark button area of each post renders correctly with the SparkIcon glyph.
+- The app builds and deploys without error.
+
+## Steps
+1. Add `import { SparkIcon } from "@/components/spark-icon";` to the import block at the top of `client/src/pages/feed-page.tsx` (after the existing component imports, around line 81-82).
+2. Verify locally that `/feed` renders without the "SparkIcon is not defined" error.
+3. Publish.
+
+## Relevant files
+- `client/src/pages/feed-page.tsx` (add one import line at the top)
+
+
+---
+

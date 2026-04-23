@@ -30470,3 +30470,163 @@ queryFn: async () => {
 
 ---
 
+## Task — remove-inhouse-store
+> Merged: 2026-04-23
+
+# Task #547 — Remove all in-house store functionality
+
+## Summary
+
+The SEVCO Store is moving to Shopify (https://shop.sevco.us). Remove all internal
+store code — pages, API routes, cart, checkout, CMD management tab, and all references
+across the app. DB tables are preserved (products, store_categories, orders, product_sparks)
+so historical order data is safe — table removal can happen separately once confirmed.
+
+## Depends On
+
+Task #546 (nav rename) should be merged first.
+
+## Files to Delete Entirely
+
+| File | What it is |
+|------|------------|
+| `client/src/pages/store-page.tsx` | /store catalog page |
+| `client/src/pages/store-product-detail.tsx` | /store/products/:slug detail page |
+| `client/src/pages/store-product-form.tsx` | Add/edit product admin form |
+| `client/src/pages/store-success-page.tsx` | Stripe checkout success page |
+| `client/src/pages/store-cancel-page.tsx` | Stripe checkout cancel page |
+| `client/src/pages/command-store.tsx` | CMD Store Management tab |
+| `client/src/components/cart-drawer.tsx` | Slide-out cart UI |
+| `client/src/hooks/use-cart.tsx` | Cart state hook / CartProvider |
+
+## client/src/App.tsx
+
+- Remove lazy imports: `StorePage`, `StoreProductDetail`, `StoreProductForm`,
+  `StoreSuccessPage`, `StoreCancelPage`, `CommandStore`
+- Remove all `<Route path="/store*" ...>` entries (lines ~279-321)
+- Remove `<Route path="/command/store" ...>` entry (line ~332)
+- Remove `import { CartProvider } from "@/hooks/use-cart"` (line ~15)
+- Remove `import { CartDrawer } from "@/components/cart-drawer"` (line ~18)
+- Remove `<CartDrawer />` from JSX (line ~881)
+- Remove `<CartProvider>` wrapper (line ~892 and ~914)
+- Remove the `store.accentColor` CSS variable handling (line ~629-635)
+- Remove `"store"` from `PAGE_SCOPES` array (line ~640)
+
+## client/src/components/platform-header.tsx
+
+- Remove `StoreDropdown` component entirely (lines ~387-450)
+- Remove mobile nav "store" collapsible section (lines ~1430-1445)
+- Remove `storeCategories` constant (line ~1089)
+- Remove active-app detection for `/store` (line ~185)
+- Remove `ShoppingBag` from lucide imports if no longer used elsewhere in the file
+  (check first — it might still be used by mobile nav Shop link added in Task #546)
+
+Note: Task #546 already changes the nav link itself. This task removes the leftover
+`StoreDropdown` component and cleans up the dead code around it.
+
+## client/src/pages/landing.tsx
+
+- Remove `useQuery` for `/api/store/products` (lines ~269-271)
+- Remove `import type { ..., Product, ... }` from shared/schema — check if Product
+  is used elsewhere in the file, remove if not
+- Remove `featuredProducts` and `latestProducts` derived constants (lines ~339-340)
+- Remove `storeRef = useIntersectionObserver()` (line ~427) — check if still needed
+- Remove `case "storePreview":` section entirely (lines ~1067-?) — this section was
+  either updated to a CTA or removed in Task #546; clean up any remaining dead code
+- Remove `showStorePreview` constant if no longer used (line ~398)
+- Remove `"storePreview"` from `DEFAULT_SECTION_ORDER` in `shared/section-order.ts`
+
+## client/src/components/command-sidebar.tsx
+
+- Remove the "Store Management" / `/command/store` nav item
+
+## client/src/pages/command-overview.tsx
+
+- Remove store stats panel / product count display
+- Remove any `useQuery` for `/api/store/stats`
+
+## client/src/pages/command-settings.tsx
+
+- Remove any store-specific settings fields (e.g., `store.accentColor`,
+  `section.storePreview.visible`)
+
+## client/src/pages/command-display.tsx
+
+- Remove any store display configuration UI
+
+## client/src/pages/profile-page.tsx
+
+- The `profileFeaturedType` can include `"product"` — if a profile features a product,
+  it will now be orphaned. Remove `"product"` from the featured type selector options.
+- If there is a product card preview block, remove it.
+
+## server/routes.ts
+
+Remove all of the following API route blocks:
+
+- `GET/POST /api/store/categories` (lines ~2186-2228)
+- `GET /api/store/categories/:id` PATCH/DELETE (lines ~2205-2228)
+- `GET /api/store/products` and all sub-routes (lines ~2229-2355)
+- `GET /api/store/stats` (lines ~2357-2365)
+- `POST /api/checkout` (lines ~2366-2420)
+- `GET /api/checkout/session/:sessionId` (lines ~2421-2471)
+- `GET /api/orders` (lines ~2472-2480)
+- `PATCH /api/orders/:id/status` (lines ~2481-~2495)
+- `POST /api/store/products/:id/spark` (line ~4386)
+- Remove `CAN_MANAGE_STORE` and `CAN_MANAGE_STORE_PRODUCTS` constants (lines ~63-65)
+- Remove `insertProductSchema`, `insertStoreCategorySchema`, `insertOrderSchema`
+  from the schema import (line ~23) — only if these are not used elsewhere
+
+## server/storage.ts
+
+Remove from `IStorage` interface:
+- `getProducts`, `getProductBySlug`, `getProductById`, `getProductsByCategory`
+- `createProduct`, `updateProductStockStatus`, `deleteProduct`, `updateProduct`
+- `getStoreCategories`, `createStoreCategory`, `updateStoreCategory`, `deleteStoreCategory`
+- `getOrders`, `getOrderBySessionId`, `createOrder`, `updateOrderStatus`
+- `getStoreStats`
+- `sparkProduct`, `getProductSparkInfo`, `getProductSparkCounts`, `getProductSparkedByUser`
+  (product-specific spark helpers — keep the general spark infrastructure if used elsewhere)
+- `totalProductSparksGiven` from the spark stats aggregate
+- `"store"` from search results type
+
+Remove all corresponding implementations (the method bodies) from the `DatabaseStorage` class.
+
+Remove from imports:
+- `type Product, type InsertProduct`
+- `type StoreCategory, type InsertStoreCategory`
+- `type Order, type InsertOrder`
+- `products, orders, storeCategories, productSparks` from drizzle imports (line ~59 / ~82)
+  — only remove if not referenced elsewhere (they won't be after the method removals)
+
+## shared/schema.ts — NO CHANGES to table definitions
+
+**Do not delete** the `products`, `store_categories`, `orders`, `product_sparks` table
+definitions. Removing them would cause `db:push` to generate DROP TABLE migrations,
+destroying all historical order data. The tables will remain silently in the DB until
+a future explicit data-archival task.
+
+However, DO remove:
+- `"store"` from the `profileFeaturedType` z.enum values (line ~425 area)
+  — or change to a safe no-op if that would break existing profiles (set to null instead)
+- `insertProductSchema`, `insertStoreCategorySchema`, `insertOrderSchema` export
+  constants can remain (they don't harm anything) but their types can be pruned from
+  imports in files that no longer need them.
+
+## shared/section-order.ts
+
+Remove `"storePreview"` from `DEFAULT_SECTION_ORDER` array.
+
+## Acceptance
+
+- `/store` and all sub-paths either redirect to shop.sevco.us or show 404 (404 is fine since the nav no longer links there)
+- No CartDrawer, CartProvider, or cart icon visible anywhere in the app
+- No store-related routes in App.tsx
+- CMD sidebar has no "Store Management" link
+- Landing page has no storePreview section
+- Server starts cleanly with no references to deleted store methods
+- No TypeScript errors from missing imports
+
+
+---
+

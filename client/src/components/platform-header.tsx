@@ -97,6 +97,7 @@ import {
   Zap,
   Newspaper,
   Trophy,
+  ShoppingBag,
   X,
 } from "lucide-react";
 import { getIcon } from "@/lib/icon-map";

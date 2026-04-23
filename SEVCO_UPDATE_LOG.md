@@ -30389,3 +30389,84 @@ The `SocialPostCard` component in `client/src/pages/feed-page.tsx` renders `<Spa
 
 ---
 
+## Task — fix-landing-feed-slice-crash
+> Merged: 2026-04-23
+
+# Task #544 — Fix landing page crash: feed data `.slice is not a function`
+
+## Problem
+
+The live site (sevco.us) crashes for all visitors on the landing page with:
+
+```
+TypeError: X.slice is not a function
+  at Array.map
+  at vs (landing-DCzGK5r8.js)
+```
+
+## Root Cause
+
+`client/src/pages/landing.tsx` has two `useQuery` calls with custom `queryFn`s that
+call `res.json()` without validating the response:
+
+```typescript
+queryFn: async () => {
+  const res = await fetch("/api/feed?pinned=false&limit=6");
+  return res.json(); // ← no res.ok check, no Array.isArray guard
+},
+```
+
+If the API returns an error JSON object (`{message: "Server error"}`) instead of an
+array — e.g. a transient 500 during boot — TanStack Query stores that object as `data`.
+The `= []` default only applies while `data` is `undefined`; a resolved non-array
+overwrites it. Then `recentFeedPosts.slice(0, 6)` throws because objects have no `.slice`.
+
+Additionally, `post.content.slice(0, 280)` at line 1036 is called after checking
+`post.content.length > 280`, but if `content` is null (nullable DB column), accessing
+`.length` on null throws first. Both issues compound on the live site.
+
+## Fix
+
+In `client/src/pages/landing.tsx`:
+
+### 1. Guard both feed queryFns (lines ~281-294)
+
+```typescript
+// /api/feed?pinned=true&limit=1
+queryFn: async () => {
+  const res = await fetch("/api/feed?pinned=true&limit=1");
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+},
+
+// /api/feed?pinned=false&limit=6
+queryFn: async () => {
+  const res = await fetch("/api/feed?pinned=false&limit=6");
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+},
+```
+
+### 2. Guard post.content at line 1036
+
+```typescript
+{(post.content?.length ?? 0) > 280
+  ? post.content!.slice(0, 280) + "…"
+  : post.content ?? ""}
+```
+
+## Files
+
+- `client/src/pages/landing.tsx` (lines ~281-294 queryFn, line ~1036 content guard)
+
+## Acceptance
+
+- Landing page loads without crashing for both logged-in and logged-out users
+- Feed section renders normally when feed data is available
+- No TypeError in console related to `.slice`
+
+
+---
+

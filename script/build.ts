@@ -2,6 +2,7 @@ import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
 import { rm, readFile, mkdir, copyFile, readdir, stat } from "fs/promises";
 import { join } from "path";
+import { spawn } from "child_process";
 
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times
@@ -51,12 +52,36 @@ async function copyDir(src: string, dest: string) {
   }
 }
 
-async function buildAll() {
-  await rm("dist", { recursive: true, force: true });
+function spawnPhase(phase: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      "tsx",
+      ["script/build.ts", `--phase=${phase}`],
+      {
+        stdio: "inherit",
+        env: {
+          ...process.env,
+          NODE_OPTIONS: "--max-old-space-size=4096",
+        },
+      }
+    );
+    child.on("exit", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Build phase "${phase}" exited with code ${code}`));
+      }
+    });
+    child.on("error", reject);
+  });
+}
 
+async function buildClient() {
   console.log("building client...");
   await viteBuild();
+}
 
+async function buildServer() {
   console.log("building server...");
   const pkg = JSON.parse(await readFile("package.json", "utf-8"));
   const allDeps = [
@@ -78,6 +103,13 @@ async function buildAll() {
     external: externals,
     logLevel: "info",
   });
+}
+
+async function buildAll() {
+  await rm("dist", { recursive: true, force: true });
+
+  await spawnPhase("client");
+  await spawnPhase("server");
 
   // Task #526 — Ship data/changelog-snapshot.json (and any future runtime
   // data files) inside the deploy bundle. server/index.ts resolves the
@@ -89,7 +121,21 @@ async function buildAll() {
   await copyDir("data", "dist/data");
 }
 
-buildAll().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+const phase = process.argv.find((a) => a.startsWith("--phase="))?.split("=")[1];
+
+if (phase === "client") {
+  buildClient().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+} else if (phase === "server") {
+  buildServer().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+} else {
+  buildAll().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

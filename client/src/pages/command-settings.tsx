@@ -398,7 +398,7 @@ function SocialLinkRow({ link, onEdit }: { link: PlatformSocialLink; onEdit: (l:
 // Home Icons Editor types
 // ─────────────────────────────────────────────────────────
 const LUCIDE_ICON_OPTIONS = [
-  "Music", "ShoppingBag", "Folder", "Users", "Zap", "Globe", "Layers",
+  "Music", "Bookmark", "Folder", "Users", "Zap", "Globe", "Layers",
   "BookOpen", "Briefcase", "Star", "Heart", "Play", "Mic", "Radio",
   "Headphones", "Camera", "Video", "Palette", "Package", "Shield",
   "Rocket", "Trophy", "Sparkles", "Cpu", "Server", "Code", "Database",
@@ -458,7 +458,6 @@ const DEFAULT_SITEMAP: SitemapColumn[] = [
   {
     heading: "Commerce",
     links: [
-      { label: "Store", path: "https://shop.sevco.us", external: true },
       { label: "Services", path: "/services" },
       { label: "Hosting", path: "/domains" },
       { label: "Jobs", path: "/jobs" },
@@ -2223,15 +2222,15 @@ export default function CommandSettings() {
                     <div className="grid grid-cols-3 gap-3">
                       <div className="space-y-1.5">
                         <Label htmlFor="btn2-label" className="text-xs">Label</Label>
-                        <Input id="btn2-label" placeholder="Shop the Store" value={btn2Label} onChange={(e) => setBtn2Label(e.target.value)} data-testid="input-btn2-label" />
+                        <Input id="btn2-label" placeholder="Learn More" value={btn2Label} onChange={(e) => setBtn2Label(e.target.value)} data-testid="input-btn2-label" />
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="btn2-url" className="text-xs">URL</Label>
-                        <Input id="btn2-url" placeholder="/store" value={btn2Url} onChange={(e) => setBtn2Url(e.target.value)} data-testid="input-btn2-url" />
+                        <Input id="btn2-url" placeholder="/services" value={btn2Url} onChange={(e) => setBtn2Url(e.target.value)} data-testid="input-btn2-url" />
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="btn2-icon" className="text-xs">Icon name (lucide)</Label>
-                        <Input id="btn2-icon" placeholder="ShoppingBag" value={btn2Icon} onChange={(e) => setBtn2Icon(e.target.value)} data-testid="input-btn2-icon" />
+                        <Input id="btn2-icon" placeholder="Info" value={btn2Icon} onChange={(e) => setBtn2Icon(e.target.value)} data-testid="input-btn2-icon" />
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

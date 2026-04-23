@@ -331,12 +331,14 @@ function DropdownPanel({ children, className = "", triggerRef }: {
   );
 }
 
+type HomeItem = { label: string; href: string; icon: React.ElementType; desc: string; show: boolean; external?: boolean };
+
 function HomeDropdown({ isActive }: { isActive: boolean }) {
   const { open, setOpen, ref } = useDropdown();
   const { user } = useAuth();
   const { canCreateArticle } = usePermission();
 
-  const items = [
+  const items: HomeItem[] = [
     { label: "Home",         href: "/",                        icon: Home,         desc: "Go to landing page",            show: true },
     { label: "About",        href: "/about",                   icon: BookOpen,     desc: "Learn about SEVCO",             show: true },
     { label: "Shop",         href: "https://shop.sevco.us",    icon: ShoppingBag,  desc: "Shop SEVCO merchandise",        show: true, external: true },
@@ -374,7 +376,7 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
                   </div>
                 </div>
               );
-              return (item as any).external ? (
+              return item.external ? (
                 <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}>{inner}</a>
               ) : (
                 <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>{inner}</Link>

@@ -30298,3 +30298,61 @@ A second, equally important problem made this hard to diagnose: the global Error
 
 ---
 
+## Task — fix-deploy-oom
+> Merged: 2026-04-23
+
+# Fix deploy build OOM (`JavaScript heap out of memory`)
+
+## What & Why
+Publishing the latest commit fails during the build step with:
+
+```
+FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+```
+
+The build script `script/build.ts` runs **two memory-hungry steps inside a single Node process**:
+1. `viteBuild()` — full client bundle for `client/`.
+2. `esbuild({...minify: true, bundle: true})` — server bundle that emits a ~2.4 MB minified `dist/index.cjs`.
+
+On the Replit deploy builder, the combined peak heap exceeds Node's default ~2 GB limit and the process is killed mid-build, so deployment never finishes. The error is unrelated to the recent /feed fix — any deploy from current `main` would hit it.
+
+The cleanest fix that respects the project rule of not editing `package.json` is to split the two heavy phases into separate child Node processes, each launched with `--max-old-space-size=4096`. Each phase is fully released before the next starts, peak memory roughly halves, and we get explicit headroom on top of that. The lightweight data-copy step (`copyDir("data", "dist/data")`) stays inline.
+
+## Done looks like
+- Running `npm run build` locally completes successfully and produces the same outputs it does today: `dist/index.cjs`, `dist/public/...` (Vite client bundle), and `dist/data/changelog-snapshot.json`.
+- Hitting **Publish** completes the build phase without `heap out of memory` and the new deploy ships, so visiting `https://sevco.us/feed` loads the patched feed (no red error screen).
+- `package.json` is **not** modified — the existing `"build": "tsx script/build.ts"` script still works.
+- Cold-start runtime behavior is unchanged: `dist/index.cjs` boots the same way it does today, the changelog snapshot is still copied into `dist/data/`, and the bundled-deps allowlist is unchanged.
+- Build time on the deploy builder is roughly the same as before (within ~10 %); the two child processes can run sequentially.
+
+## Out of scope
+- Changing the bundling strategy (no switching from esbuild to rollup, no removing `minify: true`, no changing the `allowlist` of bundled server deps).
+- Editing `package.json` scripts or dependencies.
+- Touching `vite.config.ts`, `server/vite.ts`, or `drizzle.config.ts`.
+- Any application-code or schema changes.
+- Pre-existing TypeScript errors in `shared/schema.ts` and a handful of other server files — they're noise from drizzle-zod typing, the build doesn't typecheck, and they're unrelated to OOM.
+
+## Steps
+1. **Restructure `script/build.ts` into a phase dispatcher.** Keep `script/build.ts` as the single entry point invoked by the existing `npm run build`. Refactor it so the top-level invocation:
+   - When run with no `--phase` arg: clean `dist/`, then spawn `node --max-old-space-size=4096 --import tsx script/build.ts --phase=client` (await it), then spawn the same with `--phase=server` (await it), then run the inline `copyDir("data", "dist/data")` step. Bubble up child exit codes so a failed phase fails the build.
+   - When run with `--phase=client`: just call `viteBuild()` and exit.
+   - When run with `--phase=server`: just call the existing `esbuild({...})` invocation and exit.
+
+   Use `child_process.spawn` with `stdio: "inherit"` so logs flow through unchanged. Resolve the tsx loader the same way `npm run build` already does (it already runs under `tsx`, so re-invoking via `node --import tsx script/build.ts` works on Node 20). If `--import tsx` proves unreliable on the deploy builder, fall back to spawning `tsx script/build.ts --phase=...` directly and pass `--max-old-space-size` via the `NODE_OPTIONS` env var on the child.
+
+2. **Keep all existing build behavior identical.** The `allowlist`, the `define`, `external`, `format: "cjs"`, `minify: true`, the `outfile`, the `copyDir("data", "dist/data")` call, and the final `process.exit(1)` on error must all behave exactly as they do today. The only structural change is *where* (which process) viteBuild and esbuild run.
+
+3. **Verify locally.**
+   - `rm -rf dist && npm run build` completes without OOM.
+   - `dist/index.cjs`, `dist/public/index.html` (or whatever the Vite output is today), and `dist/data/changelog-snapshot.json` all exist and are non-empty.
+   - `NODE_ENV=production node dist/index.cjs` starts without crashing (don't need to keep it running long — just confirm boot succeeds).
+
+4. **Publish and verify.** Hit Publish; confirm the build phase no longer OOMs and the deploy goes live. Then load `https://sevco.us/feed` while signed in and confirm the red error screen is gone (i.e. the /feed fix from #535 is now actually shipped).
+
+## Relevant files
+- `script/build.ts` (entire file — only file changed)
+- `package.json` (read-only — confirm `"build": "tsx script/build.ts"` is still the entry; do not modify)
+
+
+---
+

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-19T17:03:07.941Z",
+  "generatedAt": "2026-04-23T01:35:49.322Z",
   "count": 426,
   "coveredMin": 1,
   "coveredMax": 528,
@@ -6800,7 +6800,7 @@
       "articleTags": [
         "platform-history",
         "engineering",
-        "placeholder"
+        "backfilled"
       ],
       "isPlaceholder": true
     },
@@ -6815,8 +6815,8 @@
       "articleSummary": "On the live site (sevco.us), visiting `/feed` shows the red \"Something went wrong\" error screen for the signed-in user. Every other page works. The Replit preview works fine because the dev database has no posts — prod has real posts including (at least) one **orphaned repost**: a post whose `repostOf` points to a post that no longer exists, so the API returns `originalPost: null` while `repostOf` is still set to a number.",
       "articleTags": [
         "platform-history",
-        "task-528",
-        "engineering"
+        "engineering",
+        "backfilled"
       ],
       "isPlaceholder": false
     }

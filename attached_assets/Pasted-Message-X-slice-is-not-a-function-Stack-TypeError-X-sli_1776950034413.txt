@@ -1,0 +1,46 @@
+Message: X.slice is not a function
+
+Stack:
+TypeError: X.slice is not a function
+    at https://sevco.us/assets/landing-DCzGK5r8.js:44:12449
+    at Array.map (<anonymous>)
+    at vs (https://sevco.us/assets/landing-DCzGK5r8.js:44:2977)
+    at ju (https://sevco.us/assets/vendor-react-DBZQpgna.js:6:17011)
+    at Yu (https://sevco.us/assets/vendor-react-DBZQpgna.js:8:3155)
+    at ya (https://sevco.us/assets/vendor-react-DBZQpgna.js:8:44956)
+    at pa (https://sevco.us/assets/vendor-react-DBZQpgna.js:8:39866)
+    at kc (https://sevco.us/assets/vendor-react-DBZQpgna.js:8:39794)
+    at gl (https://sevco.us/assets/vendor-react-DBZQpgna.js:8:39648)
+    at ai (https://sevco.us/assets/vendor-react-DBZQpgna.js:8:35997)
+
+Component Stack:
+    at vs (https://sevco.us/assets/landing-DCzGK5r8.js:1:12176)
+    at $e (https://sevco.us/assets/vendor-query-DRpfAWS8.js:1:3859)
+    at Ve (https://sevco.us/assets/vendor-query-DRpfAWS8.js:1:4651)
+    at ln
+    at div
+    at o (https://sevco.us/assets/vendor-motion-WppvpsB6.js:1:95032)
+    at wy (https://sevco.us/assets/index-dgXQDZVD.js:18:3585)
+    at Suspense
+    at div
+    at main
+    at div
+    at div
+    at div
+    at u (https://sevco.us/assets/vendor-radix-BkpO3amj.js:1:1038)
+    at xs (https://sevco.us/assets/vendor-radix-BkpO3amj.js:1:49427)
+    at Ob (https://sevco.us/assets/index-dgXQDZVD.js:2:36914)
+    at Rx (https://sevco.us/assets/index-dgXQDZVD.js:28:642)
+    at u (https://sevco.us/assets/vendor-radix-BkpO3amj.js:1:1038)
+    at xs (https://sevco.us/assets/vendor-radix-BkpO3amj.js:1:49427)
+    at hh (https://sevco.us/assets/index-dgXQDZVD.js:14:3085)
+    at Th (https://sevco.us/assets/index-dgXQDZVD.js:14:34203)
+    at gh (https://sevco.us/assets/index-dgXQDZVD.js:14:1642)
+    at Oh (https://sevco.us/assets/index-dgXQDZVD.js:14:44490)
+    at dy (https://sevco.us/assets/index-dgXQDZVD.js:14:111890)
+    at Vb (https://sevco.us/assets/index-dgXQDZVD.js:4:11393)
+    at jb (https://sevco.us/assets/index-dgXQDZVD.js:2:45048)
+    at Xe (https://sevco.us/assets/vendor-query-DRpfAWS8.js:1:35835)
+    at Eb (https://sevco.us/assets/index-dgXQDZVD.js:2:31890)
+    at xy (https://sevco.us/assets/index-dgXQDZVD.js:14:122342)
+    at Ix

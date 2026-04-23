@@ -4,7 +4,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import * as LucideIcons from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { usePermission } from "@/hooks/use-permission";
@@ -15,14 +14,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, Folder, ShieldOff, Share2 } from "lucide-react";
+import { getIcon } from "@/lib/icon-map";
 import { Switch } from "@/components/ui/switch";
 import type { Project } from "@shared/schema";
 import { FileUploadWithFallback } from "@/components/file-upload";
 
 function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
-  if (!name) return null;
-  const icons = LucideIcons as unknown as Record<string, React.ElementType>;
-  return icons[name] ?? null;
+  return getIcon(name ?? undefined) as React.ElementType | null;
 }
 
 const optUrl = z.string().refine(

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { PageHead } from "@/components/page-head";
 import { Link } from "wouter";
 import { Folder, Plus, Globe, AlertCircle, GitBranch, Users, Zap, ArrowRight } from "lucide-react";
-import * as LucideIcons from "lucide-react";
+import { getIcon } from "@/lib/icon-map";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -65,13 +65,7 @@ function TypeBadge({ type }: { type: string }) {
 }
 
 function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
-  if (!name) return null;
-  const icons = LucideIcons as Record<string, unknown>;
-  const comp = icons[name] ?? icons[name.charAt(0).toUpperCase() + name.slice(1)];
-  if (typeof comp === "function" || (typeof comp === "object" && comp !== null)) {
-    return comp as React.ComponentType<{ className?: string }>;
-  }
-  return null;
+  return getIcon(name ?? undefined) as React.ElementType | null;
 }
 
 function ProjectCard({ project }: { project: ProjectWithSpark }) {

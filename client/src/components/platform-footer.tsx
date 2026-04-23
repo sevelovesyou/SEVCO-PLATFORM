@@ -22,7 +22,7 @@ import {
   SiApplemusic,
   SiPatreon,
   SiTwitch,
-} from "react-icons/si";
+} from "@/components/brand-icons";
 import type { PlatformSocialLink } from "@shared/schema";
 import { SevcoLogo } from "@/components/sevco-logo";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";

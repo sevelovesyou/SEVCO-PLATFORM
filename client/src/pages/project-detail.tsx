@@ -2,11 +2,11 @@ import { useParams, Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { PageHead } from "@/components/page-head";
 import { useEffect } from "react";
-import * as LucideIcons from "lucide-react";
 import {
   ArrowLeft, Globe, User, BookOpen, CircleX, Pencil, Tag,
   Calendar, ArrowRight, ExternalLink, DollarSign,
 } from "lucide-react";
+import { getIcon } from "@/lib/icon-map";
 import { SiX, SiInstagram, SiYoutube, SiDiscord, SiGithub } from "react-icons/si";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { articleUrl } from "@/lib/wiki-urls";
@@ -169,13 +169,7 @@ const CATEGORY_ICON_BG: Record<string, string> = {
 };
 
 function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
-  if (!name) return null;
-  const icons = LucideIcons as Record<string, unknown>;
-  const comp = icons[name] ?? icons[name.charAt(0).toUpperCase() + name.slice(1)];
-  if (typeof comp === "function" || (typeof comp === "object" && comp !== null)) {
-    return comp as React.ComponentType<{ className?: string }>;
-  }
-  return null;
+  return getIcon(name ?? undefined) as React.ElementType | null;
 }
 
 function CategoryIcon({ category, className }: { category: string | null | undefined; className?: string }) {

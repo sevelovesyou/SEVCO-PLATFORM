@@ -7,7 +7,7 @@ import {
   Target, Layers, Globe, Lock, TrendingUp, BookOpen, Palette,
   ChevronRight, Star, Building2, Music, ShoppingBag, Briefcase,
 } from "lucide-react";
-import * as LucideIcons from "lucide-react";
+import { getIcon } from "@/lib/icon-map";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -351,9 +351,7 @@ const CATEGORY_PAGE_CONFIG: Record<CategorySlug, CategoryPageConfig> = {
 };
 
 function getLucideIcon(name: string | null | undefined): React.ElementType {
-  if (!name) return Briefcase;
-  const Icon = (LucideIcons as Record<string, unknown>)[name] as React.ElementType | undefined;
-  return Icon || Briefcase;
+  return (getIcon(name ?? undefined) as React.ElementType | null) ?? Briefcase;
 }
 
 const DEFAULT_SOCIAL_PROOF_ITEMS = [

@@ -3,7 +3,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import * as LucideIcons from "lucide-react";
 import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
@@ -31,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { getIcon } from "@/lib/icon-map";
 import type { Project } from "@shared/schema";
 
 const CAN_MANAGE_ROLES = ["admin", "executive", "staff"] as const;
@@ -40,9 +40,7 @@ function toSlug(str: string) {
 }
 
 function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
-  if (!name) return null;
-  const icons = LucideIcons as unknown as Record<string, React.ElementType>;
-  return icons[name] ?? null;
+  return getIcon(name ?? undefined) as React.ElementType | null;
 }
 
 function formatUpdated(dateStr: string | Date | null | undefined): string {

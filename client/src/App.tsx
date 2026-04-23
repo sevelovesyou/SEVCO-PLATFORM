@@ -16,7 +16,7 @@ import { CartProvider } from "@/hooks/use-cart";
 import { SpotifyPlayerProvider, useSpotifyPlayer } from "@/hooks/use-spotify-player";
 import { SpotifyPlayerBar } from "@/components/spotify-player-bar";
 import { CartDrawer } from "@/components/cart-drawer";
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { hexToHsl } from "@/lib/colorUtils";
 import { derivedDarkSurfacesAsCssVars, derivedLightSurfacesAsCssVars, DEFAULT_DARK_VALUES, DEFAULT_LIGHT_VALUES } from "@/lib/derive-dark-surfaces";
 import { isClientPlus } from "@/lib/permissions";
@@ -24,102 +24,8 @@ import { useToast } from "@/hooks/use-toast";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { AnimatedPage } from "@/components/animated-page";
 import { useAnalyticsTracker } from "@/lib/analytics-tracker";
-
-import Landing from "@/pages/landing";
-import Home from "@/pages/home";
-import ArticleView from "@/pages/article-view";
-import ArticleEditor from "@/pages/article-editor";
-import SearchPage from "@/pages/search";
-import ReviewQueue from "@/pages/review-queue";
-import CategoryView, { type CategoryWithArticles } from "@/pages/category-view";
+import type { CategoryWithArticles } from "@/pages/category-view";
 import type { Category } from "@shared/schema";
-import AuthPage from "@/pages/auth-page";
-import VerifyEmailPage from "@/pages/verify-email-page";
-import AccountPage from "@/pages/account-page";
-import MusicPage from "@/pages/music-page";
-import MusicArtistsPage from "@/pages/music-artists-page";
-import MusicArtistDetail from "@/pages/music-artist-detail";
-import MusicAlbumDetail from "@/pages/music-album-detail";
-import MusicArtistForm from "@/pages/music-artist-form";
-import MusicAlbumForm from "@/pages/music-album-form";
-import StorePage from "@/pages/store-page";
-import StoreProductDetail from "@/pages/store-product-detail";
-import StoreProductForm from "@/pages/store-product-form";
-import StoreSuccessPage from "@/pages/store-success-page";
-import StoreCancelPage from "@/pages/store-cancel-page";
-import ProjectsPage from "@/pages/projects-page";
-import ProjectDetail from "@/pages/project-detail";
-import { ProjectCreatePage, ProjectEditPage } from "@/pages/project-form";
-import ContactPage from "@/pages/contact-page";
-import ProfilePage from "@/pages/profile-page";
-import JobsPage from "@/pages/jobs-page";
-import JobsDetailPage from "@/pages/jobs-detail-page";
-import MusicSubmitPage from "@/pages/music-submit-page";
-import MusicListenPage from "@/pages/music-listen-page";
-import MusicPlaylistsPage from "@/pages/music-playlists-page";
-import MusicBeatsPage from "@/pages/music-beats-page";
-import NotFound from "@/pages/not-found";
-import FeedPage from "@/pages/feed-page";
-import DiscoverPage from "@/pages/discover-page";
-import PricingPage from "@/pages/pricing-page";
-import SparksSuccessPage from "@/pages/sparks-success-page";
-import SparksPage from "@/pages/sparks-page";
-import SparksLeaderboard from "@/pages/sparks-leaderboard";
-
-import { CommandPageLayout } from "@/pages/command-page";
-import CommandOverview from "@/pages/command-overview";
-import CommandUsers from "@/pages/command-users";
-import CommandChangelog from "@/pages/command-changelog";
-import CommandStore from "@/pages/command-store";
-import CommandServices from "@/pages/command-services";
-import CommandJobs from "@/pages/command-jobs";
-import CommandMusic from "@/pages/command-music";
-import CommandPlaylists from "@/pages/command-playlists";
-import CommandSocialLinks from "@/pages/command-social-links";
-import CommandResources from "@/pages/command-resources";
-import CommandHosting from "@/pages/command-hosting";
-import CommandDisplay from "@/pages/command-display";
-import CommandSettings from "@/pages/command-settings";
-import DomainsPage from "@/pages/domains-page";
-import NotesPage from "@/pages/notes-page";
-import TasksPage from "@/pages/tasks-page";
-import ServiceDetailPage from "@/pages/service-detail-page";
-import ServicesListingPage from "@/pages/services-listing";
-import ServiceCategoryPage from "@/pages/service-category-page";
-import WikiArchivePage from "@/pages/wiki-archive-page";
-import AboutPage from "@/pages/about-page";
-import BrandPage from "@/pages/brand-page";
-import LegalPage from "@/pages/legal-page";
-import HostingPage from "@/pages/hosting-page";
-import SecurityPage from "@/pages/security-page";
-import MinecraftPage from "@/pages/minecraft-page";
-import GalleryPage from "@/pages/gallery-page";
-import CommandGallery from "@/pages/command-gallery";
-import CommandMedia from "@/pages/command-media";
-import CommandSupport from "@/pages/command-support";
-import CommandStaff from "@/pages/command-staff";
-import CommandChatLog from "@/pages/command-chat-log";
-import CommandFinance from "@/pages/command-finance";
-import CommandMinecraft from "@/pages/command-minecraft";
-import CommandAiAgents from "@/pages/command-ai-agents";
-import CommandTraffic from "@/pages/command-traffic";
-import CommandNews from "@/pages/command-news";
-import CommandProjects from "@/pages/command-projects";
-import CommandDomains from "@/pages/command-domains";
-import CommandSparksPage from "@/pages/command-sparks";
-import CommandWiki from "@/pages/command-wiki";
-import NewsPage from "@/pages/news-page";
-import WikifyToolPage from "@/pages/wikify-tool-page";
-import ToolsPage from "@/pages/tools-page";
-import FreeballPage from "@/pages/freeball";
-import FreeBallLandingPage from "@/pages/freeball-landing";
-import FreeBallHelpPage from "@/pages/freeball-help";
-import SitesPage from "@/pages/sites-page";
-import SitesBuilderPage from "@/pages/sites-builder";
-import CanvasPage from "@/pages/canvas-page";
-import PlatformPage from "@/pages/platform-page";
-import MessagesPage from "@/pages/messages-page";
-import FullscreenChatPage from "@/pages/fullscreen-chat-page";
 import { FloatingChatProvider } from "@/contexts/floating-chat-context";
 import { FloatingChatWindows } from "@/components/floating-chat-window";
 import { LensProvider } from "@/contexts/lens-context";
@@ -129,6 +35,109 @@ import { FloatingMusicPlayer } from "@/components/floating-music-player";
 import { VoiceProvider } from "@/contexts/voice-context";
 import { VoiceFloatingIndicator } from "@/components/voice-floating-indicator";
 import { AnnouncementBanner } from "@/components/announcement-banner";
+import { CommandPageLayout } from "@/pages/command-page";
+
+const Landing = lazy(() => import("@/pages/landing"));
+const Home = lazy(() => import("@/pages/home"));
+const ArticleView = lazy(() => import("@/pages/article-view"));
+const ArticleEditor = lazy(() => import("@/pages/article-editor"));
+const SearchPage = lazy(() => import("@/pages/search"));
+const ReviewQueue = lazy(() => import("@/pages/review-queue"));
+const CategoryView = lazy(() => import("@/pages/category-view"));
+const AuthPage = lazy(() => import("@/pages/auth-page"));
+const VerifyEmailPage = lazy(() => import("@/pages/verify-email-page"));
+const AccountPage = lazy(() => import("@/pages/account-page"));
+const MusicPage = lazy(() => import("@/pages/music-page"));
+const MusicArtistsPage = lazy(() => import("@/pages/music-artists-page"));
+const MusicArtistDetail = lazy(() => import("@/pages/music-artist-detail"));
+const MusicAlbumDetail = lazy(() => import("@/pages/music-album-detail"));
+const MusicArtistForm = lazy(() => import("@/pages/music-artist-form"));
+const MusicAlbumForm = lazy(() => import("@/pages/music-album-form"));
+const StorePage = lazy(() => import("@/pages/store-page"));
+const StoreProductDetail = lazy(() => import("@/pages/store-product-detail"));
+const StoreProductForm = lazy(() => import("@/pages/store-product-form"));
+const StoreSuccessPage = lazy(() => import("@/pages/store-success-page"));
+const StoreCancelPage = lazy(() => import("@/pages/store-cancel-page"));
+const ProjectsPage = lazy(() => import("@/pages/projects-page"));
+const ProjectDetail = lazy(() => import("@/pages/project-detail"));
+const ProjectCreatePage = lazy(() => import("@/pages/project-form").then(m => ({ default: m.ProjectCreatePage })));
+const ProjectEditPage = lazy(() => import("@/pages/project-form").then(m => ({ default: m.ProjectEditPage })));
+const ContactPage = lazy(() => import("@/pages/contact-page"));
+const ProfilePage = lazy(() => import("@/pages/profile-page"));
+const JobsPage = lazy(() => import("@/pages/jobs-page"));
+const JobsDetailPage = lazy(() => import("@/pages/jobs-detail-page"));
+const MusicSubmitPage = lazy(() => import("@/pages/music-submit-page"));
+const MusicListenPage = lazy(() => import("@/pages/music-listen-page"));
+const MusicPlaylistsPage = lazy(() => import("@/pages/music-playlists-page"));
+const MusicBeatsPage = lazy(() => import("@/pages/music-beats-page"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+const FeedPage = lazy(() => import("@/pages/feed-page"));
+const DiscoverPage = lazy(() => import("@/pages/discover-page"));
+const PricingPage = lazy(() => import("@/pages/pricing-page"));
+const SparksSuccessPage = lazy(() => import("@/pages/sparks-success-page"));
+const SparksPage = lazy(() => import("@/pages/sparks-page"));
+const SparksLeaderboard = lazy(() => import("@/pages/sparks-leaderboard"));
+const CommandOverview = lazy(() => import("@/pages/command-overview"));
+const CommandUsers = lazy(() => import("@/pages/command-users"));
+const CommandChangelog = lazy(() => import("@/pages/command-changelog"));
+const CommandStore = lazy(() => import("@/pages/command-store"));
+const CommandServices = lazy(() => import("@/pages/command-services"));
+const CommandJobs = lazy(() => import("@/pages/command-jobs"));
+const CommandMusic = lazy(() => import("@/pages/command-music"));
+const CommandPlaylists = lazy(() => import("@/pages/command-playlists"));
+const CommandSocialLinks = lazy(() => import("@/pages/command-social-links"));
+const CommandResources = lazy(() => import("@/pages/command-resources"));
+const CommandHosting = lazy(() => import("@/pages/command-hosting"));
+const CommandDisplay = lazy(() => import("@/pages/command-display"));
+const CommandSettings = lazy(() => import("@/pages/command-settings"));
+const DomainsPage = lazy(() => import("@/pages/domains-page"));
+const NotesPage = lazy(() => import("@/pages/notes-page"));
+const TasksPage = lazy(() => import("@/pages/tasks-page"));
+const ServiceDetailPage = lazy(() => import("@/pages/service-detail-page"));
+const ServicesListingPage = lazy(() => import("@/pages/services-listing"));
+const ServiceCategoryPage = lazy(() => import("@/pages/service-category-page"));
+const WikiArchivePage = lazy(() => import("@/pages/wiki-archive-page"));
+const AboutPage = lazy(() => import("@/pages/about-page"));
+const BrandPage = lazy(() => import("@/pages/brand-page"));
+const LegalPage = lazy(() => import("@/pages/legal-page"));
+const HostingPage = lazy(() => import("@/pages/hosting-page"));
+const SecurityPage = lazy(() => import("@/pages/security-page"));
+const MinecraftPage = lazy(() => import("@/pages/minecraft-page"));
+const GalleryPage = lazy(() => import("@/pages/gallery-page"));
+const CommandGallery = lazy(() => import("@/pages/command-gallery"));
+const CommandMedia = lazy(() => import("@/pages/command-media"));
+const CommandSupport = lazy(() => import("@/pages/command-support"));
+const CommandStaff = lazy(() => import("@/pages/command-staff"));
+const CommandChatLog = lazy(() => import("@/pages/command-chat-log"));
+const CommandFinance = lazy(() => import("@/pages/command-finance"));
+const CommandMinecraft = lazy(() => import("@/pages/command-minecraft"));
+const CommandAiAgents = lazy(() => import("@/pages/command-ai-agents"));
+const CommandTraffic = lazy(() => import("@/pages/command-traffic"));
+const CommandNews = lazy(() => import("@/pages/command-news"));
+const CommandProjects = lazy(() => import("@/pages/command-projects"));
+const CommandDomains = lazy(() => import("@/pages/command-domains"));
+const CommandSparksPage = lazy(() => import("@/pages/command-sparks"));
+const CommandWiki = lazy(() => import("@/pages/command-wiki"));
+const NewsPage = lazy(() => import("@/pages/news-page"));
+const WikifyToolPage = lazy(() => import("@/pages/wikify-tool-page"));
+const ToolsPage = lazy(() => import("@/pages/tools-page"));
+const FreeballPage = lazy(() => import("@/pages/freeball"));
+const FreeBallLandingPage = lazy(() => import("@/pages/freeball-landing"));
+const FreeBallHelpPage = lazy(() => import("@/pages/freeball-help"));
+const SitesPage = lazy(() => import("@/pages/sites-page"));
+const SitesBuilderPage = lazy(() => import("@/pages/sites-builder"));
+const CanvasPage = lazy(() => import("@/pages/canvas-page"));
+const PlatformPage = lazy(() => import("@/pages/platform-page"));
+const MessagesPage = lazy(() => import("@/pages/messages-page"));
+const FullscreenChatPage = lazy(() => import("@/pages/fullscreen-chat-page"));
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[200px] w-full">
+      <div className="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+    </div>
+  );
+}
 
 function WikiSlugView({ params }: { params?: { slug?: string } }) {
   const slug = params?.slug;
@@ -817,7 +826,9 @@ function AppShell() {
           Skip to content
         </a>
         <main id="main-content">
-          <Router />
+          <Suspense fallback={<PageLoader />}>
+            <Router />
+          </Suspense>
         </main>
       </>
     );
@@ -852,6 +863,7 @@ function AppShell() {
             style={{ paddingBottom: activePlaylist ? "220px" : undefined }}
           >
             <div className="flex-1">
+              <Suspense fallback={<PageLoader />}>
               {location === '/canvas' ? (
                 <Router />
               ) : (
@@ -859,6 +871,7 @@ function AppShell() {
                   <Router />
                 </AnimatedPage>
               )}
+            </Suspense>
             </div>
             <PlatformFooter />
           </main>

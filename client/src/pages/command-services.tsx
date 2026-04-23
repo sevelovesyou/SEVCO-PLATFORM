@@ -3,7 +3,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import * as LucideIcons from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -26,14 +25,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Pencil, Trash2, ExternalLink, Briefcase, Tag, ChevronUp, ChevronDown, Save } from "lucide-react";
+import { getIcon } from "@/lib/icon-map";
 import { Link } from "wouter";
 import type { Service } from "@shared/schema";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
-  if (!name) return null;
-  const icons = LucideIcons as unknown as Record<string, React.ElementType>;
-  return icons[name] ?? null;
+  return getIcon(name ?? undefined) as React.ElementType | null;
 }
 
 const formSchema = z.object({

@@ -42,7 +42,6 @@ import {
   SheetDescription,
   SheetClose,
 } from "@/components/ui/sheet";
-import * as LucideIcons from "lucide-react";
 import {
   Home,
   BookOpen,
@@ -97,7 +96,13 @@ import {
   Compass,
   Layers,
   Shield,
+  Rocket,
+  Zap,
+  Newspaper,
+  Trophy,
+  X,
 } from "lucide-react";
+import { getIcon } from "@/lib/icon-map";
 import { SERVICE_CATEGORIES } from "@/lib/service-categories";
 import wordmarkBlack from "@assets/SEVCO_Logo_Black_1774331197327.png";
 import { ChatSheet } from "@/components/chat-sheet";
@@ -112,9 +117,7 @@ import { useUnreadAnnouncements } from "@/hooks/use-unread-announcements";
 import { useLens } from "@/contexts/lens-context";
 
 function resolveLucideIcon(name: string | null | undefined): React.ElementType | null {
-  if (!name) return null;
-  const icons = LucideIcons as unknown as Record<string, React.ElementType>;
-  return icons[name] ?? null;
+  return getIcon(name ?? undefined) as React.ElementType | null;
 }
 
 const ROLE_BADGE_VARIANTS: Record<string, string> = {
@@ -340,11 +343,11 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
     { label: "Home",         href: "/",          icon: Home,                    desc: "Go to landing page",             show: true },
     { label: "About",        href: "/about",      icon: BookOpen,               desc: "Learn about SEVCO",              show: true },
     { label: "Wiki",         href: "/wiki",       icon: BookOpen,               desc: "Internal knowledge base",        show: true },
-    { label: "What's New",   href: "/platform",   icon: LucideIcons.Rocket,     desc: "Platform updates & changelog",   show: true },
-    { label: "Pricing",      href: "/pricing",    icon: LucideIcons.Zap,        desc: "Buy ⚡️ Sparks packs",           show: true },
+    { label: "What's New",   href: "/platform",   icon: Rocket,     desc: "Platform updates & changelog",   show: true },
+    { label: "Pricing",      href: "/pricing",    icon: Zap,        desc: "Buy ⚡️ Sparks packs",           show: true },
     { label: "Contact",      href: "/contact",    icon: Mail,                   desc: "Get in touch",                   show: true },
     { label: "Jobs",         href: "/jobs",       icon: Users,                  desc: "Open positions",                 show: true },
-    { label: "News",         href: "/news",       icon: LucideIcons.Newspaper,  desc: "Latest news & trends",           show: true },
+    { label: "News",         href: "/news",       icon: Newspaper,  desc: "Latest news & trends",           show: true },
     { label: "Account",      href: "/account",    icon: User,                   desc: "Manage your profile",            show: true },
   ].filter((item) => item.show);
 
@@ -880,7 +883,7 @@ function NavSparksBalance() {
             onClick={() => { setOpen(false); navigate("/sparks/leaderboard"); }}
             data-testid="button-nav-sparks-leaderboard"
           >
-            <LucideIcons.Trophy className="h-3.5 w-3.5" />
+            <Trophy className="h-3.5 w-3.5" />
             Leaderboard
           </Button>
         </div>
@@ -1348,13 +1351,13 @@ export function PlatformHeader() {
                 >
                   <DropdownMenuItem asChild>
                     <Link href="/feed" data-testid="link-feed">
-                      <LucideIcons.Rss className="h-3.5 w-3.5 mr-2" />
+                      <Rss className="h-3.5 w-3.5 mr-2" />
                       Feed
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/discover" data-testid="link-explore">
-                      <LucideIcons.Compass className="h-3.5 w-3.5 mr-2" />
+                      <Compass className="h-3.5 w-3.5 mr-2" />
                       Explore
                     </Link>
                   </DropdownMenuItem>
@@ -1399,7 +1402,7 @@ export function PlatformHeader() {
             <SevcoLogo size={24} alt="SEVCO" invert="always" />
             <SheetClose asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Close navigation">
-                <LucideIcons.X className="h-4 w-4" />
+                <X className="h-4 w-4" />
               </Button>
             </SheetClose>
           </SheetHeader>

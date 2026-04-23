@@ -4,7 +4,7 @@ import { PageHead } from "@/components/page-head";
 import {
   ArrowLeft, ArrowRight, CircleX, ExternalLink, Mail, Briefcase,
 } from "lucide-react";
-import * as LucideIcons from "lucide-react";
+import { getIcon } from "@/lib/icon-map";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Service } from "@shared/schema";
@@ -14,9 +14,7 @@ import { useAuth } from "@/hooks/use-auth";
 type ServiceDetailData = Service & { sparkCount?: number; sparkedByCurrentUser?: boolean };
 
 function getLucideIcon(name: string | null | undefined): React.ElementType {
-  if (!name) return Briefcase;
-  const Icon = (LucideIcons as Record<string, unknown>)[name] as React.ElementType | undefined;
-  return Icon || Briefcase;
+  return (getIcon(name ?? undefined) as React.ElementType | null) ?? Briefcase;
 }
 
 const CATEGORY_STYLES: Record<string, { bg: string; text: string; badge: string }> = {

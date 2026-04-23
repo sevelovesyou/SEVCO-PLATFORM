@@ -12,16 +12,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import * as LucideIcons from "lucide-react";
 import {
   BookOpen, ShoppingBag, Music, Folder, Briefcase,
   ArrowRight, Users, Star, ChevronRight, Pin,
   Zap, Globe, Layers, CheckCircle, Code2,
   Palette, BarChart3, Megaphone, Camera, Building2,
   TrendingUp, Newspaper, Wrench, MoreHorizontal,
-  Link2, Download, Images,
+  Link2, Download, Images, Sparkles,
 } from "lucide-react";
-import { SiDiscord, SiSpotify, SiApplemusic } from "react-icons/si";
+import { getIcon } from "@/lib/icon-map";
+import { SiDiscord, SiSpotify, SiApplemusic } from "@/components/brand-icons";
 import type { Article, Product, FeedPost, Project, ChangelogCategory, MusicTrack } from "@shared/schema";
 import { useMusicPlayer } from "@/contexts/music-player-context";
 import { articleUrl } from "@/lib/wiki-urls";
@@ -35,10 +35,8 @@ import planetIconWhite from "@assets/SEVCO_App_Icon_-_Artboard_71_1774998179682.
 import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { SevcoLogo } from "@/components/sevco-logo";
 
-function getLucideIcon(name: string | undefined): LucideIcons.LucideIcon | null {
-  if (!name) return null;
-  const Icon = (LucideIcons as Record<string, unknown>)[name] as LucideIcons.LucideIcon | undefined;
-  return Icon || null;
+function getLucideIcon(name: string | undefined) {
+  return getIcon(name);
 }
 
 const PLATFORM_SECTIONS = [
@@ -889,7 +887,7 @@ export default function Landing() {
                   <div className="flex items-end justify-between mb-10">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
-                        <LucideIcons.Sparkles className="h-3 w-3" /> Platform updates
+                        <Sparkles className="h-3 w-3" /> Platform updates
                         <span className="inline-flex items-center gap-1 rounded-full border border-green-500/30 bg-green-500/10 px-1.5 py-0.5 text-[9px] font-medium text-green-500 ml-1">
                           <span className="h-1 w-1 rounded-full bg-green-500" /> Live
                         </span>

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ExternalLink, X } from "lucide-react";
-import { SiSpotify } from "react-icons/si";
+import { SiSpotify } from "@/components/brand-icons";
 import { useSpotifyPlayer, getSpotifyEmbedUrl } from "@/hooks/use-spotify-player";
 
 export function SpotifyPlayerBar() {

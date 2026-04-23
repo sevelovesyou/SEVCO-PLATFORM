@@ -61,7 +61,6 @@ import {
   Headphones,
   ListMusic,
   Send,
-  Tag,
   Package,
   Code2,
   Palette,
@@ -182,7 +181,6 @@ function getActiveApp(location: string): string {
   }
   if (location.startsWith("/projects")) return "/projects";
   if (location.startsWith("/services")) return "/services";
-  if (location.startsWith("/store")) return "/store";
   if (location.startsWith("/music")) return "/music";
   if (location.startsWith("/command")) return "/command";
   if (location.startsWith("/notes")) return "/notes";
@@ -384,59 +382,24 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
   );
 }
 
-function StoreDropdown({ isActive }: { isActive: boolean }) {
-  const { open, setOpen, ref } = useDropdown();
-
-  const categories = [
-    { label: "Apparel",  value: "Apparel" },
-    { label: "Games",    value: "Games" },
-    { label: "Grocery",  value: "Grocery" },
-    { label: "Health",   value: "Health" },
-    { label: "Music",    value: "Music" },
-    { label: "Books",    value: "Books" },
-  ];
-
+function ShopNavLink() {
   return (
-    <div className="relative" ref={ref}>
-      <NavButton
-        label="Store"
-        isActive={isActive}
-        onClick={() => setOpen((o) => !o)}
-        open={open}
-        data-testid="nav-store"
-      />
-      {open && (
-        <DropdownPanel triggerRef={ref} className="w-52">
-          <div className="p-2">
-            <Link href="/store" onClick={() => setOpen(false)}>
-              <div
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
-                data-testid="dropdown-store-all"
-              >
-                <ShoppingBag className="h-4 w-4 text-muted-foreground shrink-0 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
-                <p className="text-xs font-semibold text-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">All Products</p>
-              </div>
-            </Link>
-            <div className="border-t border-border/60 mt-1 pt-1">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-1.5">
-                Collections
-              </p>
-              {categories.map((cat) => (
-                <Link key={cat.value} href={`/store?category=${cat.value}`} onClick={() => setOpen(false)}>
-                  <div
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
-                    data-testid={`dropdown-store-${cat.label.toLowerCase()}`}
-                  >
-                    <Tag className="h-3.5 w-3.5 text-muted-foreground shrink-0 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
-                    <p className="text-xs text-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">{cat.label}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </DropdownPanel>
-      )}
-    </div>
+    <Button
+      variant="ghost"
+      size="sm"
+      className="gap-1 h-8 text-xs font-medium text-muted-foreground hover:text-foreground"
+      asChild
+    >
+      <a
+        href="https://shop.sevco.us"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-testid="nav-shop"
+      >
+        <ShoppingBag className="h-3.5 w-3.5" />
+        Shop
+      </a>
+    </Button>
   );
 }
 
@@ -1086,7 +1049,6 @@ export function PlatformHeader() {
     return cats.sort();
   })();
 
-  const storeCategories = ["Apparel", "Games", "Grocery", "Health", "Music", "Books"];
   const musicItems = [
     { label: "SEVCO RECORDS", href: "/music" },
     { label: "Listen",        href: "/listen" },
@@ -1149,7 +1111,7 @@ export function PlatformHeader() {
         {/* Desktop nav */}
         <nav className="hidden lg:flex items-center gap-0.5 flex-1" aria-label="Main navigation" data-testid="nav-app-switcher" style={isDark ? { filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.5))" } : undefined}>
           <HomeDropdown isActive={activeApp === "/"} />
-          <StoreDropdown isActive={activeApp === "/store"} />
+          <ShopNavLink />
           <ServicesDropdown isActive={activeApp === "/services"} platformSettings={platformSettings} />
           <MusicDropdown isActive={activeApp === "/music"} />
           <ProjectsDropdown isActive={activeApp === "/projects"} />
@@ -1427,26 +1389,16 @@ export function PlatformHeader() {
             </CollapsibleContent>
           </Collapsible>
 
-          <Collapsible open={mobileSection === "store"} onOpenChange={(o) => setMobileSection(o ? "store" : null)}>
-            <CollapsibleTrigger asChild>
-              <button className="flex items-center justify-between w-full text-left px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors" data-testid="mobile-nav-store">
-                Store
-                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${mobileSection === "store" ? "rotate-180" : ""}`} />
-              </button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="pl-4 space-y-0.5 py-1">
-                <Link href="/store" onClick={() => setMobileOpen(false)}>
-                  <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">All Products</div>
-                </Link>
-                {storeCategories.map((cat) => (
-                  <Link key={cat} href={`/store?category=${cat}`} onClick={() => setMobileOpen(false)}>
-                    <div className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" data-testid={`mobile-nav-store-${cat.toLowerCase()}`}>{cat}</div>
-                  </Link>
-                ))}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+          <a
+            href="https://shop.sevco.us"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors"
+            data-testid="mobile-nav-shop"
+          >
+            <ShoppingBag className="h-3.5 w-3.5 shrink-0" />
+            Shop
+          </a>
 
           <Collapsible open={mobileSection === "services"} onOpenChange={(o) => setMobileSection(o ? "services" : null)}>
             <CollapsibleTrigger asChild>

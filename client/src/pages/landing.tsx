@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { getIcon } from "@/lib/icon-map";
 import { SiDiscord, SiSpotify, SiApplemusic } from "@/components/brand-icons";
-import type { Article, Product, FeedPost, Project, ChangelogCategory, MusicTrack } from "@shared/schema";
+import type { Article, FeedPost, Project, ChangelogCategory, MusicTrack } from "@shared/schema";
 import { useMusicPlayer } from "@/contexts/music-player-context";
 import { articleUrl } from "@/lib/wiki-urls";
 import { DEFAULT_SECTION_ORDER } from "@shared/section-order";
@@ -151,43 +151,6 @@ function useIntersectionObserver(options?: IntersectionObserverInit) {
   return { ref, isVisible };
 }
 
-function ProductCard({ product }: { product: Product }) {
-  const [imgError, setImgError] = useState(false);
-  return (
-    <Link href={`/store/products/${product.slug}`}>
-      <div
-        className="group relative rounded-xl border bg-white/[0.04] border-white/10 hover:bg-white/[0.08] hover:border-red-500/40 hover:shadow-[0_0_24px_0_rgba(190,0,0,0.18)] transition-all duration-300 overflow-hidden cursor-pointer"
-        data-testid={`card-product-${product.id}`}
-        style={{ backdropFilter: "blur(12px)" }}
-      >
-        <div className="aspect-square overflow-hidden">
-          <div className="w-full h-full bg-white/[0.03] p-3">
-            {product.imageUrl && !imgError ? (
-              <img
-                src={resolveImageUrl(product.imageUrl)}
-                alt={product.name}
-                className="w-full h-full object-cover rounded-md group-hover:scale-105 transition-transform duration-500"
-                loading="lazy"
-                onError={() => setImgError(true)}
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center rounded-md">
-                <ShoppingBag className="h-10 w-10 text-white/20" />
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="p-3">
-          <p className="text-xs font-semibold text-white truncate">{product.name}</p>
-          <p className="text-xs text-white/50 mt-0.5">
-            ${product.price.toFixed(2)}
-          </p>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
 function ArticleCard({ article }: { article: Article & { category?: { id: number; name: string; slug: string } | null } }) {
   return (
     <Link href={articleUrl(article)}>
@@ -266,10 +229,6 @@ export default function Landing() {
     refetchInterval: 5 * 60 * 1000,
   });
 
-  const { data: products = [], isLoading: prodLoading } = useQuery<Product[]>({
-    queryKey: ["/api/store/products"],
-  });
-
   const { data: settings = {} } = useQuery<Record<string, string>>({
     queryKey: ["/api/platform-settings"],
   });
@@ -336,8 +295,6 @@ export default function Landing() {
   const pinnedPost = pinnedFeedPosts[0] ?? null;
 
   const recentArticles = articles.filter((a) => a.status === "published").slice(0, 6);
-  const featuredProducts = products.slice(0, 4);
-  const latestProducts = [...products].sort((a, b) => b.id - a.id).slice(0, 3);
   const featuredProjects = projects.slice(0, 6);
 
   const heroBgUrl = settings["hero.backgroundImageUrl"] ?? "";
@@ -1074,49 +1031,26 @@ export default function Landing() {
                 data-testid="section-store-showstopper"
               >
                 <div className={`max-w-6xl mx-auto px-6 py-20 md:py-24 transition-opacity duration-500 ${storeRef.isVisible ? "opacity-100" : "opacity-0"}`}>
-                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
-                        <ShoppingBag className="h-3 w-3" /> SEVCO Store
+                        <ShoppingBag className="h-3 w-3" /> SEVCO Shop
                       </p>
                       <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground mb-2">
                         Shop the latest drops.
                       </h2>
                       <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
-                        Apparel, accessories, and limited-edition items from the SEVCO universe.
+                        Apparel, accessories, and limited-edition items from the SEVCO universe — now on Shopify.
                       </p>
                     </div>
-                    <div className="flex gap-2 shrink-0">
-                      <Link href="/store">
-                        <Button size="sm" className="bg-red-600 hover:bg-red-500 text-white font-medium gap-1.5" data-testid="button-store-shop-now">
-                          Shop now
-                        </Button>
-                      </Link>
-                      <Link href="/wiki/store-shopping-guide">
-                        <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground gap-1" data-testid="button-store-learn-more">
-                          Learn more <ArrowRight className="h-3 w-3" />
-                        </Button>
-                      </Link>
-                    </div>
+                    <a href="https://shop.sevco.us" target="_blank" rel="noopener noreferrer" className="shrink-0">
+                      <Button size="lg" className="bg-red-600 hover:bg-red-500 text-white font-medium gap-2" data-testid="button-store-shop-now">
+                        <ShoppingBag className="h-4 w-4" />
+                        Shop on Shopify
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    </a>
                   </div>
-                  {prodLoading ? (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {Array.from({ length: 4 }).map((_, i) => (
-                        <Skeleton key={i} className="aspect-square w-full rounded-xl" />
-                      ))}
-                    </div>
-                  ) : featuredProducts.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                      <ShoppingBag className="h-8 w-8 text-muted-foreground/40 mb-3" />
-                      <p className="text-sm text-muted-foreground">Products coming soon.</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {featuredProducts.map((product) => (
-                        <ProductCard key={product.id} product={product} />
-                      ))}
-                    </div>
-                  )}
                 </div>
               </section>
             );

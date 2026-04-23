@@ -30242,3 +30242,59 @@ A handful of related issues on the user profile page (`/profile/:username`):
 
 ---
 
+## Task — fix-feed-crash
+> Merged: 2026-04-19
+
+# Fix the red "Something went wrong" crash on /feed (live site)
+
+## What & Why
+On the live site (sevco.us), visiting `/feed` shows the red "Something went wrong" error screen for the signed-in user. Every other page works. The Replit preview works fine because the dev database has no posts — prod has real posts including (at least) one **orphaned repost**: a post whose `repostOf` points to a post that no longer exists, so the API returns `originalPost: null` while `repostOf` is still set to a number.
+
+The feed's social post card (`SocialPostCard` in `client/src/pages/feed-page.tsx`) has half a dozen places that read `post.originalPost.*`. Most are guarded with `isRepost && post.originalPost ? … : …`, but the row also drives a "<authorName> reposted" banner, the repost mutation button, and other branches off `isRepost = !!post.repostOf`. If even one of those code paths assumes `post.originalPost` is non-null whenever `isRepost` is true, the orphaned repost crashes the entire page (it bubbles up to the global ErrorBoundary in `client/src/components/error-boundary.tsx`, which paints the full-screen red error).
+
+A second, equally important problem made this hard to diagnose: the global ErrorBoundary doesn't show the actual error message. We had to guess the cause from production data alone. That ErrorBoundary should surface the error message (collapsible / behind a "Show details" disclosure) so future production-only crashes can be diagnosed in one round-trip.
+
+## Done looks like
+- A signed-in user (e.g. `seve`) can load `https://sevco.us/feed` and see the social feed render normally — every existing post is visible, including the orphaned repost (`id:4`, `repostOf:3`, `originalPost: null`), without triggering the red error screen.
+- The orphaned-repost row renders a clean placeholder (e.g. a small muted "Original post deleted" / "This post is no longer available" treatment) instead of trying to render the missing original's author, content, or image. The repost banner ("X reposted") still appears.
+- The Following and Official tabs of /feed continue to work for signed-in users.
+- If a future component does crash anywhere in the app, the ErrorBoundary fallback shows a "Show error details" disclosure that reveals the error message (and stack/component-stack when available) plus a one-click "Copy" button, so the next debugging round needs zero guessing. The default closed view still shows the same friendly "Something went wrong" copy and Reload button.
+- No regression to /profile, /platform, /changelog, or any other page.
+
+## Out of scope
+- Backfilling or hiding orphaned reposts in the database. Reposts of deleted posts should still render — just safely.
+- Changing the API shape of `/api/posts`. The frontend should tolerate `originalPost: null` whenever `repostOf` is set.
+- Restyling the feed beyond what's needed for the deleted-post placeholder.
+- Any backend or schema changes.
+
+## Steps
+1. **Reproduce locally before touching code.** Insert (or temporarily mock) a social post with `repostOf` set and `originalPost: null` into the dev DB / API response so /feed shows the same orphaned-repost row prod has, and confirm the crash reproduces in dev. Keep the repro available throughout the fix to verify each step.
+
+2. **Audit every `post.originalPost` access in `client/src/pages/feed-page.tsx`.** Walk the entire `SocialPostCard` (and any related components in this file) and make sure every read of `post.originalPost.*` is either guarded by `isRepost && post.originalPost ?` or uses optional chaining and tolerates `undefined`. Pay particular attention to:
+   - The avatar, author hover card, author name, and `@username` lines (currently lines ~414, 415, 417, 425–434, 437).
+   - The post content paragraph (line ~463).
+   - The image block (lines ~466–477) — both the truthy check and the two `resolveImageUrl(... as string)` casts.
+   - The repost mutation `originalPostId = post.repostOf ?? post.id` and the repost button conditional.
+   - Any prop you pass into `AvatarIcon`, `AuthorHoverCard`, or other children — confirm none of them throw on a `null` author.
+   Fix every unsafe access.
+
+3. **Add a "deleted original" placeholder.** When `isRepost && !post.originalPost`, render the row with the existing "<authorName> reposted" banner, but replace the original-post body (author block, content, image) with a small muted placeholder like an italic "Original post is no longer available." Keep the row's footer actions (reply, repost toggle for other users, spark) sensible — at minimum they must not crash. Disabling Spark/Reply for this case is acceptable.
+
+4. **Sanity-check sibling components** (`FeedEntryCard` / official-feed card render, the Following tab render path, the AdminComposer dropzone) for any other unguarded `.originalPost` or assumption that a related entity exists. Apply the same hardening if found.
+
+5. **Surface real errors in the global ErrorBoundary.** In `client/src/components/error-boundary.tsx`, add a collapsible "Show error details" section under the existing copy that, when expanded, shows `this.state.error?.message` (and `error?.stack` plus the component stack from `componentDidCatch` if you stash it in state). Add a small "Copy" button next to it. Keep the visual default closed so the friendly view is unchanged on first render. The details section should be readable on the dark background and selectable. (No changes to `widget-error-boundary.tsx` or the freeball error boundary — out of scope.)
+
+6. **Manually verify on the dev preview** that:
+   - The reproduced orphaned-repost row renders without crashing.
+   - Sparking, replying, and reposting on a normal post still work.
+   - The ErrorBoundary, when artificially tripped (e.g. throw from a test render), shows the new "Show error details" disclosure with the real message and a working Copy button.
+   Then publish and verify on `sevco.us/feed` that the red screen is gone for the signed-in user.
+
+## Relevant files
+- `client/src/pages/feed-page.tsx:83-94,334-533,678-713,920-1000` (PostWithMeta type, SocialPostCard render, FeedPage queries, render lists)
+- `client/src/components/error-boundary.tsx` (entire file)
+- `client/src/components/avatar-icon.tsx` *(if separate — confirm during audit)*
+
+
+---
+

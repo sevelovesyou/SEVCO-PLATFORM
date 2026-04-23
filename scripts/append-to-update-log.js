@@ -4,7 +4,11 @@
  *
  * Called by post-merge.sh after each task merge.
  * 1. Appends the task plan file to SEVCO_UPDATE_LOG.md (idempotent).
- * 2. Creates a structured changelog entry via the internal API.
+ * 2. Upserts a wiki article directly into the DB (no HTTP server needed).
+ * 3. Upserts a changelog entry directly into the DB (no HTTP server needed).
+ *
+ * Task #552 — Rewrote HTTP calls to localhost:5000 as direct DB writes so the
+ * script succeeds at merge time when the Express server is not running.
  *
  * Usage:
  *   node scripts/append-to-update-log.js <path-to-plan-file.md> [taskRef] [taskTitle]
@@ -13,12 +17,10 @@
 import { readFileSync, appendFileSync, existsSync, readdirSync } from "fs";
 import { basename, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
-import { request } from "http";
+import pg from "pg";
 
-// Task #526 — The legacy hand-mapped 191-task list is gone. The canonical
-// task ref is derived from the Replit-managed task-NNN.md file (Replit's
-// project_tasks system writes one of these per task). See
-// resolveTaskRefFromPlanFile() below.
+const { Pool } = pg;
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TASKS_DIR = resolve(__dirname, "..", ".local", "tasks");
 
@@ -85,7 +87,10 @@ function autoIncrementVersion(latest) {
   return parts.join(".");
 }
 
-const title = taskTitleArg || extractTitle(raw);
+const rawTitle = taskTitleArg || extractTitle(raw);
+// Strip leading "Task #NNN — " or "Task #NNN: " if the heading already includes it,
+// so we don't end up with "Task #552 — Task #552 — ..." when building platformTitle.
+const title = rawTitle.replace(/^Task\s*#\d+\s*[—:\-]\s*/i, "").trim() || rawTitle;
 const whySection = extractSection(raw, "What & Why");
 const description = whySection
   ? whySection.split("\n")[0].replace(/^[-*]\s*/, "").trim()
@@ -132,128 +137,23 @@ if (!alreadyLogged) {
   console.log(`[update-log] Appended task "${title}" to ${LOG_FILE}`);
 }
 
-// ── 3. Create changelog DB entry via internal API ──────────────────────────
+// ── 3. Check prerequisites ──────────────────────────────────────────────────
 
-const secret = process.env.WIKI_AUTO_ARTICLE_SECRET;
-if (!secret) {
-  console.warn("[update-log] WIKI_AUTO_ARTICLE_SECRET not set — skipping changelog entry.");
-  process.exit(0);
+if (!process.env.DATABASE_URL) {
+  console.error("[update-log] ABORT: DATABASE_URL not set — cannot write changelog or wiki entries.");
+  process.exit(1);
 }
 
-// First fetch the latest version so we can auto-increment
-function fetchLatestVersion() {
-  return new Promise((resolve) => {
-    const opts = {
-      hostname: "localhost",
-      port: 5000,
-      path: "/api/changelog/latest",
-      method: "GET",
-    };
-    const req = request(opts, (res) => {
-      let body = "";
-      res.on("data", (c) => { body += c; });
-      res.on("end", () => {
-        try {
-          const data = JSON.parse(body);
-          resolve(data?.version ?? null);
-        } catch {
-          resolve(null);
-        }
-      });
-    });
-    req.on("error", () => resolve(null));
-    req.end();
-  });
-}
-
-function postChangelogEntry(payload) {
-  return new Promise((resolve, reject) => {
-    const body = JSON.stringify(payload);
-    const opts = {
-      hostname: "localhost",
-      port: 5000,
-      path: "/api/internal/changelog-entry",
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(body),
-        "x-internal-secret": secret,
-      },
-    };
-    const req = request(opts, (res) => {
-      let resp = "";
-      res.on("data", (c) => { resp += c; });
-      res.on("end", () => {
-        try { resolve({ status: res.statusCode, data: JSON.parse(resp) }); }
-        catch { resolve({ status: res.statusCode, data: resp }); }
-      });
-    });
-    req.on("error", reject);
-    req.write(body);
-    req.end();
-  });
-}
-
-// Fetch existing wiki article by slug for collision detection
-function fetchWikiArticleBySlug(slug) {
-  return new Promise((resolve) => {
-    const opts = {
-      hostname: "localhost",
-      port: 5000,
-      path: `/api/articles/${encodeURIComponent(slug)}`,
-      method: "GET",
-    };
-    const req = request(opts, (res) => {
-      let body = "";
-      res.on("data", (c) => { body += c; });
-      res.on("end", () => {
-        if (res.statusCode === 404) return resolve(null);
-        try { resolve(JSON.parse(body)); } catch { resolve(null); }
-      });
-    });
-    req.on("error", () => resolve(null));
-    req.end();
-  });
-}
-
-function postWikiArticle(payload) {
-  return new Promise((resolve, reject) => {
-    const body = JSON.stringify(payload);
-    const opts = {
-      hostname: "localhost",
-      port: 5000,
-      path: "/api/internal/wiki-article",
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(body),
-        "x-internal-secret": secret,
-      },
-    };
-    const req = request(opts, (res) => {
-      let resp = "";
-      res.on("data", (c) => { resp += c; });
-      res.on("end", () => {
-        try { resolve({ status: res.statusCode, data: JSON.parse(resp) }); }
-        catch { resolve({ status: res.statusCode, data: resp }); }
-      });
-    });
-    req.on("error", reject);
-    req.write(body);
-    req.end();
-  });
-}
-
+// ── 4. Resolve task ref ─────────────────────────────────────────────────────
 // Task #526 — Resolve the canonical Replit task ref. Order:
 //   1. CLI argv[3]  — explicit override (post-merge.sh can pass it).
 //   2. Plan filename matches `task-NNN.md` → use NNN.
 //   3. Plan content first line `# Task #NNN —` → use NNN.
 //   4. Highest `task-NNN.md` file under .local/tasks/ — Replit's task
 //      system writes one for the active task, so the newest such file is
-//      the just-merged ref. This is the path most user-named plan files
-//      take in practice.
-//   5. Hard-fail. We will NOT silently invent a number — the whole point
-//      of Task #526 is that the changelog mirrors the real task panel.
+//      the just-merged ref.
+//   5. Hard-fail. We will NOT silently invent a number.
+
 function parseTaskNumFromFilename(filename) {
   const m1 = filename.match(/^task-(\d+)\.md$/);
   if (m1) return parseInt(m1[1], 10);
@@ -283,12 +183,6 @@ function highestReplitTaskFile() {
 }
 
 function resolveTaskRef(taskFilename, planContent, cliRef) {
-  // Plan-derived signals (filename, then title line) win over the CLI ref
-  // because they are tied to the actual merged plan file. The CLI ref
-  // comes from post-merge.sh which has the same chain — but if a caller
-  // ever passes a stale or wrong CLI value, we want the plan to override
-  // it rather than silently mislabel the changelog. If CLI disagrees with
-  // a plan-derived ref we log a clear warning so the divergence is visible.
   const fromName = parseTaskNumFromFilename(taskFilename);
   if (fromName !== null) {
     if (cliRef && String(cliRef).match(/(\d+)/)?.[1] !== String(fromName)) {
@@ -316,89 +210,172 @@ function resolveTaskRef(taskFilename, planContent, cliRef) {
   return null;
 }
 
-(async () => {
-  // ── 3. Create platform wiki article first, get wikiSlug ──
-  let platformWikiSlug = null;
-  const taskFilename = basename(planFilePath);
-  const taskNum = resolveTaskRef(taskFilename, raw, taskRef);
-  if (taskNum === null) {
-    console.error(
-      `[update-log] ABORT: Could not determine the Replit task ref for plan file "${planFilePath}". ` +
-      `Tried CLI argv[3] ("${taskRef ?? ""}"), filename pattern (task-NNN.md), the plan title's leading "Task #N", ` +
-      `and the highest .local/tasks/task-NNN.md file. Refusing to invent a number — fix one of these inputs and re-run.`
+const taskFilename = basename(planFilePath);
+const taskNum = resolveTaskRef(taskFilename, raw, taskRef);
+if (taskNum === null) {
+  console.error(
+    `[update-log] ABORT: Could not determine the Replit task ref for plan file "${planFilePath}". ` +
+    `Tried CLI argv[3] ("${taskRef ?? ""}"), filename pattern (task-NNN.md), the plan title's leading "Task #N", ` +
+    `and the highest .local/tasks/task-NNN.md file. Refusing to invent a number — fix one of these inputs and re-run.`
+  );
+  process.exit(1);
+}
+
+const platformSlug = `platform-task-${String(taskNum).padStart(3, "0")}`;
+const platformTitle = `Task #${taskNum} — ${title}`;
+console.log(`[update-log] Resolved task ref: #${taskNum} → slug: ${platformSlug}`);
+
+// ── 5. Write directly to DB inside a single transaction ────────────────────
+// All three writes (wiki article upsert, revision insert, changelog upsert)
+// run inside one transaction so a mid-run failure leaves the DB in a clean
+// state rather than a partial state that could cause drift.
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const client = await pool.connect();
+
+try {
+  // Pre-flight reads happen outside the transaction (read-only, no locking needed)
+  // so we don't hold the transaction open longer than necessary.
+
+  // Find the 'sevco-platform' category (fall back to 'engineering')
+  let categoryId = null;
+  for (const trySlug of ["sevco-platform", "engineering"]) {
+    const { rows: catRows } = await client.query(
+      "SELECT id FROM categories WHERE slug = $1 LIMIT 1",
+      [trySlug]
     );
-    process.exit(1);
-  }
-  const platformSlug = `platform-task-${String(taskNum).padStart(3, "0")}`;
-  const platformTitle = `Task #${taskNum} — ${title}`;
-
-  console.log(`[update-log] Resolved task ref: #${taskNum} → slug: ${platformSlug}`);
-
-  // Guard: check if this slug already belongs to a different task — abort on collision
-  try {
-    const existingArticle = await fetchWikiArticleBySlug(platformSlug);
-    if (existingArticle && existingArticle.title && existingArticle.title !== platformTitle) {
-      const existingTaskMatch = existingArticle.title.match(/^Task #(\d+)/);
-      const newTaskNum = taskNum;
-      if (existingTaskMatch && parseInt(existingTaskMatch[1], 10) !== newTaskNum) {
-        // Different task number in existing article — hard abort: slug belongs to a different task
-        console.error(`[update-log] ABORT: slug "${platformSlug}" is already owned by "${existingArticle.title}" (Task #${existingTaskMatch[1]}), ` +
-          `but this merge computed Task #${newTaskNum}. ` +
-          `This is a task number collision — check computePlatformTaskNum and the canonical task list.`);
-        process.exit(1);
-      } else {
-        // Same task number, different title — warn but allow update (content/title refinement)
-        console.warn(`[update-log] WARNING: "${platformSlug}" exists with title "${existingArticle.title}" — updating to "${platformTitle}". ` +
-          `If this is unintended, abort and verify the task file.`);
-      }
+    if (catRows.length > 0) {
+      categoryId = catRows[0].id;
+      break;
     }
-  } catch (err) {
-    console.warn(`[update-log] Could not pre-check slug collision: ${err.message}`);
   }
 
-  // Task #517 — Hard-fail on wiki POST failure so /platform and /changelog
-  // cannot drift. The changelog entry below is only written if the wiki
-  // article POST succeeds, keeping the two sources in lockstep.
+  // Find the Peter author user (NULL author_id is acceptable if Peter doesn't exist)
+  let peterUserId = null;
+  {
+    const { rows: peterRows } = await client.query(
+      "SELECT id FROM users WHERE username = $1 LIMIT 1",
+      ["Peter"]
+    );
+    if (peterRows.length > 0) peterUserId = peterRows[0].id;
+  }
+
+  // Check existing article (slug collision guard, also outside transaction)
+  const { rows: existingArticleRows } = await client.query(
+    "SELECT id, title FROM articles WHERE slug = $1 LIMIT 1",
+    [platformSlug]
+  );
+  if (existingArticleRows.length > 0) {
+    const existingTitle = existingArticleRows[0].title;
+    const existingTaskMatch = existingTitle.match(/^Task #(\d+)/);
+    if (existingTaskMatch && parseInt(existingTaskMatch[1], 10) !== taskNum) {
+      throw new Error(
+        `slug "${platformSlug}" is already owned by "${existingTitle}" ` +
+        `(Task #${existingTaskMatch[1]}), but this merge computed Task #${taskNum}. ` +
+        `This is a task number collision — check the canonical task list.`
+      );
+    }
+  }
+
+  // Get latest version for auto-increment (outside transaction — snapshot is fine)
+  const { rows: latestVersionRows } = await client.query(
+    "SELECT version FROM changelog ORDER BY created_at DESC LIMIT 1"
+  );
+  const latestVersion = latestVersionRows[0]?.version ?? null;
+  const version = autoIncrementVersion(latestVersion);
+
+  // ── Begin transaction ────────────────────────────────────────────────────
+  await client.query("BEGIN");
+
   try {
-    const wikiResult = await postWikiArticle({
-      title: platformTitle,
-      slug: platformSlug,
-      content: raw,
-      summary: description,
-      tags: ["platform-history", `task-${String(taskNum).padStart(3, "0")}`, "engineering"],
-      categorySlug: "sevco-platform",
-    });
-    if (wikiResult.status >= 200 && wikiResult.status < 300) {
-      const action = wikiResult.data?.action ?? "created";
-      platformWikiSlug = platformSlug;
-      console.log(`[update-log] Platform wiki article ${action}: "${platformTitle}" (${platformSlug})`);
+    // ── 5a. Upsert wiki article ────────────────────────────────────────────
+    let articleId;
+    if (existingArticleRows.length > 0) {
+      const { rows: updatedRows } = await client.query(
+        `UPDATE articles
+            SET title = $1, summary = $2, content = $3,
+                tags = $4, status = 'published', updated_at = NOW()
+          WHERE id = $5
+          RETURNING id`,
+        [
+          platformTitle,
+          description,
+          raw,
+          ["platform-history", `task-${String(taskNum).padStart(3, "0")}`, "engineering"],
+          existingArticleRows[0].id,
+        ]
+      );
+      articleId = updatedRows[0].id;
+      console.log(`[update-log] Platform wiki article updated: "${platformTitle}" (${platformSlug})`);
     } else {
-      console.error(`[update-log] ABORT: Platform wiki article API returned ${wikiResult.status}: ${JSON.stringify(wikiResult.data)}. ` +
-        `Refusing to write changelog entry — fix the wiki side and re-run, otherwise /platform and /changelog will drift.`);
-      process.exit(1);
+      const insertCols = categoryId
+        ? ["title", "slug", "content", "summary", "category_id", "status", "tags", "author_id"]
+        : ["title", "slug", "content", "summary", "status", "tags", "author_id"];
+      const insertVals = categoryId
+        ? [platformTitle, platformSlug, raw, description, categoryId, "published",
+            ["platform-history", `task-${String(taskNum).padStart(3, "0")}`, "engineering"],
+            peterUserId]
+        : [platformTitle, platformSlug, raw, description, "published",
+            ["platform-history", `task-${String(taskNum).padStart(3, "0")}`, "engineering"],
+            peterUserId];
+      const placeholders = insertVals.map((_, i) => `$${i + 1}`).join(", ");
+
+      const { rows: insertedRows } = await client.query(
+        `INSERT INTO articles (${insertCols.join(", ")})
+         VALUES (${placeholders})
+         RETURNING id`,
+        insertVals
+      );
+      articleId = insertedRows[0].id;
+      console.log(`[update-log] Platform wiki article created: "${platformTitle}" (${platformSlug})`);
     }
-  } catch (err) {
-    console.error(`[update-log] ABORT: Could not post platform wiki article: ${err.message}. ` +
-      `Refusing to write changelog entry — fix the wiki side and re-run, otherwise /platform and /changelog will drift.`);
-    process.exit(1);
-  }
 
-  // ── 4. Create/update changelog entry with wikiSlug cross-link ──
-  // Use platformTitle ("Task #N — <title>") to match the seeder's dedup key format
-  const changelogTitle = taskNum ? platformTitle : title;
-  try {
-    const latestVersion = await fetchLatestVersion();
-    const version = autoIncrementVersion(latestVersion);
+    // ── 5b. Insert auto-approved revision ─────────────────────────────────
+    await client.query(
+      `INSERT INTO revisions (article_id, content, summary, edit_summary, status, author_name)
+       VALUES ($1, $2, $3, $4, 'approved', 'Peter')`,
+      [articleId, raw, description, "Auto-generated by post-merge script on merge"]
+    );
 
-    const result = await postChangelogEntry({ title: changelogTitle, description, category, version, wikiSlug: platformWikiSlug });
+    // ── 5c. Upsert changelog entry ─────────────────────────────────────────
+    const validCategories = ["feature", "fix", "improvement", "other"];
+    const safeCategory = validCategories.includes(category) ? category : "other";
+    const changelogTitle = platformTitle;
+    const changelogDescription = description.slice(0, 500);
 
-    if (result.status >= 200 && result.status < 300) {
-      const action = result.data?.action ?? "created";
-      console.log(`[update-log] Changelog entry ${action}: "${changelogTitle}" (${category}, v${version})${platformWikiSlug ? ` → ${platformWikiSlug}` : ""}`);
+    const { rows: existingChangelog } = await client.query(
+      "SELECT id FROM changelog WHERE wiki_slug = $1 OR title = $2 LIMIT 1",
+      [platformSlug, changelogTitle]
+    );
+
+    if (existingChangelog.length > 0) {
+      await client.query(
+        `UPDATE changelog
+            SET title = $1, description = $2, category = $3, version = $4, wiki_slug = $5
+          WHERE id = $6`,
+        [changelogTitle, changelogDescription, safeCategory, version, platformSlug, existingChangelog[0].id]
+      );
+      console.log(`[update-log] Changelog entry updated: "${changelogTitle}" (${safeCategory}, v${version}) → ${platformSlug}`);
     } else {
-      console.warn(`[update-log] Changelog API returned ${result.status}: ${JSON.stringify(result.data)}`);
+      await client.query(
+        `INSERT INTO changelog (title, description, category, version, wiki_slug)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [changelogTitle, changelogDescription, safeCategory, version, platformSlug]
+      );
+      console.log(`[update-log] Changelog entry created: "${changelogTitle}" (${safeCategory}, v${version}) → ${platformSlug}`);
     }
-  } catch (err) {
-    console.warn(`[update-log] Could not post changelog entry: ${err.message}`);
+
+    await client.query("COMMIT");
+
+  } catch (txErr) {
+    await client.query("ROLLBACK");
+    throw txErr;
   }
-})();
+
+} catch (err) {
+  console.error(`[update-log] ABORT: DB write failed: ${err.message}`);
+  process.exit(1);
+} finally {
+  client.release();
+  await pool.end();
+}

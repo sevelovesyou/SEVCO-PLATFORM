@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-04-23T14:34:31.441Z",
-  "count": 426,
+  "generatedAt": "2026-04-23T15:49:12.345Z",
+  "count": 429,
   "coveredMin": 1,
-  "coveredMax": 528,
+  "coveredMax": 552,
   "entries": [
     {
       "title": "Task #1 — RBAC & Role Permission System",
@@ -6817,6 +6817,54 @@
         "platform-history",
         "engineering",
         "backfilled"
+      ],
+      "isPlaceholder": false
+    },
+    {
+      "title": "Task #529-550 — (no logged content)",
+      "description": "Tasks #529 through #550 merged before the platform changelog was wired up, or their plan files were never persisted. This placeholder keeps the task ordering intact.",
+      "category": "other",
+      "version": "1.8.236",
+      "wikiSlug": "platform-task-529-550",
+      "createdAt": "Tue Apr 21 2026 16:01:01 GMT+0000 (Coordinated Universal Time)",
+      "articleContent": "# Task #529-550 — (no logged content)\n\n_Version: 1.8.236_\n\nTasks #529 through #550 merged before the platform changelog was wired up, or their plan files were never persisted. This placeholder keeps the task ordering intact.\n\n---\n\n_Auto-generated from the changelog snapshot (Task #525). Replace with the full task plan content by re-merging the original task._\n",
+      "articleSummary": "Tasks #529 through #550 merged before the platform changelog was wired up, or their plan files were never persisted. This placeholder keeps the task ordering intact.",
+      "articleTags": [
+        "platform-history",
+        "engineering",
+        "placeholder"
+      ],
+      "isPlaceholder": true
+    },
+    {
+      "title": "Task #551 — Fix live crash: ShoppingBag is not defined in platform-header",
+      "description": "Platform update: Fix live crash: ShoppingBag is not defined in platform-header",
+      "category": "fix",
+      "version": "1.8.239",
+      "wikiSlug": "platform-task-551",
+      "createdAt": "Thu Apr 23 2026 15:42:52 GMT+0000 (Coordinated Universal Time)",
+      "articleContent": "---\ntitle: Fix live crash: ShoppingBag is not defined in platform-header\n---\n# Task #551 — Fix live crash: ShoppingBag is not defined in platform-header\n\n## Problem\n\nThe live site crashes with `ReferenceError: ShoppingBag is not defined`.\n\n`ShoppingBag` is used in `client/src/components/platform-header.tsx` at:\n- Line 397 — inside the new `ShopNavLink` desktop component\n- Line 1375 — inside the mobile \"Shop\" nav link\n\nBut it was removed from the lucide-react import block during the store cleanup (Task #547).\n\n## Fix\n\nIn `client/src/components/platform-header.tsx`, add `ShoppingBag` back to the\nexisting lucide-react named import block (lines ~44–100).\n\nOne line change:\n```typescript\nimport {\n  // ... existing icons ...\n  ShoppingBag,  // ← add this back\n} from \"lucide-react\";\n```\n\n## Acceptance\n\n- Live site loads without crashing\n- \"Shop\" nav link shows the ShoppingBag icon on desktop and mobile",
+      "articleSummary": "Platform update: Fix live crash: ShoppingBag is not defined in platform-header",
+      "articleTags": [
+        "platform-history",
+        "task-551",
+        "engineering"
+      ],
+      "isPlaceholder": false
+    },
+    {
+      "title": "Task #552 — Fix post-merge changelog script",
+      "description": "Platform update: Fix post-merge changelog script",
+      "category": "fix",
+      "version": "1.8.240",
+      "wikiSlug": "platform-task-552",
+      "createdAt": "Thu Apr 23 2026 15:42:29 GMT+0000 (Coordinated Universal Time)",
+      "articleContent": "---\ntitle: Fix the post-merge script so changelog and /platform stay up to date automatically\n---\n# Fix post-merge changelog script\n\n  ## What & Why\n  After every task merge, the post-merge script (`scripts/post-merge.sh`) fails with:\n  `connect ECONNREFUSED 127.0.0.1:5000`\n\n  The script tries to append changelog/wiki entries by calling the local Express server,\n  but the server isn't running at merge time. This means Tasks #544, #546, #547, #548,\n  and #551 never made it into `/platform` or `/changelog`, causing visible drift.\n\n  ## Done looks like\n  - Post-merge script completes successfully on every merge\n  - Changelog entries for recent tasks appear on /platform and /changelog\n  - The fix should either: start the server inline before posting, bypass the HTTP call \n    and write directly to the DB, or use a queue/retry that runs when the server is next started\n\n  ## Relevant files\n  - `scripts/post-merge.sh` — the failing script\n  - `server/routes.ts` — the API endpoint the script tries to call\n  - `data/changelog-snapshot.json` — the snapshot the script updates",
+      "articleSummary": "Platform update: Fix post-merge changelog script",
+      "articleTags": [
+        "platform-history",
+        "task-552",
+        "engineering"
       ],
       "isPlaceholder": false
     }

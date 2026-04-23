@@ -30639,3 +30639,72 @@ Remove `"storePreview"` from `DEFAULT_SECTION_ORDER` array.
 
 ---
 
+## Task — task-552
+> Merged: 2026-04-23
+
+---
+title: Fix the post-merge script so changelog and /platform stay up to date automatically
+---
+# Fix post-merge changelog script
+
+  ## What & Why
+  After every task merge, the post-merge script (`scripts/post-merge.sh`) fails with:
+  `connect ECONNREFUSED 127.0.0.1:5000`
+
+  The script tries to append changelog/wiki entries by calling the local Express server,
+  but the server isn't running at merge time. This means Tasks #544, #546, #547, #548,
+  and #551 never made it into `/platform` or `/changelog`, causing visible drift.
+
+  ## Done looks like
+  - Post-merge script completes successfully on every merge
+  - Changelog entries for recent tasks appear on /platform and /changelog
+  - The fix should either: start the server inline before posting, bypass the HTTP call 
+    and write directly to the DB, or use a queue/retry that runs when the server is next started
+
+  ## Relevant files
+  - `scripts/post-merge.sh` — the failing script
+  - `server/routes.ts` — the API endpoint the script tries to call
+  - `data/changelog-snapshot.json` — the snapshot the script updates
+
+
+---
+
+## Task — task-551
+> Merged: 2026-04-23
+
+---
+title: Fix live crash: ShoppingBag is not defined in platform-header
+---
+# Task #551 — Fix live crash: ShoppingBag is not defined in platform-header
+
+## Problem
+
+The live site crashes with `ReferenceError: ShoppingBag is not defined`.
+
+`ShoppingBag` is used in `client/src/components/platform-header.tsx` at:
+- Line 397 — inside the new `ShopNavLink` desktop component
+- Line 1375 — inside the mobile "Shop" nav link
+
+But it was removed from the lucide-react import block during the store cleanup (Task #547).
+
+## Fix
+
+In `client/src/components/platform-header.tsx`, add `ShoppingBag` back to the
+existing lucide-react named import block (lines ~44–100).
+
+One line change:
+```typescript
+import {
+  // ... existing icons ...
+  ShoppingBag,  // ← add this back
+} from "lucide-react";
+```
+
+## Acceptance
+
+- Live site loads without crashing
+- "Shop" nav link shows the ShoppingBag icon on desktop and mobile
+
+
+---
+

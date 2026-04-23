@@ -423,9 +423,7 @@ function ServicesDropdown({ isActive, platformSettings }: { isActive: boolean; p
                     className="flex items-start gap-3 px-3 py-3 rounded-lg hover:bg-[hsl(var(--nav-sub-accent))] hover:text-[hsl(var(--nav-sub-accent-foreground))] transition-colors cursor-pointer group"
                     data-testid={`dropdown-category-${cat.slug}`}
                   >
-                    <div className="p-1.5 rounded-md bg-muted shrink-0 group-hover:bg-[hsl(var(--nav-sub-accent-foreground))]/10">
-                      <CatIcon className="h-4 w-4 text-muted-foreground group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
-                    </div>
+                    <CatIcon className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-foreground leading-none mb-1 group-hover:text-[hsl(var(--nav-sub-accent-foreground))]">
                         {cat.label}

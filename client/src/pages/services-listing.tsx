@@ -150,7 +150,7 @@ export default function ServicesListingPage() {
                     className="group border rounded-xl p-4 hover:border-foreground/20 hover:shadow-sm transition-all cursor-pointer bg-background flex items-center gap-3"
                     data-testid={`card-category-${cat.slug}`}
                   >
-                    <div className={`p-2 rounded-lg bg-muted shrink-0 ${cat.accentText}`}>
+                    <div className={`p-2 rounded-lg shrink-0 ${cat.accentText}`}>
                       <CatIcon className="h-4 w-4" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -193,7 +193,7 @@ export default function ServicesListingPage() {
                       className="group h-full flex flex-col border rounded-xl p-5 lg:p-4 hover:border-foreground/20 hover:shadow-sm transition-all cursor-pointer bg-background"
                     >
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className={`p-2.5 rounded-lg bg-muted ${styles.accent} shrink-0`}>
+                        <div className={`p-2.5 rounded-lg ${styles.accent} shrink-0`}>
                           <Icon className="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0 flex flex-col">
@@ -257,7 +257,7 @@ export default function ServicesListingPage() {
                   const cardContent = (
                     <div
                       data-testid={`card-service-${service.id}`}
-                      className="group border rounded-xl p-4 hover:border-foreground/20 hover:shadow-sm transition-all cursor-pointer bg-background h-full"
+                      className="group border rounded-xl p-4 hover:border-foreground/20 hover:shadow-sm transition-all cursor-pointer bg-background h-full flex flex-col"
                     >
                       <div className={`mb-3 ${accentStyle ? "" : styles.accent}`} style={accentStyle}>
                         <Icon className="h-5 w-5" />
@@ -268,7 +268,7 @@ export default function ServicesListingPage() {
                       {service.tagline && (
                         <p className="text-xs text-muted-foreground line-clamp-2">{service.tagline}</p>
                       )}
-                      <div className="mt-1" onClick={(e) => e.stopPropagation()}>
+                      <div className="mt-auto pt-2" onClick={(e) => e.stopPropagation()}>
                         <SparkButton
                           entityType="service"
                           entityId={service.id}

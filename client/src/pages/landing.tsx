@@ -1128,7 +1128,7 @@ export default function Landing() {
                         return (
                           <Link key={project.id} href={`/projects/${project.slug}`}>
                             <div
-                              className="group rounded-xl border border-border bg-card p-5 hover:bg-accent/40 transition-colors cursor-pointer h-full flex flex-col"
+                              className="group rounded-2xl border border-border bg-card p-5 hover:bg-accent/40 transition-colors cursor-pointer h-full flex flex-col"
                               data-testid={`card-project-${project.id}`}
                             >
                               <div className="flex items-start justify-between gap-2 mb-3">

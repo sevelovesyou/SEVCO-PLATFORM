@@ -685,7 +685,7 @@ function ToolsDropdown({
                 </button>
               );
             })}
-            <div className="mt-1 pt-2 border-t border-border/60 px-3 pb-2 space-y-1.5">
+            <div className="mt-1 pt-2 px-3 pb-2 space-y-1.5">
               <TooltipProvider delayDuration={400}>
                 <div className="flex items-center gap-0.5">
                   <Tooltip>

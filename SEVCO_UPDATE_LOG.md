@@ -30708,3 +30708,98 @@ import {
 
 ---
 
+## Task — project-card-icon-spark-cleanup
+> Merged: 2026-04-24
+
+# Task: Project card — remove icon shadow boxes, pin Spark button to bottom
+
+## Objective
+Two visual fixes for project cards across all locations they appear:
+1. Remove the muted-background "shadow box" container behind project icons
+2. Ensure the Spark (⚡) button is uniformly pinned to the very bottom of every card
+
+## Affected files
+- `client/src/pages/projects-page.tsx` — main projects grid
+- `client/src/pages/landing.tsx` — landing page "ventures" project grid
+
+---
+
+## File 1 — `client/src/pages/projects-page.tsx`
+
+### Icon box removal (lines ~82–92)
+Current:
+```tsx
+<div className="h-10 w-10 rounded-lg bg-muted/50 flex items-center justify-center shrink-0 overflow-hidden">
+  {project.appIcon ? (
+    <img src={...} alt={project.name} className="h-8 w-8 rounded-lg object-cover" />
+  ) : (
+    <MenuIcon className="h-5 w-5 text-muted-foreground" />
+  )}
+</div>
+```
+Remove `bg-muted/50 rounded-lg` — keep a transparent sizing wrapper only:
+```tsx
+<div className="h-10 w-10 flex items-center justify-center shrink-0 overflow-hidden">
+  {project.appIcon ? (
+    <img src={...} alt={project.name} className="h-10 w-10 rounded-lg object-cover" />
+  ) : (
+    <MenuIcon className="h-6 w-6 text-muted-foreground" />
+  )}
+</div>
+```
+
+### SparkButton bottom pin
+The card is already `flex flex-col gap-3 h-full` and the middle `<div className="min-w-0 flex-1">` grows. Confirm `mt-auto` is present on the bottom section; if not, add it.
+
+Current bottom div (line ~105):
+```tsx
+<div className="flex items-center justify-between pt-1">
+```
+Change to:
+```tsx
+<div className="flex items-center justify-between pt-1 mt-auto">
+```
+
+---
+
+## File 2 — `client/src/pages/landing.tsx`
+
+### Icon box removal (line ~1135)
+Current:
+```tsx
+<div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+```
+Change to (remove `bg-muted rounded-lg`):
+```tsx
+<div className="h-9 w-9 flex items-center justify-center shrink-0 overflow-hidden">
+```
+
+### SparkButton bottom pin
+The landing card div (line ~1131) currently lacks `flex flex-col`:
+```tsx
+className="group rounded-xl border border-border bg-card p-5 hover:bg-accent/40 transition-colors cursor-pointer h-full"
+```
+Add `flex flex-col`:
+```tsx
+className="group rounded-xl border border-border bg-card p-5 hover:bg-accent/40 transition-colors cursor-pointer h-full flex flex-col"
+```
+
+Give the description `<p>` a `flex-1` via a wrapper, OR add `mt-auto` directly to the SparkButton wrapper div:
+Current (line ~1153):
+```tsx
+<div className="mt-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+```
+Change to:
+```tsx
+<div className="mt-auto pt-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+```
+
+---
+
+## Done looks like
+- No grey/muted background box behind any project icon on the projects page or landing page
+- ⚡ Spark button appears at the same vertical position (bottom of card) on all cards regardless of how long or short the description is
+
+
+---
+

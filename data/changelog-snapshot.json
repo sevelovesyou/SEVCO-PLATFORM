@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-04-23T15:50:06.543Z",
-  "count": 428,
+  "generatedAt": "2026-04-24T02:10:24.266Z",
+  "count": 430,
   "coveredMin": 1,
-  "coveredMax": 551,
+  "coveredMax": 555,
   "entries": [
     {
       "title": "Task #1 — RBAC & Role Permission System",
@@ -6832,7 +6832,7 @@
       "articleTags": [
         "platform-history",
         "engineering",
-        "placeholder"
+        "backfilled"
       ],
       "isPlaceholder": true
     },
@@ -6847,7 +6847,39 @@
       "articleSummary": "Platform update: Fix live crash: ShoppingBag is not defined in platform-header",
       "articleTags": [
         "platform-history",
-        "task-551",
+        "engineering",
+        "backfilled"
+      ],
+      "isPlaceholder": false
+    },
+    {
+      "title": "Task #552-554 — (no logged content)",
+      "description": "Tasks #552 through #554 merged before the platform changelog was wired up, or their plan files were never persisted. This placeholder keeps the task ordering intact.",
+      "category": "other",
+      "version": "1.8.237",
+      "wikiSlug": "platform-task-552-554",
+      "createdAt": "Thu Apr 23 2026 21:00:15 GMT+0000 (Coordinated Universal Time)",
+      "articleContent": "# Task #552-554 — (no logged content)\n\n_Version: 1.8.237_\n\nTasks #552 through #554 merged before the platform changelog was wired up, or their plan files were never persisted. This placeholder keeps the task ordering intact.\n\n---\n\n_Auto-generated from the changelog snapshot (Task #525). Replace with the full task plan content by re-merging the original task._\n",
+      "articleSummary": "Tasks #552 through #554 merged before the platform changelog was wired up, or their plan files were never persisted. This placeholder keeps the task ordering intact.",
+      "articleTags": [
+        "platform-history",
+        "engineering",
+        "placeholder"
+      ],
+      "isPlaceholder": true
+    },
+    {
+      "title": "Task #555 — Task: Project card — remove icon shadow boxes, pin Spark button to bottom",
+      "description": "Platform update: Task: Project card — remove icon shadow boxes, pin Spark button to bottom",
+      "category": "feature",
+      "version": "1.8.238",
+      "wikiSlug": "platform-task-555",
+      "createdAt": "Fri Apr 24 2026 02:10:24 GMT+0000 (Coordinated Universal Time)",
+      "articleContent": "# Task: Project card — remove icon shadow boxes, pin Spark button to bottom\n\n## Objective\nTwo visual fixes for project cards across all locations they appear:\n1. Remove the muted-background \"shadow box\" container behind project icons\n2. Ensure the Spark (⚡) button is uniformly pinned to the very bottom of every card\n\n## Affected files\n- `client/src/pages/projects-page.tsx` — main projects grid\n- `client/src/pages/landing.tsx` — landing page \"ventures\" project grid\n\n---\n\n## File 1 — `client/src/pages/projects-page.tsx`\n\n### Icon box removal (lines ~82–92)\nCurrent:\n```tsx\n<div className=\"h-10 w-10 rounded-lg bg-muted/50 flex items-center justify-center shrink-0 overflow-hidden\">\n  {project.appIcon ? (\n    <img src={...} alt={project.name} className=\"h-8 w-8 rounded-lg object-cover\" />\n  ) : (\n    <MenuIcon className=\"h-5 w-5 text-muted-foreground\" />\n  )}\n</div>\n```\nRemove `bg-muted/50 rounded-lg` — keep a transparent sizing wrapper only:\n```tsx\n<div className=\"h-10 w-10 flex items-center justify-center shrink-0 overflow-hidden\">\n  {project.appIcon ? (\n    <img src={...} alt={project.name} className=\"h-10 w-10 rounded-lg object-cover\" />\n  ) : (\n    <MenuIcon className=\"h-6 w-6 text-muted-foreground\" />\n  )}\n</div>\n```\n\n### SparkButton bottom pin\nThe card is already `flex flex-col gap-3 h-full` and the middle `<div className=\"min-w-0 flex-1\">` grows. Confirm `mt-auto` is present on the bottom section; if not, add it.\n\nCurrent bottom div (line ~105):\n```tsx\n<div className=\"flex items-center justify-between pt-1\">\n```\nChange to:\n```tsx\n<div className=\"flex items-center justify-between pt-1 mt-auto\">\n```\n\n---\n\n## File 2 — `client/src/pages/landing.tsx`\n\n### Icon box removal (line ~1135)\nCurrent:\n```tsx\n<div className=\"h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden\">\n```\nChange to (remove `bg-muted rounded-lg`):\n```tsx\n<div className=\"h-9 w-9 flex items-center justify-center shrink-0 overflow-hidden\">\n```\n\n### SparkButton bottom pin\nThe landing card div (line ~1131) currently lacks `flex flex-col`:\n```tsx\nclassName=\"group rounded-xl border border-border bg-card p-5 hover:bg-accent/40 transition-colors cursor-pointer h-full\"\n```\nAdd `flex flex-col`:\n```tsx\nclassName=\"group rounded-xl border border-border bg-card p-5 hover:bg-accent/40 transition-colors cursor-pointer h-full flex flex-col\"\n```\n\nGive the description `<p>` a `flex-1` via a wrapper, OR add `mt-auto` directly to the SparkButton wrapper div:\nCurrent (line ~1153):\n```tsx\n<div className=\"mt-2\" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>\n```\nChange to:\n```tsx\n<div className=\"mt-auto pt-2\" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>\n```\n\n---\n\n## Done looks like\n- No grey/muted background box behind any project icon on the projects page or landing page\n- ⚡ Spark button appears at the same vertical position (bottom of card) on all cards regardless of how long or short the description is\n",
+      "articleSummary": "Platform update: Task: Project card — remove icon shadow boxes, pin Spark button to bottom",
+      "articleTags": [
+        "platform-history",
+        "task-555",
         "engineering"
       ],
       "isPlaceholder": false

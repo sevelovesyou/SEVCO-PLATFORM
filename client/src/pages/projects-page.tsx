@@ -79,15 +79,15 @@ function ProjectCard({ project }: { project: ProjectWithSpark }) {
       className="group border border-white/8 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/15 hover:shadow-md transition-all duration-200 cursor-pointer p-5 flex flex-col gap-3 h-full"
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="h-10 w-10 rounded-lg bg-muted/50 flex items-center justify-center shrink-0 overflow-hidden">
+        <div className="h-10 w-10 flex items-center justify-center shrink-0 overflow-hidden">
           {project.appIcon ? (
             <img
               src={resolveImageUrl(project.appIcon)}
               alt={project.name}
-              className="h-8 w-8 rounded-lg object-cover"
+              className="h-10 w-10 rounded-lg object-cover"
             />
           ) : (
-            <MenuIcon className="h-5 w-5 text-muted-foreground" />
+            <MenuIcon className="h-6 w-6 text-muted-foreground" />
           )}
         </div>
         <StatusBadge status={project.status} />
@@ -102,7 +102,7 @@ function ProjectCard({ project }: { project: ProjectWithSpark }) {
             </p>
           )}
         </div>
-        <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center justify-between pt-1 mt-auto">
           <TypeBadge type={project.type} />
           <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <SparkButton

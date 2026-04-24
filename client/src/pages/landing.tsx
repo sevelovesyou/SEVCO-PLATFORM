@@ -1128,11 +1128,11 @@ export default function Landing() {
                         return (
                           <Link key={project.id} href={`/projects/${project.slug}`}>
                             <div
-                              className="group rounded-xl border border-border bg-card p-5 hover:bg-accent/40 transition-colors cursor-pointer h-full"
+                              className="group rounded-xl border border-border bg-card p-5 hover:bg-accent/40 transition-colors cursor-pointer h-full flex flex-col"
                               data-testid={`card-project-${project.id}`}
                             >
                               <div className="flex items-start justify-between gap-2 mb-3">
-                                <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                                <div className="h-9 w-9 flex items-center justify-center shrink-0 overflow-hidden">
                                   {project.appIcon ? (
                                     <img
                                       src={resolveImageUrl(project.appIcon)}
@@ -1150,7 +1150,7 @@ export default function Landing() {
                               </div>
                               <h3 className="text-sm font-semibold text-foreground mb-1">{project.name}</h3>
                               <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{project.description || project.type}</p>
-                              <div className="mt-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                              <div className="mt-auto pt-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                                 <SparkButton
                                   entityType="project"
                                   entityId={project.id}

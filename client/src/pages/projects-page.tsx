@@ -180,8 +180,8 @@ export default function ProjectsPage() {
     <div className="min-h-screen bg-background" data-page="projects">
       <PageHead
         slug="projects"
-        title="Projects — SEVCO Ventures Portfolio"
-        description="Explore SEVCO Ventures — active companies, platforms, apps, and initiatives built under the SEVCO umbrella."
+        title="Projects — SEVCO Projects Portfolio"
+        description="Explore SEVCO Projects — active companies, platforms, apps, and initiatives built under the SEVCO umbrella."
         ogUrl="https://sevco.us/projects"
       />
       {/* ── HERO ── */}
@@ -211,7 +211,7 @@ export default function ProjectsPage() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold text-green-400 uppercase tracking-wider mb-5">
               <Folder className="h-3.5 w-3.5" />
-              SEVCO Ventures
+              SEVCO Projects
             </div>
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight text-white">
               <span className="bg-gradient-to-r from-green-400 via-emerald-300 to-teal-400 bg-clip-text text-transparent">
@@ -328,7 +328,7 @@ export default function ProjectsPage() {
             </span>
           </h2>
           <p className="text-muted-foreground text-sm leading-relaxed mb-6">
-            SEVCO Ventures is always looking for bold ideas and passionate contributors. Pitch a project or reach out to learn how to get involved.
+            SEVCO Projects is always looking for bold ideas and passionate contributors. Pitch a project or reach out to learn how to get involved.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href="/contact">

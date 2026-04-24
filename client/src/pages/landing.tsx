@@ -60,7 +60,7 @@ const PLATFORM_SECTIONS = [
   },
   {
     label: "Projects",
-    description: "SEVCO Ventures — active companies, initiatives, and what's next.",
+    description: "SEVCO Projects — active companies, initiatives, and what's next.",
     path: "/projects",
     icon: Folder,
     accent: "from-green-500/20 to-green-600/5 border-green-500/20",
@@ -1086,7 +1086,7 @@ export default function Landing() {
                   <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
-                        <Folder className="h-3 w-3" /> SEVCO Ventures
+                        <Folder className="h-3 w-3" /> SEVCO Projects
                       </p>
                       <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground mb-2">
                         Building the future, one venture at a time.
@@ -1098,7 +1098,7 @@ export default function Landing() {
                     <div className="flex gap-2 shrink-0">
                       <Link href="/projects">
                         <Button size="sm" className="bg-red-600 hover:bg-red-500 text-white font-medium gap-1.5" data-testid="button-projects-explore">
-                          Explore ventures
+                          Explore projects
                         </Button>
                       </Link>
                       <Link href="/wiki/projects-ventures-guide">
@@ -1117,7 +1117,7 @@ export default function Landing() {
                   ) : featuredProjects.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-center">
                       <Folder className="h-8 w-8 text-muted-foreground/40 mb-3" />
-                      <p className="text-sm text-muted-foreground">Ventures coming soon.</p>
+                      <p className="text-sm text-muted-foreground">Projects coming soon.</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1322,7 +1322,7 @@ export default function Landing() {
                       {[
                         { icon: Music, label: "SEVCO RECORDS", color: "#60a5fa" },
                         { icon: Globe, label: "Merch", color: "#f87171" },
-                        { icon: Folder, label: "Ventures", color: "#4ade80" },
+                        { icon: Folder, label: "Projects", color: "#4ade80" },
                         { icon: Newspaper, label: "News", color: "#facc15" },
                         { icon: Users, label: "Community", color: "#a78bfa" },
                         { icon: BookOpen, label: "Wiki", color: "#38bdf8" },

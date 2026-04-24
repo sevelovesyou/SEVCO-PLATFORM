@@ -27,7 +27,7 @@ const PILLARS = [
   },
   {
     icon: Layers,
-    title: "SEVCO Ventures",
+    title: "SEVCO Projects",
     description: "A portfolio of internal projects and products. Platforms, apps, brands, and experiments built under the SEVCO umbrella.",
     href: "/projects",
   },
@@ -45,7 +45,7 @@ export default function AboutPage() {
       <PageHead
         slug="about"
         title="About SEVCO — Music, Merch, Projects & Community"
-        description="SEVCO is a creative platform built for music, commerce, and community. Learn about SEVCO Records, Services, Ventures, and the team behind it all."
+        description="SEVCO is a creative platform built for music, commerce, and community. Learn about SEVCO Records, Services, Projects, and the team behind it all."
         ogUrl="https://sevco.us/about"
       />
       <div className="max-w-4xl mx-auto px-6 py-16 space-y-20">
@@ -67,7 +67,7 @@ export default function AboutPage() {
           <div className="flex flex-wrap gap-3">
             <Link href="/projects">
               <Button className="gap-2" data-testid="link-about-ventures">
-                Our Ventures
+                Our Projects
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>

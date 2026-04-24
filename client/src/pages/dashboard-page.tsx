@@ -555,7 +555,7 @@ function ChangelogSection() {
 const CLIENT_LINKS = [
   { label: "Wiki", desc: "Browse articles and resources", path: "/wiki", icon: BookOpen, color: "text-primary", bg: "bg-primary/10" },
   { label: "Music", desc: "SEVCO RECORDS releases", path: "/music", icon: Music, color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-600/10" },
-  { label: "Projects", desc: "SEVCO Ventures", path: "/projects", icon: Folder, color: "text-green-600 dark:text-green-400", bg: "bg-green-500/10" },
+  { label: "Projects", desc: "SEVCO Projects", path: "/projects", icon: Folder, color: "text-green-600 dark:text-green-400", bg: "bg-green-500/10" },
 ];
 
 function ClientView({ user }: { user: { username: string; displayName?: string | null } }) {

@@ -110,9 +110,13 @@ export default function SearchPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (inputValue.trim()) {
-      navigate(`/search?q=${encodeURIComponent(inputValue.trim())}`);
-      setQuery(inputValue.trim());
+    const trimmed = inputValue.trim();
+    if (trimmed) {
+      navigate(`/search?q=${encodeURIComponent(trimmed)}`);
+      setQuery(trimmed);
+    } else {
+      navigate("/search");
+      setQuery("");
     }
   }
 
@@ -126,7 +130,7 @@ export default function SearchPage() {
   const showContent = query.length >= 2;
 
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-6">
+    <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-6" data-testid="page-search">
       <PageHead
         title={query ? `Search: "${query}" — SEVCO` : "Search — SEVCO"}
         description={query ? `Search results for "${query}" across SEVCO wiki, store, projects, services, and more.` : "Search across SEVCO — wiki articles, store products, projects, services, music, and jobs."}
@@ -134,8 +138,17 @@ export default function SearchPage() {
         noIndex={true}
       />
       <div>
-        <h1 className="text-2xl font-bold mb-1">Search</h1>
-        <p className="text-sm text-muted-foreground">Search across wiki, projects, store, music, jobs & services</p>
+        <h1 className="text-2xl font-bold mb-1" data-testid="text-search-heading">
+          {query ? <>Results for <span className="text-primary">"{query}"</span></> : "Search"}
+        </h1>
+        {!query && (
+          <p className="text-sm text-muted-foreground">Search across wiki, projects, store, music, jobs & services</p>
+        )}
+        {query && hasResults && !isLoading && (
+          <p className="text-sm text-muted-foreground" data-testid="text-results-summary">
+            {results.total} result{results.total !== 1 ? "s" : ""} found
+          </p>
+        )}
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -197,10 +210,6 @@ export default function SearchPage() {
 
           {!isLoading && hasResults && (
             <>
-              <div className="text-sm text-muted-foreground" data-testid="text-results-count">
-                {results.total} result{results.total !== 1 ? "s" : ""} for "{query}"
-              </div>
-
               <div className="space-y-8">
                 {SECTION_CONFIG.map(({ key, label, icon: Icon, color }) => {
                   const items = results[key];
@@ -210,7 +219,7 @@ export default function SearchPage() {
                       <div className="flex items-center gap-2 mb-3">
                         <Icon className={`h-4 w-4 ${color}`} />
                         <h2 className="text-sm font-semibold text-foreground">{label}</h2>
-                        <span className="text-xs text-muted-foreground">({items.length})</span>
+                        <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{items.length}</Badge>
                       </div>
                       <div className="space-y-1.5">
                         {items.map((item) => (

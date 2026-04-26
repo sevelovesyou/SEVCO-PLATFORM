@@ -84,3 +84,10 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+queryClient.setQueryDefaults(["/api/platform-settings"], {
+  staleTime: 60_000,
+  refetchOnWindowFocus: true,
+  refetchInterval: 5 * 60_000,
+  refetchIntervalInBackground: true,
+});

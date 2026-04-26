@@ -68,9 +68,20 @@ export function serveStatic(app: Express) {
       } catch {
         // Don't block page render if analytics settings fail to load
       }
-      res.set("Content-Type", "text/html").send(html);
+      res
+        .set("Content-Type", "text/html")
+        .set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+        .set("Pragma", "no-cache")
+        .set("Expires", "0")
+        .set("Surrogate-Control", "no-store")
+        .send(html);
     } catch {
-      res.sendFile(indexPath);
+      res
+        .set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+        .set("Pragma", "no-cache")
+        .set("Expires", "0")
+        .set("Surrogate-Control", "no-store")
+        .sendFile(indexPath);
     }
   });
 }

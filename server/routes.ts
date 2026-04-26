@@ -4822,7 +4822,12 @@ export async function registerRoutes(
   app.get("/api/platform-settings", async (_req, res) => {
     try {
       const settings = await storage.getPlatformSettings();
-      res.json(settings);
+      res
+        .set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+        .set("Pragma", "no-cache")
+        .set("Expires", "0")
+        .set("Surrogate-Control", "no-store")
+        .json(settings);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

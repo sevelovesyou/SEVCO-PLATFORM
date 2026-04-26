@@ -22,6 +22,12 @@ function isTypingTarget(el: Element | null): boolean {
   return false;
 }
 
+function isDialogOpen(): boolean {
+  return !!document.querySelector(
+    '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]'
+  );
+}
+
 export function useKeyboardShortcuts(opts: { onShowHelp: () => void }) {
   const [, navigate] = useLocation();
   const metaLeftDown = useRef(false);
@@ -57,6 +63,7 @@ export function useKeyboardShortcuts(opts: { onShowHelp: () => void }) {
       }
 
       if (isTypingTarget(document.activeElement)) return;
+      if (isDialogOpen()) return;
 
       if (e.key === "?" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();

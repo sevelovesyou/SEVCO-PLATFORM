@@ -495,7 +495,6 @@ export interface IStorage {
     totalArticleSparksGiven: number;
     totalGallerySparksGiven: number;
     totalTrackSparksGiven: number;
-    totalProductSparksGiven: number;
     totalProjectSparksGiven: number;
     totalServiceSparksGiven: number;
     topRewardedCreatorThisMonth: { username: string; displayName: string | null; sparksReceived: number } | null;
@@ -505,7 +504,7 @@ export interface IStorage {
   getSparksLeaderboard(period: "month" | "all"): Promise<{
     topCreators: { userId: string; username: string; displayName: string | null; avatarUrl: string | null; sparksReceived: number }[];
     topPosts: { id: number; content: string; authorUsername: string; authorDisplayName: string | null; sparksReceived: number }[];
-    topContent: { id: number; title: string; contentType: "article" | "gallery" | "track" | "product" | "project" | "service"; slug?: string | null; sparksReceived: number }[];
+    topContent: { id: number; title: string; contentType: "article" | "gallery" | "track" | "project" | "service"; slug?: string | null; sparksReceived: number }[];
   }>;
 
   getWikiSources(): Promise<WikiSource[]>;
@@ -3731,7 +3730,6 @@ export class DatabaseStorage implements IStorage {
     const [articleTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(articleSparks);
     const [galleryTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(gallerySparks);
     const [trackTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(trackSparks).where(isNull(trackSparks.revokedAt));
-    const [productTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(productSparks);
     const [projectTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(projectSparks);
     const [serviceTotalRow] = await db.select({ total: sql<number>`COUNT(*)::int` }).from(serviceSparks);
     const topPosts = await db
@@ -3774,13 +3772,6 @@ export class DatabaseStorage implements IStorage {
       .groupBy(musicTracks.id, musicTracks.title)
       .orderBy(sql`COUNT(*) DESC`)
       .limit(10);
-    const topProducts = await db
-      .select({ id: products.id, title: products.name, slug: products.slug, sparkCount: sql<number>`COUNT(*)::int` })
-      .from(productSparks)
-      .innerJoin(products, eq(products.id, productSparks.productId))
-      .groupBy(products.id, products.name, products.slug)
-      .orderBy(sql`COUNT(*) DESC`)
-      .limit(10);
     const topProjectsRows = await db
       .select({ id: projects.id, title: projects.name, slug: projects.slug, sparkCount: sql<number>`COUNT(*)::int` })
       .from(projectSparks)
@@ -3800,7 +3791,6 @@ export class DatabaseStorage implements IStorage {
       ...topArticles.map((a) => ({ type: "article", title: a.title, sparkCount: a.sparkCount, id: a.id, slug: a.slug })),
       ...topGallery.map((g) => ({ type: "gallery", title: g.title, sparkCount: g.sparkCount, id: g.id, uploaderUsername: g.uploaderUsername ?? undefined })),
       ...topTracks.map((t) => ({ type: "track", title: t.title, sparkCount: t.sparkCount, id: t.id })),
-      ...topProducts.map((p) => ({ type: "product", title: p.title, sparkCount: p.sparkCount, id: p.id, slug: p.slug })),
       ...topProjectsRows.map((p) => ({ type: "project", title: p.title, sparkCount: p.sparkCount, id: p.id, slug: p.slug })),
       ...topServices.map((s) => ({ type: "service", title: s.title, sparkCount: s.sparkCount, id: s.id, slug: s.slug })),
     ].sort((a, b) => b.sparkCount - a.sparkCount).slice(0, 10);
@@ -3831,7 +3821,6 @@ export class DatabaseStorage implements IStorage {
       totalArticleSparksGiven: articleTotalRow?.total ?? 0,
       totalGallerySparksGiven: galleryTotalRow?.total ?? 0,
       totalTrackSparksGiven: trackTotalRow?.total ?? 0,
-      totalProductSparksGiven: productTotalRow?.total ?? 0,
       totalProjectSparksGiven: projectTotalRow?.total ?? 0,
       totalServiceSparksGiven: serviceTotalRow?.total ?? 0,
       topRewardedCreatorThisMonth: topCreator,
@@ -3913,14 +3902,6 @@ export class DatabaseStorage implements IStorage {
       .groupBy(musicTracks.id, musicTracks.title)
       .orderBy(sql`count(*) desc`)
       .limit(10);
-    const topProductRowsLb = await db
-      .select({ id: products.id, title: products.name, slug: products.slug, sparksReceived: sql<number>`cast(count(*) as integer)` })
-      .from(productSparks)
-      .innerJoin(products, eq(products.id, productSparks.productId))
-      .where(cutoff ? gte(productSparks.createdAt, cutoff) : undefined)
-      .groupBy(products.id, products.name, products.slug)
-      .orderBy(sql`count(*) desc`)
-      .limit(10);
     const topProjectRowsLb = await db
       .select({ id: projects.id, title: projects.name, slug: projects.slug, sparksReceived: sql<number>`cast(count(*) as integer)` })
       .from(projectSparks)
@@ -3938,11 +3919,10 @@ export class DatabaseStorage implements IStorage {
       .orderBy(sql`count(*) desc`)
       .limit(10);
 
-    const topContent: { id: number; title: string; contentType: "article" | "gallery" | "track" | "product" | "project" | "service"; slug?: string | null; sparksReceived: number }[] = [
+    const topContent: { id: number; title: string; contentType: "article" | "gallery" | "track" | "project" | "service"; slug?: string | null; sparksReceived: number }[] = [
       ...topArticleRows.map((a) => ({ id: a.id, title: a.title, slug: a.slug, contentType: "article" as const, sparksReceived: a.sparksReceived })),
       ...topGalleryRows.map((g) => ({ id: g.id, title: g.title, contentType: "gallery" as const, sparksReceived: g.sparksReceived })),
       ...topTrackRowsLb.map((t) => ({ id: t.id, title: t.title, contentType: "track" as const, sparksReceived: t.sparksReceived })),
-      ...topProductRowsLb.map((p) => ({ id: p.id, title: p.title, slug: p.slug, contentType: "product" as const, sparksReceived: p.sparksReceived })),
       ...topProjectRowsLb.map((p) => ({ id: p.id, title: p.title, slug: p.slug, contentType: "project" as const, sparksReceived: p.sparksReceived })),
       ...topServiceRowsLb.map((s) => ({ id: s.id, title: s.title, slug: s.slug, contentType: "service" as const, sparksReceived: s.sparksReceived })),
     ]

@@ -1131,7 +1131,6 @@ interface SocialSparkStats {
   totalArticleSparksGiven: number;
   totalGallerySparksGiven: number;
   totalTrackSparksGiven: number;
-  totalProductSparksGiven: number;
   totalProjectSparksGiven: number;
   totalServiceSparksGiven: number;
   totalSocialRewardsIssued: number;
@@ -1154,7 +1153,6 @@ function CreatorRewardPoolTab() {
     (stats?.totalArticleSparksGiven ?? 0) +
     (stats?.totalGallerySparksGiven ?? 0) +
     (stats?.totalTrackSparksGiven ?? 0) +
-    (stats?.totalProductSparksGiven ?? 0) +
     (stats?.totalProjectSparksGiven ?? 0) +
     (stats?.totalServiceSparksGiven ?? 0);
 
@@ -1166,7 +1164,6 @@ function CreatorRewardPoolTab() {
         <StatCard label="Article Sparks" value={(stats?.totalArticleSparksGiven ?? 0).toLocaleString()} icon={Package} loading={isLoading} />
         <StatCard label="Gallery Sparks" value={(stats?.totalGallerySparksGiven ?? 0).toLocaleString()} icon={() => <span className="text-lg">🖼️</span>} loading={isLoading} />
         <StatCard label="Track Sparks" value={(stats?.totalTrackSparksGiven ?? 0).toLocaleString()} icon={() => <span className="text-lg">🎵</span>} loading={isLoading} />
-        <StatCard label="Product Sparks" value={(stats?.totalProductSparksGiven ?? 0).toLocaleString()} icon={() => <span className="text-lg">🛒</span>} loading={isLoading} />
         <StatCard label="Project Sparks" value={(stats?.totalProjectSparksGiven ?? 0).toLocaleString()} icon={() => <span className="text-lg">📦</span>} loading={isLoading} />
         <StatCard label="Service Sparks" value={(stats?.totalServiceSparksGiven ?? 0).toLocaleString()} icon={() => <span className="text-lg">🛠️</span>} loading={isLoading} />
         <StatCard label="Creators Rewarded" value={(stats?.uniqueAuthorsRewarded ?? 0).toLocaleString()} icon={() => <span className="text-lg">🏆</span>} loading={isLoading} />

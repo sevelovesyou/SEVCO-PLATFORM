@@ -91,7 +91,7 @@ import {
   type InsertWikiLlmUsage,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, asc, and, sql, ilike, or, inArray, gte, lte, isNull, count as countFn, type SQL } from "drizzle-orm";
+import { eq, desc, asc, and, sql, ilike, or, inArray, gte, lte, gt, isNull, count as countFn, type SQL } from "drizzle-orm";
 
 export class InsufficientSparksError extends Error {
   readonly currentBalance: number;
@@ -450,6 +450,9 @@ export interface IStorage {
   hasUserSparkedAnyArticle(userId: string): Promise<boolean>;
   hasUserSparkedAnyTrack(userId: string): Promise<boolean>;
   creditOnboardingBonus(userId: string, taskKey: string, label: string, amount: number): Promise<boolean>;
+  claimDailyReward(userId: string, claimDate: string, amount: number): Promise<boolean>;
+  getLastDailyRewardClaim(userId: string): Promise<SparkTransaction | null>;
+  getTotalEarnedFromRewards(userId: string): Promise<number>;
   debitSparks(userId: string, amount: number, type: string, description: string, opts?: { metadata?: object; allowOverdraft?: boolean }): Promise<void>;
   getUserSparkTransactions(userId: string, limit?: number, offset?: number): Promise<SparkTransaction[]>;
   getAllSparkTransactions(filters?: { userId?: string; type?: string; dateFrom?: Date; dateTo?: Date }, limit?: number, offset?: number): Promise<{ transactions: Array<SparkTransaction & { username: string; displayName: string | null }>; total: number }>;
@@ -3060,6 +3063,68 @@ export class DatabaseStorage implements IStorage {
       if (isUniqueViolation) return false;
       throw err;
     }
+  }
+
+  async claimDailyReward(userId: string, claimDate: string, amount: number): Promise<boolean> {
+    try {
+      return await db.transaction(async (tx) => {
+        // Defensive pre-check inside the txn so behaviour is correct even
+        // if the partial unique index is missing on a stale environment.
+        // The unique index (see shared/schema.ts and migrations/0004_*) is
+        // still the authoritative guard against true concurrent writes.
+        const [existing] = await tx
+          .select({ id: sparkTransactions.id })
+          .from(sparkTransactions)
+          .where(
+            and(
+              eq(sparkTransactions.userId, userId),
+              eq(sparkTransactions.type, "daily_reward"),
+              sql`${sparkTransactions.metadata}->>'claimDate' = ${claimDate}`,
+            ),
+          )
+          .limit(1);
+        if (existing) return false;
+
+        await this.applyCreditInTx(
+          tx,
+          userId,
+          amount,
+          "daily_reward",
+          "Daily Spark reward",
+          { metadata: { claimDate } },
+        );
+        return true;
+      });
+    } catch (err: any) {
+      const isUniqueViolation =
+        err?.code === "23505" || err?.message?.includes("spark_txn_daily_reward_idx");
+      if (isUniqueViolation) return false;
+      throw err;
+    }
+  }
+
+  async getLastDailyRewardClaim(userId: string): Promise<SparkTransaction | null> {
+    const [row] = await db
+      .select()
+      .from(sparkTransactions)
+      .where(and(eq(sparkTransactions.userId, userId), eq(sparkTransactions.type, "daily_reward")))
+      .orderBy(desc(sparkTransactions.createdAt))
+      .limit(1);
+    return row ?? null;
+  }
+
+  async getTotalEarnedFromRewards(userId: string): Promise<number> {
+    const [row] = await db
+      .select({ total: sql<number>`COALESCE(SUM(${sparkTransactions.amount}), 0)::int` })
+      .from(sparkTransactions)
+      .where(
+        and(
+          eq(sparkTransactions.userId, userId),
+          inArray(sparkTransactions.type, ["onboarding_bonus", "daily_reward"]),
+          gt(sparkTransactions.amount, 0),
+        ),
+      );
+    return row?.total ?? 0;
   }
 
   async debitSparks(userId: string, amount: number, type: string, description: string, opts?: { metadata?: object; allowOverdraft?: boolean }): Promise<void> {

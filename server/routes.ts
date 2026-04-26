@@ -3921,6 +3921,89 @@ export async function registerRoutes(
     }
   });
 
+  const DAILY_REWARD_AMOUNT = 15;
+
+  function utcDateString(d: Date = new Date()): string {
+    return d.toISOString().slice(0, 10);
+  }
+
+  function nextUtcMidnight(d: Date = new Date()): Date {
+    const next = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1, 0, 0, 0, 0));
+    return next;
+  }
+
+  app.get("/api/me/rewards/summary", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const hasAvatar = !!(user.avatarUrl && user.avatarUrl.trim().length > 0);
+      const hasBio = !!(user.bio && user.bio.trim().length > 0);
+      const userPosts = await storage.getPosts({ userId, limit: 1 });
+      const hasPost = userPosts.length > 0;
+      const followingCount = await storage.getFollowingCount(userId);
+      const hasFollow = followingCount > 0;
+      const socialLinks = user.socialLinks as Record<string, string | null> | null;
+      const hasSocialLink = !!(socialLinks && Object.values(socialLinks).some((v) => v && v.trim().length > 0));
+      const [hasSparkedPost, hasSparkedArticle, hasSparkedTrack] = await Promise.all([
+        storage.hasUserSparkedAnyPost(userId),
+        storage.hasUserSparkedAnyArticle(userId),
+        storage.hasUserSparkedAnyTrack(userId),
+      ]);
+
+      const today = utcDateString();
+      const lastClaim = await storage.getLastDailyRewardClaim(userId);
+      const lastClaimDate = (lastClaim?.metadata as { claimDate?: string } | null)?.claimDate ?? null;
+      const claimable = lastClaimDate !== today;
+      const nextAvailableAt = claimable ? null : nextUtcMidnight().toISOString();
+
+      const totalEarnedFromRewards = await storage.getTotalEarnedFromRewards(userId);
+
+      res.json({
+        hasAvatar, hasBio, hasPost, hasFollow, hasSocialLink,
+        hasSparkedPost, hasSparkedArticle, hasSparkedTrack,
+        daily: {
+          amount: DAILY_REWARD_AMOUNT,
+          claimable,
+          nextAvailableAt,
+          lastClaimedAt: lastClaim?.createdAt ?? null,
+        },
+        totalEarnedFromRewards,
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/me/rewards/daily/claim", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const today = utcDateString();
+      const granted = await storage.claimDailyReward(userId, today, DAILY_REWARD_AMOUNT);
+      if (!granted) {
+        return res.status(409).json({
+          message: "Daily reward already claimed today",
+          alreadyClaimed: true,
+          nextAvailableAt: nextUtcMidnight().toISOString(),
+        });
+      }
+      const [balance, totalEarnedFromRewards] = await Promise.all([
+        storage.getUserSparksBalance(userId),
+        storage.getTotalEarnedFromRewards(userId),
+      ]);
+      res.json({
+        success: true,
+        amount: DAILY_REWARD_AMOUNT,
+        balance,
+        totalEarnedFromRewards,
+        nextAvailableAt: nextUtcMidnight().toISOString(),
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.post("/api/posts", requireAuth, async (req: any, res) => {
     try {
       const parsed = insertPostSchema.extend({ content: z.string().min(1).max(500) }).safeParse(req.body);

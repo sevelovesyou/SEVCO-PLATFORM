@@ -1225,6 +1225,9 @@ export const sparkTransactions = pgTable("spark_transactions", {
   uniqueIndex("spark_txn_onboarding_task_idx")
     .on(t.userId, sql`(metadata->>'taskKey')`)
     .where(sql`type = 'onboarding_bonus'`),
+  uniqueIndex("spark_txn_daily_reward_idx")
+    .on(t.userId, sql`(metadata->>'claimDate')`)
+    .where(sql`type = 'daily_reward'`),
 ]);
 
 export const sparkPacks = pgTable("spark_packs", {

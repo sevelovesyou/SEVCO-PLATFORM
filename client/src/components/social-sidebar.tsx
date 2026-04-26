@@ -26,6 +26,7 @@ import {
   Users,
   Link as LinkIcon,
   Compass,
+  ArrowRight,
 } from "lucide-react";
 import { SparkIcon } from "@/components/spark-icon";
 import { useAuth } from "@/hooks/use-auth";
@@ -191,7 +192,7 @@ export function SocialSidebar() {
 
         {user && (
           <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-            <SidebarGroupLabel>Onboarding</SidebarGroupLabel>
+            <SidebarGroupLabel>Rewards</SidebarGroupLabel>
             <SidebarGroupContent>
               {onboardingLoading ? (
                 <div className="px-2 space-y-2">
@@ -201,7 +202,7 @@ export function SocialSidebar() {
                 </div>
               ) : (
                 <div className="px-2 space-y-1.5">
-                  {onboardingTasks.map((task) => (
+                  {onboardingTasks.slice(0, 5).map((task) => (
                     <div
                       key={task.key}
                       className={`flex items-center gap-2 py-1 text-xs transition-colors ${task.done ? "text-muted-foreground line-through" : "text-foreground"}`}
@@ -225,6 +226,19 @@ export function SocialSidebar() {
                       </span>
                     </div>
                   ))}
+                  {onboardingTasks.length > 5 && (
+                    <Link
+                      href="/sparks/rewards"
+                      className="flex items-center justify-between gap-1 mt-1 px-2 py-1.5 rounded-md text-xs font-semibold text-yellow-600 dark:text-yellow-400 hover:bg-yellow-500/10 transition-colors"
+                      data-testid="link-see-all-rewards"
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        <SparkIcon size="xs" decorative />
+                        See all rewards
+                      </span>
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  )}
                 </div>
               )}
             </SidebarGroupContent>

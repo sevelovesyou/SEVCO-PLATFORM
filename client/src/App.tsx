@@ -70,6 +70,7 @@ const PricingPage = lazy(() => import("@/pages/pricing-page"));
 const SparksSuccessPage = lazy(() => import("@/pages/sparks-success-page"));
 const SparksPage = lazy(() => import("@/pages/sparks-page"));
 const SparksLeaderboard = lazy(() => import("@/pages/sparks-leaderboard"));
+const SparksRewardsPage = lazy(() => import("@/pages/sparks-rewards"));
 const CommandOverview = lazy(() => import("@/pages/command-overview"));
 const CommandUsers = lazy(() => import("@/pages/command-users"));
 const CommandChangelog = lazy(() => import("@/pages/command-changelog"));
@@ -291,6 +292,7 @@ function Router() {
       <Route path="/pricing" component={PricingPage} />
       <Route path="/sparks/success" component={SparksSuccessPage} />
       <Route path="/sparks/leaderboard" component={SparksLeaderboard} />
+      <Route path="/sparks/rewards" component={SparksRewardsPage} />
       <Route path="/sparks" component={SparksPage} />
       <Route path="/changelog" component={() => <Redirect to="/platform" />} />
       <Route path="/platform" component={PlatformPage} />

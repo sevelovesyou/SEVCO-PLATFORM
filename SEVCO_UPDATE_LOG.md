@@ -31765,3 +31765,43 @@ Funnel every X OAuth flow through one canonical domain (`sevco.us`) and then han
 
 ---
 
+## Task — search-bg-multiple-urls
+> Merged: 2026-04-26
+
+# Random Search Background from Multiple URLs (Image / Video / YouTube)
+
+## What & Why
+Extend the home search section's background setting (added in Task #607) so staff can paste a list of background sources — one per line — and the home page picks a random one on each load. In addition to the existing image and direct-video URLs, YouTube URLs (`youtube.com/watch?v=…`, `youtu.be/…`, `youtube.com/embed/…`) are now also supported and render as an auto-playing, muted, looped, controls-hidden YouTube iframe background. Backward compatible: a single URL still works exactly as before.
+
+## Done looks like
+- The "Background Image / Video URL" field in Platform Settings → Search Section becomes a multi-line textarea where staff can enter one URL per line. Blank lines and whitespace are ignored. Mix-and-match of image, direct-video, and YouTube URLs is allowed in the same list.
+- Helper text explains: "Enter one URL per line. If multiple URLs are provided, one is chosen at random on each page load. Supported sources: image URLs, direct video files (.mp4 / .webm / .ogg), and YouTube links (youtube.com/watch, youtu.be, youtube.com/embed)."
+- Saving still writes to the existing `search.backgroundUrl` key (no new key, no schema change).
+- On the home page:
+  - With zero URLs (empty), the section uses the default solid `bg-background` as today.
+  - With one URL, the behavior is identical to today (image background or auto-play looped video) — plus the new YouTube case.
+  - With multiple URLs, one entry is picked at random when the page mounts and rendered with the appropriate handler (image / video / YouTube). The selection is stable for the lifetime of the page (no flicker on settings refetch).
+  - YouTube backgrounds render as a full-bleed `<iframe>` positioned absolutely behind the search content, with parameters `autoplay=1, mute=1, loop=1, playlist=<id>, controls=0, modestbranding=1, showinfo=0, rel=0, iv_load_policy=3, playsinline=1, disablekb=1` and `pointer-events: none` so it never intercepts clicks. The iframe is sized to cover the section without letterboxing.
+- Loading an existing single-URL value into the new textarea shows it on its own line — no migration required.
+
+## Out of scope
+- Changing the storage key or schema
+- Per-URL labels or weighting
+- Adding the same multi-URL behavior to other sections (hero, etc.)
+- Crossfade / animated rotation between backgrounds without a reload
+- YouTube playlists, time-range start/end, or sound
+
+## Steps
+1. **Admin field** — In the Search Section card on Platform Settings, swap the single-line `<Input>` for a `<Textarea>` (about 4 rows). Keep the same `searchBgUrl` state and `search.backgroundUrl` storage key. Update the label to "Background URLs" and the helper text to describe the multi-source behavior including YouTube.
+2. **Source-type detection** — Add a small helper (e.g. `classifyBgUrl(url)`) returning `"image" | "video" | "youtube" | null` plus, for YouTube, the extracted video id. Recognise the three common YouTube URL shapes (`watch?v=`, `youtu.be/`, `embed/`) and ignore the rest of any querystring after extracting the id.
+3. **Landing page random pick** — Read `settings["search.backgroundUrl"]`, split on newlines, trim, drop empties, classify each line, drop unrecognised sources. Use `useMemo` keyed on the joined list to pick a random valid entry once per mount.
+4. **YouTube renderer** — Add a third branch alongside the existing image / video branches that renders an absolutely-positioned `<iframe>` (cover-fitted, `pointer-events: none`, no border) with the parameter string above so it autoplays muted in a loop with no controls or branding. Reuse the same `relative z-10` content wrapper that already sits above the existing video.
+5. **Verify** — Confirm: empty value renders the solid background; one image / one video / one YouTube URL each behave correctly; multiple URLs randomize across reloads; a mixed list (image + video + YouTube) all render correctly when their entry is picked; YouTube iframe never blocks clicks on the search input or button.
+
+## Relevant files
+- `client/src/pages/landing.tsx:441-465`
+- `client/src/pages/command-settings.tsx:1199,1406,1841,2492-2502`
+
+
+---
+

@@ -31670,3 +31670,49 @@ Add a Mindmap/Flowchart mode to the existing Canvas page so users can build node
 
 ---
 
+## Task — canvas-artboards-and-sites-fix
+> Merged: 2026-04-26
+
+# Canvas Artboards + Sites-as-Artboard Refactor
+
+## What & Why
+Add a Kittl-style Artboard system to the Canvas page so users can create fixed-size, named frames (e.g. 1080×1080 social post, 1920×1080 banner, A4) anywhere on the infinite canvas and export each one individually as PNG/JPG/SVG. Refactor Sites on Canvas to be a *type* of artboard (`kind: "site"`) instead of a brittle Fabric Group with a custom `data` property — this fixes the auto-save bug that wipes Site metadata on reload and the visual glitches in the current cramped 320×200 mockup. Also clean up the Tools nav dropdown which still has a redundant standalone Sites entry.
+
+## Done looks like
+- New "Artboard" tool icon in the Canvas left toolbar. Clicking it opens a small preset picker (1:1 1080, 9:16 Story 1080×1920, 16:9 1920×1080, A4, Custom) and a single click drops a labeled artboard frame onto the canvas at the viewport center.
+- An artboard renders as a sharp-cornered rectangle with a name label floating just above its top-left corner. Selecting it shows artboard-specific controls in the properties panel: Name, Width, Height, Background color, Export PNG / Export JPG / Export SVG.
+- Free-form Fabric objects (shapes, text, images) can be placed anywhere — including over an artboard. Exporting an artboard captures everything within that artboard's bounding rectangle, regardless of whether objects belong to it.
+- Sites on Canvas are now Site Artboards (`kind: "site"`):
+  - The Sites toolbar tool drops a properly-sized Site Artboard (default 1280×800) instead of the current 320×200 Fabric mockup. The site's title and `slug.sev.cx` URL show in a real browser-chrome header, and the LIVE/DRAFT badge and "Double-click to edit blocks" hint are repositioned so nothing overlaps.
+  - Selecting a Site Artboard shows the existing site controls (Add block, Publish/Unpublish, Theme, Edit Blocks, Preview live, Remove from canvas) plus the standard artboard Export buttons.
+  - Double-click still opens the inline block editor drawer.
+- Saving and reloading a project preserves both blank artboards and site artboards intact (no more lost metadata, no auto-save errors). Old projects that contain the legacy Fabric-Group Site Blocks load cleanly — they're upgraded to Site Artboards on first load and re-saved in the new shape.
+- The Tools dropdown in the platform header no longer shows a standalone "Sites" entry; the existing Canvas entry's description is updated to mention sites and artboards. The `/sites` → `/canvas` redirect already in place stays.
+
+## Out of scope
+- Multi-page sites (still a single homepage per site)
+- Artboard templates / saved presets beyond the built-in size list
+- Per-object clipping inside artboards (objects visually overflow; export crops to the frame)
+- PDF export of artboards (PNG/JPG/SVG only)
+- Real-time site preview inside the artboard (the artboard shows the browser-chrome mockup, not a live iframe)
+
+## Steps
+1. **Project JSON envelope** — Update the saved JSON shape to `{ type: "fabric", objects: [...], artboards: [...] }`. Define the Artboard type union with shared fields (`id`, `name`, `x`, `y`, `width`, `height`, `background`) and a discriminated `kind: "blank" | "site"` (site adds `siteId`, `slug`, `title`, `isPublished`). Keep mindmap projects unchanged.
+2. **Artboard rendering layer** — On canvas mount and on artboards-array change, reconcile a Fabric Group per artboard (frame rect + name label + site-specific chrome for site kind). Mark these groups as `selectable, evented` but keep their inner shapes locked. Store the artboard `id` in a parallel React state map keyed by Fabric object — never rely on Fabric's `toJSON` to round-trip the metadata.
+3. **Artboard tool + preset picker** — Add the new toolbar icon. Clicking opens a small popover with size presets and a custom width/height input. Selecting a preset appends a new blank Artboard to the artboards array at viewport center.
+4. **Properties panel for artboards** — When the active Fabric selection corresponds to an artboard (looked up via the parallel map, not via `data`), render artboard controls: editable name, width/height inputs that resize the frame, background color swatch, and three export buttons. Hide the regular shape-properties UI in this state.
+5. **Per-artboard export** — Use Fabric's `canvas.toDataURL({ format, left, top, width, height, multiplier })` for PNG/JPG. For SVG, compute a sub-SVG by translating Fabric's `toSVG()` output and clipping to the artboard rect (acceptable to start with PNG/JPG and add SVG via a simple bounding-box wrap).
+6. **Sites → Site Artboard refactor** — Replace `addSiteToCanvas` so it appends a `kind: "site"` artboard instead of a 320×200 Fabric Group. Update `detectSiteBlock` and the SitePropertiesPanel to read from the parallel artboard map. The existing Site Block Drawer (Edit Blocks, Theme, Publish) wires to the same `slug` field and continues working unchanged.
+7. **Legacy migration on load** — In `handleLoadProject`, after `fc.loadFromJSON`, scan for any Fabric Groups whose `data?.type === "site"` (legacy shape) and convert each one into a `kind: "site"` Artboard with `width: 1280, height: 800` at the legacy group's `left/top`. Remove the legacy group from the canvas afterwards. Save once to persist the upgrade.
+8. **Auto-save fix** — Confirm `fc.toJSON()` no longer needs to carry `data` props for Sites (Sites are now in the artboards array). For any remaining custom Fabric metadata that must persist, switch to `fc.toJSON(['data'])` so Fabric serializes the allow-listed prop. Verify auto-save fires cleanly after creating/moving/deleting a Site Artboard.
+9. **Nav cleanup** — Remove the standalone "Sites" entry from the Tools dropdown in `platform-header.tsx`. Update the existing Canvas entry's description to "Infinite canvas, artboards, sites & AI editor". Leave the `/sites` → `/canvas` redirect in `App.tsx` alone for backward compatibility.
+
+## Relevant files
+- `client/src/pages/canvas-page.tsx:73-130,578-820,1017-1170,1340-1510,1656-1730,1746-1821`
+- `client/src/components/platform-header.tsx:628-637`
+- `client/src/App.tsx:122-290`
+- `server/routes.ts:4819`
+
+
+---
+

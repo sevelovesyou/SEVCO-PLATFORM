@@ -234,7 +234,7 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
 
         {!showResults && (
           <div className="py-8 text-center text-sm text-muted-foreground">
-            Type to search across wiki, projects, store, music, jobs & services
+            Type to search across wiki, projects, music, jobs & services
           </div>
         )}
       </div>

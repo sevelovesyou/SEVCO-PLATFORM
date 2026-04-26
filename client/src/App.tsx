@@ -14,7 +14,9 @@ import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/protected-route";
 import { SpotifyPlayerProvider, useSpotifyPlayer } from "@/hooks/use-spotify-player";
 import { SpotifyPlayerBar } from "@/components/spotify-player-bar";
-import { lazy, Suspense, useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help";
 import { hexToHsl } from "@/lib/colorUtils";
 import { derivedDarkSurfacesAsCssVars, derivedLightSurfacesAsCssVars, DEFAULT_DARK_VALUES, DEFAULT_LIGHT_VALUES } from "@/lib/derive-dark-surfaces";
 import { isClientPlus } from "@/lib/permissions";
@@ -782,6 +784,8 @@ function AppShell() {
   const [location] = useLocation();
   const { activePlaylist } = useSpotifyPlayer();
   useAnalyticsTracker();
+  const [helpOpen, setHelpOpen] = useState(false);
+  useKeyboardShortcuts({ onShowHelp: () => setHelpOpen(true) });
 
   const isAuthPage = location === "/auth" || location === "/verify-email";
 
@@ -856,6 +860,7 @@ function AppShell() {
         </div>
       </div>
       <SpotifyPlayerBar />
+      <KeyboardShortcutsHelp open={helpOpen} onOpenChange={setHelpOpen} />
     </SidebarProvider>
   );
 }

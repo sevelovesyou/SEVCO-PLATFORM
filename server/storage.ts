@@ -536,7 +536,6 @@ export type SearchResultItem = {
 export type SearchAllResult = {
   wiki: SearchResultItem[];
   projects: SearchResultItem[];
-  store: SearchResultItem[];
   music: SearchResultItem[];
   jobs: SearchResultItem[];
   services: SearchResultItem[];
@@ -1767,12 +1766,6 @@ export class DatabaseStorage implements IStorage {
         or(ilike(projects.name, pattern), ilike(projects.description, pattern))
       ).orderBy(projects.name).limit(limit);
 
-    const productRows = await db
-      .select({ id: products.id, name: products.name, description: products.description, slug: products.slug, categoryName: products.categoryName })
-      .from(products).where(
-        or(ilike(products.name, pattern), ilike(products.description, pattern))
-      ).orderBy(products.name).limit(limit);
-
     const artistRows = await db
       .select({ id: artists.id, name: artists.name, bio: artists.bio, slug: artists.slug })
       .from(artists).where(
@@ -1838,14 +1831,6 @@ export class DatabaseStorage implements IStorage {
       meta: p.status,
     }));
 
-    const storeItems: SearchResultItem[] = productRows.map((p) => ({
-      id: p.id,
-      title: p.name,
-      description: p.description,
-      href: `/store/products/${p.slug}`,
-      meta: p.categoryName,
-    }));
-
     const musicItems: SearchResultItem[] = [
       ...artistRows.map((a) => ({
         id: a.id,
@@ -1890,12 +1875,11 @@ export class DatabaseStorage implements IStorage {
       meta: s.category,
     }));
 
-    const total = wikiItems.length + projectItems.length + storeItems.length + musicItems.length + jobItems.length + serviceItems.length;
+    const total = wikiItems.length + projectItems.length + musicItems.length + jobItems.length + serviceItems.length;
 
     return {
       wiki: wikiItems,
       projects: projectItems,
-      store: storeItems,
       music: musicItems,
       jobs: jobItems,
       services: serviceItems,

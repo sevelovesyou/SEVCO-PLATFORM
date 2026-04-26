@@ -959,6 +959,14 @@ export function PlatformHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSection, setMobileSection] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    function onOpenSearch() {
+      setSearchOpen(true);
+    }
+    window.addEventListener("sevco:open-search", onOpenSearch);
+    return () => window.removeEventListener("sevco:open-search", onOpenSearch);
+  }, []);
   const [chatOpen, setChatOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const notifTriggerRef = useRef<HTMLDivElement>(null);

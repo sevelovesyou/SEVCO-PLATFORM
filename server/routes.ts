@@ -1707,7 +1707,7 @@ export async function registerRoutes(
     const limit = Math.min(parseInt((req.query.limit as string) || "5"), 20);
 
     if (!query || query.length < 2) {
-      return res.json({ wiki: [], projects: [], store: [], music: [], jobs: [], services: [], total: 0 });
+      return res.json({ wiki: [], projects: [], music: [], jobs: [], services: [], total: 0 });
     }
 
     const userRole = req.user?.role as Role | undefined;

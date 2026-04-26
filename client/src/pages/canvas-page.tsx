@@ -9,6 +9,7 @@ import {
   PencilBrush,
   Point,
   Group as FabricGroup,
+  type FabricObject,
 } from 'fabric';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -64,14 +65,58 @@ import {
   ChevronDown,
   Network,
   Brush,
+  Frame,
+  FileImage,
 } from 'lucide-react';
 import MindmapEditor, {
   type MindmapEditorHandle,
   type MindmapData,
 } from '@/components/canvas/mindmap-editor';
 
-type Tool = 'select' | 'pan' | 'pencil' | 'rect' | 'ellipse' | 'line' | 'text' | 'sites';
+type Tool = 'select' | 'pan' | 'pencil' | 'rect' | 'ellipse' | 'line' | 'text' | 'sites' | 'artboard';
 type CanvasMode = 'draw' | 'mindmap';
+
+interface BaseArtboard {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  background: string;
+}
+interface BlankArtboard extends BaseArtboard { kind: 'blank'; }
+interface SiteArtboard extends BaseArtboard {
+  kind: 'site';
+  siteId: number;
+  slug: string;
+  title: string;
+  isPublished: boolean;
+}
+type Artboard = BlankArtboard | SiteArtboard;
+
+interface FabricEnvelope {
+  type: 'fabric';
+  objects?: unknown[];
+  background?: unknown;
+  version?: string;
+  artboards?: Artboard[];
+  [k: string]: unknown;
+}
+
+const ARTBOARD_PRESETS: { label: string; width: number; height: number }[] = [
+  { label: '1:1 Post 1080', width: 1080, height: 1080 },
+  { label: '9:16 Story 1080×1920', width: 1080, height: 1920 },
+  { label: '16:9 Banner 1920×1080', width: 1920, height: 1080 },
+  { label: 'A4 Portrait', width: 794, height: 1123 },
+];
+
+const SITE_ARTBOARD_W = 1280;
+const SITE_ARTBOARD_H = 800;
+
+function makeArtboardId(): string {
+  return `ab_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
 
 interface CanvasProject {
   id: number;
@@ -575,6 +620,270 @@ function ColorPickerButton({
   );
 }
 
+// ─── Artboard Fabric construction ────────────────────────────────────────────
+
+function createArtboardGroup(ab: Artboard): FabricGroup {
+  if (ab.kind === 'site') {
+    const headerH = 38;
+    const bg = new FabricRect({
+      left: 0, top: 0, width: ab.width, height: ab.height,
+      fill: ab.background || '#ffffff',
+      stroke: '#475569', strokeWidth: 1,
+      selectable: false, evented: false,
+    });
+    const header = new FabricRect({
+      left: 0, top: 0, width: ab.width, height: headerH,
+      fill: '#1f2937', selectable: false, evented: false,
+    });
+    const dot1 = new FabricRect({ left: 14, top: headerH / 2 - 5, width: 10, height: 10, rx: 5, ry: 5, fill: '#ef4444', selectable: false, evented: false });
+    const dot2 = new FabricRect({ left: 30, top: headerH / 2 - 5, width: 10, height: 10, rx: 5, ry: 5, fill: '#eab308', selectable: false, evented: false });
+    const dot3 = new FabricRect({ left: 46, top: headerH / 2 - 5, width: 10, height: 10, rx: 5, ry: 5, fill: '#22c55e', selectable: false, evented: false });
+    const urlBarW = Math.max(120, ab.width - 200);
+    const urlBar = new FabricRect({
+      left: 70, top: headerH / 2 - 11, width: urlBarW, height: 22,
+      fill: '#374151', rx: 4, ry: 4, selectable: false, evented: false,
+    });
+    const urlText = new FabricIText(`${ab.slug}.sev.cx`, {
+      left: 78, top: headerH / 2 - 7, fontSize: 12,
+      fill: '#cbd5e1', fontFamily: 'monospace',
+      selectable: false, evented: false, editable: false,
+    });
+    const statusW = 56, statusH = 22;
+    const statusBg = new FabricRect({
+      left: ab.width - statusW - 14, top: headerH / 2 - statusH / 2,
+      width: statusW, height: statusH,
+      fill: ab.isPublished ? '#14532d' : '#1f2937',
+      stroke: ab.isPublished ? '#22c55e' : '#475569', strokeWidth: 1,
+      rx: 4, ry: 4, selectable: false, evented: false,
+    });
+    const statusText = new FabricIText(ab.isPublished ? 'LIVE' : 'DRAFT', {
+      left: ab.width - statusW - 14 + statusW / 2, top: headerH / 2 - 6,
+      fontSize: 10, fontWeight: '700',
+      fill: ab.isPublished ? '#4ade80' : '#94a3b8',
+      textAlign: 'center', originX: 'center',
+      selectable: false, evented: false, editable: false,
+    });
+    const titleText = new FabricIText(ab.title || ab.name, {
+      left: ab.width / 2, top: headerH + 36,
+      fontSize: 32, fontWeight: '700',
+      fill: '#0f172a', textAlign: 'center', originX: 'center',
+      selectable: false, evented: false, editable: false,
+    });
+    const hintText = new FabricIText('Double-click to edit blocks', {
+      left: ab.width / 2, top: headerH + 86,
+      fontSize: 13,
+      fill: '#94a3b8', textAlign: 'center', originX: 'center',
+      selectable: false, evented: false, editable: false,
+    });
+
+    const group = new FabricGroup(
+      [bg, header, dot1, dot2, dot3, urlBar, urlText, statusBg, statusText, titleText, hintText],
+      {
+        left: ab.x, top: ab.y,
+        subTargetCheck: false,
+        hasControls: false,
+        lockScalingX: true,
+        lockScalingY: true,
+        lockRotation: true,
+        lockSkewingX: true,
+        lockSkewingY: true,
+        cornerColor: '#6366f1',
+        cornerStrokeColor: '#ffffff',
+        borderColor: '#6366f1',
+        transparentCorners: false,
+      } as Partial<FabricGroup>,
+    );
+    // Skip in toJSON/toSVG so we don't duplicate artboards on reload — the
+    // artboards array is the source of truth. toDataURL ignores this flag,
+    // so raster exports still capture the chrome correctly.
+    (group as unknown as { excludeFromExport?: boolean }).excludeFromExport = true;
+    return group;
+  }
+
+  const bg = new FabricRect({
+    left: 0, top: 0, width: ab.width, height: ab.height,
+    fill: ab.background || '#ffffff',
+    stroke: '#334155', strokeWidth: 1,
+    selectable: false, evented: false,
+  });
+  const group = new FabricGroup([bg], {
+    left: ab.x, top: ab.y,
+    subTargetCheck: false,
+    hasControls: false,
+    lockScalingX: true,
+    lockScalingY: true,
+    lockRotation: true,
+    lockSkewingX: true,
+    lockSkewingY: true,
+    cornerColor: '#6366f1',
+    cornerStrokeColor: '#ffffff',
+    borderColor: '#6366f1',
+    transparentCorners: false,
+  } as Partial<FabricGroup>);
+  (group as unknown as { excludeFromExport?: boolean }).excludeFromExport = true;
+  return group;
+}
+
+function artboardLabelText(ab: Artboard): string {
+  if (ab.kind === 'site') return ab.title || ab.name || ab.slug;
+  return `${ab.name || 'Artboard'}  ·  ${ab.width}×${ab.height}`;
+}
+
+function createArtboardLabel(ab: Artboard): FabricIText {
+  const label = new FabricIText(artboardLabelText(ab), {
+    left: ab.x,
+    top: ab.y - 20,
+    fontSize: 12,
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontWeight: '600',
+    fill: '#94a3b8',
+    selectable: false,
+    evented: false,
+    editable: false,
+    hoverCursor: 'default',
+  });
+  (label as unknown as { excludeFromExport?: boolean }).excludeFromExport = true;
+  return label;
+}
+
+// ─── Artboard Preset Picker ──────────────────────────────────────────────────
+
+function ArtboardPresetPicker({
+  onPick,
+  onClose,
+}: {
+  onPick: (width: number, height: number, name: string) => void;
+  onClose: () => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [customW, setCustomW] = useState(800);
+  const [customH, setCustomH] = useState(600);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        position: 'absolute',
+        left: 52,
+        top: '50%',
+        transform: 'translateY(-50%)',
+        ...glassPill,
+        flexDirection: 'column',
+        gap: 4,
+        padding: 8,
+        pointerEvents: 'auto',
+        zIndex: 20,
+        minWidth: 220,
+      }}
+      data-testid="panel-artboard-presets"
+    >
+      <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0, padding: '2px 4px 4px' }}>
+        Add Artboard
+      </p>
+      {ARTBOARD_PRESETS.map(preset => (
+        <button
+          key={preset.label}
+          onClick={() => onPick(preset.width, preset.height, preset.label)}
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 6,
+            cursor: 'pointer',
+            color: 'rgba(255,255,255,0.85)',
+            fontSize: 12,
+            padding: '7px 9px',
+            textAlign: 'left',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 6,
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(99,102,241,0.25)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+          data-testid={`button-artboard-preset-${preset.width}x${preset.height}`}
+        >
+          <span>{preset.label}</span>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>{preset.width}×{preset.height}</span>
+        </button>
+      ))}
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 4, paddingTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', margin: 0, padding: '0 4px' }}>Custom</p>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <input
+            type="number"
+            min={10}
+            max={10000}
+            value={customW}
+            onChange={e => setCustomW(Number(e.target.value) || 0)}
+            style={{
+              flex: 1,
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 5,
+              color: 'white',
+              fontSize: 11,
+              padding: '5px 6px',
+              outline: 'none',
+              fontFamily: 'monospace',
+            }}
+            data-testid="input-artboard-custom-width"
+          />
+          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>×</span>
+          <input
+            type="number"
+            min={10}
+            max={10000}
+            value={customH}
+            onChange={e => setCustomH(Number(e.target.value) || 0)}
+            style={{
+              flex: 1,
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 5,
+              color: 'white',
+              fontSize: 11,
+              padding: '5px 6px',
+              outline: 'none',
+              fontFamily: 'monospace',
+            }}
+            data-testid="input-artboard-custom-height"
+          />
+        </div>
+        <button
+          onClick={() => {
+            if (customW > 0 && customH > 0) onPick(customW, customH, `Custom ${customW}×${customH}`);
+          }}
+          disabled={!(customW > 0 && customH > 0)}
+          style={{
+            background: '#4f46e5',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'white',
+            borderRadius: 5,
+            padding: '5px 10px',
+            fontSize: 11,
+            fontWeight: 600,
+            opacity: (customW > 0 && customH > 0) ? 1 : 0.4,
+          }}
+          data-testid="button-artboard-add-custom"
+        >
+          Add Custom Artboard
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Sites Panel ─────────────────────────────────────────────────────────────
 
 function SitesPanel({
@@ -797,12 +1106,18 @@ function SitePropertiesPanel({
   onOpenTheme,
   onOpenDrawer,
   onDelete,
+  onExportPng,
+  onExportJpg,
+  onExportSvg,
 }: {
-  meta: SiteBlockMeta;
+  meta: SiteArtboard;
   onPublishToggle: () => void;
   onOpenTheme: () => void;
   onOpenDrawer: () => void;
   onDelete: () => void;
+  onExportPng: () => void;
+  onExportJpg: () => void;
+  onExportSvg: () => void;
 }) {
   const publishMutation = useMutation({
     mutationFn: () => apiRequest('POST', `/api/sites/${meta.slug}/publish`).then(r => r.json()),
@@ -976,6 +1291,15 @@ function SitePropertiesPanel({
         </a>
       </div>
 
+      <div style={{ ...sectionStyle, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <p style={{ ...labelStyle, margin: 0 }}>Export artboard</p>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <ArtboardExportButton label="PNG" onClick={onExportPng} testId="button-site-export-png" />
+          <ArtboardExportButton label="JPG" onClick={onExportJpg} testId="button-site-export-jpg" />
+          <ArtboardExportButton label="SVG" onClick={onExportSvg} testId="button-site-export-svg" />
+        </div>
+      </div>
+
       <div style={{ ...sectionStyle }}>
         <button
           onClick={onDelete}
@@ -996,6 +1320,195 @@ function SitePropertiesPanel({
         >
           <Trash2 style={{ width: 11, height: 11 }} />
           Remove from canvas
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Artboard Properties Panel (blank artboards) ────────────────────────────
+
+function ArtboardExportButton({
+  label,
+  onClick,
+  testId,
+}: {
+  label: string;
+  onClick: () => void;
+  testId: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={`Export as ${label}`}
+      style={{
+        flex: 1,
+        background: 'rgba(255,255,255,0.07)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 5,
+        cursor: 'pointer',
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 10,
+        fontWeight: 700,
+        padding: '5px 4px',
+        letterSpacing: '0.04em',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(99,102,241,0.25)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+      data-testid={testId}
+    >
+      {label}
+    </button>
+  );
+}
+
+function ArtboardPropertiesPanel({
+  artboard,
+  onChange,
+  onDelete,
+  onExportPng,
+  onExportJpg,
+  onExportSvg,
+}: {
+  artboard: BlankArtboard;
+  onChange: (patch: Partial<BlankArtboard>) => void;
+  onDelete: () => void;
+  onExportPng: () => void;
+  onExportJpg: () => void;
+  onExportSvg: () => void;
+}) {
+  const labelStyle: React.CSSProperties = { fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 4 };
+  const sectionStyle: React.CSSProperties = { padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' };
+  const inputStyle: React.CSSProperties = {
+    background: 'rgba(255,255,255,0.06)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 5,
+    color: 'white',
+    fontSize: 12,
+    padding: '5px 7px',
+    outline: 'none',
+    width: '100%',
+  };
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        right: 12,
+        top: '50%',
+        transform: 'translateY(-50%)',
+        ...glassPill,
+        flexDirection: 'column',
+        gap: 0,
+        padding: 0,
+        pointerEvents: 'auto',
+        zIndex: 10,
+        minWidth: 200,
+        maxHeight: 480,
+        overflow: 'hidden',
+      }}
+      data-testid="panel-artboard-properties"
+    >
+      <div style={sectionStyle}>
+        <p style={{ ...labelStyle, marginBottom: 6 }}>Artboard</p>
+        <input
+          type="text"
+          value={artboard.name}
+          onChange={e => onChange({ name: e.target.value })}
+          style={inputStyle}
+          data-testid="input-artboard-name"
+          placeholder="Untitled artboard"
+        />
+      </div>
+
+      <div style={sectionStyle}>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ flex: 1 }}>
+            <p style={labelStyle}>Width</p>
+            <input
+              type="number"
+              min={10}
+              value={artboard.width}
+              onChange={e => {
+                const v = Number(e.target.value);
+                if (v >= 10) onChange({ width: v });
+              }}
+              style={{ ...inputStyle, fontFamily: 'monospace' }}
+              data-testid="input-artboard-width"
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={labelStyle}>Height</p>
+            <input
+              type="number"
+              min={10}
+              value={artboard.height}
+              onChange={e => {
+                const v = Number(e.target.value);
+                if (v >= 10) onChange({ height: v });
+              }}
+              style={{ ...inputStyle, fontFamily: 'monospace' }}
+              data-testid="input-artboard-height"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div style={sectionStyle}>
+        <p style={labelStyle}>Background</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input
+            type="color"
+            value={artboard.background || '#ffffff'}
+            onChange={e => onChange({ background: e.target.value })}
+            style={{
+              width: 28, height: 28,
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 5,
+              background: 'transparent',
+              cursor: 'pointer',
+              padding: 0,
+            }}
+            data-testid="input-artboard-background"
+          />
+          <input
+            type="text"
+            value={artboard.background || '#ffffff'}
+            onChange={e => onChange({ background: e.target.value })}
+            style={{ ...inputStyle, fontFamily: 'monospace' }}
+          />
+        </div>
+      </div>
+
+      <div style={{ ...sectionStyle, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <p style={{ ...labelStyle, margin: 0 }}>Export artboard</p>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <ArtboardExportButton label="PNG" onClick={onExportPng} testId="button-artboard-export-png" />
+          <ArtboardExportButton label="JPG" onClick={onExportJpg} testId="button-artboard-export-jpg" />
+          <ArtboardExportButton label="SVG" onClick={onExportSvg} testId="button-artboard-export-svg" />
+        </div>
+      </div>
+
+      <div style={sectionStyle}>
+        <button
+          onClick={onDelete}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(239,68,68,0.2)',
+            borderRadius: 6,
+            cursor: 'pointer',
+            color: 'rgba(239,68,68,0.6)',
+            fontSize: 11,
+            padding: '5px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            width: '100%',
+          }}
+          data-testid="button-artboard-delete"
+        >
+          <Trash2 style={{ width: 11, height: 11 }} />
+          Delete artboard
         </button>
       </div>
     </div>
@@ -1338,11 +1851,25 @@ export default function CanvasPage() {
   const [selectedOpacity, setSelectedOpacity] = useState(100);
 
   const [sitesPanelOpen, setSitesPanelOpen] = useState(false);
-  const [selectedSiteMeta, setSelectedSiteMeta] = useState<SiteBlockMeta | null>(null);
   const [siteDrawerOpen, setSiteDrawerOpen] = useState(false);
   const [siteDrawerSlug, setSiteDrawerSlug] = useState<string | null>(null);
   const [siteDrawerOpenTheme, setSiteDrawerOpenTheme] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
+
+  const [artboards, setArtboards] = useState<Artboard[]>([]);
+  const artboardsRef = useRef<Artboard[]>([]);
+  artboardsRef.current = artboards;
+  const artboardObjMap = useRef<Map<FabricObject, string>>(new Map());
+  const artboardIdToGroup = useRef<Map<string, FabricGroup>>(new Map());
+  const artboardIdToLabel = useRef<Map<string, FabricIText>>(new Map());
+  const artboardLastSnapshot = useRef<Map<string, Artboard>>(new Map());
+  const [selectedArtboardId, setSelectedArtboardId] = useState<string | null>(null);
+  const [artboardPickerOpen, setArtboardPickerOpen] = useState(false);
+
+  const selectedArtboard = useMemo(
+    () => artboards.find(a => a.id === selectedArtboardId) ?? null,
+    [artboards, selectedArtboardId],
+  );
 
   const siteQueryParam = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1419,76 +1946,148 @@ export default function CanvasPage() {
     activeToolRef.current = tool;
     if (tool !== 'sites') setSitesPanelOpen(false);
     if (tool === 'sites') setSitesPanelOpen(true);
+    if (tool !== 'artboard') setArtboardPickerOpen(false);
+    if (tool === 'artboard') setArtboardPickerOpen(true);
   }, []);
+
+  const viewportCenter = useCallback(() => {
+    const fc = fabricRef.current;
+    if (!fc) return { cx: 0, cy: 0 };
+    const z = fc.getZoom();
+    const vpt = fc.viewportTransform ?? [1, 0, 0, 1, 0, 0];
+    const cx = (fc.getWidth() / 2 - vpt[4]) / z;
+    const cy = (fc.getHeight() / 2 - vpt[5]) / z;
+    return { cx, cy };
+  }, []);
+
+  const addBlankArtboard = useCallback((width: number, height: number, name: string) => {
+    const fc = fabricRef.current;
+    if (!fc) return;
+    const { cx, cy } = viewportCenter();
+    const ab: BlankArtboard = {
+      id: makeArtboardId(),
+      kind: 'blank',
+      name,
+      x: cx - width / 2,
+      y: cy - height / 2,
+      width,
+      height,
+      background: '#ffffff',
+    };
+    setArtboards(prev => [...prev, ab]);
+    setSelectedArtboardId(ab.id);
+    scheduleAutoSaveRef.current();
+    setActiveToolFn('select');
+  }, [viewportCenter, setActiveToolFn]);
+
+  const updateArtboard = useCallback((id: string, patch: Partial<Artboard>) => {
+    setArtboards(prev => prev.map(a => {
+      if (a.id !== id) return a;
+      return { ...a, ...patch } as Artboard;
+    }));
+    scheduleAutoSaveRef.current();
+  }, []);
+
+  const removeArtboard = useCallback((id: string) => {
+    setArtboards(prev => prev.filter(a => a.id !== id));
+    if (selectedArtboardId === id) setSelectedArtboardId(null);
+    scheduleAutoSaveRef.current();
+  }, [selectedArtboardId]);
+
+  const downloadDataUrl = useCallback((dataUrl: string, filename: string) => {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, []);
+
+  const exportArtboard = useCallback((ab: Artboard, format: 'png' | 'jpg' | 'svg') => {
+    const fc = fabricRef.current;
+    if (!fc) return;
+    const safeName = (ab.name || 'artboard').replace(/[^a-z0-9_\-]+/gi, '-').toLowerCase();
+
+    // Always hide floating artboard labels during export so they don't bleed
+    // into the rendered output. Track changes so we can restore precisely.
+    const hiddenLabels: FabricIText[] = [];
+    artboardIdToLabel.current.forEach(lbl => {
+      if (lbl.visible !== false) {
+        hiddenLabels.push(lbl);
+        lbl.visible = false;
+      }
+    });
+    fc.requestRenderAll();
+
+    try {
+      if (format === 'svg') {
+        // Temporarily un-exclude this artboard's group so its chrome / bg
+        // gets included in the SVG output. (Other artboards stay excluded
+        // so unrelated frames don't pollute the export.)
+        const targetGroup = artboardIdToGroup.current.get(ab.id) as
+          unknown as { excludeFromExport?: boolean } | undefined;
+        const wasExcluded = !!(targetGroup && targetGroup.excludeFromExport);
+        if (targetGroup) targetGroup.excludeFromExport = false;
+        try {
+          const svg = fc.toSVG({
+            viewBox: { x: ab.x, y: ab.y, width: ab.width, height: ab.height },
+            width: String(ab.width),
+            height: String(ab.height),
+          } as Parameters<typeof fc.toSVG>[0]);
+          const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          downloadDataUrl(url, `${safeName}.svg`);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } finally {
+          if (targetGroup) targetGroup.excludeFromExport = wasExcluded;
+        }
+      } else {
+        const dataUrl = fc.toDataURL({
+          format: format === 'jpg' ? 'jpeg' : 'png',
+          quality: 0.92,
+          multiplier: 2,
+          left: ab.x,
+          top: ab.y,
+          width: ab.width,
+          height: ab.height,
+        } as Parameters<typeof fc.toDataURL>[0]);
+        downloadDataUrl(dataUrl, `${safeName}.${format}`);
+      }
+    } finally {
+      hiddenLabels.forEach(lbl => { lbl.visible = true; });
+      fc.requestRenderAll();
+    }
+  }, [downloadDataUrl]);
 
   const addSiteToCanvas = useCallback((site: SiteWithPageCount) => {
     const fc = fabricRef.current;
     if (!fc) return;
-
-    const cx = fc.getWidth() / 2 / fc.getZoom() - (fc.viewportTransform?.[4] ?? 0) / fc.getZoom();
-    const cy = fc.getHeight() / 2 / fc.getZoom() - (fc.viewportTransform?.[5] ?? 0) / fc.getZoom();
-
-    const W = 320, H = 200;
-    const bg = new FabricRect({
-      left: 0, top: 0, width: W, height: H,
-      fill: '#111827',
-      stroke: '#6366f1',
-      strokeWidth: 2,
-      rx: 10, ry: 10,
-      selectable: false, evented: false,
-    });
-    const header = new FabricRect({
-      left: 0, top: 0, width: W, height: 36,
-      fill: '#1e1e2e',
-      rx: 10, ry: 10,
-      selectable: false, evented: false,
-    });
-    const dot1 = new FabricRect({ left: 12, top: 12, width: 10, height: 10, rx: 5, ry: 5, fill: '#ef4444', selectable: false, evented: false });
-    const dot2 = new FabricRect({ left: 28, top: 12, width: 10, height: 10, rx: 5, ry: 5, fill: '#eab308', selectable: false, evented: false });
-    const dot3 = new FabricRect({ left: 44, top: 12, width: 10, height: 10, rx: 5, ry: 5, fill: '#22c55e', selectable: false, evented: false });
-    const urlBar = new FabricRect({ left: 64, top: 9, width: W - 80, height: 18, fill: '#374151', rx: 4, ry: 4, selectable: false, evented: false });
-
-    const titleText = new FabricIText(site.title, {
-      left: W / 2, top: 65, fontSize: 18, fontWeight: '700',
-      fill: '#ffffff', textAlign: 'center', originX: 'center',
-      selectable: false, evented: false, editable: false,
-    });
-    const slugText = new FabricIText(`${site.slug}.sev.cx`, {
-      left: W / 2, top: 90, fontSize: 11,
-      fill: '#6366f1', textAlign: 'center', originX: 'center', fontFamily: 'monospace',
-      selectable: false, evented: false, editable: false,
-    });
-    const statusColor = site.is_published ? '#22c55e' : '#6b7280';
-    const statusBg = new FabricRect({ left: W / 2 - 26, top: 115, width: 52, height: 18, fill: site.is_published ? '#14532d' : '#1f2937', rx: 4, ry: 4, selectable: false, evented: false });
-    const statusText = new FabricIText(site.is_published ? 'LIVE' : 'DRAFT', {
-      left: W / 2, top: 117, fontSize: 10, fontWeight: '700',
-      fill: statusColor, textAlign: 'center', originX: 'center',
-      selectable: false, evented: false, editable: false,
-    });
-    const hintText = new FabricIText('Double-click to edit blocks', {
-      left: W / 2, top: 155, fontSize: 10,
-      fill: 'rgba(255,255,255,0.25)', textAlign: 'center', originX: 'center',
-      selectable: false, evented: false, editable: false,
-    });
-
-    const group = new FabricGroup([bg, header, dot1, dot2, dot3, urlBar, titleText, slugText, statusBg, statusText, hintText], {
-      left: cx - W / 2,
-      top: cy - H / 2,
-      data: {
-        type: 'site',
-        siteId: site.id,
-        slug: site.slug,
-        title: site.title,
-        isPublished: site.is_published,
-      } as SiteBlockMeta,
-    });
-
-    fc.add(group);
-    fc.setActiveObject(group);
-    fc.requestRenderAll();
+    if (artboardsRef.current.some(a => a.kind === 'site' && a.siteId === site.id)) {
+      const existing = artboardsRef.current.find(a => a.kind === 'site' && a.siteId === site.id);
+      if (existing) setSelectedArtboardId(existing.id);
+      setActiveToolFn('select');
+      return;
+    }
+    const { cx, cy } = viewportCenter();
+    const ab: SiteArtboard = {
+      id: makeArtboardId(),
+      kind: 'site',
+      name: site.title,
+      x: cx - SITE_ARTBOARD_W / 2,
+      y: cy - SITE_ARTBOARD_H / 2,
+      width: SITE_ARTBOARD_W,
+      height: SITE_ARTBOARD_H,
+      background: '#ffffff',
+      siteId: site.id,
+      slug: site.slug,
+      title: site.title,
+      isPublished: site.is_published,
+    };
+    setArtboards(prev => [...prev, ab]);
+    setSelectedArtboardId(ab.id);
     scheduleAutoSaveRef.current();
     setActiveToolFn('select');
-  }, [setActiveToolFn]);
+  }, [setActiveToolFn, viewportCenter]);
 
   useEffect(() => {
     if (!canvasReady || !siteQueryParam) return;
@@ -1508,6 +2107,82 @@ export default function CanvasPage() {
       })
       .catch(() => {});
   }, [canvasReady, siteQueryParam, addSiteToCanvas]);
+
+  // ── Artboard reconciliation: keep Fabric groups in sync with React state ──
+  useEffect(() => {
+    if (!canvasReady) return;
+    const fc = fabricRef.current;
+    if (!fc) return;
+
+    const wantedIds = new Set(artboards.map(a => a.id));
+
+    // Remove groups + labels for artboards that no longer exist
+    Array.from(artboardIdToGroup.current.entries()).forEach(([id, group]) => {
+      if (!wantedIds.has(id)) {
+        fc.remove(group);
+        artboardObjMap.current.delete(group);
+        artboardIdToGroup.current.delete(id);
+        artboardLastSnapshot.current.delete(id);
+        const lbl = artboardIdToLabel.current.get(id);
+        if (lbl) {
+          fc.remove(lbl as unknown as Parameters<typeof fc.remove>[0]);
+          artboardIdToLabel.current.delete(id);
+        }
+      }
+    });
+
+    // Add or rebuild changed artboards
+    artboards.forEach(ab => {
+      const existing = artboardIdToGroup.current.get(ab.id);
+      const prevSnap = artboardLastSnapshot.current.get(ab.id);
+      const visualStale = !prevSnap
+        || prevSnap.width !== ab.width
+        || prevSnap.height !== ab.height
+        || prevSnap.background !== ab.background
+        || prevSnap.name !== ab.name
+        || prevSnap.kind !== ab.kind
+        || (ab.kind === 'site' && prevSnap.kind === 'site' && (
+          prevSnap.title !== ab.title
+          || prevSnap.slug !== ab.slug
+          || prevSnap.isPublished !== ab.isPublished
+        ));
+      if (!existing || visualStale) {
+        if (existing) {
+          fc.remove(existing);
+          artboardObjMap.current.delete(existing);
+        }
+        const oldLabel = artboardIdToLabel.current.get(ab.id);
+        if (oldLabel) {
+          fc.remove(oldLabel as unknown as Parameters<typeof fc.remove>[0]);
+          artboardIdToLabel.current.delete(ab.id);
+        }
+        const group = createArtboardGroup(ab);
+        fc.add(group);
+        if (typeof (fc as unknown as { sendObjectToBack?: (o: FabricObject) => void }).sendObjectToBack === 'function') {
+          (fc as unknown as { sendObjectToBack: (o: FabricObject) => void }).sendObjectToBack(group);
+        }
+        const label = createArtboardLabel(ab);
+        fc.add(label as unknown as Parameters<typeof fc.add>[0]);
+        artboardObjMap.current.set(group as unknown as FabricObject, ab.id);
+        artboardIdToGroup.current.set(ab.id, group);
+        artboardIdToLabel.current.set(ab.id, label);
+        artboardLastSnapshot.current.set(ab.id, ab);
+      } else {
+        // Position-only change: update group left/top in place
+        if (existing.left !== ab.x || existing.top !== ab.y) {
+          existing.set({ left: ab.x, top: ab.y });
+          existing.setCoords();
+          const lbl = artboardIdToLabel.current.get(ab.id);
+          if (lbl) {
+            lbl.set({ left: ab.x, top: ab.y - 20 });
+            lbl.setCoords();
+          }
+          artboardLastSnapshot.current.set(ab.id, ab);
+        }
+      }
+    });
+    fc.requestRenderAll();
+  }, [artboards, canvasReady]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -1653,21 +2328,22 @@ export default function CanvasPage() {
       }
     });
 
-    function detectSiteBlock(objs: ReturnType<typeof fc.getActiveObjects>) {
+    function detectArtboard(objs: ReturnType<typeof fc.getActiveObjects>) {
       if (objs.length === 1) {
-        const meta = (objs[0] as unknown as { data?: SiteBlockMeta }).data;
-        if (meta?.type === 'site') {
-          setSelectedSiteMeta(meta);
+        const obj = objs[0] as unknown as FabricObject;
+        const id = artboardObjMap.current.get(obj);
+        if (id) {
+          setSelectedArtboardId(id);
           return;
         }
       }
-      setSelectedSiteMeta(null);
+      setSelectedArtboardId(null);
     }
 
     fc.on('selection:created', () => {
       const objs = fc.getActiveObjects();
       setSelectedObjects(objs.length);
-      detectSiteBlock(objs);
+      detectArtboard(objs);
       if (objs.length > 0) {
         const obj = objs[0];
         setSelectedOpacity(Math.round((obj.opacity ?? 1) * 100));
@@ -1682,7 +2358,7 @@ export default function CanvasPage() {
     fc.on('selection:updated', () => {
       const objs = fc.getActiveObjects();
       setSelectedObjects(objs.length);
-      detectSiteBlock(objs);
+      detectArtboard(objs);
       if (objs.length > 0) {
         const obj = objs[0];
         setSelectedOpacity(Math.round((obj.opacity ?? 1) * 100));
@@ -1696,20 +2372,58 @@ export default function CanvasPage() {
     });
     fc.on('selection:cleared', () => {
       setSelectedObjects(0);
-      setSelectedSiteMeta(null);
+      setSelectedArtboardId(null);
     });
 
     fc.on('mouse:dblclick', (opt) => {
-      const target = opt.target as { data?: SiteBlockMeta } | null;
-      if (target?.data?.type === 'site') {
-        setSiteDrawerSlug(target.data.slug);
+      const target = opt.target as unknown as FabricObject | null;
+      if (!target) return;
+      const id = artboardObjMap.current.get(target);
+      if (!id) return;
+      const ab = artboardsRef.current.find(a => a.id === id);
+      if (ab && ab.kind === 'site') {
+        setSiteDrawerSlug(ab.slug);
         setSiteDrawerOpen(true);
       }
     });
 
-    (['object:added', 'object:modified', 'object:removed'] as const).forEach(ev =>
-      fc.on(ev, () => scheduleAutoSaveRef.current())
-    );
+    fc.on('object:moving', (opt) => {
+      const obj = opt.target as unknown as FabricObject | null;
+      if (!obj) return;
+      const id = artboardObjMap.current.get(obj);
+      if (!id) return;
+      const lbl = artboardIdToLabel.current.get(id);
+      if (lbl) {
+        lbl.set({ left: (obj as unknown as FabricGroup).left ?? 0, top: ((obj as unknown as FabricGroup).top ?? 0) - 20 });
+        lbl.setCoords();
+      }
+    });
+
+    fc.on('object:modified', (opt) => {
+      const obj = opt.target as unknown as FabricObject | null;
+      if (obj) {
+        const id = artboardObjMap.current.get(obj);
+        if (id) {
+          const fGroup = obj as unknown as FabricGroup;
+          const newX = fGroup.left ?? 0;
+          const newY = fGroup.top ?? 0;
+          const lbl = artboardIdToLabel.current.get(id);
+          if (lbl) {
+            lbl.set({ left: newX, top: newY - 20 });
+            lbl.setCoords();
+          }
+          setArtboards(prev => prev.map(a => {
+            if (a.id !== id) return a;
+            if (a.x === newX && a.y === newY) return a;
+            return { ...a, x: newX, y: newY };
+          }));
+        }
+      }
+      scheduleAutoSaveRef.current();
+    });
+
+    fc.on('object:added', () => scheduleAutoSaveRef.current());
+    fc.on('object:removed', () => scheduleAutoSaveRef.current());
 
     const onResize = () => {
       if (!container) return;
@@ -1752,7 +2466,18 @@ export default function CanvasPage() {
     } else {
       const fc = fabricRef.current;
       if (!fc) return;
-      snapshot = fc.toJSON() as Record<string, unknown>;
+      // Sync any in-flight artboard positions from the canvas back into state
+      // so the snapshot we serialize matches what's on screen.
+      const liveAbs = artboardsRef.current.map(ab => {
+        const group = artboardIdToGroup.current.get(ab.id);
+        if (!group) return ab;
+        const newX = group.left ?? ab.x;
+        const newY = group.top ?? ab.y;
+        if (newX === ab.x && newY === ab.y) return ab;
+        return { ...ab, x: newX, y: newY };
+      });
+      const fjson = fc.toJSON() as unknown as Record<string, unknown>;
+      snapshot = { type: 'fabric', ...fjson, artboards: liveAbs } as FabricEnvelope as unknown as Record<string, unknown>;
     }
     const id = projectIdRef.current;
     const name = projectNameRef.current;
@@ -1799,17 +2524,78 @@ export default function CanvasPage() {
       setMode('draw');
       modeRef.current = 'draw';
       const fc = fabricRef.current;
+      // Clear all artboard tracking — reconciliation effect will rebuild
+      // groups from the new artboard state.
+      artboardObjMap.current.clear();
+      artboardIdToGroup.current.clear();
+      artboardIdToLabel.current.clear();
+      artboardLastSnapshot.current.clear();
+      let nextArtboards: Artboard[] = [];
+      let migratedCount = 0;
       if (fc) {
         fc.clear();
         fc.backgroundColor = '';
         if (json && typeof json === 'object' && 'objects' in json) {
           try {
             await fc.loadFromJSON(json as object);
+            // Read artboards out of the envelope, if present.
+            const env = json as Partial<FabricEnvelope> & Record<string, unknown>;
+            if (Array.isArray(env.artboards)) {
+              nextArtboards = env.artboards as Artboard[];
+            }
+            // Migrate legacy site-as-Fabric-Group blocks (data.type === 'site')
+            // into the new artboard model and remove them from the canvas.
+            const knownIds = new Set(nextArtboards.map(a => a.id));
+            const legacyToRemove: FabricObject[] = [];
+            const migrated: SiteArtboard[] = [];
+            fc.getObjects().forEach(o => {
+              const meta = (o as unknown as { data?: SiteBlockMeta }).data;
+              if (meta && meta.type === 'site') {
+                const dupe = nextArtboards.some(
+                  a => a.kind === 'site' && (a.siteId === meta.siteId || a.slug === meta.slug),
+                );
+                if (!dupe) {
+                  let id = `site-${meta.siteId}`;
+                  while (knownIds.has(id)) id = makeArtboardId();
+                  knownIds.add(id);
+                  migrated.push({
+                    id,
+                    kind: 'site',
+                    name: meta.title,
+                    x: o.left ?? 0,
+                    y: o.top ?? 0,
+                    width: SITE_ARTBOARD_W,
+                    height: SITE_ARTBOARD_H,
+                    background: '#ffffff',
+                    siteId: meta.siteId,
+                    slug: meta.slug,
+                    title: meta.title,
+                    isPublished: meta.isPublished,
+                  });
+                }
+                legacyToRemove.push(o as unknown as FabricObject);
+              }
+            });
+            legacyToRemove.forEach(o => fc.remove(o as unknown as Parameters<typeof fc.remove>[0]));
+            if (migrated.length > 0) {
+              nextArtboards = [...nextArtboards, ...migrated];
+              migratedCount = migrated.length;
+            }
           } catch {
             fc.clear();
           }
         }
         fc.requestRenderAll();
+      }
+      setArtboards(nextArtboards);
+      setSelectedArtboardId(null);
+      // If we migrated any legacy site groups into artboards, persist the
+      // upgraded envelope immediately so the next reload doesn't have to
+      // re-run the migration. Sync the ref first since state updates are
+      // async and doSave reads from artboardsRef.current.
+      if (migratedCount > 0) {
+        artboardsRef.current = nextArtboards;
+        setTimeout(() => { void doSaveRef.current(false); }, 0);
       }
     }
 
@@ -1831,6 +2617,12 @@ export default function CanvasPage() {
       mindmapRef.current?.clear();
       setMindmapInitialData(null);
     }
+    artboardObjMap.current.clear();
+    artboardIdToGroup.current.clear();
+    artboardIdToLabel.current.clear();
+    artboardLastSnapshot.current.clear();
+    setArtboards([]);
+    setSelectedArtboardId(null);
     setCurrentProjectId(null);
     setCurrentProjectName('Untitled Project');
     setNameInput('Untitled Project');
@@ -1937,7 +2729,19 @@ export default function CanvasPage() {
   const handleExportJson = useCallback(() => {
     const fc = fabricRef.current;
     if (!fc) return;
-    const json = JSON.stringify(fc.toJSON(), null, 2);
+    // Sync any in-flight artboard positions from the canvas back into state
+    // before serializing so the exported envelope matches what's on screen.
+    const liveAbs = artboardsRef.current.map(ab => {
+      const group = artboardIdToGroup.current.get(ab.id);
+      if (!group) return ab;
+      const newX = group.left ?? ab.x;
+      const newY = group.top ?? ab.y;
+      if (newX === ab.x && newY === ab.y) return ab;
+      return { ...ab, x: newX, y: newY };
+    });
+    const fjson = fc.toJSON() as unknown as Record<string, unknown>;
+    const envelope = { type: 'fabric', ...fjson, artboards: liveAbs };
+    const json = JSON.stringify(envelope, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1994,8 +2798,19 @@ export default function CanvasPage() {
     if (!fc) return;
     const active = fc.getActiveObjects();
     if (active.length > 0) {
+      const artboardIdsToDrop: string[] = [];
+      const fabricToRemove: typeof active = [];
+      active.forEach(obj => {
+        const id = artboardObjMap.current.get(obj as unknown as FabricObject);
+        if (id) artboardIdsToDrop.push(id);
+        else fabricToRemove.push(obj);
+      });
       fc.discardActiveObject();
-      active.forEach(obj => fc.remove(obj));
+      fabricToRemove.forEach(obj => fc.remove(obj));
+      if (artboardIdsToDrop.length > 0) {
+        setArtboards(prev => prev.filter(a => !artboardIdsToDrop.includes(a.id)));
+        setSelectedArtboardId(null);
+      }
       fc.requestRenderAll();
       scheduleAutoSave();
     }
@@ -2436,7 +3251,40 @@ export default function CanvasPage() {
           >
             <Globe className="h-4 w-4" />
           </button>
+          <button
+            onClick={() => {
+              if (activeTool === 'artboard') {
+                setArtboardPickerOpen(p => !p);
+              } else {
+                setActiveToolFn('artboard');
+              }
+            }}
+            title="Artboard"
+            style={{
+              ...toolBtnStyle('artboard'),
+              background: activeTool === 'artboard' ? 'rgba(99,102,241,0.3)' : artboardPickerOpen ? 'rgba(99,102,241,0.15)' : 'none',
+            }}
+            onMouseEnter={e => { if (activeTool !== 'artboard') e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+            onMouseLeave={e => { if (activeTool !== 'artboard') e.currentTarget.style.background = artboardPickerOpen ? 'rgba(99,102,241,0.15)' : 'none'; }}
+            data-testid="button-tool-artboard"
+          >
+            <Frame className="h-4 w-4" />
+          </button>
         </div>
+        )}
+
+        {/* Artboard preset picker — draw mode only */}
+        {mode === 'draw' && artboardPickerOpen && (
+          <ArtboardPresetPicker
+            onPick={(w, h, name) => {
+              addBlankArtboard(w, h, name);
+              setArtboardPickerOpen(false);
+            }}
+            onClose={() => {
+              setArtboardPickerOpen(false);
+              if (activeTool === 'artboard') setActiveToolFn('select');
+            }}
+          />
         )}
 
         {/* Sites floating panel — draw mode only */}
@@ -2454,32 +3302,37 @@ export default function CanvasPage() {
           />
         )}
 
-        {/* Properties panel — site-aware, draw mode only */}
-        {mode === 'draw' && selectedSiteMeta ? (
+        {/* Properties panel — artboard-aware, draw mode only */}
+        {mode === 'draw' && selectedArtboard && selectedArtboard.kind === 'site' ? (
           <SitePropertiesPanel
-            meta={selectedSiteMeta}
+            meta={selectedArtboard}
             onPublishToggle={() => {
-              setSelectedSiteMeta(m => {
-                if (!m) return null;
-                const newVal = !m.isPublished;
-                const active = fabricRef.current?.getActiveObject() as ({ data?: SiteBlockMeta } | undefined);
-                if (active?.data?.type === 'site') {
-                  active.data = { ...active.data, isPublished: newVal };
-                }
-                return { ...m, isPublished: newVal };
-              });
+              if (!selectedArtboard) return;
+              updateArtboard(selectedArtboard.id, { isPublished: !selectedArtboard.isPublished });
             }}
             onOpenTheme={() => {
-              setSiteDrawerSlug(selectedSiteMeta.slug);
+              setSiteDrawerSlug(selectedArtboard.slug);
               setSiteDrawerOpenTheme(true);
               setSiteDrawerOpen(true);
             }}
             onOpenDrawer={() => {
-              setSiteDrawerSlug(selectedSiteMeta.slug);
+              setSiteDrawerSlug(selectedArtboard.slug);
               setSiteDrawerOpenTheme(false);
               setSiteDrawerOpen(true);
             }}
-            onDelete={deleteSelected}
+            onDelete={() => removeArtboard(selectedArtboard.id)}
+            onExportPng={() => exportArtboard(selectedArtboard, 'png')}
+            onExportJpg={() => exportArtboard(selectedArtboard, 'jpg')}
+            onExportSvg={() => exportArtboard(selectedArtboard, 'svg')}
+          />
+        ) : mode === 'draw' && selectedArtboard && selectedArtboard.kind === 'blank' ? (
+          <ArtboardPropertiesPanel
+            artboard={selectedArtboard}
+            onChange={patch => updateArtboard(selectedArtboard.id, patch)}
+            onDelete={() => removeArtboard(selectedArtboard.id)}
+            onExportPng={() => exportArtboard(selectedArtboard, 'png')}
+            onExportJpg={() => exportArtboard(selectedArtboard, 'jpg')}
+            onExportSvg={() => exportArtboard(selectedArtboard, 'svg')}
           />
         ) : mode === 'draw' && selectedObjects > 0 ? (
           <div

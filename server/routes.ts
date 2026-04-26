@@ -3958,7 +3958,10 @@ export async function registerRoutes(
       const claimable = lastClaimDate !== today;
       const nextAvailableAt = claimable ? null : nextUtcMidnight().toISOString();
 
-      const totalEarnedFromRewards = await storage.getTotalEarnedFromRewards(userId);
+      const [totalEarnedFromRewards, streak] = await Promise.all([
+        storage.getTotalEarnedFromRewards(userId),
+        storage.getDailyRewardStreak(userId, today),
+      ]);
 
       res.json({
         hasAvatar, hasBio, hasPost, hasFollow, hasSocialLink,
@@ -3968,6 +3971,7 @@ export async function registerRoutes(
           claimable,
           nextAvailableAt,
           lastClaimedAt: lastClaim?.createdAt ?? null,
+          streak,
         },
         totalEarnedFromRewards,
       });
@@ -3988,15 +3992,17 @@ export async function registerRoutes(
           nextAvailableAt: nextUtcMidnight().toISOString(),
         });
       }
-      const [balance, totalEarnedFromRewards] = await Promise.all([
+      const [balance, totalEarnedFromRewards, streak] = await Promise.all([
         storage.getUserSparksBalance(userId),
         storage.getTotalEarnedFromRewards(userId),
+        storage.getDailyRewardStreak(userId, today),
       ]);
       res.json({
         success: true,
         amount: DAILY_REWARD_AMOUNT,
         balance,
         totalEarnedFromRewards,
+        streak,
         nextAvailableAt: nextUtcMidnight().toISOString(),
       });
     } catch (err: any) {

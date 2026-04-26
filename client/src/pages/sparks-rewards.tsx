@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Camera, FileText, MessageSquare, Users, Link as LinkIcon, Lock, Check, CalendarCheck2, Clock, type LucideIcon } from "lucide-react";
+import { ArrowLeft, Camera, FileText, MessageSquare, Users, Link as LinkIcon, Lock, Check, CalendarCheck2, Clock, Flame, Trophy, type LucideIcon } from "lucide-react";
 import { SparkIcon } from "@/components/spark-icon";
 import { PageHead } from "@/components/page-head";
 import { ONBOARDING_TASKS } from "@shared/onboarding";
@@ -26,6 +26,7 @@ type RewardsSummary = {
     claimable: boolean;
     nextAvailableAt: string | null;
     lastClaimedAt: string | null;
+    streak: { current: number; longest: number };
   };
   totalEarnedFromRewards: number;
 };
@@ -35,6 +36,7 @@ type ClaimResponse = {
   amount?: number;
   balance?: number;
   totalEarnedFromRewards?: number;
+  streak?: { current: number; longest: number };
   nextAvailableAt?: string | null;
   alreadyClaimed?: boolean;
 };
@@ -111,9 +113,16 @@ export default function SparksRewardsPage() {
           description: "Come back tomorrow for another Daily Spark.",
         });
       } else {
+        const streakDays = data.streak?.current ?? 0;
+        const description =
+          streakDays > 1
+            ? `🔥 ${streakDays}-day streak — keep it going tomorrow!`
+            : streakDays === 1
+              ? "🔥 1-day streak — come back tomorrow to keep it going!"
+              : "Come back tomorrow for another Daily Spark.";
         toast({
           title: `+${data.amount ?? 15} Sparks claimed!`,
-          description: "Come back tomorrow for another Daily Spark.",
+          description,
         });
       }
     },
@@ -142,6 +151,9 @@ export default function SparksRewardsPage() {
   const claimedCount = tasks.filter((t) => t.done).length;
   const totalTasks = tasks.length;
   const progressPct = totalTasks > 0 ? Math.round((claimedCount / totalTasks) * 100) : 0;
+
+  const currentStreak = summary?.daily.streak?.current ?? 0;
+  const longestStreak = summary?.daily.streak?.longest ?? 0;
 
   if (authLoading) {
     return (
@@ -244,8 +256,24 @@ export default function SparksRewardsPage() {
                 A free 15-Spark reward, claimable once every UTC day. Don't miss a day!
               </CardDescription>
             </div>
-            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 text-xs font-bold">
-              +{summary?.daily.amount ?? 15} <SparkIcon size="sm" decorative />
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {!isLoading && currentStreak > 0 && (
+                <span
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-500/15 text-orange-600 dark:text-orange-400 text-xs font-bold"
+                  data-testid="badge-daily-streak"
+                  title={
+                    longestStreak > currentStreak
+                      ? `Longest streak: ${longestStreak} days`
+                      : undefined
+                  }
+                >
+                  <Flame className="h-3.5 w-3.5 motion-safe:animate-pulse" />
+                  {currentStreak}-day streak
+                </span>
+              )}
+              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 text-xs font-bold">
+                +{summary?.daily.amount ?? 15} <SparkIcon size="sm" decorative />
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -254,9 +282,20 @@ export default function SparksRewardsPage() {
             <Skeleton className="h-10 w-48" />
           ) : summary?.daily.claimable ? (
             <>
-              <p className="text-sm">
-                Your <span className="font-semibold">Daily Spark</span> is ready to claim.
-              </p>
+              <div className="text-sm space-y-1">
+                <p>
+                  Your <span className="font-semibold">Daily Spark</span> is ready to claim.
+                </p>
+                {currentStreak > 0 && (
+                  <p
+                    className="text-xs text-orange-600 dark:text-orange-400 flex items-center gap-1"
+                    data-testid="text-streak-extend-hint"
+                  >
+                    <Flame className="h-3 w-3" />
+                    Claim today to extend your {currentStreak}-day streak.
+                  </p>
+                )}
+              </div>
               <Button
                 onClick={() => claimMutation.mutate()}
                 disabled={claimMutation.isPending}
@@ -278,12 +317,23 @@ export default function SparksRewardsPage() {
                   )}
                 </span>
               </div>
-              <span
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/15 text-green-600 dark:text-green-400 text-xs font-bold"
-                data-testid="badge-daily-claimed"
-              >
-                <Check className="h-3.5 w-3.5" /> Claimed today
-              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                {longestStreak > currentStreak && longestStreak > 0 && (
+                  <span
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-[11px] font-semibold"
+                    data-testid="text-longest-streak"
+                    title="Your longest claim streak"
+                  >
+                    <Trophy className="h-3 w-3" /> Best: {longestStreak} days
+                  </span>
+                )}
+                <span
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/15 text-green-600 dark:text-green-400 text-xs font-bold"
+                  data-testid="badge-daily-claimed"
+                >
+                  <Check className="h-3.5 w-3.5" /> Claimed today
+                </span>
+              </div>
             </>
           )}
         </CardContent>

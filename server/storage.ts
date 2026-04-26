@@ -452,6 +452,7 @@ export interface IStorage {
   creditOnboardingBonus(userId: string, taskKey: string, label: string, amount: number): Promise<boolean>;
   claimDailyReward(userId: string, claimDate: string, amount: number): Promise<boolean>;
   getLastDailyRewardClaim(userId: string): Promise<SparkTransaction | null>;
+  getDailyRewardStreak(userId: string, today: string): Promise<{ current: number; longest: number }>;
   getTotalEarnedFromRewards(userId: string): Promise<number>;
   debitSparks(userId: string, amount: number, type: string, description: string, opts?: { metadata?: object; allowOverdraft?: boolean }): Promise<void>;
   getUserSparkTransactions(userId: string, limit?: number, offset?: number): Promise<SparkTransaction[]>;
@@ -3111,6 +3112,70 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(sparkTransactions.createdAt))
       .limit(1);
     return row ?? null;
+  }
+
+  async getDailyRewardStreak(
+    userId: string,
+    today: string,
+  ): Promise<{ current: number; longest: number }> {
+    const rows = await db
+      .selectDistinct({
+        claimDate: sql<string>`(${sparkTransactions.metadata}->>'claimDate')`,
+      })
+      .from(sparkTransactions)
+      .where(
+        and(
+          eq(sparkTransactions.userId, userId),
+          eq(sparkTransactions.type, "daily_reward"),
+          sql`${sparkTransactions.metadata}->>'claimDate' IS NOT NULL`,
+        ),
+      )
+      .orderBy(sql`(${sparkTransactions.metadata}->>'claimDate') DESC`);
+
+    const dates = rows.map((r) => r.claimDate).filter((d): d is string => !!d);
+    if (dates.length === 0) return { current: 0, longest: 0 };
+
+    const dayMs = 86_400_000;
+    const parseUtcDay = (s: string) => Date.UTC(
+      Number(s.slice(0, 4)),
+      Number(s.slice(5, 7)) - 1,
+      Number(s.slice(8, 10)),
+    );
+    const fmt = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+
+    const todayMs = parseUtcDay(today);
+    const yesterdayMs = todayMs - dayMs;
+    const mostRecentMs = parseUtcDay(dates[0]);
+
+    let current = 0;
+    if (mostRecentMs === todayMs || mostRecentMs === yesterdayMs) {
+      let cursor = mostRecentMs;
+      for (const d of dates) {
+        if (d === fmt(cursor)) {
+          current++;
+          cursor -= dayMs;
+        } else {
+          break;
+        }
+      }
+    }
+
+    let longest = 0;
+    let run = 0;
+    let prevMs: number | null = null;
+    // dates is DESC; longest run = max consecutive descending day deltas of 1.
+    for (const d of dates) {
+      const ms = parseUtcDay(d);
+      if (prevMs === null || prevMs - ms === dayMs) {
+        run++;
+      } else {
+        run = 1;
+      }
+      if (run > longest) longest = run;
+      prevMs = ms;
+    }
+
+    return { current, longest };
   }
 
   async getTotalEarnedFromRewards(userId: string): Promise<number> {

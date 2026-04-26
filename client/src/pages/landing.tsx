@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { PageShader } from "@/components/page-shader";
 import { StaggerGrid } from "@/components/stagger-grid";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { SparkButton } from "@/components/spark-button";
@@ -18,7 +18,7 @@ import {
   Zap, Globe, Layers, CheckCircle, Code2,
   Palette, BarChart3, Megaphone, Camera, Building2,
   TrendingUp, Newspaper, Wrench, MoreHorizontal,
-  Link2, Download, Images, Sparkles,
+  Link2, Download, Images, Sparkles, Search,
 } from "lucide-react";
 import { getIcon } from "@/lib/icon-map";
 import { SiDiscord, SiSpotify, SiApplemusic } from "@/components/brand-icons";
@@ -32,6 +32,7 @@ import { HomeNewsAndMarkets } from "@/components/home-news-markets";
 import { UserSnapshotPanel } from "@/components/user-snapshot-panel";
 import { formatDistanceToNow } from "date-fns";
 import planetIconWhite from "@assets/SEVCO_App_Icon_-_Artboard_71_1774998179682.png";
+import sevcoColorLogo from "@assets/SEVCO_COLOR_LOGO_1777185344464.png";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { SevcoLogo } from "@/components/sevco-logo";
 
@@ -198,6 +199,15 @@ export default function Landing() {
     return (navigator.hardwareConcurrency ?? 8) <= 4;
   }, []);
   const [heroScrollY, setHeroScrollY] = useState(0);
+  const [, navigate] = useLocation();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (!q) return;
+    navigate(`/search?q=${encodeURIComponent(q)}`);
+  }
 
   useEffect(() => {
     const onScroll = () => setHeroScrollY(Math.min(window.scrollY, 500));
@@ -427,6 +437,46 @@ export default function Landing() {
           "sameAs": [],
         }}
       />
+
+      {/* ── GOOGLE-STYLE SEARCH ── */}
+      <section
+        className="min-h-screen flex flex-col items-center justify-center gap-8 px-4 bg-background"
+        data-testid="section-home-search"
+      >
+        <img
+          src={sevcoColorLogo}
+          alt="SEVCO"
+          className="w-[220px] sm:w-[320px] object-contain select-none"
+          draggable={false}
+          data-testid="img-home-search-logo"
+        />
+
+        <form
+          onSubmit={handleSearch}
+          className="w-full max-w-xl"
+          data-testid="form-home-search"
+        >
+          <div className="flex items-center rounded-full border border-border bg-card shadow-md hover:shadow-lg focus-within:shadow-lg transition-shadow">
+            <Search className="ml-4 h-4 w-4 shrink-0 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search SEVCO..."
+              className="flex-1 bg-transparent py-3 px-3 text-sm outline-none placeholder:text-muted-foreground"
+              autoComplete="off"
+              data-testid="input-home-search"
+            />
+            <button
+              type="submit"
+              className="mr-2 px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+              data-testid="button-home-search-submit"
+            >
+              Search
+            </button>
+          </div>
+        </form>
+      </section>
 
       {/* ── HERO ── */}
       {showHero && (

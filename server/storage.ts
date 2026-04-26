@@ -57,7 +57,7 @@ import {
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
   posts, postReplies, userFollows,
   noteCollaborators, noteAttachments, platformSettings, brandAssets, shaderPresets, resources, galleryImages, spotifyArtists,
-  postSparks, articleSparks, gallerySparks, trackSparks, projectSparks, serviceSparks,
+  postSparks, articleSparks, gallerySparks, trackSparks, productSparks, projectSparks, serviceSparks,
   contactSubmissions,
   staffOrgNodes,
   chatChannels, chatMessages,
@@ -103,6 +103,13 @@ export class InsufficientSparksError extends Error {
     this.requested = requested;
   }
 }
+
+export type SparkResult = {
+  alreadySparked: boolean;
+  rateLimited: boolean;
+  selfSpark: boolean;
+  insufficientFunds: boolean;
+};
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -456,13 +463,13 @@ export interface IStorage {
   isSparkSessionProcessed(stripeSessionId: string): Promise<boolean>;
 
   getUserDailySparksGiven(userId: string): Promise<number>;
-  sparkPost(postId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
-  sparkArticle(articleId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
-  sparkGalleryImage(imageId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
-  sparkTrack(trackId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
+  sparkPost(postId: number, userId: string): Promise<SparkResult>;
+  sparkArticle(articleId: number, userId: string): Promise<SparkResult>;
+  sparkGalleryImage(imageId: number, userId: string): Promise<SparkResult>;
+  sparkTrack(trackId: number, userId: string): Promise<SparkResult>;
   unsparkTrack(trackId: number, userId: string): Promise<void>;
-  sparkProject(projectId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
-  sparkService(serviceId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>;
+  sparkProject(projectId: number, userId: string): Promise<SparkResult>;
+  sparkService(serviceId: number, userId: string): Promise<SparkResult>;
   getArticleSparkInfo(articleId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }>;
   getGallerySparkInfo(imageId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }>;
   getTrackSparkInfo(trackId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }>;
@@ -2984,6 +2991,37 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  private async applyDebitInTx(
+    tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+    userId: string,
+    amount: number,
+    type: string,
+    description: string,
+    opts?: { metadata?: object; allowOverdraft?: boolean },
+  ): Promise<void> {
+    const [user] = await tx
+      .select({ sparksBalance: users.sparksBalance })
+      .from(users)
+      .where(eq(users.id, userId))
+      .for("update");
+    const current = user?.sparksBalance ?? 0;
+    if (!opts?.allowOverdraft && current < amount) {
+      throw new InsufficientSparksError(current, amount);
+    }
+    await tx
+      .update(users)
+      .set({ sparksBalance: sql`${users.sparksBalance} - ${amount}` })
+      .where(eq(users.id, userId));
+    await tx.insert(sparkTransactions).values({
+      userId,
+      amount: -amount,
+      type,
+      description,
+      stripeSessionId: null,
+      metadata: opts?.metadata ?? null,
+    });
+  }
+
   async hasUserSparkedAnyPost(userId: string): Promise<boolean> {
     const [row] = await db.select({ id: postSparks.postId }).from(postSparks).where(eq(postSparks.userId, userId)).limit(1);
     return !!row;
@@ -3224,32 +3262,58 @@ export class DatabaseStorage implements IStorage {
       + (projectCount[0]?.count ?? 0) + (serviceCount[0]?.count ?? 0);
   }
 
-  async sparkPost(postId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }> {
+  async sparkPost(postId: number, userId: string): Promise<SparkResult> {
     const [post] = await db.select({ authorId: posts.authorId }).from(posts).where(eq(posts.id, postId)).limit(1);
-    if (post?.authorId === userId) return { alreadySparked: false, rateLimited: false, selfSpark: true };
+    const recipientId = post?.authorId ?? null;
     const [existing] = await db.select().from(postSparks).where(and(eq(postSparks.postId, postId), eq(postSparks.userId, userId))).limit(1);
-    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
-    const dailyCount = await this.getUserDailySparksGiven(userId);
-    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false };
-    await db.insert(postSparks).values({ postId, userId });
-    if (post?.authorId) {
-      await this.creditSparks(post.authorId, 1, "social_reward", `Spark received on post #${postId}`, { metadata: { postId, fromUserId: userId } });
+    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false, insufficientFunds: false };
+    const isFreeSpark = !recipientId || recipientId === userId;
+    if (isFreeSpark) {
+      await db.insert(postSparks).values({ postId, userId });
+      return { alreadySparked: false, rateLimited: false, selfSpark: true, insufficientFunds: false };
     }
-    return { alreadySparked: false, rateLimited: false, selfSpark: false };
+    const dailyCount = await this.getUserDailySparksGiven(userId);
+    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false, insufficientFunds: false };
+    try {
+      await db.transaction(async (tx) => {
+        await this.applyDebitInTx(tx, userId, 1, "social_spend", `Sparked post #${postId}`, { metadata: { postId, toUserId: recipientId } });
+        await tx.insert(postSparks).values({ postId, userId });
+        await this.applyCreditInTx(tx, recipientId, 1, "social_reward", `Spark received on post #${postId}`, { metadata: { postId, fromUserId: userId } });
+      });
+    } catch (err: any) {
+      if (err instanceof InsufficientSparksError) {
+        return { alreadySparked: false, rateLimited: false, selfSpark: false, insufficientFunds: true };
+      }
+      throw err;
+    }
+    return { alreadySparked: false, rateLimited: false, selfSpark: false, insufficientFunds: false };
   }
 
-  async sparkArticle(articleId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }> {
+  async sparkArticle(articleId: number, userId: string): Promise<SparkResult> {
     const [article] = await db.select({ authorId: articles.authorId }).from(articles).where(eq(articles.id, articleId)).limit(1);
-    if (article?.authorId === userId) return { alreadySparked: false, rateLimited: false, selfSpark: true };
+    const recipientId = article?.authorId ?? null;
     const [existing] = await db.select().from(articleSparks).where(and(eq(articleSparks.articleId, articleId), eq(articleSparks.userId, userId))).limit(1);
-    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
-    const dailyCount = await this.getUserDailySparksGiven(userId);
-    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false };
-    await db.insert(articleSparks).values({ articleId, userId });
-    if (article?.authorId) {
-      await this.creditSparks(article.authorId, 1, "social_reward", `Spark received on article #${articleId}`, { metadata: { articleId, fromUserId: userId } });
+    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false, insufficientFunds: false };
+    const isFreeSpark = !recipientId || recipientId === userId;
+    if (isFreeSpark) {
+      await db.insert(articleSparks).values({ articleId, userId });
+      return { alreadySparked: false, rateLimited: false, selfSpark: true, insufficientFunds: false };
     }
-    return { alreadySparked: false, rateLimited: false, selfSpark: false };
+    const dailyCount = await this.getUserDailySparksGiven(userId);
+    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false, insufficientFunds: false };
+    try {
+      await db.transaction(async (tx) => {
+        await this.applyDebitInTx(tx, userId, 1, "social_spend", `Sparked article #${articleId}`, { metadata: { articleId, toUserId: recipientId } });
+        await tx.insert(articleSparks).values({ articleId, userId });
+        await this.applyCreditInTx(tx, recipientId, 1, "social_reward", `Spark received on article #${articleId}`, { metadata: { articleId, fromUserId: userId } });
+      });
+    } catch (err: any) {
+      if (err instanceof InsufficientSparksError) {
+        return { alreadySparked: false, rateLimited: false, selfSpark: false, insufficientFunds: true };
+      }
+      throw err;
+    }
+    return { alreadySparked: false, rateLimited: false, selfSpark: false, insufficientFunds: false };
   }
 
   async getArticleSparkInfo(articleId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }> {
@@ -3274,52 +3338,80 @@ export class DatabaseStorage implements IStorage {
     return { sparkCount, isSparkedByMe };
   }
 
-  async sparkGalleryImage(imageId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }> {
+  async sparkGalleryImage(imageId: number, userId: string): Promise<SparkResult> {
     const [image] = await db.select({ uploadedBy: galleryImages.uploadedBy }).from(galleryImages).where(eq(galleryImages.id, imageId)).limit(1);
-    if (image?.uploadedBy === userId) return { alreadySparked: false, rateLimited: false, selfSpark: true };
+    const recipientId = image?.uploadedBy ?? null;
     const [existing] = await db.select().from(gallerySparks).where(and(eq(gallerySparks.imageId, imageId), eq(gallerySparks.userId, userId))).limit(1);
-    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
-    const dailyCount = await this.getUserDailySparksGiven(userId);
-    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false };
-    await db.insert(gallerySparks).values({ imageId, userId });
-    if (image?.uploadedBy) {
-      await this.creditSparks(image.uploadedBy, 1, "social_reward", `Spark received on gallery image #${imageId}`, { metadata: { imageId, fromUserId: userId } });
+    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false, insufficientFunds: false };
+    const isFreeSpark = !recipientId || recipientId === userId;
+    if (isFreeSpark) {
+      await db.insert(gallerySparks).values({ imageId, userId });
+      return { alreadySparked: false, rateLimited: false, selfSpark: true, insufficientFunds: false };
     }
-    return { alreadySparked: false, rateLimited: false, selfSpark: false };
+    const dailyCount = await this.getUserDailySparksGiven(userId);
+    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false, insufficientFunds: false };
+    try {
+      await db.transaction(async (tx) => {
+        await this.applyDebitInTx(tx, userId, 1, "social_spend", `Sparked gallery image #${imageId}`, { metadata: { imageId, toUserId: recipientId } });
+        await tx.insert(gallerySparks).values({ imageId, userId });
+        await this.applyCreditInTx(tx, recipientId, 1, "social_reward", `Spark received on gallery image #${imageId}`, { metadata: { imageId, fromUserId: userId } });
+      });
+    } catch (err: any) {
+      if (err instanceof InsufficientSparksError) {
+        return { alreadySparked: false, rateLimited: false, selfSpark: false, insufficientFunds: true };
+      }
+      throw err;
+    }
+    return { alreadySparked: false, rateLimited: false, selfSpark: false, insufficientFunds: false };
   }
 
-  async sparkTrack(trackId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }> {
+  async sparkTrack(trackId: number, userId: string): Promise<SparkResult> {
     const [track] = await db.select({ artistId: musicTracks.artistId }).from(musicTracks).where(eq(musicTracks.id, trackId)).limit(1);
     let recipientId: string | null = null;
     if (track?.artistId != null) {
       const [linked] = await db.select({ id: users.id }).from(users).where(eq(users.linkedArtistId, track.artistId)).limit(1);
       if (linked) recipientId = linked.id;
     }
-    if (recipientId === userId) return { alreadySparked: false, rateLimited: false, selfSpark: true };
     const [existing] = await db.select().from(trackSparks).where(and(eq(trackSparks.trackId, trackId), eq(trackSparks.userId, userId))).limit(1);
-    if (existing && !existing.revokedAt) return { alreadySparked: true, rateLimited: false, selfSpark: false };
+    if (existing && !existing.revokedAt) return { alreadySparked: true, rateLimited: false, selfSpark: false, insufficientFunds: false };
     if (existing && existing.revokedAt) {
       // Re-spark a previously revoked spark: bypass the daily cap because the original
-      // insert's createdAt still occupies a daily-limit slot, do not re-credit recipient,
-      // and do not count again toward the daily limit.
+      // insert's createdAt still occupies a daily-limit slot, do not re-debit the sparker
+      // (the original debit already happened), and do not re-credit the recipient.
       await db.update(trackSparks)
         .set({ revokedAt: null })
         .where(and(eq(trackSparks.trackId, trackId), eq(trackSparks.userId, userId)));
       await db.update(musicTracks)
         .set({ sparkCount: sql`${musicTracks.sparkCount} + 1` })
         .where(eq(musicTracks.id, trackId));
-      return { alreadySparked: false, rateLimited: false, selfSpark: false };
+      return { alreadySparked: false, rateLimited: false, selfSpark: false, insufficientFunds: false };
+    }
+    const isFreeSpark = !recipientId || recipientId === userId;
+    if (isFreeSpark) {
+      await db.insert(trackSparks).values({ trackId, userId });
+      await db.update(musicTracks)
+        .set({ sparkCount: sql`${musicTracks.sparkCount} + 1` })
+        .where(eq(musicTracks.id, trackId));
+      return { alreadySparked: false, rateLimited: false, selfSpark: true, insufficientFunds: false };
     }
     const dailyCount = await this.getUserDailySparksGiven(userId);
-    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false };
-    await db.insert(trackSparks).values({ trackId, userId });
-    await db.update(musicTracks)
-      .set({ sparkCount: sql`${musicTracks.sparkCount} + 1` })
-      .where(eq(musicTracks.id, trackId));
-    if (recipientId) {
-      await this.creditSparks(recipientId, 1, "social_reward", `Spark received on music track #${trackId}`, { metadata: { trackId, fromUserId: userId } });
+    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false, insufficientFunds: false };
+    try {
+      await db.transaction(async (tx) => {
+        await this.applyDebitInTx(tx, userId, 1, "social_spend", `Sparked music track #${trackId}`, { metadata: { trackId, toUserId: recipientId } });
+        await tx.insert(trackSparks).values({ trackId, userId });
+        await tx.update(musicTracks)
+          .set({ sparkCount: sql`${musicTracks.sparkCount} + 1` })
+          .where(eq(musicTracks.id, trackId));
+        await this.applyCreditInTx(tx, recipientId, 1, "social_reward", `Spark received on music track #${trackId}`, { metadata: { trackId, fromUserId: userId } });
+      });
+    } catch (err: any) {
+      if (err instanceof InsufficientSparksError) {
+        return { alreadySparked: false, rateLimited: false, selfSpark: false, insufficientFunds: true };
+      }
+      throw err;
     }
-    return { alreadySparked: false, rateLimited: false, selfSpark: false };
+    return { alreadySparked: false, rateLimited: false, selfSpark: false, insufficientFunds: false };
   }
 
   async unsparkTrack(trackId: number, userId: string): Promise<void> {
@@ -3335,32 +3427,58 @@ export class DatabaseStorage implements IStorage {
       .where(eq(musicTracks.id, trackId));
   }
 
-  async sparkProject(projectId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }> {
+  async sparkProject(projectId: number, userId: string): Promise<SparkResult> {
     const [project] = await db.select({ leadUserId: projects.leadUserId }).from(projects).where(eq(projects.id, projectId)).limit(1);
-    if (project?.leadUserId === userId) return { alreadySparked: false, rateLimited: false, selfSpark: true };
+    const recipientId = project?.leadUserId ?? null;
     const [existing] = await db.select().from(projectSparks).where(and(eq(projectSparks.projectId, projectId), eq(projectSparks.userId, userId))).limit(1);
-    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
-    const dailyCount = await this.getUserDailySparksGiven(userId);
-    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false };
-    await db.insert(projectSparks).values({ projectId, userId });
-    if (project?.leadUserId) {
-      await this.creditSparks(project.leadUserId, 1, "social_reward", `Spark received on project #${projectId}`, { metadata: { projectId, fromUserId: userId } });
+    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false, insufficientFunds: false };
+    const isFreeSpark = !recipientId || recipientId === userId;
+    if (isFreeSpark) {
+      await db.insert(projectSparks).values({ projectId, userId });
+      return { alreadySparked: false, rateLimited: false, selfSpark: true, insufficientFunds: false };
     }
-    return { alreadySparked: false, rateLimited: false, selfSpark: false };
+    const dailyCount = await this.getUserDailySparksGiven(userId);
+    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false, insufficientFunds: false };
+    try {
+      await db.transaction(async (tx) => {
+        await this.applyDebitInTx(tx, userId, 1, "social_spend", `Sparked project #${projectId}`, { metadata: { projectId, toUserId: recipientId } });
+        await tx.insert(projectSparks).values({ projectId, userId });
+        await this.applyCreditInTx(tx, recipientId, 1, "social_reward", `Spark received on project #${projectId}`, { metadata: { projectId, fromUserId: userId } });
+      });
+    } catch (err: any) {
+      if (err instanceof InsufficientSparksError) {
+        return { alreadySparked: false, rateLimited: false, selfSpark: false, insufficientFunds: true };
+      }
+      throw err;
+    }
+    return { alreadySparked: false, rateLimited: false, selfSpark: false, insufficientFunds: false };
   }
 
-  async sparkService(serviceId: number, userId: string): Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }> {
+  async sparkService(serviceId: number, userId: string): Promise<SparkResult> {
     const [service] = await db.select({ leadUserId: services.leadUserId }).from(services).where(eq(services.id, serviceId)).limit(1);
-    if (service?.leadUserId === userId) return { alreadySparked: false, rateLimited: false, selfSpark: true };
+    const recipientId = service?.leadUserId ?? null;
     const [existing] = await db.select().from(serviceSparks).where(and(eq(serviceSparks.serviceId, serviceId), eq(serviceSparks.userId, userId))).limit(1);
-    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false };
-    const dailyCount = await this.getUserDailySparksGiven(userId);
-    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false };
-    await db.insert(serviceSparks).values({ serviceId, userId });
-    if (service?.leadUserId) {
-      await this.creditSparks(service.leadUserId, 1, "social_reward", `Spark received on service #${serviceId}`, { metadata: { serviceId, fromUserId: userId } });
+    if (existing) return { alreadySparked: true, rateLimited: false, selfSpark: false, insufficientFunds: false };
+    const isFreeSpark = !recipientId || recipientId === userId;
+    if (isFreeSpark) {
+      await db.insert(serviceSparks).values({ serviceId, userId });
+      return { alreadySparked: false, rateLimited: false, selfSpark: true, insufficientFunds: false };
     }
-    return { alreadySparked: false, rateLimited: false, selfSpark: false };
+    const dailyCount = await this.getUserDailySparksGiven(userId);
+    if (dailyCount >= 100) return { alreadySparked: false, rateLimited: true, selfSpark: false, insufficientFunds: false };
+    try {
+      await db.transaction(async (tx) => {
+        await this.applyDebitInTx(tx, userId, 1, "social_spend", `Sparked service #${serviceId}`, { metadata: { serviceId, toUserId: recipientId } });
+        await tx.insert(serviceSparks).values({ serviceId, userId });
+        await this.applyCreditInTx(tx, recipientId, 1, "social_reward", `Spark received on service #${serviceId}`, { metadata: { serviceId, fromUserId: userId } });
+      });
+    } catch (err: any) {
+      if (err instanceof InsufficientSparksError) {
+        return { alreadySparked: false, rateLimited: false, selfSpark: false, insufficientFunds: true };
+      }
+      throw err;
+    }
+    return { alreadySparked: false, rateLimited: false, selfSpark: false, insufficientFunds: false };
   }
 
   async getTrackSparkInfo(trackId: number, userId?: string): Promise<{ sparkCount: number; isSparkedByMe: boolean }> {

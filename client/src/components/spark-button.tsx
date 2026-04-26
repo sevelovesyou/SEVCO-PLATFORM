@@ -45,6 +45,7 @@ interface SparkButtonProps {
   entityId: number | string;
   sparkCount: number;
   sparkedByCurrentUser: boolean;
+  /** @deprecated No-op. Sparking your own content is now allowed silently with no balance change. */
   isOwner?: boolean;
   /** @deprecated No-op. Owner state now always shows the button (disabled). */
   showCountWhenOwner?: boolean;
@@ -108,10 +109,10 @@ export function SparkButton({
     },
     onError: (err: any) => {
       const msg = err?.message ?? "";
-      if (err?.status === 429 || msg.includes("429")) {
+      if (err?.status === 402 || msg.includes("402")) {
+        toast({ title: "Not enough Sparks", description: "Top up your balance to keep sparking.", variant: "destructive" });
+      } else if (err?.status === 429 || msg.includes("429")) {
         toast({ title: "Daily limit reached", description: "You can give 100 sparks per day." });
-      } else if (err?.status === 403 || msg.includes("403")) {
-        toast({ title: "Cannot spark your own content", variant: "destructive" });
       } else if (err?.status === 409 || msg.includes("409")) {
         // already sparked – silent
       } else {
@@ -123,7 +124,6 @@ export function SparkButton({
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     event.preventDefault();
-    if (isOwner) return;
     if (!user) return;
     if (sparkedByCurrentUser) {
       if (canUnspark) {
@@ -151,16 +151,14 @@ export function SparkButton({
           <button
             type="button"
             className={`flex items-center transition-colors rounded ${sizing} ${
-              isOwner
-                ? "text-muted-foreground opacity-60 cursor-not-allowed"
-                : sparkedByCurrentUser
+              sparkedByCurrentUser
                 ? "text-amber-500"
                 : disabled
                 ? "text-muted-foreground opacity-40 cursor-not-allowed"
                 : "text-muted-foreground hover:text-amber-500"
-            } ${!user && !isOwner ? "opacity-50 cursor-default" : ""} ${className}`}
+            } ${!user ? "opacity-50 cursor-default" : ""} ${className}`}
             onClick={handleClick}
-            disabled={isOwner || disabled || mutation.isPending}
+            disabled={disabled || mutation.isPending}
             data-testid={`button-${entityType}-spark-${entityId}`}
           >
             <span className={`relative inline-flex items-center justify-center ${iconBoxSize}`}>
@@ -230,9 +228,7 @@ export function SparkButton({
           </button>
         </TooltipTrigger>
         <TooltipContent side="top">
-          {isOwner
-            ? "You can't spark your own content"
-            : !user
+          {!user
             ? "Log in to spark"
             : sparkedByCurrentUser
             ? canUnspark ? "Click to unspark" : "Already sparked!"

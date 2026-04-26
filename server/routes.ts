@@ -4016,7 +4016,7 @@ export async function registerRoutes(
       const postId = parseInt(req.params.id);
       if (isNaN(postId)) return res.status(400).json({ message: "Invalid id" });
       const result = await storage.sparkPost(postId, req.user.id);
-      if (result.selfSpark) return res.status(403).json({ message: "Cannot spark your own content" });
+      if (result.insufficientFunds) return res.status(402).json({ message: "Not enough Sparks — top up to keep sparking." });
       if (result.rateLimited) return res.status(429).json({ message: "Daily spark limit reached (100 per day)" });
       if (result.alreadySparked) return res.status(409).json({ message: "Already sparked" });
       res.status(204).end();
@@ -4030,7 +4030,7 @@ export async function registerRoutes(
       const article = await storage.getArticleBySlug(req.params.slug);
       if (!article) return res.status(404).json({ message: "Article not found" });
       const result = await storage.sparkArticle(article.id, req.user.id);
-      if (result.selfSpark) return res.status(403).json({ message: "Cannot spark your own content" });
+      if (result.insufficientFunds) return res.status(402).json({ message: "Not enough Sparks — top up to keep sparking." });
       if (result.rateLimited) return res.status(429).json({ message: "Daily spark limit reached (100 per day)" });
       if (result.alreadySparked) return res.status(409).json({ message: "Already sparked" });
       res.status(204).end();
@@ -4044,7 +4044,7 @@ export async function registerRoutes(
       const imageId = parseInt(req.params.id);
       if (isNaN(imageId)) return res.status(400).json({ message: "Invalid id" });
       const result = await storage.sparkGalleryImage(imageId, req.user.id);
-      if (result.selfSpark) return res.status(403).json({ message: "Cannot spark your own content" });
+      if (result.insufficientFunds) return res.status(402).json({ message: "Not enough Sparks — top up to keep sparking." });
       if (result.rateLimited) return res.status(429).json({ message: "Daily spark limit reached (100 per day)" });
       if (result.alreadySparked) return res.status(409).json({ message: "Already sparked" });
       res.status(204).end();
@@ -4053,13 +4053,13 @@ export async function registerRoutes(
     }
   });
 
-  function makeSparkHandler(fn: (id: number, userId: string) => Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean }>) {
+  function makeSparkHandler(fn: (id: number, userId: string) => Promise<{ alreadySparked: boolean; rateLimited: boolean; selfSpark: boolean; insufficientFunds: boolean }>) {
     return async (req: any, res: any) => {
       try {
         const id = parseInt(req.params.id);
         if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
         const result = await fn(id, req.user.id);
-        if (result.selfSpark) return res.status(403).json({ message: "Cannot spark your own content" });
+        if (result.insufficientFunds) return res.status(402).json({ message: "Not enough Sparks — top up to keep sparking." });
         if (result.rateLimited) return res.status(429).json({ message: "Daily spark limit reached (100 per day)" });
         if (result.alreadySparked) return res.status(409).json({ message: "Already sparked" });
         res.status(204).end();

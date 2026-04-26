@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { PageHead } from "@/components/page-head";
 import { SiInstagram, SiX, SiYoutube, SiDiscord, SiGithub } from "react-icons/si";
+import sevePortrait from "@assets/IMG_0590_1776372154559.jpg";
 import { Button } from "@/components/ui/button";
 
 const SOCIAL_LINKS = [
@@ -212,6 +213,15 @@ export default function AboutPage() {
               </p>
             </div>
             <div className="space-y-4">
+              <div className="flex justify-center md:justify-start" data-testid="img-founder-portrait-wrapper">
+                <img
+                  src={sevePortrait}
+                  alt="Seve — Founder of SEVCO"
+                  data-testid="img-founder-portrait"
+                  className="w-48 h-48 rounded-full object-cover object-top border-2 border-border shadow-md"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                />
+              </div>
               <a
                 href="https://severingislason.com"
                 target="_blank"

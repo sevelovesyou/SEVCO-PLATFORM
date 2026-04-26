@@ -10,6 +10,7 @@ const SEARCH_AND_COMMAND: Shortcut[] = [
   { keys: ["⌘", "K"], label: "Open search", testId: "kbd-shortcut-cmd-k" },
   { keys: ["/"], label: "Open search", testId: "kbd-shortcut-slash" },
   { keys: ["?"], label: "Show this help", testId: "kbd-shortcut-question" },
+  { keys: ["⌘", "?"], label: "Show this help (works while typing)", testId: "kbd-shortcut-cmd-question" },
   { keys: ["Left ⌘", "+", "Right ⌘"], label: "Open command center", testId: "kbd-shortcut-dual-cmd" },
   { keys: ["⌘", "⇧", "B"], label: "Open Lens", testId: "kbd-shortcut-lens" },
   { keys: ["⌘", "B"], label: "Toggle sidebar", testId: "kbd-shortcut-sidebar" },

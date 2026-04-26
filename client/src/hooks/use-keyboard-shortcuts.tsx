@@ -62,6 +62,17 @@ export function useKeyboardShortcuts(opts: { onShowHelp: () => void }) {
         return;
       }
 
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        e.shiftKey &&
+        !e.altKey &&
+        (e.key === "?" || e.key === "/" || e.code === "Slash")
+      ) {
+        e.preventDefault();
+        onShowHelpRef.current();
+        return;
+      }
+
       if (isTypingTarget(document.activeElement)) return;
       if (isDialogOpen()) return;
 

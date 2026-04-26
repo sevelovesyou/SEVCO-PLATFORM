@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   Canvas as FabricCanvas,
   Rect as FabricRect,
@@ -8,9 +8,11 @@ import {
   Image as FabricImage,
   PencilBrush,
   Point,
+  Group as FabricGroup,
 } from 'fabric';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +20,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
@@ -26,8 +29,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient as qc } from '@/lib/queryClient';
 import {
   MousePointer2,
   Hand,
@@ -47,9 +51,20 @@ import {
   Loader2,
   Sparkles,
   ImageIcon,
+  Globe,
+  Layers,
+  AlignLeft,
+  Image as ImageBlockIcon,
+  Mail,
+  Code,
+  ExternalLink,
+  Paintbrush,
+  Check,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 
-type Tool = 'select' | 'pan' | 'pencil' | 'rect' | 'ellipse' | 'line' | 'text';
+type Tool = 'select' | 'pan' | 'pencil' | 'rect' | 'ellipse' | 'line' | 'text' | 'sites';
 
 interface CanvasProject {
   id: number;
@@ -58,6 +73,61 @@ interface CanvasProject {
   thumbnail_url: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface SiteWithPageCount {
+  id: number;
+  slug: string;
+  title: string;
+  description: string | null;
+  is_published: boolean;
+  theme_json?: ThemeSettings | null;
+  page_count: number;
+}
+
+interface SiteBlockMeta {
+  type: 'site';
+  siteId: number;
+  slug: string;
+  title: string;
+  isPublished: boolean;
+}
+
+type BlockType = 'hero' | 'text' | 'gallery' | 'contact' | 'embed' | 'divider';
+
+interface HeroBlock { type: 'hero'; heading: string; subheading?: string; ctaText?: string; ctaHref?: string; bgColor?: string; color?: string; }
+interface TextBlock { type: 'text'; heading?: string; body: string; }
+interface GalleryBlock { type: 'gallery'; heading?: string; images: { url: string; alt?: string; caption?: string }[]; }
+interface ContactBlock { type: 'contact'; heading?: string; email?: string; body?: string; }
+interface EmbedBlock { type: 'embed'; url: string; caption?: string; }
+interface DividerBlock { type: 'divider'; }
+type SiteBlock = HeroBlock | TextBlock | GalleryBlock | ContactBlock | EmbedBlock | DividerBlock;
+
+interface ThemeSettings {
+  primaryColor?: string;
+  bgColor?: string;
+  textColor?: string;
+  fontFamily?: string;
+}
+
+const BLOCK_PALETTE_ITEMS: { type: BlockType; label: string; icon: React.ElementType; description: string }[] = [
+  { type: 'hero', label: 'Hero', icon: Layers, description: 'Large header section' },
+  { type: 'text', label: 'Text', icon: AlignLeft, description: 'Rich text block' },
+  { type: 'gallery', label: 'Gallery', icon: ImageBlockIcon, description: 'Image grid' },
+  { type: 'contact', label: 'Contact', icon: Mail, description: 'Contact info' },
+  { type: 'embed', label: 'Embed', icon: Code, description: 'iFrame embed' },
+  { type: 'divider', label: 'Divider', icon: Minus, description: 'Horizontal rule' },
+];
+
+function makeDefaultSiteBlock(type: BlockType): SiteBlock {
+  switch (type) {
+    case 'hero': return { type: 'hero', heading: 'Hello World', subheading: 'A great subheading', ctaText: 'Get started', ctaHref: '#', bgColor: '#1e293b', color: '#ffffff' };
+    case 'text': return { type: 'text', heading: 'Section Title', body: 'Add your content here.' };
+    case 'gallery': return { type: 'gallery', heading: 'Gallery', images: [{ url: '', alt: '', caption: '' }] };
+    case 'contact': return { type: 'contact', heading: 'Get in touch', email: '', body: '' };
+    case 'embed': return { type: 'embed', url: '', caption: '' };
+    case 'divider': return { type: 'divider' };
+  }
 }
 
 const glassPill: React.CSSProperties = {
@@ -498,6 +568,743 @@ function ColorPickerButton({
   );
 }
 
+// ─── Sites Panel ─────────────────────────────────────────────────────────────
+
+function SitesPanel({
+  onSelectSite,
+  onClose,
+}: {
+  onSelectSite: (site: SiteWithPageCount) => void;
+  onClose: () => void;
+}) {
+  const { data: sites, isLoading } = useQuery<SiteWithPageCount[]>({ queryKey: ['/api/sites'] });
+  const [creating, setCreating] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newSlug, setNewSlug] = useState('');
+  const [confirmDeleteSlug, setConfirmDeleteSlug] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const deleteMutation = useMutation({
+    mutationFn: (slug: string) => apiRequest('DELETE', `/api/sites/${slug}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['/api/sites'] });
+      setConfirmDeleteSlug(null);
+    },
+    onError: async (err: Response | Error) => {
+      let msg = 'Failed to delete site';
+      if (err instanceof Response) {
+        const body = await err.json().catch(() => ({}));
+        msg = body.message ?? msg;
+      }
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data: { title: string; slug: string }) =>
+      apiRequest('POST', '/api/sites', data).then(r => r.json()),
+    onSuccess: (site) => {
+      qc.invalidateQueries({ queryKey: ['/api/sites'] });
+      setCreating(false);
+      setNewTitle('');
+      setNewSlug('');
+      onSelectSite({ ...site, page_count: 0 });
+    },
+    onError: async (err: Response | Error) => {
+      let msg = 'Failed to create site';
+      if (err instanceof Response) {
+        const body = await err.json().catch(() => ({}));
+        msg = body.message ?? msg;
+      }
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
+    },
+  });
+
+  function autoSlug(title: string) {
+    return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+  }
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: 52,
+        top: '50%',
+        transform: 'translateY(-50%)',
+        ...glassPill,
+        flexDirection: 'column',
+        gap: 0,
+        padding: 0,
+        pointerEvents: 'auto',
+        zIndex: 20,
+        minWidth: 240,
+        maxHeight: 420,
+        overflow: 'hidden',
+      }}
+      data-testid="panel-sites"
+    >
+      <div style={{ padding: '10px 12px 8px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Sites</span>
+          <button
+            onClick={() => setCreating(c => !c)}
+            style={{ background: 'rgba(99,102,241,0.3)', border: 'none', cursor: 'pointer', color: '#a5b4fc', borderRadius: 5, padding: '2px 8px', fontSize: 11, fontWeight: 600 }}
+            data-testid="button-sites-panel-new"
+          >
+            + New
+          </button>
+        </div>
+      </div>
+
+      {creating && (
+        <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <input
+            type="text"
+            placeholder="Site title"
+            value={newTitle}
+            onChange={e => {
+              setNewTitle(e.target.value);
+              if (!newSlug || newSlug === autoSlug(newTitle)) setNewSlug(autoSlug(e.target.value));
+            }}
+            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, color: 'white', fontSize: 12, padding: '5px 8px', outline: 'none' }}
+            data-testid="input-sites-panel-title"
+            autoFocus
+          />
+          <input
+            type="text"
+            placeholder="site-slug"
+            value={newSlug}
+            onChange={e => setNewSlug(e.target.value)}
+            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, color: 'rgba(255,255,255,0.7)', fontSize: 11, padding: '5px 8px', outline: 'none', fontFamily: 'monospace' }}
+            data-testid="input-sites-panel-slug"
+          />
+          <button
+            onClick={() => createMutation.mutate({ title: newTitle.trim(), slug: newSlug.trim() })}
+            disabled={!newTitle.trim() || !newSlug.trim() || createMutation.isPending}
+            style={{ background: '#4f46e5', border: 'none', cursor: 'pointer', color: 'white', borderRadius: 5, padding: '5px 10px', fontSize: 12, fontWeight: 600, opacity: !newTitle.trim() || !newSlug.trim() ? 0.5 : 1 }}
+            data-testid="button-sites-panel-create"
+          >
+            {createMutation.isPending ? 'Creating…' : 'Create Site'}
+          </button>
+        </div>
+      )}
+
+      <div style={{ overflowY: 'auto', maxHeight: 300 }}>
+        {isLoading && (
+          <div style={{ padding: '16px', textAlign: 'center' }}>
+            <Loader2 style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.3)', display: 'inline-block' }} className="animate-spin" />
+          </div>
+        )}
+        {!isLoading && (!sites || sites.length === 0) && (
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '16px 12px' }}>No sites yet. Create one above.</p>
+        )}
+        {sites?.map(site => (
+          <div
+            key={site.id}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              borderBottom: '1px solid rgba(255,255,255,0.04)',
+            }}
+          >
+            {confirmDeleteSlug === site.slug ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', flex: 1 }}>
+                <span style={{ fontSize: 11, color: 'rgba(239,68,68,0.8)', flex: 1 }}>Delete "{site.title}"?</span>
+                <button
+                  onClick={() => deleteMutation.mutate(site.slug)}
+                  disabled={deleteMutation.isPending}
+                  style={{ background: 'rgba(239,68,68,0.8)', border: 'none', borderRadius: 4, color: 'white', fontSize: 11, fontWeight: 600, padding: '3px 8px', cursor: 'pointer' }}
+                  data-testid={`button-site-delete-confirm-${site.id}`}
+                >
+                  {deleteMutation.isPending ? '...' : 'Delete'}
+                </button>
+                <button
+                  onClick={() => setConfirmDeleteSlug(null)}
+                  style={{ background: 'none', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 4, color: 'rgba(255,255,255,0.5)', fontSize: 11, padding: '3px 8px', cursor: 'pointer' }}
+                  data-testid={`button-site-delete-cancel-${site.id}`}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => { onSelectSite(site); onClose(); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    flex: 1,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '8px 12px',
+                    textAlign: 'left',
+                    minWidth: 0,
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                  data-testid={`button-site-select-${site.id}`}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.8)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{site.title}</p>
+                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', margin: 0, fontFamily: 'monospace' }}>{site.slug}.sev.cx</p>
+                  </div>
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+                    padding: '2px 6px', borderRadius: 4,
+                    background: site.is_published ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.08)',
+                    color: site.is_published ? '#4ade80' : 'rgba(255,255,255,0.35)', flexShrink: 0,
+                  }}>
+                    {site.is_published ? 'Live' : 'Draft'}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setConfirmDeleteSlug(site.slug)}
+                  title="Delete site"
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'rgba(239,68,68,0.4)', padding: '8px 10px', flexShrink: 0,
+                    display: 'flex', alignItems: 'center',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'rgba(239,68,68,0.9)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(239,68,68,0.4)')}
+                  data-testid={`button-site-delete-${site.id}`}
+                >
+                  <Trash2 style={{ width: 12, height: 12 }} />
+                </button>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Site Properties Panel ─────────────────────────────────────────────────────
+
+function SitePropertiesPanel({
+  meta,
+  onPublishToggle,
+  onOpenTheme,
+  onOpenDrawer,
+  onDelete,
+}: {
+  meta: SiteBlockMeta;
+  onPublishToggle: () => void;
+  onOpenTheme: () => void;
+  onOpenDrawer: () => void;
+  onDelete: () => void;
+}) {
+  const publishMutation = useMutation({
+    mutationFn: () => apiRequest('POST', `/api/sites/${meta.slug}/publish`).then(r => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['/api/sites'] });
+      onPublishToggle();
+    },
+  });
+
+  const addBlockMutation = useMutation({
+    mutationFn: (blockType: BlockType) =>
+      apiRequest('GET', `/api/sites/${meta.slug}`).then(r => r.json()).then(async (site: { pages: { slug: string; is_homepage: boolean; content_json: { blocks: SiteBlock[] } | null }[] }) => {
+        const homepage = site.pages?.find((p: { is_homepage: boolean }) => p.is_homepage) ?? site.pages?.[0];
+        const existingBlocks: SiteBlock[] = homepage?.content_json?.blocks ?? [];
+        const newBlocks = [...existingBlocks, makeDefaultSiteBlock(blockType)];
+        return apiRequest('PUT', `/api/sites/${meta.slug}/pages/home`, { contentJson: { blocks: newBlocks } });
+      }),
+  });
+
+  const labelStyle: React.CSSProperties = { fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 4 };
+  const sectionStyle: React.CSSProperties = { padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' };
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        right: 12,
+        top: '50%',
+        transform: 'translateY(-50%)',
+        ...glassPill,
+        flexDirection: 'column',
+        gap: 0,
+        padding: 0,
+        pointerEvents: 'auto',
+        zIndex: 10,
+        minWidth: 180,
+        maxHeight: 480,
+        overflow: 'hidden',
+      }}
+      data-testid="panel-site-properties"
+    >
+      <div style={{ ...sectionStyle }}>
+        <p style={{ ...labelStyle }}>Site</p>
+        <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.85)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meta.title}</p>
+        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', margin: '2px 0 0', fontFamily: 'monospace' }}>{meta.slug}.sev.cx</p>
+      </div>
+
+      <div style={sectionStyle}>
+        <p style={labelStyle}>Add block</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          {BLOCK_PALETTE_ITEMS.map(({ type, label, icon: Icon }) => (
+            <button
+              key={type}
+              onClick={() => addBlockMutation.mutate(type)}
+              disabled={addBlockMutation.isPending}
+              title={`Add ${label} block`}
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 5,
+                cursor: 'pointer',
+                color: 'rgba(255,255,255,0.6)',
+                fontSize: 10,
+                padding: '4px 7px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3,
+                transition: 'background 0.12s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(99,102,241,0.25)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+              data-testid={`button-site-add-block-${type}`}
+            >
+              <Icon style={{ width: 10, height: 10 }} />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ ...sectionStyle, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <button
+          onClick={() => publishMutation.mutate()}
+          disabled={publishMutation.isPending}
+          style={{
+            background: meta.isPublished ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.07)',
+            border: `1px solid ${meta.isPublished ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.12)'}`,
+            borderRadius: 6,
+            cursor: 'pointer',
+            color: meta.isPublished ? '#4ade80' : 'rgba(255,255,255,0.6)',
+            fontSize: 11,
+            fontWeight: 600,
+            padding: '6px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            width: '100%',
+          }}
+          data-testid="button-site-props-publish"
+        >
+          <Globe style={{ width: 11, height: 11 }} />
+          {publishMutation.isPending ? '...' : meta.isPublished ? 'Published' : 'Publish'}
+        </button>
+
+        <button
+          onClick={onOpenTheme}
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 6,
+            cursor: 'pointer',
+            color: 'rgba(255,255,255,0.6)',
+            fontSize: 11,
+            fontWeight: 600,
+            padding: '6px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            width: '100%',
+          }}
+          data-testid="button-site-props-theme"
+        >
+          <Paintbrush style={{ width: 11, height: 11 }} />
+          Theme
+        </button>
+
+        <button
+          onClick={onOpenDrawer}
+          style={{
+            background: 'rgba(99,102,241,0.2)',
+            border: '1px solid rgba(99,102,241,0.3)',
+            borderRadius: 6,
+            cursor: 'pointer',
+            color: '#a5b4fc',
+            fontSize: 11,
+            fontWeight: 600,
+            padding: '6px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            width: '100%',
+          }}
+          data-testid="button-site-props-edit"
+        >
+          <Layers style={{ width: 11, height: 11 }} />
+          Edit Blocks
+        </button>
+
+        <a
+          href={`https://${meta.slug}.sev.cx`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 6,
+            cursor: 'pointer',
+            color: 'rgba(255,255,255,0.4)',
+            fontSize: 11,
+            padding: '6px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            width: '100%',
+            textDecoration: 'none',
+          }}
+          data-testid="link-site-props-preview"
+        >
+          <ExternalLink style={{ width: 11, height: 11 }} />
+          Preview live
+        </a>
+      </div>
+
+      <div style={{ ...sectionStyle }}>
+        <button
+          onClick={onDelete}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(239,68,68,0.2)',
+            borderRadius: 6,
+            cursor: 'pointer',
+            color: 'rgba(239,68,68,0.6)',
+            fontSize: 11,
+            padding: '5px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            width: '100%',
+          }}
+          data-testid="button-site-props-remove-block"
+        >
+          <Trash2 style={{ width: 11, height: 11 }} />
+          Remove from canvas
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Site Block Drawer (inline editor) ────────────────────────────────────────
+
+interface SiteData {
+  id: number;
+  slug: string;
+  title: string;
+  description: string | null;
+  is_published: boolean;
+  theme_json: ThemeSettings | null;
+  pages: { id: number; slug: string; is_homepage: boolean; content_json: { blocks: SiteBlock[] } | null }[];
+}
+
+function SiteBlockDrawer({
+  open,
+  slug,
+  onClose,
+  defaultOpenTheme = false,
+}: {
+  open: boolean;
+  slug: string | null;
+  onClose: () => void;
+  defaultOpenTheme?: boolean;
+}) {
+  const { toast } = useToast();
+  const [blocks, setBlocks] = useState<SiteBlock[]>([]);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const [themeOpen, setThemeOpen] = useState(false);
+  const [theme, setTheme] = useState<ThemeSettings>({ primaryColor: '#3b82f6', bgColor: '#ffffff', textColor: '#0f172a', fontFamily: 'system' });
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialLoad = useRef(true);
+
+  const { data: site, isLoading } = useQuery<SiteData>({
+    queryKey: ['/api/sites', slug],
+    queryFn: async () => {
+      const res = await fetch(`/api/sites/${slug}`);
+      if (!res.ok) throw new Error('Failed to load site');
+      return res.json();
+    },
+    enabled: !!slug && open,
+  });
+
+  useEffect(() => {
+    if (!site || !initialLoad.current) return;
+    initialLoad.current = false;
+    if (site.theme_json) setTheme(site.theme_json);
+    const homepage = site.pages?.find(p => p.is_homepage) ?? site.pages?.[0];
+    if (homepage?.content_json?.blocks) setBlocks(homepage.content_json.blocks);
+  }, [site]);
+
+  useEffect(() => {
+    if (!open) { initialLoad.current = true; setBlocks([]); setSelectedIdx(null); setSaveStatus('idle'); setThemeOpen(false); }
+    if (open && defaultOpenTheme) { setThemeOpen(true); }
+  }, [open, defaultOpenTheme]);
+
+  const savePageMutation = useMutation({
+    mutationFn: (newBlocks: SiteBlock[]) =>
+      apiRequest('PUT', `/api/sites/${slug}/pages/home`, { contentJson: { blocks: newBlocks } }),
+    onSuccess: () => setSaveStatus('saved'),
+    onError: () => { setSaveStatus('idle'); toast({ title: 'Save failed', variant: 'destructive' }); },
+  });
+
+  const saveSiteMutation = useMutation({
+    mutationFn: (data: { themeJson?: ThemeSettings }) =>
+      apiRequest('PUT', `/api/sites/${slug}`, data).then(r => r.json()),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['/api/sites'] }),
+  });
+
+  function debouncedSave(newBlocks: SiteBlock[]) {
+    if (initialLoad.current) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    setSaveStatus('saving');
+    saveTimer.current = setTimeout(() => savePageMutation.mutate(newBlocks), 1500);
+  }
+
+  function updateBlocks(newBlocks: SiteBlock[]) { setBlocks(newBlocks); debouncedSave(newBlocks); }
+
+  function addBlock(type: BlockType) {
+    const nb = [...blocks, makeDefaultSiteBlock(type)];
+    updateBlocks(nb);
+    setSelectedIdx(nb.length - 1);
+  }
+
+  function moveBlock(index: number, dir: 'up' | 'down') {
+    const nb = [...blocks];
+    const swap = dir === 'up' ? index - 1 : index + 1;
+    if (swap < 0 || swap >= nb.length) return;
+    [nb[index], nb[swap]] = [nb[swap], nb[index]];
+    updateBlocks(nb);
+    setSelectedIdx(swap);
+  }
+
+  function deleteBlock(index: number) {
+    updateBlocks(blocks.filter((_, i) => i !== index));
+    setSelectedIdx(null);
+  }
+
+  function updateBlock(index: number, updates: Partial<SiteBlock>) {
+    updateBlocks(blocks.map((b, i) => i === index ? { ...b, ...updates } : b));
+  }
+
+  const fieldClass = 'bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-600 text-sm focus-visible:ring-blue-500';
+
+  function renderBlockProperties(block: SiteBlock, onChange: (u: Partial<SiteBlock>) => void) {
+    const lc = 'text-zinc-400 text-xs mb-1 block';
+    switch (block.type) {
+      case 'hero': return (
+        <div className="space-y-3">
+          <div><label className={lc}>Heading</label><Input value={block.heading} onChange={e => onChange({ heading: e.target.value } as Partial<HeroBlock>)} className={fieldClass} data-testid="input-drawer-prop-heading" /></div>
+          <div><label className={lc}>Subheading</label><Input value={block.subheading ?? ''} onChange={e => onChange({ subheading: e.target.value } as Partial<HeroBlock>)} className={fieldClass} /></div>
+          <div><label className={lc}>CTA Text</label><Input value={block.ctaText ?? ''} onChange={e => onChange({ ctaText: e.target.value } as Partial<HeroBlock>)} className={fieldClass} /></div>
+          <div><label className={lc}>CTA URL</label><Input value={block.ctaHref ?? ''} onChange={e => onChange({ ctaHref: e.target.value } as Partial<HeroBlock>)} className={fieldClass} placeholder="https://" /></div>
+          <div className="flex gap-2">
+            <div className="flex-1"><label className={lc}>Background</label><input type="color" value={block.bgColor ?? '#1e293b'} onChange={e => onChange({ bgColor: e.target.value } as Partial<HeroBlock>)} className="w-full h-9 rounded border border-zinc-700 bg-zinc-900 cursor-pointer" /></div>
+            <div className="flex-1"><label className={lc}>Text color</label><input type="color" value={block.color ?? '#ffffff'} onChange={e => onChange({ color: e.target.value } as Partial<HeroBlock>)} className="w-full h-9 rounded border border-zinc-700 bg-zinc-900 cursor-pointer" /></div>
+          </div>
+        </div>
+      );
+      case 'text': return (
+        <div className="space-y-3">
+          <div><label className={lc}>Heading (optional)</label><Input value={block.heading ?? ''} onChange={e => onChange({ heading: e.target.value } as Partial<TextBlock>)} className={fieldClass} /></div>
+          <div><label className={lc}>Body</label><Textarea value={block.body} onChange={e => onChange({ body: e.target.value } as Partial<TextBlock>)} className={`${fieldClass} resize-none`} rows={6} /></div>
+        </div>
+      );
+      case 'gallery': return (
+        <div className="space-y-3">
+          <div><label className={lc}>Heading (optional)</label><Input value={block.heading ?? ''} onChange={e => onChange({ heading: e.target.value } as Partial<GalleryBlock>)} className={fieldClass} /></div>
+          {block.images.map((img, i) => (
+            <div key={i} className="p-2 bg-zinc-900 border border-zinc-800 rounded space-y-1.5">
+              <Input value={img.url} onChange={e => { const imgs = [...block.images]; imgs[i] = { ...imgs[i], url: e.target.value }; onChange({ images: imgs } as Partial<GalleryBlock>); }} className={fieldClass} placeholder="Image URL" />
+              <Input value={img.alt ?? ''} onChange={e => { const imgs = [...block.images]; imgs[i] = { ...imgs[i], alt: e.target.value }; onChange({ images: imgs } as Partial<GalleryBlock>); }} className={fieldClass} placeholder="Alt text" />
+            </div>
+          ))}
+          <Button variant="outline" size="sm" className="w-full border-zinc-700 text-zinc-400 text-xs" onClick={() => onChange({ images: [...block.images, { url: '', alt: '', caption: '' }] } as Partial<GalleryBlock>)}>+ Add image</Button>
+        </div>
+      );
+      case 'contact': return (
+        <div className="space-y-3">
+          <div><label className={lc}>Heading</label><Input value={block.heading ?? ''} onChange={e => onChange({ heading: e.target.value } as Partial<ContactBlock>)} className={fieldClass} /></div>
+          <div><label className={lc}>Email</label><Input value={block.email ?? ''} onChange={e => onChange({ email: e.target.value } as Partial<ContactBlock>)} className={fieldClass} placeholder="hello@example.com" /></div>
+          <div><label className={lc}>Body</label><Textarea value={block.body ?? ''} onChange={e => onChange({ body: e.target.value } as Partial<ContactBlock>)} className={`${fieldClass} resize-none`} rows={3} /></div>
+        </div>
+      );
+      case 'embed': return (
+        <div className="space-y-3">
+          <div><label className={lc}>Embed URL</label><Input value={block.url} onChange={e => onChange({ url: e.target.value } as Partial<EmbedBlock>)} className={fieldClass} placeholder="https://..." /></div>
+          <div><label className={lc}>Caption</label><Input value={block.caption ?? ''} onChange={e => onChange({ caption: e.target.value } as Partial<EmbedBlock>)} className={fieldClass} /></div>
+        </div>
+      );
+      case 'divider': return <p className="text-xs text-zinc-600 text-center py-4">No settings for this block</p>;
+      default: return null;
+    }
+  }
+
+  return (
+    <>
+      <Sheet open={open} onOpenChange={v => { if (!v) onClose(); }}>
+        <SheetContent
+          side="right"
+          className="bg-zinc-950 border-zinc-800 text-white p-0 flex flex-col"
+          style={{ width: 560, maxWidth: '90vw' }}
+          data-testid="sheet-site-block-editor"
+        >
+          <SheetHeader className="px-4 py-3 border-b border-zinc-800 shrink-0">
+            <SheetTitle className="text-white text-sm flex items-center gap-2">
+              <Globe className="w-4 h-4 text-blue-400" />
+              {site?.title ?? 'Site Editor'}
+              {saveStatus === 'saving' && <Loader2 className="w-3 h-3 animate-spin text-zinc-500 ml-auto" />}
+              {saveStatus === 'saved' && <Check className="w-3 h-3 text-green-500 ml-auto" />}
+            </SheetTitle>
+          </SheetHeader>
+
+          {isLoading ? (
+            <div className="flex items-center justify-center flex-1"><Loader2 className="w-5 h-5 animate-spin text-zinc-500" /></div>
+          ) : (
+            <div className="flex flex-1 overflow-hidden">
+              {/* Left: block palette + block list */}
+              <div className="w-[200px] shrink-0 border-r border-zinc-800 flex flex-col overflow-y-auto">
+                <div className="px-3 py-2 border-b border-zinc-800">
+                  <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Add Block</p>
+                </div>
+                <div className="p-2 flex flex-col gap-1.5">
+                  {BLOCK_PALETTE_ITEMS.map(({ type, label, icon: Icon }) => (
+                    <button
+                      key={type}
+                      onClick={() => addBlock(type)}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded bg-zinc-900 border border-zinc-800 hover:border-blue-500/50 hover:bg-zinc-800 transition-all text-left text-xs text-zinc-400 hover:text-white"
+                      data-testid={`button-drawer-add-block-${type}`}
+                    >
+                      <Icon className="w-3 h-3 shrink-0" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {blocks.length > 0 && (
+                  <>
+                    <div className="px-3 py-2 border-t border-b border-zinc-800 mt-2">
+                      <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Blocks ({blocks.length})</p>
+                    </div>
+                    <div className="flex flex-col gap-1 p-2">
+                      {blocks.map((block, i) => (
+                        <div
+                          key={i}
+                          className={`flex items-center gap-1.5 px-2 py-1.5 rounded cursor-pointer text-xs transition-all ${selectedIdx === i ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30' : 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300'}`}
+                          onClick={() => setSelectedIdx(i)}
+                          data-testid={`drawer-block-item-${i}`}
+                        >
+                          <span className="flex-1 capitalize truncate">{block.type}</span>
+                          <button onClick={e => { e.stopPropagation(); moveBlock(i, 'up'); }} disabled={i === 0} className="p-0.5 disabled:opacity-30 hover:text-white"><ChevronUp className="w-3 h-3" /></button>
+                          <button onClick={e => { e.stopPropagation(); moveBlock(i, 'down'); }} disabled={i === blocks.length - 1} className="p-0.5 disabled:opacity-30 hover:text-white"><ChevronDown className="w-3 h-3" /></button>
+                          <button onClick={e => { e.stopPropagation(); deleteBlock(i); }} className="p-0.5 text-red-400/50 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Right: block properties */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {selectedIdx !== null && blocks[selectedIdx] ? (
+                  <>
+                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-3">
+                      {blocks[selectedIdx].type} Properties
+                    </p>
+                    {renderBlockProperties(blocks[selectedIdx], updates => updateBlock(selectedIdx, updates))}
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-zinc-600 text-center">
+                    <Layers className="w-8 h-8 mb-2 text-zinc-800" />
+                    <p className="text-xs">Select a block on the left to edit its properties</p>
+                    {blocks.length === 0 && <p className="text-xs mt-2">or add a block to get started</p>}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Theme footer */}
+          <div className="px-4 py-3 border-t border-zinc-800 flex items-center gap-2 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-zinc-400 hover:text-white text-xs gap-1.5"
+              onClick={() => setThemeOpen(true)}
+              data-testid="button-drawer-theme"
+            >
+              <Paintbrush className="w-3 h-3" />
+              Theme
+            </Button>
+            <a
+              href={`https://${slug}.sev.cx`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-blue-400 ml-auto"
+              data-testid="link-drawer-preview"
+            >
+              <ExternalLink className="w-3 h-3" />
+              Preview live
+            </a>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Theme sheet (nested) */}
+      <Sheet open={themeOpen} onOpenChange={setThemeOpen}>
+        <SheetContent side="right" className="bg-zinc-950 border-zinc-800 text-white w-[280px]" data-testid="sheet-drawer-theme">
+          <SheetHeader>
+            <SheetTitle className="text-white text-sm">Theme Customizer</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 space-y-4">
+            <div>
+              <Label className="text-zinc-400 text-xs mb-1.5 block">Primary color</Label>
+              <input type="color" value={theme.primaryColor ?? '#3b82f6'} onChange={e => setTheme(t => ({ ...t, primaryColor: e.target.value }))} className="w-full h-9 rounded border border-zinc-700 bg-zinc-900 cursor-pointer" />
+            </div>
+            <div>
+              <Label className="text-zinc-400 text-xs mb-1.5 block">Background color</Label>
+              <input type="color" value={theme.bgColor ?? '#ffffff'} onChange={e => setTheme(t => ({ ...t, bgColor: e.target.value }))} className="w-full h-9 rounded border border-zinc-700 bg-zinc-900 cursor-pointer" />
+            </div>
+            <div>
+              <Label className="text-zinc-400 text-xs mb-1.5 block">Text color</Label>
+              <input type="color" value={theme.textColor ?? '#0f172a'} onChange={e => setTheme(t => ({ ...t, textColor: e.target.value }))} className="w-full h-9 rounded border border-zinc-700 bg-zinc-900 cursor-pointer" />
+            </div>
+            <div>
+              <Label className="text-zinc-400 text-xs mb-1.5 block">Font family</Label>
+              <Select value={theme.fontFamily ?? 'system'} onValueChange={v => setTheme(t => ({ ...t, fontFamily: v }))}>
+                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-zinc-900 border-zinc-700">
+                  <SelectItem value="system" className="text-white">System Default</SelectItem>
+                  <SelectItem value="serif" className="text-white">Serif</SelectItem>
+                  <SelectItem value="mono" className="text-white">Mono</SelectItem>
+                  <SelectItem value="rounded" className="text-white">Rounded</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold mt-2"
+              onClick={() => { saveSiteMutation.mutate({ themeJson: theme }); setThemeOpen(false); toast({ title: 'Theme saved' }); }}
+              data-testid="button-drawer-save-theme"
+            >
+              Apply Theme
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
+  );
+}
+
 export default function CanvasPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -516,6 +1323,28 @@ export default function CanvasPage() {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [selectedObjects, setSelectedObjects] = useState(0);
   const [selectedOpacity, setSelectedOpacity] = useState(100);
+
+  const [sitesPanelOpen, setSitesPanelOpen] = useState(false);
+  const [selectedSiteMeta, setSelectedSiteMeta] = useState<SiteBlockMeta | null>(null);
+  const [siteDrawerOpen, setSiteDrawerOpen] = useState(false);
+  const [siteDrawerSlug, setSiteDrawerSlug] = useState<string | null>(null);
+  const [siteDrawerOpenTheme, setSiteDrawerOpenTheme] = useState(false);
+  const [canvasReady, setCanvasReady] = useState(false);
+
+  const siteQueryParam = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('site');
+  }, []);
+
+  useEffect(() => {
+    if (siteQueryParam) {
+      setSiteDrawerSlug(siteQueryParam);
+      setSiteDrawerOpen(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('site');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [siteQueryParam]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasElRef = useRef<HTMLCanvasElement>(null);
@@ -575,7 +1404,97 @@ export default function CanvasPage() {
   const setActiveToolFn = useCallback((tool: Tool) => {
     setActiveTool(tool);
     activeToolRef.current = tool;
+    if (tool !== 'sites') setSitesPanelOpen(false);
+    if (tool === 'sites') setSitesPanelOpen(true);
   }, []);
+
+  const addSiteToCanvas = useCallback((site: SiteWithPageCount) => {
+    const fc = fabricRef.current;
+    if (!fc) return;
+
+    const cx = fc.getWidth() / 2 / fc.getZoom() - (fc.viewportTransform?.[4] ?? 0) / fc.getZoom();
+    const cy = fc.getHeight() / 2 / fc.getZoom() - (fc.viewportTransform?.[5] ?? 0) / fc.getZoom();
+
+    const W = 320, H = 200;
+    const bg = new FabricRect({
+      left: 0, top: 0, width: W, height: H,
+      fill: '#111827',
+      stroke: '#6366f1',
+      strokeWidth: 2,
+      rx: 10, ry: 10,
+      selectable: false, evented: false,
+    });
+    const header = new FabricRect({
+      left: 0, top: 0, width: W, height: 36,
+      fill: '#1e1e2e',
+      rx: 10, ry: 10,
+      selectable: false, evented: false,
+    });
+    const dot1 = new FabricRect({ left: 12, top: 12, width: 10, height: 10, rx: 5, ry: 5, fill: '#ef4444', selectable: false, evented: false });
+    const dot2 = new FabricRect({ left: 28, top: 12, width: 10, height: 10, rx: 5, ry: 5, fill: '#eab308', selectable: false, evented: false });
+    const dot3 = new FabricRect({ left: 44, top: 12, width: 10, height: 10, rx: 5, ry: 5, fill: '#22c55e', selectable: false, evented: false });
+    const urlBar = new FabricRect({ left: 64, top: 9, width: W - 80, height: 18, fill: '#374151', rx: 4, ry: 4, selectable: false, evented: false });
+
+    const titleText = new FabricIText(site.title, {
+      left: W / 2, top: 65, fontSize: 18, fontWeight: '700',
+      fill: '#ffffff', textAlign: 'center', originX: 'center',
+      selectable: false, evented: false, editable: false,
+    });
+    const slugText = new FabricIText(`${site.slug}.sev.cx`, {
+      left: W / 2, top: 90, fontSize: 11,
+      fill: '#6366f1', textAlign: 'center', originX: 'center', fontFamily: 'monospace',
+      selectable: false, evented: false, editable: false,
+    });
+    const statusColor = site.is_published ? '#22c55e' : '#6b7280';
+    const statusBg = new FabricRect({ left: W / 2 - 26, top: 115, width: 52, height: 18, fill: site.is_published ? '#14532d' : '#1f2937', rx: 4, ry: 4, selectable: false, evented: false });
+    const statusText = new FabricIText(site.is_published ? 'LIVE' : 'DRAFT', {
+      left: W / 2, top: 117, fontSize: 10, fontWeight: '700',
+      fill: statusColor, textAlign: 'center', originX: 'center',
+      selectable: false, evented: false, editable: false,
+    });
+    const hintText = new FabricIText('Double-click to edit blocks', {
+      left: W / 2, top: 155, fontSize: 10,
+      fill: 'rgba(255,255,255,0.25)', textAlign: 'center', originX: 'center',
+      selectable: false, evented: false, editable: false,
+    });
+
+    const group = new FabricGroup([bg, header, dot1, dot2, dot3, urlBar, titleText, slugText, statusBg, statusText, hintText], {
+      left: cx - W / 2,
+      top: cy - H / 2,
+      data: {
+        type: 'site',
+        siteId: site.id,
+        slug: site.slug,
+        title: site.title,
+        isPublished: site.is_published,
+      } as SiteBlockMeta,
+    });
+
+    fc.add(group);
+    fc.setActiveObject(group);
+    fc.requestRenderAll();
+    scheduleAutoSaveRef.current();
+    setActiveToolFn('select');
+  }, [setActiveToolFn]);
+
+  useEffect(() => {
+    if (!canvasReady || !siteQueryParam) return;
+    fetch(`/api/sites/${siteQueryParam}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((site: SiteData | null) => {
+        if (!site) return;
+        addSiteToCanvas({
+          id: site.id,
+          slug: site.slug,
+          title: site.title,
+          description: site.description,
+          is_published: site.is_published,
+          theme_json: site.theme_json,
+          page_count: site.pages?.length ?? 0,
+        });
+      })
+      .catch(() => {});
+  }, [canvasReady, siteQueryParam, addSiteToCanvas]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -596,6 +1515,7 @@ export default function CanvasPage() {
     });
 
     fabricRef.current = fc;
+    setCanvasReady(true);
 
     fc.on('mouse:wheel', (opt) => {
       let z = fc.getZoom() * (0.999 ** (opt.e as WheelEvent).deltaY);
@@ -720,9 +1640,21 @@ export default function CanvasPage() {
       }
     });
 
+    function detectSiteBlock(objs: ReturnType<typeof fc.getActiveObjects>) {
+      if (objs.length === 1) {
+        const meta = (objs[0] as unknown as { data?: SiteBlockMeta }).data;
+        if (meta?.type === 'site') {
+          setSelectedSiteMeta(meta);
+          return;
+        }
+      }
+      setSelectedSiteMeta(null);
+    }
+
     fc.on('selection:created', () => {
       const objs = fc.getActiveObjects();
       setSelectedObjects(objs.length);
+      detectSiteBlock(objs);
       if (objs.length > 0) {
         const obj = objs[0];
         setSelectedOpacity(Math.round((obj.opacity ?? 1) * 100));
@@ -737,6 +1669,7 @@ export default function CanvasPage() {
     fc.on('selection:updated', () => {
       const objs = fc.getActiveObjects();
       setSelectedObjects(objs.length);
+      detectSiteBlock(objs);
       if (objs.length > 0) {
         const obj = objs[0];
         setSelectedOpacity(Math.round((obj.opacity ?? 1) * 100));
@@ -748,7 +1681,18 @@ export default function CanvasPage() {
         activeColorRef.current = stroke;
       }
     });
-    fc.on('selection:cleared', () => setSelectedObjects(0));
+    fc.on('selection:cleared', () => {
+      setSelectedObjects(0);
+      setSelectedSiteMeta(null);
+    });
+
+    fc.on('mouse:dblclick', (opt) => {
+      const target = opt.target as { data?: SiteBlockMeta } | null;
+      if (target?.data?.type === 'site') {
+        setSiteDrawerSlug(target.data.slug);
+        setSiteDrawerOpen(true);
+      }
+    });
 
     (['object:added', 'object:modified', 'object:removed'] as const).forEach(ev =>
       fc.on(ev, () => scheduleAutoSaveRef.current())
@@ -1345,10 +2289,71 @@ export default function CanvasPage() {
               }
             }}
           />
+          <div style={dividerStyle} />
+          <button
+            onClick={() => {
+              if (activeTool === 'sites') {
+                setSitesPanelOpen(p => !p);
+              } else {
+                setActiveToolFn('sites');
+              }
+            }}
+            title="Sites"
+            style={{
+              ...toolBtnStyle('sites'),
+              background: activeTool === 'sites' ? 'rgba(99,102,241,0.3)' : sitesPanelOpen ? 'rgba(99,102,241,0.15)' : 'none',
+            }}
+            onMouseEnter={e => { if (activeTool !== 'sites') e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+            onMouseLeave={e => { if (activeTool !== 'sites') e.currentTarget.style.background = sitesPanelOpen ? 'rgba(99,102,241,0.15)' : 'none'; }}
+            data-testid="button-tool-sites"
+          >
+            <Globe className="h-4 w-4" />
+          </button>
         </div>
 
-        {/* Properties panel */}
-        {selectedObjects > 0 && (
+        {/* Sites floating panel */}
+        {sitesPanelOpen && (
+          <SitesPanel
+            onSelectSite={site => {
+              addSiteToCanvas(site);
+              setSitesPanelOpen(false);
+              setActiveToolFn('select');
+            }}
+            onClose={() => {
+              setSitesPanelOpen(false);
+              if (activeTool === 'sites') setActiveToolFn('select');
+            }}
+          />
+        )}
+
+        {/* Properties panel — site-aware */}
+        {selectedSiteMeta ? (
+          <SitePropertiesPanel
+            meta={selectedSiteMeta}
+            onPublishToggle={() => {
+              setSelectedSiteMeta(m => {
+                if (!m) return null;
+                const newVal = !m.isPublished;
+                const active = fabricRef.current?.getActiveObject() as ({ data?: SiteBlockMeta } | undefined);
+                if (active?.data?.type === 'site') {
+                  active.data = { ...active.data, isPublished: newVal };
+                }
+                return { ...m, isPublished: newVal };
+              });
+            }}
+            onOpenTheme={() => {
+              setSiteDrawerSlug(selectedSiteMeta.slug);
+              setSiteDrawerOpenTheme(true);
+              setSiteDrawerOpen(true);
+            }}
+            onOpenDrawer={() => {
+              setSiteDrawerSlug(selectedSiteMeta.slug);
+              setSiteDrawerOpenTheme(false);
+              setSiteDrawerOpen(true);
+            }}
+            onDelete={deleteSelected}
+          />
+        ) : selectedObjects > 0 ? (
           <div
             style={{
               position: 'absolute',
@@ -1422,7 +2427,7 @@ export default function CanvasPage() {
               testId="button-canvas-delete-selected"
             />
           </div>
-        )}
+        ) : null}
 
         {/* Zoom controls */}
         <div
@@ -1476,6 +2481,14 @@ export default function CanvasPage() {
         onClose={() => setLoadOpen(false)}
         onLoad={handleLoadProject}
         onDelete={id => deleteMutation.mutate(id)}
+      />
+
+      {/* Site block inline editor drawer */}
+      <SiteBlockDrawer
+        open={siteDrawerOpen}
+        slug={siteDrawerSlug}
+        defaultOpenTheme={siteDrawerOpenTheme}
+        onClose={() => { setSiteDrawerOpen(false); setSiteDrawerSlug(null); setSiteDrawerOpenTheme(false); }}
       />
     </>
   );

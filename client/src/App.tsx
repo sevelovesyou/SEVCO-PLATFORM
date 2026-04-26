@@ -280,8 +280,13 @@ function Router() {
       <Route path="/music/artists/:slug" component={MusicArtistDetail} />
       <Route path="/music/albums/new" component={() => <ProtectedRoute><MusicAlbumForm /></ProtectedRoute>} />
       <Route path="/music/albums/:slug" component={MusicAlbumDetail} />
-      <Route path="/sites" component={() => <ProtectedRoute><SitesPage /></ProtectedRoute>} />
-      <Route path="/sites/:slug/edit" component={() => <ProtectedRoute><SitesBuilderPage /></ProtectedRoute>} />
+      <Route path="/sites" component={() => <Redirect to="/canvas" />} />
+      <Route path="/sites/:slug/edit">
+        {(params: { slug: string }) => <Redirect to={`/canvas?site=${params.slug}`} />}
+      </Route>
+      <Route path="/sites/:slug/builder">
+        {(params: { slug: string }) => <Redirect to={`/canvas?site=${params.slug}`} />}
+      </Route>
       <Route path="/canvas" component={() => <ProtectedRoute><CanvasPage /></ProtectedRoute>} />
       <Route path="/services" component={ServicesListingPage} />
       <Route path="/services/creative" component={ServiceCategoryPage} />

@@ -1737,17 +1737,20 @@ export async function registerRoutes(
 
   app.get("/api/search/dictionary", async (req, res) => {
     const raw = ((req.query.q as string) || "").trim().toLowerCase();
-    if (!/^[a-z]{2,32}$/.test(raw)) {
+    const sendEmpty = () => {
       res.setHeader("Cache-Control", "no-store");
-      return res.status(204).end();
+      return res.status(200).json(null);
+    };
+
+    if (!/^[a-z]{2,32}$/.test(raw)) {
+      return sendEmpty();
     }
 
     const now = Date.now();
     const cached = dictionaryCache.get(raw);
     if (cached && cached.expiresAt > now) {
       if (cached.value === null) {
-        res.setHeader("Cache-Control", "no-store");
-        return res.status(204).end();
+        return sendEmpty();
       }
       res.setHeader("Cache-Control", "public, max-age=86400");
       return res.json(cached.value);
@@ -1767,16 +1770,18 @@ export async function registerRoutes(
         `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(raw)}`,
         { signal: AbortSignal.timeout(4000) },
       );
-      if (!upstream.ok) {
+      if (upstream.status === 404) {
         setCache(null);
+        return sendEmpty();
+      }
+      if (!upstream.ok) {
         res.setHeader("Cache-Control", "no-store");
         return res.status(204).end();
       }
       const data = (await upstream.json()) as any[];
       if (!Array.isArray(data) || data.length === 0) {
         setCache(null);
-        res.setHeader("Cache-Control", "no-store");
-        return res.status(204).end();
+        return sendEmpty();
       }
       const first = data[0] || {};
       const phonetic: string | undefined =
@@ -1829,8 +1834,7 @@ export async function registerRoutes(
 
       if (meanings.length === 0) {
         setCache(null);
-        res.setHeader("Cache-Control", "no-store");
-        return res.status(204).end();
+        return sendEmpty();
       }
 
       const sourceUrl: string | undefined =

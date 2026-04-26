@@ -31316,3 +31316,105 @@ Write a one-paragraph health-check summary at the end of `replit.md` (under the 
 
 ---
 
+## Task — home-google-search-section
+> Merged: 2026-04-26
+
+# Task: Add Google-style full-height search section to the landing/home page
+
+## What
+Add a new full-viewport-height section at the very top of `client/src/pages/landing.tsx` (the `/` home page). The section is styled after Google's classic homepage: just the SEVCO color logo centered in the middle of the screen with a pill-shaped search bar directly below it — nothing else.
+
+The existing landing page (hero, platform sections, projects showstopper, music, feed, etc.) follows below this new section completely unchanged.
+
+## Asset
+Logo: `@assets/SEVCO_COLOR_LOGO_1777185344464.png` — the multi-color SEVCO wordmark (blue, yellow, red, green, blue).
+- Desktop: ~320px wide
+- Mobile: ~220px wide
+- `object-contain`, no forced background color
+
+## File to change
+**`client/src/pages/landing.tsx`** only. No new files, no backend changes.
+
+## Implementation
+
+### 1. New imports (add to existing imports at top of file)
+```tsx
+import { useState } from "react";      // already imported — check; if not, add
+import { useLocation } from "wouter";  // already imported via Link — if not, add
+import { Search } from "lucide-react"; // add to existing lucide imports
+import sevcoColorLogo from "@assets/SEVCO_COLOR_LOGO_1777185344464.png";
+```
+
+### 2. New state (add inside the component, near the top with the other state)
+```tsx
+const [, navigate] = useLocation();
+const [searchQuery, setSearchQuery] = useState("");
+
+function handleSearch(e: React.FormEvent) {
+  e.preventDefault();
+  const q = searchQuery.trim();
+  if (!q) return;
+  navigate(`/search?q=${encodeURIComponent(q)}`);
+}
+```
+
+### 3. New section — place BEFORE the existing hero `{showHero && <section…>}`
+Insert immediately after `<PageHead … />` and before the `{/* ── HERO ── */}` comment:
+
+```tsx
+{/* ── GOOGLE-STYLE SEARCH ── */}
+<section
+  className="min-h-screen flex flex-col items-center justify-center gap-8 px-4 bg-background"
+  data-testid="section-home-search"
+>
+  <img
+    src={sevcoColorLogo}
+    alt="SEVCO"
+    className="w-[220px] sm:w-[320px] object-contain select-none"
+    draggable={false}
+    data-testid="img-home-search-logo"
+  />
+
+  <form
+    onSubmit={handleSearch}
+    className="w-full max-w-xl"
+    data-testid="form-home-search"
+  >
+    <div className="flex items-center rounded-full border border-border bg-card shadow-md hover:shadow-lg focus-within:shadow-lg transition-shadow">
+      <Search className="ml-4 h-4 w-4 shrink-0 text-muted-foreground" />
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder="Search SEVCO..."
+        className="flex-1 bg-transparent py-3 px-3 text-sm outline-none placeholder:text-muted-foreground"
+        autoComplete="off"
+        data-testid="input-home-search"
+      />
+      <button
+        type="submit"
+        className="mr-2 px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+        data-testid="button-home-search-submit"
+      >
+        Search
+      </button>
+    </div>
+  </form>
+</section>
+```
+
+## Visual behaviour
+- `min-h-screen` ensures this section fills the viewport on first load.
+- `bg-background` follows the existing theme so it looks natural in both dark and light mode.
+- The color logo will look best in dark mode (dark bg) but is readable in light mode too — no filtering needed.
+- No decorative text, taglines, nav links, or additional widgets — the section should feel as minimal as Google's homepage.
+- When the user scrolls past this section the existing SEVCO hero/landing content starts naturally.
+
+## What stays unchanged
+- All existing landing page sections (hero, platform cards, projects, music, news, feed, footer) are untouched.
+- All existing `data-testid` attributes are preserved.
+- The `showHero` platform setting that controls whether the hero renders is unaffected.
+
+
+---
+

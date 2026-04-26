@@ -462,7 +462,7 @@ export default function Landing() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="⌘ + ? help"
+              placeholder="/"
               className="flex-1 bg-transparent py-3 px-3 text-sm outline-none placeholder:text-muted-foreground"
               autoComplete="off"
               data-testid="input-home-search"

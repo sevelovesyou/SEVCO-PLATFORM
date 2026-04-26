@@ -180,7 +180,7 @@ export default function SearchPage() {
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Search everything..."
+            placeholder="/"
             className="flex-1 bg-transparent outline-none text-base placeholder:text-muted-foreground/60"
             data-testid="input-search-page"
             autoFocus
@@ -195,7 +195,7 @@ export default function SearchPage() {
               <X className="h-4 w-4" />
             </button>
           )}
-          <Button type="submit" size="sm" className="h-7 text-xs px-3" data-testid="button-search-submit">
+          <Button type="submit" size="sm" className="h-7 text-xs px-3 rounded-xl" data-testid="button-search-submit">
             Search
           </Button>
         </div>

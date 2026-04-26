@@ -30803,3 +30803,105 @@ Change to:
 
 ---
 
+## Task — about-page-redesign
+> Merged: 2026-04-26
+
+# Task: About page redesign + nav About icon change
+
+## Summary
+Two changes:
+1. **Nav icon** — Change the "About" entry in the HomeDropdown from `BookOpen` to `BookA` so it no longer matches the Wiki icon
+2. **`/about` page full restructure** — Replace the current minimal About page with a rich, structured brand/entity page per the attached brief
+
+---
+
+## Change 1 — Nav icon (`client/src/components/platform-header.tsx`)
+
+Line ~343 in the `items` array inside `HomeDropdown`:
+```tsx
+// Before
+{ label: "About", href: "/about", icon: BookOpen, desc: "Learn about SEVCO", show: true },
+
+// After
+{ label: "About", href: "/about", icon: BookA, desc: "Learn about SEVCO", show: true },
+```
+
+Also add `BookA` to the lucide-react import at the top of the file (remove `BookOpen` only if it's no longer used elsewhere — check: it may still be used in the Wiki entry at line ~345 and for Wiki items, so keep `BookOpen` imported).
+
+---
+
+## Change 2 — `/about` page (`client/src/pages/about-page.tsx`)
+
+Full rewrite. New structure, top to bottom:
+
+### Section 1 — Hero (above the fold)
+- Full-bleed dark hero (similar to projects-page hero style) with subtle gradient blobs
+- Badge label: "The Inspiration Company"
+- H1: "SEVCO | The Inspiration Company"
+- Subtitle: "Founded by Severin Fredrik Gislason (Seve)"
+- Short intro paragraph: "SEVCO is a creative technology organization building at the intersection of music, digital platforms, projects, and visionary ideas. Founded in Montana by entrepreneur and musician Severin Fredrik Gislason, SEVCO incubates bold ideas that inspire and empower creators."
+- CTA buttons: "Our Projects" → /projects, "Get in Touch" → /contact, "View the Wiki" → /wiki
+
+### Section 2 — Company Overview / Mission
+- Heading: "What is SEVCO?"
+- 3-4 paragraphs describing what SEVCO does, covering:
+  - Music label (SEVCO Records)
+  - Platform and digital products
+  - Projects like SPHERE, Architecture, Freeball, Minecraft community
+  - Services (engineering, design, marketing)
+  - Sparks currency / community
+- Tagline callout block: `"Building the future, one project at a time."`
+
+### Section 3 — Founder Story
+- Heading: "Our Founder — Severin Fredrik Gislason (Seve)"
+- 3-4 paragraphs: Journey from music to tech to SEVCO, Montana roots, Kalispell, roles (Founder / Musician / Visionary), SEVCO creations as extensions of his vision
+- Link card to severingislason.com (external link with ExternalLink icon)
+- Location: Kalispell, Montana
+
+### Section 4 — Key Projects & Areas
+- Heading: "What we build"
+- Grid (2-col on sm+) of the existing PILLARS: SEVCO Records, SEVCO Services, SEVCO Projects, SEVCO Platform
+- Keep the same card style (border, rounded-2xl, group hover) but remove the muted bg on the icon wrapper (follow the post-558 pattern)
+- Below the grid, add a horizontal pill row of specific project names: SPHERE, SEVCO Architecture, Freeball, Minecraft Community — each linking to /projects
+
+### Section 5 — Values & Community
+- Heading: "Our Values"
+- 3 value cards (icon + title + short description):
+  1. Inspiration — "Build things that inspire. Every product, release, and feature starts with the question: does this make someone's life better or more interesting?"
+  2. Transparency — "We ship in public, share what we learn, and use the same tools we sell."
+  3. Community — "The best ideas come from the community. SEVCO is a platform for creators, not a gate between them."
+- Community CTA: Discord link
+
+### Section 6 — Connect & Verify (Entity Signals)
+- Heading: "Find us everywhere"
+- Subtext: "Official profiles, verified sources, and ways to reach the team."
+- Social links row (keep existing: X, Instagram, Discord, YouTube, GitHub) — same button style as current
+- Additional external link buttons:
+  - severingislason.com (Personal site)
+  - seve@sevco.us (Email)
+  - Crunchbase (placeholder — link to crunchbase.com/organization/sevco if exists, otherwise omit)
+- Direct contact CTA: "Contact page" → /contact
+
+### Section 7 — Brand Guidelines teaser
+- Keep existing brand teaser section (the gradient card with Palette icon and "SEVCO Brand Guidelines" link)
+- Preserve exactly as-is
+
+### Section 8 — Quick links footer
+- Keep existing quick links section at bottom (Privacy Policy, Terms, Refund, Changelog, Careers, etc.)
+
+---
+
+## Notes
+- Keep `data-testid` attributes on all interactive and display elements
+- Use lucide-react icons throughout; `react-icons/si` for social brand icons
+- No new dependencies required — all icons and components already imported in the project
+- Keep the page max-w-4xl centered layout but widen to max-w-5xl to accommodate the richer content
+- The page is frontend-only — no API calls, no backend changes required
+
+## Relevant files
+- `client/src/components/platform-header.tsx` — nav icon change (~line 343)
+- `client/src/pages/about-page.tsx` — full page rewrite
+
+
+---
+

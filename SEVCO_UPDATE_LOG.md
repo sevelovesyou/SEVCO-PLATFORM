@@ -31497,3 +31497,48 @@ The keyboard shortcuts help dialog overflows the viewport on shorter screens, so
 
 ---
 
+## Task — unified-creative-studio
+> Merged: 2026-04-26
+
+# Sites as a Canvas Tool
+
+## What & Why
+Instead of a separate mode or page, site-building becomes just another tool in the Canvas toolbar — the same way you'd add an image or draw a shape. Users pick the Sites tool, place a site on the canvas as a live-preview block, and interact with it from the familiar canvas surface. No context switching, no separate page to navigate to.
+
+## Done looks like
+- A "Sites" tool icon (globe/layout icon) appears in the left toolbar alongside the existing drawing tools.
+- Clicking the Sites tool opens a small floating panel showing the user's existing sites and a "New Site" button.
+- Selecting a site (or creating one) places it on the canvas as a **Site Block** — a resizable, movable iframe-style object showing a live preview of that site, just like an image object.
+- When a Site Block is selected, the right properties panel adapts to show site-specific controls: add a block (Hero, Text, Gallery, etc.), Publish/Unpublish toggle, Theme button (opens the existing theme sheet), and a "Preview live" link.
+- Double-clicking a Site Block opens an inline edit drawer from the right where users can edit individual blocks (the existing sites-builder block editor), without leaving the canvas.
+- Deselecting the Site Block collapses everything back to the normal canvas state.
+- The existing `/sites` and `/sites/:id/builder` routes redirect to `/canvas` with the relevant site pre-selected.
+
+## Out of scope
+- Changing the Sites rendering or publishing backend.
+- Adding new block types to the Sites builder.
+- Mobile layout changes.
+- Embedding the site iframe as a real interactive element (it is a preview thumbnail, not a live clickable site on-canvas).
+
+## Steps
+1. **Sites tool in the toolbar** — Add a Sites tool button (globe or layout icon) at the bottom of the left drawing toolbar, visually grouped with the other tools. Clicking it opens a small `glassPill`-styled floating panel listing the user's sites (via the existing `/api/sites` endpoint) with a "New Site" button and a delete option per site.
+
+2. **Site Block as a canvas object** — When a site is chosen from the panel, place a Fabric.js custom object on the canvas representing that site. It renders as a styled placeholder/thumbnail (showing the site name, slug, and publish status) that can be moved and resized like any other canvas object. Store the site's `id` and `slug` in the object's metadata so it can be rehydrated on project load.
+
+3. **Site-aware properties panel** — When a Site Block is selected, replace the standard fill/stroke/opacity properties panel with a site-specific panel: buttons to add a content block (Hero, Text, Gallery, etc. — calls existing sites API), a Publish/Unpublish toggle (calls existing `/api/sites/:slug/publish`), a Theme button, and a "Open live preview" external link.
+
+4. **Inline block editor drawer** — Double-clicking a Site Block slides in the existing block editor UI (extracted from `sites-builder.tsx`) as a right-side drawer over the canvas, showing the full page block list and properties for the selected block. Closing the drawer returns to normal canvas interaction.
+
+5. **Routing cleanup** — Redirect `/sites` to `/canvas` and `/sites/:id/builder` to `/canvas` (with the matching site auto-selected on load via a URL query param like `?site=slug`). Update the nav link if "Canvas" is referenced anywhere to reflect the broader scope.
+
+## Relevant files
+- `client/src/pages/canvas-page.tsx`
+- `client/src/pages/sites-builder.tsx`
+- `client/src/pages/sites-page.tsx`
+- `server/sites-routes.ts`
+- `server/sites-renderer.ts`
+- `client/src/App.tsx`
+
+
+---
+

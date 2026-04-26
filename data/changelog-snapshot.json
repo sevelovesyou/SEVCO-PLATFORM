@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-04-26T08:26:25.849Z",
-  "count": 436,
+  "generatedAt": "2026-04-26T15:09:43.502Z",
+  "count": 438,
   "coveredMin": 1,
-  "coveredMax": 602,
+  "coveredMax": 604,
   "entries": [
     {
       "title": "Task #1 — RBAC & Role Permission System",
@@ -6976,6 +6976,38 @@
       "articleTags": [
         "platform-history",
         "task-602",
+        "engineering"
+      ],
+      "isPlaceholder": false
+    },
+    {
+      "title": "Task #603-603 — (no logged content)",
+      "description": "Tasks #603 through #603 merged before the platform changelog was wired up, or their plan files were never persisted. This placeholder keeps the task ordering intact.",
+      "category": "other",
+      "version": "1.8.247",
+      "wikiSlug": "platform-task-603-603",
+      "createdAt": "Sun Apr 26 2026 11:48:04 GMT+0000 (Coordinated Universal Time)",
+      "articleContent": "# Task #603-603 — (no logged content)\n\n_Version: 1.8.247_\n\nTasks #603 through #603 merged before the platform changelog was wired up, or their plan files were never persisted. This placeholder keeps the task ordering intact.\n\n---\n\n_Auto-generated from the changelog snapshot (Task #525). Replace with the full task plan content by re-merging the original task._\n",
+      "articleSummary": "Tasks #603 through #603 merged before the platform changelog was wired up, or their plan files were never persisted. This placeholder keeps the task ordering intact.",
+      "articleTags": [
+        "platform-history",
+        "engineering",
+        "placeholder"
+      ],
+      "isPlaceholder": true
+    },
+    {
+      "title": "Task #604 — Sites as a Canvas Tool",
+      "description": "Instead of a separate mode or page, site-building becomes just another tool in the Canvas toolbar — the same way you'd add an image or draw a shape. Users pick the Sites tool, place a site on the canvas as a live-preview block, and interact with it from the familiar canvas surface. No context switching, no separate page to navigate to.",
+      "category": "feature",
+      "version": "1.8.248",
+      "wikiSlug": "platform-task-604",
+      "createdAt": "Sun Apr 26 2026 15:09:43 GMT+0000 (Coordinated Universal Time)",
+      "articleContent": "# Sites as a Canvas Tool\n\n## What & Why\nInstead of a separate mode or page, site-building becomes just another tool in the Canvas toolbar — the same way you'd add an image or draw a shape. Users pick the Sites tool, place a site on the canvas as a live-preview block, and interact with it from the familiar canvas surface. No context switching, no separate page to navigate to.\n\n## Done looks like\n- A \"Sites\" tool icon (globe/layout icon) appears in the left toolbar alongside the existing drawing tools.\n- Clicking the Sites tool opens a small floating panel showing the user's existing sites and a \"New Site\" button.\n- Selecting a site (or creating one) places it on the canvas as a **Site Block** — a resizable, movable iframe-style object showing a live preview of that site, just like an image object.\n- When a Site Block is selected, the right properties panel adapts to show site-specific controls: add a block (Hero, Text, Gallery, etc.), Publish/Unpublish toggle, Theme button (opens the existing theme sheet), and a \"Preview live\" link.\n- Double-clicking a Site Block opens an inline edit drawer from the right where users can edit individual blocks (the existing sites-builder block editor), without leaving the canvas.\n- Deselecting the Site Block collapses everything back to the normal canvas state.\n- The existing `/sites` and `/sites/:id/builder` routes redirect to `/canvas` with the relevant site pre-selected.\n\n## Out of scope\n- Changing the Sites rendering or publishing backend.\n- Adding new block types to the Sites builder.\n- Mobile layout changes.\n- Embedding the site iframe as a real interactive element (it is a preview thumbnail, not a live clickable site on-canvas).\n\n## Steps\n1. **Sites tool in the toolbar** — Add a Sites tool button (globe or layout icon) at the bottom of the left drawing toolbar, visually grouped with the other tools. Clicking it opens a small `glassPill`-styled floating panel listing the user's sites (via the existing `/api/sites` endpoint) with a \"New Site\" button and a delete option per site.\n\n2. **Site Block as a canvas object** — When a site is chosen from the panel, place a Fabric.js custom object on the canvas representing that site. It renders as a styled placeholder/thumbnail (showing the site name, slug, and publish status) that can be moved and resized like any other canvas object. Store the site's `id` and `slug` in the object's metadata so it can be rehydrated on project load.\n\n3. **Site-aware properties panel** — When a Site Block is selected, replace the standard fill/stroke/opacity properties panel with a site-specific panel: buttons to add a content block (Hero, Text, Gallery, etc. — calls existing sites API), a Publish/Unpublish toggle (calls existing `/api/sites/:slug/publish`), a Theme button, and a \"Open live preview\" external link.\n\n4. **Inline block editor drawer** — Double-clicking a Site Block slides in the existing block editor UI (extracted from `sites-builder.tsx`) as a right-side drawer over the canvas, showing the full page block list and properties for the selected block. Closing the drawer returns to normal canvas interaction.\n\n5. **Routing cleanup** — Redirect `/sites` to `/canvas` and `/sites/:id/builder` to `/canvas` (with the matching site auto-selected on load via a URL query param like `?site=slug`). Update the nav link if \"Canvas\" is referenced anywhere to reflect the broader scope.\n\n## Relevant files\n- `client/src/pages/canvas-page.tsx`\n- `client/src/pages/sites-builder.tsx`\n- `client/src/pages/sites-page.tsx`\n- `server/sites-routes.ts`\n- `server/sites-renderer.ts`\n- `client/src/App.tsx`\n",
+      "articleSummary": "Instead of a separate mode or page, site-building becomes just another tool in the Canvas toolbar — the same way you'd add an image or draw a shape. Users pick the Sites tool, place a site on the canvas as a live-preview block, and interact with it from the familiar canvas surface. No context switching, no separate page to navigate to.",
+      "articleTags": [
+        "platform-history",
+        "task-604",
         "engineering"
       ],
       "isPlaceholder": false

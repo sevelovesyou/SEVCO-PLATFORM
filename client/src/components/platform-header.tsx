@@ -44,6 +44,7 @@ import {
 import {
   Home,
   BookOpen,
+  BookA,
   Music,
   Briefcase,
   Folder,
@@ -340,7 +341,7 @@ function HomeDropdown({ isActive }: { isActive: boolean }) {
 
   const items: HomeItem[] = [
     { label: "Home",         href: "/",                        icon: Home,         desc: "Go to landing page",            show: true },
-    { label: "About",        href: "/about",                   icon: BookOpen,     desc: "Learn about SEVCO",             show: true },
+    { label: "About",        href: "/about",                   icon: BookA,        desc: "Learn about SEVCO",             show: true },
     { label: "Shop",         href: "https://shop.sevco.us",    icon: ShoppingBag,  desc: "Shop SEVCO merchandise",        show: true, external: true },
     { label: "Wiki",         href: "/wiki",                    icon: BookOpen,     desc: "Internal knowledge base",       show: true },
     { label: "What's New",   href: "/platform",                icon: Rocket,       desc: "Platform updates & changelog",  show: true },

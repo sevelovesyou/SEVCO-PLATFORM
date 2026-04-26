@@ -1,15 +1,30 @@
 import { Link } from "wouter";
-import { ArrowRight, Building2, Globe, Music, Layers, Zap, Users, Palette } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  Globe,
+  Music,
+  Layers,
+  Zap,
+  Users,
+  Palette,
+  MapPin,
+  ExternalLink,
+  Lightbulb,
+  Eye,
+  Heart,
+  Mail,
+} from "lucide-react";
 import { PageHead } from "@/components/page-head";
 import { SiInstagram, SiX, SiYoutube, SiDiscord, SiGithub } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 
 const SOCIAL_LINKS = [
-  { icon: SiX,         label: "X / Twitter",  href: "https://x.com/sevelovesu",                         handle: "@sevelovesu" },
-  { icon: SiInstagram, label: "Instagram",     href: "https://instagram.com/sevelovesyou",                handle: "@sevelovesyou" },
-  { icon: SiDiscord,   label: "Discord",       href: "https://discord.gg/sevco",                          handle: "SEVCO Discord" },
-  { icon: SiYoutube,   label: "YouTube",       href: "https://youtube.com/@sevco",                        handle: "SEVCO" },
-  { icon: SiGithub,    label: "GitHub",        href: "https://github.com/sevco",                          handle: "sevco" },
+  { icon: SiX,         label: "X / Twitter",  href: "https://x.com/sevelovesu",          handle: "@sevelovesu" },
+  { icon: SiInstagram, label: "Instagram",     href: "https://instagram.com/sevelovesyou", handle: "@sevelovesyou" },
+  { icon: SiDiscord,   label: "Discord",       href: "https://discord.gg/sevco",           handle: "SEVCO Discord" },
+  { icon: SiYoutube,   label: "YouTube",       href: "https://youtube.com/@sevco",         handle: "SEVCO" },
+  { icon: SiGithub,    label: "GitHub",        href: "https://github.com/sevco",           handle: "sevco" },
 ];
 
 const PILLARS = [
@@ -39,48 +54,196 @@ const PILLARS = [
   },
 ];
 
+const VALUES = [
+  {
+    icon: Lightbulb,
+    title: "Inspiration",
+    description: "Build things that inspire. Every product, release, and feature starts with the question: does this make someone's life better or more interesting?",
+  },
+  {
+    icon: Eye,
+    title: "Transparency",
+    description: "We ship in public, share what we learn, and use the same tools we sell.",
+  },
+  {
+    icon: Heart,
+    title: "Community",
+    description: "The best ideas come from the community. SEVCO is a platform for creators, not a gate between them.",
+  },
+];
+
+const SPECIFIC_PROJECTS = [
+  { label: "SPHERE", href: "/projects" },
+  { label: "SEVCO Architecture", href: "/projects" },
+  { label: "Freeball", href: "/projects" },
+  { label: "Minecraft Community", href: "/projects" },
+];
+
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-background">
       <PageHead
         slug="about"
-        title="About SEVCO — Music, Merch, Projects & Community"
-        description="SEVCO is a creative platform built for music, commerce, and community. Learn about SEVCO Records, Services, Projects, and the team behind it all."
+        title="About SEVCO — The Inspiration Company"
+        description="SEVCO is a creative technology organization building at the intersection of music, digital platforms, projects, and visionary ideas. Founded in Montana by Severin Fredrik Gislason."
         ogUrl="https://sevco.us/about"
       />
-      <div className="max-w-4xl mx-auto px-6 py-16 space-y-20">
 
-        <section className="space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold tracking-wide">
+      {/* Section 1 — Hero */}
+      <section
+        className="relative overflow-hidden border-b border-border bg-gradient-to-br from-background via-background to-muted/20"
+        data-testid="section-about-hero"
+      >
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-[-80px] left-[-80px] h-[400px] w-[400px] rounded-full bg-primary/8 blur-3xl" />
+          <div className="absolute bottom-[-60px] right-[-60px] h-[300px] w-[300px] rounded-full bg-primary/6 blur-3xl" />
+        </div>
+        <div className="relative max-w-5xl mx-auto px-6 py-20 md:py-28 space-y-6">
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold tracking-wide"
+            data-testid="badge-hero-label"
+          >
             <Building2 className="h-3.5 w-3.5" />
-            About SEVCO
+            The Inspiration Company
           </div>
-          <h1 className="text-5xl md:text-6xl font-black tracking-tight leading-none" data-testid="text-about-heading">
-            We build things<br />
-            <span className="text-muted-foreground">that matter.</span>
+          <h1
+            className="text-5xl md:text-6xl font-black tracking-tight leading-none"
+            data-testid="text-about-heading"
+          >
+            SEVCO |{" "}
+            <span className="text-muted-foreground">The Inspiration Company</span>
           </h1>
-          <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl" data-testid="text-about-intro">
-            SEVCO is a creative and technology organisation operating across music, digital products, and services.
-            We started as a music label and grew into a platform — bringing together artists, builders, and partners
-            under one roof with shared infrastructure and a shared ethos: do good work, move fast, and be real about it.
+          <p className="text-base text-muted-foreground font-medium" data-testid="text-about-founder-line">
+            Founded by Severin Fredrik Gislason (Seve)
           </p>
-          <div className="flex flex-wrap gap-3">
+          <p
+            className="text-lg text-muted-foreground leading-relaxed max-w-2xl"
+            data-testid="text-about-intro"
+          >
+            SEVCO is a creative technology organization building at the intersection of music, digital platforms,
+            projects, and visionary ideas. Founded in Montana by entrepreneur and musician Severin Fredrik Gislason,
+            SEVCO incubates bold ideas that inspire and empower creators.
+          </p>
+          <div className="flex flex-wrap gap-3 pt-2">
             <Link href="/projects">
-              <Button className="gap-2" data-testid="link-about-ventures">
+              <Button className="gap-2" data-testid="link-hero-projects">
                 Our Projects
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
             <Link href="/contact">
-              <Button variant="outline" className="gap-2" data-testid="link-about-contact">
+              <Button variant="outline" className="gap-2" data-testid="link-hero-contact">
                 Get in Touch
               </Button>
             </Link>
+            <Link href="/wiki">
+              <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground" data-testid="link-hero-wiki">
+                View the Wiki
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <div className="max-w-5xl mx-auto px-6 py-16 space-y-20">
+
+        {/* Section 2 — Company Overview / Mission */}
+        <section className="space-y-8" data-testid="section-about-overview">
+          <h2 className="text-3xl font-bold tracking-tight">What is SEVCO?</h2>
+          <div className="space-y-5 text-muted-foreground leading-relaxed max-w-3xl">
+            <p data-testid="text-overview-1">
+              SEVCO started with music. SEVCO Records is an independent label that finds and backs artists who have
+              something real to say — managing everything from submission through release, distribution, and promotion.
+              The label sits at the heart of what SEVCO is: a belief that creative work deserves serious infrastructure.
+            </p>
+            <p data-testid="text-overview-2">
+              From there, SEVCO expanded into digital products and platforms. SPHERE, SEVCO Architecture, Freeball,
+              and a Minecraft community are just a few of the projects incubated under the SEVCO umbrella — each one
+              an experiment in what happens when bold ideas get proper engineering and design attention.
+            </p>
+            <p data-testid="text-overview-3">
+              SEVCO Services brings that same capability to partners: engineering, design, marketing, domain
+              infrastructure, and consulting. The team builds for clients the same way they build for themselves —
+              with high craft and a long-term mindset. And Sparks, SEVCO's in-platform currency, keeps the community
+              engaged, rewarding participation and connecting users to products and experiences.
+            </p>
+            <p data-testid="text-overview-4">
+              Together these pillars form a single creative technology organization — one that moves fluidly between
+              being a label, a studio, a consultancy, and a community platform.
+            </p>
+          </div>
+          <blockquote
+            className="border-l-4 border-primary pl-6 py-2 text-xl md:text-2xl font-semibold text-foreground italic"
+            data-testid="text-about-tagline"
+          >
+            "Building the future, one project at a time."
+          </blockquote>
+        </section>
+
+        {/* Section 3 — Founder Story */}
+        <section className="space-y-8" data-testid="section-about-founder">
+          <h2 className="text-3xl font-bold tracking-tight">
+            Our Founder — Severin Fredrik Gislason (Seve)
+          </h2>
+          <div className="grid md:grid-cols-3 gap-8 md:gap-12">
+            <div className="md:col-span-2 space-y-5 text-muted-foreground leading-relaxed">
+              <p data-testid="text-founder-1">
+                Severin Fredrik Gislason — known as Seve — began his journey as a musician, spending years developing
+                his craft and understanding the landscape that artists navigate. That experience on the creative side
+                revealed a gap: brilliant artists were underserved by the infrastructure around them, and builders
+                rarely understood what artists actually needed.
+              </p>
+              <p data-testid="text-founder-2">
+                From Kalispell, Montana, Seve built SEVCO as his answer to that gap. What started as a music label
+                became something larger: a full creative technology organization where music, software, services, and
+                community could coexist under one roof. Every product SEVCO ships is, in some sense, an extension of
+                his vision — that inspiration should be the starting point for everything.
+              </p>
+              <p data-testid="text-founder-3">
+                As Founder, Musician, and Visionary, Seve continues to drive SEVCO's direction — from the platforms
+                and tools built in-house to the artists signed to the label. His background in both music and
+                entrepreneurship gives SEVCO its distinctive character: creative enough to take real risks, structured
+                enough to deliver on them.
+              </p>
+              <p data-testid="text-founder-4">
+                SEVCO's creations are extensions of Seve's own creative process — built not just to serve a market,
+                but to express a way of thinking about what technology and culture can achieve together.
+              </p>
+            </div>
+            <div className="space-y-4">
+              <a
+                href="https://severingislason.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="link-founder-site"
+                className="block group border border-border rounded-2xl p-5 hover:bg-muted/30 transition-colors space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                    severingislason.com
+                  </p>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <p className="text-xs text-muted-foreground">Personal site of Seve — music, writing, and more.</p>
+              </a>
+              <div
+                className="border border-border rounded-2xl p-5 space-y-2"
+                data-testid="card-founder-location"
+              >
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                  Kalispell, Montana
+                </div>
+                <p className="text-xs text-muted-foreground">SEVCO's founding home, in the heart of the Northwest.</p>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section className="space-y-6">
-          <h2 className="text-2xl font-bold tracking-tight">What we do</h2>
+        {/* Section 4 — Key Projects & Areas */}
+        <section className="space-y-8" data-testid="section-about-projects">
+          <h2 className="text-3xl font-bold tracking-tight">What we build</h2>
           <div className="grid sm:grid-cols-2 gap-4">
             {PILLARS.map((pillar) => (
               <Link key={pillar.title} href={pillar.href}>
@@ -88,7 +251,7 @@ export default function AboutPage() {
                   className="group border border-border rounded-2xl p-6 hover:bg-muted/30 transition-colors cursor-pointer space-y-3"
                   data-testid={`card-pillar-${pillar.title.toLowerCase().replace(/\s+/g, "-")}`}
                 >
-                  <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                  <div className="h-10 w-10 rounded-xl flex items-center justify-center group-hover:bg-primary/10 transition-colors">
                     <pillar.icon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
                   <div>
@@ -103,29 +266,64 @@ export default function AboutPage() {
               </Link>
             ))}
           </div>
-        </section>
-
-        <section className="space-y-6">
-          <h2 className="text-2xl font-bold tracking-tight">Our mission</h2>
-          <div className="space-y-4 text-muted-foreground leading-relaxed max-w-2xl">
-            <p data-testid="text-mission-1">
-              SEVCO exists to lower the barrier between creativity and execution. Too many artists don't know how to build a business, and too many builders don't know how to create anything meaningful. We sit at that intersection.
-            </p>
-            <p data-testid="text-mission-2">
-              We back projects we believe in — regardless of whether they fit a standard category. We use the same platform we sell, and we share what we learn openly. The SEVCO Platform started as an internal tool; it's now the product.
-            </p>
-            <p data-testid="text-mission-3">
-              We're based everywhere, in person nowhere specific, and online everywhere that matters.
-            </p>
+          <div className="flex flex-wrap gap-2 pt-2" data-testid="row-specific-projects">
+            {SPECIFIC_PROJECTS.map((p) => (
+              <Link key={p.label} href={p.href}>
+                <span
+                  className="inline-flex items-center px-4 py-1.5 rounded-full border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer"
+                  data-testid={`pill-project-${p.label.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  {p.label}
+                </span>
+              </Link>
+            ))}
           </div>
         </section>
 
-        <section className="space-y-6">
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Users className="h-5 w-5 text-muted-foreground" />
-            Connect
-          </h2>
-          <p className="text-muted-foreground">Find us on social media or reach out directly.</p>
+        {/* Section 5 — Values & Community */}
+        <section className="space-y-8" data-testid="section-about-values">
+          <h2 className="text-3xl font-bold tracking-tight">Our Values</h2>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {VALUES.map((v) => (
+              <div
+                key={v.title}
+                className="border border-border rounded-2xl p-6 space-y-3"
+                data-testid={`card-value-${v.title.toLowerCase()}`}
+              >
+                <div className="h-10 w-10 rounded-xl flex items-center justify-center">
+                  <v.icon className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="text-sm font-bold text-foreground">{v.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{v.description}</p>
+              </div>
+            ))}
+          </div>
+          <div className="pt-2">
+            <a
+              href="https://discord.gg/sevco"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="link-values-discord"
+            >
+              <Button variant="outline" className="gap-2">
+                <SiDiscord className="h-4 w-4" />
+                Join the Community on Discord
+              </Button>
+            </a>
+          </div>
+        </section>
+
+        {/* Section 6 — Connect & Verify */}
+        <section className="space-y-6" data-testid="section-about-connect">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+              <Users className="h-6 w-6 text-muted-foreground" />
+              Find us everywhere
+            </h2>
+            <p className="text-muted-foreground">
+              Official profiles, verified sources, and ways to reach the team.
+            </p>
+          </div>
           <div className="flex flex-wrap gap-3">
             {SOCIAL_LINKS.map((link) => (
               <a
@@ -142,7 +340,28 @@ export default function AboutPage() {
               </a>
             ))}
           </div>
-
+          <div className="flex flex-wrap gap-3">
+            <a
+              href="https://severingislason.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="link-connect-founder-site"
+            >
+              <Button variant="outline" className="gap-2 h-10">
+                <ExternalLink className="h-4 w-4" />
+                severingislason.com
+              </Button>
+            </a>
+            <a
+              href="mailto:seve@sevco.us"
+              data-testid="link-connect-email"
+            >
+              <Button variant="outline" className="gap-2 h-10">
+                <Mail className="h-4 w-4" />
+                seve@sevco.us
+              </Button>
+            </a>
+          </div>
           <div className="pt-2">
             <Link href="/contact">
               <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground" data-testid="link-about-contact-page">
@@ -153,6 +372,7 @@ export default function AboutPage() {
           </div>
         </section>
 
+        {/* Section 7 — Brand Guidelines teaser */}
         <section
           className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/5 via-background to-muted/30 p-8 md:p-10"
           data-testid="section-brand-teaser"
@@ -183,7 +403,8 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className="border-t border-border pt-10 space-y-4">
+        {/* Section 8 — Quick links footer */}
+        <section className="border-t border-border pt-10 space-y-4" data-testid="section-about-quicklinks">
           <h2 className="text-lg font-bold">Quick links</h2>
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
             <Link href="/brand"><span className="hover:text-foreground transition-colors cursor-pointer" data-testid="link-about-brand-quick">Brand Guidelines</span></Link>

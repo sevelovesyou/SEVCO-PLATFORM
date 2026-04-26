@@ -31418,3 +31418,31 @@ Insert immediately after `<PageHead … />` and before the `{/* ── HERO ─�
 
 ---
 
+## Task — fix-keyboard-shortcuts-help-cropped
+> Merged: 2026-04-26
+
+## What & Why
+The keyboard shortcuts help dialog overflows the viewport on shorter screens, so the bottom rows (e.g. the lower "Go to" entries) get cropped and there's no way to scroll to them. We need the dialog to stay within the viewport and let users scroll through the full list.
+
+## Done looks like
+- Opening the keyboard shortcuts help on any reasonable viewport height shows the dialog fully inside the screen with no rows clipped off the top or bottom.
+- When the content is taller than the available space, the dialog body scrolls so every shortcut is reachable.
+- The dialog header (title + "Press ? any time to open this dialog.") and the close button stay visible while scrolling.
+- The fix doesn't visually change the dialog on tall screens where everything already fits.
+
+## Out of scope
+- Redesigning the shortcut rows or restyling the keys.
+- Adding new shortcuts or changing existing ones.
+- Touching unrelated dialogs/modals across the app.
+
+## Steps
+1. Constrain the keyboard shortcuts dialog's height to the viewport (with a sensible max like ~85vh) and make the inner shortcuts list scroll when it overflows, while keeping the header and close button pinned/visible.
+2. Verify on a short viewport that the full "Go to" list is reachable via scrolling and nothing is clipped, and that on a tall viewport the dialog still looks unchanged.
+
+## Relevant files
+- `client/src/components/keyboard-shortcuts-help.tsx`
+- `client/src/components/ui/dialog.tsx`
+
+
+---
+

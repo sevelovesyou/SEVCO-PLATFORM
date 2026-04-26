@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-04-26T06:52:47.138Z",
-  "count": 432,
+  "generatedAt": "2026-04-26T07:54:28.033Z",
+  "count": 434,
   "coveredMin": 1,
-  "coveredMax": 566,
+  "coveredMax": 593,
   "entries": [
     {
       "title": "Task #1 — RBAC & Role Permission System",
@@ -6879,8 +6879,8 @@
       "articleSummary": "Platform update: Task: Add Google-style full-height search section to the landing/home page",
       "articleTags": [
         "platform-history",
-        "task-555",
-        "engineering"
+        "engineering",
+        "backfilled"
       ],
       "isPlaceholder": false
     },
@@ -6896,7 +6896,7 @@
       "articleTags": [
         "platform-history",
         "engineering",
-        "placeholder"
+        "backfilled"
       ],
       "isPlaceholder": true
     },
@@ -6911,7 +6911,39 @@
       "articleSummary": "Platform update: About Page SEO & GEO Optimization",
       "articleTags": [
         "platform-history",
-        "task-566",
+        "engineering",
+        "backfilled"
+      ],
+      "isPlaceholder": false
+    },
+    {
+      "title": "Task #567-592 — (no logged content)",
+      "description": "Tasks #567 through #592 merged before the platform changelog was wired up, or their plan files were never persisted. This placeholder keeps the task ordering intact.",
+      "category": "other",
+      "version": "1.8.244",
+      "wikiSlug": "platform-task-567-592",
+      "createdAt": "Sun Apr 26 2026 05:24:49 GMT+0000 (Coordinated Universal Time)",
+      "articleContent": "# Task #567-592 — (no logged content)\n\n_Version: 1.8.244_\n\nTasks #567 through #592 merged before the platform changelog was wired up, or their plan files were never persisted. This placeholder keeps the task ordering intact.\n\n---\n\n_Auto-generated from the changelog snapshot (Task #525). Replace with the full task plan content by re-merging the original task._\n",
+      "articleSummary": "Tasks #567 through #592 merged before the platform changelog was wired up, or their plan files were never persisted. This placeholder keeps the task ordering intact.",
+      "articleTags": [
+        "platform-history",
+        "engineering",
+        "placeholder"
+      ],
+      "isPlaceholder": true
+    },
+    {
+      "title": "Task #593 — fix keyboard shortcuts help cropped",
+      "description": "The keyboard shortcuts help dialog overflows the viewport on shorter screens, so the bottom rows (e.g. the lower \"Go to\" entries) get cropped and there's no way to scroll to them. We need the dialog to stay within the viewport and let users scroll through the full list.",
+      "category": "fix",
+      "version": "1.8.245",
+      "wikiSlug": "platform-task-593",
+      "createdAt": "Sun Apr 26 2026 07:54:27 GMT+0000 (Coordinated Universal Time)",
+      "articleContent": "## What & Why\nThe keyboard shortcuts help dialog overflows the viewport on shorter screens, so the bottom rows (e.g. the lower \"Go to\" entries) get cropped and there's no way to scroll to them. We need the dialog to stay within the viewport and let users scroll through the full list.\n\n## Done looks like\n- Opening the keyboard shortcuts help on any reasonable viewport height shows the dialog fully inside the screen with no rows clipped off the top or bottom.\n- When the content is taller than the available space, the dialog body scrolls so every shortcut is reachable.\n- The dialog header (title + \"Press ? any time to open this dialog.\") and the close button stay visible while scrolling.\n- The fix doesn't visually change the dialog on tall screens where everything already fits.\n\n## Out of scope\n- Redesigning the shortcut rows or restyling the keys.\n- Adding new shortcuts or changing existing ones.\n- Touching unrelated dialogs/modals across the app.\n\n## Steps\n1. Constrain the keyboard shortcuts dialog's height to the viewport (with a sensible max like ~85vh) and make the inner shortcuts list scroll when it overflows, while keeping the header and close button pinned/visible.\n2. Verify on a short viewport that the full \"Go to\" list is reachable via scrolling and nothing is clipped, and that on a tall viewport the dialog still looks unchanged.\n\n## Relevant files\n- `client/src/components/keyboard-shortcuts-help.tsx`\n- `client/src/components/ui/dialog.tsx`\n",
+      "articleSummary": "The keyboard shortcuts help dialog overflows the viewport on shorter screens, so the bottom rows (e.g. the lower \"Go to\" entries) get cropped and there's no way to scroll to them. We need the dialog to stay within the viewport and let users scroll through the full list.",
+      "articleTags": [
+        "platform-history",
+        "task-593",
         "engineering"
       ],
       "isPlaceholder": false

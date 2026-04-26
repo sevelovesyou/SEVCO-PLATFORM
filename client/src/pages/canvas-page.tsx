@@ -62,9 +62,16 @@ import {
   Check,
   ChevronUp,
   ChevronDown,
+  Network,
+  Brush,
 } from 'lucide-react';
+import MindmapEditor, {
+  type MindmapEditorHandle,
+  type MindmapData,
+} from '@/components/canvas/mindmap-editor';
 
 type Tool = 'select' | 'pan' | 'pencil' | 'rect' | 'ellipse' | 'line' | 'text' | 'sites';
+type CanvasMode = 'draw' | 'mindmap';
 
 interface CanvasProject {
   id: number;
@@ -1316,6 +1323,12 @@ export default function CanvasPage() {
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('Untitled Project');
 
+  const [mode, setMode] = useState<CanvasMode>('draw');
+  const modeRef = useRef<CanvasMode>('draw');
+  modeRef.current = mode;
+  const mindmapRef = useRef<MindmapEditorHandle | null>(null);
+  const [mindmapInitialData, setMindmapInitialData] = useState<MindmapData | null>(null);
+
   const [activeTool, setActiveTool] = useState<Tool>('select');
   const [activeColor, setActiveColor] = useState('#6366f1');
   const [activeFill, setActiveFill] = useState('');
@@ -1731,9 +1744,16 @@ export default function CanvasPage() {
   }, [activeTool, activeColor, strokeWidth]);
 
   const doSave = useCallback(async (showToast: boolean) => {
-    const fc = fabricRef.current;
-    if (!fc) return;
-    const snapshot = fc.toJSON() as Record<string, unknown>;
+    let snapshot: Record<string, unknown>;
+    if (modeRef.current === 'mindmap') {
+      const data = mindmapRef.current?.getData();
+      if (!data) return;
+      snapshot = data as unknown as Record<string, unknown>;
+    } else {
+      const fc = fabricRef.current;
+      if (!fc) return;
+      snapshot = fc.toJSON() as Record<string, unknown>;
+    }
     const id = projectIdRef.current;
     const name = projectNameRef.current;
     setIsSaving(true);
@@ -1755,19 +1775,44 @@ export default function CanvasPage() {
   doSaveRef.current = doSave;
 
   const handleLoadProject = useCallback(async (project: CanvasProject) => {
-    const fc = fabricRef.current;
-    if (!fc) return;
-    fc.clear();
-    fc.backgroundColor = '';
     const json = project.tldraw_json;
-    if (json && typeof json === 'object' && 'objects' in json) {
-      try {
-        await fc.loadFromJSON(json as object);
-      } catch {
+    const isMindmap =
+      json && typeof json === 'object' && (json as Record<string, unknown>).type === 'mindmap';
+
+    if (isMindmap) {
+      const data = json as unknown as MindmapData;
+      setMindmapInitialData(data);
+      setMode('mindmap');
+      modeRef.current = 'mindmap';
+      // If the editor is already mounted, push the data in directly
+      requestAnimationFrame(() => {
+        mindmapRef.current?.setData(data);
+      });
+      // Also clear the fabric canvas so switching back is clean
+      const fc = fabricRef.current;
+      if (fc) {
         fc.clear();
+        fc.backgroundColor = '';
+        fc.requestRenderAll();
+      }
+    } else {
+      setMode('draw');
+      modeRef.current = 'draw';
+      const fc = fabricRef.current;
+      if (fc) {
+        fc.clear();
+        fc.backgroundColor = '';
+        if (json && typeof json === 'object' && 'objects' in json) {
+          try {
+            await fc.loadFromJSON(json as object);
+          } catch {
+            fc.clear();
+          }
+        }
+        fc.requestRenderAll();
       }
     }
-    fc.requestRenderAll();
+
     setCurrentProjectId(project.id);
     setCurrentProjectName(project.name);
     setNameInput(project.name);
@@ -1777,10 +1822,15 @@ export default function CanvasPage() {
 
   const handleNew = useCallback(() => {
     const fc = fabricRef.current;
-    if (!fc) return;
-    fc.clear();
-    fc.backgroundColor = '';
-    fc.requestRenderAll();
+    if (fc) {
+      fc.clear();
+      fc.backgroundColor = '';
+      fc.requestRenderAll();
+    }
+    if (modeRef.current === 'mindmap') {
+      mindmapRef.current?.clear();
+      setMindmapInitialData(null);
+    }
     setCurrentProjectId(null);
     setCurrentProjectName('Untitled Project');
     setNameInput('Untitled Project');
@@ -1852,7 +1902,16 @@ export default function CanvasPage() {
     toast({ title: 'Image added to canvas' });
   }, [toast, scheduleAutoSave]);
 
-  const handleExportPng = useCallback(() => {
+  const handleExportPng = useCallback(async () => {
+    if (modeRef.current === 'mindmap') {
+      try {
+        await mindmapRef.current?.exportPng(projectNameRef.current);
+      } catch (err) {
+        console.error('[canvas] mindmap export failed:', err);
+        toast({ title: 'Export failed', variant: 'destructive' });
+      }
+      return;
+    }
     const fc = fabricRef.current;
     if (!fc) return;
     const dataUrl = fc.toDataURL({ format: 'png', multiplier: 2 });
@@ -1860,7 +1919,7 @@ export default function CanvasPage() {
     a.href = dataUrl;
     a.download = `${projectNameRef.current}.png`;
     a.click();
-  }, []);
+  }, [toast]);
 
   const handleExportSvg = useCallback(() => {
     const fc = fabricRef.current;
@@ -2044,11 +2103,28 @@ export default function CanvasPage() {
         style={{ top: '3rem', overflow: 'hidden' }}
         data-testid="canvas-page"
       >
-        {/* Dot grid background */}
-        <CanvasDotGridBackground />
+        {/* Dot grid background — hidden in mindmap mode (React Flow draws its own) */}
+        {mode === 'draw' && <CanvasDotGridBackground />}
 
-        {/* Fabric.js canvas element */}
-        <canvas ref={canvasElRef} style={{ position: 'absolute', top: 0, left: 0 }} />
+        {/* Fabric.js canvas element — kept mounted but hidden in mindmap mode */}
+        <canvas
+          ref={canvasElRef}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            display: mode === 'draw' ? 'block' : 'none',
+          }}
+        />
+
+        {/* Mindmap editor */}
+        {mode === 'mindmap' && (
+          <MindmapEditor
+            ref={mindmapRef}
+            initialData={mindmapInitialData}
+            onChange={() => scheduleAutoSaveRef.current()}
+          />
+        )}
 
         {/* Left pill: project name */}
         <div style={{ position: 'absolute', left: 12, top: 12, ...glassPill, pointerEvents: 'auto', gap: 2, zIndex: 10 }}>
@@ -2111,6 +2187,52 @@ export default function CanvasPage() {
               {currentProjectName}
             </button>
           )}
+        </div>
+
+        {/* Mode toggle pill (Draw / Mindmap) */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 220,
+            top: 12,
+            ...glassPill,
+            pointerEvents: 'auto',
+            gap: 1,
+            zIndex: 10,
+          }}
+          data-testid="pill-canvas-mode"
+        >
+          <button
+            type="button"
+            onClick={() => setMode('draw')}
+            title="Draw mode"
+            data-testid="button-canvas-mode-draw"
+            style={{
+              ...hudBtnStyle,
+              background: mode === 'draw' ? 'rgba(99,102,241,0.3)' : 'none',
+              color: mode === 'draw' ? '#a5b4fc' : 'rgba(255,255,255,0.5)',
+            }}
+          >
+            <Brush className="h-3.5 w-3.5" />
+            <span className="hidden sm:block">Draw</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMode('mindmap');
+              modeRef.current = 'mindmap';
+            }}
+            title="Mindmap mode"
+            data-testid="button-canvas-mode-mindmap"
+            style={{
+              ...hudBtnStyle,
+              background: mode === 'mindmap' ? 'rgba(99,102,241,0.3)' : 'none',
+              color: mode === 'mindmap' ? '#a5b4fc' : 'rgba(255,255,255,0.5)',
+            }}
+          >
+            <Network className="h-3.5 w-3.5" />
+            <span className="hidden sm:block">Mindmap</span>
+          </button>
         </div>
 
         {/* Right pill: action buttons */}
@@ -2177,20 +2299,25 @@ export default function CanvasPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <AiGenerateModal onGenerate={handleAiGenerate} />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            title="Upload image"
-            style={hudBtnStyle}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.9)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
-            data-testid="button-canvas-upload-image"
-          >
-            <ImageIcon className="h-3.5 w-3.5" />
-          </button>
+          {mode === 'draw' && (
+            <>
+              <AiGenerateModal onGenerate={handleAiGenerate} />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                title="Upload image"
+                style={hudBtnStyle}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.9)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
+                data-testid="button-canvas-upload-image"
+              >
+                <ImageIcon className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
         </div>
 
-        {/* Left toolbar */}
+        {/* Left toolbar — only in draw mode */}
+        {mode === 'draw' && (
         <div
           style={{
             position: 'absolute',
@@ -2310,9 +2437,10 @@ export default function CanvasPage() {
             <Globe className="h-4 w-4" />
           </button>
         </div>
+        )}
 
-        {/* Sites floating panel */}
-        {sitesPanelOpen && (
+        {/* Sites floating panel — draw mode only */}
+        {mode === 'draw' && sitesPanelOpen && (
           <SitesPanel
             onSelectSite={site => {
               addSiteToCanvas(site);
@@ -2326,8 +2454,8 @@ export default function CanvasPage() {
           />
         )}
 
-        {/* Properties panel — site-aware */}
-        {selectedSiteMeta ? (
+        {/* Properties panel — site-aware, draw mode only */}
+        {mode === 'draw' && selectedSiteMeta ? (
           <SitePropertiesPanel
             meta={selectedSiteMeta}
             onPublishToggle={() => {
@@ -2353,7 +2481,7 @@ export default function CanvasPage() {
             }}
             onDelete={deleteSelected}
           />
-        ) : selectedObjects > 0 ? (
+        ) : mode === 'draw' && selectedObjects > 0 ? (
           <div
             style={{
               position: 'absolute',
@@ -2429,7 +2557,8 @@ export default function CanvasPage() {
           </div>
         ) : null}
 
-        {/* Zoom controls */}
+        {/* Zoom controls — only in draw mode (React Flow has its own controls) */}
+        {mode === 'draw' && (
         <div
           style={{
             position: 'absolute',
@@ -2473,6 +2602,7 @@ export default function CanvasPage() {
             testId="button-canvas-fit"
           />
         </div>
+        )}
       </div>
 
       {/* Load project dialog */}

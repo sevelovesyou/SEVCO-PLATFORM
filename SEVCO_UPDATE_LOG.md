@@ -31581,3 +31581,46 @@ Add a "Search" entry to the Section Visibility panel and a dedicated Search Sect
 
 ---
 
+## Task — canvas-mindmap-tool
+> Merged: 2026-04-26
+
+# Canvas Mindmap & Flowchart Mode
+
+## What & Why
+Add a Mindmap/Flowchart mode to the existing Canvas page so users can build node-based diagrams like the one in the reference screenshot — text labels connected by smooth curved lines that fan out into hierarchical trees. The mode sits alongside the existing free-draw (Fabric.js) canvas via a toggle in the toolbar.
+
+## Done looks like
+- A "Draw / Mindmap" mode toggle appears in the Canvas toolbar. Switching to Mindmap mode replaces the Fabric canvas with a React Flow editor on the same dark dot-grid background.
+- Users can double-click any empty area to create a new text node.
+- Hovering a node reveals a small "+" handle; clicking it creates a connected child node.
+- Hovering over any edge between two nodes reveals a delete button (×) to remove just that connection.
+- Node labels are editable by double-clicking the node text.
+- Edges render as smooth bezier curves. Each edge has a color picker so the line color can be set independently (matching the multi-color style in the screenshot).
+- Nodes can be dragged freely to reposition. Selecting a node and pressing Delete/Backspace removes it and its connected edges.
+- Pan and zoom work the same as in draw mode (scroll to zoom, space+drag or middle-click to pan).
+- Saving a project in mindmap mode persists the nodes and edges into the existing `canvas_projects.tldraw_json` column using a `{ type: "mindmap", nodes: [...], edges: [...] }` envelope so the two modes share one project record without conflict.
+- Loading a saved project automatically detects the `type` field and switches to the correct mode.
+- The mindmap toolbar (top-left glass pill) shows: mode toggle, project name field, New / Save / Load / Download (export PNG) buttons — matching the existing draw-mode toolbar layout.
+
+## Out of scope
+- Auto-layout / auto-arrange (nodes are positioned manually by dragging)
+- AI-generated mindmaps
+- Collaboration / real-time sync
+- Exporting to formats other than PNG
+
+## Steps
+1. **Install React Flow** — Add `@xyflow/react` to the project's frontend dependencies via the package manager.
+2. **Mode toggle in toolbar** — Add a `mode` state (`'draw' | 'mindmap'`) to the canvas page. Render the existing Fabric canvas when in `draw` mode and a new `<MindmapEditor />` component when in `mindmap` mode. The toggle appears as two pill buttons in the top toolbar glass pill.
+3. **MindmapEditor component** — Build a self-contained component using React Flow with: a dark background matching the canvas dot grid, default smooth bezier edges, custom `MindmapNode` that shows plain editable text with a "+" handle on the right side, a color-picker popover per edge (shown on edge click), and delete-on-select keyboard handler for nodes and edges.
+4. **Add/connect nodes** — Clicking "+" on a node's right handle creates a new child node 200px to the right and automatically adds a connecting edge. Double-clicking empty canvas space creates an unconnected root node at the click position.
+5. **Inline label editing** — Double-clicking a node enters an inline `<input>` edit mode; pressing Enter or blurring commits the new label.
+6. **Save / load integration** — When saving in mindmap mode, serialize React Flow's `getNodes()` and `getEdges()` into `{ type: "mindmap", nodes, edges }` and POST to the existing `/api/canvas` endpoint. When loading, detect `json.type === "mindmap"` and restore nodes and edges to React Flow; detect `json.objects` (Fabric) and switch to draw mode.
+7. **Export PNG** — Wire the existing Download button so that in mindmap mode it uses React Flow's `toSvgString` / `toPng` utility (from `@xyflow/react` renderer helpers) to export the diagram.
+
+## Relevant files
+- `client/src/pages/canvas-page.tsx:1-100,810-880,1427-1483`
+- `server/routes.ts:4819`
+
+
+---
+

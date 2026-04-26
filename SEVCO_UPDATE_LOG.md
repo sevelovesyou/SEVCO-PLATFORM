@@ -31446,3 +31446,54 @@ The keyboard shortcuts help dialog overflows the viewport on shorter screens, so
 
 ---
 
+## Task — task-602
+> Merged: 2026-04-26
+
+# Task #602 — Search bar: "/" placeholder + rounding consistency
+
+  ## Objective
+  Two polish tweaks across the three search surfaces on SEVCO:
+  1. Replace all search-input placeholder text with a simple `/`
+  2. Align the "Search" button rounding on the results page to match its container
+
+  ## Affected files
+  - `client/src/pages/landing.tsx`
+  - `client/src/pages/search.tsx`
+  - `client/src/components/search-overlay.tsx`
+
+  ---
+
+  ## T001 — Swap placeholders to "/"
+
+  | File | Line | Current | Change to |
+  |------|------|---------|-----------|
+  | `landing.tsx` | ~465 | `"⌘ + ? help"` | `"/"` |
+  | `search-overlay.tsx` | ~129 | `"⌘ + ? help"` | `"/"` |
+  | `search.tsx` | ~183 | `"Search everything..."` | `"/"` |
+
+  Single-character string swap in each file.
+
+  ## T002 — Fix rounding mismatch on search results page
+
+  In `search.tsx` the input container wrapper is `rounded-xl`, but the submit
+  `<Button size="sm">` inherits shadcn's default `rounded-md`.
+
+  Fix: add `rounded-xl` to the Button's className so button and field share the
+  same curve.
+
+  ```diff
+  - <Button type="submit" size="sm" className="h-7 text-xs px-3" ...>
+  + <Button type="submit" size="sm" className="h-7 text-xs px-3 rounded-xl" ...>
+  ```
+
+  Landing page is already consistent (`rounded-full` on both container and button).
+  Overlay has no submit button, no change needed.
+
+  ## Done looks like
+  - All three search bars show `/` as placeholder text
+  - On /search, the Search button corners visually match the surrounding field border
+  - No layout or behaviour changes
+
+
+---
+

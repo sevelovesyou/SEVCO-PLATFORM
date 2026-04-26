@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-04-26T07:55:21.964Z",
-  "count": 434,
+  "generatedAt": "2026-04-26T08:26:25.849Z",
+  "count": 436,
   "coveredMin": 1,
-  "coveredMax": 593,
+  "coveredMax": 602,
   "entries": [
     {
       "title": "Task #1 — RBAC & Role Permission System",
@@ -6928,7 +6928,7 @@
       "articleTags": [
         "platform-history",
         "engineering",
-        "placeholder"
+        "backfilled"
       ],
       "isPlaceholder": true
     },
@@ -6943,7 +6943,39 @@
       "articleSummary": "The keyboard shortcuts help dialog overflows the viewport on shorter screens, so the bottom rows (e.g. the lower \"Go to\" entries) get cropped and there's no way to scroll to them. We need the dialog to stay within the viewport and let users scroll through the full list.",
       "articleTags": [
         "platform-history",
-        "task-593",
+        "engineering",
+        "backfilled"
+      ],
+      "isPlaceholder": false
+    },
+    {
+      "title": "Task #594-601 — (no logged content)",
+      "description": "Tasks #594 through #601 merged before the platform changelog was wired up, or their plan files were never persisted. This placeholder keeps the task ordering intact.",
+      "category": "other",
+      "version": "1.8.246",
+      "wikiSlug": "platform-task-594-601",
+      "createdAt": "Sun Apr 26 2026 08:10:26 GMT+0000 (Coordinated Universal Time)",
+      "articleContent": "# Task #594-601 — (no logged content)\n\n_Version: 1.8.246_\n\nTasks #594 through #601 merged before the platform changelog was wired up, or their plan files were never persisted. This placeholder keeps the task ordering intact.\n\n---\n\n_Auto-generated from the changelog snapshot (Task #525). Replace with the full task plan content by re-merging the original task._\n",
+      "articleSummary": "Tasks #594 through #601 merged before the platform changelog was wired up, or their plan files were never persisted. This placeholder keeps the task ordering intact.",
+      "articleTags": [
+        "platform-history",
+        "engineering",
+        "placeholder"
+      ],
+      "isPlaceholder": true
+    },
+    {
+      "title": "Task #602 — Search bar: \"/\" placeholder + rounding consistency",
+      "description": "Platform update: Search bar: \"/\" placeholder + rounding consistency",
+      "category": "fix",
+      "version": "1.8.247",
+      "wikiSlug": "platform-task-602",
+      "createdAt": "Sun Apr 26 2026 08:26:25 GMT+0000 (Coordinated Universal Time)",
+      "articleContent": "# Task #602 — Search bar: \"/\" placeholder + rounding consistency\n\n  ## Objective\n  Two polish tweaks across the three search surfaces on SEVCO:\n  1. Replace all search-input placeholder text with a simple `/`\n  2. Align the \"Search\" button rounding on the results page to match its container\n\n  ## Affected files\n  - `client/src/pages/landing.tsx`\n  - `client/src/pages/search.tsx`\n  - `client/src/components/search-overlay.tsx`\n\n  ---\n\n  ## T001 — Swap placeholders to \"/\"\n\n  | File | Line | Current | Change to |\n  |------|------|---------|-----------|\n  | `landing.tsx` | ~465 | `\"⌘ + ? help\"` | `\"/\"` |\n  | `search-overlay.tsx` | ~129 | `\"⌘ + ? help\"` | `\"/\"` |\n  | `search.tsx` | ~183 | `\"Search everything...\"` | `\"/\"` |\n\n  Single-character string swap in each file.\n\n  ## T002 — Fix rounding mismatch on search results page\n\n  In `search.tsx` the input container wrapper is `rounded-xl`, but the submit\n  `<Button size=\"sm\">` inherits shadcn's default `rounded-md`.\n\n  Fix: add `rounded-xl` to the Button's className so button and field share the\n  same curve.\n\n  ```diff\n  - <Button type=\"submit\" size=\"sm\" className=\"h-7 text-xs px-3\" ...>\n  + <Button type=\"submit\" size=\"sm\" className=\"h-7 text-xs px-3 rounded-xl\" ...>\n  ```\n\n  Landing page is already consistent (`rounded-full` on both container and button).\n  Overlay has no submit button, no change needed.\n\n  ## Done looks like\n  - All three search bars show `/` as placeholder text\n  - On /search, the Search button corners visually match the surrounding field border\n  - No layout or behaviour changes\n  ",
+      "articleSummary": "Platform update: Search bar: \"/\" placeholder + rounding consistency",
+      "articleTags": [
+        "platform-history",
+        "task-602",
         "engineering"
       ],
       "isPlaceholder": false

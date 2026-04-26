@@ -13,6 +13,17 @@ import { pool } from "./db";
 import { sendVerificationEmail } from "./emailClient";
 import { isUsernameReserved } from "./usernameUtils";
 import { notify } from "./routes";
+import {
+  getCanonicalDomain,
+  getCanonicalCallbackUrl,
+  getRequestOrigin,
+  isCanonicalRequest,
+  validateReturnTo,
+  issueHandoffToken,
+  verifyAndConsumeHandoffToken,
+  issueLinkInitToken,
+  verifyAndConsumeLinkInitToken,
+} from "./x-oauth-handoff";
 
 const PgSession = connectPgSimple(session);
 
@@ -78,12 +89,6 @@ export function setupAuth(app: Express) {
 
   const TWITTER_CLIENT_ID = process.env.TWITTER_CLIENT_ID;
   const TWITTER_CLIENT_SECRET = process.env.TWITTER_CLIENT_SECRET;
-  const BASE_URL =
-    process.env.BASE_URL ||
-    (process.env.REPLIT_DEPLOYMENT === "1" && process.env.REPLIT_DOMAINS
-      ? `https://${process.env.REPLIT_DOMAINS.split(",")[0].trim()}`
-      : null) ||
-    `http://localhost:5000`;
 
   type TwitterUserApiResponse = {
     data: {
@@ -92,6 +97,12 @@ export function setupAuth(app: Express) {
       name: string;
       profile_image_url?: string;
     };
+  };
+
+  type XOAuthSessionExtras = {
+    linkUserId?: string;
+    xOAuthReturnTo?: string;
+    xOAuthLinkReturnTo?: string;
   };
 
   if (TWITTER_CLIENT_ID && TWITTER_CLIENT_SECRET) {
@@ -106,7 +117,7 @@ export function setupAuth(app: Express) {
           tokenURL: "https://api.twitter.com/2/oauth2/token",
           clientID: twitterClientId,
           clientSecret: twitterClientSecret,
-          callbackURL: `${BASE_URL}/api/auth/twitter/callback`,
+          callbackURL: getCanonicalCallbackUrl("/api/auth/twitter/callback"),
           scope: ["tweet.read", "users.read", "offline.access"],
           customHeaders: {
             Authorization: `Basic ${Buffer.from(`${twitterClientId}:${twitterClientSecret}`).toString("base64")}`,
@@ -151,16 +162,91 @@ export function setupAuth(app: Express) {
       )
     );
 
+    // Sign-in initiation. On non-canonical domains, bounce the user over to the
+    // canonical domain so X only ever needs one set of callback URLs registered.
     app.get(
       "/api/auth/twitter",
-      passport.authenticate("twitter-oauth2")
+      (req: Request, res: Response, next: NextFunction) => {
+        const canonical = getCanonicalDomain();
+        const requestedReturnTo = typeof req.query.return_to === "string" ? req.query.return_to : "";
+        const validated = validateReturnTo(requestedReturnTo);
+
+        // Hard-reject any return_to that's present-but-invalid: send the user
+        // back to the canonical domain with an explicit error so admins can
+        // notice misconfigured clients, instead of silently signing them in
+        // somewhere they didn't intend to land.
+        if (requestedReturnTo && !validated) {
+          console.warn(`[xoauth] Rejected return_to for sign-in: ${JSON.stringify(requestedReturnTo)} (origin=${getRequestOrigin(req)})`);
+          return res.redirect(`${canonical}/auth?error=oauth_failed`);
+        }
+
+        const validatedReturnTo = validated ?? canonical;
+
+        if (!isCanonicalRequest(req)) {
+          const dest = `${canonical}/api/auth/twitter?return_to=${encodeURIComponent(validatedReturnTo)}`;
+          return res.redirect(dest);
+        }
+
+        const typedSession = req.session as typeof req.session & XOAuthSessionExtras;
+        typedSession.xOAuthReturnTo = validatedReturnTo;
+        req.session.save((err) => {
+          if (err) return next(err);
+          passport.authenticate("twitter-oauth2")(req, res, next);
+        });
+      }
     );
 
     app.get(
       "/api/auth/twitter/callback",
-      passport.authenticate("twitter-oauth2", { failureRedirect: "/auth?error=oauth_failed" }),
-      (req, res) => {
-        res.redirect("/");
+      (req: Request, res: Response, next: NextFunction) => {
+        passport.authenticate("twitter-oauth2", (err: Error | null, user: Express.User | false) => {
+          const typedSession = req.session as typeof req.session & XOAuthSessionExtras;
+          const returnTo = (typedSession.xOAuthReturnTo as string | undefined) || getCanonicalDomain();
+          delete typedSession.xOAuthReturnTo;
+
+          if (err || !user) {
+            const errorBase = returnTo === getCanonicalDomain() ? returnTo : returnTo;
+            return res.redirect(`${errorBase}/auth?error=oauth_failed`);
+          }
+
+          if (returnTo === getCanonicalDomain()) {
+            // Already on the originating domain: complete login locally
+            // without an extra round-trip.
+            req.login(user, (loginErr) => {
+              if (loginErr) return next(loginErr);
+              res.redirect("/");
+            });
+            return;
+          }
+
+          const token = issueHandoffToken({ userId: user.id, intent: "signin", status: "ok" });
+          res.redirect(`${returnTo}/api/auth/twitter/complete?token=${encodeURIComponent(token)}`);
+        })(req, res, next);
+      }
+    );
+
+    // Receiving endpoint on the originating domain that finalises the sign-in
+    // session for a user already authenticated on the canonical domain.
+    app.get(
+      "/api/auth/twitter/complete",
+      async (req: Request, res: Response, next: NextFunction) => {
+        const token = typeof req.query.token === "string" ? req.query.token : "";
+        const payload = verifyAndConsumeHandoffToken(token, "signin");
+        if (!payload) {
+          return res.redirect("/auth?error=oauth_failed");
+        }
+        try {
+          const user = await storage.getUser(payload.uid);
+          if (!user) {
+            return res.redirect("/auth?error=oauth_failed");
+          }
+          req.login(user, (loginErr) => {
+            if (loginErr) return next(loginErr);
+            res.redirect("/");
+          });
+        } catch (e) {
+          next(e);
+        }
       }
     );
 
@@ -172,7 +258,7 @@ export function setupAuth(app: Express) {
           tokenURL: "https://api.twitter.com/2/oauth2/token",
           clientID: twitterClientId,
           clientSecret: twitterClientSecret,
-          callbackURL: `${BASE_URL}/api/auth/twitter/link/callback`,
+          callbackURL: getCanonicalCallbackUrl("/api/auth/twitter/link/callback"),
           scope: ["tweet.read", "users.read", "offline.access"],
           customHeaders: {
             Authorization: `Basic ${Buffer.from(`${twitterClientId}:${twitterClientSecret}`).toString("base64")}`,
@@ -192,8 +278,8 @@ export function setupAuth(app: Express) {
             const json = (await resp.json()) as TwitterUserApiResponse;
             const xUser = json.data;
 
-            const session = req.session as typeof req.session & { linkUserId?: string };
-            const userId: string | undefined = session.linkUserId || req.user?.id;
+            const session = req.session as typeof req.session & XOAuthSessionExtras;
+            const userId: string | undefined = (session.linkUserId as string | undefined) || req.user?.id;
             if (!userId) {
               return done(new Error("No user session found"));
             }
@@ -214,14 +300,60 @@ export function setupAuth(app: Express) {
       )
     );
 
+    // Link initiation. The originating domain knows which user is requesting
+    // the link; the canonical domain is where the OAuth round-trip happens.
+    // We bridge identity across domains via a short-lived signed init token.
     app.get(
       "/api/auth/twitter/link",
       (req: Request, res: Response, next: NextFunction) => {
-        if (!req.isAuthenticated() || !req.user) {
+        const canonical = getCanonicalDomain();
+        const requestedReturnTo = typeof req.query.return_to === "string" ? req.query.return_to : "";
+
+        if (!isCanonicalRequest(req)) {
+          if (!req.isAuthenticated() || !req.user) {
+            return res.status(401).json({ message: "Not authenticated" });
+          }
+          const validated = validateReturnTo(requestedReturnTo);
+          // Hard-reject invalid return_to instead of silently overwriting it.
+          if (requestedReturnTo && !validated) {
+            console.warn(`[xoauth] Rejected return_to for link: ${JSON.stringify(requestedReturnTo)} (origin=${getRequestOrigin(req)})`);
+            return res.redirect(`${canonical}/account?error=oauth_failed`);
+          }
+          // Per spec: absent or invalid return_to defaults to canonical.
+          const validatedReturnTo = validated ?? canonical;
+          const initToken = issueLinkInitToken({ userId: req.user.id, returnTo: validatedReturnTo });
+          return res.redirect(`${canonical}/api/auth/twitter/link?init=${encodeURIComponent(initToken)}`);
+        }
+
+        // We're on canonical. Resolve userId + returnTo from either an init
+        // token (cross-domain) or the local session (same-domain).
+        const initTokenStr = typeof req.query.init === "string" ? req.query.init : "";
+        let userId: string | undefined;
+        let returnTo: string = canonical;
+
+        if (initTokenStr) {
+          const initPayload = verifyAndConsumeLinkInitToken(initTokenStr);
+          if (!initPayload) {
+            return res.redirect(`${canonical}/account?error=oauth_failed`);
+          }
+          userId = initPayload.uid;
+          returnTo = initPayload.rt;
+        } else if (req.isAuthenticated() && req.user) {
+          userId = req.user.id;
+          const validated = validateReturnTo(requestedReturnTo);
+          // Same hard-reject policy on canonical's same-domain entry path.
+          if (requestedReturnTo && !validated) {
+            console.warn(`[xoauth] Rejected return_to for canonical link: ${JSON.stringify(requestedReturnTo)}`);
+            return res.redirect(`${canonical}/account?error=oauth_failed`);
+          }
+          returnTo = validated ?? canonical;
+        } else {
           return res.status(401).json({ message: "Not authenticated" });
         }
-        const typedSession = req.session as typeof req.session & { linkUserId?: string };
-        typedSession.linkUserId = req.user.id;
+
+        const typedSession = req.session as typeof req.session & XOAuthSessionExtras;
+        typedSession.linkUserId = userId;
+        typedSession.xOAuthLinkReturnTo = returnTo;
         req.session.save((err) => {
           if (err) return next(err);
           passport.authenticate("twitter-link")(req, res, next);
@@ -232,18 +364,62 @@ export function setupAuth(app: Express) {
     app.get(
       "/api/auth/twitter/link/callback",
       (req: Request, res: Response, next: NextFunction) => {
-        if (!req.isAuthenticated() || !req.user) {
+        const canonical = getCanonicalDomain();
+        passport.authenticate("twitter-link", (err: Error | null, user: Express.User | false) => {
+          const typedSession = req.session as typeof req.session & XOAuthSessionExtras;
+          const userId = typedSession.linkUserId as string | undefined;
+          const returnTo = (typedSession.xOAuthLinkReturnTo as string | undefined) || canonical;
+          delete typedSession.linkUserId;
+          delete typedSession.xOAuthLinkReturnTo;
+
+          const sendError = (errorCode: "already_linked" | "oauth_failed") => {
+            if (returnTo === canonical) {
+              return res.redirect(`/account?error=${errorCode}`);
+            }
+            if (userId) {
+              const token = issueHandoffToken({ userId, intent: "link", status: errorCode });
+              return res.redirect(`${returnTo}/api/auth/twitter/link/complete?token=${encodeURIComponent(token)}`);
+            }
+            return res.redirect(`${returnTo}/account?error=${errorCode}`);
+          };
+
+          if (err) {
+            if (err.message === "already_linked") return sendError("already_linked");
+            return sendError("oauth_failed");
+          }
+          if (!user) return sendError("oauth_failed");
+
+          if (returnTo === canonical) {
+            return req.login(user, (loginErr) => {
+              if (loginErr) return next(loginErr);
+              res.redirect("/account?linked=1");
+            });
+          }
+
+          const token = issueHandoffToken({ userId: user.id, intent: "link", status: "ok" });
+          res.redirect(`${returnTo}/api/auth/twitter/link/complete?token=${encodeURIComponent(token)}`);
+        })(req, res, next);
+      }
+    );
+
+    // Receiving endpoint on the originating domain that finalises the link
+    // and creates a fresh session reflecting the newly linked X account.
+    app.get(
+      "/api/auth/twitter/link/complete",
+      async (req: Request, res: Response, next: NextFunction) => {
+        const token = typeof req.query.token === "string" ? req.query.token : "";
+        const payload = verifyAndConsumeHandoffToken(token, "link");
+        if (!payload) {
           return res.redirect("/account?error=oauth_failed");
         }
-        passport.authenticate("twitter-link", (err: Error | null, user: Express.User | false) => {
-          const typedSession = req.session as typeof req.session & { linkUserId?: string };
-          delete typedSession.linkUserId;
-          if (err) {
-            if (err.message === "already_linked") {
-              return res.redirect("/account?error=already_linked");
-            }
-            return res.redirect("/account?error=oauth_failed");
-          }
+        if (payload.status === "already_linked") {
+          return res.redirect("/account?error=already_linked");
+        }
+        if (payload.status !== "ok") {
+          return res.redirect("/account?error=oauth_failed");
+        }
+        try {
+          const user = await storage.getUser(payload.uid);
           if (!user) {
             return res.redirect("/account?error=oauth_failed");
           }
@@ -251,7 +427,9 @@ export function setupAuth(app: Express) {
             if (loginErr) return next(loginErr);
             res.redirect("/account?linked=1");
           });
-        })(req, res, next);
+        } catch (e) {
+          next(e);
+        }
       }
     );
 
@@ -262,10 +440,16 @@ export function setupAuth(app: Express) {
     app.get("/api/auth/twitter/callback", (_req, res) => {
       res.redirect("/auth?error=oauth_not_configured");
     });
+    app.get("/api/auth/twitter/complete", (_req, res) => {
+      res.redirect("/auth?error=oauth_not_configured");
+    });
     app.get("/api/auth/twitter/link", (_req, res) => {
       res.status(503).json({ message: "X OAuth is not configured. Set TWITTER_CLIENT_ID and TWITTER_CLIENT_SECRET." });
     });
     app.get("/api/auth/twitter/link/callback", (_req, res) => {
+      res.redirect("/account?error=oauth_not_configured");
+    });
+    app.get("/api/auth/twitter/link/complete", (_req, res) => {
       res.redirect("/account?error=oauth_not_configured");
     });
   }

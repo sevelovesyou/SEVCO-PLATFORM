@@ -59,6 +59,31 @@ After changing OG image or description in Command Center, X's cached card must b
 
 Alternatively, append a one-time query string (e.g. `?v=2`) to the URL you share in the tweet to bypass X's cache for that specific share.
 
+## X (Twitter) OAuth — Canonical-Domain Handoff (Task #620)
+
+X OAuth is funnelled through a single canonical domain (`https://sevco.us`) so visitors on every SEVCO domain (`sevco.us`, `sevelovesyou.com`, `sev.cx`, `sevco.wiki`) can sign in or link their X account without each domain needing its own callback URL registered with X.
+
+**X Developer Portal — only these two callback URLs need to be registered, ever:**
+- `https://sevco.us/api/auth/twitter/callback`
+- `https://sevco.us/api/auth/twitter/link/callback`
+
+**How the handoff works** (helpers live in `server/x-oauth-handoff.ts`, used by `server/auth.ts`):
+1. Frontend appends `?return_to={window.location.origin}` to every X-flow link (sign-in buttons in `auth-page.tsx` / `platform-page.tsx`, the link button in `account-page.tsx`).
+2. The originating domain (e.g. `sev.cx`) redirects to `https://sevco.us/api/auth/twitter[/link]?return_to=...`. For the link flow it also mints a short-lived (60s) HMAC-signed init token carrying the user id so canonical knows who is linking.
+3. Canonical stashes `return_to` on its own session, runs Passport, X authorises, X redirects back to canonical's callback URL.
+4. Canonical issues a single-use, HMAC-signed handoff token (60s TTL, in-memory store keyed by `jti`) and redirects the user to `https://{return_to}/api/auth/twitter[/link]/complete?token=...`.
+5. The originating domain verifies and consumes the token, calls `req.login()` so the session cookie is created on *that* domain, and redirects to `/` (sign-in) or `/account?linked=1` (link).
+6. When `return_to == canonical`, no extra hop happens — the callback completes the login locally.
+
+**Adding a new SEVCO domain** does NOT require any change in X's portal — extend the `PRODUCTION_ALLOWLIST` in `server/x-oauth-handoff.ts` and update the frontend if needed. Anything not in the allowlist is logged with `[xoauth] Rejected return_to ...` and falls back to canonical with `?error=oauth_failed`.
+
+**Configurable env vars:**
+- `X_OAUTH_CANONICAL_DOMAIN` — overrides the canonical origin (default `https://sevco.us`). Set this to your dev Replit URL to test the OAuth round-trip end-to-end against a dev callback URL registered in the X portal.
+- `X_OAUTH_RETURN_TO_EXTRA` — comma-separated extra allowlist entries (rarely needed; in dev the current Replit domain is auto-added).
+- `X_OAUTH_HANDOFF_SECRET` — HMAC secret for handoff/init tokens (falls back to `SESSION_SECRET`).
+
+The disconnect flow (`POST /api/auth/twitter/disconnect`) is unchanged — it does not touch X.
+
 ## Platform Changelog / Wiki Sync (Tasks #522, #525)
 
 `/platform`, `/command/changelog`, and `/wiki/engineering/sevco-platform` all read from a single source: the `changelog` table joined with the `articles` table on `wiki_slug = slug`. Guarantees enforced at startup in `runStartupMigrations` + `applyChangelogSnapshot` (`server/index.ts`):

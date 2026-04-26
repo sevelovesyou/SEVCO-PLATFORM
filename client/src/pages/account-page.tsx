@@ -850,7 +850,7 @@ export default function AccountPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => { window.location.href = "/api/auth/twitter/link"; }}
+                onClick={() => { window.location.href = `/api/auth/twitter/link?return_to=${encodeURIComponent(window.location.origin)}`; }}
                 data-testid="button-connect-x"
               >
                 Connect X

@@ -323,7 +323,7 @@ export default function AuthPage() {
                   type="button"
                   variant="outline"
                   className="w-full"
-                  onClick={() => { window.location.href = "/api/auth/twitter"; }}
+                  onClick={() => { window.location.href = `/api/auth/twitter?return_to=${encodeURIComponent(window.location.origin)}`; }}
                   data-testid="button-sign-in-x"
                 >
                   <SiX className="mr-2 h-4 w-4" />
@@ -429,7 +429,7 @@ export default function AuthPage() {
                   type="button"
                   variant="outline"
                   className="w-full"
-                  onClick={() => { window.location.href = "/api/auth/twitter"; }}
+                  onClick={() => { window.location.href = `/api/auth/twitter?return_to=${encodeURIComponent(window.location.origin)}`; }}
                   data-testid="button-sign-in-x-register"
                 >
                   <SiX className="mr-2 h-4 w-4" />

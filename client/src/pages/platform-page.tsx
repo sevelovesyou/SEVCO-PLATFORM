@@ -233,7 +233,7 @@ export default function PlatformPage() {
                 Create Free Account
               </Button>
             </a>
-            <a href="/api/auth/twitter" data-testid="button-hero-x-signin">
+            <a href={`/api/auth/twitter?return_to=${encodeURIComponent(window.location.origin)}`} data-testid="button-hero-x-signin">
               <Button size="lg" variant="outline" className="font-semibold px-7 h-11 gap-2 bg-transparent border-white/20 text-white hover:bg-white/10 hover:text-white">
                 <SiX className="h-4 w-4" />
                 Sign in with X
@@ -482,7 +482,7 @@ export default function PlatformPage() {
                   Get Started Free
                 </Button>
               </a>
-              <a href="/api/auth/twitter" data-testid="button-cta-x-signin">
+              <a href={`/api/auth/twitter?return_to=${encodeURIComponent(window.location.origin)}`} data-testid="button-cta-x-signin">
                 <Button size="lg" variant="outline" className="font-semibold px-7 h-11 gap-2 bg-transparent border-white/20 text-white hover:bg-white/10 hover:text-white">
                   <SiX className="h-4 w-4" />
                   Continue with X

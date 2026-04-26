@@ -184,6 +184,47 @@ type FeedPostWithAuthor = FeedPost & {
   author: { username: string; displayName: string | null; avatarUrl: string | null } | null;
 };
 
+type SearchBgEntry =
+  | { kind: "image"; url: string }
+  | { kind: "video"; url: string }
+  | { kind: "youtube"; url: string; youtubeId: string };
+
+function classifySearchBgUrl(raw: string): SearchBgEntry | null {
+  const url = raw.trim();
+  if (!url) return null;
+  const ytId = extractYouTubeId(url);
+  if (ytId) return { kind: "youtube", url, youtubeId: ytId };
+  if (/\.(mp4|webm|ogg)(\?.*)?$/i.test(url)) return { kind: "video", url };
+  if (/^https?:\/\//i.test(url) || /^\//.test(url) || /^data:image\//i.test(url)) {
+    return { kind: "image", url };
+  }
+  return null;
+}
+
+function extractYouTubeId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, "");
+    if (host === "youtu.be") {
+      const id = u.pathname.replace(/^\//, "").split("/")[0];
+      return /^[a-zA-Z0-9_-]{6,}$/.test(id) ? id : null;
+    }
+    if (host === "youtube.com" || host === "m.youtube.com" || host === "music.youtube.com") {
+      if (u.pathname === "/watch") {
+        const id = u.searchParams.get("v");
+        return id && /^[a-zA-Z0-9_-]{6,}$/.test(id) ? id : null;
+      }
+      if (u.pathname.startsWith("/embed/")) {
+        const id = u.pathname.slice("/embed/".length).split("/")[0];
+        return /^[a-zA-Z0-9_-]{6,}$/.test(id) ? id : null;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 
 export default function Landing() {
   const { user } = useAuth();
@@ -296,6 +337,18 @@ export default function Landing() {
 
   const recentArticles = articles.filter((a) => a.status === "published").slice(0, 6);
   const featuredProjects = projects.slice(0, 6);
+
+  const searchBgRaw = settings["search.backgroundUrl"] ?? "";
+  const pickedSearchBg = useMemo<SearchBgEntry | null>(() => {
+    const entries = searchBgRaw
+      .split(/\r?\n/)
+      .map((line) => classifySearchBgUrl(line))
+      .filter((entry): entry is SearchBgEntry => entry !== null);
+    if (entries.length === 0) return null;
+    if (entries.length === 1) return entries[0];
+    const idx = Math.floor(Math.random() * entries.length);
+    return entries[idx];
+  }, [searchBgRaw]);
 
   const heroBgUrl = settings["hero.backgroundImageUrl"] ?? "";
   const heroHeadline = settings["hero.headline"] ?? "";
@@ -440,9 +493,11 @@ export default function Landing() {
 
       {/* ── GOOGLE-STYLE SEARCH ── */}
       {settings["section.search.visible"] !== "false" && (() => {
-        const bgUrl = settings["search.backgroundUrl"] ?? "";
-        const isVideo = bgUrl && /\.(mp4|webm|ogg)(\?.*)?$/i.test(bgUrl);
-        const isImage = bgUrl && !isVideo;
+        const picked = pickedSearchBg;
+        const isVideo = picked?.kind === "video";
+        const isImage = picked?.kind === "image";
+        const isYouTube = picked?.kind === "youtube";
+        const bgUrl = picked?.kind === "image" || picked?.kind === "video" ? picked.url : "";
         const logoUrl = settings["search.logoUrl"] ?? "";
         const placeholder = settings["search.placeholder"]?.trim() || "/";
         return (
@@ -460,6 +515,20 @@ export default function Landing() {
                 playsInline
                 className="absolute inset-0 w-full h-full object-cover"
                 data-testid="video-search-bg"
+              />
+            )}
+            {isYouTube && picked?.youtubeId && (
+              <iframe
+                src={`https://www.youtube.com/embed/${picked.youtubeId}?autoplay=1&mute=1&loop=1&playlist=${picked.youtubeId}&controls=0&modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&playsinline=1&disablekb=1`}
+                title="Search background"
+                allow="autoplay; encrypted-media"
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border-0"
+                style={{
+                  width: "max(100vw, 177.78vh)",
+                  height: "max(56.25vw, 100vh)",
+                  pointerEvents: "none",
+                }}
+                data-testid="iframe-search-bg"
               />
             )}
             <div className="relative z-10 flex flex-col items-center gap-8 w-full">

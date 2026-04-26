@@ -2490,15 +2490,16 @@ export default function CommandSettings() {
                     <p className="text-xs text-muted-foreground">Placeholder shown in all three search inputs (home page bar, search results page, and search overlay). Defaults to "/".</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="input-search-bg-url">{highlight("Background Image / Video URL")}</Label>
-                    <Input
+                    <Label htmlFor="input-search-bg-url">{highlight("Background URLs")}</Label>
+                    <Textarea
                       id="input-search-bg-url"
                       value={searchBgUrl}
                       onChange={(e) => setSearchBgUrl(e.target.value)}
-                      placeholder="https://example.com/bg.jpg or .mp4"
+                      placeholder={"https://example.com/bg.jpg\nhttps://example.com/clip.mp4\nhttps://youtu.be/dQw4w9WgXcQ"}
+                      rows={4}
                       data-testid="input-search-bg-url"
                     />
-                    <p className="text-xs text-muted-foreground">Image URL is applied as a CSS background. Video URLs (.mp4 / .webm / .ogg) auto-play looped and muted. Leave blank for the default solid background.</p>
+                    <p className="text-xs text-muted-foreground">Enter one URL per line. If multiple URLs are provided, one is chosen at random on each page load. Supported sources: image URLs, direct video files (.mp4 / .webm / .ogg), and YouTube links (youtube.com/watch, youtu.be, youtube.com/embed).</p>
                   </div>
                   <div className="flex justify-end pt-2">
                     <Button onClick={saveSearch} disabled={mutation.isPending} className="gap-2" data-testid="button-save-search">

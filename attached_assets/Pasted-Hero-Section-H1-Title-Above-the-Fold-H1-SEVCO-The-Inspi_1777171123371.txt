@@ -1,0 +1,43 @@
+Hero Section / H1 Title (Above the Fold)
+H1: "SEVCO | The Inspiration Company"
+Subtitle: "Founded by Severin Fredrik Gislason (Seve)"
+Large SEVCO logo + professional founder photo (or team image with Seve prominent).
+Short intro: "SEVCO is a creative technology organization building at the intersection of music, digital platforms, ventures, and visionary projects. Founded in Montana by entrepreneur and musician Severin Fredrik Gislason, SEVCO incubates bold ideas that inspire and empower creators."
+
+Company Overview / Mission (Core Description)
+200–400 words defining SEVCO as the entity.
+Key elements:
+What SEVCO does (music label, platform, ventures like SPHERE, architecture, services, etc.).
+Vision/philosophy ("Building the future, one venture at a time" — lean into your existing tagline).
+Current highlights: Active projects, SEVCO Records artists (including Seve releases), community features, Sparks currency, etc.
+
+
+Founder Story (Dedicated Section — Critical for Personal Entity)
+Heading: "Our Founder — Severin Fredrik Gislason (Seve)"
+This is where we anchor the personal signals without making the page feel personal-first.
+300–600 words: Brief journey, how Seve's background in music, tech, and innovation led to SEVCO. Highlight SEVCO creations (platform, SPHERE, Records) as extensions of his vision.
+Include: Full name variations, location (Kalispell, Montana), roles (Founder, Musician, Visionary), and forward-looking passion.
+Link to severingislason.com for deeper personal bio/resume.
+
+Key Ventures & Projects
+Grid or cards showcasing:
+SEVCO Platform & Records
+SPHERE
+Architecture, Freeball, Minecraft community, etc.
+Services (engineering, design, marketing)
+
+Embed music players for SEVCO Records / Seve tracks.
+
+Impact, Values & Community
+Vision for creators, innovation, and "inspiration economy."
+Testimonials, community stats, or wiki highlights.
+
+Team & Leadership
+Prominently feature Seve + any other team. This reinforces the founder-entity link.
+
+Connect & Verify (Entity Signals Section)
+Links to:
+Founder personal site: severingislason.com
+Social: @sevelovesu on X, LinkedIn, etc.
+Music profiles, Crunchbase, Discogs, etc.
+SEVCO wiki, news, contact (seve@sevco.us)

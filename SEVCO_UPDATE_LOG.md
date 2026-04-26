@@ -30470,18 +30470,12 @@ queryFn: async () => {
 
 ---
 
-<<<<<<< HEAD
-## Task — remove-inhouse-store
-> Merged: 2026-04-23
-
-=======
 ## Task — task-547
 > Merged: 2026-04-23
 
 ---
 title: Remove all in-house store functionality, pages, and routes
 ---
->>>>>>> 6059f54 (Post-merge setup completed successfully)
 # Task #547 — Remove all in-house store functionality
 
 ## Summary
@@ -31250,6 +31244,74 @@ The "Onboarding" checklist in the Social sidebar is getting too long and will ke
 - `client/src/pages/sparks-page.tsx`
 - `client/src/pages/feed-page.tsx:175-185,775-785`
 - `client/src/App.tsx:70-72,292-294`
+
+
+---
+
+## Task — task-574
+> Merged: 2026-04-26
+
+---
+title: Sparks system health check (post-fix audit)
+---
+# Task: Sparks system health check
+
+## Goal
+Once the import bug fix and the new "free self/authorless spark + real debit/credit on other-user sparks" behavior land, do a complete top-to-bottom audit of the Sparks system and fix any remaining issues that surface.
+
+## Depends on
+The bug fix task `sparks-bug-and-economy-fix.md` must be merged first. This task assumes that work is in place.
+
+## Audit checklist
+
+### A. Per-entity spark endpoints (`POST /api/<entity>/:id/spark`)
+For each of the six entity types, manually trigger a spark from the corresponding UI page **as a logged-in user who is not the owner** and confirm:
+
+| Entity | Page that surfaces the button | Expected after one click |
+|--------|-------------------------------|---------------------------|
+| post | `/feed`, `/u/:username`, `/posts/:id` | Count +1, balance −1, recipient balance +1, two rows in `spark_transactions` |
+| article | `/wiki/:slug` | Same |
+| gallery image | `/gallery` lightbox + grid | Same |
+| music track | `/music/album/:id`, `/music/beats` | Same; also `music_tracks.spark_count` +1; can DELETE to unspark |
+| project | `/projects`, `/projects/:slug`, `/` (landing showstopper) | Same |
+| service | `/services`, `/services/:category` | Same |
+
+Then repeat each test as the owner of the content and confirm: success animation plays, no toast, no balance changes, no row in `spark_transactions`, but the per-entity row IS inserted (count goes up).
+
+Then for entities that allow null author (verify which: `posts.authorId`, `articles.authorId`, `gallery_images.uploadedBy`, `projects.leadUserId`, `services.leadUserId`, music tracks via missing artist link), make sure the same "free spark" behavior applies.
+
+### B. Balance & transactions UI
+- `/account` → Sparks card balance and last 5 transactions show both spends and rewards correctly.
+- Platform header sparks badge (queryKey `/api/sparks/balance`) updates after sparking.
+- Social sidebar sparks count updates.
+- `/sparks` page (overview) shows correct numbers.
+- `/freeball` sparks balance widget updates.
+
+### C. Daily quota
+- After making 100 paid sparks in a day, the next paid spark returns 429 and the toast says "Daily limit reached (100 per day)".
+- Free sparks (own content / authorless) made in the same day **do not** count toward the 100 cap.
+- The `/api/sparks/daily-quota` endpoint returns the right `remaining` number after a mix of free and paid sparks.
+
+### D. Insufficient-funds path
+- A user with `sparks_balance = 0` who tries to spark someone else's content gets a 402 and a "Not enough Sparks" toast.
+- The same user can still freely spark their own / authorless content with no error.
+
+### E. Admin Command Center (`/command/sparks`)
+- Stats card totals (total balance, total spent, total earned) reflect new `social_spend` and `social_reward` rows correctly.
+- Transaction history table shows both directions (negative debit rows and positive credit rows) with sensible descriptions.
+- Per-user balance lookup + manual adjust still works.
+- Pack management (CRUD on `spark_packs`) untouched and still works.
+- "Top items" leaderboards (`getTopItems`) for products and projects no longer crash now that `productSparks` is imported — verify they render.
+
+### F. Code-level audit
+- Grep for any other references to `productSparks` in the client (should be zero — it has no UI). If any product spark UI exists, decide whether to wire it up or remove the dead schema/storage code. Document the decision in `replit.md` under the Sparks section.
+- Grep for any remaining `selfSpark`-as-error handling in the client (e.g., other components that branch on a 403 from spark endpoints) and remove.
+- Grep `SparkButton` usages and confirm every call site still passes the right props after `isOwner` becomes a no-op (no compile errors, no broken layouts).
+- Confirm `IStorage` interface signatures match the new return shape `{ alreadySparked; rateLimited; selfSpark; insufficientFunds }` in storage.ts.
+
+## Deliverable
+
+Write a one-paragraph health-check summary at the end of `replit.md` (under the Sparks section) listing what was tested, what was fixed, and any remaining known issues. Do not propose follow-up tasks unless something genuinely broken is discovered.
 
 
 ---

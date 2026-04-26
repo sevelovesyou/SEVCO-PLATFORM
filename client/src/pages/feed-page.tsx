@@ -384,12 +384,19 @@ function SocialPostCard({
 
   const sparkMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/posts/${post.id}/spark`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/posts"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sparks/balance"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sparks/daily-quota"] });
+    },
     onError: (err: any) => {
-      if (err?.message?.includes("429") || err?.status === 429) {
+      const msg = err?.message ?? "";
+      if (err?.status === 402 || msg.includes("402")) {
+        toast({ title: "Not enough Sparks", description: "Top up your balance to keep sparking.", variant: "destructive" });
+      } else if (err?.status === 429 || msg.includes("429")) {
         toast({ title: "Daily limit reached", description: "You can give 100 sparks per day." });
-      } else if (err?.message?.includes("403") || err?.status === 403) {
-        toast({ title: "Cannot spark your own content", variant: "destructive" });
+      } else if (err?.status === 409 || msg.includes("409")) {
+        // already sparked – silent
       }
     },
   });

@@ -31195,3 +31195,62 @@ Then use `s("about.hero.h1", "SEVCO | The Inspiration Company")` etc. throughout
 
 ---
 
+## Task — sparks-rewards-page
+> Merged: 2026-04-26
+
+# Sparks Rewards page + daily reward
+
+## What & Why
+The "Onboarding" checklist in the Social sidebar is getting too long and will keep growing. Rebrand it as "Rewards", trim the sidebar to just the first 5, and give Rewards their own dedicated, gameified page at `/sparks/rewards` with room to grow. Also add a new repeating reward: a "Daily Spark" worth 15 Sparks that any logged-in user can claim once per day.
+
+## Done looks like
+- The Social sidebar group previously labeled "Onboarding" is now labeled "Rewards".
+- The sidebar shows only the first 5 reward items, followed by a clear "See all rewards" link that routes to `/sparks/rewards`.
+- Visiting `/sparks/rewards` (logged in) shows a polished, gameified rewards page that feels distinct and celebratory compared to other pages — uses Sparks branding (yellow accents, `SparkIcon`), playful motion/visual flourishes, progress indicators, and clearly separates "completed" vs "still to earn" rewards.
+- The top of the rewards page prominently shows the user's "Sparks earned from Rewards" total (sum of all reward credits ever granted to that user — onboarding bonuses + daily reward claims), distinct from their overall Sparks balance.
+- All existing onboarding tasks appear on the page as reward cards, each showing label, Sparks value, and completed/locked state. Already-completed ones show a clear "Claimed" treatment.
+- A new "Daily Spark" reward card is shown that:
+  - Awards 15 Sparks when claimed.
+  - Can be claimed at most once per calendar day per user account.
+  - Has a visible "Claim" button when available, and a clear cooldown state ("Come back tomorrow" with the next-available time) after claiming.
+  - Updates the user's Sparks balance and the "earned from Rewards" total immediately on claim, with a celebratory toast.
+- The daily claim is enforced server-side (cannot be claimed twice in the same day even with rapid repeated requests / multi-tab).
+- The user's overall Sparks balance in the sidebar updates after a successful daily claim.
+
+## Out of scope
+- Any new reward types beyond the existing onboarding tasks and the new Daily Spark.
+- Reward streak bonuses, multi-day combos, or notifications/emails about rewards.
+- Admin UI for managing rewards.
+- Changes to how onboarding bonuses themselves are detected/credited.
+- Changes to the Sparks pricing/leaderboard/balance pages beyond what's required for the link.
+
+## Steps
+1. Add a `daily_reward` Sparks transaction type and a server-enforced once-per-UTC-day claim. Use a uniqueness mechanism analogous to the existing onboarding unique index (e.g. a unique index on `(userId, metadata->>'claimDate')` scoped to `type = 'daily_reward'`) so concurrent claims cannot double-credit. Expose:
+   - `POST /api/me/rewards/daily/claim` — credits 15 Sparks if not yet claimed today, otherwise returns a clear "already claimed" response with the next-available timestamp.
+   - `GET /api/me/rewards/summary` — returns, for the current user: the existing onboarding booleans, whether the daily reward is claimable now (and next-available time if not), and `totalEarnedFromRewards` (sum of all positive `onboarding_bonus` + `daily_reward` transaction amounts for that user).
+2. Build the new page at `/sparks/rewards` (`client/src/pages/sparks-rewards.tsx`) and register it in `client/src/App.tsx` ahead of the existing `/sparks` route. Page should:
+   - Require auth (redirect to `/pricing` like `sparks-page.tsx` does for unauthenticated users).
+   - Show a hero header with the user's "Sparks earned from Rewards" total, using `SparkIcon` and yellow accent styling consistent with the rest of the Sparks UI.
+   - Render the Daily Spark reward card prominently with claim button / cooldown state, wired to the new endpoint via a mutation that invalidates `/api/sparks/balance`, `/api/me/onboarding`, and the new rewards summary query.
+   - Render all onboarding rewards as cards in a gameified grid, with claimed vs unclaimed visual states, progress indicator (e.g. "X of Y claimed"), and at least one tasteful motion/visual flourish (respecting `motion-safe`). Keep the visual language consistent with existing Sparks pages.
+   - Include `data-testid` attributes following the project convention.
+3. Update `client/src/components/social-sidebar.tsx`:
+   - Rename the sidebar group label from "Onboarding" to "Rewards".
+   - Slice the rendered reward list to the first 5 items.
+   - Add a "See all rewards" link below the list that routes to `/sparks/rewards` and is visible whenever there are more rewards than shown.
+   - Keep the existing data fetching and bonus-grant invalidation behavior intact.
+4. SEO: give the new page a unique `<title>` and meta description (e.g. "Rewards — SEVCO Sparks") following the project's SEO pattern used by other pages.
+
+## Relevant files
+- `shared/onboarding.ts`
+- `shared/schema.ts:1215-1248`
+- `server/storage.ts:2954-3025`
+- `server/routes.ts:3882-3922`
+- `client/src/components/social-sidebar.tsx:37-232`
+- `client/src/pages/sparks-page.tsx`
+- `client/src/pages/feed-page.tsx:175-185,775-785`
+- `client/src/App.tsx:70-72,292-294`
+
+
+---
+

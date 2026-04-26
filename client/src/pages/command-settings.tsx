@@ -1333,6 +1333,26 @@ export default function CommandSettings() {
   const [brandVoicePillar3Word, setBrandVoicePillar3Word] = useState("");
   const [brandVoicePillar3Copy, setBrandVoicePillar3Copy] = useState("");
 
+  // ── About page copy ──
+  const [aboutHeroH1, setAboutHeroH1] = useState("");
+  const [aboutHeroSubtitle, setAboutHeroSubtitle] = useState("");
+  const [aboutHeroIntro, setAboutHeroIntro] = useState("");
+  const [aboutOverviewTagline, setAboutOverviewTagline] = useState("");
+  const [aboutOverviewP1, setAboutOverviewP1] = useState("");
+  const [aboutOverviewP2, setAboutOverviewP2] = useState("");
+  const [aboutOverviewP3, setAboutOverviewP3] = useState("");
+  const [aboutOverviewP4, setAboutOverviewP4] = useState("");
+  const [aboutFounderName, setAboutFounderName] = useState("");
+  const [aboutFounderLocation, setAboutFounderLocation] = useState("");
+  const [aboutFounderSiteUrl, setAboutFounderSiteUrl] = useState("");
+  const [aboutFounderSiteLabel, setAboutFounderSiteLabel] = useState("");
+  const [aboutFounderSiteDesc, setAboutFounderSiteDesc] = useState("");
+  const [aboutFounderP1, setAboutFounderP1] = useState("");
+  const [aboutFounderP2, setAboutFounderP2] = useState("");
+  const [aboutFounderP3, setAboutFounderP3] = useState("");
+  const [aboutFounderP4, setAboutFounderP4] = useState("");
+  const [aboutConnectEmail, setAboutConnectEmail] = useState("");
+
   function updateSeoField(page: string, field: keyof SeoPageMeta, value: string | boolean) {
     setSeoPages((prev) => ({ ...prev, [page]: { ...prev[page], [field]: value } }));
   }
@@ -1544,6 +1564,26 @@ export default function CommandSettings() {
     setBrandVoicePillar2Copy(settings["brand.voice.pillar2.copy"] ?? "");
     setBrandVoicePillar3Word(settings["brand.voice.pillar3.word"] ?? "");
     setBrandVoicePillar3Copy(settings["brand.voice.pillar3.copy"] ?? "");
+
+    // Load About page copy
+    setAboutHeroH1(settings["about.hero.h1"] ?? "");
+    setAboutHeroSubtitle(settings["about.hero.subtitle"] ?? "");
+    setAboutHeroIntro(settings["about.hero.intro"] ?? "");
+    setAboutOverviewTagline(settings["about.overview.tagline"] ?? "");
+    setAboutOverviewP1(settings["about.overview.p1"] ?? "");
+    setAboutOverviewP2(settings["about.overview.p2"] ?? "");
+    setAboutOverviewP3(settings["about.overview.p3"] ?? "");
+    setAboutOverviewP4(settings["about.overview.p4"] ?? "");
+    setAboutFounderName(settings["about.founder.name"] ?? "");
+    setAboutFounderLocation(settings["about.founder.location"] ?? "");
+    setAboutFounderSiteUrl(settings["about.founder.siteUrl"] ?? "");
+    setAboutFounderSiteLabel(settings["about.founder.siteLabel"] ?? "");
+    setAboutFounderSiteDesc(settings["about.founder.siteDesc"] ?? "");
+    setAboutFounderP1(settings["about.founder.p1"] ?? "");
+    setAboutFounderP2(settings["about.founder.p2"] ?? "");
+    setAboutFounderP3(settings["about.founder.p3"] ?? "");
+    setAboutFounderP4(settings["about.founder.p4"] ?? "");
+    setAboutConnectEmail(settings["about.connect.email"] ?? "");
   }, [settings, isLoading]);
 
   function saveBrandVoice() {
@@ -1555,6 +1595,44 @@ export default function CommandSettings() {
       "brand.voice.pillar2.copy": brandVoicePillar2Copy,
       "brand.voice.pillar3.word": brandVoicePillar3Word,
       "brand.voice.pillar3.copy": brandVoicePillar3Copy,
+    });
+  }
+
+  function saveAboutHero() {
+    mutation.mutate({
+      "about.hero.h1": aboutHeroH1,
+      "about.hero.subtitle": aboutHeroSubtitle,
+      "about.hero.intro": aboutHeroIntro,
+    });
+  }
+
+  function saveAboutOverview() {
+    mutation.mutate({
+      "about.overview.tagline": aboutOverviewTagline,
+      "about.overview.p1": aboutOverviewP1,
+      "about.overview.p2": aboutOverviewP2,
+      "about.overview.p3": aboutOverviewP3,
+      "about.overview.p4": aboutOverviewP4,
+    });
+  }
+
+  function saveAboutFounder() {
+    mutation.mutate({
+      "about.founder.name": aboutFounderName,
+      "about.founder.location": aboutFounderLocation,
+      "about.founder.siteUrl": aboutFounderSiteUrl,
+      "about.founder.siteLabel": aboutFounderSiteLabel,
+      "about.founder.siteDesc": aboutFounderSiteDesc,
+      "about.founder.p1": aboutFounderP1,
+      "about.founder.p2": aboutFounderP2,
+      "about.founder.p3": aboutFounderP3,
+      "about.founder.p4": aboutFounderP4,
+    });
+  }
+
+  function saveAboutConnect() {
+    mutation.mutate({
+      "about.connect.email": aboutConnectEmail,
     });
   }
 
@@ -2039,6 +2117,7 @@ export default function CommandSettings() {
             <TabsTrigger value="footer" data-testid="tab-footer" onClick={() => { setSearchQuery(""); setActiveTab("footer"); }}>Footer & Legal</TabsTrigger>
             <TabsTrigger value="platform-assets" data-testid="tab-platform-assets" onClick={() => { setSearchQuery(""); setActiveTab("platform-assets"); }}>Platform Assets</TabsTrigger>
             <TabsTrigger value="advanced" data-testid="tab-advanced" onClick={() => { setSearchQuery(""); setActiveTab("advanced"); }}>Advanced</TabsTrigger>
+            <TabsTrigger value="about" data-testid="tab-about" onClick={() => { setSearchQuery(""); setActiveTab("about"); }}>About Page</TabsTrigger>
           </TabsList>
 
           {/* ════════════ HERO & CTAs ════════════ */}
@@ -3821,6 +3900,232 @@ export default function CommandSettings() {
             </AccordionContent>
           </AccordionItem>
             </Accordion>
+          </TabsContent>
+
+          {/* ════════════ ABOUT PAGE ════════════ */}
+          <TabsContent value="about" forceMount className="space-y-6" style={{ display: (!searchQuery && activeTab !== "about") ? "none" : "block" }}>
+            <div data-search-label="about page hero copy h1 subtitle intro founder story location personal site email connect" className="space-y-6">
+
+              {/* Card 1 — Hero */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Type className="h-4 w-4" />
+                    {highlight("About — Hero")}
+                  </CardTitle>
+                  <CardDescription>
+                    {highlight("Top-of-page heading, founder line, and intro paragraph shown on /about. Leave fields blank to use the defaults.")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="about-hero-h1" className="text-xs">Page heading (H1)</Label>
+                    <Input
+                      id="about-hero-h1"
+                      value={aboutHeroH1}
+                      onChange={(e) => setAboutHeroH1(e.target.value)}
+                      placeholder="SEVCO | The Inspiration Company"
+                      data-testid="input-about-hero-h1"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="about-hero-subtitle" className="text-xs">Founder/subtitle line</Label>
+                    <Input
+                      id="about-hero-subtitle"
+                      value={aboutHeroSubtitle}
+                      onChange={(e) => setAboutHeroSubtitle(e.target.value)}
+                      placeholder="Founded by Severin Fredrik Gislason (Seve)"
+                      data-testid="input-about-hero-subtitle"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="about-hero-intro" className="text-xs">Intro paragraph</Label>
+                    <Textarea
+                      id="about-hero-intro"
+                      value={aboutHeroIntro}
+                      onChange={(e) => setAboutHeroIntro(e.target.value)}
+                      placeholder="SEVCO is a creative technology organization building at the intersection of music, digital platforms, projects, and visionary ideas. Founded in Montana by entrepreneur and musician Severin Fredrik Gislason, SEVCO incubates bold ideas that inspire and empower creators."
+                      rows={4}
+                      data-testid="input-about-hero-intro"
+                    />
+                  </div>
+                  <Button onClick={saveAboutHero} disabled={mutation.isPending} size="sm" className="gap-1.5" data-testid="button-save-about-hero">
+                    <Save className="h-3.5 w-3.5" />
+                    {mutation.isPending ? "Saving…" : "Save Hero"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Card 2 — Company Overview */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlignLeft className="h-4 w-4" />
+                    {highlight("About — Company Overview")}
+                  </CardTitle>
+                  <CardDescription>
+                    {highlight('"What is SEVCO?" body paragraphs and the highlighted tagline blockquote. Leave any field blank to use the default.')}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="about-overview-tagline" className="text-xs">Tagline / blockquote</Label>
+                    <Textarea
+                      id="about-overview-tagline"
+                      value={aboutOverviewTagline}
+                      onChange={(e) => setAboutOverviewTagline(e.target.value)}
+                      placeholder="Building the future, one project at a time."
+                      rows={2}
+                      data-testid="input-about-overview-tagline"
+                    />
+                  </div>
+                  {[
+                    { idx: 1, value: aboutOverviewP1, set: setAboutOverviewP1, def: "SEVCO started with music. SEVCO Records is an independent label that finds and backs artists who have something real to say — managing everything from submission through release, distribution, and promotion. The label sits at the heart of what SEVCO is: a belief that creative work deserves serious infrastructure." },
+                    { idx: 2, value: aboutOverviewP2, set: setAboutOverviewP2, def: "From there, SEVCO expanded into digital products and platforms. SPHERE, SEVCO Architecture, Freeball, and a Minecraft community are just a few of the projects incubated under the SEVCO umbrella — each one an experiment in what happens when bold ideas get proper engineering and design attention." },
+                    { idx: 3, value: aboutOverviewP3, set: setAboutOverviewP3, def: "SEVCO Services brings that same capability to partners: engineering, design, marketing, domain infrastructure, and consulting. The team builds for clients the same way they build for themselves — with high craft and a long-term mindset. And Sparks, SEVCO's in-platform currency, keeps the community engaged, rewarding participation and connecting users to products and experiences." },
+                    { idx: 4, value: aboutOverviewP4, set: setAboutOverviewP4, def: "Together these pillars form a single creative technology organization — one that moves fluidly between being a label, a studio, a consultancy, and a community platform." },
+                  ].map((p) => (
+                    <div key={p.idx} className="space-y-1.5">
+                      <Label htmlFor={`about-overview-p${p.idx}`} className="text-xs">Paragraph {p.idx}</Label>
+                      <Textarea
+                        id={`about-overview-p${p.idx}`}
+                        value={p.value}
+                        onChange={(e) => p.set(e.target.value)}
+                        placeholder={p.def}
+                        rows={4}
+                        data-testid={`input-about-overview-p${p.idx}`}
+                      />
+                    </div>
+                  ))}
+                  <Button onClick={saveAboutOverview} disabled={mutation.isPending} size="sm" className="gap-1.5" data-testid="button-save-about-overview">
+                    <Save className="h-3.5 w-3.5" />
+                    {mutation.isPending ? "Saving…" : "Save Overview"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Card 3 — Founder Story */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    {highlight("About — Founder Story")}
+                  </CardTitle>
+                  <CardDescription>
+                    {highlight("Founder name, location, personal site card, and the founder story paragraphs.")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="about-founder-name" className="text-xs">Founder full name</Label>
+                      <Input
+                        id="about-founder-name"
+                        value={aboutFounderName}
+                        onChange={(e) => setAboutFounderName(e.target.value)}
+                        placeholder="Severin Fredrik Gislason (Seve)"
+                        data-testid="input-about-founder-name"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="about-founder-location" className="text-xs">Location</Label>
+                      <Input
+                        id="about-founder-location"
+                        value={aboutFounderLocation}
+                        onChange={(e) => setAboutFounderLocation(e.target.value)}
+                        placeholder="Kalispell, Montana"
+                        data-testid="input-about-founder-location"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="about-founder-site-url" className="text-xs">Personal site URL</Label>
+                      <Input
+                        id="about-founder-site-url"
+                        value={aboutFounderSiteUrl}
+                        onChange={(e) => setAboutFounderSiteUrl(e.target.value)}
+                        placeholder="https://severingislason.com"
+                        data-testid="input-about-founder-site-url"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="about-founder-site-label" className="text-xs">Site display label</Label>
+                      <Input
+                        id="about-founder-site-label"
+                        value={aboutFounderSiteLabel}
+                        onChange={(e) => setAboutFounderSiteLabel(e.target.value)}
+                        placeholder="severingislason.com"
+                        data-testid="input-about-founder-site-label"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="about-founder-site-desc" className="text-xs">Site description</Label>
+                    <Input
+                      id="about-founder-site-desc"
+                      value={aboutFounderSiteDesc}
+                      onChange={(e) => setAboutFounderSiteDesc(e.target.value)}
+                      placeholder="Personal site of Seve — music, writing, and more."
+                      data-testid="input-about-founder-site-desc"
+                    />
+                  </div>
+                  {[
+                    { idx: 1, value: aboutFounderP1, set: setAboutFounderP1, def: "Severin Fredrik Gislason — known as Seve — began his journey as a musician, spending years developing his craft and understanding the landscape that artists navigate. That experience on the creative side revealed a gap: brilliant artists were underserved by the infrastructure around them, and builders rarely understood what artists actually needed." },
+                    { idx: 2, value: aboutFounderP2, set: setAboutFounderP2, def: "From Kalispell, Montana, Seve built SEVCO as his answer to that gap. What started as a music label became something larger: a full creative technology organization where music, software, services, and community could coexist under one roof. Every product SEVCO ships is, in some sense, an extension of his vision — that inspiration should be the starting point for everything." },
+                    { idx: 3, value: aboutFounderP3, set: setAboutFounderP3, def: "As Founder, Musician, and Visionary, Seve continues to drive SEVCO's direction — from the platforms and tools built in-house to the artists signed to the label. His background in both music and entrepreneurship gives SEVCO its distinctive character: creative enough to take real risks, structured enough to deliver on them." },
+                    { idx: 4, value: aboutFounderP4, set: setAboutFounderP4, def: "SEVCO's creations are extensions of Seve's own creative process — built not just to serve a market, but to express a way of thinking about what technology and culture can achieve together." },
+                  ].map((p) => (
+                    <div key={p.idx} className="space-y-1.5">
+                      <Label htmlFor={`about-founder-p${p.idx}`} className="text-xs">Story paragraph {p.idx}</Label>
+                      <Textarea
+                        id={`about-founder-p${p.idx}`}
+                        value={p.value}
+                        onChange={(e) => p.set(e.target.value)}
+                        placeholder={p.def}
+                        rows={4}
+                        data-testid={`input-about-founder-p${p.idx}`}
+                      />
+                    </div>
+                  ))}
+                  <Button onClick={saveAboutFounder} disabled={mutation.isPending} size="sm" className="gap-1.5" data-testid="button-save-about-founder">
+                    <Save className="h-3.5 w-3.5" />
+                    {mutation.isPending ? "Saving…" : "Save Founder Story"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Card 4 — Connect & Links */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    {highlight("About — Connect & Links")}
+                  </CardTitle>
+                  <CardDescription>
+                    {highlight("Contact email shown in the Connect section. Social links are managed in Advanced → Social Links.")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="about-connect-email" className="text-xs">Contact email</Label>
+                    <Input
+                      id="about-connect-email"
+                      type="email"
+                      value={aboutConnectEmail}
+                      onChange={(e) => setAboutConnectEmail(e.target.value)}
+                      placeholder="seve@sevco.us"
+                      data-testid="input-about-connect-email"
+                    />
+                  </div>
+                  <Button onClick={saveAboutConnect} disabled={mutation.isPending} size="sm" className="gap-1.5" data-testid="button-save-about-connect">
+                    <Save className="h-3.5 w-3.5" />
+                    {mutation.isPending ? "Saving…" : "Save Contact Email"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+            </div>
           </TabsContent>
 
         </Tabs>

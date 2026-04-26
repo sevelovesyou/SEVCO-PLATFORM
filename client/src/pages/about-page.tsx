@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   Building2,
@@ -162,7 +163,68 @@ const ABOUT_JSON_LD = {
   ],
 };
 
+const DEFAULTS = {
+  heroH1: "SEVCO | The Inspiration Company",
+  heroSubtitle: "Founded by Severin Fredrik Gislason (Seve)",
+  heroIntro: "SEVCO is a creative technology organization building at the intersection of music, digital platforms, projects, and visionary ideas. Founded in Montana by entrepreneur and musician Severin Fredrik Gislason, SEVCO incubates bold ideas that inspire and empower creators.",
+  overviewTagline: "Building the future, one project at a time.",
+  overviewP1: "SEVCO started with music. SEVCO Records is an independent label that finds and backs artists who have something real to say — managing everything from submission through release, distribution, and promotion. The label sits at the heart of what SEVCO is: a belief that creative work deserves serious infrastructure.",
+  overviewP2: "From there, SEVCO expanded into digital products and platforms. SPHERE, SEVCO Architecture, Freeball, and a Minecraft community are just a few of the projects incubated under the SEVCO umbrella — each one an experiment in what happens when bold ideas get proper engineering and design attention.",
+  overviewP3: "SEVCO Services brings that same capability to partners: engineering, design, marketing, domain infrastructure, and consulting. The team builds for clients the same way they build for themselves — with high craft and a long-term mindset. And Sparks, SEVCO's in-platform currency, keeps the community engaged, rewarding participation and connecting users to products and experiences.",
+  overviewP4: "Together these pillars form a single creative technology organization — one that moves fluidly between being a label, a studio, a consultancy, and a community platform.",
+  founderName: "Severin Fredrik Gislason (Seve)",
+  founderLocation: "Kalispell, Montana",
+  founderSiteUrl: "https://severingislason.com",
+  founderSiteLabel: "severingislason.com",
+  founderSiteDesc: "Personal site of Seve — music, writing, and more.",
+  founderP1: "Severin Fredrik Gislason — known as Seve — began his journey as a musician, spending years developing his craft and understanding the landscape that artists navigate. That experience on the creative side revealed a gap: brilliant artists were underserved by the infrastructure around them, and builders rarely understood what artists actually needed.",
+  founderP2: "From Kalispell, Montana, Seve built SEVCO as his answer to that gap. What started as a music label became something larger: a full creative technology organization where music, software, services, and community could coexist under one roof. Every product SEVCO ships is, in some sense, an extension of his vision — that inspiration should be the starting point for everything.",
+  founderP3: "As Founder, Musician, and Visionary, Seve continues to drive SEVCO's direction — from the platforms and tools built in-house to the artists signed to the label. His background in both music and entrepreneurship gives SEVCO its distinctive character: creative enough to take real risks, structured enough to deliver on them.",
+  founderP4: "SEVCO's creations are extensions of Seve's own creative process — built not just to serve a market, but to express a way of thinking about what technology and culture can achieve together.",
+  connectEmail: "seve@sevco.us",
+};
+
+function renderHeroH1(value: string) {
+  // Render text containing a single "|" with the second half styled as muted
+  const idx = value.indexOf("|");
+  if (idx === -1) return value;
+  const left = value.slice(0, idx).trim();
+  const right = value.slice(idx + 1).trim();
+  return (
+    <>
+      {left} |{" "}
+      <span className="text-muted-foreground">{right}</span>
+    </>
+  );
+}
+
 export default function AboutPage() {
+  const { data: settings = {} } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const s = (key: string, fallback: string) => settings[key] || fallback;
+
+  const heroH1 = s("about.hero.h1", DEFAULTS.heroH1);
+  const heroSubtitle = s("about.hero.subtitle", DEFAULTS.heroSubtitle);
+  const heroIntro = s("about.hero.intro", DEFAULTS.heroIntro);
+  const overviewTagline = s("about.overview.tagline", DEFAULTS.overviewTagline);
+  const overviewP1 = s("about.overview.p1", DEFAULTS.overviewP1);
+  const overviewP2 = s("about.overview.p2", DEFAULTS.overviewP2);
+  const overviewP3 = s("about.overview.p3", DEFAULTS.overviewP3);
+  const overviewP4 = s("about.overview.p4", DEFAULTS.overviewP4);
+  const founderName = s("about.founder.name", DEFAULTS.founderName);
+  const founderLocation = s("about.founder.location", DEFAULTS.founderLocation);
+  const founderSiteUrl = s("about.founder.siteUrl", DEFAULTS.founderSiteUrl);
+  const founderSiteLabel = s("about.founder.siteLabel", DEFAULTS.founderSiteLabel);
+  const founderSiteDesc = s("about.founder.siteDesc", DEFAULTS.founderSiteDesc);
+  const founderP1 = s("about.founder.p1", DEFAULTS.founderP1);
+  const founderP2 = s("about.founder.p2", DEFAULTS.founderP2);
+  const founderP3 = s("about.founder.p3", DEFAULTS.founderP3);
+  const founderP4 = s("about.founder.p4", DEFAULTS.founderP4);
+  const connectEmail = s("about.connect.email", DEFAULTS.connectEmail);
+
   return (
     <div className="min-h-screen bg-background">
       <PageHead
@@ -195,19 +257,16 @@ export default function AboutPage() {
             className="text-5xl md:text-6xl font-black tracking-tight leading-none"
             data-testid="text-about-heading"
           >
-            SEVCO |{" "}
-            <span className="text-muted-foreground">The Inspiration Company</span>
+            {renderHeroH1(heroH1)}
           </h1>
           <p className="text-base text-muted-foreground font-medium" data-testid="text-about-founder-line">
-            Founded by Severin Fredrik Gislason (Seve)
+            {heroSubtitle}
           </p>
           <p
             className="text-lg text-muted-foreground leading-relaxed max-w-2xl"
             data-testid="text-about-intro"
           >
-            SEVCO is a creative technology organization building at the intersection of music, digital platforms,
-            projects, and visionary ideas. Founded in Montana by entrepreneur and musician Severin Fredrik Gislason,
-            SEVCO incubates bold ideas that inspire and empower creators.
+            {heroIntro}
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <Link href="/projects">
@@ -237,77 +296,43 @@ export default function AboutPage() {
         <section className="space-y-8" data-testid="section-about-overview">
           <h2 className="text-3xl font-bold tracking-tight">What is SEVCO?</h2>
           <div className="space-y-5 text-muted-foreground leading-relaxed max-w-3xl">
-            <p data-testid="text-overview-1">
-              SEVCO started with music. SEVCO Records is an independent label that finds and backs artists who have
-              something real to say — managing everything from submission through release, distribution, and promotion.
-              The label sits at the heart of what SEVCO is: a belief that creative work deserves serious infrastructure.
-            </p>
-            <p data-testid="text-overview-2">
-              From there, SEVCO expanded into digital products and platforms. SPHERE, SEVCO Architecture, Freeball,
-              and a Minecraft community are just a few of the projects incubated under the SEVCO umbrella — each one
-              an experiment in what happens when bold ideas get proper engineering and design attention.
-            </p>
-            <p data-testid="text-overview-3">
-              SEVCO Services brings that same capability to partners: engineering, design, marketing, domain
-              infrastructure, and consulting. The team builds for clients the same way they build for themselves —
-              with high craft and a long-term mindset. And Sparks, SEVCO's in-platform currency, keeps the community
-              engaged, rewarding participation and connecting users to products and experiences.
-            </p>
-            <p data-testid="text-overview-4">
-              Together these pillars form a single creative technology organization — one that moves fluidly between
-              being a label, a studio, a consultancy, and a community platform.
-            </p>
+            <p data-testid="text-overview-1">{overviewP1}</p>
+            <p data-testid="text-overview-2">{overviewP2}</p>
+            <p data-testid="text-overview-3">{overviewP3}</p>
+            <p data-testid="text-overview-4">{overviewP4}</p>
           </div>
           <blockquote
             className="border-l-4 border-primary pl-6 py-2 text-xl md:text-2xl font-semibold text-foreground italic"
             data-testid="text-about-tagline"
           >
-            "Building the future, one project at a time."
+            "{overviewTagline}"
           </blockquote>
         </section>
 
         {/* Section 3 — Founder Story */}
         <section className="space-y-8" data-testid="section-about-founder">
           <h2 className="text-3xl font-bold tracking-tight">
-            Our Founder — Severin Fredrik Gislason (Seve)
+            Our Founder — {founderName}
           </h2>
           <div className="grid md:grid-cols-3 gap-8 md:gap-12">
             <div className="md:col-span-2 space-y-5 text-muted-foreground leading-relaxed">
-              <p data-testid="text-founder-1">
-                Severin Fredrik Gislason — known as Seve — began his journey as a musician, spending years developing
-                his craft and understanding the landscape that artists navigate. That experience on the creative side
-                revealed a gap: brilliant artists were underserved by the infrastructure around them, and builders
-                rarely understood what artists actually needed.
-              </p>
-              <p data-testid="text-founder-2">
-                From Kalispell, Montana, Seve built SEVCO as his answer to that gap. What started as a music label
-                became something larger: a full creative technology organization where music, software, services, and
-                community could coexist under one roof. Every product SEVCO ships is, in some sense, an extension of
-                his vision — that inspiration should be the starting point for everything.
-              </p>
-              <p data-testid="text-founder-3">
-                As Founder, Musician, and Visionary, Seve continues to drive SEVCO's direction — from the platforms
-                and tools built in-house to the artists signed to the label. His background in both music and
-                entrepreneurship gives SEVCO its distinctive character: creative enough to take real risks, structured
-                enough to deliver on them.
-              </p>
-              <p data-testid="text-founder-4">
-                SEVCO's creations are extensions of Seve's own creative process — built not just to serve a market,
-                but to express a way of thinking about what technology and culture can achieve together.
-              </p>
+              <p data-testid="text-founder-1">{founderP1}</p>
+              <p data-testid="text-founder-2">{founderP2}</p>
+              <p data-testid="text-founder-3">{founderP3}</p>
+              <p data-testid="text-founder-4">{founderP4}</p>
             </div>
             <div className="space-y-4">
               <div className="flex justify-center md:justify-start" data-testid="img-founder-portrait-wrapper">
                 <img
                   src={sevePortrait}
-                  alt="Seve — Founder of SEVCO"
+                  alt={`${founderName} — Founder of SEVCO`}
                   data-testid="img-founder-portrait"
                   className="w-48 h-48 rounded-full object-cover object-top border-2 border-border shadow-md"
                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
                 />
               </div>
               <a
-                href="https://severingislason.com"
+                href={founderSiteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 data-testid="link-founder-site"
@@ -315,11 +340,11 @@ export default function AboutPage() {
               >
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                    severingislason.com
+                    {founderSiteLabel}
                   </p>
                   <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
-                <p className="text-xs text-muted-foreground">Personal site of Seve — music, writing, and more.</p>
+                <p className="text-xs text-muted-foreground">{founderSiteDesc}</p>
               </a>
               <div
                 className="border border-border rounded-2xl p-5 space-y-2"
@@ -327,7 +352,7 @@ export default function AboutPage() {
               >
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                  Kalispell, Montana
+                  {founderLocation}
                 </div>
                 <p className="text-xs text-muted-foreground">SEVCO's founding home, in the heart of the Northwest.</p>
               </div>
@@ -436,23 +461,23 @@ export default function AboutPage() {
           </div>
           <div className="flex flex-wrap gap-3">
             <a
-              href="https://severingislason.com"
+              href={founderSiteUrl}
               target="_blank"
               rel="noopener noreferrer"
               data-testid="link-connect-founder-site"
             >
               <Button variant="outline" className="gap-2 h-10">
                 <ExternalLink className="h-4 w-4" />
-                severingislason.com
+                {founderSiteLabel}
               </Button>
             </a>
             <a
-              href="mailto:seve@sevco.us"
+              href={`mailto:${connectEmail}`}
               data-testid="link-connect-email"
             >
               <Button variant="outline" className="gap-2 h-10">
                 <Mail className="h-4 w-4" />
-                seve@sevco.us
+                {connectEmail}
               </Button>
             </a>
           </div>

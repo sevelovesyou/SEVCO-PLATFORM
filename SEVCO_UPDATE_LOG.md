@@ -31066,3 +31066,132 @@ These are small, targeted changes to existing copy to improve named-entity clari
 
 ---
 
+## Task — task-565
+> Merged: 2026-04-26
+
+---
+title: About page CMD editor tab
+---
+# Task #565 — About Page CMD Editor Tab
+
+## Summary
+Add a dedicated "About" tab to the CMD Settings page (`/command/settings`) so admins can edit all the copy and links shown on the public `/about` page. All editable content is stored in `platform_settings` via the existing key-value system; the About page reads from those settings with its hardcoded defaults as fallback.
+
+---
+
+## What already exists (do not duplicate)
+- `platform_settings` table + `GET /api/platform-settings` (public) + `PUT /api/platform-settings` (admin-only) are already wired up.
+- A "Brand Voice & Mission" card in the Advanced tab edits `brand.voice.*` keys — but those keys are not consumed by the About page. Do NOT remove them; they belong to the Brand Guidelines page.
+- A per-page SEO editor (in the Advanced → Optimization accordion) already overrides `seo.page.about.*` keys (title, description, keywords, ogImage, jsonLd). Do NOT duplicate that.
+- The existing tabs are: Theme, Hero & CTAs, Footer & Legal, Platform Assets, Advanced.
+
+---
+
+## Tab to Add
+
+### Tab trigger
+```tsx
+<TabsTrigger value="about" data-testid="tab-about" onClick={() => { setSearchQuery(""); setActiveTab("about"); }}>
+  About Page
+</TabsTrigger>
+```
+
+Add it after the existing `<TabsTrigger value="advanced">` entry in the `<TabsList>`.
+
+### Platform settings keys (all new — must be added)
+| Key | Default value (shown as placeholder) |
+|-----|--------------------------------------|
+| `about.hero.h1` | `SEVCO \| The Inspiration Company` |
+| `about.hero.subtitle` | `Founded by Severin Fredrik Gislason (Seve)` |
+| `about.hero.intro` | `SEVCO is a creative technology organization building at the intersection of music, digital platforms, projects, and visionary ideas. Founded in Montana by entrepreneur and musician Severin Fredrik Gislason, SEVCO incubates bold ideas that inspire and empower creators.` |
+| `about.overview.tagline` | `Building the future, one project at a time.` |
+| `about.overview.p1` | *(first paragraph of "What is SEVCO?" section)* |
+| `about.overview.p2` | *(second paragraph)* |
+| `about.overview.p3` | *(third paragraph)* |
+| `about.overview.p4` | *(fourth paragraph)* |
+| `about.founder.name` | `Severin Fredrik Gislason (Seve)` |
+| `about.founder.location` | `Kalispell, Montana` |
+| `about.founder.siteUrl` | `https://severingislason.com` |
+| `about.founder.siteLabel` | `severingislason.com` |
+| `about.founder.siteDesc` | `Personal site of Seve — music, writing, and more.` |
+| `about.founder.p1` | *(first paragraph of founder story)* |
+| `about.founder.p2` | *(second paragraph)* |
+| `about.founder.p3` | *(third paragraph)* |
+| `about.founder.p4` | *(fourth paragraph)* |
+| `about.connect.email` | `seve@sevco.us` |
+
+### Tab content layout (inside `<TabsContent value="about">`)
+
+Three `<Card>` groups:
+
+**Card 1 — Hero**
+- `<Input>` for H1 text (`about.hero.h1`)
+- `<Input>` for subtitle/founder line (`about.hero.subtitle`)
+- `<Textarea rows={4}>` for intro paragraph (`about.hero.intro`)
+- Save button → saves all three keys
+
+**Card 2 — Company Overview**
+- `<Textarea rows={2}>` for tagline/blockquote (`about.overview.tagline`)
+- Four `<Textarea rows={4}>` fields for paragraphs p1–p4 (`about.overview.p1` through `about.overview.p4`)
+- Save button → saves all five keys
+
+**Card 3 — Founder Story**
+- `<Input>` for founder full name (`about.founder.name`)
+- `<Input>` for location (`about.founder.location`)
+- `<Input>` for personal site URL (`about.founder.siteUrl`)
+- `<Input>` for site display label (`about.founder.siteLabel`)
+- `<Input>` for site description blurb (`about.founder.siteDesc`)
+- Four `<Textarea rows={4}>` for story paragraphs p1–p4 (`about.founder.p1`–`about.founder.p4`)
+- Save button → saves all founder keys
+
+**Card 4 — Connect & Links**
+- `<Input>` for contact email (`about.connect.email`)
+- Save button → saves email key
+- Note: Social links are managed in Advanced → Social Links
+
+---
+
+## Changes to `command-settings.tsx`
+
+1. Add state variables for all `about.*` keys (similar to how `brandVoice*` states are handled).
+2. In the `useEffect` that reads `settings` → populate all new states.
+3. Add four save functions (`saveAboutHero`, `saveAboutOverview`, `saveAboutFounder`, `saveAboutConnect`).
+4. Add the new `TabsTrigger` and `TabsContent`.
+5. Add search label `data-search-label="about page hero copy h1 subtitle intro founder story location personal site email connect"` on the section wrapper.
+
+---
+
+## Changes to `client/src/pages/about-page.tsx`
+
+The About page must fetch `platform_settings` and use values with fallback to the existing hardcoded defaults:
+
+```tsx
+import { useQuery } from "@tanstack/react-query";
+
+const { data: settings = {} } = useQuery<Record<string, string>>({
+  queryKey: ["/api/platform-settings"],
+  staleTime: 5 * 60 * 1000,
+});
+
+// Helper to get a setting with fallback
+function s(key: string, fallback: string) {
+  return settings[key] || fallback;
+}
+```
+
+Then use `s("about.hero.h1", "SEVCO | The Inspiration Company")` etc. throughout the JSX in place of the currently hardcoded strings. All existing `data-testid` attributes must be preserved.
+
+---
+
+## No backend changes required
+- `platform_settings` key-value store already exists.
+- `PUT /api/platform-settings` already accepts arbitrary keys.
+- No new DB columns, no new routes.
+
+## Files touched
+- `client/src/pages/command-settings.tsx` — new tab + state + save functions
+- `client/src/pages/about-page.tsx` — reads from platform_settings with fallbacks
+
+
+---
+

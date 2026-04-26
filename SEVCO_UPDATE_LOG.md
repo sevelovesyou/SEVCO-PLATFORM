@@ -31716,3 +31716,52 @@ Add a Kittl-style Artboard system to the Canvas page so users can create fixed-s
 
 ---
 
+## Task — canonical-x-oauth-domain
+> Merged: 2026-04-26
+
+# Canonical X OAuth domain with cross-domain handoff
+
+## What & Why
+SEVCO runs on multiple domains (`sevco.us`, `sevelovesyou.com`, `sev.cx`, `sevco.wiki`), but the X (Twitter) Developer App only has one set of OAuth callback URLs registered. Today the app builds the callback URL from a single `BASE_URL`, so X OAuth only works on whichever domain matches that env var.
+
+Funnel every X OAuth flow through one canonical domain (`sevco.us`) and then hand the resulting login or link back to whichever domain the user actually started on. This way only `sevco.us`'s callback URLs need to be registered with X, and visitors on any of the supported domains can sign in or link their X account without leaving "their" domain after the round-trip is complete.
+
+## Done looks like
+- Visitors on `sevelovesyou.com`, `sev.cx`, and `sevco.wiki` can click "Sign in with X" or "Connect X account" and complete the flow successfully — the only URLs registered in the X Developer Portal are `https://sevco.us/api/auth/twitter/callback` and `https://sevco.us/api/auth/twitter/link/callback`.
+- After the X round-trip, the user lands back on the domain they started on (not on `sevco.us`), with a valid session cookie on that domain — so they're properly signed in / linked there.
+- Visitors on `sevco.us` itself continue to work exactly as before.
+- Attempts to use any `return_to` value outside the allowlist are rejected and the user is sent back to the canonical domain with an error message.
+- Existing X disconnect flow is unaffected (it doesn't touch X).
+
+## Out of scope
+- Sharing one logged-in session across all four domains simultaneously (single sign-on across domains for non-X auth). This task only completes the session on the originating domain.
+- Adding new domains beyond the four listed above (the allowlist is configurable but only seeded with these).
+- Changing the X scopes, sign-in UI copy, or any non-OAuth auth flows.
+- Replacing `BASE_URL` for non-X uses (email links, etc.) — this task only changes how X OAuth resolves its callback and post-auth redirect.
+
+## Steps
+1. **Pin the X OAuth callback to the canonical domain.** Make the X OAuth strategies (both `twitter-oauth2` sign-in and `twitter-link`) always use `https://sevco.us/...callback`, independent of the request host or `BASE_URL`. Add a configurable canonical-domain constant (default `https://sevco.us`) so it isn't sprinkled as a magic string.
+
+2. **Add a return-to allowlist and validation helper.** Introduce a server-side allowlist of permitted return origins (`sevco.us`, `sevelovesyou.com`, `sev.cx`, `sevco.wiki`, plus the current Replit dev domain when not in production). Add a small helper that validates a candidate `return_to` against this allowlist (must be https, must match host exactly, no path-traversal tricks). Reject anything else and fall back to the canonical domain.
+
+3. **Accept and persist `return_to` on the OAuth initiation routes.** Update both `/api/auth/twitter` (sign-in) and `/api/auth/twitter/link` (link) to read an optional `return_to` query param. Validate it through the helper and stash it on the session before kicking off Passport. If absent or invalid, default to the canonical domain.
+
+4. **Cross-domain handoff for sign-in.** When the OAuth callback completes on `sevco.us` and a user is identified, generate a single-use, short-lived (≈60s), HMAC-signed token containing the user id (and intent = "signin"). Persist the token (in-memory map or DB row keyed by token id) so it can only be redeemed once. Redirect the user to `https://{return_to}/api/auth/twitter/complete?token=...`. On the receiving domain, that endpoint verifies the token, marks it used, calls `req.login()` to create a session for the matching user on that domain, and finally redirects to `/`. Failures redirect to `/auth?error=oauth_failed` on the originating domain.
+
+5. **Cross-domain handoff for link.** Same pattern as sign-in but for the link flow: the canonical domain links the X account to the user id stored on the session, then issues a signed token (intent = "link", carrying the user id and the success/error state) and redirects to `https://{return_to}/api/auth/twitter/link/complete?token=...`. The receiving domain verifies the token and either logs the user in (so the linked account is reflected immediately) and redirects to `/account?linked=1`, or redirects to `/account?error=...` on failure (`already_linked`, `oauth_failed`).
+
+6. **Frontend: send the current origin as `return_to`.** Update every place that initiates the X flow to append `?return_to={window.location.origin}` so the canonical domain knows where to send the user back. This covers the sign-in buttons in `auth-page.tsx` and `platform-page.tsx`, and the link button in `account-page.tsx`.
+
+7. **Edge / fallback behavior.** When a user on `sevco.us` clicks the X buttons, `return_to` will equal the canonical domain — the new flow should still work (the handoff endpoint should detect "already on canonical" and just complete the login locally without a second redirect, to avoid a needless extra hop). Ensure logging is in place when a `return_to` is rejected so admins can spot misconfigured clients.
+
+8. **X Developer Portal note for the implementer.** No code can change what's registered in the X portal, but the implementer should add a short note in `replit.md` (or wherever ops notes live) explaining that only `https://sevco.us/api/auth/twitter/callback` and `https://sevco.us/api/auth/twitter/link/callback` need to be registered, and that adding new domains only requires extending the allowlist constant.
+
+## Relevant files
+- `server/auth.ts:79-271`
+- `client/src/pages/auth-page.tsx:326,432`
+- `client/src/pages/platform-page.tsx:236,485`
+- `client/src/pages/account-page.tsx:622,853`
+
+
+---
+

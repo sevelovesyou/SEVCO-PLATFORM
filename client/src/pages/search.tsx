@@ -15,6 +15,7 @@ import {
   Globe,
   ArrowRight,
   X,
+  Library,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { SparkButton } from "@/components/spark-button";
@@ -52,6 +53,15 @@ type SearchResults = {
   jobs: SearchResultItem[];
   services: SearchResultItem[];
   total: number;
+};
+
+type DictDefinition = { definition: string; example?: string };
+type DictMeaning = { partOfSpeech: string; definitions: DictDefinition[]; synonyms: string[] };
+type DictionaryEntry = {
+  word: string;
+  phonetic?: string;
+  meanings: DictMeaning[];
+  sourceUrl?: string;
 };
 
 const SECTION_CONFIG = [
@@ -104,6 +114,21 @@ export default function SearchPage() {
     },
     enabled: query.length >= 2,
   });
+
+  const trimmedQuery = query.trim();
+  const isSingleWord = /^[a-zA-Z]{2,32}$/.test(trimmedQuery);
+  const { data: dictionary } = useQuery<DictionaryEntry | null>({
+    queryKey: ["/api/search/dictionary", trimmedQuery.toLowerCase()],
+    queryFn: async () => {
+      const res = await fetch(`/api/search/dictionary?q=${encodeURIComponent(trimmedQuery)}`, {
+        credentials: "include",
+      });
+      if (res.status === 204 || !res.ok) return null;
+      return res.json();
+    },
+    enabled: isSingleWord,
+  });
+  const hasDictionary = !!dictionary && dictionary.meanings.length > 0;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -191,7 +216,85 @@ export default function SearchPage() {
             </div>
           )}
 
-          {!isLoading && !hasResults && (
+          {hasDictionary && dictionary && (
+            <section data-testid="section-search-dictionary">
+              <div className="flex items-center gap-2 mb-3">
+                <Library className="h-4 w-4 text-purple-500" />
+                <h2 className="text-sm font-semibold text-foreground">Dictionary</h2>
+                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                  {dictionary.meanings.length}
+                </Badge>
+              </div>
+              <div className="px-4 py-4 rounded-xl border border-border bg-muted/20 space-y-4">
+                <div className="flex items-baseline gap-3 flex-wrap">
+                  <h3 className="text-lg font-semibold text-foreground capitalize" data-testid="text-dictionary-word">
+                    {dictionary.word}
+                  </h3>
+                  {dictionary.phonetic && (
+                    <span className="text-sm text-muted-foreground font-mono" data-testid="text-dictionary-phonetic">
+                      {dictionary.phonetic}
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  {dictionary.meanings.map((meaning, mi) => (
+                    <div key={mi} className="space-y-2" data-testid={`dictionary-meaning-${mi}`}>
+                      {meaning.partOfSpeech && (
+                        <Badge variant="outline" className="text-[10px] capitalize">
+                          {meaning.partOfSpeech}
+                        </Badge>
+                      )}
+                      <ol className="space-y-1.5 ml-4 list-decimal text-sm text-foreground">
+                        {meaning.definitions.map((def, di) => (
+                          <li key={di} data-testid={`dictionary-definition-${mi}-${di}`}>
+                            <span>{def.definition}</span>
+                            {def.example && (
+                              <p className="text-xs text-muted-foreground italic mt-0.5">
+                                "{def.example}"
+                              </p>
+                            )}
+                          </li>
+                        ))}
+                      </ol>
+                      {meaning.synonyms.length > 0 && (
+                        <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                          <span className="text-xs text-muted-foreground">Related:</span>
+                          {meaning.synonyms.slice(0, 8).map((syn) => (
+                            <button
+                              key={syn}
+                              type="button"
+                              onClick={() => {
+                                setInputValue(syn);
+                                navigate(`/search?q=${encodeURIComponent(syn)}`);
+                                setQuery(syn);
+                              }}
+                              className="text-xs px-2 py-0.5 rounded-full border border-border bg-background hover:bg-muted hover:border-border/80 transition-colors text-foreground"
+                              data-testid={`dictionary-synonym-${syn}`}
+                            >
+                              {syn}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground/70 pt-1">
+                  Definitions from{" "}
+                  <a
+                    href={dictionary.sourceUrl || "https://dictionaryapi.dev/"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-muted-foreground"
+                  >
+                    Free Dictionary API
+                  </a>
+                </p>
+              </div>
+            </section>
+          )}
+
+          {!isLoading && !hasResults && !hasDictionary && (
             <EmptyState
               icon={SearchIcon}
               title={`No results for "${query}"`}
@@ -203,6 +306,19 @@ export default function SearchPage() {
                 </Button>
               }
             />
+          )}
+
+          {!isLoading && !hasResults && hasDictionary && (
+            <div className="border-t border-border pt-6">
+              <button
+                onClick={googleSearch}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                data-testid="button-google-search-dict-only"
+              >
+                <Globe className="h-4 w-4" />
+                Search Google for "{query}"
+              </button>
+            </div>
           )}
 
           {!isLoading && hasResults && (

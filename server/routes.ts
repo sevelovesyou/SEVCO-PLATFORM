@@ -1727,6 +1727,132 @@ export async function registerRoutes(
     res.json(results);
   });
 
+  type DictDefinition = { definition: string; example?: string };
+  type DictMeaning = { partOfSpeech: string; definitions: DictDefinition[]; synonyms: string[] };
+  type DictEntry = { word: string; phonetic?: string; meanings: DictMeaning[]; sourceUrl?: string };
+  type DictCacheValue = { value: DictEntry | null; expiresAt: number };
+  const dictionaryCache = new Map<string, DictCacheValue>();
+  const DICTIONARY_TTL_MS = 24 * 60 * 60 * 1000;
+  const DICTIONARY_CACHE_MAX = 500;
+
+  app.get("/api/search/dictionary", async (req, res) => {
+    const raw = ((req.query.q as string) || "").trim().toLowerCase();
+    if (!/^[a-z]{2,32}$/.test(raw)) {
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(204).end();
+    }
+
+    const now = Date.now();
+    const cached = dictionaryCache.get(raw);
+    if (cached && cached.expiresAt > now) {
+      if (cached.value === null) {
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(204).end();
+      }
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      return res.json(cached.value);
+    }
+
+    const setCache = (value: DictEntry | null) => {
+      if (dictionaryCache.size >= DICTIONARY_CACHE_MAX) {
+        const toEvict = Math.ceil(DICTIONARY_CACHE_MAX * 0.1);
+        const keys = Array.from(dictionaryCache.keys()).slice(0, toEvict);
+        for (const k of keys) dictionaryCache.delete(k);
+      }
+      dictionaryCache.set(raw, { value, expiresAt: now + DICTIONARY_TTL_MS });
+    };
+
+    try {
+      const upstream = await fetch(
+        `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(raw)}`,
+        { signal: AbortSignal.timeout(4000) },
+      );
+      if (!upstream.ok) {
+        setCache(null);
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(204).end();
+      }
+      const data = (await upstream.json()) as any[];
+      if (!Array.isArray(data) || data.length === 0) {
+        setCache(null);
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(204).end();
+      }
+      const first = data[0] || {};
+      const phonetic: string | undefined =
+        typeof first.phonetic === "string" && first.phonetic.trim()
+          ? first.phonetic.trim()
+          : Array.isArray(first.phonetics)
+            ? first.phonetics.find(
+                (p: any) => typeof p?.text === "string" && p.text.trim(),
+              )?.text
+            : undefined;
+
+      const meanings: DictMeaning[] = [];
+      const synonymsSeen = new Set<string>();
+      for (const entry of data) {
+        if (!entry || !Array.isArray(entry.meanings)) continue;
+        for (const m of entry.meanings) {
+          const defs = Array.isArray(m?.definitions) ? m.definitions : [];
+          const cleanDefs: DictDefinition[] = defs
+            .filter((d: any) => typeof d?.definition === "string" && d.definition.trim())
+            .slice(0, 3)
+            .map((d: any) => ({
+              definition: String(d.definition).trim(),
+              example:
+                typeof d?.example === "string" && d.example.trim()
+                  ? String(d.example).trim()
+                  : undefined,
+            }));
+          const syns: string[] = [];
+          if (Array.isArray(m?.synonyms)) {
+            for (const s of m.synonyms) {
+              if (typeof s !== "string") continue;
+              const cleaned = s.trim().toLowerCase();
+              if (!cleaned || cleaned === raw || synonymsSeen.has(cleaned)) continue;
+              synonymsSeen.add(cleaned);
+              syns.push(cleaned);
+              if (syns.length >= 8) break;
+            }
+          }
+          if (cleanDefs.length > 0) {
+            meanings.push({
+              partOfSpeech: typeof m?.partOfSpeech === "string" ? m.partOfSpeech : "",
+              definitions: cleanDefs,
+              synonyms: syns,
+            });
+          }
+          if (meanings.length >= 3) break;
+        }
+        if (meanings.length >= 3) break;
+      }
+
+      if (meanings.length === 0) {
+        setCache(null);
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(204).end();
+      }
+
+      const sourceUrl: string | undefined =
+        Array.isArray(first.sourceUrls) && typeof first.sourceUrls[0] === "string"
+          ? first.sourceUrls[0]
+          : undefined;
+
+      const result: DictEntry = {
+        word: typeof first.word === "string" ? first.word : raw,
+        phonetic,
+        meanings: meanings.slice(0, 3),
+        sourceUrl,
+      };
+      setCache(result);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      return res.json(result);
+    } catch (err) {
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(204).end();
+    }
+  });
+
   app.get("/api/articles/search", async (req, res) => {
     const query = (req.query.q as string) || "";
     const categoryFilter = (req.query.category as string) || "all";

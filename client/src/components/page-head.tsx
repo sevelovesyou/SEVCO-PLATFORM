@@ -100,6 +100,10 @@ export function PageHead({
     setMeta('meta[name="twitter:title"]', "content", fullTitle);
     setMeta('meta[property="og:type"]', "content", ogType);
     setMeta('meta[property="og:url"]', "content", resolvedOgUrl);
+    setMeta('meta[property="og:locale"]', "content", "en_US");
+    setMeta('meta[property="og:site_name"]', "content", SITE_NAME);
+    setMeta('meta[name="twitter:card"]', "content", "summary_large_image");
+    setMeta('meta[name="twitter:site"]', "content", "@sevelovesu");
 
     if (resolvedOgImage) {
       setMeta('meta[property="og:image"]', "content", resolvedOgImage);

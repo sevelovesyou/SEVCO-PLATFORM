@@ -80,6 +80,88 @@ const SPECIFIC_PROJECTS = [
   { label: "Minecraft Community", href: "/projects" },
 ];
 
+const FAQS: { question: string; answer: string }[] = [
+  {
+    question: "What is SEVCO?",
+    answer:
+      "SEVCO is a creative technology organization operating across music, digital products, and services. It was founded in Kalispell, Montana by Severin Fredrik Gislason (Seve) and operates the SEVCO Platform, SEVCO Records, and a portfolio of projects including SPHERE, SEVCO Architecture, and Freeball.",
+  },
+  {
+    question: "Who founded SEVCO?",
+    answer:
+      "SEVCO was founded by Severin Fredrik Gislason, also known as Seve. He is a musician and entrepreneur based in Kalispell, Montana, and serves as the organization's founder and creative director.",
+  },
+  {
+    question: "What is the SEVCO Platform?",
+    answer:
+      "The SEVCO Platform is the operational backbone of the organization — a wiki, tools system, community features, and internal infrastructure that powers everything from project management to the Sparks community currency.",
+  },
+  {
+    question: "What is SEVCO Records?",
+    answer:
+      "SEVCO Records is an independent music label operating under the SEVCO umbrella. It discovers, signs, and promotes emerging artists, handling everything from submission through release and distribution.",
+  },
+  {
+    question: "Where is SEVCO based?",
+    answer:
+      "SEVCO was founded in Kalispell, Montana. The organization operates primarily online and is active across digital platforms globally.",
+  },
+  {
+    question: "How do I contact SEVCO?",
+    answer:
+      "You can reach SEVCO by email at seve@sevco.us, through the contact page at sevco.us/contact, or on social media @sevelovesu on X (formerly Twitter).",
+  },
+];
+
+const ABOUT_JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://sevco.us/#organization",
+      name: "SEVCO",
+      alternateName: ["SEVCO Platform", "The Inspiration Company"],
+      url: "https://sevco.us",
+      logo: "https://sevco.us/favicon.jpg",
+      description:
+        "SEVCO is a creative technology organization building at the intersection of music, digital platforms, and visionary projects. Founded in Montana by Severin Fredrik Gislason.",
+      sameAs: [
+        "https://x.com/sevelovesu",
+        "https://instagram.com/sevelovesyou",
+        "https://github.com/sevco",
+        "https://youtube.com/@sevco",
+        "https://discord.gg/sevco",
+      ],
+      founder: { "@id": "https://sevco.us/#founder" },
+      foundingLocation: {
+        "@type": "Place",
+        name: "Kalispell, Montana, USA",
+      },
+    },
+    {
+      "@type": "Person",
+      "@id": "https://sevco.us/#founder",
+      name: "Severin Fredrik Gislason",
+      alternateName: ["Seve", "Seve Gislason"],
+      jobTitle: "Founder",
+      worksFor: { "@id": "https://sevco.us/#organization" },
+      url: "https://severingislason.com",
+      sameAs: ["https://severingislason.com", "https://x.com/sevelovesu"],
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: FAQS.map((f) => ({
+        "@type": "Question",
+        name: f.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: f.answer,
+        },
+      })),
+    },
+  ],
+};
+
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-background">
@@ -88,6 +170,8 @@ export default function AboutPage() {
         title="About SEVCO — The Inspiration Company"
         description="SEVCO is a creative technology organization building at the intersection of music, digital platforms, projects, and visionary ideas. Founded in Montana by Severin Fredrik Gislason."
         ogUrl="https://sevco.us/about"
+        keywords="SEVCO, Severin Fredrik Gislason, Seve Gislason, SEVCO Records, SEVCO Platform, The Inspiration Company, Kalispell Montana, music tech startup, creative technology organization"
+        jsonLd={ABOUT_JSON_LD}
       />
 
       {/* Section 1 — Hero */}
@@ -413,7 +497,34 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Section 8 — Quick links footer */}
+        {/* Section 8 — Frequently Asked Questions (GEO) */}
+        <section className="space-y-6" data-testid="section-about-faq">
+          <h2 className="text-3xl font-bold tracking-tight">Frequently Asked Questions</h2>
+          <dl className="divide-y divide-border border border-border rounded-2xl overflow-hidden">
+            {FAQS.map((faq, i) => (
+              <div
+                key={faq.question}
+                className="p-6 space-y-2"
+                data-testid={`faq-item-${i}`}
+              >
+                <dt
+                  className="text-base md:text-lg font-bold text-foreground"
+                  data-testid={`faq-question-${i}`}
+                >
+                  {faq.question}
+                </dt>
+                <dd
+                  className="text-sm md:text-base text-muted-foreground leading-relaxed"
+                  data-testid={`faq-answer-${i}`}
+                >
+                  {faq.answer}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        {/* Section 9 — Quick links footer */}
         <section className="border-t border-border pt-10 space-y-4" data-testid="section-about-quicklinks">
           <h2 className="text-lg font-bold">Quick links</h2>
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">

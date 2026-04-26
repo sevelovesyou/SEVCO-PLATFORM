@@ -63,15 +63,18 @@ export function KeyboardShortcutsHelp({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md" data-testid="dialog-keyboard-shortcuts">
-        <DialogHeader>
+      <DialogContent
+        className="max-w-md max-h-[85vh] flex flex-col gap-0 p-0"
+        data-testid="dialog-keyboard-shortcuts"
+      >
+        <DialogHeader className="p-6 pb-4 shrink-0">
           <DialogTitle>Keyboard shortcuts</DialogTitle>
           <DialogDescription>
             Press <Kbd>?</Kbd> any time to open this dialog.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5">
+        <div className="space-y-5 overflow-y-auto px-6 pb-6">
           <section>
             <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
               Search & Command

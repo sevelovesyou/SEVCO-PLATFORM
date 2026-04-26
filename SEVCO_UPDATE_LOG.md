@@ -30905,3 +30905,164 @@ Full rewrite. New structure, top to bottom:
 
 ---
 
+## Task — about-seo-geo
+> Merged: 2026-04-26
+
+# Task #566 — About Page SEO & GEO Optimization
+
+## Summary
+Apply SEO and Generative Engine Optimization (GEO) best practices to the `/about` page. This means:
+1. Structured data (JSON-LD) for `Organization` and `Person` entities
+2. Missing global meta tags in `PageHead` (`og:locale`, `og:site_name`, Twitter card type)
+3. A GEO-native FAQ section on the About page itself (visible, extractable by AI engines)
+4. Better default `keywords` prop on the About page's `PageHead`
+5. GEO content polish in existing copy (answer-first, named-entity clarity, no filler)
+
+---
+
+## Context
+
+### Site architecture
+SEVCO at sevco.us is a **SPA + SSR hybrid**:
+- Express handles `/robots.txt`, `/sitemap.xml`, and wiki/changelog/API routes — these are SSR and indexable.
+- The SPA (React/Vite) handles all interactive pages including `/about`.
+- Because `/about` is SPA-rendered, Googlebot sees only the content of `client/index.html` initially. However, Googlebot does render JavaScript — meaning the `<PageHead>` useEffect-injected meta tags and JSON-LD **are** seen by Googlebot (but not by dumb crawlers or social sharing bots).
+- Mitigating this: the per-page SEO can be overridden from CMD and will be correct once Googlebot renders.
+
+### What already exists in PageHead
+- `og:title`, `og:description`, `og:url`, `og:type`, `og:image` — injected via `setMeta()`
+- `twitter:title`, `twitter:description`, `twitter:image` — injected
+- `canonical` link tag
+- `robots` meta tag
+- `keywords` meta tag (only when prop provided)
+- Per-page JSON-LD via `jsonLd` prop
+- Global GEO JSON-LD via `seo.geo.brandVoice` / `seo.geo.keyFacts` platform settings
+- **Missing:** `og:locale`, `og:site_name`, `twitter:card`, `twitter:site`
+
+### What the About page currently passes to PageHead
+```tsx
+<PageHead
+  slug="about"
+  title="About SEVCO — The Inspiration Company"
+  description="SEVCO is a creative technology organization building at the intersection of music, digital platforms, projects, and visionary ideas. Founded in Montana by Severin Fredrik Gislason."
+  ogUrl="https://sevco.us/about"
+/>
+```
+Missing: `keywords`, `jsonLd`.
+
+---
+
+## Changes Required
+
+### 1. Fix `PageHead` globally (`client/src/components/page-head.tsx`)
+
+Add four always-present meta tags to the `useEffect`:
+```ts
+setMeta('meta[property="og:locale"]', "content", "en_US");
+setMeta('meta[property="og:site_name"]', "content", SITE_NAME);
+setMeta('meta[name="twitter:card"]', "content", "summary_large_image");
+setMeta('meta[name="twitter:site"]', "content", "@sevelovesu");
+```
+Place them after the existing `og:url` line. These apply to every page site-wide.
+
+### 2. Add JSON-LD to the About page (`client/src/pages/about-page.tsx`)
+
+Pass a `jsonLd` prop to `<PageHead>` with an `@graph` containing two types:
+
+**Organization**
+```json
+{
+  "@type": "Organization",
+  "@id": "https://sevco.us/#organization",
+  "name": "SEVCO",
+  "alternateName": ["SEVCO Platform", "The Inspiration Company"],
+  "url": "https://sevco.us",
+  "logo": "https://sevco.us/favicon.jpg",
+  "description": "SEVCO is a creative technology organization building at the intersection of music, digital platforms, and visionary projects. Founded in Montana by Severin Fredrik Gislason.",
+  "sameAs": [
+    "https://x.com/sevelovesu",
+    "https://instagram.com/sevelovesyou",
+    "https://github.com/sevco",
+    "https://youtube.com/@sevco",
+    "https://discord.gg/sevco"
+  ],
+  "founder": { "@id": "https://sevco.us/#founder" },
+  "foundingLocation": {
+    "@type": "Place",
+    "name": "Kalispell, Montana, USA"
+  }
+}
+```
+
+**Person (Founder)**
+```json
+{
+  "@type": "Person",
+  "@id": "https://sevco.us/#founder",
+  "name": "Severin Fredrik Gislason",
+  "alternateName": ["Seve", "Seve Gislason"],
+  "jobTitle": "Founder",
+  "worksFor": { "@id": "https://sevco.us/#organization" },
+  "url": "https://severingislason.com",
+  "sameAs": [
+    "https://severingislason.com",
+    "https://x.com/sevelovesu"
+  ]
+}
+```
+
+Wrap both in: `{ "@context": "https://schema.org", "@graph": [ ...Organization, ...Person ] }`
+
+### 3. Add `keywords` to the About page PageHead
+
+```tsx
+keywords="SEVCO, Severin Fredrik Gislason, Seve Gislason, SEVCO Records, SEVCO Platform, The Inspiration Company, Kalispell Montana, music tech startup, creative technology organization"
+```
+
+### 4. Add a GEO FAQ section to the About page
+
+Add a new Section 9 (before or after the quick links footer, but before the `</div>` close) with a visible FAQ:
+
+**Heading:** `Frequently Asked Questions`
+
+Questions to include (each as an expandable row using shadcn `Accordion`, or simple `<dl>` for maximum crawlability):
+1. **What is SEVCO?** — "SEVCO is a creative technology organization operating across music, digital products, and services. It was founded in Kalispell, Montana by Severin Fredrik Gislason (Seve) and operates the SEVCO Platform, SEVCO Records, and a portfolio of projects including SPHERE, SEVCO Architecture, and Freeball."
+2. **Who founded SEVCO?** — "SEVCO was founded by Severin Fredrik Gislason, also known as Seve. He is a musician and entrepreneur based in Kalispell, Montana, and serves as the organization's founder and creative director."
+3. **What is the SEVCO Platform?** — "The SEVCO Platform is the operational backbone of the organization — a wiki, tools system, community features, and internal infrastructure that powers everything from project management to the Sparks community currency."
+4. **What is SEVCO Records?** — "SEVCO Records is an independent music label operating under the SEVCO umbrella. It discovers, signs, and promotes emerging artists, handling everything from submission through release and distribution."
+5. **Where is SEVCO based?** — "SEVCO was founded in Kalispell, Montana. The organization operates primarily online and is active across digital platforms globally."
+6. **How do I contact SEVCO?** — "You can reach SEVCO by email at seve@sevco.us, through the contact page at sevco.us/contact, or on social media @sevelovesu on X (formerly Twitter)."
+
+Use a clean `<dl>` element (definition list) for maximum semantic clarity and crawler extractability — not hidden behind accordion toggles. Style it with Tailwind to match the page's design.
+
+Also inject `FAQPage` JSON-LD alongside the Organization + Person graph:
+```json
+{
+  "@type": "FAQPage",
+  "mainEntity": [
+    { "@type": "Question", "name": "What is SEVCO?", "acceptedAnswer": { "@type": "Answer", "text": "..." } },
+    ...
+  ]
+}
+```
+
+### 5. GEO copy polish (minor tweaks to existing text)
+
+These are small, targeted changes to existing copy to improve named-entity clarity and answer-first structure:
+- Hero intro: ensure "Severin Fredrik Gislason" and "Kalispell, Montana" appear in the first 60 words ✓ (already present)
+- Company overview p1: Open with "SEVCO started with music." ✓ (already done) 
+- Founder section h2: ensure full name "Severin Fredrik Gislason (Seve)" in heading ✓ (already done)
+- Founder p1: ensure "Severin Fredrik Gislason" spelled out in first sentence ✓ (already done)
+- FAQ section: see above — this is the highest-impact GEO addition
+
+---
+
+## Files touched
+- `client/src/components/page-head.tsx` — add og:locale, og:site_name, twitter:card, twitter:site
+- `client/src/pages/about-page.tsx` — add jsonLd prop (Organization + Person + FAQPage), add keywords prop, add FAQ section (visible `<dl>` + FAQPage schema)
+
+## No backend changes required
+
+
+---
+

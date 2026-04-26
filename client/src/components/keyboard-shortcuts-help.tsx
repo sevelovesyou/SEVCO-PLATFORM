@@ -25,6 +25,7 @@ const GOTO_SHORTCUTS: Shortcut[] = [
   { keys: ["g", "r"], label: "Rewards", testId: "kbd-shortcut-g-r" },
   { keys: ["g", "f"], label: "Feed", testId: "kbd-shortcut-g-f" },
   { keys: ["g", "c"], label: "Command center", testId: "kbd-shortcut-g-c" },
+  { keys: ["g", "s"], label: "Store (shop.sevco.us)", testId: "kbd-shortcut-g-s" },
 ];
 
 function Kbd({ children }: { children: React.ReactNode }) {

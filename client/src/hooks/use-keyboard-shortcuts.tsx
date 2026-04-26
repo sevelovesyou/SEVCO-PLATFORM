@@ -11,6 +11,7 @@ const GOTO_MAP: Record<string, string> = {
   r: "/sparks/rewards",
   f: "/feed",
   c: "/command",
+  s: "/store",
 };
 
 function isTypingTarget(el: Element | null): boolean {

@@ -83,6 +83,11 @@ export default function SearchPage() {
   const [inputValue, setInputValue] = useState(getQueryFromUrl);
   const [query, setQuery] = useState(getQueryFromUrl);
 
+  const { data: platformSettings = {} } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
+  });
+  const searchPlaceholder = platformSettings["search.placeholder"]?.trim() || "/";
+
   useEffect(() => {
     const q = getQueryFromUrl();
     setInputValue(q);
@@ -180,7 +185,7 @@ export default function SearchPage() {
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="/"
+            placeholder={searchPlaceholder}
             className="flex-1 bg-transparent outline-none text-base placeholder:text-muted-foreground/60"
             data-testid="input-search-page"
             autoFocus

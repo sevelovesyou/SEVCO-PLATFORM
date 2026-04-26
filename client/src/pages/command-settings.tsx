@@ -63,12 +63,13 @@ const SECTION_KEYS = [
   { key: "section.wallpaper.visible", label: "Wallpaper of the Day", description: "Full-width latest wallpaper from the Gallery" },
   { key: "section.sparks.visible", label: "Sparks", description: "Sparks marketing section with CTA linking to /sparks" },
   { key: "section.hero.visible", label: "Hero", description: "Top-of-page hero block with logo, headline, tagline, and CTA buttons" },
+  { key: "section.search.visible", label: "Search", description: "Google-style search section with logo, search bar, and optional background" },
 ];
 
 // Sections that always render in fixed slots and are not part of the
 // reorderable list. Hero sits at the very top; Icon Pills + Wallpaper
 // directly beneath it.
-const FIXED_SECTION_IDS = ["hero", "iconPills", "wallpaper"];
+const FIXED_SECTION_IDS = ["hero", "iconPills", "wallpaper", "search"];
 
 const SECTION_KEY_META: Record<string, { label: string; description: string }> = Object.fromEntries(
   SECTION_KEYS.map((s) => [s.key.replace("section.", "").replace(".visible", ""), { label: s.label, description: s.description }])
@@ -1193,6 +1194,9 @@ export default function CommandSettings() {
   const [ogImageUrl, setOgImageUrl] = useState("");
   const [platformLogoUrl, setPlatformLogoUrl] = useState("");
   const [platformDescription, setPlatformDescription] = useState("");
+  const [searchLogoUrl, setSearchLogoUrl] = useState("");
+  const [searchPlaceholder, setSearchPlaceholder] = useState("");
+  const [searchBgUrl, setSearchBgUrl] = useState("");
 
   // ── Theme color state ──
   // Pure black/white defaults — match index.css and DEFAULT_LIGHT_VALUES/DEFAULT_DARK_VALUES.
@@ -1397,6 +1401,9 @@ export default function CommandSettings() {
     setOgImageUrl(settings["platform.ogImageUrl"] ?? "");
     setPlatformLogoUrl(settings["platform.logoUrl"] ?? "");
     setPlatformDescription(settings["platform.description"] ?? "");
+    setSearchLogoUrl(settings["search.logoUrl"] ?? "");
+    setSearchPlaceholder(settings["search.placeholder"] ?? "");
+    setSearchBgUrl(settings["search.backgroundUrl"] ?? "");
     const vis: Record<string, boolean> = {};
     for (const s of SECTION_KEYS) {
       vis[s.key] = toBool(settings[s.key]);
@@ -1825,6 +1832,14 @@ export default function CommandSettings() {
     }
     entries["section.order"] = JSON.stringify(sectionOrder);
     mutation.mutate(entries);
+  }
+
+  function saveSearch() {
+    mutation.mutate({
+      "search.logoUrl": searchLogoUrl,
+      "search.placeholder": searchPlaceholder,
+      "search.backgroundUrl": searchBgUrl,
+    });
   }
 
   function moveSectionUp(index: number) {
@@ -2437,6 +2452,58 @@ export default function CommandSettings() {
                     <Button onClick={saveSections} disabled={mutation.isPending} className="gap-2" data-testid="button-save-sections">
                       <Save className="h-3.5 w-3.5" />
                       Save Visibility
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Search Section Settings */}
+              <Card data-search-label="search section logo placeholder background" className={cardVisible("search section logo placeholder background") ? "" : "hidden"}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Search className="h-4 w-4" />
+                    {highlight("Search Section")}
+                  </CardTitle>
+                  <CardDescription>{highlight("Customise the home-page Google-style search section.")}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="input-search-logo-url">{highlight("Logo URL")}</Label>
+                    <Input
+                      id="input-search-logo-url"
+                      value={searchLogoUrl}
+                      onChange={(e) => setSearchLogoUrl(e.target.value)}
+                      placeholder="https://example.com/logo.png"
+                      data-testid="input-search-logo-url"
+                    />
+                    <p className="text-xs text-muted-foreground">Replaces the default SEVCO logo above the search bar. Leave blank to use the default logo.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="input-search-placeholder">{highlight("Placeholder Text")}</Label>
+                    <Input
+                      id="input-search-placeholder"
+                      value={searchPlaceholder}
+                      onChange={(e) => setSearchPlaceholder(e.target.value)}
+                      placeholder="Search SEVCO…"
+                      data-testid="input-search-placeholder"
+                    />
+                    <p className="text-xs text-muted-foreground">Placeholder shown in all three search inputs (home page bar, search results page, and search overlay). Defaults to "/".</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="input-search-bg-url">{highlight("Background Image / Video URL")}</Label>
+                    <Input
+                      id="input-search-bg-url"
+                      value={searchBgUrl}
+                      onChange={(e) => setSearchBgUrl(e.target.value)}
+                      placeholder="https://example.com/bg.jpg or .mp4"
+                      data-testid="input-search-bg-url"
+                    />
+                    <p className="text-xs text-muted-foreground">Image URL is applied as a CSS background. Video URLs (.mp4 / .webm / .ogg) auto-play looped and muted. Leave blank for the default solid background.</p>
+                  </div>
+                  <div className="flex justify-end pt-2">
+                    <Button onClick={saveSearch} disabled={mutation.isPending} className="gap-2" data-testid="button-save-search">
+                      <Save className="h-3.5 w-3.5" />
+                      Save Search Settings
                     </Button>
                   </div>
                 </CardContent>

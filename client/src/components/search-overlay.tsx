@@ -51,6 +51,11 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [, navigate] = useLocation();
 
+  const { data: platformSettings = {} } = useQuery<Record<string, string>>({
+    queryKey: ["/api/platform-settings"],
+  });
+  const searchPlaceholder = platformSettings["search.placeholder"]?.trim() || "/";
+
   useEffect(() => {
     if (open) {
       setQuery("");
@@ -126,7 +131,7 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="/"
+              placeholder={searchPlaceholder}
               className="flex-1 border-0 bg-transparent p-0 text-base shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60"
               data-testid="input-search-overlay"
             />

@@ -439,44 +439,67 @@ export default function Landing() {
       />
 
       {/* ── GOOGLE-STYLE SEARCH ── */}
-      <section
-        className="min-h-screen flex flex-col items-center justify-center gap-8 px-4 bg-background"
-        data-testid="section-home-search"
-      >
-        <img
-          src={sevcoColorLogo}
-          alt="SEVCO"
-          className="w-[220px] sm:w-[320px] object-contain select-none"
-          draggable={false}
-          data-testid="img-home-search-logo"
-        />
+      {settings["section.search.visible"] !== "false" && (() => {
+        const bgUrl = settings["search.backgroundUrl"] ?? "";
+        const isVideo = bgUrl && /\.(mp4|webm|ogg)(\?.*)?$/i.test(bgUrl);
+        const isImage = bgUrl && !isVideo;
+        const logoUrl = settings["search.logoUrl"] ?? "";
+        const placeholder = settings["search.placeholder"]?.trim() || "/";
+        return (
+          <section
+            className="relative overflow-hidden min-h-screen flex flex-col items-center justify-center gap-8 px-4 bg-background"
+            data-testid="section-home-search"
+            style={isImage ? { backgroundImage: `url(${bgUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+          >
+            {isVideo && (
+              <video
+                src={bgUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+                data-testid="video-search-bg"
+              />
+            )}
+            <div className="relative z-10 flex flex-col items-center gap-8 w-full">
+              <img
+                src={logoUrl || sevcoColorLogo}
+                alt="SEVCO"
+                className="w-[220px] sm:w-[320px] object-contain select-none"
+                draggable={false}
+                data-testid="img-home-search-logo"
+              />
 
-        <form
-          onSubmit={handleSearch}
-          className="w-full max-w-xl"
-          data-testid="form-home-search"
-        >
-          <div className="flex items-center rounded-full border border-border bg-card shadow-md hover:shadow-lg focus-within:shadow-lg transition-shadow">
-            <Search className="ml-4 h-4 w-4 shrink-0 text-muted-foreground" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="/"
-              className="flex-1 bg-transparent py-3 px-3 text-sm outline-none placeholder:text-muted-foreground"
-              autoComplete="off"
-              data-testid="input-home-search"
-            />
-            <button
-              type="submit"
-              className="mr-2 px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-              data-testid="button-home-search-submit"
-            >
-              Search
-            </button>
-          </div>
-        </form>
-      </section>
+              <form
+                onSubmit={handleSearch}
+                className="w-full max-w-xl"
+                data-testid="form-home-search"
+              >
+                <div className="flex items-center rounded-full border border-border bg-card shadow-md hover:shadow-lg focus-within:shadow-lg transition-shadow">
+                  <Search className="ml-4 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={placeholder}
+                    className="flex-1 bg-transparent py-3 px-3 text-sm outline-none placeholder:text-muted-foreground"
+                    autoComplete="off"
+                    data-testid="input-home-search"
+                  />
+                  <button
+                    type="submit"
+                    className="mr-2 px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                    data-testid="button-home-search-submit"
+                  >
+                    Search
+                  </button>
+                </div>
+              </form>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ── HERO ── */}
       {showHero && (

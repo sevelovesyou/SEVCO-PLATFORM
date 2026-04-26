@@ -155,6 +155,52 @@ const STATUS_FILTERS = [
   { value: "archived", label: "Archived" },
 ];
 
+const PROJECTS_FAQS: { question: string; answer: string }[] = [
+  {
+    question: "What are SEVCO Projects?",
+    answer:
+      "SEVCO Projects is the portfolio of companies, brands, platforms, and initiatives built under the SEVCO umbrella. Each project is incubated and operated in-house — examples include SPHERE, SEVCO Architecture, Freeball, and the SEVCO Minecraft community.",
+  },
+  {
+    question: "What is SPHERE?",
+    answer:
+      "SPHERE is one of SEVCO's flagship internal projects — a platform built and operated under the SEVCO Projects umbrella. You can find its current status and details on its project page within the SEVCO Projects portfolio.",
+  },
+  {
+    question: "What is Freeball?",
+    answer:
+      "Freeball is a SEVCO-built game project, listed as one of the active initiatives in the SEVCO Projects portfolio. It is developed and maintained in-house by the SEVCO team alongside the platform's other products.",
+  },
+  {
+    question: "Can I contribute to SEVCO Projects?",
+    answer:
+      "Yes. SEVCO Projects is community-driven and welcomes contributors. Reach out via sevco.us/contact to learn how to get involved with a specific project — contributions span engineering, design, content, and community work.",
+  },
+  {
+    question: "How do I pitch a new project to SEVCO?",
+    answer:
+      "Use the contact form at sevco.us/contact and describe the idea, the problem it solves, and what stage it is at. SEVCO reviews pitches for projects that align with the company's mission of building inspiring creative technology.",
+  },
+  {
+    question: "What does each project status mean?",
+    answer:
+      "Active projects are live and in production. In Development projects are being actively built and not yet publicly launched. Archived projects are no longer under active development but are kept in the portfolio for reference and history.",
+  },
+];
+
+const PROJECTS_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: PROJECTS_FAQS.map((f) => ({
+    "@type": "Question",
+    name: f.question,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: f.answer,
+    },
+  })),
+};
+
 export default function ProjectsPage() {
   const { role } = usePermission();
   const canManage = role && CAN_MANAGE_PROJECTS.includes(role);
@@ -183,6 +229,7 @@ export default function ProjectsPage() {
         title="Projects — SEVCO Projects Portfolio"
         description="Explore SEVCO Projects — active companies, platforms, apps, and initiatives built under the SEVCO umbrella."
         ogUrl="https://sevco.us/projects"
+        jsonLd={PROJECTS_JSON_LD}
       />
       {/* ── HERO ── */}
       <div
@@ -311,6 +358,38 @@ export default function ProjectsPage() {
           </StaggerGrid>
         )}
       </div>
+
+      {/* ── Frequently Asked Questions (GEO) ── */}
+      <section
+        className="max-w-5xl mx-auto px-6 pb-8"
+        data-testid="section-projects-faq"
+      >
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-6">
+          Frequently Asked Questions
+        </h2>
+        <dl className="divide-y divide-border border border-border rounded-2xl overflow-hidden">
+          {PROJECTS_FAQS.map((faq, i) => (
+            <div
+              key={faq.question}
+              className="p-6 space-y-2"
+              data-testid={`faq-item-${i}`}
+            >
+              <dt
+                className="text-base md:text-lg font-bold text-foreground"
+                data-testid={`faq-question-${i}`}
+              >
+                {faq.question}
+              </dt>
+              <dd
+                className="text-sm md:text-base text-muted-foreground leading-relaxed"
+                data-testid={`faq-answer-${i}`}
+              >
+                {faq.answer}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
       {/* ── BOTTOM CONTRIBUTE CTA ── */}
       <section

@@ -50,6 +50,52 @@ const CATEGORY_STYLES: Record<string, { accent: string; badge: string }> = {
 
 const CATEGORY_ORDER = ["Technology", "Creative", "Marketing", "Business", "Media", "Support", "Infrastructure"];
 
+const SERVICES_FAQS: { question: string; answer: string }[] = [
+  {
+    question: "What services does SEVCO offer?",
+    answer:
+      "SEVCO Services covers engineering, design, marketing, business operations, media, support, and infrastructure. Common engagements include web and product engineering, brand and visual design, growth marketing, domain and hosting infrastructure, and ongoing technical consulting for partners building under or alongside SEVCO.",
+  },
+  {
+    question: "How do I request a quote or start a project with SEVCO?",
+    answer:
+      "Visit sevco.us/contact or email seve@sevco.us with a short description of your project, timeline, and budget. The SEVCO team typically responds within a few business days with next steps, scoping questions, or a proposal.",
+  },
+  {
+    question: "Who does SEVCO work with?",
+    answer:
+      "SEVCO partners with enterprise teams, startups, indie creators, agencies, and open-source projects. Engagements range from one-off design or engineering work to ongoing infrastructure and platform partnerships.",
+  },
+  {
+    question: "Does SEVCO offer ongoing support and maintenance?",
+    answer:
+      "Yes. In addition to project-based work, SEVCO offers ongoing support, maintenance, and infrastructure management — including hosting, domains, monitoring, and incremental product development under retainer.",
+  },
+  {
+    question: "How is SEVCO Services different from SEVCO Records or SEVCO Projects?",
+    answer:
+      "SEVCO Services is the client-facing arm — work the SEVCO team delivers for outside partners. SEVCO Records is the independent music label, and SEVCO Projects is the portfolio of internal companies, brands, and initiatives like SPHERE, SEVCO Architecture, and Freeball.",
+  },
+  {
+    question: "Where can I see pricing for SEVCO Services?",
+    answer:
+      "Pricing tiers and packages are listed at sevco.us/pricing. For custom or larger engagements, reach out via the contact page and the SEVCO team will put together a tailored quote.",
+  },
+];
+
+const SERVICES_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: SERVICES_FAQS.map((f) => ({
+    "@type": "Question",
+    name: f.question,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: f.answer,
+    },
+  })),
+};
+
 
 export default function ServicesListingPage() {
   const { user } = useAuth();
@@ -78,6 +124,7 @@ export default function ServicesListingPage() {
         title="Services — Engineering, Design & Marketing | SEVCO"
         description="SEVCO offers professional services across engineering, design, marketing, and operations. Partner with our team to build and grow."
         ogUrl="https://sevco.us/services"
+        jsonLd={SERVICES_JSON_LD}
       />
       <div className="max-w-5xl mx-auto px-4 md:px-8 py-12 md:py-16">
         <div className="mb-12">
@@ -300,6 +347,33 @@ export default function ServicesListingPage() {
             <p className="text-sm">Check back soon.</p>
           </div>
         )}
+
+        {/* Frequently Asked Questions (GEO) */}
+        <section className="mt-16 space-y-6" data-testid="section-services-faq">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Frequently Asked Questions</h2>
+          <dl className="divide-y divide-border border border-border rounded-2xl overflow-hidden">
+            {SERVICES_FAQS.map((faq, i) => (
+              <div
+                key={faq.question}
+                className="p-6 space-y-2"
+                data-testid={`faq-item-${i}`}
+              >
+                <dt
+                  className="text-base md:text-lg font-bold text-foreground"
+                  data-testid={`faq-question-${i}`}
+                >
+                  {faq.question}
+                </dt>
+                <dd
+                  className="text-sm md:text-base text-muted-foreground leading-relaxed"
+                  data-testid={`faq-answer-${i}`}
+                >
+                  {faq.answer}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
 
         <div className="mt-8 border rounded-2xl p-8 md:p-10 bg-muted/30 text-center">
           <h2 className="text-2xl font-bold mb-3">Ready to work together?</h2>

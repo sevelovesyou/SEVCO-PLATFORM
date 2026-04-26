@@ -146,6 +146,52 @@ function FeaturedPlaylistCard({ playlist }: { playlist: Playlist }) {
   );
 }
 
+const MUSIC_FAQS: { question: string; answer: string }[] = [
+  {
+    question: "What is SEVCO Records?",
+    answer:
+      "SEVCO Records is the independent music label operating under the SEVCO umbrella. It discovers, develops, and releases artists across genres — handling everything from artist development through release, distribution, and promotion.",
+  },
+  {
+    question: "How do I submit music to SEVCO Records?",
+    answer:
+      "Visit sevco.us/music/submit to send a demo. Submissions are reviewed by the SEVCO Records team and you'll hear back if there's a fit. There is no submission fee, and unsigned artists at any stage are welcome to apply.",
+  },
+  {
+    question: "What kind of music does SEVCO Records sign?",
+    answer:
+      "SEVCO Records is genre-agnostic and focuses on artists with a clear creative voice. The roster spans multiple styles — what matters is craft, originality, and an artist who is committed to building a real catalog over time.",
+  },
+  {
+    question: "Where can I listen to SEVCO Records artists?",
+    answer:
+      "SEVCO releases are available on Spotify, Apple Music, YouTube Music, and SoundCloud. You can browse the full catalog and curated playlists at sevco.us/listen, or stream featured Spotify playlists directly from sevco.us/music.",
+  },
+  {
+    question: "How do I get a song added to a SEVCO playlist?",
+    answer:
+      "Playlist pitches are accepted at sevco.us/music/playlists. SEVCO curates a rotation of in-house playlists across moods and genres — both signed and independent artists are welcome to pitch tracks for consideration.",
+  },
+  {
+    question: "How can I contact SEVCO Records?",
+    answer:
+      "For label inquiries, partnerships, sync, or press, email seve@sevco.us or use the contact form at sevco.us/contact. For demo submissions specifically, please use the submission form at sevco.us/music/submit.",
+  },
+];
+
+const MUSIC_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: MUSIC_FAQS.map((f) => ({
+    "@type": "Question",
+    name: f.question,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: f.answer,
+    },
+  })),
+};
+
 export default function MusicPage() {
 
   const { role } = usePermission();
@@ -182,6 +228,7 @@ export default function MusicPage() {
         title="SEVCO Records — Independent Music Label"
         description="SEVCO Records — discovering and developing artists across every genre. Browse artists, albums, and playlists from the SEVCO music label."
         ogUrl="https://sevco.us/music"
+        jsonLd={MUSIC_JSON_LD}
       />
       <div
         className="max-w-5xl mx-auto px-4 md:px-8 py-10 md:py-14"
@@ -385,6 +432,33 @@ export default function MusicPage() {
               </Link>
             </div>
           </div>
+        </section>
+
+        {/* Frequently Asked Questions (GEO) */}
+        <section className="mt-12 space-y-6" data-testid="section-music-faq">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Frequently Asked Questions</h2>
+          <dl className="divide-y divide-border border border-border rounded-2xl overflow-hidden">
+            {MUSIC_FAQS.map((faq, i) => (
+              <div
+                key={faq.question}
+                className="p-6 space-y-2"
+                data-testid={`faq-item-${i}`}
+              >
+                <dt
+                  className="text-base md:text-lg font-bold text-foreground"
+                  data-testid={`faq-question-${i}`}
+                >
+                  {faq.question}
+                </dt>
+                <dd
+                  className="text-sm md:text-base text-muted-foreground leading-relaxed"
+                  data-testid={`faq-answer-${i}`}
+                >
+                  {faq.answer}
+                </dd>
+              </div>
+            ))}
+          </dl>
         </section>
 
         <div className="mt-12 text-center text-xs text-muted-foreground">

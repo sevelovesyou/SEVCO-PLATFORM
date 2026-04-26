@@ -256,6 +256,10 @@ function Router() {
       </Route>
       <Route path="/wiki/:categorySlug/:articleSlug" component={WikiDoubleSlugView} />
       <Route path="/wiki/:slug" component={WikiSlugView} />
+      <Route path="/store" component={() => {
+        window.location.replace("https://shop.sevco.us");
+        return null;
+      }} />
       <Route path="/search" component={SearchPage} />
       <Route path="/music" component={MusicPage} />
       <Route path="/music/submit" component={MusicSubmitPage} />
@@ -824,6 +828,14 @@ function AppShell() {
     <SidebarProvider
       style={{ "--sidebar-width": "16rem", "--sidebar-width-icon": "3rem" } as React.CSSProperties}
     >
+      <Switch>
+        <Route path="/store">
+          {() => {
+            window.location.href = "https://shop.sevco.us";
+            return null;
+          }}
+        </Route>
+      </Switch>
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:text-sm focus:font-semibold focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"

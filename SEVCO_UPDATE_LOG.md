@@ -31542,3 +31542,42 @@ Instead of a separate mode or page, site-building becomes just another tool in t
 
 ---
 
+## Task — search-section-settings
+> Merged: 2026-04-26
+
+# Search Section Settings in Platform Settings
+
+## What & Why
+Add a "Search" entry to the Section Visibility panel and a dedicated Search Section settings card in Platform Settings so staff can control the home-page Google-style search section. Three new admin-configurable settings: a custom logo URL to display above the search bar, placeholder text that propagates to all three search bars site-wide, and a background image or video URL for the entire search section.
+
+## Done looks like
+- Platform Settings → Section Visibility panel lists "Search" as a fixed-position section with a visibility toggle. Turning it off hides the search section from the home page.
+- A new "Search Section" settings card appears in the same Platform tab, with three labeled input fields: Logo URL, Placeholder Text, and Background Image / Video URL.
+- Saving the card persists all three values via the existing `/api/platform-settings` mutation.
+- On the home page (`/`):
+  - If a custom logo URL is saved it replaces the default SEVCO logo above the search bar; otherwise the default logo shows.
+  - The search bar input uses the saved placeholder text; if none is saved it falls back to "/".
+  - If a background URL is saved and is a video file (.mp4 / .webm / .ogg), a looping muted auto-play video fills the section behind the content. If it is an image URL, it is applied as a CSS background image. If no URL is saved, the section renders as before (solid `bg-background`).
+  - The section is conditionally rendered based on the `section.search.visible` setting (defaults to visible).
+- On the search results page and in the search overlay, the saved placeholder text also replaces the hardcoded "/" placeholder.
+
+## Out of scope
+- Changes to search logic, results, or ranking
+- Any Products / store functionality
+- Video controls or play/pause UI — the background video is purely decorative (autoPlay, loop, muted, playsInline)
+
+## Steps
+1. **Platform Settings — Section Visibility** — Add `section.search.visible` to the `SECTION_KEYS` list and add `"search"` to `FIXED_SECTION_IDS` so the Search section appears in the fixed-position list with a visibility toggle alongside Hero and Icon Pills.
+2. **Platform Settings — Search Section card** — Add state variables for `searchLogoUrl`, `searchPlaceholder`, and `searchBgUrl`. Initialise them from `settings` in the existing `useEffect`. Add a `saveSearch()` function that calls `mutation.mutate()` with the three keys (`search.logoUrl`, `search.placeholder`, `search.backgroundUrl`). Render a new Card in the Platform tab with three labeled `<Input>` fields and a Save button.
+3. **Landing page — consume settings** — Read the three new setting keys from the already-fetched `settings` object. Gate the search section on `section.search.visible !== "false"`. Swap the logo src when `search.logoUrl` is set. Apply the placeholder from `search.placeholder`. Implement the background: when `search.backgroundUrl` is set and looks like a video extension, render an absolutely-positioned `<video>` element; otherwise use an inline `backgroundImage` style. Add `relative overflow-hidden` to the section and ensure content stays above the background with `relative z-10`.
+4. **Search results page and overlay — placeholder** — Add a `useQuery` call for `/api/platform-settings` in both `search.tsx` and `search-overlay.tsx`. Use `settings["search.placeholder"] ?? "/"` as the placeholder for their search inputs.
+
+## Relevant files
+- `client/src/pages/command-settings.tsx:50-75,1179,1380-1399,1801-1828,2340-2443`
+- `client/src/pages/landing.tsx:200-234,441-479`
+- `client/src/pages/search.tsx`
+- `client/src/components/search-overlay.tsx`
+
+
+---
+

@@ -8,6 +8,7 @@ import { getIcon } from "@/lib/icon-map";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePermission } from "@/hooks/use-permission";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
 import type { Project } from "@shared/schema";
@@ -248,39 +249,49 @@ export default function ProjectsPage() {
         jsonLd={PROJECTS_JSON_LD}
       />
       <div className="w-full px-4 md:px-8 py-8">
-        <div className="flex items-center justify-between gap-4 mb-6">
+        <div className="flex flex-wrap items-center gap-3 mb-6">
           <h1
             className="text-2xl md:text-3xl font-bold tracking-tight"
             data-testid="heading-projects"
           >
             Projects
           </h1>
+          <Tabs
+            value={statusFilter}
+            onValueChange={setStatusFilter}
+            className="flex-1 min-w-0"
+          >
+            <TabsList data-testid="tabs-status-filter" className="flex flex-wrap h-auto gap-1 bg-muted/60 p-1">
+              {STATUS_FILTERS.map((f) => (
+                <TabsTrigger key={f.value} value={f.value} data-testid={`tab-status-${f.value}`}>
+                  {f.label}
+                  {counts[f.value as keyof typeof counts] > 0 && (
+                    <span className="ml-1.5 text-xs opacity-60">
+                      ({counts[f.value as keyof typeof counts]})
+                    </span>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
           {canManage && (
-            <Link href="/projects/new">
-              <Button
-                data-testid="button-add-project"
-                className="bg-green-500 hover:bg-green-400 text-white font-semibold shadow-md"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Project
-              </Button>
-            </Link>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link href="/projects/new" className="ml-auto">
+                  <Button
+                    data-testid="button-add-project"
+                    aria-label="Add Project"
+                    size="icon"
+                    className="h-9 w-9 bg-green-500 hover:bg-green-400 text-white shadow-md"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>Add Project</TooltipContent>
+            </Tooltip>
           )}
         </div>
-        <Tabs value={statusFilter} onValueChange={setStatusFilter} className="mb-8">
-          <TabsList data-testid="tabs-status-filter" className="flex flex-wrap h-auto gap-1 bg-muted/60 p-1">
-            {STATUS_FILTERS.map((f) => (
-              <TabsTrigger key={f.value} value={f.value} data-testid={`tab-status-${f.value}`}>
-                {f.label}
-                {counts[f.value as keyof typeof counts] > 0 && (
-                  <span className="ml-1.5 text-xs opacity-60">
-                    ({counts[f.value as keyof typeof counts]})
-                  </span>
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
 
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

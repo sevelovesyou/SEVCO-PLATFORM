@@ -32011,3 +32011,102 @@ Together, (1) makes the *first paint* correct (favicon, hero, search bg, placeho
 
 ---
 
+## Task — books-page-and-cmd-tab
+> Merged: 2026-04-27
+
+# /books Page + CMD Books Tab
+
+## What & Why
+Add a new public `/books` page showing a full-width grid of book covers, plus a new "Books" tab in the Command Center where staff can add, edit, and delete book entries (Title, Author, Cover Image upload, Description, Buy Link). Mirrors the existing Gallery / Resources / Projects CMD pattern so the surrounding tooling, permissions, and image-upload pipeline are reused.
+
+## Done looks like
+### Data
+- New `books` table in `shared/schema.ts`:
+  - `id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY`
+  - `title text NOT NULL`
+  - `author text NOT NULL`
+  - `coverImageUrl text NOT NULL`  (Supabase URL written by the upload pipeline; required so every cover renders)
+  - `description text`             (optional, longer-form)
+  - `buyLink text`                 (optional; rendered as a "Buy" button when set)
+  - `displayOrder integer NOT NULL DEFAULT 0`
+  - `createdAt timestamp DEFAULT now() NOT NULL`
+- Drizzle-zod `insertBookSchema` (omitting id, createdAt) plus `Book` (`typeof books.$inferSelect`) and `InsertBook` (`z.infer<typeof insertBookSchema>`) exports.
+- `applySchemaFromCode` (server boot) automatically creates the table on next deploy — no hand-rolled migration needed.
+
+### Backend
+- `IStorage` gains: `listBooks(): Promise<Book[]>`, `getBook(id): Promise<Book | undefined>`, `createBook(InsertBook): Promise<Book>`, `updateBook(id, Partial<InsertBook>): Promise<Book | undefined>`, `deleteBook(id): Promise<void>`. Implementation in `server/storage.ts` mirrors the existing `gallery_images` methods (`db.select().from(books).orderBy(books.displayOrder, books.id)`, etc.).
+- New routes in `server/routes.ts`:
+  - `GET  /api/books`     — public, no auth, returns the full ordered list. `Cache-Control: no-store`.
+  - `POST /api/books`     — `requireAuth + requireRole("admin")`, validates body via `insertBookSchema.parse(req.body)`.
+  - `PATCH /api/books/:id` — admin-only, validates a `.partial()` insert schema.
+  - `DELETE /api/books/:id` — admin-only.
+  - All write routes return JSON `{ ok: true, book }` shape consistent with existing CRUD routes.
+
+### Public `/books` page (`client/src/pages/books-page.tsx`)
+- Wired into `client/src/App.tsx`: `<Route path="/books" component={BooksPage} />` (lazy-loaded via `lazy(() => import(...))` like other pages).
+- Uses `<PageHead slug="books" title="Books — SEVCO" description="Books from the SEVCO library." ogUrl="https://sevco.us/books" />` and renders a `BookOpen`/`Library`-style heading row identical to the new `/projects` header pattern (small `<h1>Books</h1>` left, no admin button — admins manage via CMD).
+- `useQuery<Book[]>({ queryKey: ["/api/books"] })` fetches the list.
+- Layout: full-width container `w-full px-4 md:px-8 py-8`, then a responsive cover grid `grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5` (more covers per row than the projects grid since covers are taller and narrower).
+- Each card:
+  - Top: cover image in an `aspect-[2/3]` block (`object-cover`, `rounded-xl overflow-hidden`, hover scale 1.02 + subtle shadow), with a `data-testid="img-book-cover-${id}"`.
+  - Below: book title (`font-semibold text-sm truncate`) and author (`text-xs text-muted-foreground truncate`).
+  - On click: opens a shadcn `Dialog` ("Book details") showing the cover, title, author, the full description (if any), and a primary "Buy" button linking to `buyLink` (target=_blank, rel=noopener noreferrer) when set. If `buyLink` is empty, the Buy button is hidden.
+- Loading state: a 12-cell skeleton grid matching the cover grid shape.
+- Empty state: centred `<BookOpen>` icon + "No books yet" text — no admin shortcut on the public page.
+- All testids follow the convention: `heading-books`, `card-book-${id}`, `img-book-cover-${id}`, `button-book-buy-${id}`.
+
+### CMD Books tab (`client/src/pages/command-books.tsx`)
+- Wired into `client/src/App.tsx` alongside the other `/command/*` routes (`<Route path="/command/books" ... />`).
+- Sidebar entry added to `client/src/components/command-sidebar.tsx`: `...(isAdmin || isExec || isStaff ? [{ title: "Books", url: "/command/books", icon: BookOpen }] : [])` placed between Wiki/Projects and Resources for natural grouping. (Same `BookOpen` icon already imported there.)
+- Page UI mirrors `client/src/pages/command-gallery.tsx`:
+  - Header with "Books" title and a "New Book" button (filled, with Plus icon).
+  - Table or card list of existing books with columns: thumbnail (40×60 cover preview), title, author, public-buy-link (clickable if set), edit pencil, delete trash.
+  - Add/Edit dialog uses shadcn `Form` + `useForm` + `zodResolver(insertBookSchema.extend({ ... }))` with fields:
+    - Title (Input, required)
+    - Author (Input, required)
+    - Cover Image (`<FileUploadWithFallback>` writing to a `book-covers/` Supabase path; required — form invalid until present)
+    - Description (Textarea, optional)
+    - Buy Link (Input type=url, optional, validates as URL when non-empty)
+  - Submit calls `apiRequest("POST", "/api/books", values)` for create or `apiRequest("PATCH", "/api/books/:id", values)` for edit, then invalidates `["/api/books"]`.
+  - Delete uses `AlertDialog` confirmation, then `apiRequest("DELETE", "/api/books/:id")`, then invalidates `["/api/books"]`.
+  - Toasts on success/failure via the existing `useToast` hook.
+  - All interactive elements get descriptive `data-testid`s (`button-new-book`, `button-edit-book-${id}`, `button-delete-book-${id}`, `input-book-title`, `input-book-author`, `input-book-buy-link`, `textarea-book-description`).
+- Page is gated by the `requirePermission` / route-level admin check used by the surrounding `/command/*` routes.
+
+### Misc
+- No links from the public header to `/books` are added in this task (kept out of scope so we don't touch the nav until the page is approved).
+- No drift to existing routes, schemas, or pages.
+
+## Out of scope
+- Linking to `/books` from the public header / footer / search results
+- A book detail page at `/books/:slug` (the modal Dialog covers detail viewing)
+- Categories / tags / search / filtering on the public page
+- Sparks, comments, or social interactions on books
+- Reordering UI in CMD beyond setting `displayOrder` in the edit dialog (a future drag-to-reorder is a separate task)
+- Importing books from any external API (Open Library, Google Books, etc.)
+- Multiple buy links per book
+- Per-book SEO override pages
+
+## Steps
+1. **Schema** — Add the `books` pgTable + `insertBookSchema` + `Book`/`InsertBook` exports to `shared/schema.ts`. Place near the other content tables (around the gallery / resources block).
+2. **Storage** — Add `books` to the imports in `server/storage.ts`, declare the five methods on `IStorage`, and implement them in the database-backed class following the `gallery_images` pattern.
+3. **Routes** — Register the four routes in `server/routes.ts` near the gallery routes. Use `requireAuth + requireRole("admin")` on writes, `insertBookSchema.parse` / `.partial().parse` for validation, and surface validation errors with `res.status(400).json({ message })`.
+4. **Public page** — Create `client/src/pages/books-page.tsx` per the spec above. Lazy-import in `client/src/App.tsx` and register `/books`.
+5. **CMD page** — Create `client/src/pages/command-books.tsx` modelled on `command-gallery.tsx`. Lazy-import in `App.tsx`, register `/command/books` with the same admin-route wrapper used by the surrounding CMD routes.
+6. **Sidebar** — Add the Books entry to `client/src/components/command-sidebar.tsx`.
+7. **Verify** — As admin: open `/command/books`, add a book (with cover upload + buy link), then see it on `/books` in the grid. Click the cover → dialog shows description + Buy button → Buy opens in a new tab. Edit the book → list updates after invalidation. Delete the book → it disappears from both `/command/books` and `/books`. As a logged-out visitor: `/command/books` redirects per existing admin gating; `/books` shows the grid with no admin controls. Cover image fallback: a book whose cover URL temporarily 404s shows a tinted placeholder (no broken-image icon).
+
+## Relevant files
+- `shared/schema.ts` (new `books` table + Zod/types)
+- `server/storage.ts` (IStorage methods + implementation)
+- `server/routes.ts` (4 routes near the gallery routes ~line 5180+)
+- `client/src/pages/books-page.tsx` (new)
+- `client/src/pages/command-books.tsx` (new)
+- `client/src/App.tsx` (lazy import + 2 routes)
+- `client/src/components/command-sidebar.tsx` (1 new entry)
+- `client/src/pages/command-gallery.tsx` (reference pattern, no changes)
+- `client/src/components/file-upload.tsx` (`FileUploadWithFallback`, no changes)
+
+
+---
+

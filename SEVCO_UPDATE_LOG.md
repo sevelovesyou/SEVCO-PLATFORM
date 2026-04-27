@@ -31915,3 +31915,99 @@ The home page search bar's rotating placeholder (Task #626) currently looks like
 
 ---
 
+## Task — no-default-flash-on-publish
+> Merged: 2026-04-27
+
+# Stop the Default-Settings Flash After Publish
+
+## What & Why
+Every publish currently shows visitors the **default** version of the platform — no custom favicon, no custom hero, no search-section settings, default placeholder, no platform logo, etc. — for roughly 5 minutes until the freshly-booted instance finishes its background startup work. The cause is the "boot gate" (Task #528, `server/index.ts` ~lines 1248-1257) which short-circuits **every** `/api/*` request with `503 { booting: true }` while file migrations, `applySchemaFromCode`, the changelog-snapshot apply, Stripe sync, and ~half a dozen seed routines run in the background. The two endpoints the SPA needs to render the *correct visual identity* — `GET /api/platform-settings` and `GET /api/platform-meta` (favicon) — are not exempt from the gate, so React Query receives 503s, keeps `data` as `undefined`, and components fall back to their hardcoded defaults until the next successful refetch after the gate lifts.
+
+The fix has two cooperating parts so visitors **never** see the wrong version, even on the very first byte of the SPA shell:
+
+1. **Server-side seed of the visual identity** — extend the existing HTML-injection pass in `server/static.ts` (which already injects OG meta) to also inject (a) the `<link rel="icon">` href and (b) a `<script id="__PLATFORM_SETTINGS__" type="application/json">` blob holding a snapshot of the public platform settings keys, with a strict ~750 ms DB-read timeout and silent fallback to the existing defaults if the snapshot can't be obtained in time.
+2. **Boot-gate exemption for the two read-only public-meta endpoints** — `GET /api/platform-settings` and `GET /api/platform-meta`. Both are pure single-table reads against `platform_settings` (a table that hasn't changed schema in dozens of merges and exists from Task #46), so they are safe to serve the moment the DB pool is up and don't depend on any of the heavy startup steps.
+
+Together, (1) makes the *first paint* correct (favicon, hero, search bg, placeholder, etc.) using settings inlined into the HTML, and (2) makes the *first React Query response* correct so the app doesn't briefly drop back to defaults if the inlined snapshot is missing or stale.
+
+## Done looks like
+- After publishing, **visitors and admins both see the correct platform identity from the very first paint**: correct favicon in the tab, correct hero image / text / buttons, correct search section background and placeholder text, correct platform logo in the header, correct OG meta — all rendered before the React tree mounts a single query.
+- Hitting `GET /api/platform-settings` or `GET /api/platform-meta` during the boot window returns the real settings (or, if the DB pool isn't ready, an empty `{}` with a `Cache-Control: no-store` header — *never* a 503). All other `/api/*` endpoints continue to be gated by the boot gate exactly as today.
+- The HTML body contains a `<script id="__PLATFORM_SETTINGS__" type="application/json">{…}</script>` block immediately before the SPA root, holding only the keys the public landing experience needs (see "Steps" §1 for the explicit list — no admin-only or secret-bearing keys).
+- The existing `<link rel="icon" id="dynamic-favicon">` href is rewritten in the HTML response when `platform.faviconUrl` is set, so the browser requests the correct favicon on the very first navigation (no JS-driven swap needed).
+- The existing `useQuery(["/api/platform-settings"])` and the favicon `useQuery(["/api/platform-meta"])` in `client/src/App.tsx` are seeded with the inlined snapshot via React Query's `initialData` (and `initialDataUpdatedAt: 0` so the first refetch still happens in the background to pick up any drift).
+- If the inlined `<script>` blob is absent (e.g. an older HTML cached at the edge briefly served before the new build), the app behaves exactly as today (default fallbacks, then real values when the API returns).
+- If the static.ts settings read times out at the ~750 ms budget, the HTML still ships with current defaults and zero added latency — the timeout MUST never delay the first byte.
+- No new env vars, no schema change, no new dependencies.
+- The CSP / security posture is unchanged: the inlined JSON blob is in a `type="application/json"` script (not `text/javascript`), so it cannot execute, and the JSON.stringify pass strips `</script` sequences (defense in depth) before injection.
+- `/healthz` and `/api/platform-health` continue to behave as today; nothing about the boot state machine itself changes.
+
+## Out of scope
+- Changing what `applySchemaFromCode`, the Stripe sync, or the seed routines do (they continue to run in the background after the listener opens — that's the whole point of Task #528)
+- Removing or weakening the boot gate for any other endpoint (only the two read-only public-meta GETs are exempted)
+- Adding a CDN / edge cache layer
+- A full server-side render of React (this remains an SPA; only the HTML head + a small JSON blob are server-rendered)
+- Caching settings in the SPA across navigations beyond what React Query already does
+- Inlining admin-only settings, secrets, or per-user data into the HTML
+
+## Steps
+
+### 1. Server-side: HTML inlining of favicon + public settings snapshot
+- In `server/static.ts`, extend `injectOgMeta` (or split out a sibling `injectFaviconAndSettings`) so the per-request HTML pipeline does, in order:
+  1. Read `platformSettings = await storage.getPlatformSettings()` with a hard ~750 ms `Promise.race` timeout. On timeout or any throw, leave `platformSettings = null` and proceed without inlining (zero added latency).
+  2. If `platformSettings["platform.faviconUrl"]` is set, replace the existing `href="/favicon.jpg"` on the `id="dynamic-favicon"` `<link>` with the resolved (proto + host or absolute) URL. Same approach as the OG image swap that already exists in this file.
+  3. Build a *whitelisted* subset of `platformSettings` containing only keys safe for the public landing experience. The whitelist is defined as a literal array in `server/static.ts` and includes, at minimum:
+     - `platform.faviconUrl`, `platform.ogImageUrl`, `platform.logoUrl`, `platform.description`
+     - `hero.headline`, `hero.text`, `hero.backgroundImageUrl`, `hero.overlayOpacity`, `hero.shader.*`, `hero.button1.*`, `hero.button2.*`
+     - `search.placeholder`, `search.backgroundUrl`, `search.logoUrl`
+     - `section.search.visible` and any other `section.*.visible` keys (use a `key.startsWith("section.") && key.endsWith(".visible")` rule)
+     - `nav.services.title`, `nav.services.icon`, `nav.services.categoryOrder`
+     - All `seo.page.*`, `seo.geo.*` keys (the page-head consumer reads these per slug)
+     - `services.categories` (used for the services dropdown)
+     Explicitly EXCLUDE anything containing `secret`, `apiKey`, `token`, `oauth`, `webhook`, `stripe.`, or `internal.` even if it accidentally lands in the table — final guard: `if (/secret|token|webhook|apiKey|oauth/i.test(key)) skip`.
+  4. JSON-encode the whitelisted subset, then run `.replace(/<\/script/gi, '<\\/script')` to neutralise any embedded close-tag sequence, and inject as `<script id="__PLATFORM_SETTINGS__" type="application/json">{…}</script>` immediately before `</body>`. Also inject `<meta name="x-platform-settings-version" content="<currentTimestamp>">` so we can verify in DevTools that the inlined blob was used.
+- The existing `Cache-Control: no-store, no-cache, must-revalidate` headers stay on the SPA HTML response so the inlined blob is never cached.
+
+### 2. Server-side: boot-gate exemption for the two public-meta GETs
+- In `server/index.ts` (the `app.use((req, res, next) => { if (bootState !== "booting") return next(); ... })` block at ~line 1248), add:
+  - `if (req.method === "GET" && req.path === "/api/platform-settings") return next();`
+  - `if (req.method === "GET" && req.path === "/api/platform-meta") return next();`
+- In `server/routes.ts` `app.get("/api/platform-settings", ...)` and the favicon-meta route (~line 4825), wrap the `storage.getPlatformSettings()` call in a try/catch that returns `res.status(200).json({})` (empty object, not 503) on any DB error — so during the brief window where the listener is up but the pool is still warming, the SPA gets a deterministic empty payload it knows how to fall back from, never a 503.
+- The `PUT /api/platform-settings` route stays gated (writes during boot are not safe and admins editing settings during the first 5 min of a deploy is acceptable to delay).
+
+### 3. Client-side: seed React Query from the inlined blob
+- Add a tiny helper `client/src/lib/inlinedSettings.ts` that does, on import:
+  1. `const el = document.getElementById("__PLATFORM_SETTINGS__")`
+  2. `try { return el ? JSON.parse(el.textContent || "{}") : null } catch { return null }`
+  Exported as `getInlinedPlatformSettings(): Record<string, string> | null`.
+- In `client/src/App.tsx`, **before** the React tree mounts:
+  - Read the inlined snapshot once.
+  - If present, synchronously set `<link rel="icon" id="dynamic-favicon">.href = snapshot["platform.faviconUrl"] || "/favicon.jpg"` so the favicon never blinks.
+  - Call `queryClient.setQueryData(["/api/platform-settings"], snapshot)` and `queryClient.setQueryData(["/api/platform-meta"], { faviconUrl: snapshot["platform.faviconUrl"] || null, ogImageUrl: snapshot["platform.ogImageUrl"] || null })` so every consumer (`landing.tsx`, `platform-header.tsx`, `platform-footer.tsx`, `page-head.tsx`, `search-overlay.tsx`, `command-settings.tsx`, etc.) gets the correct values on first read.
+- Optionally, on each `useQuery({ queryKey: ["/api/platform-settings"] })` call (App.tsx, header, footer, page-head, search-overlay) add `placeholderData: () => queryClient.getQueryData(["/api/platform-settings"]) ?? getInlinedPlatformSettings() ?? undefined` so even the very first synchronous render after a hot reload sees the inlined data — but the queryClient pre-seed in App.tsx should make this redundant for normal navigation.
+- The `useEffect` in App.tsx that swaps the favicon when `meta` changes is left as-is — it now becomes the "drift correction" path that runs only if the inlined value differs from what the API later returns.
+
+### 4. Verify
+- Boot a fresh instance (or simulate by forcing `bootState = "booting"` for 60 s in dev) and load `/`:
+  - DevTools Network: `GET /api/platform-settings` returns 200 with the real settings (or `{}` if the pool is mid-warm), **never 503**.
+  - DevTools Elements: `<link rel="icon">` href and the `<script id="__PLATFORM_SETTINGS__">` blob are present in the initial HTML payload.
+  - The page paints with the correct hero / favicon / search bg / placeholder on the *very first frame* — no flash of defaults.
+  - Other gated endpoints (e.g. `GET /api/users/me`, `GET /api/posts`) still 503 during boot as today.
+- Confirm a publish-time deploy: load the production URL within 5 seconds of publish completing — the visual identity matches Platform Settings immediately.
+- Confirm `prefers-reduced-motion`, dark mode toggle, and the Task #632 placeholder ticker all still behave correctly with the seeded data.
+- Confirm an *admin* PUT to `/api/platform-settings` during the boot window still 503s (this is intentional — writes stay gated).
+- Confirm the static.ts read timeout: temporarily make `getPlatformSettings()` sleep 5 s, verify the HTML still ships under ~1 s with the existing defaults inlined and no inlined `<script>` blob.
+
+## Relevant files
+- `server/static.ts` (HTML injection — extend with favicon swap + settings JSON inlining + read timeout)
+- `server/index.ts:1233-1257` (boot gate; add two GET exemptions)
+- `server/routes.ts:4825-4830` (favicon meta endpoint), `4952-4964` (platform-settings GET) — wrap reads in try/catch returning empty JSON on DB errors
+- `server/storage.ts:1707` (`getPlatformSettings` — no change, just read)
+- `client/index.html:6,13,19` (existing favicon link + OG tags — no change to the file, only verifying the targets the injector hits)
+- `client/src/App.tsx:495-565` (queryClient seeding + favicon-from-inlined; existing meta useQuery + useEffect remain as drift-correction)
+- New `client/src/lib/inlinedSettings.ts` (tiny reader helper)
+- `client/src/components/page-head.tsx:40`, `client/src/components/platform-header.tsx:848`, `client/src/components/platform-footer.tsx:121`, `client/src/components/search-overlay.tsx:55`, `client/src/pages/landing.tsx:577` (existing settings consumers — no functional change; verify they all benefit from the pre-seeded queryClient)
+
+
+---
+

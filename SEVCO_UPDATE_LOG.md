@@ -31805,3 +31805,53 @@ Extend the home search section's background setting (added in Task #607) so staf
 
 ---
 
+## Task — projects-page-cleanup-bigger-cards
+> Merged: 2026-04-27
+
+# /projects: Drop Hero & Pill Bar, Full-Width Layout, Bigger Cards With Hero Images
+
+## What & Why
+Simplify the `/projects` listing page so the projects themselves are the visual focus. Remove the dark gradient hero block and the icon-pill features bar that currently sit above the content; let the project grid breathe at full page width; and make each card noticeably larger (still 3 columns at desktop) with a real hero image at the top of every card. The Add Project / status filter / FAQ sections all stay — just rearranged.
+
+## Done looks like
+- The big dark "SEVCO Projects" hero block at the top of `/projects` (with the gradient blobs and grid overlay) is gone.
+- The horizontal "Feature Pills" bar (the row of small icon + label pills under the hero) is gone.
+- The page now opens directly with a slim header row containing the page title (small `<h1>`, e.g. "Projects") on the left and the "Add Project" button (still gated by `canManage`) on the right — preserving access to the create flow that previously lived inside the hero. SEO/`PageHead` metadata is unchanged.
+- The projects content area (header row, status tabs, cards grid) becomes full width with comfortable horizontal padding only (e.g. `w-full px-4 md:px-8`) — no inner `max-w-5xl` clamp on this section.
+- The grid stays at **3 columns on desktop** (`lg:grid-cols-3`), 2 on tablet (`sm:grid-cols-2`), 1 on mobile, but cards are visibly larger:
+  - Increased card padding (≈`p-6` body padding below the image) and inter-card gap (≈`gap-6`).
+  - Larger title (≈`text-lg`/`text-xl`), more description lines visible (≈`line-clamp-4`).
+- **Each card shows a hero image at the top:**
+  - Source priority: `project.heroImageUrl` → fall back to `project.logoUrl` → fall back to `project.appIcon` → fall back to a tinted placeholder block centred on the project's `MenuIcon`. (No new schema fields — `heroImageUrl` already exists on `projects`.)
+  - The image fills the full width of the card with a fixed aspect ratio (≈16:9), `object-cover`, rounded only on the top corners to match the card's `rounded-xl`.
+  - The existing app-icon + status-badge row, title, description, and the bottom row (TypeBadge, SparkButton, optional Globe icon) remain below the image in the same order.
+- The skeleton card mirrors the new layout — a top image placeholder followed by the existing icon/title/badge skeletons.
+- The FAQ section at the bottom of the page keeps its current narrower readable width (long-form text reads poorly at full width). Only the projects header + tabs + grid go full width.
+- Empty state and loading state still render inside the same full-width content container.
+- No changes to routing, data fetching, sort/filter logic, the `ProjectWithSpark` type, the project detail page, or the schema.
+
+## Out of scope
+- Schema changes (no new image fields)
+- Adding new sort options, search, or pagination
+- Changing card hover behavior beyond what the bigger image naturally requires
+- Restyling `StatusBadge`, `TypeBadge`, `SparkButton`, or the FAQ section
+- Adding image upload UI to the project form (admins already manage `heroImageUrl` there)
+
+## Steps
+1. **Remove hero & pills** — In `client/src/pages/projects-page.tsx`, delete the `{/* ── HERO ── */}` block (lines ~234-284) and the `{/* ── FEATURE PILLS ── */}` `<section>` (lines ~286-305). The unused `PROJECT_PILLS` constant and its now-unused icon imports can be removed at the same time.
+2. **Slim header row + full-width container** — Replace the `max-w-5xl mx-auto px-6 py-8` wrapper with `w-full px-4 md:px-8 py-8` (or equivalent). Inside, render a top row holding a small page title (`Projects`, `text-2xl md:text-3xl font-bold`) on the left and the Add Project button on the right when `canManage`. Tabs row stays directly under it. Leave the FAQ `<section>` untouched (keeps `max-w-5xl`).
+3. **Bigger cards with hero image** — Update `ProjectCard`:
+   - Wrap the existing inner content in a flex column so a hero image sits at the top.
+   - Render a `<div className="relative w-full aspect-[16/9] overflow-hidden rounded-t-xl bg-white/[0.04]">` containing either an `<img>` (with fallback chain: `heroImageUrl` → `logoUrl` → `appIcon`, all run through the existing `resolveImageUrl`) OR, if none exist, a centred `<MenuIcon>` placeholder.
+   - Move the existing card body (icon row, title, description, footer) below the image inside a `p-6` block. Bump title to `text-lg`/`text-xl`, description to `line-clamp-4`. Keep the outer card classes (`border`, `rounded-xl`, hover states) on the same wrapper but drop the `p-5` since padding now lives on the inner body.
+   - Keep `data-testid` values stable; add a new `data-testid="img-project-hero-${project.id}"` for the image (or the placeholder when no image).
+4. **Skeleton parity** — Update `ProjectCardSkeleton` to include a top `Skeleton` matching the `aspect-[16/9]` image area, then the existing icon/title/badge skeletons inside a `p-6` body. Bump grid `gap` so skeleton and real cards align.
+5. **Verify** — Confirm: hero gone, pills gone, page opens with a small "Projects" + Add Project header; the tabs and grid stretch the full viewport with comfortable side padding; cards visibly bigger with a 16:9 image at the top of every card (using the fallback chain); skeletons match; FAQ still renders at its readable width; everything still navigates correctly (internal `Link` and external `<a target="_blank">` paths both still wrap the entire enlarged card).
+
+## Relevant files
+- `client/src/pages/projects-page.tsx:71-130` (ProjectCard), `132-150` (ProjectCardSkeleton), `225-360` (page layout: hero, pills, content container, grid)
+- `shared/schema.ts:234-262` (projects table — `heroImageUrl`, `logoUrl`, `appIcon` fields already exist)
+
+
+---
+

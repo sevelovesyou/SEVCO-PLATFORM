@@ -2126,7 +2126,7 @@ export default function CommandSettings() {
         <p className="text-xs text-muted-foreground mb-4" data-testid="text-search-scope">Showing results across all settings</p>
       )}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)}>
-          <TabsList className="flex flex-wrap gap-1 h-auto mb-6 xl:flex-nowrap xl:overflow-x-auto" data-testid="tabs-settings-main">
+          <TabsList className="flex flex-wrap gap-1 h-auto mb-6 xl:flex-nowrap xl:overflow-x-auto w-fit" data-testid="tabs-settings-main">
             <TabsTrigger value="theme" data-testid="tab-theme" onClick={() => { setSearchQuery(""); setActiveTab("theme"); }}>Theme</TabsTrigger>
             <TabsTrigger value="hero" data-testid="tab-hero" onClick={() => { setSearchQuery(""); setActiveTab("hero"); }}>Hero & CTAs</TabsTrigger>
             <TabsTrigger value="footer" data-testid="tab-footer" onClick={() => { setSearchQuery(""); setActiveTab("footer"); }}>Footer & Legal</TabsTrigger>

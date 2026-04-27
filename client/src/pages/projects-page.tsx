@@ -261,7 +261,7 @@ export default function ProjectsPage() {
             onValueChange={setStatusFilter}
             className="flex-1 min-w-0"
           >
-            <TabsList data-testid="tabs-status-filter" className="flex flex-wrap h-auto gap-1 bg-muted/60 p-1">
+            <TabsList data-testid="tabs-status-filter" className="flex flex-wrap h-auto gap-1 bg-muted/60 p-1 w-fit">
               {STATUS_FILTERS.map((f) => (
                 <TabsTrigger key={f.value} value={f.value} data-testid={`tab-status-${f.value}`}>
                   {f.label}

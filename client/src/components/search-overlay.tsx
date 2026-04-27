@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { parseSearchPlaceholders } from "@/lib/search-placeholders";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Search, X, BookOpen, Folder, Music, Users, Briefcase, Globe, ArrowRight } from "lucide-react";
@@ -54,7 +55,12 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
   const { data: platformSettings = {} } = useQuery<Record<string, string>>({
     queryKey: ["/api/platform-settings"],
   });
-  const searchPlaceholder = platformSettings["search.placeholder"]?.trim() || "/";
+  const placeholderRaw = platformSettings["search.placeholder"] ?? "";
+  const searchPlaceholder = useMemo(() => {
+    const list = parseSearchPlaceholders(placeholderRaw);
+    if (list.length === 0) return "/";
+    return list[Math.floor(Math.random() * list.length)];
+  }, [placeholderRaw]);
 
   useEffect(() => {
     if (open) {

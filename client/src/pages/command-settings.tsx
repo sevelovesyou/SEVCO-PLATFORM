@@ -2479,15 +2479,16 @@ export default function CommandSettings() {
                     <p className="text-xs text-muted-foreground">Replaces the default SEVCO logo above the search bar. Leave blank to use the default logo.</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="input-search-placeholder">{highlight("Placeholder Text")}</Label>
-                    <Input
+                    <Label htmlFor="input-search-placeholder">{highlight("Placeholders")}</Label>
+                    <Textarea
                       id="input-search-placeholder"
                       value={searchPlaceholder}
                       onChange={(e) => setSearchPlaceholder(e.target.value)}
-                      placeholder="Search SEVCO…"
+                      placeholder={"Search SEVCO…\nFind a service\nBrowse the wiki"}
+                      rows={4}
                       data-testid="input-search-placeholder"
                     />
-                    <p className="text-xs text-muted-foreground">Placeholder shown in all three search inputs (home page bar, search results page, and search overlay). Defaults to "/".</p>
+                    <p className="text-xs text-muted-foreground">Enter one placeholder per line or separate with commas. If multiple are provided, the home page search bar cycles through them every ~3 seconds with a smooth ticker animation; the search results page and overlay each show a random one. Defaults to "/".</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="input-search-bg-url">{highlight("Background URLs")}</Label>

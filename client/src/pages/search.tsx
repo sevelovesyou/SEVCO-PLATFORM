@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { parseSearchPlaceholders } from "@/lib/search-placeholders";
 import { PageHead } from "@/components/page-head";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -86,7 +87,12 @@ export default function SearchPage() {
   const { data: platformSettings = {} } = useQuery<Record<string, string>>({
     queryKey: ["/api/platform-settings"],
   });
-  const searchPlaceholder = platformSettings["search.placeholder"]?.trim() || "/";
+  const placeholderRaw = platformSettings["search.placeholder"] ?? "";
+  const searchPlaceholder = useMemo(() => {
+    const list = parseSearchPlaceholders(placeholderRaw);
+    if (list.length === 0) return "/";
+    return list[Math.floor(Math.random() * list.length)];
+  }, [placeholderRaw]);
 
   useEffect(() => {
     const q = getQueryFromUrl();

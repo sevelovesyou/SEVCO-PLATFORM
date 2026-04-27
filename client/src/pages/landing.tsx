@@ -26,7 +26,8 @@ import type { Article, FeedPost, Project, ChangelogCategory, MusicTrack } from "
 import { useMusicPlayer } from "@/contexts/music-player-context";
 import { articleUrl } from "@/lib/wiki-urls";
 import { DEFAULT_SECTION_ORDER } from "@shared/section-order";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { parseSearchPlaceholders } from "@/lib/search-placeholders";
 import { trackCtaClick } from "@/lib/analytics-tracker";
 import { HomeNewsAndMarkets } from "@/components/home-news-markets";
 import { UserSnapshotPanel } from "@/components/user-snapshot-panel";
@@ -38,6 +39,80 @@ import { SevcoLogo } from "@/components/sevco-logo";
 
 function getLucideIcon(name: string | undefined) {
   return getIcon(name);
+}
+
+function HomeSearchInput({
+  value,
+  onChange,
+  placeholders,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholders: string[];
+}) {
+  const [focused, setFocused] = useState(false);
+  const [index, setIndex] = useState(0);
+  const reducedMotion = useReducedMotion();
+
+  const list = placeholders.length > 0 ? placeholders : ["/"];
+  const hasMultiple = list.length >= 2;
+  const hasValue = value.length > 0;
+  const paused = focused || hasValue;
+  const listKey = list.join("|");
+
+  useEffect(() => {
+    setIndex(0);
+  }, [listKey]);
+
+  useEffect(() => {
+    if (!hasMultiple || paused) return;
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % list.length);
+    }, 3000);
+    return () => clearInterval(id);
+  }, [hasMultiple, paused, list.length, listKey]);
+
+  const safeIndex = Math.min(index, list.length - 1);
+  const current = list[safeIndex];
+  const showOverlay = hasMultiple && !hasValue;
+  const duration = reducedMotion ? 0 : 0.4;
+
+  return (
+    <div className="relative flex-1">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        placeholder={current}
+        className="w-full bg-transparent py-3 px-3 text-sm outline-none placeholder:text-muted-foreground"
+        autoComplete="off"
+        data-testid="input-home-search"
+      />
+      {showOverlay && (
+        <div
+          className="pointer-events-none absolute inset-0 flex items-center px-3 overflow-hidden"
+          aria-hidden="true"
+          data-testid="search-placeholder-ticker"
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={safeIndex}
+              initial={reducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reducedMotion ? { opacity: 0, y: 0 } : { opacity: 0, y: -8 }}
+              transition={{ duration }}
+              className="text-sm text-muted-foreground bg-card whitespace-nowrap"
+              data-testid={`search-placeholder-entry-${safeIndex}`}
+            >
+              {current}
+            </motion.span>
+          </AnimatePresence>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const PLATFORM_SECTIONS = [
@@ -499,7 +574,7 @@ export default function Landing() {
         const isYouTube = picked?.kind === "youtube";
         const bgUrl = picked?.kind === "image" || picked?.kind === "video" ? picked.url : "";
         const logoUrl = settings["search.logoUrl"] ?? "";
-        const placeholder = settings["search.placeholder"]?.trim() || "/";
+        const placeholders = parseSearchPlaceholders(settings["search.placeholder"] ?? "");
         return (
           <section
             className="relative overflow-hidden min-h-screen flex flex-col items-center justify-center gap-8 px-4 bg-background"
@@ -547,14 +622,10 @@ export default function Landing() {
               >
                 <div className="flex items-center rounded-full border border-border bg-card shadow-md hover:shadow-lg focus-within:shadow-lg transition-shadow">
                   <Search className="ml-4 h-4 w-4 shrink-0 text-muted-foreground" />
-                  <input
-                    type="text"
+                  <HomeSearchInput
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={placeholder}
-                    className="flex-1 bg-transparent py-3 px-3 text-sm outline-none placeholder:text-muted-foreground"
-                    autoComplete="off"
-                    data-testid="input-home-search"
+                    onChange={setSearchQuery}
+                    placeholders={placeholders}
                   />
                   <button
                     type="submit"

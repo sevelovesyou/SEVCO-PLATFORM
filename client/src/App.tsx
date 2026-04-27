@@ -125,6 +125,8 @@ const SecurityPage = lazy(() => import("@/pages/security-page"));
 const MinecraftPage = lazy(() => import("@/pages/minecraft-page"));
 const GalleryPage = lazy(() => import("@/pages/gallery-page"));
 const CommandGallery = lazy(() => import("@/pages/command-gallery"));
+const BooksPage = lazy(() => import("@/pages/books-page"));
+const CommandBooks = lazy(() => import("@/pages/command-books"));
 const CommandMedia = lazy(() => import("@/pages/command-media"));
 const CommandSupport = lazy(() => import("@/pages/command-support"));
 const CommandStaff = lazy(() => import("@/pages/command-staff"));
@@ -425,6 +427,14 @@ function Router() {
       <Route path="/freeball/help" component={FreeBallHelpPage} />
       <Route path="/freeball/play" component={() => <ProtectedRoute><FreeballPage /></ProtectedRoute>} />
       <Route path="/gallery" component={GalleryPage} />
+      <Route path="/books" component={BooksPage} />
+      <Route path="/command/books" component={() => (
+        <ProtectedRoute requiredRole="admin">
+          <CommandPageLayout title="Books" subtitle="Manage the SEVCO library">
+            <CommandBooks />
+          </CommandPageLayout>
+        </ProtectedRoute>
+      )} />
       <Route path="/command/gallery" component={() => (
         <ProtectedRoute requiredRole="admin">
           <CommandPageLayout title="Gallery" subtitle="Manage gallery images for the platform">

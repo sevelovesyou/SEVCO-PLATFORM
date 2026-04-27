@@ -20,7 +20,7 @@ import {
   CAN_ACCESS_ARCHIVE,
 } from "./middleware/permissions";
 import type { Role, InsertJob, InsertArticle, InsertCategory, Email, NewsItem, InsertMusicTrack } from "@shared/schema";
-import { insertArtistSchema, insertAlbumSchema, insertCategorySchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema, updateUserTaskSchema, updateStaffTaskSchema, insertUserTaskSchema, insertStaffTaskSchema, insertDomainSchema, insertMusicTrackSchema, adminCreateUserSchema } from "@shared/schema";
+import { insertArtistSchema, insertAlbumSchema, insertCategorySchema, insertProjectSchema, insertChangelogSchema, insertServiceSchema, updateProfileSchema, insertJobSchema, insertJobApplicationSchema, insertPlaylistSchema, insertMusicSubmissionSchema, insertNoteSchema, insertFeedPostSchema, insertPostSchema, insertPostReplySchema, insertResourceSchema, insertGalleryImageSchema, insertStaffOrgNodeSchema, insertChatChannelSchema, insertChatMessageSchema, insertFinanceProjectSchema, insertFinanceTransactionSchema, insertFinanceInvoiceSchema, insertSubscriptionSchema, insertMinecraftServerSchema, insertAiAgentSchema, insertNewsCategorySchema, updateUserTaskSchema, updateStaffTaskSchema, insertUserTaskSchema, insertStaffTaskSchema, insertDomainSchema, insertMusicTrackSchema, adminCreateUserSchema, insertBookSchema } from "@shared/schema";
 import { InsufficientSparksError } from "./storage";
 import { fetchNewsArticles, generateGrokSummaryForTweet } from "./news";
 import { getAggregatorStatus, forceRefresh as forceAggregatorRefresh } from "./news-aggregator";
@@ -5232,6 +5232,56 @@ export async function registerRoutes(
       const id = parseInt(req.params.id);
       await storage.deleteGalleryImage(id);
       res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/books", async (_req, res) => {
+    try {
+      const list = await storage.listBooks();
+      res.set("Cache-Control", "no-store");
+      res.json(list);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/books", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const parsed = insertBookSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.message });
+      }
+      const book = await storage.createBook(parsed.data);
+      res.status(201).json({ ok: true, book });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/books/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (Number.isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      const parsed = insertBookSchema.partial().safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.message });
+      }
+      const book = await storage.updateBook(id, parsed.data);
+      if (!book) return res.status(404).json({ message: "Book not found" });
+      res.json({ ok: true, book });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/books/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (Number.isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+      await storage.deleteBook(id);
+      res.json({ ok: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

@@ -24,6 +24,7 @@ import {
   type ShaderPreset, type InsertShaderPreset,
   type Resource, type InsertResource,
   type GalleryImage, type InsertGalleryImage,
+  type Book, type InsertBook,
   type SpotifyArtist, type InsertSpotifyArtist,
   type ContactSubmission, type InsertContactSubmission,
   type StaffOrgNode, type InsertStaffOrgNode,
@@ -56,7 +57,7 @@ import {
   artists, albums, projects, changelog, services,
   jobs, jobApplications, playlists, musicSubmissions, platformSocialLinks, notes, feedPosts,
   posts, postReplies, userFollows,
-  noteCollaborators, noteAttachments, platformSettings, brandAssets, shaderPresets, resources, galleryImages, spotifyArtists,
+  noteCollaborators, noteAttachments, platformSettings, brandAssets, shaderPresets, resources, galleryImages, books, spotifyArtists,
   postSparks, articleSparks, gallerySparks, trackSparks, productSparks, projectSparks, serviceSparks,
   contactSubmissions,
   staffOrgNodes,
@@ -297,6 +298,12 @@ export interface IStorage {
   createGalleryImage(data: InsertGalleryImage): Promise<GalleryImage>;
   updateGalleryImage(id: number, data: Partial<InsertGalleryImage>): Promise<GalleryImage>;
   deleteGalleryImage(id: number): Promise<void>;
+
+  listBooks(): Promise<Book[]>;
+  getBook(id: number): Promise<Book | undefined>;
+  createBook(data: InsertBook): Promise<Book>;
+  updateBook(id: number, data: Partial<InsertBook>): Promise<Book | undefined>;
+  deleteBook(id: number): Promise<void>;
 
   getSpotifyArtists(): Promise<SpotifyArtist[]>;
   addSpotifyArtist(data: InsertSpotifyArtist): Promise<SpotifyArtist>;
@@ -1973,6 +1980,29 @@ export class DatabaseStorage implements IStorage {
 
   async deleteGalleryImage(id: number): Promise<void> {
     await db.delete(galleryImages).where(eq(galleryImages.id, id));
+  }
+
+  async listBooks(): Promise<Book[]> {
+    return await db.select().from(books).orderBy(books.displayOrder, books.id);
+  }
+
+  async getBook(id: number): Promise<Book | undefined> {
+    const [row] = await db.select().from(books).where(eq(books.id, id)).limit(1);
+    return row;
+  }
+
+  async createBook(data: InsertBook): Promise<Book> {
+    const [created] = await db.insert(books).values(data).returning();
+    return created;
+  }
+
+  async updateBook(id: number, data: Partial<InsertBook>): Promise<Book | undefined> {
+    const [updated] = await db.update(books).set(data).where(eq(books.id, id)).returning();
+    return updated;
+  }
+
+  async deleteBook(id: number): Promise<void> {
+    await db.delete(books).where(eq(books.id, id));
   }
 
   async getContactSubmissions(filters?: { subject?: string; status?: string }): Promise<ContactSubmission[]> {

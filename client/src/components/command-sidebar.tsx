@@ -63,6 +63,7 @@ export function CommandSidebar() {
     ...(isAdmin || isExec ? [{ title: "Music", url: "/command/music", icon: Music }] : []),
     ...(isAdmin || isExec || isStaff ? [{ title: "Wiki", url: "/command/wiki", icon: BookOpen }] : []),
     ...(isAdmin || isExec || isStaff ? [{ title: "Projects", url: "/command/projects", icon: Folder }] : []),
+    ...(isAdmin || isExec || isStaff ? [{ title: "Books", url: "/command/books", icon: BookOpen }] : []),
     ...(isAdmin ? [{ title: "News", url: "/command/news", icon: Newspaper }] : []),
     ...(isAdmin ? [{ title: "Gallery", url: "/command/gallery", icon: Images }] : []),
     ...(isAdmin ? [{ title: "Media", url: "/command/media", icon: FolderOpen }] : []),

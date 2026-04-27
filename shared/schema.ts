@@ -787,6 +787,21 @@ export const insertGalleryImageSchema = createInsertSchema(galleryImages).omit({
 export type GalleryImage = typeof galleryImages.$inferSelect;
 export type InsertGalleryImage = z.infer<typeof insertGalleryImageSchema>;
 
+export const books = pgTable("books", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  title: text("title").notNull(),
+  author: text("author").notNull(),
+  coverImageUrl: text("cover_image_url").notNull(),
+  description: text("description"),
+  buyLink: text("buy_link"),
+  displayOrder: integer("display_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertBookSchema = createInsertSchema(books).omit({ id: true, createdAt: true });
+export type Book = typeof books.$inferSelect;
+export type InsertBook = z.infer<typeof insertBookSchema>;
+
 export const postSparks = pgTable("post_sparks", {
   postId: integer("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),

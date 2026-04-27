@@ -4819,14 +4819,22 @@ export async function registerRoutes(
   app.use("/api/canvas", canvasRouter);
 
   app.get("/api/meta", async (_req, res) => {
+    // Task #635 — exempt from boot-gate; return an empty payload (not 503)
+    // if the DB pool isn't ready, so the SPA falls back to its inlined
+    // snapshot / built-in defaults instead of seeing a transient error.
     try {
       const settings = await storage.getPlatformSettings();
-      res.json({
-        faviconUrl: settings["platform.faviconUrl"] || null,
-        ogImageUrl: settings["platform.ogImageUrl"] || null,
-      });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
+      res
+        .set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+        .json({
+          faviconUrl: settings["platform.faviconUrl"] || null,
+          ogImageUrl: settings["platform.ogImageUrl"] || null,
+        });
+    } catch {
+      res
+        .status(200)
+        .set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+        .json({ faviconUrl: null, ogImageUrl: null });
     }
   });
 
@@ -4950,6 +4958,10 @@ export async function registerRoutes(
   );
 
   app.get("/api/platform-settings", async (_req, res) => {
+    // Task #635 — exempt from boot-gate; on any DB error return an empty
+    // object (not 503/500) so the SPA falls back to its inlined snapshot
+    // / built-in defaults during the brief window where the listener is
+    // up but the pool is still warming.
     try {
       const settings = await storage.getPlatformSettings();
       res
@@ -4958,8 +4970,14 @@ export async function registerRoutes(
         .set("Expires", "0")
         .set("Surrogate-Control", "no-store")
         .json(settings);
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
+    } catch {
+      res
+        .status(200)
+        .set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+        .set("Pragma", "no-cache")
+        .set("Expires", "0")
+        .set("Surrogate-Control", "no-store")
+        .json({});
     }
   });
 

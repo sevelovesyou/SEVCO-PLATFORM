@@ -1,5 +1,6 @@
 import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
+import { getInlinedPlatformSettings, getInlinedMeta } from "./lib/inlinedSettings";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -36,6 +37,30 @@ import { VoiceProvider } from "@/contexts/voice-context";
 import { VoiceFloatingIndicator } from "@/components/voice-floating-indicator";
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import { CommandPageLayout } from "@/pages/command-page";
+
+// Task #635 — Seed React Query and the favicon link from the inlined HTML
+// snapshot before the React tree mounts. Guarantees the very first paint
+// after a publish uses the correct platform identity instead of briefly
+// flashing built-in defaults while the boot gate / API warm up. The seeded
+// data is marked stale (updatedAt: 0) so a background refetch still runs
+// to pick up any drift between the inlined snapshot and the live DB.
+(function seedInlinedPlatformSettings() {
+  if (typeof document === "undefined") return;
+  const snapshot = getInlinedPlatformSettings();
+  if (!snapshot || Object.keys(snapshot).length === 0) return;
+  try {
+    const favicon = snapshot["platform.faviconUrl"];
+    if (favicon) {
+      const link = document.getElementById("dynamic-favicon") as HTMLLinkElement | null;
+      if (link) link.href = favicon;
+    }
+    queryClient.setQueryData(["/api/platform-settings"], snapshot, { updatedAt: 0 });
+    const meta = getInlinedMeta();
+    if (meta) queryClient.setQueryData(["/api/meta"], meta, { updatedAt: 0 });
+  } catch {
+    // Never let pre-mount seeding break app startup.
+  }
+})();
 
 const Landing = lazy(() => import("@/pages/landing"));
 const Home = lazy(() => import("@/pages/home"));

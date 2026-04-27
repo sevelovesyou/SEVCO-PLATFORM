@@ -5,8 +5,7 @@ import viteConfig from "../vite.config";
 import fs from "fs";
 import path from "path";
 import { nanoid } from "nanoid";
-import { storage } from "./storage";
-import { injectOgMeta } from "./static";
+import { injectPlatformMetaIntoHtml } from "./static";
 
 const viteLogger = createLogger();
 
@@ -51,26 +50,10 @@ export async function setupVite(server: Server, app: Express) {
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
 
-      try {
-        const platformSettings = await storage.getPlatformSettings();
-        const proto = (req.headers["x-forwarded-proto"] as string) || "https";
-        const host = req.hostname;
-        const canonicalUrl = `${proto}://${host}`;
-        const rawOgImage = platformSettings["platform.ogImageUrl"];
-        const resolvedOgImage = rawOgImage
-          ? /^https?:\/\//.test(rawOgImage)
-            ? rawOgImage
-            : `${proto}://${host}${rawOgImage.startsWith("/") ? "" : "/"}${rawOgImage}`
-          : `${proto}://${host}/favicon.jpg`;
-        template = injectOgMeta(
-          template,
-          resolvedOgImage,
-          platformSettings["platform.description"],
-          canonicalUrl,
-        );
-      } catch {
-        // Don't block page render if analytics settings fail to load
-      }
+      template = await injectPlatformMetaIntoHtml(template, {
+        proto: (req.headers["x-forwarded-proto"] as string) || "https",
+        host: req.hostname,
+      });
 
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);

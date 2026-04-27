@@ -1250,6 +1250,11 @@ app.use((req, res, next) => {
   if (!req.path.startsWith("/api/")) return next();
   if (req.path === "/api/platform-health") return next();
   if (req.path === "/api/stripe/webhook") return next();
+  // Task #635 — Read-only public-meta GETs are pure single-table reads
+  // against platform_settings (Task #46) and must serve the SPA's first
+  // paint with the correct visual identity. Writes stay gated.
+  if (req.method === "GET" && req.path === "/api/platform-settings") return next();
+  if (req.method === "GET" && req.path === "/api/meta") return next();
   return res.status(503).json({
     booting: true,
     message: "Server is finishing startup, retry in a moment",

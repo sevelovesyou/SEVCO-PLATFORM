@@ -31855,3 +31855,63 @@ Simplify the `/projects` listing page so the projects themselves are the visual 
 
 ---
 
+## Task — search-ticker-jiggle-fix
+> Merged: 2026-04-27
+
+# Fix Home Search Ticker Glitch + Playful Letter Jiggle/Vanish on Hover
+
+## What & Why
+The home page search bar's rotating placeholder (Task #626) currently looks like it switches **twice** on every tick. The cause: the native `<input placeholder>` attribute is swapped at the same moment the animated overlay span is fading/sliding — during the AnimatePresence cross-fade, the underlying native placeholder briefly bleeds through the `bg-card` mask, so the user sees old → new → animate → new. We also want the ticker to feel alive: on hover, the placeholder letters should jiggle and then disappear (sequentially), inviting the user to start typing.
+
+## Done looks like
+### Glitch fix
+- The placeholder swap is visually a **single, clean** transition — no flash of the next text behind the animating overlay, no "double switch" feel.
+- When the ticker is active (2+ entries and the input is empty/unfocused), the native `<input>` placeholder is **empty** and the overlay span is the sole visible placeholder.
+- The native input also gets `placeholder:text-transparent` as a belt-and-suspenders measure so even if `placeholder` is briefly non-empty during a re-render it can't bleed through.
+- The overlay span no longer needs the `bg-card` colour mask (since there is nothing to mask) and works correctly regardless of the surrounding card background or focus shadow state.
+- AnimatePresence transition is tightened so the outgoing span has fully exited before the incoming span starts (`mode="wait"` is already set; verify durations align — out and in each ~180ms, eased — so the total feels like a single beat, not two).
+- With 0 or 1 entries, the input falls back to using the native `placeholder` exactly as before (no overlay, no animation).
+- `prefers-reduced-motion` still bypasses the slide and uses an instant swap.
+
+### Playful hover behavior
+- The visible overlay placeholder is rendered as **per-character `<motion.span>`s** (one span per character, including spaces — spaces use a fixed-width non-breaking space so the layout doesn't collapse).
+- On **hover** of the search bar wrapper:
+  - Each letter does a quick **jiggle** — small random rotation (≈ ±10°) plus a small vertical bounce (≈ ±3px) — staggered left-to-right with about 25–35ms per letter so it ripples across the word.
+  - Immediately after the jiggle wave, the letters **vanish** sequentially (fade + scale to 0 + small upward drift), again staggered left-to-right, completing in well under 500ms total.
+  - The auto-rotation timer is **paused** while hovered so the word doesn't change mid-vanish.
+  - The cursor stays an `text` cursor and clicks still focus the input (the overlay is `pointer-events: none`).
+- On **hover end**:
+  - The current word's letters reappear with the inverse staggered fade/scale/jiggle so it lands gracefully.
+  - The auto-rotation resumes, and the next scheduled tick lands smoothly via the existing AnimatePresence flow.
+- On **focus / typing**: the overlay disappears immediately as it does today (no jiggle on the way out — focus takes precedence).
+- `prefers-reduced-motion`: hover effect is reduced to a plain whole-word fade out / fade in (no per-letter jiggle, no stagger), still pausing the rotation while hovered.
+- All existing `data-testid`s on the input and the entry overlay are preserved; per-letter spans don't need their own test ids.
+
+## Out of scope
+- Changing the placeholder source / parsing / settings UI
+- Changing the rotation interval (still ~3000ms; controllable cadence is a separate proposed task)
+- Adding hover effects to the search results page bar or the global search overlay (those just show one random entry, no animation, per Task #626)
+- Sound, confetti, or other on-hover effects
+- Replacing framer-motion with another animation lib
+
+## Steps
+1. **Stop double-rendering the placeholder** — In `client/src/pages/landing.tsx` `HomeSearchInput`, change `placeholder={current}` so it is the empty string whenever `showOverlay` is true (i.e. when the overlay owns the visible text). Keep using `current` as the native placeholder only when the overlay is hidden (single-entry / focused / typing). Add `placeholder:text-transparent` to the input's classes so any in-flight value still can't bleed through. Remove `bg-card` from the overlay span — it is no longer needed.
+2. **Tighten transition** — Lower the AnimatePresence enter/exit `duration` for the auto-tick from `0.4` to about `0.18` (with `ease: "easeOut"`). With `mode="wait"` already set, this guarantees the outgoing span has fully exited before the incoming starts and the swap reads as one beat.
+3. **Per-character rendering** — Replace the single `motion.span` containing `{current}` with a wrapper `motion.span` that maps `current.split("")` to per-character `motion.span`s (`Array.from(current)` is fine for emoji/unicode safety). Spaces render as `\u00A0` so layout is preserved. Each letter span carries its own `variants` for `idle`, `jiggle`, and `vanish` and inherits stagger from its parent's `transition.staggerChildren`.
+4. **Hover state + variants** — Add a `hovered` boolean state on `HomeSearchInput`, toggled by `onMouseEnter` / `onMouseLeave` on the input's outer relative wrapper. While `hovered` is true, also pause the rotation timer (extend the existing `paused` derivation: `paused = focused || hasValue || hovered`). Drive the per-letter `motion.span` `animate` prop between `"shown"` and `"vanished"` based on `hovered`, with `transition.staggerChildren` ≈ 0.03s and a brief `whileTap`-style jiggle keyframes (`rotate: [0, -10, 8, -6, 0]`, `y: [0, -3, 3, -1, 0]`) that runs once at the start of the vanish, then the letter fades + scales to 0 + drifts up. Reverse on hover-out.
+5. **Reduced-motion guard** — Wrap the per-letter / stagger / jiggle keyframes behind `useReducedMotion()`. When reduced motion is requested: render letters as one block, skip the jiggle, and use a single-element fade on hover (and instant swap on tick) — but keep the rotation-pause-on-hover behavior since that is a UX nicety, not motion.
+6. **Verify** — Confirm:
+   - With 2 entries, the auto-tick visually swaps once (no double flash).
+   - With 1 entry, no overlay renders and the native placeholder shows as before.
+   - Hovering the bar pauses rotation, letters jiggle then vanish left-to-right, and reappear on un-hover.
+   - Focusing or typing instantly clears the overlay (no leftover ghost text).
+   - `prefers-reduced-motion: reduce` does a single fade with no per-letter motion.
+   - Click target / focus behavior is unchanged (overlay stays `pointer-events: none`).
+
+## Relevant files
+- `client/src/pages/landing.tsx:44-115` (`HomeSearchInput`), `577-628` (call site, list parsing)
+- `client/src/lib/search-placeholders.ts` (no change needed — parser stays as-is)
+
+
+---
+

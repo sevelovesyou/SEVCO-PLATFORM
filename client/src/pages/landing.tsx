@@ -51,13 +51,14 @@ function HomeSearchInput({
   placeholders: string[];
 }) {
   const [focused, setFocused] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const [index, setIndex] = useState(0);
   const reducedMotion = useReducedMotion();
 
   const list = placeholders.length > 0 ? placeholders : ["/"];
   const hasMultiple = list.length >= 2;
   const hasValue = value.length > 0;
-  const paused = focused || hasValue;
+  const paused = focused || hasValue || hovered;
   const listKey = list.join("|");
 
   useEffect(() => {
@@ -74,19 +75,57 @@ function HomeSearchInput({
 
   const safeIndex = Math.min(index, list.length - 1);
   const current = list[safeIndex];
-  const showOverlay = hasMultiple && !hasValue;
-  const duration = reducedMotion ? 0 : 0.4;
+  const showOverlay = hasMultiple && !hasValue && !focused;
+  const tickDuration = reducedMotion ? 0 : 0.18;
+
+  const chars = useMemo(() => Array.from(current), [current]);
+
+  const containerVariants = {
+    shown: {
+      transition: { staggerChildren: 0.03, staggerDirection: -1 as const },
+    },
+    vanished: {
+      transition: { staggerChildren: 0.03, staggerDirection: 1 as const },
+    },
+  };
+
+  const letterVariants = {
+    shown: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      rotate: 0,
+      transition: { duration: 0.2, ease: "easeOut" as const },
+    },
+    vanished: {
+      opacity: [1, 1, 1, 0],
+      y: [0, -3, 3, -8],
+      scale: [1, 1, 1, 0],
+      rotate: [0, -10, 8, 0],
+      transition: {
+        duration: 0.4,
+        times: [0, 0.25, 0.5, 1],
+        ease: "easeOut" as const,
+      },
+    },
+  };
 
   return (
-    <div className="relative flex-1">
+    <div
+      className="relative flex-1"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        placeholder={current}
-        className="w-full bg-transparent py-3 px-3 text-sm outline-none placeholder:text-muted-foreground"
+        placeholder={showOverlay ? "" : current}
+        className={`w-full bg-transparent py-3 px-3 text-sm outline-none ${
+          showOverlay ? "placeholder:text-transparent" : "placeholder:text-muted-foreground"
+        }`}
         autoComplete="off"
         data-testid="input-home-search"
       />
@@ -102,11 +141,37 @@ function HomeSearchInput({
               initial={reducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={reducedMotion ? { opacity: 0, y: 0 } : { opacity: 0, y: -8 }}
-              transition={{ duration }}
-              className="text-sm text-muted-foreground bg-card whitespace-nowrap"
+              transition={{ duration: tickDuration, ease: "easeOut" }}
+              className="text-sm text-muted-foreground whitespace-nowrap"
               data-testid={`search-placeholder-entry-${safeIndex}`}
             >
-              {current}
+              {reducedMotion ? (
+                <motion.span
+                  animate={{ opacity: hovered ? 0 : 1 }}
+                  transition={{ duration: 0.2 }}
+                  className="inline-block"
+                >
+                  {current}
+                </motion.span>
+              ) : (
+                <motion.span
+                  className="inline-flex"
+                  variants={containerVariants}
+                  initial="shown"
+                  animate={hovered ? "vanished" : "shown"}
+                >
+                  {chars.map((ch, i) => (
+                    <motion.span
+                      key={i}
+                      className="inline-block"
+                      style={{ transformOrigin: "center" }}
+                      variants={letterVariants}
+                    >
+                      {ch === " " ? "\u00A0" : ch}
+                    </motion.span>
+                  ))}
+                </motion.span>
+              )}
             </motion.span>
           </AnimatePresence>
         </div>

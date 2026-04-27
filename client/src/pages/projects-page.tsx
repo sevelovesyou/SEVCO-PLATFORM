@@ -3,7 +3,7 @@ import { StaggerGrid, StaggerItem } from "@/components/stagger-grid";
 import { useQuery } from "@tanstack/react-query";
 import { PageHead } from "@/components/page-head";
 import { Link } from "wouter";
-import { Folder, Plus, Globe, AlertCircle, GitBranch, Users, Zap, ArrowRight } from "lucide-react";
+import { Folder, Plus, Globe, AlertCircle, ArrowRight } from "lucide-react";
 import { getIcon } from "@/lib/icon-map";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,13 +17,6 @@ import { useAuth } from "@/hooks/use-auth";
 type ProjectWithSpark = Project & { sparkCount?: number; sparkedByCurrentUser?: boolean };
 
 const CAN_MANAGE_PROJECTS = ["admin", "executive", "staff"];
-
-const PROJECT_PILLS = [
-  { icon: GitBranch, label: "Open Source" },
-  { icon: Users, label: "Community Driven" },
-  { icon: Zap, label: "Live Updates" },
-  { icon: Folder, label: "Contribute" },
-];
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
@@ -73,31 +66,50 @@ function ProjectCard({ project }: { project: ProjectWithSpark }) {
   const MenuIcon = resolveLucideIcon(project.menuIcon) ?? Folder;
   const href = project.linkUrl || `/projects/${project.slug}`;
   const isExternal = href.startsWith("http");
+  const heroSrc = project.heroImageUrl || project.logoUrl || project.appIcon || null;
   const cardContent = (
     <div
       data-testid={`card-project-${project.id}`}
-      className="group border border-white/8 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/15 hover:shadow-md transition-all duration-200 cursor-pointer p-5 flex flex-col gap-3 h-full"
+      className="group border border-white/8 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/15 hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden flex flex-col h-full"
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="h-10 w-10 flex items-center justify-center shrink-0 overflow-hidden">
-          {project.appIcon ? (
-            <img
-              src={resolveImageUrl(project.appIcon)}
-              alt={project.name}
-              className="h-10 w-10 rounded-lg object-cover"
-            />
-          ) : (
-            <MenuIcon className="h-6 w-6 text-muted-foreground" />
-          )}
+      {heroSrc ? (
+        <div className="relative w-full aspect-[16/9] overflow-hidden rounded-t-xl bg-white/[0.04]">
+          <img
+            src={resolveImageUrl(heroSrc)}
+            alt={project.name}
+            className="absolute inset-0 h-full w-full object-cover"
+            data-testid={`img-project-hero-${project.id}`}
+          />
         </div>
-        <StatusBadge status={project.status} />
-      </div>
+      ) : (
+        <div
+          className="relative w-full aspect-[16/9] overflow-hidden rounded-t-xl bg-white/[0.04] flex items-center justify-center"
+          data-testid={`img-project-hero-${project.id}`}
+        >
+          <MenuIcon className="h-12 w-12 text-muted-foreground/60" />
+        </div>
+      )}
+      <div className="p-6 flex flex-col gap-3 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <div className="h-10 w-10 flex items-center justify-center shrink-0 overflow-hidden">
+            {project.appIcon ? (
+              <img
+                src={resolveImageUrl(project.appIcon)}
+                alt={project.name}
+                className="h-10 w-10 rounded-lg object-cover"
+              />
+            ) : (
+              <MenuIcon className="h-6 w-6 text-muted-foreground" />
+            )}
+          </div>
+          <StatusBadge status={project.status} />
+        </div>
         <div className="min-w-0 flex-1">
-          <h3 className="font-semibold text-base group-hover:text-primary transition-colors truncate">
+          <h3 className="font-semibold text-lg md:text-xl group-hover:text-primary transition-colors truncate">
             {project.name}
           </h3>
           {project.description && (
-            <p className="text-muted-foreground text-sm mt-1 line-clamp-3">
+            <p className="text-muted-foreground text-sm mt-1 line-clamp-4">
               {project.description}
             </p>
           )}
@@ -118,6 +130,7 @@ function ProjectCard({ project }: { project: ProjectWithSpark }) {
           </div>
         </div>
       </div>
+    </div>
   );
   if (isExternal) {
     return (
@@ -131,18 +144,21 @@ function ProjectCard({ project }: { project: ProjectWithSpark }) {
 
 function ProjectCardSkeleton() {
   return (
-    <div className="border border-white/8 rounded-xl bg-white/[0.03] p-5 flex flex-col gap-3">
-      <div className="flex items-start justify-between">
-        <Skeleton className="h-10 w-10 rounded-lg" />
-        <Skeleton className="h-5 w-20 rounded-full" />
-      </div>
-      <div>
-        <Skeleton className="h-4 w-3/4 mb-2" />
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-4/5 mt-1" />
-      </div>
-      <div className="flex justify-between">
-        <Skeleton className="h-5 w-16 rounded-full" />
+    <div className="border border-white/8 rounded-xl bg-white/[0.03] overflow-hidden flex flex-col">
+      <Skeleton className="w-full aspect-[16/9] rounded-none" />
+      <div className="p-6 flex flex-col gap-3">
+        <div className="flex items-start justify-between">
+          <Skeleton className="h-10 w-10 rounded-lg" />
+          <Skeleton className="h-5 w-20 rounded-full" />
+        </div>
+        <div>
+          <Skeleton className="h-5 w-3/4 mb-2" />
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-4/5 mt-1" />
+        </div>
+        <div className="flex justify-between">
+          <Skeleton className="h-5 w-16 rounded-full" />
+        </div>
       </div>
     </div>
   );
@@ -231,44 +247,14 @@ export default function ProjectsPage() {
         ogUrl="https://sevco.us/projects"
         jsonLd={PROJECTS_JSON_LD}
       />
-      {/* ── HERO ── */}
-      <div
-        className="relative overflow-hidden bg-[#0a0a12] px-6 py-20 md:py-28"
-        data-testid="section-projects-hero"
-      >
-        {/* Animated gradient blobs */}
-        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute -top-20 -left-28 w-[500px] h-[500px] rounded-full bg-green-600/20 blur-[120px] motion-safe:animate-[pulse_8s_ease-in-out_infinite]" />
-          <div className="absolute -bottom-20 -right-28 w-[400px] h-[400px] rounded-full bg-emerald-500/15 blur-[100px] motion-safe:animate-[pulse_10s_ease-in-out_infinite_2s]" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[200px] rounded-full bg-teal-600/8 blur-[80px] motion-safe:animate-[pulse_12s_ease-in-out_infinite_4s]" />
-        </div>
-
-        {/* Subtle grid overlay */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-[0.04]"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-          }}
-          aria-hidden="true"
-        />
-
-        <div className="relative z-10 max-w-5xl mx-auto flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold text-green-400 uppercase tracking-wider mb-5">
-              <Folder className="h-3.5 w-3.5" />
-              SEVCO Projects
-            </div>
-            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight text-white">
-              <span className="bg-gradient-to-r from-green-400 via-emerald-300 to-teal-400 bg-clip-text text-transparent">
-                SEVCO Projects
-              </span>
-            </h1>
-            <p className="text-white/60 mt-3 max-w-md text-sm">
-              Companies, brands, and initiatives across the SEVCO portfolio.
-            </p>
-          </div>
+      <div className="w-full px-4 md:px-8 py-8">
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <h1
+            className="text-2xl md:text-3xl font-bold tracking-tight"
+            data-testid="heading-projects"
+          >
+            Projects
+          </h1>
           {canManage && (
             <Link href="/projects/new">
               <Button
@@ -281,30 +267,6 @@ export default function ProjectsPage() {
             </Link>
           )}
         </div>
-      </div>
-
-      {/* ── FEATURE PILLS ── */}
-      <section
-        className="bg-[#0f0f1a] border-y border-white/5 px-4 py-5"
-        data-testid="section-projects-pills"
-      >
-        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-8 md:gap-12">
-          {PROJECT_PILLS.map((pill) => (
-            <div
-              key={pill.label}
-              className="flex items-center gap-2.5"
-              data-testid={`project-pill-${pill.label.toLowerCase().replace(/\s+/g, "-")}`}
-            >
-              <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-green-500/15">
-                <pill.icon className="h-4 w-4 text-green-400" />
-              </div>
-              <p className="text-xs font-semibold text-white/80">{pill.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <div className="max-w-5xl mx-auto px-6 py-8">
         <Tabs value={statusFilter} onValueChange={setStatusFilter} className="mb-8">
           <TabsList data-testid="tabs-status-filter" className="flex flex-wrap h-auto gap-1 bg-muted/60 p-1">
             {STATUS_FILTERS.map((f) => (
@@ -321,7 +283,7 @@ export default function ProjectsPage() {
         </Tabs>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
               <ProjectCardSkeleton key={i} />
             ))}
@@ -349,7 +311,7 @@ export default function ProjectsPage() {
             )}
           </div>
         ) : (
-          <StaggerGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <StaggerGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((project) => (
               <StaggerItem key={project.id} className="h-full">
                 <ProjectCard project={project} />
